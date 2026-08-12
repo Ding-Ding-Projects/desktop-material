@@ -13,6 +13,8 @@
  * because those outlive any single render of `App`.
  */
 
+import { homedir } from 'os'
+
 import { t } from '../../lib/i18n'
 import {
   ICLICommandOutputEvent,
@@ -36,11 +38,36 @@ import {
   IMd3TerminalSession,
   IMd3TerminalViewProps,
   Md3TerminalSessionStatus,
+  stripTerminalControlSequences,
 } from './md3-terminal-view'
 import { IMd3SearchBinding } from './md3-shell'
 
 /** Scrollback bound per session. Matches the integrated terminal's own cap. */
 const MaximumLines = 4000
+
+/**
+ * The program the Terminal destination actually drives.
+ *
+ * Every command runs through the CLI workbench's allowlisted
+ * `custom-git-command` operation, so this is Git and nothing else. The
+ * contract's pill reads `<shell> — <repository>`; naming a shell the app does
+ * not run — `bash`, say — would be the pill lying about what a typed command
+ * will reach.
+ */
+const ShellName = 'git'
+
+/**
+ * How many trailing path segments the prompt keeps.
+ *
+ * The contract's prompt is `~/code/desktop-material $` — a short, abbreviated
+ * working directory. The full path is kept on the session and is what the
+ * prompt's tooltip and the input's accessible name say, so nothing is hidden;
+ * this is only what the 12px monospace row draws.
+ */
+const PromptSegments = 2
+
+/** Marks the segments an abbreviated prompt left out. */
+const Ellipsis = '…'
 
 let lineSequence = 0
 let runSequence = 0
@@ -55,6 +82,102 @@ interface IMd3TerminalControllerSession {
   lines: ReadonlyArray<IMd3TerminalLine>
   /** The CLI workbench run this session is waiting on, or null when idle. */
   runId: string | null
+  /**
+   * The tail of the last output chunk, when it did not end at a line boundary.
+   *
+   * The workbench streams arbitrary chunk boundaries, so a line can arrive in
+   * two pieces. Emitting each piece as its own line is how one `git status`
+   * row becomes two half-rows in the scroller, so the remainder waits here for
+   * the rest of itself and is flushed when the run ends.
+   */
+  pending: string
+}
+
+/**
+ * Normalise a filesystem path for display: forward slashes, no trailing
+ * separator. Windows paths are what this mostly sees, and a prompt full of
+ * backslashes is not what the contract draws.
+ */
+function normalizePathForDisplay(value: string): string {
+  return value.replace(/\\/g, '/').replace(/\/+$/, '')
+}
+
+/** The repository's own folder name — what `Repository.name` resolves to. */
+export function md3TerminalRepositoryName(repositoryPath: string): string {
+  const segments = normalizePathForDisplay(repositoryPath)
+    .split('/')
+    .filter(segment => segment.length > 0)
+  return segments[segments.length - 1] ?? repositoryPath
+}
+
+/**
+ * Abbreviate a working directory the way a shell prompt does: the home
+ * directory collapses to `~`, and anything deeper than `PromptSegments` keeps
+ * its last segments behind an ellipsis.
+ *
+ * `homeDirectory` is a parameter rather than a call to `homedir()` inside so
+ * the mapping can be asserted for a Windows path on a Linux runner and the
+ * other way round.
+ */
+export function abbreviateMd3TerminalDirectory(
+  directory: string,
+  homeDirectory: string = homedir()
+): string {
+  const normalized = normalizePathForDisplay(directory)
+  if (normalized.length === 0) {
+    return directory
+  }
+
+  const home = normalizePathForDisplay(homeDirectory)
+  const foldCase = process.platform === 'win32'
+  const comparable = foldCase ? normalized.toLowerCase() : normalized
+  const comparableHome = foldCase ? home.toLowerCase() : home
+
+  const insideHome =
+    comparableHome.length > 0 &&
+    (comparable === comparableHome ||
+      comparable.startsWith(`${comparableHome}/`))
+
+  const remainder = insideHome ? normalized.slice(home.length) : normalized
+  const segments = remainder.split('/').filter(segment => segment.length > 0)
+
+  if (insideHome) {
+    return segments.length <= PromptSegments
+      ? ['~', ...segments].join('/')
+      : ['~', Ellipsis, ...segments.slice(-PromptSegments)].join('/')
+  }
+
+  return segments.length <= PromptSegments
+    ? normalized
+    : [Ellipsis, ...segments.slice(-PromptSegments)].join('/')
+}
+
+/** The contract's `termPrompt`: an abbreviated working directory and a `$`. */
+export function md3TerminalPrompt(
+  repositoryPath: string,
+  homeDirectory: string = homedir()
+): string {
+  return `${abbreviateMd3TerminalDirectory(repositoryPath, homeDirectory)} $`
+}
+
+/**
+ * The contract's shell pill: `<shell> — <repository>`.
+ *
+ * `ordinal` disambiguates a second shell on the same repository, because two
+ * pills reading `git — desktop-material` are two pills nobody can tell apart.
+ */
+export function md3TerminalSessionLabel(
+  repositoryPath: string,
+  ordinal: number
+): string {
+  const repository = md3TerminalRepositoryName(repositoryPath)
+  return ordinal <= 1
+    ? t('md3.terminal.sessionLabel', { shell: ShellName, repository })
+    : t('md3.terminal.sessionLabelNumbered', {
+        shell: ShellName,
+        repository,
+        number: String(ordinal),
+      })
 }
 
 export interface IMd3TerminalControllerHost {
@@ -154,18 +277,24 @@ export class Md3TerminalController {
     }
     sessionSequence++
     const id = `md3-terminal-${sessionSequence}`
+    const ordinal =
+      this.sessions.filter(session => session.repositoryPath === path).length +
+      1
     this.sessions = [
       ...this.sessions,
       {
         id,
-        label: t('md3.terminal.sessionLabel', {
-          number: String(this.sessions.length + 1),
-        }),
+        label: md3TerminalSessionLabel(path, ordinal),
         repositoryPath: path,
         status: 'ready',
         statusDetail: undefined,
-        lines: [line(t('md3.terminal.banner', { path }), 'out')],
+        // The contract's first line is the shell's own context line, painted
+        // in on-surface-variant rather than the on-surface of real output.
+        // Calling it `out` would make the app's own words indistinguishable
+        // from what a command printed.
+        lines: [line(t('md3.terminal.banner', { path }), 'prompt')],
         runId: null,
+        pending: '',
       },
     ]
     this.activeSessionId = id
@@ -182,20 +311,63 @@ export class Md3TerminalController {
     return this.sessions.find(session => session.runId === runId)
   }
 
+  /** Push already-complete lines onto a session, oldest first. */
+  private push(
+    session: IMd3TerminalControllerSession,
+    texts: ReadonlyArray<string>,
+    kind: IMd3TerminalLine['kind']
+  ): void {
+    if (texts.length === 0) {
+      return
+    }
+    const next = [...session.lines]
+    for (const text of texts) {
+      next.push(line(text, kind))
+    }
+    session.lines = next.slice(-MaximumLines)
+  }
+
+  /**
+   * Append one whole line the controller itself authored — a banner, a refusal
+   * or a failure notice. Never used for process output, which arrives in
+   * chunks and goes through `appendOutput`.
+   */
   private append(
     session: IMd3TerminalControllerSession,
     text: string,
     kind: IMd3TerminalLine['kind']
   ): void {
-    const next = [...session.lines]
-    // The workbench streams arbitrary chunk boundaries, so a chunk is split on
-    // its own newlines rather than assumed to be one line.
-    for (const part of text.split(/\r?\n/)) {
-      if (part.length > 0) {
-        next.push(line(part, kind))
-      }
+    this.push(session, [stripTerminalControlSequences(text)], kind)
+  }
+
+  /**
+   * Append a streamed output chunk.
+   *
+   * Git colours its output whenever the command asked it to, so the chunk can
+   * carry ANSI escape sequences that a plain-text renderer would draw as
+   * literal `[32m` noise; they are stripped here with the same function the
+   * view exports for the purpose. A chunk that stops mid-line leaves its tail
+   * in `pending` rather than being emitted as a line of its own.
+   */
+  private appendOutput(
+    session: IMd3TerminalControllerSession,
+    chunk: string
+  ): void {
+    const combined =
+      session.pending + stripTerminalControlSequences(chunk).replace(/\r/g, '')
+    const parts = combined.split('\n')
+    session.pending = parts.pop() ?? ''
+    this.push(session, parts, 'out')
+  }
+
+  /** Emit whatever a run left behind without a final newline. */
+  private flushPending(session: IMd3TerminalControllerSession): void {
+    if (session.pending.length === 0) {
+      return
     }
-    session.lines = next.slice(-MaximumLines)
+    const remainder = session.pending
+    session.pending = ''
+    this.push(session, [remainder], 'out')
   }
 
   private onOutput = (event: ICLICommandOutputEvent) => {
@@ -203,7 +375,7 @@ export class Md3TerminalController {
     if (session === undefined) {
       return
     }
-    this.append(session, event.data, 'out')
+    this.appendOutput(session, event.data)
     this.host.onChanged()
   }
 
@@ -214,6 +386,7 @@ export class Md3TerminalController {
     }
 
     session.runId = null
+    this.flushPending(session)
 
     if (event.state === 'completed') {
       session.status = 'ready'
@@ -261,7 +434,14 @@ export class Md3TerminalController {
       return
     }
 
-    this.append(session, `${session.repositoryPath}> ${trimmed}`, 'cmd')
+    // The contract's echo is `$ git status --short` — the prompt the user
+    // typed at, then the command. The full working directory would push a
+    // 60-character absolute path in front of every command in the scrollback.
+    this.append(
+      session,
+      `${md3TerminalPrompt(session.repositoryPath)} ${trimmed}`,
+      'cmd'
+    )
 
     const tokens = trimmed.split(/\s+/)
     const subcommand = tokens[0] === 'git' ? tokens[1] : tokens[0]
@@ -390,7 +570,8 @@ export class Md3TerminalController {
       label: session.label,
       status: session.status,
       lines: session.lines,
-      prompt: `${session.repositoryPath}>`,
+      prompt: md3TerminalPrompt(session.repositoryPath),
+      workingDirectory: session.repositoryPath,
       statusDetail: session.statusDetail,
     }
   }
@@ -409,6 +590,10 @@ export class Md3TerminalController {
     return {
       sessions: this.sessions.map(session => this.toViewSession(session)),
       activeSessionId: this.activeSessionId,
+      // A shell runs in a repository, so with none selected there is nothing to
+      // open one in. Reporting that here is what stops the `add` button and the
+      // empty state's action being controls that do nothing when pressed.
+      canCreateSession: this.repositoryPath !== null,
       search: viewSearch,
       input: this.input,
       onInputChange: this.onInputChange,

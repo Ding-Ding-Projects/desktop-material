@@ -1,5 +1,6 @@
 import * as React from 'react'
 import classNames from 'classnames'
+import { tFunny } from '../../lib/funny-level-text'
 import { t } from '../../lib/i18n'
 import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
 import { createObservableRef, ObservableRef } from '../lib/observable-ref'
@@ -13,6 +14,30 @@ import {
   Md3SearchField,
   Md3TonalButton,
 } from './md3-primitives'
+import {
+  IMd3BulkAction,
+  Md3BulkBar,
+  md3BulkExportMenuSpec,
+} from './md3-bulk-bar'
+import {
+  IMd3ListExport,
+  IMd3ListExportColumn,
+  Md3ListExportFormat,
+  serializeMd3ListExport,
+} from './md3-list-export'
+import {
+  md3ApplySelection,
+  md3BulkPartitionSummary,
+  md3BulkScope,
+  md3BulkScopeLabel,
+  md3InvertSelection,
+  md3PartitionBulk,
+  md3SelectionIntent,
+  md3ToggleSelectAll,
+} from './md3-list-selection'
+import { Md3MenuOverlay } from './md3-menu-overlay'
+import { Md3DestructiveGate } from './md3-destructive-gate'
+import { notify } from './md3-toast'
 
 /**
  * The Branches destination of the MD3 shell design contract
@@ -113,7 +138,16 @@ export interface IMd3BranchRow {
   /** The contract's second line: "Updated 12 minutes ago by Alice Lindqvist". */
   readonly meta: string
 
-  /** The short tip SHA the detail line opens with. */
+  /**
+   * The **abbreviated** tip SHA the detail line opens with — seven characters,
+   * as the contract's `tip 4f1c9ae` shows.
+   *
+   * A full forty-character object name is the wrong shape and must be
+   * abbreviated by whoever builds the row: at 10.5px it consumes most of the
+   * detail line, so the tracking and divergence clauses beside it are pushed
+   * out of the row's width and ellipsed away. Both values are `string`, so
+   * nothing but a test on the real adapter can catch the difference.
+   */
   readonly tipSha: string
 
   /**
@@ -122,9 +156,27 @@ export interface IMd3BranchRow {
    */
   readonly tracking: string | null
 
-  readonly ahead: number
+  /**
+   * Whether Git reports the configured upstream as gone. The detail line says
+   * so rather than claiming the branch still tracks a ref that no longer
+   * exists.
+   */
+  readonly upstreamGone?: boolean
 
-  readonly behind: number
+  /**
+   * How many commits this branch is ahead of its upstream, or `null` when
+   * nothing has measured it yet.
+   *
+   * `null` is not the same as `0` and must never be flattened into one: the
+   * ahead/behind store measures the checked-out branch and leaves every other
+   * branch unmeasured, so a zero here would tell the user that every branch in
+   * the list is in sync with its remote — a claim nobody made and the user
+   * cannot tell apart from a real answer.
+   */
+  readonly ahead: number | null
+
+  /** How many commits this branch is behind its upstream, or `null`. */
+  readonly behind: number | null
 
   readonly pullRequest?: IMd3BranchPullRequest
 
@@ -171,7 +223,16 @@ export interface IMd3MergeAllStatus {
 
   readonly completed: number
 
-  readonly total: number
+  /**
+   * How many branches the run will touch in all, or `null` when the
+   * orchestrator has not published a count.
+   *
+   * `null` is the honest answer while a run reports only what it has finished
+   * and what it is doing right now: inventing a denominator from those two
+   * ("3 of 4" when twelve branches are queued) puts a bar near its end for the
+   * whole run and tells the user a total nobody counted.
+   */
+  readonly total: number | null
 }
 
 /** The phases that mean the run is over and the button may be pressed again. */
@@ -192,18 +253,36 @@ export function md3MergeAllRunning(
  * The percentage and the already-localized label the pane header's progress bar
  * should show for a merge-all run, or `null` when nothing is running.
  *
+ * A `null` `percent` means the run is genuinely indeterminate — the total is
+ * not known, so no fraction of it can be — and the bar should render its
+ * indeterminate state rather than a number. It is distinguishable from "no run
+ * at all", which is this function returning `null` outright.
+ *
  * Exported so the shell can compute the same values straight from its own
  * merge-all state rather than waiting for the view to report them.
  */
 export function md3MergeAllProgress(
   status: IMd3MergeAllStatus | null | undefined
-): { readonly percent: number; readonly label: string } | null {
+): { readonly percent: number | null; readonly label: string } | null {
   if (!md3MergeAllRunning(status) || status === null || status === undefined) {
     return null
   }
 
+  const done = Math.max(status.completed, 0)
+
+  if (status.total === null) {
+    const label =
+      status.currentBranch === null
+        ? t('md3.branches.mergeAllProgressUnknown', { completed: String(done) })
+        : t('md3.branches.mergeAllProgressBranchUnknown', {
+            branch: status.currentBranch,
+            completed: String(done),
+          })
+    return { percent: null, label }
+  }
+
   const total = Math.max(status.total, 1)
-  const completed = Math.min(Math.max(status.completed, 0), total)
+  const completed = Math.min(done, total)
   // Never report 0 while work is genuinely running: a bar sitting at zero for
   // the whole preparing phase is indistinguishable from a bar that is stuck.
   const percent = Math.max(5, Math.round((completed / total) * 100))
@@ -366,7 +445,9 @@ export interface IMd3BranchesViewProps {
 
   /**
    * Republishes merge-all progress to whatever owns the pane header's progress
-   * bar. `(null, null)` means the run is over and the bar should disappear.
+   * bar. `(null, null)` means the run is over and the bar should disappear; a
+   * `null` percentage with a label means the run is in flight but its total is
+   * unknown, so the bar is indeterminate rather than at zero.
    */
   readonly onMergeAllProgress?: (
     progress: number | null,
@@ -407,7 +488,73 @@ export interface IMd3BranchesViewProps {
   /** Whether any branch is hidden right now, enabling "Restore all branches". */
   readonly hasHiddenBranches?: boolean
 
+  /**
+   * Receives a finished bulk export. Omit it and the export button is not
+   * rendered at all, rather than offered and doing nothing.
+   */
+  readonly onExportBranches?: (
+    payload: IMd3ListExport,
+    branches: ReadonlyArray<IMd3BranchRow>
+  ) => void
+
+  /**
+   * Copies text to the clipboard. Omit it and "Copy names" is not offered —
+   * the same rule: a control that cannot work is not drawn.
+   */
+  readonly onCopyText?: (text: string) => void
+
   readonly className?: string
+}
+
+/**
+ * The export schema for a branch row.
+ *
+ * Every field the row renders, plus the identity it is keyed by. Nothing here
+ * is multiline, so no format drops anything and the picker says so by
+ * offering every format without a warning — which is only true because this
+ * schema has been checked, not assumed.
+ */
+export const Md3BranchExportColumns: ReadonlyArray<IMd3ListExportColumn> = [
+  { name: 'name' },
+  { name: 'group' },
+  { name: 'meta' },
+  { name: 'tipSha' },
+  { name: 'tracking' },
+  { name: 'ahead' },
+  { name: 'behind' },
+  { name: 'pullRequest' },
+  { name: 'isCurrent' },
+  { name: 'isPinned' },
+  { name: 'hasWorktree' },
+]
+
+/**
+ * Flatten one branch for export.
+ *
+ * `ahead` and `behind` stay empty rather than becoming `0` when nothing has
+ * measured them: a zero in an exported file is read as "in sync", and a file
+ * that says every branch is in sync when nothing compared any of them is a
+ * claim the reader has no way to doubt.
+ */
+export function md3BranchExportRecord(
+  branch: IMd3BranchRow
+): Readonly<Record<string, string | number | boolean>> {
+  return {
+    name: branch.name,
+    group: branch.group,
+    meta: branch.meta,
+    tipSha: branch.tipSha,
+    tracking: branch.tracking ?? '',
+    ahead: branch.ahead === null ? '' : branch.ahead,
+    behind: branch.behind === null ? '' : branch.behind,
+    pullRequest:
+      branch.pullRequest === undefined
+        ? ''
+        : `#${branch.pullRequest.number} ${branch.pullRequest.state}`,
+    isCurrent: branch.isCurrent,
+    isPinned: branch.isPinned === true,
+    hasWorktree: branch.hasWorktree === true,
+  }
 }
 
 /** The contract's `branchRows` grouping order. */
@@ -433,10 +580,16 @@ function branchIcon(branch: IMd3BranchRow): MaterialSymbolName {
   return branch.group === 'Remote' ? 'cloud' : 'merge_type'
 }
 
+/** Whether a row's divergence has actually been measured. */
+export function md3BranchComparisonKnown(branch: IMd3BranchRow): boolean {
+  return branch.ahead !== null && branch.behind !== null
+}
+
 /**
  * The contract's `detail` string:
  * "tip 4f1c9ae · tracks origin/development · ↑3 ↓0 · PR #421 open", with
- * "in sync" replacing the divergence clause when there is none.
+ * "in sync" replacing the divergence clause when there is none and
+ * "not compared yet" replacing it when nothing has measured this branch.
  */
 export function md3BranchDetail(branch: IMd3BranchRow): string {
   const parts = [t('md3.branches.detail.tip', { sha: branch.tipSha })]
@@ -445,15 +598,24 @@ export function md3BranchDetail(branch: IMd3BranchRow): string {
     parts.push(t('md3.branches.detail.trackingRemote'))
   } else if (branch.tracking === null) {
     parts.push(t('md3.branches.detail.untracked'))
+  } else if (branch.upstreamGone === true) {
+    parts.push(
+      t('md3.branches.detail.tracksGone', { upstream: branch.tracking })
+    )
   } else {
     parts.push(t('md3.branches.detail.tracks', { upstream: branch.tracking }))
   }
 
-  if (branch.ahead > 0 || branch.behind > 0) {
+  const { ahead, behind } = branch
+  if (ahead === null || behind === null) {
+    // Nothing measured this branch, so neither "in sync" nor a pair of zeroes
+    // may be printed: both read as an answer, and this is the absence of one.
+    parts.push(t('md3.branches.detail.notCompared'))
+  } else if (ahead > 0 || behind > 0) {
     parts.push(
       t('md3.branches.detail.diverged', {
-        ahead: String(branch.ahead),
-        behind: String(branch.behind),
+        ahead: String(ahead),
+        behind: String(behind),
       })
     )
   } else {
@@ -792,9 +954,20 @@ export function groupMd3Branches(
   return { rows, headerAt }
 }
 
-/** Every focusable control inside one row, in visual order. */
+/**
+ * Every focusable control inside one row, in visual order.
+ *
+ * The selection checkbox is an `input`, not a `button`, so a selector that
+ * only names buttons leaves it unreachable by keyboard while looking present
+ * on screen — the whole "keyboard equivalent" half of the multi-select
+ * contract, lost to one CSS selector.
+ */
 function rowControls(row: HTMLElement): ReadonlyArray<HTMLElement> {
-  return Array.from(row.querySelectorAll<HTMLElement>('button:not(:disabled)'))
+  return Array.from(
+    row.querySelectorAll<HTMLElement>(
+      'input[type="checkbox"]:not(:disabled), button:not(:disabled)'
+    )
+  )
 }
 
 export function Md3BranchesView(props: IMd3BranchesViewProps) {
@@ -817,6 +990,8 @@ export function Md3BranchesView(props: IMd3BranchesViewProps) {
     sortOrder,
     mergeAll,
     selectedBranchName,
+    onExportBranches,
+    onCopyText,
   } = props
 
   const { rows, headerAt } = React.useMemo(
@@ -1103,6 +1278,340 @@ export function Md3BranchesView(props: IMd3BranchesViewProps) {
   }, [onFilterTextChanged])
 
   // ---------------------------------------------------------------------
+  // Bulk selection
+  // ---------------------------------------------------------------------
+
+  /*
+   * The bulk selection is the view's own, and separate from `selectedBranchName`
+   * — that one drives what the rest of the shell is looking at, and a bulk
+   * selection of nine branches has no single answer to that question. Keeping
+   * them apart is what lets a user tick nine rows without the pane behind them
+   * navigating nine times.
+   */
+  const [checked, setChecked] = React.useState<ReadonlySet<string>>(
+    () => new Set<string>()
+  )
+  const anchorIndex = React.useRef<number | null>(null)
+  const [exportOpen, setExportOpen] = React.useState(false)
+  const [gateOpen, setGateOpen] = React.useState(false)
+  const deleteButtonRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
+  const exportButtonRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
+
+  const visibleNames = React.useMemo(() => rows.map(row => row.name), [rows])
+
+  // A branch that leaves the list — deleted, or filtered out — must leave the
+  // selection with it. A bulk action running against a name the list no longer
+  // holds is the quiet way a "delete 9" deletes 8 and reports 9.
+  React.useEffect(() => {
+    setChecked(previous => {
+      const next = new Set<string>()
+      for (const name of visibleNames) {
+        if (previous.has(name)) {
+          next.add(name)
+        }
+      }
+      return next.size === previous.size ? previous : next
+    })
+  }, [visibleNames])
+
+  const filtersActive =
+    filterText.length > 0 || props.activeChips.length < Md3BranchChips.length
+
+  const toggleChecked = React.useCallback(
+    (index: number, shiftKey: boolean) => {
+      const intent = md3SelectionIntent({
+        shiftKey,
+        // A checkbox click is always additive: the box is the whole gesture,
+        // so a plain click must never replace the rest of the selection.
+        ctrlKey: true,
+        metaKey: false,
+      })
+      setChecked(previous => {
+        const result = md3ApplySelection(
+          visibleNames,
+          previous,
+          index,
+          intent,
+          anchorIndex.current,
+          'extend'
+        )
+        if (intent !== 'range') {
+          anchorIndex.current = result.anchor
+        }
+        return new Set(result.ids)
+      })
+    },
+    [visibleNames]
+  )
+
+  const onToggleSelectAll = React.useCallback(() => {
+    setChecked(previous => new Set(md3ToggleSelectAll(visibleNames, previous)))
+    anchorIndex.current = null
+  }, [visibleNames])
+
+  const onInvertSelection = React.useCallback(() => {
+    setChecked(previous => new Set(md3InvertSelection(visibleNames, previous)))
+    anchorIndex.current = null
+  }, [visibleNames])
+
+  const onClearSelection = React.useCallback(() => {
+    setChecked(new Set<string>())
+    anchorIndex.current = null
+  }, [])
+
+  /** What a bulk verb runs over: the ticked rows, or the whole filtered list. */
+  const scopeRows = React.useMemo(
+    () => md3BulkScope(rows, checked, row => row.name),
+    [rows, checked]
+  )
+
+  const scopeLabel = md3BulkScopeLabel(
+    checked.size,
+    rows.length,
+    filtersActive
+  )
+
+  /*
+   * Every partition names what it will skip and why, so the button's own
+   * count, the gate's preview and the toast afterwards all describe the same
+   * set. A bulk delete that quietly leaves the checked-out branch behind and
+   * still reports the full count is the failure this exists to prevent.
+   */
+  const deletable = React.useMemo(
+    () =>
+      md3PartitionBulk(
+        scopeRows,
+        row => !row.isCurrent && row.group !== 'Remote',
+        t('md3.branches.bulkSkipCurrent')
+      ),
+    [scopeRows]
+  )
+
+  const hideable = React.useMemo(
+    () =>
+      md3PartitionBulk(
+        scopeRows,
+        row => row.canHide !== false,
+        t('md3.branches.bulkSkipCannotHide')
+      ),
+    [scopeRows]
+  )
+
+  const onBulkPin = React.useCallback(() => {
+    const handler = rowHandlers?.onTogglePin
+    if (handler === undefined) {
+      return
+    }
+    for (const row of scopeRows) {
+      handler(row)
+    }
+  }, [rowHandlers, scopeRows])
+
+  const onBulkHide = React.useCallback(() => {
+    const handler = rowHandlers?.onHideBranch
+    if (handler === undefined) {
+      return
+    }
+    for (const row of hideable.applied) {
+      handler(row)
+    }
+    const skipped = md3BulkPartitionSummary(hideable)
+    if (skipped !== null) {
+      notify(skipped, { kind: 'warning' })
+    }
+  }, [rowHandlers, hideable])
+
+  const onBulkCopyNames = React.useCallback(() => {
+    if (onCopyText === undefined) {
+      return
+    }
+    onCopyText(scopeRows.map(row => row.name).join('\n'))
+  }, [onCopyText, scopeRows])
+
+  const onRequestBulkDelete = React.useCallback(() => setGateOpen(true), [])
+
+  const onConfirmBulkDelete = React.useCallback(() => {
+    const handler = rowHandlers?.onDeleteBranch
+    setGateOpen(false)
+    if (handler === undefined) {
+      return
+    }
+    for (const row of deletable.applied) {
+      handler(row)
+    }
+    const skipped = md3BulkPartitionSummary(deletable)
+    if (skipped !== null) {
+      notify(skipped, { kind: 'warning' })
+    }
+    onClearSelection()
+  }, [rowHandlers, deletable, onClearSelection])
+
+  const runExport = React.useCallback(
+    (format: Md3ListExportFormat) => {
+      if (onExportBranches === undefined) {
+        return
+      }
+      const payload = serializeMd3ListExport(
+        scopeRows.map(md3BranchExportRecord),
+        {
+          columns: Md3BranchExportColumns,
+          collectionName: 'branches',
+          recordName: 'branch',
+          title: 'Branches',
+          baseName: 'branches',
+        },
+        format,
+        { scope: scopeLabel }
+      )
+      setExportOpen(false)
+      onExportBranches(payload, scopeRows)
+      notify(
+        payload.loss === null
+          ? t('md3.bulk.toast.exported', {
+              count: String(payload.count),
+              format: payload.format.toUpperCase(),
+            })
+          : t('md3.bulk.toast.exportedLossy', {
+              count: String(payload.count),
+              format: payload.format.toUpperCase(),
+              loss: payload.loss,
+            })
+      )
+    },
+    [onExportBranches, scopeRows, scopeLabel]
+  )
+
+  const exportMenuSpec = React.useMemo(
+    () => md3BulkExportMenuSpec(Md3BranchExportColumns, scopeLabel, runExport),
+    [scopeLabel, runExport]
+  )
+
+  const bulkActions = React.useMemo((): ReadonlyArray<IMd3BulkAction> => {
+    const actions: Array<IMd3BulkAction> = []
+    if (rowHandlers?.onTogglePin !== undefined) {
+      actions.push({
+        id: 'pin',
+        label: t('md3.branches.bulkPin'),
+        icon: 'push_pin',
+        disabled: scopeRows.length === 0,
+        onClick: onBulkPin,
+      })
+    }
+    if (rowHandlers?.onHideBranch !== undefined) {
+      actions.push({
+        id: 'hide',
+        label: t('md3.branches.bulkHide'),
+        // `block`, the same glyph the row menu's own Hide uses: the bundled
+        // subset carries no `visibility_off`, and a name the font does not
+        // have renders the literal English word rather than a glyph.
+        icon: 'block',
+        disabled: hideable.applied.length === 0,
+        onClick: onBulkHide,
+      })
+    }
+    if (onCopyText !== undefined) {
+      actions.push({
+        id: 'copyNames',
+        label: t('md3.branches.bulkCopyNames'),
+        icon: 'content_copy',
+        disabled: scopeRows.length === 0,
+        onClick: onBulkCopyNames,
+      })
+    }
+    if (rowHandlers?.onDeleteBranch !== undefined) {
+      actions.push({
+        id: 'delete',
+        label: t('md3.branches.bulkDelete'),
+        icon: 'delete_sweep',
+        destructive: true,
+        hasPopup: 'dialog',
+        buttonRef: deleteButtonRef,
+        disabled: deletable.applied.length === 0,
+        onClick: onRequestBulkDelete,
+      })
+    }
+    return actions
+  }, [
+    rowHandlers,
+    onCopyText,
+    scopeRows,
+    hideable,
+    deletable,
+    onBulkPin,
+    onBulkHide,
+    onBulkCopyNames,
+    onRequestBulkDelete,
+    deleteButtonRef,
+  ])
+
+  /*
+   * A checkbox's `change` event is a plain `Event` with no modifier state, so
+   * Shift has to be captured from the gesture that produced it. The click and
+   * the keyboard both land here first; `change` then reads what they left.
+   * Reading `nativeEvent.shiftKey` off the change event instead compiles, and
+   * is `undefined` every time — a range that silently never ranges.
+   */
+  const shiftHeld = React.useRef(false)
+
+  const onCheckboxPointer = React.useCallback(
+    (event: React.MouseEvent<HTMLInputElement>) => {
+      shiftHeld.current = event.shiftKey
+      event.stopPropagation()
+    },
+    []
+  )
+
+  const onCheckboxKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      shiftHeld.current = event.shiftKey
+    },
+    []
+  )
+
+  const onCheckboxChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const index = Number(event.currentTarget.dataset.rowIndex ?? '-1')
+      if (index >= 0) {
+        toggleChecked(index, shiftHeld.current)
+      }
+      shiftHeld.current = false
+    },
+    [toggleChecked]
+  )
+
+  /**
+   * The row's own keyboard route into the selection.
+   *
+   * Ctrl+Space ticks the focused row and Ctrl+Shift+Space extends the range,
+   * matching what Ctrl-click and Shift-click do with a pointer. Plain Space
+   * still checks the branch out, because that is what it did before and no
+   * capability may be taken away; everything else falls through to the grid's
+   * existing navigation.
+   */
+  const onRowKeyDownWithSelection = React.useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === ' ' && (event.ctrlKey || event.metaKey)) {
+        const index = rows.findIndex(
+          row => row.name === event.currentTarget.dataset.branchName
+        )
+        if (index !== -1) {
+          event.preventDefault()
+          toggleChecked(index, event.shiftKey)
+          return
+        }
+      }
+      onRowKeyDown(event)
+    },
+    [rows, toggleChecked, onRowKeyDown]
+  )
+
+  // ---------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------
 
@@ -1157,10 +1666,31 @@ export function Md3BranchesView(props: IMd3BranchesViewProps) {
           />
         </Md3ChipRow>
 
+        <Md3BulkBar
+          listId="branches"
+          label={t('md3.branches.bulkLabel')}
+          visibleIds={visibleNames}
+          selected={checked}
+          filtered={filtersActive}
+          scopeLabel={scopeLabel}
+          actions={bulkActions}
+          onToggleSelectAll={onToggleSelectAll}
+          onInvertSelection={onInvertSelection}
+          onClearSelection={onClearSelection}
+          onExport={onExportBranches === undefined ? undefined : runExport}
+          exportColumns={Md3BranchExportColumns}
+          onOpenExport={
+            onExportBranches === undefined
+              ? undefined
+              : () => setExportOpen(true)
+          }
+          exportButtonRef={exportButtonRef}
+        />
+
         {rows.length === 0 ? (
           <div className="md3-branches__list" onContextMenu={onListContextMenu}>
             <Md3EmptyState
-              message={t('md3.branches.empty')}
+              message={tFunny('md3.branches.empty')}
               onAction={onResetFilters}
             />
           </div>
@@ -1170,7 +1700,8 @@ export function Md3BranchesView(props: IMd3BranchesViewProps) {
             role="grid"
             aria-label={t('md3.branches.listLabel')}
             aria-rowcount={totalRowCount}
-            aria-colcount={4}
+            aria-colcount={5}
+            aria-multiselectable={true}
             /*
              * The rows own the tab stop, not the grid. `-1` keeps the container
              * programmatically focusable — which is what the interactive-role
@@ -1213,9 +1744,35 @@ export function Md3BranchesView(props: IMd3BranchesViewProps) {
                     tabIndex={row.name === rovingName ? 0 : -1}
                     onClick={onRowClick}
                     onFocus={onRowFocus}
-                    onKeyDown={onRowKeyDown}
+                    onKeyDown={onRowKeyDownWithSelection}
                     onContextMenu={onRowContextMenu}
                   >
+                    <div
+                      role="gridcell"
+                      className="md3-branches__select-cell"
+                    >
+                      <input
+                        type="checkbox"
+                        className="md3-bulk-bar__checkbox"
+                        data-row-index={index}
+                        checked={checked.has(row.name)}
+                        aria-label={t('md3.branches.row.select', {
+                          name: row.name,
+                        })}
+                        /*
+                         * `-1` because the row is the tab stop: a grid with
+                         * forty branches would otherwise cost forty Tabs to
+                         * cross. The arrow keys reach the box through the
+                         * row's own Left/Right cell navigation.
+                         */
+                        tabIndex={-1}
+                        onMouseDown={onCheckboxPointer}
+                        onClick={onCheckboxPointer}
+                        onKeyDown={onCheckboxKeyDown}
+                        onChange={onCheckboxChange}
+                      />
+                    </div>
+
                     <div role="gridcell" className="md3-branches__main">
                       <MaterialSymbol
                         name={branchIcon(row)}
@@ -1246,7 +1803,7 @@ export function Md3BranchesView(props: IMd3BranchesViewProps) {
                        * announcing "up arrow three" tells nobody which way the
                        * branch has moved.
                        */}
-                      {row.ahead > 0 ? (
+                      {row.ahead !== null && row.ahead > 0 ? (
                         <span className="md3-branches__pill md3-branches__pill--ahead">
                           <span aria-hidden={true}>{`↑${row.ahead}`}</span>
                           <span className="sr-only">
@@ -1256,7 +1813,7 @@ export function Md3BranchesView(props: IMd3BranchesViewProps) {
                           </span>
                         </span>
                       ) : null}
-                      {row.behind > 0 ? (
+                      {row.behind !== null && row.behind > 0 ? (
                         <span className="md3-branches__pill md3-branches__pill--behind">
                           <span aria-hidden={true}>{`↓${row.behind}`}</span>
                           <span className="sr-only">
@@ -1312,6 +1869,51 @@ export function Md3BranchesView(props: IMd3BranchesViewProps) {
           </div>
         )}
       </div>
+
+      {exportOpen ? (
+        <Md3MenuOverlay
+          spec={exportMenuSpec}
+          onDismiss={() => setExportOpen(false)}
+          onOpenRegexBuilder={props.onOpenRegexBuilder}
+          returnFocusTo={exportButtonRef}
+        />
+      ) : null}
+
+      {gateOpen ? (
+        <Md3DestructiveGate
+          actionId="branches-bulk-delete"
+          icon="delete_sweep"
+          title={t('md3.branches.gate.title', {
+            count: String(deletable.applied.length),
+          })}
+          summary={t('md3.branches.gate.summary', {
+            count: String(deletable.applied.length),
+            scope: scopeLabel,
+          })}
+          /*
+           * The preview is the point of the gate, not decoration: "delete 9
+           * branches" is a number, and a number is not something a person can
+           * check. The names are, and the skipped rows are named beside them
+           * so the count in the title and the work the button does are the
+           * same set.
+           */
+          preview={deletable.applied.map(row => row.name)}
+          previewExcluded={deletable.excluded.map(row => row.name)}
+          previewExcludedReason={deletable.reason}
+          irreversible={t('md3.branches.gate.irreversible')}
+          targetKeyLabel={t('md3.branches.gate.keyTarget', {
+            count: String(deletable.applied.length),
+            scope: scopeLabel,
+          })}
+          effectKeyLabel={t('md3.branches.gate.keyEffect')}
+          confirmLabel={t('md3.branches.gate.confirm', {
+            count: String(deletable.applied.length),
+          })}
+          anchorTo={deleteButtonRef}
+          onConfirm={onConfirmBulkDelete}
+          onDismissed={() => setGateOpen(false)}
+        />
+      ) : null}
     </div>
   )
 }

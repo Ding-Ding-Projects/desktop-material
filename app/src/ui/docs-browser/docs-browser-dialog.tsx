@@ -770,6 +770,13 @@ export class DocsBrowserDialog extends React.Component<
                   fieldLabel={this.text('docsBrowser.searchField')}
                   regexEnabled={this.state.regexEnabled}
                   matchCount={matches.length}
+                  error={
+                    error === null
+                      ? null
+                      : this.text('docsBrowser.searchInvalid', {
+                          message: error,
+                        })
+                  }
                   onChange={this.onQueryChanged}
                   onClear={this.onClearQuery}
                   onToggleRegex={this.onToggleRegex}
@@ -861,14 +868,6 @@ export class DocsBrowserDialog extends React.Component<
                 <p id={this.hintId} className="docs-browser__hint">
                   {this.text('docsBrowser.selectionHint')}
                 </p>
-
-                {error !== null ? (
-                  <p className="docs-browser__error" role="alert">
-                    {this.text('docsBrowser.searchInvalid', {
-                      message: error,
-                    })}
-                  </p>
-                ) : null}
 
                 {matches.length === 0 ? (
                   <Md3EmptyState

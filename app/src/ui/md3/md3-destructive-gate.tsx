@@ -200,6 +200,27 @@ export interface IMd3DestructiveGateBodyProps {
   /** Exactly what about it cannot be undone. Also rendered verbatim. */
   readonly irreversible: string
 
+  /**
+   * The reviewable preview: exactly which items the confirmed action affects,
+   * one label per item.
+   *
+   * A bulk gate that says "delete 9 branches" states a number, and a number is
+   * not something a person can check. The names are. Omit it for a gate whose
+   * target is a single named thing the summary already names — a preview
+   * repeating one row is noise — and supply it for every bulk action.
+   */
+  readonly preview?: ReadonlyArray<string>
+
+  /**
+   * The items the action will NOT touch, when the scope holds some it cannot.
+   * Shown beside the preview so the count in the title and the work the button
+   * actually does are visibly the same set.
+   */
+  readonly previewExcluded?: ReadonlyArray<string>
+
+  /** Why those were excluded, already localized. */
+  readonly previewExcludedReason?: string | null
+
   /** The first key's fact: the exact target being acted on. */
   readonly targetKeyLabel: string
 
@@ -234,6 +255,9 @@ export function Md3DestructiveGateBody(props: IMd3DestructiveGateBodyProps) {
     actionId,
     summary,
     irreversible,
+    preview,
+    previewExcluded,
+    previewExcludedReason,
     targetKeyLabel,
     effectKeyLabel,
     disabled,
@@ -322,6 +346,55 @@ export function Md3DestructiveGateBody(props: IMd3DestructiveGateBodyProps) {
         </strong>
         <span>{irreversible}</span>
       </p>
+
+      {preview === undefined || preview.length === 0 ? null : (
+        <div className="md3-destructive-gate__preview">
+          <p className="md3-destructive-gate__preview-heading">
+            {t('md3.destructiveGate.previewHeading', {
+              count: String(preview.length),
+            })}
+          </p>
+          {/*
+            A real list rather than a joined string, and one that scrolls
+            inside its own bounds: a gate whose preview grows past the panel
+            pushes its own confirm button off screen, and a preview capped
+            with `overflow: hidden` deletes the rows past the cap with no
+            scrollbar to say anything is missing.
+          */}
+          <ul
+            className="md3-destructive-gate__preview-list"
+            aria-label={t('md3.destructiveGate.previewHeading', {
+              count: String(preview.length),
+            })}
+          >
+            {preview.map(item => (
+              <li key={item} className="md3-destructive-gate__preview-item">
+                {item}
+              </li>
+            ))}
+          </ul>
+          {previewExcluded === undefined ||
+          previewExcluded.length === 0 ||
+          previewExcludedReason === undefined ||
+          previewExcludedReason === null ? null : (
+            <>
+              <p className="md3-destructive-gate__preview-heading">
+                {t('md3.destructiveGate.previewExcludedHeading', {
+                  count: String(previewExcluded.length),
+                  reason: previewExcludedReason,
+                })}
+              </p>
+              <ul className="md3-destructive-gate__preview-list md3-destructive-gate__preview-list--excluded">
+                {previewExcluded.map(item => (
+                  <li key={item} className="md3-destructive-gate__preview-item">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
 
       {/*
         Both the fieldset and each input carry `disabled`. A fieldset genuinely
@@ -688,6 +761,9 @@ export function Md3DestructiveGate(props: IMd3DestructiveGateProps) {
           actionId={actionId}
           summary={summary}
           irreversible={irreversible}
+          preview={props.preview}
+          previewExcluded={props.previewExcluded}
+          previewExcludedReason={props.previewExcludedReason}
           targetKeyLabel={targetKeyLabel}
           effectKeyLabel={effectKeyLabel}
           disabled={busy}

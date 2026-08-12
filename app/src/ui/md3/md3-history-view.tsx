@@ -1,6 +1,7 @@
 import * as React from 'react'
 import classNames from 'classnames'
 
+import { tFunny } from '../../lib/funny-level-text'
 import { t } from '../../lib/i18n'
 import { MaterialSymbol } from '../lib/material-symbol'
 import { createUniqueId, releaseUniqueId } from '../lib/id-pool'
@@ -20,6 +21,30 @@ import {
   IMd3DiffPaneProps,
   Md3DiffPane,
 } from './md3-diff-pane'
+import {
+  IMd3BulkAction,
+  Md3BulkBar,
+  md3BulkExportMenuSpec,
+} from './md3-bulk-bar'
+import {
+  IMd3ListExport,
+  IMd3ListExportColumn,
+  Md3ListExportFormat,
+  serializeMd3ListExport,
+} from './md3-list-export'
+import {
+  md3ApplySelection,
+  md3BulkPartitionSummary,
+  md3BulkScope,
+  md3BulkScopeLabel,
+  md3InvertSelection,
+  md3PartitionBulk,
+  md3SelectionIntent,
+  md3ToggleSelectAll,
+} from './md3-list-selection'
+import { Md3MenuOverlay } from './md3-menu-overlay'
+import { Md3DestructiveGate } from './md3-destructive-gate'
+import { notify } from './md3-toast'
 
 /**
  * The History destination of `design/History MD3.dc.html` — the
@@ -60,8 +85,16 @@ import {
 /** The four filter chips of the contract's `historyChips` state. */
 export type Md3HistoryFilterId = 'unpushed' | 'tagged' | 'mine' | 'merges'
 
-/** How a commit's signature and merge state read on the row's detail line. */
-export type Md3CommitKind = 'merge' | 'verified' | 'unverified'
+/**
+ * How a commit's signature and merge state read on the row's detail line.
+ *
+ * `unchecked` is the state the running application is actually in for an
+ * ordinary commit: nothing in the history path runs `git verify-commit`, so no
+ * signature has been examined. It is separate from `unverified` on purpose —
+ * that word tells a reader the signature was looked at and did not hold up,
+ * which is a claim of its own and just as unfounded as calling it verified.
+ */
+export type Md3CommitKind = 'merge' | 'verified' | 'unverified' | 'unchecked'
 
 /** One commit in the left-hand list. */
 export interface IMd3HistoryCommit {
@@ -96,6 +129,12 @@ export interface IMd3HistoryCommit {
    * real. They are loaded per selected commit, so they are zero — not absent —
    * for every other row, and a zero that means "not known" must not render as
    * a zero that means "nothing changed".
+   *
+   * It stays false for the selected commit too until the changeset has
+   * actually arrived, which is a window every selection passes through and the
+   * state the detail sheet most often opens in. `md3HistoryChangeset` in
+   * `md3-view-props.ts` is what decides it; nothing here may assume that a
+   * selected row is a loaded one.
    */
   readonly statsLoaded: boolean
 
@@ -122,8 +161,10 @@ export interface IMd3HistoryCommit {
 
   /**
    * How the third segment of the detail line reads: the contract's
-   * `merge ? 'merge commit' : 'verified'`, with `unverified` added so a commit
-   * whose signature did not check out is not described as one that did.
+   * `merge ? 'merge commit' : 'verified'`, plus `unverified` so a commit whose
+   * signature did not check out is not described as one that did, and
+   * `unchecked` — what the running application actually knows — for a commit
+   * whose signature nothing has looked at.
    */
   readonly kind: Md3CommitKind
 
@@ -251,6 +292,84 @@ export interface IMd3HistoryViewProps {
     shas: ReadonlyArray<string>,
     event: React.DragEvent<HTMLElement>
   ) => void
+
+  // -- bulk actions ---------------------------------------------------------
+
+  /**
+   * Receives a finished bulk export. Omit it and the export button is not
+   * rendered at all, rather than offered and doing nothing.
+   */
+  readonly onExportCommits?: (
+    payload: IMd3ListExport,
+    commits: ReadonlyArray<IMd3HistoryCommit>
+  ) => void
+
+  /**
+   * Copies text to the clipboard. `onCopySha` writes one SHA and would
+   * overwrite itself once per commit in a batch, so a bulk copy needs a
+   * handler that takes the whole block at once. Omit it and "Copy SHAs" is
+   * not offered — a control that cannot work is not drawn.
+   */
+  readonly onCopyText?: (text: string) => void
+}
+
+/**
+ * The export schema for a commit row.
+ *
+ * `body` is the only multiline field, so the picker warns about CSV, TSV and
+ * the Markdown table and about nothing else — which is true because this
+ * schema was checked against what the row actually holds, not assumed.
+ */
+export const Md3HistoryExportColumns: ReadonlyArray<IMd3ListExportColumn> = [
+  { name: 'sha' },
+  { name: 'shortSha' },
+  { name: 'summary' },
+  { name: 'body', multiline: true },
+  { name: 'author' },
+  { name: 'day' },
+  { name: 'absoluteTime' },
+  { name: 'relativeTime' },
+  { name: 'branchName' },
+  { name: 'kind' },
+  { name: 'tag' },
+  { name: 'unpushed' },
+  { name: 'isMine' },
+  { name: 'pinned' },
+  { name: 'addedLineCount' },
+  { name: 'deletedLineCount' },
+  { name: 'changedFileCount' },
+]
+
+/**
+ * Flatten one commit for export.
+ *
+ * The three counts stay empty rather than becoming `0` while `statsLoaded` is
+ * false. They are loaded per selected commit, so for every other row a zero
+ * in the file would read as "this commit changed nothing" — a confident claim
+ * about a commit nothing has measured, and one the reader has no way to doubt.
+ */
+export function md3HistoryCommitExportRecord(
+  commit: IMd3HistoryCommit
+): Readonly<Record<string, string | number | boolean>> {
+  return {
+    sha: commit.sha,
+    shortSha: commit.shortSha,
+    summary: commit.summary,
+    body: commit.body,
+    author: commit.author,
+    day: commit.day,
+    absoluteTime: commit.absoluteTime,
+    relativeTime: commit.relativeTime,
+    branchName: commit.branchName,
+    kind: commit.kind,
+    tag: commit.tag ?? '',
+    unpushed: commit.unpushed,
+    isMine: commit.isMine,
+    pinned: commit.pinned,
+    addedLineCount: commit.statsLoaded ? commit.addedLineCount : '',
+    deletedLineCount: commit.statsLoaded ? commit.deletedLineCount : '',
+    changedFileCount: commit.statsLoaded ? commit.changedFileCount : '',
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -354,32 +473,78 @@ export function filterMd3HistoryCommits(
   })
 }
 
+function commitKindLabel(kind: Md3CommitKind): string {
+  switch (kind) {
+    case 'merge':
+      return t('md3.history.kind.merge')
+    case 'verified':
+      return t('md3.history.kind.verified')
+    case 'unverified':
+      return t('md3.history.kind.unverified')
+    case 'unchecked':
+      return t('md3.history.kind.unchecked')
+  }
+}
+
 /** The contract's commit-row detail line. */
 export function formatMd3CommitDetail(commit: IMd3HistoryCommit): string {
-  const kind =
-    commit.kind === 'merge'
-      ? t('md3.history.kind.merge')
-      : commit.kind === 'verified'
-      ? t('md3.history.kind.verified')
-      : t('md3.history.kind.unverified')
+  const kind = commitKindLabel(commit.kind)
+
+  // The branch is the last segment, so an empty one leaves the line ending in a
+  // dangling separator. It is empty for real: `currentBranchName` has nothing
+  // to return on a detached HEAD or an unborn branch, and History still lists
+  // commits in both states. Drop the segment rather than punctuating a gap.
+  const branch = commit.branchName.trim()
 
   // The line counts only exist once a commit's changeset has been loaded, and
   // that happens for the selected commit alone. Rendering "+0 -0 - 0 files" for
   // every other row states that those commits changed nothing, which is a
   // confident lie about every commit in the list but one. Say nothing instead.
   if (!commit.statsLoaded) {
-    return t('md3.history.detailWithoutStats', {
-      kind,
-      branch: commit.branchName,
-    })
+    return branch.length === 0
+      ? t('md3.history.detailWithoutStatsOrBranch', { kind })
+      : t('md3.history.detailWithoutStats', { kind, branch })
   }
 
-  return t('md3.history.detail', {
-    stat: formatAddDelete(commit.addedLineCount, commit.deletedLineCount),
-    files: String(commit.changedFileCount),
-    kind,
-    branch: commit.branchName,
-  })
+  const stat = formatAddDelete(commit.addedLineCount, commit.deletedLineCount)
+  const files = String(commit.changedFileCount)
+
+  return branch.length === 0
+    ? t('md3.history.detailWithoutBranch', { stat, files, kind })
+    : t('md3.history.detail', { stat, files, kind, branch })
+}
+
+/**
+ * Whether the commit list is being narrowed right now.
+ *
+ * The bulk bar's `filtered` decides whether select-all says "all 12 matching
+ * these filters" or "all 12", and passing `false` while a chip is lit is the
+ * one defect neither the component nor the user can detect. It lives here as a
+ * function so the claim can be tested rather than read.
+ */
+export function md3HistoryFiltersActive(
+  filterText: string,
+  activeFilters: ReadonlyArray<Md3HistoryFilterId>
+): boolean {
+  return filterText.length > 0 || activeFilters.length > 0
+}
+
+/**
+ * Split a bulk revert into the commits it will revert and the merges it will
+ * not.
+ *
+ * `git revert` refuses a merge commit without being told which parent to keep,
+ * and this surface has nowhere to ask, so the merges are named as skipped
+ * before the gate opens rather than attempted and failed afterwards.
+ */
+export function md3HistoryRevertable(
+  commits: ReadonlyArray<IMd3HistoryCommit>
+) {
+  return md3PartitionBulk(
+    commits,
+    commit => commit.kind !== 'merge',
+    t('md3.history.bulkSkipMerge')
+  )
 }
 
 /** Elements that can hold focus inside the detail sheet. */
@@ -410,6 +575,21 @@ interface IMd3HistoryRowProps {
   readonly showAbsoluteDates: boolean
   readonly rowIndex: number
   readonly draggable: boolean
+
+  /** Whether the bulk checkbox is ticked — separate from `selected`. */
+  readonly checked: boolean
+
+  /** The row's index within the visible list, which is what a range spans. */
+  readonly selectIndex: number
+
+  readonly onCheckboxPointer: (event: React.MouseEvent<HTMLInputElement>) => void
+  readonly onCheckboxKeyDown: (
+    event: React.KeyboardEvent<HTMLInputElement>
+  ) => void
+  readonly onCheckboxChange: (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => void
+
   readonly onActivate: (sha: string, event: React.MouseEvent) => void
   readonly onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => void
   readonly onOpenRowMenu: (sha: string, event: React.SyntheticEvent) => void
@@ -502,6 +682,26 @@ const Md3HistoryRow = React.memo(function Md3HistoryRow(
       onContextMenu={onContextMenu}
       onDragStart={draggable ? onRowDragStart : undefined}
     >
+      <div role="gridcell" className="md3-history__select-cell">
+        <input
+          type="checkbox"
+          className="md3-bulk-bar__checkbox"
+          data-row-index={props.selectIndex}
+          checked={props.checked}
+          aria-label={t('md3.history.row.select', { summary: commit.summary })}
+          /*
+           * `-1` because the row is the tab stop: a history of four hundred
+           * commits would otherwise cost four hundred Tabs to cross. The
+           * keyboard reaches the box through Ctrl+Space on the row itself.
+           */
+          tabIndex={-1}
+          onMouseDown={props.onCheckboxPointer}
+          onClick={props.onCheckboxPointer}
+          onKeyDown={props.onCheckboxKeyDown}
+          onChange={props.onCheckboxChange}
+        />
+      </div>
+
       <div role="gridcell" className="md3-history__row-cell">
         {props.showGraph ? (
           <span
@@ -796,15 +996,32 @@ function Md3CommitDetailSheet(props: IMd3CommitDetailSheetProps) {
               size={13}
             />
           </button>
-          <span className="md3-history__sheet-pill md3-history__sheet-pill--add">
-            {`+${commit.addedLineCount}`}
-          </span>
-          <span className="md3-history__sheet-pill md3-history__sheet-pill--del">
-            {`−${commit.deletedLineCount}`}
-          </span>
-          <span className="md3-history__sheet-pill md3-history__sheet-pill--files">
-            {t('md3.history.sheet.fileCount', { count: String(files.length) })}
-          </span>
+          {/* The three numbers arrive with the commit's changeset, one `git
+              log --numstat` after the row is selected. Until then they are not
+              zero, they are unknown — and the sheet is the surface where that
+              matters most, because it opens on the selected commit at exactly
+              the moment the read is still in flight. "+0 −0 · 0 files" there
+              reads as a finished answer about a commit that plainly changed
+              something. Say the count is still being taken instead. */}
+          {commit.statsLoaded ? (
+            <>
+              <span className="md3-history__sheet-pill md3-history__sheet-pill--add">
+                {`+${commit.addedLineCount}`}
+              </span>
+              <span className="md3-history__sheet-pill md3-history__sheet-pill--del">
+                {`−${commit.deletedLineCount}`}
+              </span>
+              <span className="md3-history__sheet-pill md3-history__sheet-pill--files">
+                {t('md3.history.sheet.fileCount', {
+                  count: String(files.length),
+                })}
+              </span>
+            </>
+          ) : (
+            <span className="md3-history__sheet-pill md3-history__sheet-pill--pending">
+              {t('md3.history.sheet.statsPending')}
+            </span>
+          )}
         </div>
 
         {commit.body.length === 0 ? null : (
@@ -869,6 +1086,14 @@ interface IMd3SheetFileRowProps {
 function Md3SheetFileRow(props: IMd3SheetFileRowProps) {
   const { file, onSelect, onOpenFileMenu } = props
 
+  // A commit's changeset carries the commit's line totals and no per-file
+  // split, so the counts beside a path are frequently unknown rather than
+  // zero. Rendering "+0 −0" there says the file changed nothing, next to a
+  // path the user is about to open and watch change — omit the pair instead,
+  // and keep the accessible name free of the same claim.
+  const stated =
+    file.addedLineCount !== undefined && file.deletedLineCount !== undefined
+
   const onClick = React.useCallback(
     () => onSelect?.(file.path),
     [onSelect, file.path]
@@ -891,10 +1116,17 @@ function Md3SheetFileRow(props: IMd3SheetFileRowProps) {
           'md3-history__sheet-file--active': props.active,
         })}
         aria-current={props.active}
-        aria-label={t('md3.history.sheet.fileEntry', {
-          path: file.path,
-          stat: formatAddDelete(file.addedLineCount, file.deletedLineCount),
-        })}
+        aria-label={
+          stated
+            ? t('md3.history.sheet.fileEntry', {
+                path: file.path,
+                stat: formatAddDelete(
+                  file.addedLineCount ?? 0,
+                  file.deletedLineCount ?? 0
+                ),
+              })
+            : t('md3.history.sheet.fileEntryWithoutStats', { path: file.path })
+        }
         onClick={onClick}
         onContextMenu={onContextMenu}
       >
@@ -906,12 +1138,16 @@ function Md3SheetFileRow(props: IMd3SheetFileRowProps) {
           })}
         />
         <span className="md3-history__sheet-file-path">{file.path}</span>
-        <span className="md3-history__sheet-file-add">
-          {`+${file.addedLineCount}`}
-        </span>
-        <span className="md3-history__sheet-file-del">
-          {`−${file.deletedLineCount}`}
-        </span>
+        {stated ? (
+          <>
+            <span className="md3-history__sheet-file-add">
+              {`+${file.addedLineCount}`}
+            </span>
+            <span className="md3-history__sheet-file-del">
+              {`−${file.deletedLineCount}`}
+            </span>
+          </>
+        ) : null}
       </button>
     </div>
   )
@@ -943,6 +1179,11 @@ export function Md3HistoryView(props: IMd3HistoryViewProps) {
     onOpenRowMenu,
     onOpenFileMenu,
     onCommitDragStart,
+    onExportCommits,
+    onCopyText,
+    onTogglePin,
+    onViewOnGitHub,
+    onRevertCommit,
   } = props
 
   // -- filtering ------------------------------------------------------------
@@ -1136,6 +1377,305 @@ export function Md3HistoryView(props: IMd3HistoryViewProps) {
     [onCommitDragStart, selectedShas]
   )
 
+  // -- bulk selection -------------------------------------------------------
+
+  /*
+   * The bulk selection is the view's own, and separate from `selectedShas` —
+   * that one drives what the diff pane and the detail sheet are looking at,
+   * and a bulk selection of nine commits has no single answer to that
+   * question. Keeping them apart is what lets a user tick nine rows without
+   * the pane behind them loading nine changesets.
+   */
+  const [checked, setChecked] = React.useState<ReadonlySet<string>>(
+    () => new Set<string>()
+  )
+  const anchorIndex = React.useRef<number | null>(null)
+  const [exportOpen, setExportOpen] = React.useState(false)
+  const [gateOpen, setGateOpen] = React.useState(false)
+  const revertButtonRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
+  const bulkExportButtonRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
+
+  /** The ids the bar and every range span: after the query AND the chips. */
+  const visibleShas = React.useMemo(
+    () => visibleCommits.map(commit => commit.sha),
+    [visibleCommits]
+  )
+
+  // A commit that leaves the list — filtered out, or gone from the log — must
+  // leave the selection with it. A bulk verb running against a SHA the list no
+  // longer holds is the quiet way a "revert 9" reverts 8 and reports 9.
+  React.useEffect(() => {
+    setChecked(previous => {
+      const next = new Set<string>()
+      for (const sha of visibleShas) {
+        if (previous.has(sha)) {
+          next.add(sha)
+        }
+      }
+      return next.size === previous.size ? previous : next
+    })
+  }, [visibleShas])
+
+  const filtersActive = md3HistoryFiltersActive(filterText, activeFilters)
+
+  const toggleChecked = React.useCallback(
+    (index: number, shiftKey: boolean) => {
+      const intent = md3SelectionIntent({
+        shiftKey,
+        // A checkbox click is always additive: the box is the whole gesture,
+        // so a plain click must never replace the rest of the selection.
+        ctrlKey: true,
+        metaKey: false,
+      })
+      setChecked(previous => {
+        const result = md3ApplySelection(
+          visibleShas,
+          previous,
+          index,
+          intent,
+          anchorIndex.current,
+          // These rows carry checkboxes, so a Shift range adds to the ticks
+          // already there. `replace` here would silently shrink a selection a
+          // user was growing.
+          'extend'
+        )
+        if (intent !== 'range') {
+          anchorIndex.current = result.anchor
+        }
+        return new Set(result.ids)
+      })
+    },
+    [visibleShas]
+  )
+
+  const onToggleSelectAll = React.useCallback(() => {
+    setChecked(previous => new Set(md3ToggleSelectAll(visibleShas, previous)))
+    anchorIndex.current = null
+  }, [visibleShas])
+
+  const onInvertSelection = React.useCallback(() => {
+    setChecked(previous => new Set(md3InvertSelection(visibleShas, previous)))
+    anchorIndex.current = null
+  }, [visibleShas])
+
+  const onClearSelection = React.useCallback(() => {
+    setChecked(new Set<string>())
+    anchorIndex.current = null
+  }, [])
+
+  /** What a bulk verb runs over: the ticked rows, or the whole filtered list. */
+  const scopeCommits = React.useMemo(
+    () => md3BulkScope(visibleCommits, checked, commit => commit.sha),
+    [visibleCommits, checked]
+  )
+
+  const scopeLabel = md3BulkScopeLabel(
+    checked.size,
+    visibleCommits.length,
+    filtersActive
+  )
+
+  /*
+   * `git revert` refuses a merge commit without being told which parent to
+   * keep, and this surface has nowhere to ask. So the merges are partitioned
+   * out by name rather than attempted and failed one toast at a time: the
+   * button's count, the gate's preview and the toast afterwards all describe
+   * the same set.
+   */
+  const revertable = React.useMemo(
+    () => md3HistoryRevertable(scopeCommits),
+    [scopeCommits]
+  )
+
+  const onBulkPin = React.useCallback(() => {
+    for (const commit of scopeCommits) {
+      onTogglePin(commit.sha)
+    }
+  }, [onTogglePin, scopeCommits])
+
+  const onBulkCopyShas = React.useCallback(() => {
+    if (onCopyText === undefined) {
+      return
+    }
+    onCopyText(scopeCommits.map(commit => commit.sha).join('\n'))
+  }, [onCopyText, scopeCommits])
+
+  const onBulkViewOnGitHub = React.useCallback(() => {
+    for (const commit of scopeCommits) {
+      onViewOnGitHub(commit.sha)
+    }
+  }, [onViewOnGitHub, scopeCommits])
+
+  const onRequestBulkRevert = React.useCallback(() => setGateOpen(true), [])
+
+  const onConfirmBulkRevert = React.useCallback(() => {
+    setGateOpen(false)
+    for (const commit of revertable.applied) {
+      onRevertCommit(commit.sha)
+    }
+    const skipped = md3BulkPartitionSummary(revertable)
+    if (skipped !== null) {
+      notify(skipped, { kind: 'warning' })
+    }
+    onClearSelection()
+  }, [onRevertCommit, revertable, onClearSelection])
+
+  const runExport = React.useCallback(
+    (format: Md3ListExportFormat) => {
+      if (onExportCommits === undefined) {
+        return
+      }
+      const payload = serializeMd3ListExport(
+        scopeCommits.map(md3HistoryCommitExportRecord),
+        {
+          columns: Md3HistoryExportColumns,
+          collectionName: 'commits',
+          recordName: 'commit',
+          title: 'Commits',
+          baseName: 'commits',
+        },
+        format,
+        { scope: scopeLabel }
+      )
+      setExportOpen(false)
+      onExportCommits(payload, scopeCommits)
+      notify(
+        payload.loss === null
+          ? t('md3.bulk.toast.exported', {
+              count: String(payload.count),
+              format: payload.format.toUpperCase(),
+            })
+          : t('md3.bulk.toast.exportedLossy', {
+              count: String(payload.count),
+              format: payload.format.toUpperCase(),
+              loss: payload.loss,
+            })
+      )
+    },
+    [onExportCommits, scopeCommits, scopeLabel]
+  )
+
+  const exportMenuSpec = React.useMemo(
+    () => md3BulkExportMenuSpec(Md3HistoryExportColumns, scopeLabel, runExport),
+    [scopeLabel, runExport]
+  )
+
+  const bulkActions = React.useMemo((): ReadonlyArray<IMd3BulkAction> => {
+    const actions: Array<IMd3BulkAction> = [
+      {
+        id: 'pin',
+        label: t('md3.history.bulkPin'),
+        icon: 'push_pin',
+        disabled: scopeCommits.length === 0,
+        onClick: onBulkPin,
+      },
+    ]
+    if (onCopyText !== undefined) {
+      actions.push({
+        id: 'copyShas',
+        label: t('md3.history.bulkCopyShas'),
+        icon: 'content_copy',
+        disabled: scopeCommits.length === 0,
+        onClick: onBulkCopyShas,
+      })
+    }
+    actions.push({
+      id: 'viewOnGitHub',
+      label: t('md3.history.bulkViewOnGitHub'),
+      icon: 'open_in_new',
+      disabled: scopeCommits.length === 0,
+      onClick: onBulkViewOnGitHub,
+    })
+    actions.push({
+      id: 'revert',
+      label: t('md3.history.bulkRevert'),
+      icon: 'undo',
+      destructive: true,
+      hasPopup: 'dialog',
+      buttonRef: revertButtonRef,
+      disabled: revertable.applied.length === 0,
+      onClick: onRequestBulkRevert,
+    })
+    return actions
+  }, [
+    onCopyText,
+    scopeCommits,
+    revertable,
+    onBulkPin,
+    onBulkCopyShas,
+    onBulkViewOnGitHub,
+    onRequestBulkRevert,
+    revertButtonRef,
+  ])
+
+  /*
+   * A checkbox's `change` event is a plain `Event` with no modifier state, so
+   * Shift has to be captured from the gesture that produced it. The click and
+   * the keyboard both land here first; `change` then reads what they left.
+   * Reading `nativeEvent.shiftKey` off the change event instead compiles, and
+   * is `undefined` every time — a range that silently never ranges.
+   */
+  const shiftHeld = React.useRef(false)
+
+  const onCheckboxPointer = React.useCallback(
+    (event: React.MouseEvent<HTMLInputElement>) => {
+      shiftHeld.current = event.shiftKey
+      // Ticking a box must not also move the primary selection under the diff
+      // pane; the row's own click handler is what does that.
+      event.stopPropagation()
+    },
+    []
+  )
+
+  const onCheckboxKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      shiftHeld.current = event.shiftKey
+    },
+    []
+  )
+
+  const onCheckboxChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const index = Number(event.currentTarget.dataset.rowIndex ?? '-1')
+      if (index >= 0) {
+        toggleChecked(index, shiftHeld.current)
+      }
+      shiftHeld.current = false
+    },
+    [toggleChecked]
+  )
+
+  /**
+   * The row's own keyboard route into the bulk selection.
+   *
+   * Ctrl+Space ticks the focused row and Ctrl+Shift+Space extends the range,
+   * matching what a click and a Shift-click do to the checkbox with a pointer.
+   * Everything else falls through to the grid's existing navigation, so plain
+   * Space still selects the commit exactly as it did before.
+   */
+  const onRowKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === ' ' && (event.ctrlKey || event.metaKey)) {
+        const index = visibleShas.indexOf(
+          event.currentTarget.dataset.sha ?? ''
+        )
+        if (index !== -1) {
+          event.preventDefault()
+          toggleChecked(index, event.shiftKey)
+          return
+        }
+      }
+      onListKeyDown(event)
+    },
+    [visibleShas, toggleChecked, onListKeyDown]
+  )
+
   // -- chips and toggles ----------------------------------------------------
 
   const onToggleFilter = React.useCallback(
@@ -1246,6 +1786,27 @@ export function Md3HistoryView(props: IMd3HistoryViewProps) {
           />
         </Md3ChipRow>
 
+        <Md3BulkBar
+          listId="history"
+          label={t('md3.history.bulkLabel')}
+          visibleIds={visibleShas}
+          selected={checked}
+          filtered={filtersActive}
+          scopeLabel={scopeLabel}
+          actions={bulkActions}
+          onToggleSelectAll={onToggleSelectAll}
+          onInvertSelection={onInvertSelection}
+          onClearSelection={onClearSelection}
+          onExport={onExportCommits === undefined ? undefined : runExport}
+          exportColumns={Md3HistoryExportColumns}
+          onOpenExport={
+            onExportCommits === undefined
+              ? undefined
+              : () => setExportOpen(true)
+          }
+          exportButtonRef={bulkExportButtonRef}
+        />
+
         <div className="md3-history__list-scroller">
           <div
             role="grid"
@@ -1254,7 +1815,7 @@ export function Md3HistoryView(props: IMd3HistoryViewProps) {
             aria-rowcount={visibleCommits.length}
             className="md3-history__list"
           >
-            {visibleCommits.map(commit => {
+            {visibleCommits.map((commit, selectIndex) => {
               const header = isGroupStart(previousDay, commit.day)
               previousDay = commit.day
               rowIndex += 1
@@ -1276,8 +1837,13 @@ export function Md3HistoryView(props: IMd3HistoryViewProps) {
                     showGraph={showCommitGraph}
                     showAbsoluteDates={showAbsoluteDates}
                     draggable={onCommitDragStart !== undefined}
+                    checked={checked.has(commit.sha)}
+                    selectIndex={selectIndex}
+                    onCheckboxPointer={onCheckboxPointer}
+                    onCheckboxKeyDown={onCheckboxKeyDown}
+                    onCheckboxChange={onCheckboxChange}
                     onActivate={onRowActivate}
-                    onKeyDown={onListKeyDown}
+                    onKeyDown={onRowKeyDown}
                     onOpenRowMenu={onOpenRowMenu}
                     onTogglePin={props.onTogglePin}
                     onDragStart={onRowDragStart}
@@ -1290,7 +1856,7 @@ export function Md3HistoryView(props: IMd3HistoryViewProps) {
 
           {visibleCommits.length === 0 ? (
             <Md3EmptyState
-              message={t('md3.history.empty')}
+              message={tFunny('md3.history.empty')}
               onAction={onResetFilters}
             />
           ) : null}
@@ -1322,6 +1888,54 @@ export function Md3HistoryView(props: IMd3HistoryViewProps) {
           />
         ) : null}
       </Md3DiffPane>
+
+      {exportOpen ? (
+        <Md3MenuOverlay
+          spec={exportMenuSpec}
+          onDismiss={() => setExportOpen(false)}
+          onOpenRegexBuilder={onOpenFilterRegexBuilder}
+          returnFocusTo={bulkExportButtonRef}
+        />
+      ) : null}
+
+      {gateOpen ? (
+        <Md3DestructiveGate
+          actionId="history-bulk-revert"
+          icon="undo"
+          title={t('md3.history.gate.title', {
+            count: String(revertable.applied.length),
+          })}
+          summary={t('md3.history.gate.summary', {
+            count: String(revertable.applied.length),
+            scope: scopeLabel,
+          })}
+          /*
+           * "Revert 9 commits" is a number, and a number is not something a
+           * person can check. The summaries are, and the skipped merges are
+           * named beside them so the count in the title and the work the
+           * button does are the same set.
+           */
+          preview={revertable.applied.map(
+            commit => `${commit.shortSha} ${commit.summary}`
+          )}
+          previewExcluded={revertable.excluded.map(
+            commit => `${commit.shortSha} ${commit.summary}`
+          )}
+          previewExcludedReason={revertable.reason}
+          irreversible={t('md3.history.gate.irreversible')}
+          targetKeyLabel={t('md3.history.gate.keyTarget', {
+            count: String(revertable.applied.length),
+            scope: scopeLabel,
+          })}
+          effectKeyLabel={t('md3.history.gate.keyEffect')}
+          confirmLabel={t('md3.history.gate.confirm', {
+            count: String(revertable.applied.length),
+          })}
+          anchorTo={revertButtonRef}
+          onConfirm={onConfirmBulkRevert}
+          onDismissed={() => setGateOpen(false)}
+        />
+      ) : null}
     </div>
   )
 }

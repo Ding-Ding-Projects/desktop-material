@@ -354,6 +354,17 @@ export interface IMd3MenuSpec {
   readonly filterPlaceholder: string
 
   readonly items: ReadonlyArray<IMd3MenuItem>
+
+  /**
+   * A standing note under the items, for a menu whose choices need one fact
+   * stated once rather than repeated on every row.
+   *
+   * The export pickers use it for the encoding and the field schema: the
+   * per-format row already carries what that format would drop, and the line
+   * that never changes belongs under them rather than ten times over. Omit it
+   * and nothing is rendered — no menu in the contract has one.
+   */
+  readonly footer?: string
 }
 
 // The contract's shortcut hints. These are key notation rather than prose, so

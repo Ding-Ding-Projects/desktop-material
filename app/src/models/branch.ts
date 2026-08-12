@@ -31,7 +31,12 @@ export interface ITrackingBranch {
 /** Basic data about the latest commit on the branch. */
 export interface IBranchTip {
   readonly sha: string
-  readonly author?: { readonly date: Date }
+  /**
+   * The tip commit's author, as far as the ref was read. `name` is absent when
+   * the ref was loaded by a path that did not ask Git for it, so a surface that
+   * shows a byline omits it rather than inventing one.
+   */
+  readonly author?: { readonly date: Date; readonly name?: string }
 }
 
 /** Default rules for where to create a branch from */

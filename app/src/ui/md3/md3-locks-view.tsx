@@ -16,19 +16,37 @@ import {
   Md3LockExportFormats,
   Md3LockSurfaceKind,
   serializeMd3LockExport,
+  toMd3LockExportRecord,
 } from '../../lib/md3-locks'
 import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
+import { createObservableRef } from '../lib/observable-ref'
 import {
   Md3EmptyState,
   Md3GhostButton,
   Md3IconButton,
   Md3SearchField,
-  Md3TonalButton,
 } from './md3-primitives'
 import {
   IMd3RegexBuilderApplication,
   Md3RegexBuilderDialog,
 } from './md3-regex-builder-dialog'
+import { IMd3BulkAction, Md3BulkBar } from './md3-bulk-bar'
+import {
+  IMd3ListExportColumn,
+  Md3ListExportFormat,
+  md3ListExportSchema,
+} from './md3-list-export'
+import { IMd3MenuSpec } from './md3-menu-specs'
+import { Md3MenuOverlay } from './md3-menu-overlay'
+import {
+  md3ApplySelection,
+  md3BulkPartitionSummary,
+  md3BulkScopeLabel,
+  md3InvertSelection,
+  md3PartitionBulk,
+  md3SelectionIntent,
+  md3ToggleSelectAll,
+} from './md3-list-selection'
 import { Md3LockRemovalGate } from './md3-lock-removal-gate'
 import { IMd3LockAnchorRect } from './md3-lock-unlock-prompt'
 import { notify } from './md3-toast'
@@ -79,6 +97,40 @@ const SurfaceLabelKeys = {
   appearanceElement: 'md3.locks.surface.appearanceElement',
   appearancePreset: 'md3.locks.surface.appearancePreset',
 } as const
+
+/**
+ * The export schema for a lock row.
+ *
+ * Every field {@link toMd3LockExportRecord} writes, and nothing else — above
+ * all no credential, no digest, no salt and no secret. Nothing here is
+ * multiline, so no format drops a field and the picker offers every format it
+ * can actually produce without a loss warning.
+ */
+export const Md3LockExportColumns: ReadonlyArray<IMd3ListExportColumn> = [
+  { name: 'id' },
+  { name: 'surface' },
+  { name: 'targetId' },
+  { name: 'targetLabel' },
+  { name: 'factor' },
+  { name: 'otpAccountKey' },
+  { name: 'unlockDurationKind' },
+  { name: 'unlockDurationMinutes' },
+  { name: 'lockOnLaunch' },
+  { name: 'createdAt' },
+]
+
+/**
+ * Flatten one lock for export.
+ *
+ * A thin re-shaping of the model's own flattener rather than a second one:
+ * two record builders would drift, and the one that drifted would be the one
+ * that quietly started writing something the credential rules forbid.
+ */
+export function md3LockExportRecord(
+  lock: IMd3Lock
+): Readonly<Record<string, string | number | boolean>> {
+  return { ...toMd3LockExportRecord(lock) }
+}
 
 export interface IMd3LocksViewProps {
   readonly locks: ReadonlyArray<IMd3Lock>
@@ -142,11 +194,7 @@ interface IMd3LockRowProps {
   readonly now: number
   readonly selected: boolean
   readonly focused: boolean
-  readonly onToggleSelected: (
-    lock: IMd3Lock,
-    index: number,
-    extend: boolean
-  ) => void
+  readonly onToggleSelected: (index: number, shiftKey: boolean) => void
   readonly onEditLock: (lock: IMd3Lock, anchor: IMd3LockAnchorRect) => void
   readonly onRemoveLock: (lock: IMd3Lock) => void
   readonly onLockAgain: (lock: IMd3Lock) => void
@@ -190,9 +238,9 @@ function Md3LockRow(props: IMd3LockRowProps) {
   const handleSelectClick = React.useCallback(
     (event: React.MouseEvent<HTMLInputElement>) => {
       event.stopPropagation()
-      onToggleSelected(lock, index, event.shiftKey)
+      onToggleSelected(index, event.shiftKey)
     },
-    [onToggleSelected, lock, index]
+    [onToggleSelected, index]
   )
 
   const handleSelectChange = React.useCallback(() => {
@@ -316,11 +364,19 @@ export function Md3LocksView(props: IMd3LocksViewProps) {
     () => new Set<string>()
   )
   const [focusIndex, setFocusIndex] = React.useState(0)
-  const [format, setFormat] = React.useState<Md3LockExportFormat>('json')
+  const [exportOpen, setExportOpen] = React.useState(false)
   const [gateOpen, setGateOpen] = React.useState(false)
+  const [builderSeed, setBuilderSeed] = React.useState<string | null>(null)
 
   const anchorIndex = React.useRef<number | null>(null)
-  const selectAllRef = React.useRef<HTMLInputElement | null>(null)
+  const exportButtonRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
+  const removeButtonRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
 
   const unlockById = React.useMemo(() => {
     const map = new Map<string, IMd3ActiveUnlock>()
@@ -335,19 +391,31 @@ export function Md3LocksView(props: IMd3LocksViewProps) {
     [locks, query, regexEnabled, caseSensitive]
   )
 
-  const selectedVisible = React.useMemo(
-    () => visible.filter(lock => selected.has(lock.id)),
-    [visible, selected]
-  )
+  const visibleIds = React.useMemo(() => visible.map(lock => lock.id), [
+    visible,
+  ])
 
-  // A tri-state select-all is the only honest one here: some of the searched
-  // set selected is neither "all" nor "none".
+  /*
+   * A lock that leaves the collection — removed here, or removed by another
+   * surface — leaves the selection with it, or a bulk verb runs against an id
+   * nothing holds and reports a count it did not achieve.
+   *
+   * Unlike the branch list this prunes against the whole collection rather
+   * than the visible rows: this list deliberately offers a select-all that
+   * reaches past the search, so a search narrowing the rows must not quietly
+   * unselect what the user asked for on purpose.
+   */
   React.useEffect(() => {
-    if (selectAllRef.current !== null) {
-      selectAllRef.current.indeterminate =
-        selectedVisible.length > 0 && selectedVisible.length < visible.length
-    }
-  }, [selectedVisible.length, visible.length])
+    setSelected(previous => {
+      const next = new Set<string>()
+      for (const lock of locks) {
+        if (previous.has(lock.id)) {
+          next.add(lock.id)
+        }
+      }
+      return next.size === previous.size ? previous : next
+    })
+  }, [locks])
 
   const onSearchChange = React.useCallback(
     (value: string) => setQuery(value),
@@ -379,43 +447,39 @@ export function Md3LocksView(props: IMd3LocksViewProps) {
   )
 
   const toggleSelected = React.useCallback(
-    (lock: IMd3Lock, index: number, extend: boolean) => {
+    (index: number, shiftKey: boolean) => {
       setFocusIndex(index)
-      if (extend && anchorIndex.current !== null) {
-        const from = Math.min(anchorIndex.current, index)
-        const to = Math.max(anchorIndex.current, index)
-        const range = visible.slice(from, to + 1).map(entry => entry.id)
-        setSelected(current => new Set([...current, ...range]))
-        return
-      }
-      anchorIndex.current = index
+      const intent = md3SelectionIntent({
+        shiftKey,
+        // Ticking a box is always additive: the checkbox is the whole gesture,
+        // so a plain click must never replace what is already ticked.
+        ctrlKey: true,
+        metaKey: false,
+      })
       setSelected(current => {
-        const next = new Set(current)
-        if (next.has(lock.id)) {
-          next.delete(lock.id)
-        } else {
-          next.add(lock.id)
+        const result = md3ApplySelection(
+          visibleIds,
+          current,
+          index,
+          intent,
+          anchorIndex.current,
+          // A checkbox list extends over a range rather than replacing with
+          // it; replacing here would silently drop everything ticked before.
+          'extend'
+        )
+        if (intent !== 'range') {
+          anchorIndex.current = result.anchor
         }
-        return next
+        return new Set(result.ids)
       })
     },
-    [visible]
+    [visibleIds]
   )
 
-  const onSelectAllVisible = React.useCallback(() => {
-    const ids = visible.map(lock => lock.id)
-    setSelected(current => {
-      const everySelected = ids.length > 0 && ids.every(id => current.has(id))
-      if (everySelected) {
-        const next = new Set(current)
-        for (const id of ids) {
-          next.delete(id)
-        }
-        return next
-      }
-      return new Set([...current, ...ids])
-    })
-  }, [visible])
+  const onToggleSelectAll = React.useCallback(() => {
+    setSelected(current => new Set(md3ToggleSelectAll(visibleIds, current)))
+    anchorIndex.current = null
+  }, [visibleIds])
 
   const onSelectEverything = React.useCallback(() => {
     setSelected(new Set(locks.map(lock => lock.id)))
@@ -423,16 +487,9 @@ export function Md3LocksView(props: IMd3LocksViewProps) {
   }, [locks])
 
   const onInvertSelection = React.useCallback(() => {
-    setSelected(current => {
-      const next = new Set<string>()
-      for (const lock of visible) {
-        if (!current.has(lock.id)) {
-          next.add(lock.id)
-        }
-      }
-      return next
-    })
-  }, [visible])
+    setSelected(current => new Set(md3InvertSelection(visibleIds, current)))
+    anchorIndex.current = null
+  }, [visibleIds])
 
   const onClearSelection = React.useCallback(() => {
     setSelected(new Set<string>())
@@ -444,55 +501,153 @@ export function Md3LocksView(props: IMd3LocksViewProps) {
     setRegexEnabled(false)
   }, [])
 
-  const selectedLocks = React.useMemo(
-    () => locks.filter(lock => selected.has(lock.id)),
-    [locks, selected]
+  /**
+   * What a bulk verb runs over: the selected locks, or the whole searched set.
+   *
+   * `md3BulkScope` resolves a selection against the visible rows, which is
+   * right for a list whose selection cannot outlive its filter. This one's
+   * can — **Select all N locks, including the ones this search is hiding** is
+   * a control the user pressed on purpose — so the selection is resolved
+   * against the collection and only the fallback is the searched set.
+   */
+  const scopeLocks = React.useMemo(() => {
+    const chosen = locks.filter(lock => selected.has(lock.id))
+    return chosen.length > 0 ? chosen : visible
+  }, [locks, visible, selected])
+
+  const filtered = query.length > 0
+
+  const scopeLabel = md3BulkScopeLabel(selected.size, visible.length, filtered)
+
+  /*
+   * Locking again only means anything for a lock that is open right now, so
+   * the verb says how many it will skip rather than reporting a count it
+   * never touched.
+   */
+  const relockable = React.useMemo(
+    () =>
+      md3PartitionBulk(
+        scopeLocks,
+        lock => isMd3UnlockActive(unlockById.get(lock.id), readNow()),
+        t('md3.locks.bulkSkipAlreadyLocked')
+      ),
+    [scopeLocks, unlockById, readNow]
   )
 
-  const exportScope = t('md3.locks.bulk.export', {
-    count: String(
-      selectedLocks.length > 0 ? selectedLocks.length : visible.length
-    ),
-  })
+  const onBulkLockAgain = React.useCallback(() => {
+    for (const lock of relockable.applied) {
+      onLockAgain(lock)
+    }
+    const skipped = md3BulkPartitionSummary(relockable)
+    if (skipped !== null) {
+      notify(skipped, { kind: 'warning' })
+    }
+  }, [onLockAgain, relockable])
 
-  const onExportSelection = React.useCallback(() => {
-    const subject = selectedLocks.length > 0 ? selectedLocks : visible
-    const result = serializeMd3LockExport(subject, format, {
-      scope: exportScope,
-    })
-    onExport(result)
-    notify(
-      t('md3.locks.toast.exported', {
-        count: String(result.count),
-        format: result.format.toUpperCase(),
+  const runExport = React.useCallback(
+    (format: Md3LockExportFormat) => {
+      const result = serializeMd3LockExport(scopeLocks, format, {
+        scope: scopeLabel,
       })
-    )
-  }, [exportScope, format, onExport, selectedLocks, visible])
-
-  const onFormatChanged = React.useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const chosen = Md3LockExportFormats.find(
-        descriptor => descriptor.format === event.currentTarget.value
+      setExportOpen(false)
+      onExport(result)
+      notify(
+        t('md3.locks.toast.exported', {
+          count: String(result.count),
+          format: result.format.toUpperCase(),
+        })
       )
-      if (chosen !== undefined) {
-        setFormat(chosen.format)
+    },
+    [onExport, scopeLocks, scopeLabel]
+  )
+
+  /*
+   * The picker is built here rather than with `md3BulkExportMenuSpec` because
+   * the shared one offers every format the generic serializer can write, and
+   * locks are not written by it: their own serializer states in the file, in
+   * every format, that credentials were left out. It has no SQL writer, and a
+   * row for a format nothing can produce is a control that cannot work.
+   */
+  const exportMenuSpec = React.useMemo((): IMd3MenuSpec => {
+    return {
+      kind: 'listMenu',
+      title: t('md3.bulk.exportMenu.title', { scope: scopeLabel }),
+      icon: 'cloud_download',
+      width: 460,
+      hasFilter: true,
+      filterPlaceholder: t('md3.bulk.exportMenu.filterPlaceholder'),
+      footer: md3ListExportSchema(Md3LockExportColumns),
+      items: Md3LockExportFormats.map(descriptor => ({
+        id: descriptor.format,
+        label: descriptor.label,
+        icon: 'description' as MaterialSymbolName,
+        hint: `.${descriptor.extension}`,
+        onClick: () => runExport(descriptor.format),
+      })),
+    }
+  }, [scopeLabel, runExport])
+
+  /*
+   * The bar's export contract speaks the generic format list, which is one
+   * format wider than anything that writes a lock. Narrowing here rather than
+   * casting keeps the extra format from reaching a serializer that has no
+   * writer for it — the picker above never offers it in the first place.
+   */
+  const onBarExport = React.useCallback(
+    (format: Md3ListExportFormat) => {
+      const supported = Md3LockExportFormats.find(
+        descriptor => descriptor.format === format
+      )
+      if (supported !== undefined) {
+        runExport(supported.format)
       }
     },
-    []
+    [runExport]
   )
+
+  const onOpenExport = React.useCallback(() => setExportOpen(true), [])
+  const onCloseExport = React.useCallback(() => setExportOpen(false), [])
 
   const onOpenGate = React.useCallback(() => setGateOpen(true), [])
   const onCloseGate = React.useCallback(() => setGateOpen(false), [])
 
+  const onMenuOpenBuilder = React.useCallback((pattern: string) => {
+    setExportOpen(false)
+    setBuilderSeed(pattern)
+    setBuilderOpen(true)
+  }, [])
+
+  const bulkActions = React.useMemo((): ReadonlyArray<IMd3BulkAction> => {
+    return [
+      {
+        id: 'lockAgain',
+        label: t('md3.locks.bulkLockAgain'),
+        icon: 'lock',
+        disabled: relockable.applied.length === 0,
+        onClick: onBulkLockAgain,
+      },
+      {
+        id: 'remove',
+        label: t('md3.locks.bulkRemove'),
+        icon: 'delete_sweep',
+        destructive: true,
+        // Removal forgets credentials nobody can recover, so it never runs
+        // from the button: it opens the two-key gate.
+        hasPopup: 'dialog',
+        buttonRef: removeButtonRef,
+        disabled: scopeLocks.length === 0,
+        onClick: onOpenGate,
+      },
+    ]
+  }, [relockable, onBulkLockAgain, scopeLocks, onOpenGate, removeButtonRef])
+
   const onConfirmRemoval = React.useCallback(() => {
-    const ids = (selectedLocks.length > 0 ? selectedLocks : visible).map(
-      lock => lock.id
-    )
+    const ids = scopeLocks.map(lock => lock.id)
     onRemoveLocks(ids)
     setSelected(new Set<string>())
     setGateOpen(false)
     notify(t('md3.locks.toast.removed', { count: String(ids.length) }))
-  }, [onRemoveLocks, selectedLocks, visible])
+  }, [onRemoveLocks, scopeLocks])
 
   const removeOne = React.useCallback(
     (lock: IMd3Lock) => {
@@ -526,7 +681,7 @@ export function Md3LocksView(props: IMd3LocksViewProps) {
       }
       if (event.key === ' ' || event.key === 'Spacebar') {
         event.preventDefault()
-        toggleSelected(lock, index, event.shiftKey)
+        toggleSelected(index, event.shiftKey)
         return
       }
       if (event.key === 'Enter') {
@@ -564,97 +719,48 @@ export function Md3LocksView(props: IMd3LocksViewProps) {
         fieldLabel={t('md3.locks.search.fieldLabel')}
         regexEnabled={regexEnabled}
         matchCount={visible.length}
+        error={regexError}
         onChange={onSearchChange}
         onClear={onSearchClear}
         onToggleRegex={onToggleRegex}
         onOpenBuilder={onOpenBuilder}
       />
 
-      {regexError === null ? null : (
-        <p className="md3-locks__regex-error" role="alert">
-          {regexError}
-        </p>
-      )}
+      <Md3BulkBar
+        listId="locks"
+        label={t('md3.locks.bulkLabel')}
+        visibleIds={visibleIds}
+        selected={selected}
+        filtered={filtered}
+        scopeLabel={scopeLabel}
+        actions={bulkActions}
+        onToggleSelectAll={onToggleSelectAll}
+        onInvertSelection={onInvertSelection}
+        onClearSelection={onClearSelection}
+        onExport={onBarExport}
+        exportColumns={Md3LockExportColumns}
+        onOpenExport={onOpenExport}
+        exportDisabled={scopeLocks.length === 0}
+        exportButtonRef={exportButtonRef}
+      />
 
+      {/*
+        The bar's select-all deliberately stops at the search, as it does on
+        every list. This list also holds locks the search is hiding, and a
+        user who wants all of them should not have to clear the search to say
+        so — so the escape hatch sits beside the bar, naming its own scope.
+      */}
       <div
         className="md3-locks__selection"
         role="group"
         aria-label={t('md3.locks.title')}
       >
-        <label className="md3-locks__select-all">
-          <input
-            ref={selectAllRef}
-            type="checkbox"
-            checked={
-              visible.length > 0 && selectedVisible.length === visible.length
-            }
-            onChange={onSelectAllVisible}
-          />
-          <span>
-            {t('md3.locks.selection.selectAllFiltered', {
-              count: String(visible.length),
-            })}
-          </span>
-        </label>
         <Md3GhostButton
           label={t('md3.locks.selection.selectAllEverything', {
             count: String(locks.length),
           })}
+          disabled={locks.length === 0}
           onClick={onSelectEverything}
-        />
-        <Md3GhostButton
-          label={t('md3.locks.selection.invert')}
-          onClick={onInvertSelection}
-        />
-        <Md3GhostButton
-          label={t('md3.locks.selection.clear')}
-          disabled={selected.size === 0}
-          onClick={onClearSelection}
-        />
-        <span className="md3-locks__selection-count" role="status">
-          {t('md3.locks.selection.count', {
-            selected: String(selected.size),
-            total: String(locks.length),
-          })}
-        </span>
-      </div>
-
-      <div className="md3-locks__bulk">
-        <fieldset className="md3-locks__formats">
-          <legend>{t('md3.locks.bulk.exportFormat')}</legend>
-          {Md3LockExportFormats.map(descriptor => (
-            <label className="md3-locks__format" key={descriptor.format}>
-              <input
-                type="radio"
-                name="md3-locks-export-format"
-                value={descriptor.format}
-                checked={format === descriptor.format}
-                onChange={onFormatChanged}
-              />
-              <span>{descriptor.label}</span>
-            </label>
-          ))}
-        </fieldset>
-        <Md3TonalButton
-          label={t('md3.locks.bulk.export', {
-            count: String(
-              selectedLocks.length > 0 ? selectedLocks.length : visible.length
-            ),
-          })}
-          icon="cloud_download"
-          disabled={visible.length === 0 && selectedLocks.length === 0}
-          onClick={onExportSelection}
-        />
-        <Md3TonalButton
-          label={t('md3.locks.bulk.remove', {
-            count: String(
-              selectedLocks.length > 0 ? selectedLocks.length : visible.length
-            ),
-          })}
-          icon="delete_sweep"
-          disabled={visible.length === 0 && selectedLocks.length === 0}
-          onClick={onOpenGate}
-          className="md3-locks__bulk-remove"
         />
       </div>
 
@@ -706,10 +812,19 @@ export function Md3LocksView(props: IMd3LocksViewProps) {
           : t('md3.locks.unlock.recovery', { folder: applicationDataFolder })}
       </p>
 
+      {exportOpen ? (
+        <Md3MenuOverlay
+          spec={exportMenuSpec}
+          onDismiss={onCloseExport}
+          onOpenRegexBuilder={onMenuOpenBuilder}
+          returnFocusTo={exportButtonRef}
+        />
+      ) : null}
+
       {builderOpen ? (
         <Md3RegexBuilderDialog
           targetLabel={t('md3.locks.search.fieldLabel')}
-          initialPattern={query}
+          initialPattern={builderSeed ?? query}
           sampleItems={builderSamples}
           onApply={onApplyPattern}
           onDismissed={onCloseBuilder}
@@ -718,19 +833,8 @@ export function Md3LocksView(props: IMd3LocksViewProps) {
 
       {gateOpen ? (
         <Md3LockRemovalGate
-          count={
-            selectedLocks.length > 0 ? selectedLocks.length : visible.length
-          }
-          scope={
-            selectedLocks.length > 0
-              ? t('md3.locks.selection.count', {
-                  selected: String(selectedLocks.length),
-                  total: String(locks.length),
-                })
-              : t('md3.locks.selection.selectAllFiltered', {
-                  count: String(visible.length),
-                })
-          }
+          count={scopeLocks.length}
+          scope={scopeLabel}
           onConfirm={onConfirmRemoval}
           onDismissed={onCloseGate}
         />

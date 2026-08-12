@@ -84,6 +84,27 @@ export const md3ActionsRunFixtures: ReadonlyArray<IMd3ActionsRun> = [
     cancellable: false,
     hasFailedJobs: false,
   },
+  // A run the provider has only partly reported: queued, so it has no duration
+  // yet, and its job page has not been read, so it has no job count. The row
+  // must leave those segments out rather than drawing `0 jobs` and an empty
+  // gap where the duration goes — a preview that never shows this case is a
+  // preview that cannot tell the two apart.
+  {
+    id: 'run-1478',
+    name: 'Package linux-tui',
+    number: 1478,
+    branch: 'feature/md3-shell',
+    event: 'pull_request',
+    duration: null,
+    status: 'queued',
+    actor: null,
+    sha: '5f0a2bc',
+    jobCount: null,
+    time: '9 seconds ago',
+    attempt: 1,
+    cancellable: true,
+    hasFailedJobs: false,
+  },
 ]
 
 export const md3ActionsJobFixtures: ReadonlyArray<IMd3ActionsJob> = [
@@ -208,4 +229,23 @@ export const md3ActionsLogFixture = [
   '',
   'Error: 1 test failed.',
   '$ exit 1',
+].join('\n')
+
+/**
+ * The same log in the shape GitHub actually returns it: every line prefixed
+ * with an ISO-8601 timestamp, and the phases wrapped in `::group::` markers.
+ *
+ * The contract's own fixture above was typed by hand and carries neither, which
+ * is why a view rendering it looked right while a real downloaded log rendered
+ * every command line as ordinary output.
+ */
+export const md3ActionsTimestampedLogFixture = [
+  '2026-08-10T09:41:02.1234567Z ::group::Run actions/checkout@v4',
+  '2026-08-10T09:41:02.2234567Z with:',
+  '2026-08-10T09:41:02.3234567Z   fetch-depth: 0',
+  '2026-08-10T09:41:02.4234567Z ::endgroup::',
+  '2026-08-10T09:41:03.0234567Z $ npm run test:unit',
+  '2026-08-10T09:41:31.5234567Z PASS  app/test/unit/md3-style-contract-test.ts',
+  '2026-08-10T09:41:32.5234567Z FAIL  app/test/unit/md3-actions-view-test.ts',
+  '2026-08-10T09:41:32.6234567Z Error: Process completed with exit code 1.',
 ].join('\n')

@@ -1,9 +1,14 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
 
-import { md3HistoryCommits } from '../../src/ui/md3/md3-destination-adapters'
+import {
+  md3CommittedFileTabs,
+  md3DayLabel,
+  md3HistoryCommits,
+} from '../../src/ui/md3/md3-destination-adapters'
 import { Commit } from '../../src/models/commit'
 import { CommitIdentity } from '../../src/models/commit-identity'
+import { AppFileStatusKind, CommittedFileChange } from '../../src/models/status'
 
 /**
  * The adapter that turns real commits into History rows.
@@ -31,12 +36,13 @@ function commitAt(
     readonly email?: string
     readonly parents?: ReadonlyArray<string>
     readonly tags?: ReadonlyArray<string>
+    readonly date?: Date
   } = {}
 ): Commit {
   const identity = new CommitIdentity(
     options.author ?? 'Priya Raman',
     options.email ?? 'priya@example.invalid',
-    new Date('2026-08-10T09:41:00Z'),
+    options.date ?? new Date('2026-08-10T09:41:00Z'),
     0
   )
 
@@ -49,12 +55,15 @@ function commitAt(
     identity,
     options.parents ?? ['a'.repeat(40)],
     [],
-    options.tags ?? [],
-    undefined
+    options.tags ?? []
   )
 }
 
-const rowsFor = (commit: Commit, changesetSha: string | null = null) =>
+const rowsFor = (
+  commit: Commit,
+  changesetSha: string | null = null,
+  now: number = new Date('2026-08-10T09:53:00Z').getTime()
+) =>
   md3HistoryCommits({
     shas: [commit.sha],
     commitLookup: new Map([[commit.sha, commit]]),
@@ -68,7 +77,7 @@ const rowsFor = (commit: Commit, changesetSha: string | null = null) =>
       linesDeleted: 96,
       fileCount: 4,
     },
-    now: new Date('2026-08-10T09:53:00Z').getTime(),
+    now,
   })
 
 describe('md3HistoryCommits', () => {
@@ -128,6 +137,78 @@ describe('md3HistoryCommits', () => {
     })
 
     assert.equal(rowsFor(merge)[0].kind, 'merge')
+  })
+
+  it('says a signature was never checked rather than that it failed', () => {
+    // Nothing in the history path runs `git verify-commit` — `getCommits`
+    // passes `--no-show-signature` — so the adapter has examined no signature
+    // at all. Reporting `unverified` told every reader that each of their
+    // signed commits had been looked at and had not held up.
+    assert.equal(rowsFor(commitAt(FullSha))[0].kind, 'unchecked')
+  })
+
+  describe('day headings', () => {
+    const now = new Date('2026-08-10T09:53:00')
+
+    const dayFor = (date: Date) =>
+      rowsFor(commitAt(FullSha, { date }), null, now.getTime())[0].day
+
+    it('names today and yesterday, as the contract does', () => {
+      // The contract's headings read `Today` and `Yesterday`; a bare
+      // `10 Aug 2026` above this morning's commits makes the reader work out
+      // from a calendar the one thing the heading exists to tell them.
+      assert.equal(dayFor(new Date('2026-08-10T08:12:00')), 'Today')
+      assert.equal(dayFor(new Date('2026-08-09T23:50:00')), 'Yesterday')
+    })
+
+    it('falls back to a real date further back', () => {
+      const older = dayFor(new Date('2026-08-02T11:10:00'))
+
+      assert.notEqual(older, 'Today')
+      assert.notEqual(older, 'Yesterday')
+      assert.ok(
+        older.includes('2026'),
+        `expected a dated heading, got ${older}`
+      )
+    })
+
+    it('splits on the local calendar day, not on elapsed hours', () => {
+      // Twenty minutes apart and either side of midnight: the same heading for
+      // both would put yesterday's work under `Today`.
+      assert.equal(
+        md3DayLabel(new Date('2026-08-10T00:10:00'), now.getTime()),
+        'Today'
+      )
+      assert.equal(
+        md3DayLabel(new Date('2026-08-09T23:50:00'), now.getTime()),
+        'Yesterday'
+      )
+    })
+  })
+
+  describe('the selected commit’s file list', () => {
+    const fileChange = (path: string) =>
+      new CommittedFileChange(
+        path,
+        { kind: AppFileStatusKind.Modified },
+        FullSha,
+        `${FullSha}^`
+      )
+
+    it('states no per-file line counts, because none were read', () => {
+      // `getChangedFiles` sums `--numstat` into the changeset's two totals and
+      // keeps nothing per file. Sending zeroes drew "+0 −0" beside every path
+      // in the detail sheet and announced the same to a screen reader: a claim
+      // that each of those files changed nothing.
+      const [tab] = md3CommittedFileTabs([
+        fileChange('app/src/ui/md3/md3-history-view.tsx'),
+      ])
+
+      assert.equal(tab.addedLineCount, undefined)
+      assert.equal(tab.deletedLineCount, undefined)
+      assert.equal(tab.name, 'md3-history-view.tsx')
+      assert.equal(tab.kind, 'modified')
+    })
   })
 
   it('skips a SHA whose commit body has not loaded', () => {

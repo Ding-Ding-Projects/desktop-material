@@ -384,7 +384,12 @@ export type { IMd3LockSetupDialogProps } from './md3-lock-setup-dialog'
 export { Md3LockRemovalGate } from './md3-lock-removal-gate'
 export type { IMd3LockRemovalGateProps } from './md3-lock-removal-gate'
 
-export { Md3LocksView, describeLockState } from './md3-locks-view'
+export {
+  Md3LocksView,
+  Md3LockExportColumns,
+  describeLockState,
+  md3LockExportRecord,
+} from './md3-locks-view'
 export type { IMd3LocksViewProps } from './md3-locks-view'
 
 export {

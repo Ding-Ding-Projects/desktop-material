@@ -32,13 +32,15 @@ import { IAgentSessionConversation } from '../agent-sessions/agent-session-conve
 import { IBranchVisibilityState } from '../../lib/branch-visibility'
 
 import { IMd3HistoryViewProps, Md3HistoryFilterId } from './md3-history-view'
-import { IMd3ChangesViewProps } from './md3-changes-view'
+import {
+  IMd3ChangesViewProps,
+  md3VisibleChangedFiles,
+} from './md3-changes-view'
 import {
   IMd3BranchesViewProps,
   IMd3BranchRow,
   IMd3BranchRowHandlers,
   IMd3BranchListHandlers,
-  IMd3MergeAllStatus,
   Md3BranchChip,
   Md3BranchSortOrder,
 } from './md3-branches-view'
@@ -53,10 +55,20 @@ import {
   md3CommittedFileTabs,
   md3DiffEmptyMessage,
   md3DiffLines,
+  md3ChangesFilterActive,
+  Md3ChangesFilterId,
+  Md3ChangesFilterIds,
+  md3FilterChangedFiles,
   md3HistoryCommits,
   md3InboxNotifications,
   md3IncludedFileCount,
+  md3MergeAllStatus,
+  md3NotificationThreadKey,
 } from './md3-destination-adapters'
+import {
+  getMutedNotificationThreads,
+  setNotificationThreadMuted,
+} from './md3-inbox-controller'
 import { IMd3SearchBinding } from './md3-shell'
 
 // ---------------------------------------------------------------------------
@@ -127,6 +139,9 @@ export type Md3ViewMenu =
   | 'searchMenu'
   | 'diffOptions'
   | 'paneMenu'
+  // The Terminal destination's own context menu, per the contract's
+  // `onContextTerminal: this.ctx('terminalMenu')`.
+  | 'terminalMenu'
 
 // ---------------------------------------------------------------------------
 // History
@@ -141,6 +156,80 @@ function commitFor(state: IRepositoryState, sha: string): Commit | undefined {
   return state.commitLookup.get(sha)
 }
 
+/** The shape `md3HistoryCommits` reads its per-commit totals from. */
+export interface IMd3HistoryChangeset {
+  readonly sha: string | null
+  readonly linesAdded: number
+  readonly linesDeleted: number
+  readonly fileCount: number
+}
+
+/**
+ * Which commit — if any — the loaded changeset actually describes.
+ *
+ * The store resets `changesetData` to `{ files: [], linesAdded: 0,
+ * linesDeleted: 0 }` the instant a selection changes and fills it in only when
+ * `git log --numstat` comes back, so for the whole of that round trip the
+ * selected commit's totals are all zero and mean "not read yet". Naming the
+ * selected SHA unconditionally handed those zeroes to the row as fact, and the
+ * row believed them: the freshly selected commit read "+0 −0 · 0 files" — and
+ * kept reading it for good if the read failed, because nothing ever clears the
+ * claim. The type checker had nothing to say; both spellings are a string.
+ *
+ * Two things have to hold before the numbers describe one commit:
+ *
+ *  - exactly one commit is selected. Select a range and the store loads the
+ *    range's combined totals, which attributed to `shas[0]` would report one
+ *    commit as having made every change in the span;
+ *  - the files have arrived. An empty file list is the only signal the store
+ *    offers that the read has not landed — it keeps no loading flag — so a
+ *    genuinely empty commit is reported as unknown rather than as zero. That
+ *    direction is the safe one: it withholds a number instead of asserting one.
+ */
+export function md3HistoryChangeset(selection: {
+  readonly shas: ReadonlyArray<string>
+  readonly changesetData: {
+    readonly files: ReadonlyArray<CommittedFileChange>
+    readonly linesAdded: number
+    readonly linesDeleted: number
+  }
+}): IMd3HistoryChangeset {
+  const { files, linesAdded, linesDeleted } = selection.changesetData
+  const describesOneCommit = selection.shas.length === 1 && files.length > 0
+
+  return {
+    sha: describesOneCommit ? selection.shas[0] : null,
+    linesAdded,
+    linesDeleted,
+    fileCount: files.length,
+  }
+}
+
+/**
+ * Every address that counts as "me" for the History `Mine` chip.
+ *
+ * The signed-in accounts' addresses are not the whole answer: commits are
+ * authored under `user.email` from the repository's own Git config, which is
+ * routinely a different address from the one on the forge account — a work
+ * address, a `users.noreply` alias, a per-repository override. With the
+ * account list alone the chip filtered a repository's history down to nothing
+ * and looked, from the outside, exactly like a repository the user had never
+ * committed to.
+ */
+function historyAuthorEmails(
+  state: IRepositoryState,
+  accountEmails: ReadonlySet<string>
+): ReadonlySet<string> {
+  const emails = new Set<string>(accountEmails)
+  const author = state.commitAuthor
+
+  if (author !== null && author.email.length > 0) {
+    emails.add(author.email.toLowerCase())
+  }
+
+  return emails
+}
+
 /** Build the History destination's props from the real commit store. */
 export function buildMd3HistoryProps(
   context: IMd3ViewContext
@@ -150,7 +239,6 @@ export function buildMd3HistoryProps(
   const filter = context.bind('history')
   const diffSearch = context.bind('diffSearch')
 
-  const primarySha = selection.shas.length > 0 ? selection.shas[0] : null
   const files = selection.changesetData.files
 
   const commits = md3HistoryCommits({
@@ -158,14 +246,9 @@ export function buildMd3HistoryProps(
     commitLookup: state.commitLookup,
     localCommitSHAs: state.localCommitSHAs,
     branchName: currentBranchName(state),
-    userEmails: context.userEmails,
+    userEmails: historyAuthorEmails(state, context.userEmails),
     pinnedShas: local.historyPinnedShas,
-    changeset: {
-      sha: primarySha,
-      linesAdded: selection.changesetData.linesAdded,
-      linesDeleted: selection.changesetData.linesDeleted,
-      fileCount: files.length,
-    },
+    changeset: md3HistoryChangeset(selection),
   })
 
   const selectFile = (path: string) => {
@@ -296,8 +379,72 @@ export function buildMd3ChangesProps(
   const selectedFile =
     selectedPaths.length > 0 ? filesByPath.get(selectedPaths[0]) : undefined
 
+  /**
+   * The one diff the Changes selection has actually loaded, which is the only
+   * place per-file line totals exist — `git status` reports which files
+   * changed, never by how much. A stash selection's diff belongs to a stashed
+   * file rather than to a working-directory row, so it lends its counts to
+   * nothing here.
+   */
+  const loadedDiff =
+    selectedFile === undefined ||
+    changes.selection.kind !== ChangesSelectionKind.WorkingDirectory
+      ? null
+      : { path: selectedFile.path, diff }
+
+  /**
+   * The contract's `visibleChanges`. The view's `files` prop is documented as
+   * the rows that survive the query, so the filtering belongs here — handing
+   * it the whole working directory left the filter field inert.
+   */
+  const queried = md3VisibleChangedFiles(
+    files,
+    search.value,
+    search.regexEnabled
+  )
+
+  /**
+   * The inclusion and status chips, restored to this list.
+   *
+   * `changesState.fileListFilter` is real repository state with real
+   * dispatcher operations behind every one of its switches, and the MD3 list
+   * was reading none of it — so a filter set from the existing changed-file
+   * list simply did not apply here, and this list offered no way to set one.
+   */
+  const fileFilter = changes.fileListFilter
+  const visibleFiles = md3FilterChangedFiles(queried, fileFilter)
+  const filtered = visibleFiles.length !== files.length
+
+  const setFilter = (id: Md3ChangesFilterId, active: boolean) => {
+    switch (id) {
+      case 'included':
+        return dispatcher.setIncludedChangesInCommitFilter(repository, active)
+      case 'excluded':
+        return dispatcher.setFilterExcludedFiles(repository, active)
+      case 'new':
+        return dispatcher.setFilterNewFiles(repository, active)
+      case 'modified':
+        return dispatcher.setFilterModifiedFiles(repository, active)
+      case 'deleted':
+        return dispatcher.setFilterDeletedFiles(repository, active)
+    }
+  }
+
+  const anyChipActive = Md3ChangesFilterIds.some(id =>
+    md3ChangesFilterActive(fileFilter, id)
+  )
+
+  const resetFilters = () => {
+    search.onClear()
+    for (const id of Md3ChangesFilterIds) {
+      if (md3ChangesFilterActive(fileFilter, id)) {
+        setFilter(id, false)
+      }
+    }
+  }
+
   return {
-    files: md3ChangedFiles(files),
+    files: md3ChangedFiles(visibleFiles, loadedDiff),
     totalFileCount: files.length,
     includedFileCount: md3IncludedFileCount(files),
     selectedPaths,
@@ -328,6 +475,30 @@ export function buildMd3ChangesProps(
     onToggleSearchRegex: search.onToggleRegex,
     onOpenSearchBuilder: search.onOpenBuilder,
     onSearchContextMenu: () => context.openMenu('searchMenu'),
+    filterChips: Md3ChangesFilterIds.map(id => ({
+      id,
+      label: t(`md3.changes.filter.${id}` as const),
+      active: md3ChangesFilterActive(fileFilter, id),
+      onToggle: () => setFilter(id, !md3ChangesFilterActive(fileFilter, id)),
+    })),
+    // Offered only while something is actually hiding rows. A clean working
+    // tree has nothing to reset, and an empty state that offers to reset
+    // filters that are not set sends the user to press a button that changes
+    // nothing.
+    onResetFilters: filtered || anyChipActive ? resetFilters : undefined,
+    // The bulk bar's own verbs. Copy and discard are the row context menu's
+    // existing commands reached for a whole scope; discard arrives here only
+    // after the view's destructive gate has been completed.
+    onCopyPaths: text => clipboard.writeText(text),
+    onDiscardFiles: paths => {
+      const targets = paths.flatMap(path => {
+        const file = filesByPath.get(path)
+        return file === undefined ? [] : [file]
+      })
+      if (targets.length > 0) {
+        void dispatcher.discardChanges(repository, targets)
+      }
+    },
     authorInitials: compose.authorInitials,
     authorName: compose.authorName,
     commitSummary: changes.commitMessage.summary,
@@ -350,10 +521,13 @@ export function buildMd3ChangesProps(
     onOpenComposer: compose.onOpenComposer,
     onDraftWithCopilot: compose.onDraftWithCopilot,
     onAddCoAuthors: compose.onAddCoAuthors,
-    commitDisabled:
-      state.isCommitting ||
-      md3IncludedFileCount(files) === 0 ||
-      changes.commitMessage.summary.trim().length === 0,
+    // Not disabled for a missing summary. The view answers an empty summary by
+    // opening the composer, where the requirement is explained and the field
+    // takes focus; disabling the button here made that documented path
+    // unreachable and left a keyboard user a dead control with no explanation.
+    // What genuinely blocks a commit is a commit already running, or nothing
+    // staged to commit.
+    commitDisabled: state.isCommitting || md3IncludedFileCount(files) === 0,
     banners,
     diff: {
       filePath: selectedFile?.path ?? '',
@@ -412,7 +586,13 @@ export function buildMd3BranchesProps(
   >(
     branchesState.openPullRequests.map(pullRequest => [
       pullRequest.head.ref,
-      { number: pullRequest.pullRequestNumber, state: 'open' },
+      // The state word lands verbatim in the row's detail line, so it is copy
+      // and has to come from the catalogue: a literal 'open' here renders an
+      // English word inside a Cantonese sentence.
+      {
+        number: pullRequest.pullRequestNumber,
+        state: t('md3.adapters.branch.pullRequestOpen'),
+      },
     ])
   )
 
@@ -571,7 +751,7 @@ export function buildMd3BranchesProps(
     onMergeAll: () => {
       void dispatcher.mergeAllIntoDefaultBranch(repository, 'branches')
     },
-    mergeAll: mergeAllStatus(state),
+    mergeAll: md3MergeAllStatus(state.mergeAllState),
     canMergeAll: branchesState.defaultBranch !== null,
     currentBranchName: current,
     onOpenRowMenu: row => context.openMenu('branchRowMenu', row.name),
@@ -596,22 +776,6 @@ function sortBranchRows(
   return rows
 }
 
-function mergeAllStatus(state: IRepositoryState): IMd3MergeAllStatus | null {
-  const mergeAll = state.mergeAllState
-  if (mergeAll === null) {
-    return null
-  }
-  // The store reports one result per branch it has finished with, so the
-  // completed count is that list's length rather than a separate counter.
-  const completed = mergeAll.results.length
-  return {
-    phase: mergeAll.phase,
-    currentBranch: mergeAll.currentBranch,
-    completed,
-    total: completed + (mergeAll.currentBranch === null ? 0 : 1),
-  }
-}
-
 /** Branch types the Branches chips filter on, exported for the host's menus. */
 export const Md3BranchTypes = BranchType
 
@@ -622,10 +786,17 @@ export const Md3BranchTypes = BranchType
 export interface IMd3InboxContext {
   readonly dispatcher: Dispatcher
   readonly notifications: ReadonlyArray<INotificationEntry>
+  /**
+   * Repository source labels keyed by id. Build them with
+   * {@link md3NotificationSourceName}: the row's detail line renders
+   * `owner/repo`, and a bare folder name is the same type and silently wrong.
+   */
   readonly repositoryNames: ReadonlyMap<number, string>
   readonly onOpenHistory: () => void
   readonly onOpenAutomations: () => void
   readonly onExport: (request: IMd3InboxExportRequest) => void
+  /** Redraw after a mute, which is view state rather than store state. */
+  readonly onMutedThreadsChanged?: () => void
 }
 
 /** Build the Inbox destination's props from the real notification centre. */
@@ -641,7 +812,16 @@ export function buildMd3InboxProps(
     notifications: md3InboxNotifications({
       notifications: context.notifications,
       repositoryNames: context.repositoryNames,
+      mutedThreads: getMutedNotificationThreads(),
     }),
+    onSetMuted: (notification, muted) => {
+      const entry = byId.get(notification.id)
+      if (entry === undefined) {
+        return
+      }
+      setNotificationThreadMuted(md3NotificationThreadKey(entry), muted)
+      context.onMutedThreadsChanged?.()
+    },
     onOpen: notification => {
       const entry = byId.get(notification.id)
       if (entry === undefined) {
@@ -709,9 +889,25 @@ export function buildMd3AgentsProps(
   const sessions = md3AgentSessions({
     sessions: context.sessions,
     runnerAvailable: context.runnerAvailable,
+    // Every row's turn count, start time and elapsed time comes from that
+    // session's own transcript, so the list needs all of them — not only the
+    // selected session's.
+    conversationFor: session => context.conversationFor(session.path),
+    access: {
+      read: context.readAccess,
+      commit: context.commitAccess,
+      push: context.pushAccess,
+    },
   })
 
-  const selectedSessionId = context.selectedSessionId
+  // The contract opens on the first session's conversation rather than on an
+  // empty pane, and a remembered path whose worktree has since been deleted
+  // must not leave the pane blank either — in both cases nothing is selected
+  // through no choice of the reader's.
+  const selectedSessionId =
+    sessions.find(session => session.id === context.selectedSessionId)?.id ??
+    (sessions.length === 0 ? null : sessions[0].id)
+
   const conversation =
     selectedSessionId === null
       ? null

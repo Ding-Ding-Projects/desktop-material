@@ -47,6 +47,12 @@ const RequiredActionIds: ReadonlyArray<Md3DestructiveActionId> = [
   'repository-transfer',
   'self-hosted-runner-removal',
   'inbox-bulk-delete',
+  'branches-bulk-delete',
+  'changes-bulk-discard',
+  'history-bulk-revert',
+  'actions-bulk-cancel',
+  'agents-bulk-delete',
+  'terminal-bulk-close',
   'authenticator-bulk-delete',
   'authenticator-secrets-export',
 ]

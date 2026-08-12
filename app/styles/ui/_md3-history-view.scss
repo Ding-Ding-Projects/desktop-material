@@ -64,10 +64,13 @@
 // ---------------------------------------------------------------------------
 
 .md3-history__row {
-  // The row is a grid row wrapping a single cell, so its children are laid out
-  // by that cell rather than directly. `.md3-row` supplies the padding, the
-  // radius, the transition and the selected fill.
-  display: block;
+  // Two cells: the bulk checkbox, then everything the contract draws. They sit
+  // side by side, so the row is the flex container and the content cell is the
+  // one that grows. `.md3-row` supplies the padding, the radius, the transition
+  // and the selected fill.
+  align-items: center;
+  display: flex;
+  gap: 8px;
 
   // Rows outside the viewport skip layout and paint entirely, which is what
   // keeps a several-hundred-commit page cheap without windowing the list and
@@ -77,9 +80,22 @@
   content-visibility: auto;
 }
 
+// The bulk-selection cell, ahead of the contract's leading column. `flex: none`
+// so it keeps its width while the summary column shrinks: a checkbox that
+// shrinks becomes unclickable long before the text beside it becomes
+// unreadable.
+.md3-history__select-cell {
+  align-items: center;
+  display: flex;
+  flex: none;
+  justify-content: center;
+  min-inline-size: 22px;
+}
+
 .md3-history__row-cell {
   align-items: center;
   display: flex;
+  flex: 1 1 auto;
   gap: 8px;
   min-width: 0;
 }
@@ -253,16 +269,22 @@
   min-width: 0;
 }
 
+// `text-wrap: pretty` breaks at spaces, and a commit summary need not contain
+// one: a pasted URL, a Java class name or a long branch reference is a single
+// token that overflows the 372px sheet and paints over its own close button.
+// `overflow-wrap: anywhere` lets such a token break rather than escape.
 .md3-history__sheet-summary {
   font-size: 13.5px;
   font-weight: 600;
   line-height: 1.35;
+  overflow-wrap: anywhere;
   text-wrap: pretty;
 }
 
 .md3-history__sheet-byline {
   color: var(--md-sys-color-on-surface-variant);
   font-size: 11px;
+  overflow-wrap: anywhere;
 }
 
 .md3-history__sheet-stats {
@@ -323,13 +345,29 @@
   color: var(--md-sys-color-on-tertiary-container);
 }
 
+// Shown in place of the three number pills while the commit's `--numstat` read
+// is still in flight. Deliberately quiet — a neutral container rather than the
+// green/red/tertiary trio — so it reads as "no answer yet" rather than as a
+// fourth measurement.
+.md3-history__sheet-pill--pending {
+  background: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface-variant);
+  font-weight: 500;
+}
+
+// A commit body is arbitrary text — stack traces, URLs, base64 — and none of it
+// is guaranteed to contain a break opportunity. It also has to keep the
+// author's own line breaks, which the contract's sample body has and which a
+// default `normal` collapses into one paragraph.
 .md3-history__sheet-body {
   color: var(--md-sys-color-on-surface-variant);
   flex: none;
   font-size: 12px;
   line-height: 1.5;
+  overflow-wrap: anywhere;
   padding: 0 14px 12px 14px;
   text-wrap: pretty;
+  white-space: pre-wrap;
 }
 
 .md3-history__sheet-files {

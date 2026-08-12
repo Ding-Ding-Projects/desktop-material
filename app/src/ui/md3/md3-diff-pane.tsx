@@ -55,9 +55,20 @@ export interface IMd3DiffFileTab {
   /** `new` takes the green `add_circle`; anything else takes `edit_square`. */
   readonly kind: 'new' | 'modified'
 
-  readonly addedLineCount: number
+  /**
+   * How many lines the file gained, when that is known.
+   *
+   * Optional because it genuinely is not always knowable: History builds these
+   * tabs from a commit's changeset, which carries the commit's totals and no
+   * per-file split. Sending a zero there is not a neutral default — it renders
+   * as "this file changed nothing" beside a path that plainly did change — so
+   * a caller with no count omits it and every reader drops the number rather
+   * than printing a zero nobody counted.
+   */
+  readonly addedLineCount?: number
 
-  readonly deletedLineCount: number
+  /** How many lines the file lost, when that is known. */
+  readonly deletedLineCount?: number
 }
 
 /**
@@ -196,6 +207,13 @@ function Md3DiffFileTab(props: {
   const { tab, onSelect } = props
   const onClick = React.useCallback(() => onSelect(tab.path), [onSelect, tab])
 
+  // A chip whose counts were never loaded announces the file alone. The
+  // alternative it replaces announced "+0 −0" to a screen-reader user for
+  // every file of every commit, which is the one audience that cannot glance
+  // at the diff and see that it is untrue.
+  const stated =
+    tab.addedLineCount !== undefined && tab.deletedLineCount !== undefined
+
   return (
     <button
       type="button"
@@ -204,12 +222,19 @@ function Md3DiffFileTab(props: {
       className={classNames('md3-diff-pane__file', {
         'md3-diff-pane__file--active': props.active,
       })}
-      aria-label={t('md3.diffPane.fileTabName', {
-        name: tab.name,
-        path: tab.path,
-        added: String(tab.addedLineCount),
-        deleted: String(tab.deletedLineCount),
-      })}
+      aria-label={
+        stated
+          ? t('md3.diffPane.fileTabName', {
+              name: tab.name,
+              path: tab.path,
+              added: String(tab.addedLineCount),
+              deleted: String(tab.deletedLineCount),
+            })
+          : t('md3.diffPane.fileTabNameWithoutStats', {
+              name: tab.name,
+              path: tab.path,
+            })
+      }
       onClick={onClick}
     >
       <MaterialSymbol

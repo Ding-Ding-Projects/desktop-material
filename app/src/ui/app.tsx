@@ -342,6 +342,8 @@ import type {
   Md3SearchFieldKey,
   Md3ShellAction,
 } from './md3/md3-shell'
+import { md3ListExportDescriptor } from './md3/md3-list-export'
+import type { IMd3ListExport } from './md3/md3-list-export'
 import {
   defaultMd3MenuContext,
   type IMd3MenuContext,
@@ -376,6 +378,10 @@ import { Md3ActionsController } from './md3/md3-actions-controller'
 import { Md3TerminalController } from './md3/md3-terminal-controller'
 import { Md3RepositoriesController } from './md3/md3-repositories-controller'
 import {
+  Md3AgentInstructionResult,
+  Md3AgentsController,
+} from './md3/md3-agents-controller'
+import {
   buildMd3AgentsProps,
   buildMd3BranchesProps,
   buildMd3ChangesProps,
@@ -386,7 +392,10 @@ import {
   type IMd3ViewContext,
   type Md3ViewMenu,
 } from './md3/md3-view-props'
-import { md3RepositoryRows } from './md3/md3-destination-adapters'
+import {
+  md3NotificationSourceName,
+  md3RepositoryRows,
+} from './md3/md3-destination-adapters'
 import {
   loadRepositoryBranchVisibilityState,
   saveRepositoryBranchVisibilityState,
@@ -954,6 +963,35 @@ export class App extends React.Component<IAppProps, IAppState> {
   /** The agent session whose transcript the Agents pane is showing. */
   private md3SelectedAgentSessionPath: string | null = null
 
+  /**
+   * Send and Resume in the Agents pane. Both launch a real run in the selected
+   * worktree, so the composer is a working control rather than a decoration.
+   */
+  private readonly md3AgentsController = new Md3AgentsController({
+    sessionFor: path => this.md3AgentSessionForPath(path),
+    conversationFor: path => readAgentSessionConversation(path),
+    runnerAvailable: session => this.md3AgentRunnerAvailable(session),
+    newOperationId: () => randomUUID(),
+    startRun: (session, instruction, operationId) => {
+      this.agentSessionLiveStore.beginRun(
+        session.path,
+        session.agent,
+        operationId
+      )
+      void this.runAgentSession(
+        {
+          name: session.name,
+          baseBranch: session.branch ?? '',
+          agent: session.agent,
+          prompt: instruction,
+        },
+        session.name,
+        session.path,
+        operationId
+      )
+    },
+  })
+
   private readonly md3TerminalController = new Md3TerminalController({
     onChanged: () => this.md3ControllerChanged(),
     onRefreshRepository: async () => {
@@ -962,7 +1000,10 @@ export class App extends React.Component<IAppProps, IAppState> {
         await this.props.dispatcher.refreshRepository(repository)
       }
     },
-    onContextMenu: () => this.md3OpenViewMenu('paneMenu'),
+    // The contract wires the terminal's own `onContextTerminal` to
+    // `terminalMenu` — clear output, split shell, open in the system terminal.
+    // `paneMenu` is the destination-agnostic one and carries none of them.
+    onContextMenu: () => this.md3OpenViewMenu('terminalMenu'),
   })
 
   private readonly md3RepositoriesController = new Md3RepositoriesController({
@@ -3636,6 +3677,51 @@ export class App extends React.Component<IAppProps, IAppState> {
     }
     await writeFile(destination, contents, 'utf8')
     return destination
+  }
+
+  /**
+   * Writes a bulk list export to wherever the user picks.
+   *
+   * Every MD3 list serializes its own scope — the picker, the declared schema
+   * and the per-format loss warning all live in the view — and hands the
+   * finished payload here. All this has to do is put it on disk.
+   *
+   * It is one handler rather than seven because the payload already carries
+   * everything that differs: the filename, the MIME type, the format and the
+   * content. Seven copies of this would be seven chances for one list's export
+   * to quietly disagree with the others about encoding or extension.
+   *
+   * Supplying it is what makes the Export button appear at all: the bar draws
+   * no button when its delivery callback is absent, on the principle that a
+   * control which cannot produce a file is not a control. Every one of these
+   * pickers was built and none was reachable until this was wired.
+   *
+   * The confirming toast is the view's own, because the view knows what it
+   * exported and what the format dropped. This stays silent on success and
+   * reports only a real write failure.
+   */
+  private onMd3ListExport = async (payload: IMd3ListExport) => {
+    const descriptor = md3ListExportDescriptor(payload.format)
+    const destination = await showSaveDialog({
+      title: t('md3.bulk.exportMenu.title', { scope: payload.scope }),
+      defaultPath: payload.filename,
+      filters: [{ name: descriptor.label, extensions: [descriptor.extension] }],
+    })
+    if (destination === null) {
+      return
+    }
+
+    try {
+      await writeFile(destination, payload.content, 'utf8')
+    } catch (error) {
+      // The view has already said the export succeeded, because from where it
+      // stands it did. Correct that rather than leaving the claim standing.
+      this.props.dispatcher.postNotification({
+        kind: 'app-error',
+        title: t('md3.bulk.export'),
+        body: error instanceof Error ? error.message : String(error),
+      })
+    }
   }
 
   private onChangelogNotify = (body: string) => {
@@ -8572,10 +8658,13 @@ export class App extends React.Component<IAppProps, IAppState> {
    */
   private md3Views(): IMd3ShellViews {
     const selection = this.md3Selection
+    // `owner/repo`, which is what the Inbox row's detail line renders. The
+    // folder name alone is the same string type and reads as plausible, so it
+    // has to be derived rather than assumed.
     const repositoryNames = new Map<number, string>(
       this.state.repositories.map(repository => [
         repository.id,
-        repository.name,
+        md3NotificationSourceName(repository),
       ])
     )
 
@@ -8589,6 +8678,9 @@ export class App extends React.Component<IAppProps, IAppState> {
         }),
       onOpenAutomations: () =>
         void this.props.dispatcher.showPopup({ type: PopupType.Preferences }),
+      // A mute is view state rather than store state, so nothing else is going
+      // to redraw the row it just changed.
+      onMutedThreadsChanged: () => this.forceUpdate(),
       onExport: request =>
         this.props.dispatcher.postNotification({
           kind: 'info',
@@ -8599,120 +8691,151 @@ export class App extends React.Component<IAppProps, IAppState> {
         }),
     })
 
-    const lastFetchedById = new Map<number, Date>()
-    if (selection !== null && selection.state.lastFetched !== null) {
+    // Both maps carry an entry only for a repository whose Git state has
+    // actually been read — today, the selected one. Presence is what the
+    // adapter reads as "this was inspected", so an entry of `null` is a real
+    // "never fetched" while an absent key stays an honest "not checked yet".
+    const lastFetchedById = new Map<number, Date | null>()
+    const remoteCountById = new Map<number, number>()
+    if (selection !== null) {
       lastFetchedById.set(selection.repository.id, selection.state.lastFetched)
+      remoteCountById.set(
+        selection.repository.id,
+        selection.state.remotes.length
+      )
     }
 
-    const repositories = this.md3RepositoriesController.getViewProps(
-      md3RepositoryRows({
-        repositories: this.state.repositories,
-        localState: this.state.localRepositoryStateLookup,
-        selectedRepositoryId: selection?.repository.id ?? null,
-        pinnedRepositoryIds: this.md3RepositoriesController.getPinnedIds(),
-        hiddenRepositoryIds: new Set<number>(),
-        lastFetchedById,
-      }),
-      this.md3Bind('repositories'),
-      selection?.repository.id ?? null,
-      id => this.md3SelectRepositoryById(id),
-      id => this.md3SelectRepositoryById(id)
-    )
+    const repositories = {
+      ...this.md3RepositoriesController.getViewProps(
+        md3RepositoryRows({
+          repositories: this.state.repositories,
+          localState: this.state.localRepositoryStateLookup,
+          selectedRepositoryId: selection?.repository.id ?? null,
+          pinnedRepositoryIds: this.md3RepositoriesController.getPinnedIds(),
+          hiddenRepositoryIds: this.md3RepositoriesController.getHiddenIds(),
+          lastFetchedById,
+          remoteCountById,
+        }),
+        this.md3Bind('repositories'),
+        selection?.repository.id ?? null,
+        id => this.md3SelectRepositoryById(id),
+        id => this.md3SelectRepositoryById(id)
+      ),
+      onExportRepositories: this.onMd3ListExport,
+    }
 
     if (selection === null) {
       return {
         ...md3NoViews,
         inbox,
         repositories,
-        terminal: this.md3TerminalController.getViewProps(
-          this.md3Bind('terminal')
-        ),
+        terminal: {
+          ...this.md3TerminalController.getViewProps(this.md3Bind('terminal')),
+          onExportSessions: this.onMd3ListExport,
+        },
       }
     }
 
     const context = this.md3ViewContext(selection)
 
     return {
-      history: buildMd3HistoryProps(context),
-      changes: buildMd3ChangesProps(context, {
-        authorInitials: this.md3AccountInitials(),
-        authorName:
-          selection.state.commitAuthor?.name ??
-          this.state.accounts[0]?.friendlyName ??
-          '',
-        onOpenComposer: () => this.md3Dispatch({ type: 'open-compose' }),
-        onCommit: this.onMd3Commit,
-        onCommitAndPush: this.onMd3CommitAndPush,
-        onDraftWithCopilot: this.onMd3FocusCommitMessage,
-        onAddCoAuthors: this.onMd3FocusCommitMessage,
-      }),
-      branches: buildMd3BranchesProps(
-        context,
-        this.showCreateBranch,
-        branch =>
-          void this.props.dispatcher.showPopup({
-            type: PopupType.DeleteBranch,
-            repository: selection.repository,
-            branch,
-            existsOnRemote: branch.upstream !== null,
-          }),
-        branch =>
-          void this.props.dispatcher.showPopup({
-            type: PopupType.RenameBranch,
-            repository: selection.repository,
-            branch,
-          }),
-        branch =>
-          this.props.dispatcher.showCreateGitHubPullRequest(
-            selection.repository,
-            branch
-          )
-      ),
-      actions: this.md3ActionsController.getViewProps(
-        this.md3Bind('actions'),
-        this.md3Bind('logs'),
-        () => this.md3OpenViewMenu('paneMenu'),
-        runId => this.md3OpenViewMenu('rowMenu', runId)
-      ),
-      inbox,
-      terminal: this.md3TerminalController.getViewProps(
-        this.md3Bind('terminal')
-      ),
-      agents: buildMd3AgentsProps({
-        sessions: selection.state.worktrees.map(worktree =>
-          toAgentSession(
-            worktree,
-            this.agentSessionLiveStore.getOverlay(worktree.path)
-          )
+      history: {
+        ...buildMd3HistoryProps(context),
+        onExportCommits: this.onMd3ListExport,
+      },
+      changes: {
+        ...buildMd3ChangesProps(context, {
+          authorInitials: this.md3AccountInitials(),
+          authorName:
+            selection.state.commitAuthor?.name ??
+            this.state.accounts[0]?.friendlyName ??
+            '',
+          onOpenComposer: () => this.md3Dispatch({ type: 'open-compose' }),
+          onCommit: this.onMd3Commit,
+          onCommitAndPush: this.onMd3CommitAndPush,
+          onDraftWithCopilot: this.onMd3FocusCommitMessage,
+          onAddCoAuthors: this.onMd3FocusCommitMessage,
+        }),
+        onExportChanges: this.onMd3ListExport,
+      },
+      branches: {
+        ...buildMd3BranchesProps(
+          context,
+          this.showCreateBranch,
+          branch =>
+            void this.props.dispatcher.showPopup({
+              type: PopupType.DeleteBranch,
+              repository: selection.repository,
+              branch,
+              existsOnRemote: branch.upstream !== null,
+            }),
+          branch =>
+            void this.props.dispatcher.showPopup({
+              type: PopupType.RenameBranch,
+              repository: selection.repository,
+              branch,
+            }),
+          branch =>
+            this.props.dispatcher.showCreateGitHubPullRequest(
+              selection.repository,
+              branch
+            )
         ),
-        selectedSessionId: this.md3SelectedAgentSessionPath,
-        conversationFor: path => readAgentSessionConversation(path),
-        runnerAvailable: session =>
-          session.agent === 'codex'
-            ? this.agentRunnerAvailability.codexInstalled
-            : session.agent === 'opencode'
-            ? this.agentRunnerAvailability.opencodeInstalled
-            : false,
-        readAccess: 'ask',
-        commitAccess: 'ask',
-        pushAccess: 'off',
-        onSelectSession: path => {
-          this.md3SelectedAgentSessionPath = path
-          this.forceUpdate()
-        },
-        onNewSession: () => this.md3OpenViewMenu('paneMenu'),
-        onPauseSession: path => this.md3CancelAgentSessionByPath(path),
-        onResumeSession: () => this.md3OpenViewMenu('paneMenu'),
-        onSendInstruction: () => this.md3OpenViewMenu('paneMenu'),
-        onOpenSessionLog: path => {
-          this.md3SelectedAgentSessionPath = path
-          this.forceUpdate()
-        },
-        onDuplicateSession: () => this.md3OpenViewMenu('paneMenu'),
-        onDeleteSession: path => this.md3RequestDeleteAgentWorktree(path),
-        onConfigureAgentAccess: () =>
-          void this.props.dispatcher.showPopup({ type: PopupType.Preferences }),
-      }),
+        onExportBranches: this.onMd3ListExport,
+      },
+      actions: {
+        ...this.md3ActionsController.getViewProps(
+          this.md3Bind('actions'),
+          this.md3Bind('logs'),
+          () => this.md3OpenViewMenu('paneMenu'),
+          runId => this.md3OpenViewMenu('rowMenu', runId)
+        ),
+        onExportRuns: this.onMd3ListExport,
+      },
+      inbox,
+      terminal: {
+        ...this.md3TerminalController.getViewProps(this.md3Bind('terminal')),
+        onExportSessions: this.onMd3ListExport,
+      },
+      agents: {
+        ...buildMd3AgentsProps({
+          sessions: selection.state.worktrees.map(worktree =>
+            toAgentSession(
+              worktree,
+              this.agentSessionLiveStore.getOverlay(worktree.path)
+            )
+          ),
+          selectedSessionId: this.md3SelectedAgentSessionPath,
+          conversationFor: path => readAgentSessionConversation(path),
+          runnerAvailable: session => this.md3AgentRunnerAvailable(session),
+          // The runners take their task on stdin at launch and never gain a
+          // second channel, so an agent may read the worktree and write to it,
+          // and every commit or push stays the person's own action.
+          readAccess: 'on',
+          commitAccess: 'ask',
+          pushAccess: 'off',
+          onSelectSession: path => {
+            this.md3SelectedAgentSessionPath = path
+            this.forceUpdate()
+          },
+          onNewSession: () => this.md3OpenViewMenu('paneMenu'),
+          onPauseSession: path => this.md3CancelAgentSessionByPath(path),
+          onResumeSession: path => this.md3ResumeAgentSessionByPath(path),
+          onSendInstruction: (path, instruction) =>
+            this.md3SendAgentInstruction(path, instruction),
+          onOpenSessionLog: path => {
+            this.md3SelectedAgentSessionPath = path
+            this.forceUpdate()
+          },
+          onDuplicateSession: () => this.md3OpenViewMenu('paneMenu'),
+          onDeleteSession: path => this.md3RequestDeleteAgentWorktree(path),
+          onConfigureAgentAccess: () =>
+            void this.props.dispatcher.showPopup({
+              type: PopupType.Preferences,
+            }),
+        }),
+        onExportSessions: this.onMd3ListExport,
+      },
       repositories,
     }
   }
@@ -8724,6 +8847,76 @@ export class App extends React.Component<IAppProps, IAppState> {
     if (repository !== undefined) {
       this.props.dispatcher.selectRepository(repository)
     }
+  }
+
+  /** The live session for a worktree path, or `null` when there is none. */
+  private md3AgentSessionForPath(path: string): IAgentSession | null {
+    const worktree = this.md3Selection?.state.worktrees.find(
+      candidate => candidate.path === path
+    )
+    return worktree === undefined
+      ? null
+      : toAgentSession(worktree, this.agentSessionLiveStore.getOverlay(path))
+  }
+
+  private md3AgentRunnerAvailable(session: IAgentSession): boolean {
+    switch (session.agent) {
+      case 'codex':
+        return this.agentRunnerAvailability.codexInstalled
+      case 'opencode':
+        return this.agentRunnerAvailability.opencodeInstalled
+      case 'none':
+        return false
+    }
+  }
+
+  /**
+   * Report what Send or Resume actually did.
+   *
+   * A refusal is stated rather than swallowed: the composer already disables
+   * itself for every condition the adapter knows about, so anything that
+   * reaches here changed between the render and the click and the person needs
+   * to hear about it.
+   */
+  private md3ReportAgentInstruction(
+    path: string,
+    result: Md3AgentInstructionResult
+  ): void {
+    if (result.kind === 'refused') {
+      this.props.dispatcher.postNotification({
+        kind: 'app-error',
+        title: t('md3.adapters.agent.instructionRefusedTitle'),
+        body: result.reason,
+      })
+      return
+    }
+
+    const session = this.md3AgentSessionForPath(path)
+    const agent = this.md3AgentsController.agentName(path)
+    this.md3SelectedAgentSessionPath = path
+    this.props.dispatcher.postNotification({
+      kind: 'info',
+      title: t('md3.adapters.agent.instructionSentTitle', { agent }),
+      body: t('md3.adapters.agent.instructionSentBody', {
+        agent,
+        name: session?.name ?? path,
+      }),
+    })
+    this.forceUpdate()
+  }
+
+  private md3SendAgentInstruction(path: string, instruction: string): void {
+    this.md3ReportAgentInstruction(
+      path,
+      this.md3AgentsController.sendInstruction(path, instruction)
+    )
+  }
+
+  private md3ResumeAgentSessionByPath(path: string): void {
+    this.md3ReportAgentInstruction(
+      path,
+      this.md3AgentsController.resumeSession(path)
+    )
   }
 
   private md3CancelAgentSessionByPath(path: string): void {
@@ -9176,10 +9369,11 @@ export class App extends React.Component<IAppProps, IAppState> {
       includedFileCount: included.length,
       totalFileCount: files.length,
       // The working directory carries no per-file line totals until a diff has
-      // been loaded, so the dialog reports none rather than a number nobody
-      // computed.
-      addedLineCount: 0,
-      deletedLineCount: 0,
+      // been loaded, and the app loads one at a time, so a total across the
+      // included files is genuinely unknown. `null` drops the segment; `0`
+      // would have told the user their commit changes nothing.
+      addedLineCount: null,
+      deletedLineCount: null,
       branchName: this.md3BranchName(),
       onSummaryChanged: this.onMd3CommitSummaryChanged,
       onDescriptionChanged: this.onMd3CommitDescriptionChanged,

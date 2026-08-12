@@ -10,6 +10,13 @@ import { IMd3DiffLine } from './md3-diff-pane'
  * a storybook-style preview has something with the right shape to render, and
  * they deliberately describe a fictional repository rather than the contract's
  * own sample commit authors.
+ *
+ * Every row here carries `statsLoaded: true` because the point of the fixture
+ * is to render the contract's full detail line. The real adapter can only load
+ * one file's diff at a time, so at most one live row ever has counts — which
+ * means a test built on this fixture alone cannot see whether the adapter
+ * reports the other rows honestly. That is the adapter test's job, in
+ * `md3-changes-adapter-test.ts`.
  */
 
 /** Eight changed files covering all three statuses and a partial selection. */
@@ -18,6 +25,7 @@ export const md3ChangesFixture: ReadonlyArray<IMd3ChangedFile> = [
     path: 'app/src/ui/md3/md3-changes-view.tsx',
     status: 'A',
     included: true,
+    statsLoaded: true,
     addedLineCount: 218,
     deletedLineCount: 0,
   },
@@ -25,6 +33,7 @@ export const md3ChangesFixture: ReadonlyArray<IMd3ChangedFile> = [
     path: 'app/src/ui/md3/md3-diff-pane.tsx',
     status: 'A',
     included: true,
+    statsLoaded: true,
     addedLineCount: 164,
     deletedLineCount: 0,
   },
@@ -33,6 +42,7 @@ export const md3ChangesFixture: ReadonlyArray<IMd3ChangedFile> = [
     status: 'M',
     included: true,
     partiallyIncluded: true,
+    statsLoaded: true,
     addedLineCount: 96,
     deletedLineCount: 12,
   },
@@ -40,6 +50,7 @@ export const md3ChangesFixture: ReadonlyArray<IMd3ChangedFile> = [
     path: 'app/styles/_ui.scss',
     status: 'M',
     included: true,
+    statsLoaded: true,
     addedLineCount: 2,
     deletedLineCount: 0,
   },
@@ -47,6 +58,7 @@ export const md3ChangesFixture: ReadonlyArray<IMd3ChangedFile> = [
     path: 'app/src/lib/i18n-resources.ts',
     status: 'M',
     included: false,
+    statsLoaded: true,
     addedLineCount: 74,
     deletedLineCount: 3,
   },
@@ -54,6 +66,7 @@ export const md3ChangesFixture: ReadonlyArray<IMd3ChangedFile> = [
     path: 'app/test/unit/md3-changes-view-test.ts',
     status: 'A',
     included: true,
+    statsLoaded: true,
     addedLineCount: 132,
     deletedLineCount: 0,
   },
@@ -61,6 +74,7 @@ export const md3ChangesFixture: ReadonlyArray<IMd3ChangedFile> = [
     path: 'docs/features/changes/legacy-sidebar.md',
     status: 'D',
     included: false,
+    statsLoaded: true,
     addedLineCount: 0,
     deletedLineCount: 58,
   },
@@ -68,6 +82,7 @@ export const md3ChangesFixture: ReadonlyArray<IMd3ChangedFile> = [
     path: 'Makefile',
     status: 'M',
     included: true,
+    statsLoaded: true,
     addedLineCount: 4,
     deletedLineCount: 4,
   },

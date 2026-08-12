@@ -122,6 +122,46 @@ describe('Md3BranchesView', () => {
         'tip 4f1c9ae · tracking origin · in sync'
       )
     })
+
+    /*
+     * The ahead/behind store measures one branch at a time, so most rows carry
+     * no measurement at all. "in sync" there is a claim about the branch's
+     * relationship with its remote that nothing checked, and the user cannot
+     * tell it apart from a measured one.
+     */
+    it('says a branch was never compared rather than claiming it is in sync', () => {
+      const detail = md3BranchDetail(
+        branch({ ahead: null, behind: null, tracking: 'origin/main' })
+      )
+      assert.strictEqual(
+        detail,
+        'tip 9b2e7d1 · tracks origin/main · not compared yet'
+      )
+      assert.ok(!detail.includes('in sync'))
+      assert.ok(!detail.includes('↑'))
+      assert.ok(!detail.includes('null'))
+    })
+
+    it('treats a half-measured comparison as unmeasured', () => {
+      assert.ok(
+        md3BranchDetail(branch({ ahead: 3, behind: null })).includes(
+          'not compared yet'
+        )
+      )
+      assert.ok(
+        md3BranchDetail(branch({ ahead: null, behind: 3 })).includes(
+          'not compared yet'
+        )
+      )
+    })
+
+    it('says an upstream is gone rather than claiming the branch still tracks it', () => {
+      const detail = md3BranchDetail(
+        branch({ tracking: 'origin/main', upstreamGone: true })
+      )
+      assert.ok(detail.includes('tracked origin/main, now gone'))
+      assert.ok(!detail.includes('tracks origin/main'))
+    })
   })
 
   describe('groupMd3Branches', () => {
@@ -421,7 +461,7 @@ describe('Md3BranchesView', () => {
         total: 9,
       })
       assert.ok(progress !== null)
-      assert.ok(progress.percent > 0)
+      assert.ok(progress.percent !== null && progress.percent > 0)
       assert.strictEqual(progress.label, 'Merging all branches, 0 of 9')
     })
 
@@ -433,8 +473,44 @@ describe('Md3BranchesView', () => {
         total: 0,
       })
       assert.ok(progress !== null)
+      assert.ok(progress.percent !== null)
       assert.ok(Number.isFinite(progress.percent))
       assert.ok(progress.percent <= 100)
+    })
+
+    /*
+     * The store behind this reports what it has finished and what it is doing
+     * right now, and never how many branches the run will touch. Deriving a
+     * denominator from those two renders "3 of 4" over a queue of twelve and
+     * pins the bar near its end for the whole run, so an unknown total has to
+     * stay unknown all the way to the bar.
+     */
+    it('reports an indeterminate run rather than inventing a denominator', () => {
+      const progress = md3MergeAllProgress({
+        phase: 'merging',
+        currentBranch: 'feature/md3-shell',
+        completed: 3,
+        total: null,
+      })
+      assert.ok(progress !== null)
+      assert.strictEqual(progress.percent, null)
+      assert.strictEqual(
+        progress.label,
+        'Merging feature/md3-shell, 3 done so far'
+      )
+      assert.ok(!progress.label.includes(' of '))
+    })
+
+    it('keeps an unknown total indeterminate before any branch is in hand', () => {
+      const progress = md3MergeAllProgress({
+        phase: 'preparing',
+        currentBranch: null,
+        completed: 0,
+        total: null,
+      })
+      assert.ok(progress !== null)
+      assert.strictEqual(progress.percent, null)
+      assert.strictEqual(progress.label, 'Merging all branches, 0 done so far')
     })
 
     it('has no progress to report when nothing is running', () => {
@@ -478,12 +554,41 @@ describe('Md3BranchesView', () => {
     })
 
     it('hangs no hint on a title attribute', () => {
-      assert.ok(!/\stitle=/.test(source))
+      // The ban is on the HTML `title` tooltip, which is unreachable by
+      // keyboard and unread by most screen readers. A React component is free
+      // to take a prop called `title` — the destructive gate's dialog heading
+      // is one — so the match is narrowed to lowercase (host) elements rather
+      // than every occurrence of the six characters.
+      const onHostElement = [...source.matchAll(/\stitle=/g)].filter(match => {
+        const opening = source.lastIndexOf('<', match.index)
+        return (
+          opening >= 0 && /^<[a-z]/.test(source.slice(opening, opening + 2))
+        )
+      })
+
+      assert.deepEqual(
+        onHostElement.map(match => source.slice(match.index, match.index + 40)),
+        []
+      )
     })
 
     it('offers an honest empty state rather than a blank pane', () => {
       assert.ok(source.includes('Md3EmptyState'))
-      assert.ok(source.includes("t('md3.branches.empty')"))
+      // The empty state is a banded family, so it renders through `tFunny`
+      // rather than `t`. `md3-language-modes-test.ts` owns the bands
+      // themselves; what matters here is that the pane still says something.
+      assert.ok(source.includes("tFunny('md3.branches.empty')"))
+    })
+
+    /*
+     * `null > 0` is `false`, so an unmeasured branch would hide its pills even
+     * without the null check — and the day somebody flips the guard to
+     * `!== 0` or `Boolean(row.ahead)` an unmeasured branch starts drawing a
+     * pill reading "↑null". The explicit check is what states the intent.
+     */
+    it('draws a divergence pill only for a measured, non-zero count', () => {
+      assert.ok(source.includes('row.ahead !== null && row.ahead > 0'))
+      assert.ok(source.includes('row.behind !== null && row.behind > 0'))
     })
   })
 

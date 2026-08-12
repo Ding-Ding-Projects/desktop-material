@@ -1,17 +1,47 @@
 import assert from 'node:assert'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, it } from 'node:test'
 
 import {
   filterMd3InboxNotifications,
+  md3InboxBulkPartitions,
   md3InboxDetailLine,
   md3InboxExportRecord,
+  md3InboxFiltersActive,
   md3InboxIsMention,
   md3InboxToneWord,
   IMd3InboxNotification,
+  Md3InboxExportColumns,
+  Md3InboxExportSpec,
   Md3InboxFilter,
 } from '../../src/ui/md3/md3-inbox-view'
 import { md3InboxFixtureNotifications } from '../../src/ui/md3/md3-inbox-fixtures'
-import { serializeMd3InboxExport } from '../../src/ui/md3/md3-inbox-export'
+import {
+  Md3ListExportFormat,
+  Md3ListExportRecord,
+  serializeMd3ListExport,
+} from '../../src/ui/md3/md3-list-export'
+import { md3BulkPartitionSummary } from '../../src/ui/md3/md3-list-selection'
+
+const ViewSource = join(
+  __dirname,
+  '..',
+  '..',
+  'src',
+  'ui',
+  'md3',
+  'md3-inbox-view.tsx'
+)
+
+/** Serialize through the shared writer with the Inbox's own declared spec. */
+const serialize = (
+  records: ReadonlyArray<Md3ListExportRecord>,
+  format: Md3ListExportFormat
+) =>
+  serializeMd3ListExport(records, Md3InboxExportSpec, format, {
+    scope: `${records.length} rows`,
+  })
 
 /**
  * The Inbox destination's pure derivations.
@@ -177,20 +207,21 @@ describe('md3 inbox view', () => {
 
   it('serializes every offered format with the same rows', () => {
     const records = md3InboxFixtureNotifications.map(md3InboxExportRecord)
-    const json = serializeMd3InboxExport(records, 'json', { scope: '6 rows' })
+    const json = serialize(records, 'json')
     assert.equal(json.filename, 'notifications.json')
     assert.equal(json.count, 6)
     assert.deepEqual(JSON.parse(json.content).notifications, records)
 
-    const csv = serializeMd3InboxExport(records, 'csv', { scope: '6 rows' })
+    const csv = serialize(records, 'csv')
     // One header row plus one row per notification, plus the trailing newline.
     assert.equal(csv.content.trimEnd().split('\n').length, 7)
     assert.ok(csv.content.startsWith('"id","title"'))
 
-    const jsonl = serializeMd3InboxExport(records, 'jsonl', { scope: '6 rows' })
-    assert.equal(jsonl.content.trimEnd().split('\n').length, 6)
+    const jsonl = serialize(records, 'jsonl')
+    // The header line naming the scope and schema, then one line per row.
+    assert.equal(jsonl.content.trimEnd().split('\n').length, 7)
 
-    const xml = serializeMd3InboxExport(records, 'xml', { scope: '6 rows' })
+    const xml = serialize(records, 'xml')
     assert.ok(xml.content.includes('<title>Tag v2.14.0 pushed</title>'))
   })
 
@@ -199,8 +230,143 @@ describe('md3 inbox view', () => {
       ...find('n1'),
       title: 'A "quoted", comma-bearing title',
     })
-    const csv = serializeMd3InboxExport([record], 'csv', { scope: '1 row' })
+    const csv = serialize([record], 'csv')
     assert.ok(csv.content.includes('"A ""quoted"", comma-bearing title"'))
     assert.equal(csv.content.trimEnd().split('\n').length, 2)
+  })
+})
+
+/**
+ * The bulk wiring.
+ *
+ * The selection algebra, the serializer and the bar are shared and already
+ * tested; what is asserted here is this view's own use of them — the ids the
+ * bar is handed, the flag that decides what its select-all claims, the
+ * eligibility splits behind each verb, and the schema the export declares.
+ */
+describe('Md3InboxView bulk wiring', () => {
+  it('offers the bar only the ids the query and the chips left', () => {
+    const failures = filterWith(['failures'])
+    const ids = failures.visible.map(entry => entry.id)
+    assert.ok(ids.length > 0 && ids.length < md3InboxFixtureNotifications.length)
+    assert.ok(
+      failures.visible.every(entry => entry.tone === 'bad'),
+      'a chip-filtered id list must not carry a row the chip hides'
+    )
+
+    const queried = filterWith([], 'Tag')
+    assert.deepEqual(
+      queried.visible.map(entry => entry.id),
+      md3InboxFixtureNotifications
+        .filter(entry => entry.title.includes('Tag'))
+        .map(entry => entry.id)
+    )
+  })
+
+  it('reports the list as filtered exactly when something narrows it', () => {
+    assert.equal(
+      md3InboxFiltersActive({ query: '', filters: noFilters }),
+      false
+    )
+    assert.equal(
+      md3InboxFiltersActive({ query: '   ', filters: noFilters }),
+      false,
+      'whitespace alone narrows nothing, so the select-all must not claim it does'
+    )
+    assert.equal(
+      md3InboxFiltersActive({ query: 'tag', filters: noFilters }),
+      true
+    )
+    assert.equal(
+      md3InboxFiltersActive({ query: '', filters: new Set(['unread']) }),
+      true,
+      'a chip narrows the list even with an empty query'
+    )
+  })
+
+  it('excludes from each verb exactly the rows it cannot change', () => {
+    const rows = md3InboxFixtureNotifications
+    const { markable, unmarkable, mutable, unmutable } =
+      md3InboxBulkPartitions(rows)
+
+    assert.ok(markable.applied.every(entry => !entry.read))
+    assert.ok(markable.excluded.every(entry => entry.read))
+    assert.equal(markable.applied.length + markable.excluded.length, rows.length)
+
+    assert.ok(unmarkable.applied.every(entry => entry.read))
+    assert.ok(mutable.applied.every(entry => entry.muted !== true))
+    assert.ok(unmutable.applied.every(entry => entry.muted === true))
+
+    // The reason travels with the exclusion, so the toast and the count
+    // describe the same set rather than the preview promising more.
+    assert.ok(markable.excluded.length === 0 || markable.reason !== null)
+    assert.equal(
+      md3BulkPartitionSummary(md3InboxBulkPartitions(rows).markable) === null,
+      markable.excluded.length === 0
+    )
+  })
+
+  it('declares every column its export record carries, and no other', () => {
+    const record = md3InboxExportRecord(find('n5'))
+    assert.deepEqual(
+      Md3InboxExportColumns.map(column => column.name),
+      Object.keys(record),
+      'a field written without a declared column is a field no reader of the file can name'
+    )
+    for (const column of Md3InboxExportColumns) {
+      assert.ok(
+        record[column.name] !== undefined,
+        `the export record is missing the declared column ${column.name}`
+      )
+    }
+  })
+
+  it('writes every declared column into the file itself', () => {
+    const csv = serialize([md3InboxExportRecord(find('n5'))], 'csv')
+    for (const column of Md3InboxExportColumns) {
+      assert.ok(
+        csv.content.includes(`"${column.name}"`),
+        `${column.name} is declared but never written`
+      )
+    }
+    // Nothing in this schema is multiline, so no format drops anything.
+    assert.equal(csv.loss, null)
+  })
+
+  it('routes the bulk delete through the destructive gate and nothing else', () => {
+    const source = readFileSync(ViewSource, 'utf8')
+
+    // Anchored on the bulk verb's own label rather than on `id: 'delete'`,
+    // which the row menu also carries — a slice that silently started at the
+    // wrong action would pass or fail for reasons unrelated to the bar.
+    const labelAt = source.indexOf("label: t('md3.inbox.bulkDelete')")
+    assert.ok(labelAt > 0, 'the bar must still offer a bulk delete')
+    const deleteAction = source.slice(labelAt, labelAt + 400)
+    assert.ok(
+      deleteAction.includes('onClick: onRequestBulkDelete'),
+      'the bulk delete must request the gate rather than deleting directly'
+    )
+    assert.ok(
+      deleteAction.includes('destructive: true'),
+      'the bulk delete must paint the error role'
+    )
+    assert.ok(
+      deleteAction.includes("hasPopup: 'dialog'"),
+      'the bulk delete opens the gate, and must say so to assistive technology'
+    )
+    assert.ok(
+      source.includes('<Md3DestructiveGate'),
+      'the gate itself must be rendered'
+    )
+    // The only route to the store's bulk delete is the gate's confirmation:
+    // `onRequestBulkDelete` opens it and `onConfirmBulkDelete` acts.
+    assert.ok(
+      source.includes('const onRequestBulkDelete') &&
+        source.includes('setGateOpen(true)')
+    )
+    assert.ok(
+      source.includes('onConfirm={onConfirmBulkDelete}'),
+      'the gate must call the confirming handler, not the requesting one'
+    )
   })
 })

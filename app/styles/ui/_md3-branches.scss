@@ -67,6 +67,18 @@
   content-visibility: auto;
 }
 
+// The bulk-selection cell, ahead of the contract's leading column. `flex: none`
+// so it keeps its width while the name column shrinks: a checkbox that shrinks
+// is a checkbox that becomes unclickable long before the text beside it
+// becomes unreadable.
+.md3-branches__select-cell {
+  align-items: center;
+  display: flex;
+  flex: none;
+  justify-content: center;
+  min-inline-size: 22px;
+}
+
 // The contract's leading column: the glyph and the three stacked lines.
 .md3-branches__main {
   align-items: center;

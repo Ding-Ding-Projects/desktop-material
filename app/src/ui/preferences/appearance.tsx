@@ -58,6 +58,7 @@ import {
   ScheduledSettings,
 } from './scheduled-settings'
 import { SchoolModePreferences } from './school-mode'
+import { SurfaceLocksPreferences } from './surface-locks'
 import { isSchoolModeEnabled } from '../../lib/school-mode'
 
 type AppearanceSelectKey = 'languageMode'
@@ -1000,6 +1001,9 @@ export class Appearance extends React.Component<
         {this.renderDialogEmoji()}
         {this.renderClassicToolbar()}
         <SchoolModePreferences
+          languageMode={this.props.appearanceCustomization.languageMode}
+        />
+        <SurfaceLocksPreferences
           languageMode={this.props.appearanceCustomization.languageMode}
         />
         {this.renderScheduledSettings()}

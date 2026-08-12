@@ -1,6 +1,7 @@
 import * as React from 'react'
 import classNames from 'classnames'
 
+import { tFunny } from '../../lib/funny-level-text'
 import { t } from '../../lib/i18n'
 import { formatRelative } from '../../lib/format-relative'
 import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
@@ -27,6 +28,28 @@ import {
   Md3RegexBuilderDialog,
 } from './md3-regex-builder-dialog'
 import { notify } from './md3-toast'
+import { Md3DestructiveGate } from './md3-destructive-gate'
+import {
+  IMd3BulkAction,
+  Md3BulkBar,
+  md3BulkExportMenuSpec,
+} from './md3-bulk-bar'
+import {
+  IMd3ListExport,
+  IMd3ListExportColumn,
+  Md3ListExportFormat,
+  serializeMd3ListExport,
+} from './md3-list-export'
+import {
+  md3ApplySelection,
+  md3BulkPartitionSummary,
+  md3BulkScope,
+  md3BulkScopeLabel,
+  md3InvertSelection,
+  md3PartitionBulk,
+  md3SelectionIntent,
+  md3ToggleSelectAll,
+} from './md3-list-selection'
 
 /**
  * The Agents destination of the MD3 shell design contract
@@ -120,7 +143,15 @@ export interface IMd3AgentSession {
   /** The model the run reported, or `null` when it reported none. */
   readonly model: string | null
 
-  readonly turnCount: number
+  /**
+   * How many turns this session's transcript holds, or `null` when no
+   * transcript is on record.
+   *
+   * `null` is not the same as `0`: a worktree whose agent ran before the
+   * application was restarted has a real turn count nobody can see any more,
+   * and printing "0 turns" beside it would state that it never said anything.
+   */
+  readonly turnCount: number | null
 
   /** How long the run has been going, or `null` when it has not started. */
   readonly elapsedMs: number | null
@@ -192,6 +223,87 @@ export interface IMd3AgentsViewProps {
   readonly onDeleteSession: (sessionId: string) => void
 
   readonly onConfigureAgentAccess: (topic: Md3AgentAccessTopic) => void
+
+  /**
+   * Receives a finished bulk export. Omit it and the export button is not
+   * rendered at all, rather than offered and doing nothing.
+   */
+  readonly onExportSessions?: (
+    payload: IMd3ListExport,
+    sessions: ReadonlyArray<IMd3AgentSession>
+  ) => void
+}
+
+/**
+ * The export schema for one agent session.
+ *
+ * Every fact the row renders plus the identity it is keyed by. `errorMessage`
+ * is the one field that can carry line breaks — an agent's failure is often a
+ * stack — so it is declared `multiline` and the picker warns before CSV, TSV
+ * or a Markdown table flattens it.
+ */
+export const Md3AgentExportColumns: ReadonlyArray<IMd3ListExportColumn> = [
+  { name: 'id' },
+  { name: 'name' },
+  { name: 'path' },
+  { name: 'agent' },
+  { name: 'state' },
+  { name: 'branch' },
+  { name: 'startedAt' },
+  { name: 'model' },
+  { name: 'turnCount' },
+  { name: 'elapsedMs' },
+  { name: 'permissions' },
+  { name: 'isMainWorktree' },
+  { name: 'isLocked' },
+  { name: 'isMissing' },
+  { name: 'errorMessage', multiline: true },
+]
+
+/**
+ * Flatten one session for export.
+ *
+ * `turnCount` and `elapsedMs` stay empty rather than becoming `0` when the
+ * host has no value: a zero here reads as "it said nothing" and "it ran for no
+ * time", and neither is what `null` means on this row. `startedAt` is written
+ * as an ISO instant, because an epoch number in a file is a number nobody can
+ * read.
+ */
+export function md3AgentSessionExportRecord(
+  session: IMd3AgentSession
+): Readonly<Record<string, string | number | boolean>> {
+  return {
+    id: session.id,
+    name: session.name,
+    path: session.path,
+    agent: session.agentName,
+    state: session.state,
+    branch: session.branch ?? '',
+    startedAt:
+      session.startedAt === null
+        ? ''
+        : new Date(session.startedAt).toISOString(),
+    model: session.model ?? '',
+    turnCount: session.turnCount === null ? '' : session.turnCount,
+    elapsedMs: session.elapsedMs === null ? '' : session.elapsedMs,
+    permissions: session.permissionsSummary,
+    isMainWorktree: session.isMainWorktree,
+    isLocked: session.isLocked,
+    isMissing: session.isMissing,
+    errorMessage: session.errorMessage ?? '',
+  }
+}
+
+/**
+ * Whether a session may be deleted in bulk.
+ *
+ * The main worktree is the application's own checkout and a locked one is
+ * locked on purpose; a missing one has nothing left on disk to remove. Each is
+ * excluded by name rather than skipped inside the loop, so the gate's preview
+ * and the work the button does describe the same set.
+ */
+export function md3AgentSessionDeletable(session: IMd3AgentSession): boolean {
+  return !session.isMainWorktree && !session.isLocked && !session.isMissing
 }
 
 /** The state glyph, per the contract's `agentRows` mapping. */
@@ -295,8 +407,9 @@ export function formatMd3AgentMeta(
  * The contract's `model gpt-5 · 12 turns · 2m 41s · read + stage permissions`.
  *
  * A part the host has no value for is dropped rather than printed as
- * `undefined`; the permissions summary is always present because a session
- * always runs under some access, even if that access is "none".
+ * `undefined` — or, worse, as a zero that reads as a real count. The
+ * permissions summary is always present because a session always runs under
+ * some access, even if that access is "none".
  */
 export function formatMd3AgentDetail(session: IMd3AgentSession): string {
   const parts: Array<string> = []
@@ -306,11 +419,13 @@ export function formatMd3AgentDetail(session: IMd3AgentSession): string {
       ? t('md3.agents.detail.noModel')
       : t('md3.agents.detail.model', { model: session.model })
   )
-  parts.push(
-    session.turnCount === 1
-      ? t('md3.agents.detail.oneTurn')
-      : t('md3.agents.detail.turns', { count: String(session.turnCount) })
-  )
+  if (session.turnCount !== null) {
+    parts.push(
+      session.turnCount === 1
+        ? t('md3.agents.detail.oneTurn')
+        : t('md3.agents.detail.turns', { count: String(session.turnCount) })
+    )
+  }
   if (session.elapsedMs !== null) {
     parts.push(formatMd3AgentElapsed(session.elapsedMs))
   }
@@ -387,6 +502,7 @@ export function Md3AgentsView(props: IMd3AgentsViewProps) {
     onDuplicateSession,
     onDeleteSession,
     onConfigureAgentAccess,
+    onExportSessions,
   } = props
 
   const [query, setQuery] = React.useState('')
@@ -576,6 +692,364 @@ export function Md3AgentsView(props: IMd3AgentsViewProps) {
   const builderSamples = React.useMemo(
     () => visible.map(session => session.name),
     [visible]
+  )
+
+  // ---------------------------------------------------------------------
+  // Bulk selection
+  // ---------------------------------------------------------------------
+
+  /*
+   * The bulk selection is the view's own, and separate from
+   * `selectedSessionId` — that one decides which transcript the right-hand
+   * pane is showing, and a bulk selection of nine sessions has no single
+   * answer to that. Keeping them apart is what lets a user tick nine rows
+   * without the conversation pane navigating nine times.
+   */
+  const [checked, setChecked] = React.useState<ReadonlySet<string>>(
+    () => new Set<string>()
+  )
+  const anchorIndex = React.useRef<number | null>(null)
+  const [exportOpen, setExportOpen] = React.useState(false)
+  const [gateOpen, setGateOpen] = React.useState(false)
+  const deleteButtonRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
+  const exportButtonRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
+
+  // Taken after the query, because that is what the select-all is allowed to
+  // reach: a select-all that reads the unfiltered fleet is how a bulk delete
+  // removes a worktree nobody looked at.
+  const visibleIds = React.useMemo(
+    () => visible.map(session => session.id),
+    [visible]
+  )
+
+  // A session that leaves the list — deleted, or filtered out — leaves the
+  // selection with it. A bulk verb running against an id the list no longer
+  // holds is the quiet way a "delete 9" deletes 8 and reports 9.
+  React.useEffect(() => {
+    setChecked(previous => {
+      const next = new Set<string>()
+      for (const id of visibleIds) {
+        if (previous.has(id)) {
+          next.add(id)
+        }
+      }
+      return next.size === previous.size ? previous : next
+    })
+  }, [visibleIds])
+
+  /** This list narrows by its search field alone; it carries no filter chips. */
+  const filtersActive = query.trim().length > 0
+
+  const toggleChecked = React.useCallback(
+    (index: number, shiftKey: boolean) => {
+      const intent = md3SelectionIntent({
+        shiftKey,
+        // A checkbox click is always additive: the box is the whole gesture,
+        // so a plain click must never replace the rest of the selection.
+        ctrlKey: true,
+        metaKey: false,
+      })
+      setChecked(previous => {
+        const result = md3ApplySelection(
+          visibleIds,
+          previous,
+          index,
+          intent,
+          anchorIndex.current,
+          // Checkboxes, so a Shift range adds to the ticks already there.
+          // `replace` here would silently shrink a selection the user built.
+          'extend'
+        )
+        if (intent !== 'range') {
+          anchorIndex.current = result.anchor
+        }
+        return new Set(result.ids)
+      })
+    },
+    [visibleIds]
+  )
+
+  const onToggleSelectAll = React.useCallback(() => {
+    setChecked(previous => new Set(md3ToggleSelectAll(visibleIds, previous)))
+    anchorIndex.current = null
+  }, [visibleIds])
+
+  const onInvertSelection = React.useCallback(() => {
+    setChecked(previous => new Set(md3InvertSelection(visibleIds, previous)))
+    anchorIndex.current = null
+  }, [visibleIds])
+
+  const onClearSelection = React.useCallback(() => {
+    setChecked(new Set<string>())
+    anchorIndex.current = null
+  }, [])
+
+  /** What a bulk verb runs over: the ticked rows, or the whole filtered list. */
+  const scopeSessions = React.useMemo(
+    () => md3BulkScope(visible, checked, session => session.id),
+    [visible, checked]
+  )
+
+  const scopeLabel = md3BulkScopeLabel(
+    checked.size,
+    visible.length,
+    filtersActive
+  )
+
+  /*
+   * Every partition names what it will skip and why, so the button's count,
+   * the gate's preview and the toast afterwards all describe the same set. A
+   * "pause 9" that quietly leaves the four finished sessions alone and still
+   * reports nine is the failure these exist to prevent.
+   */
+  const pausable = React.useMemo(
+    () =>
+      md3PartitionBulk(
+        scopeSessions,
+        session => session.canPause,
+        t('md3.agents.bulkSkipNotRunning')
+      ),
+    [scopeSessions]
+  )
+
+  const resumable = React.useMemo(
+    () =>
+      md3PartitionBulk(
+        scopeSessions,
+        session => session.canResume,
+        t('md3.agents.bulkSkipNotPaused')
+      ),
+    [scopeSessions]
+  )
+
+  const duplicable = React.useMemo(
+    () =>
+      md3PartitionBulk(
+        scopeSessions,
+        session => !session.isMissing,
+        t('md3.agents.bulkSkipMissing')
+      ),
+    [scopeSessions]
+  )
+
+  const deletable = React.useMemo(
+    () =>
+      md3PartitionBulk(
+        scopeSessions,
+        md3AgentSessionDeletable,
+        t('md3.agents.bulkSkipProtected')
+      ),
+    [scopeSessions]
+  )
+
+  const onBulkPause = React.useCallback(() => {
+    for (const session of pausable.applied) {
+      onPauseSession(session.id)
+    }
+    const skipped = md3BulkPartitionSummary(pausable)
+    if (skipped !== null) {
+      notify(skipped, { kind: 'warning' })
+    }
+  }, [pausable, onPauseSession])
+
+  const onBulkResume = React.useCallback(() => {
+    for (const session of resumable.applied) {
+      onResumeSession(session.id)
+    }
+    const skipped = md3BulkPartitionSummary(resumable)
+    if (skipped !== null) {
+      notify(skipped, { kind: 'warning' })
+    }
+  }, [resumable, onResumeSession])
+
+  const onBulkOpenLog = React.useCallback(() => {
+    for (const session of scopeSessions) {
+      onOpenSessionLog(session.id)
+    }
+  }, [scopeSessions, onOpenSessionLog])
+
+  const onBulkDuplicate = React.useCallback(() => {
+    for (const session of duplicable.applied) {
+      onDuplicateSession(session.id)
+    }
+    const skipped = md3BulkPartitionSummary(duplicable)
+    if (skipped !== null) {
+      notify(skipped, { kind: 'warning' })
+    }
+  }, [duplicable, onDuplicateSession])
+
+  const onRequestBulkDelete = React.useCallback(() => setGateOpen(true), [])
+
+  const onConfirmBulkDelete = React.useCallback(() => {
+    setGateOpen(false)
+    for (const session of deletable.applied) {
+      onDeleteSession(session.id)
+    }
+    const skipped = md3BulkPartitionSummary(deletable)
+    if (skipped !== null) {
+      notify(skipped, { kind: 'warning' })
+    }
+    onClearSelection()
+  }, [deletable, onDeleteSession, onClearSelection])
+
+  const runExport = React.useCallback(
+    (format: Md3ListExportFormat) => {
+      if (onExportSessions === undefined) {
+        return
+      }
+      const payload = serializeMd3ListExport(
+        scopeSessions.map(md3AgentSessionExportRecord),
+        {
+          columns: Md3AgentExportColumns,
+          collectionName: 'sessions',
+          recordName: 'session',
+          title: 'Agent sessions',
+          baseName: 'agent-sessions',
+        },
+        format,
+        { scope: scopeLabel }
+      )
+      setExportOpen(false)
+      onExportSessions(payload, scopeSessions)
+      notify(
+        payload.loss === null
+          ? t('md3.bulk.toast.exported', {
+              count: String(payload.count),
+              format: payload.format.toUpperCase(),
+            })
+          : t('md3.bulk.toast.exportedLossy', {
+              count: String(payload.count),
+              format: payload.format.toUpperCase(),
+              loss: payload.loss,
+            })
+      )
+    },
+    [onExportSessions, scopeSessions, scopeLabel]
+  )
+
+  const exportMenuSpec = React.useMemo(
+    () => md3BulkExportMenuSpec(Md3AgentExportColumns, scopeLabel, runExport),
+    [scopeLabel, runExport]
+  )
+
+  const bulkActions = React.useMemo((): ReadonlyArray<IMd3BulkAction> => {
+    return [
+      {
+        id: 'pause',
+        label: t('md3.agents.bulkPause'),
+        icon: 'pause' as MaterialSymbolName,
+        disabled: pausable.applied.length === 0,
+        onClick: onBulkPause,
+      },
+      {
+        id: 'resume',
+        label: t('md3.agents.bulkResume'),
+        icon: 'play_arrow' as MaterialSymbolName,
+        disabled: resumable.applied.length === 0,
+        onClick: onBulkResume,
+      },
+      {
+        id: 'openLog',
+        label: t('md3.agents.bulkOpenLog'),
+        icon: 'description' as MaterialSymbolName,
+        disabled: scopeSessions.length === 0,
+        onClick: onBulkOpenLog,
+      },
+      {
+        id: 'duplicate',
+        label: t('md3.agents.bulkDuplicate'),
+        icon: 'content_copy' as MaterialSymbolName,
+        disabled: duplicable.applied.length === 0,
+        onClick: onBulkDuplicate,
+      },
+      {
+        id: 'delete',
+        label: t('md3.agents.bulkDelete'),
+        icon: 'delete_sweep' as MaterialSymbolName,
+        destructive: true,
+        hasPopup: 'dialog',
+        buttonRef: deleteButtonRef,
+        disabled: deletable.applied.length === 0,
+        onClick: onRequestBulkDelete,
+      },
+    ]
+  }, [
+    pausable,
+    resumable,
+    duplicable,
+    deletable,
+    scopeSessions,
+    onBulkPause,
+    onBulkResume,
+    onBulkOpenLog,
+    onBulkDuplicate,
+    onRequestBulkDelete,
+    deleteButtonRef,
+  ])
+
+  /*
+   * A checkbox's `change` event is a plain `Event` with no modifier state, so
+   * Shift has to be captured from the gesture that produced it. Reading
+   * `nativeEvent.shiftKey` off the change event instead compiles, and is
+   * `undefined` every time — a range that silently never ranges.
+   */
+  const shiftHeld = React.useRef(false)
+
+  const onCheckboxPointer = React.useCallback(
+    (event: React.MouseEvent<HTMLInputElement>) => {
+      shiftHeld.current = event.shiftKey
+      // Without this the row beneath also takes the click and navigates the
+      // conversation pane, which is the one thing ticking a box must not do.
+      event.stopPropagation()
+    },
+    []
+  )
+
+  const onCheckboxKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      shiftHeld.current = event.shiftKey
+    },
+    []
+  )
+
+  const onCheckboxChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const index = Number(event.currentTarget.dataset.rowIndex ?? '-1')
+      if (index >= 0) {
+        toggleChecked(index, shiftHeld.current)
+      }
+      shiftHeld.current = false
+    },
+    [toggleChecked]
+  )
+
+  /**
+   * The row's own keyboard route into the selection.
+   *
+   * Ctrl+Space ticks the focused row and Ctrl+Shift+Space extends the range,
+   * matching Ctrl-click and Shift-click. Plain Space still selects the session
+   * for the conversation pane, because that is what it did before and no
+   * capability may be taken away.
+   */
+  const onRowKeyDownWithSelection = React.useCallback(
+    (session: IMd3AgentSession, event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === ' ' && (event.ctrlKey || event.metaKey)) {
+        const index = visibleIds.indexOf(session.id)
+        if (index !== -1) {
+          event.preventDefault()
+          toggleChecked(index, event.shiftKey)
+          return
+        }
+      }
+      onRowKeyDown(session, event)
+    },
+    [visibleIds, toggleChecked, onRowKeyDown]
   )
 
   const onOpenAccessMenu = React.useCallback(() => {
@@ -777,12 +1251,32 @@ export function Md3AgentsView(props: IMd3AgentsViewProps) {
             onClick={onOpenAccessMenu}
           />
         </Md3ChipRow>
+        <Md3BulkBar
+          listId="agents"
+          label={t('md3.agents.bulkLabel')}
+          visibleIds={visibleIds}
+          selected={checked}
+          filtered={filtersActive}
+          scopeLabel={scopeLabel}
+          actions={bulkActions}
+          onToggleSelectAll={onToggleSelectAll}
+          onInvertSelection={onInvertSelection}
+          onClearSelection={onClearSelection}
+          onExport={onExportSessions === undefined ? undefined : runExport}
+          exportColumns={Md3AgentExportColumns}
+          onOpenExport={
+            onExportSessions === undefined
+              ? undefined
+              : () => setExportOpen(true)
+          }
+          exportButtonRef={exportButtonRef}
+        />
         <div className="md3-agents__list">
           {visible.length === 0 ? (
             <Md3EmptyState
               message={
                 sessions.length === 0
-                  ? t('md3.agents.emptyNoSessions')
+                  ? tFunny('md3.agents.emptyNoSessions')
                   : t('md3.agents.emptyNoMatches')
               }
               onAction={sessions.length === 0 ? undefined : onResetFilters}
@@ -792,18 +1286,24 @@ export function Md3AgentsView(props: IMd3AgentsViewProps) {
               className="md3-agents__rows"
               role="listbox"
               aria-label={t('md3.agents.listLabel')}
+              aria-multiselectable={true}
             >
-              {visible.map(session => (
+              {visible.map((session, index) => (
                 <Md3AgentSessionRow
                   key={session.id}
                   session={session}
+                  index={index}
                   now={now}
                   isSelected={session.id === selectedSessionId}
+                  isChecked={checked.has(session.id)}
                   isTabbable={session.id === tabbableId}
                   onSelect={onSelectSession}
-                  onKeyDown={onRowKeyDown}
+                  onKeyDown={onRowKeyDownWithSelection}
                   onOpenMenu={openRowMenu}
                   onRef={setRowRef}
+                  onCheckboxPointer={onCheckboxPointer}
+                  onCheckboxKeyDown={onCheckboxKeyDown}
+                  onCheckboxChange={onCheckboxChange}
                 />
               ))}
             </div>
@@ -959,6 +1459,50 @@ export function Md3AgentsView(props: IMd3AgentsViewProps) {
         />
       )}
 
+      {exportOpen ? (
+        <Md3MenuOverlay
+          spec={exportMenuSpec}
+          onDismiss={() => setExportOpen(false)}
+          onOpenRegexBuilder={setBuilderPattern}
+          returnFocusTo={exportButtonRef}
+        />
+      ) : null}
+
+      {gateOpen ? (
+        <Md3DestructiveGate
+          actionId="agents-bulk-delete"
+          icon="delete_sweep"
+          title={t('md3.agents.gate.title', {
+            count: String(deletable.applied.length),
+          })}
+          summary={t('md3.agents.gate.summary', {
+            count: String(deletable.applied.length),
+            scope: scopeLabel,
+          })}
+          /*
+           * "Delete 9 sessions" is a number, and a number is not something a
+           * person can check. The names are, and the protected rows are named
+           * beside them so the title's count and the work the button does are
+           * the same set.
+           */
+          preview={deletable.applied.map(session => session.name)}
+          previewExcluded={deletable.excluded.map(session => session.name)}
+          previewExcludedReason={deletable.reason}
+          irreversible={t('md3.agents.gate.irreversible')}
+          targetKeyLabel={t('md3.agents.gate.keyTarget', {
+            count: String(deletable.applied.length),
+            scope: scopeLabel,
+          })}
+          effectKeyLabel={t('md3.agents.gate.keyEffect')}
+          confirmLabel={t('md3.agents.gate.confirm', {
+            count: String(deletable.applied.length),
+          })}
+          anchorTo={deleteButtonRef}
+          onConfirm={onConfirmBulkDelete}
+          onDismissed={() => setGateOpen(false)}
+        />
+      ) : null}
+
       {builderPattern === null ? null : (
         <Md3RegexBuilderDialog
           targetLabel={t('md3.agents.searchFieldLabel')}
@@ -986,9 +1530,23 @@ function turnRoleLabel(role: Md3AgentTurnRole, agentName: string): string {
 
 interface IMd3AgentSessionRowProps {
   readonly session: IMd3AgentSession
+
+  /** Position within the visible list — the index the selection algebra uses. */
+  readonly index: number
+
   readonly now: number
   readonly isSelected: boolean
+  readonly isChecked: boolean
   readonly isTabbable: boolean
+  readonly onCheckboxPointer: (
+    event: React.MouseEvent<HTMLInputElement>
+  ) => void
+  readonly onCheckboxKeyDown: (
+    event: React.KeyboardEvent<HTMLInputElement>
+  ) => void
+  readonly onCheckboxChange: (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => void
   readonly onSelect: (sessionId: string) => void
   readonly onKeyDown: (
     session: IMd3AgentSession,
@@ -1054,6 +1612,23 @@ function Md3AgentSessionRow(props: IMd3AgentSessionRowProps) {
       onKeyDown={onRowKeyDown}
       onContextMenu={onContextMenu}
     >
+      <input
+        type="checkbox"
+        className="md3-bulk-bar__checkbox md3-agents__select"
+        data-row-index={props.index}
+        checked={props.isChecked}
+        aria-label={t('md3.agents.row.select', { title: session.name })}
+        /*
+         * `-1` because the row is the tab stop: a fleet of forty worktrees
+         * would otherwise cost forty Tabs to cross. Ctrl+Space on the row is
+         * the keyboard route to the box.
+         */
+        tabIndex={-1}
+        onMouseDown={props.onCheckboxPointer}
+        onClick={props.onCheckboxPointer}
+        onKeyDown={props.onCheckboxKeyDown}
+        onChange={props.onCheckboxChange}
+      />
       <MaterialSymbol
         className={classNames('md3-agents__row-icon', tone.on)}
         name={StateIcons[session.state]}

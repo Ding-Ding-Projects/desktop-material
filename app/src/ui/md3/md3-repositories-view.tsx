@@ -1,8 +1,10 @@
 import * as React from 'react'
 import classNames from 'classnames'
 
+import { tFunny } from '../../lib/funny-level-text'
 import { t } from '../../lib/i18n'
 import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
+import { createObservableRef } from '../lib/observable-ref'
 import {
   Md3Chip,
   Md3ChipRow,
@@ -13,6 +15,31 @@ import {
   Md3SearchField,
   Md3TonalButton,
 } from './md3-primitives'
+import {
+  IMd3BulkAction,
+  Md3BulkBar,
+  md3BulkExportMenuSpec,
+} from './md3-bulk-bar'
+import {
+  IMd3ListExport,
+  IMd3ListExportColumn,
+  Md3ListExportFormat,
+  serializeMd3ListExport,
+} from './md3-list-export'
+import {
+  IMd3BulkPartition,
+  Md3SelectionIntent,
+  md3ApplySelection,
+  md3BulkPartitionSummary,
+  md3BulkScope,
+  md3BulkScopeLabel,
+  md3InvertSelection,
+  md3PartitionBulk,
+  md3SelectionIntent,
+  md3ToggleSelectAll,
+} from './md3-list-selection'
+import { Md3MenuOverlay } from './md3-menu-overlay'
+import { notify } from './md3-toast'
 import { isGroupStart, runIcon, statusTone } from './md3-style-contract'
 import type {
   BulkRepositoryItemStatus,
@@ -27,10 +54,8 @@ import {
   enterBulkSelection,
   exitBulkSelection,
   IRepositoryBulkSelection,
-  isAllVisibleSelected,
-  isSomeVisibleSelected,
+  pruneBulkSelection,
   setVisibleSelection,
-  toggleRepositorySelection,
 } from '../repositories-list/repository-bulk-selection'
 
 /**
@@ -68,9 +93,6 @@ import {
 
 /** The glyph beside a repository row. The contract's `iconStyle` is 17px. */
 const RowGlyphSize = 17
-
-/** The pills, the open action and the small controls all take 15px glyphs. */
-const SmallGlyphSize = 15
 
 /** The status glyph in a run's per-repository result row. */
 const ResultGlyphSize = 14
@@ -134,8 +156,14 @@ export interface IMd3RepositoryRow {
 
   readonly sync: IMd3RepositorySync
 
-  /** How many remotes the repository has. */
-  readonly remoteCount: number
+  /**
+   * How many remotes the repository has, or `null` when nothing has counted
+   * them. Counting remotes reads the repository's Git config, which only
+   * happens once a repository has been opened, so a repository the app has
+   * never inspected must say "remotes not counted" rather than reporting a
+   * zero that reads as "this repository has no remotes".
+   */
+  readonly remoteCount: number | null
 
   /**
    * Working-directory changes, or `null` when the repository has never been
@@ -273,7 +301,122 @@ export interface IMd3RepositoriesViewProps {
 
   readonly onDismissNotice?: () => void
 
+  /**
+   * Delivers a serialized export of the bulk scope.
+   *
+   * Omit it and the bar's own Export button is not drawn — a control that
+   * cannot deliver a file is not a control — and the legacy `export-selected`
+   * verb stays in the action list instead, so neither wiring loses the
+   * capability.
+   */
+  readonly onExportRepositories?: (
+    payload: IMd3ListExport,
+    rows: ReadonlyArray<IMd3RepositoryRow>
+  ) => void
+
   readonly className?: string
+}
+
+/**
+ * The export schema for a repository row.
+ *
+ * Every field the row renders, plus the identity it is keyed by. A count that
+ * nothing has measured is written empty rather than as `0`: a zero in an
+ * exported file reads as "no changes" or "no remotes", which is a claim the
+ * reader has no way to doubt. Nothing here is multiline, so every format
+ * carries the whole record — checked against the row shape, not assumed.
+ */
+export const Md3RepositoryExportColumns: ReadonlyArray<IMd3ListExportColumn> = [
+  { name: 'id' },
+  { name: 'name' },
+  { name: 'group' },
+  { name: 'path' },
+  { name: 'branch' },
+  { name: 'sync' },
+  { name: 'ahead' },
+  { name: 'behind' },
+  { name: 'lastFetched' },
+  { name: 'language' },
+  { name: 'sizeInMegabytes' },
+  { name: 'remoteCount' },
+  { name: 'changedFilesCount' },
+  { name: 'isCurrent' },
+  { name: 'isPinned' },
+  { name: 'isHidden' },
+  { name: 'isMissing' },
+]
+
+/** Flatten one repository for export, one field per declared column. */
+export function md3RepositoryExportRecord(
+  row: IMd3RepositoryRow
+): Readonly<Record<string, string | number | boolean>> {
+  return {
+    id: row.id,
+    name: row.name,
+    group: row.groupLabel,
+    path: row.path,
+    branch: row.branchName ?? '',
+    sync: row.sync.kind,
+    ahead: row.sync.ahead === null ? '' : row.sync.ahead,
+    behind: row.sync.behind === null ? '' : row.sync.behind,
+    lastFetched: row.lastFetched,
+    language: row.language,
+    sizeInMegabytes:
+      row.sizeInMegabytes === null || !Number.isFinite(row.sizeInMegabytes)
+        ? ''
+        : row.sizeInMegabytes,
+    remoteCount: row.remoteCount === null ? '' : row.remoteCount,
+    changedFilesCount:
+      row.changedFilesCount === null ? '' : row.changedFilesCount,
+    isCurrent: row.isCurrent,
+    isPinned: row.isPinned,
+    isHidden: row.isHidden,
+    isMissing: row.isMissing,
+  }
+}
+
+/**
+ * Whether a query or a chip is narrowing the list.
+ *
+ * This is what decides whether the select-all offers "all 12 matching these
+ * filters" or "all 12", and saying `false` while a filter is on is the one
+ * defect neither the bar nor the user can detect — so it is derived from the
+ * same two inputs {@link filterMd3Repositories} filters by, in one place.
+ */
+export function md3RepositoriesFiltersActive(
+  query: string,
+  activeChips: ReadonlyArray<string>
+): boolean {
+  return query.trim().length > 0 || activeChips.length > 0
+}
+
+/**
+ * The bar's `visibleIds`: the rows left after the query and the chips, as the
+ * strings the shared selection algebra speaks. Deduped, because the row list
+ * can repeat a repository under a pinned and a grouped heading.
+ */
+export function md3RepositoryVisibleIds(
+  rows: ReadonlyArray<IMd3RepositoryRow>
+): ReadonlyArray<string> {
+  return dedupeRepositoryIds(rows.map(row => row.id)).map(String)
+}
+
+/**
+ * The rows a fetch, a pull or an open can actually run over.
+ *
+ * A repository whose working directory has gone from disk cannot be fetched,
+ * pulled or opened, and a batch that counts it and then skips it reports a
+ * number the user cannot reconcile with what happened.
+ *
+ * `reason` is injectable only so the split can be proven without standing up
+ * the translation catalogue; the view never passes it, and the default is the
+ * localized sentence the preview and the toast both show.
+ */
+export function md3RepositorySyncable(
+  rows: ReadonlyArray<IMd3RepositoryRow>,
+  reason: string = t('md3.repositories.bulkSkipMissing')
+): IMd3BulkPartition<IMd3RepositoryRow> {
+  return md3PartitionBulk(rows, row => !row.isMissing, reason)
 }
 
 // ---------------------------------------------------------------------------
@@ -455,6 +598,25 @@ function md3RepositoryBranchLabel(row: IMd3RepositoryRow): string {
 }
 
 /**
+ * The remotes segment of the detail line.
+ *
+ * `null` is not zero. Nothing in the repository inventory counts remotes — that
+ * is a Git-config read, done only once a repository has been opened — so an
+ * uninspected repository says its remotes were never counted. Printing `0`
+ * there would be a claim the user has no way to tell apart from a repository
+ * that genuinely has none.
+ */
+function md3RepositoryRemotesLabel(row: IMd3RepositoryRow): string {
+  if (row.remoteCount === null) {
+    return t('md3.repositories.remotesUnknown')
+  }
+  if (row.remoteCount === 1) {
+    return t('md3.repositories.remotesOne')
+  }
+  return t('md3.repositories.remotes', { count: String(row.remoteCount) })
+}
+
+/**
  * The contract's detail line:
  * `<language> · <size> MB · <branch> ↑a ↓b|in sync · N remotes · <changes>`.
  */
@@ -466,10 +628,7 @@ export function md3RepositoryDetail(row: IMd3RepositoryRow): string {
         : row.language,
     size: md3RepositorySizeLabel(row),
     branch: md3RepositoryBranchLabel(row),
-    remotes:
-      row.remoteCount === 1
-        ? t('md3.repositories.remotesOne')
-        : t('md3.repositories.remotes', { count: String(row.remoteCount) }),
+    remotes: md3RepositoryRemotesLabel(row),
     // The contract lower-cases the changes word inside the detail line, while
     // the pill beside it keeps its capital.
     changes: md3RepositoryChangesLabel(row).toLocaleLowerCase(),
@@ -666,7 +825,7 @@ interface IMd3RepositoryRowProps {
     event: React.KeyboardEvent<HTMLElement>
   ) => void
   readonly onRowFocus: (id: number) => void
-  readonly onCheckedChange: (id: number, checked: boolean) => void
+  readonly onCheckedChange: (id: number) => void
   readonly onOpen: (id: number) => void
   readonly onOpenMenu: (id: number) => void
   readonly onContextMenu?: (
@@ -704,9 +863,13 @@ function Md3RepositoryRowView(props: IMd3RepositoryRowProps) {
     () => onRowFocus(row.id),
     [onRowFocus, row.id]
   )
+  /*
+   * A checkbox's `change` carries no modifier state, so the toggle is derived
+   * from the row's current membership rather than from the event: reading
+   * `nativeEvent.shiftKey` here compiles and is `undefined` every time.
+   */
   const handleChecked = React.useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) =>
-      onCheckedChange(row.id, event.currentTarget.checked),
+    () => onCheckedChange(row.id),
     [onCheckedChange, row.id]
   )
   const handleOpen = React.useCallback(
@@ -1085,6 +1248,11 @@ export function Md3RepositoriesView(props: IMd3RepositoriesViewProps) {
     () => dedupeRepositoryIds(visibleRows.map(row => row.id)),
     [visibleRows]
   )
+  /* The same ids in the shared selection algebra's own currency. */
+  const visibleKeys = React.useMemo(
+    () => visibleIds.map(String),
+    [visibleIds]
+  )
   const groupChips = React.useMemo(
     () => md3RepositoryGroupChips(repositories),
     [repositories]
@@ -1093,8 +1261,48 @@ export function Md3RepositoriesView(props: IMd3RepositoriesViewProps) {
   const running = props.run !== null && !props.run.progress.finished
   const selectionActive = selection.active
   const selectedCount = selection.selectedIds.size
-  const allVisibleSelected = isAllVisibleSelected(selection, visibleIds)
-  const someVisibleSelected = isSomeVisibleSelected(selection, visibleIds)
+
+  const checkedKeys = React.useMemo<ReadonlySet<string>>(
+    () => new Set([...selection.selectedIds].map(String)),
+    [selection.selectedIds]
+  )
+
+  const filtersActive = md3RepositoriesFiltersActive(
+    props.searchValue,
+    props.activeChips
+  )
+
+  /*
+   * Hand a whole id set back to the host. The algebra returns the selection it
+   * computed rather than a delta, so this is the one place a computed set
+   * becomes state — and it stays in selection mode, because a bulk gesture is
+   * never a request to leave it.
+   */
+  const commitKeys = React.useCallback(
+    (ids: ReadonlyArray<string>) => {
+      onSelectionChanged({
+        active: true,
+        selectedIds: new Set(ids.map(Number)),
+      })
+    },
+    [onSelectionChanged]
+  )
+
+  /*
+   * A repository that leaves the app entirely must leave the selection with
+   * it. Rows a *filter* is hiding are deliberately left alone — the algebra's
+   * rule — because the user did select them and a chip did not unselect them.
+   */
+  const knownIds = React.useMemo(
+    () => repositories.map(row => row.id),
+    [repositories]
+  )
+  React.useEffect(() => {
+    const pruned = pruneBulkSelection(selection, knownIds)
+    if (pruned !== selection) {
+      onSelectionChanged(pruned)
+    }
+  }, [knownIds, selection, onSelectionChanged])
 
   // Drop the remembered focus when its row leaves the filter, so the tab stop
   // can never sit on a row that is no longer rendered.
@@ -1136,26 +1344,55 @@ export function Md3RepositoriesView(props: IMd3RepositoriesViewProps) {
     rowElements.current.get(id)?.focus()
   }, [])
 
-  const selectRange = React.useCallback(
-    (fromId: number, toId: number) => {
-      const from = visibleIds.indexOf(fromId)
-      const to = visibleIds.indexOf(toId)
-      if (from === -1 || to === -1) {
+  /*
+   * Shift over a checkbox list *adds* the range to whatever is already ticked
+   * — `extend`, never `replace`. A user who has ticked four rows and then
+   * Shift-clicks a fifth is asking for more; replacing would silently shrink
+   * the selection and every bulk verb would then run over fewer rows than the
+   * count beside it claims.
+   */
+  const applyIntent = React.useCallback(
+    (id: number, intent: Md3SelectionIntent) => {
+      const index = visibleKeys.indexOf(String(id))
+      if (index === -1) {
         return
       }
-      const range = visibleIds.slice(Math.min(from, to), Math.max(from, to) + 1)
-      const base = selection.active ? selection : enterBulkSelection()
-      onSelectionChanged(setVisibleSelection(base, range, true))
+      const anchor =
+        anchorId.current === null
+          ? null
+          : (() => {
+              const found = visibleKeys.indexOf(String(anchorId.current))
+              return found === -1 ? null : found
+            })()
+      const result = md3ApplySelection(
+        visibleKeys,
+        checkedKeys,
+        index,
+        intent,
+        anchor,
+        'extend'
+      )
+      if (intent !== 'range') {
+        anchorId.current = id
+      }
+      commitKeys(result.ids)
     },
-    [visibleIds, selection, onSelectionChanged]
+    [visibleKeys, checkedKeys, commitKeys]
+  )
+
+  const selectRange = React.useCallback(
+    (fromId: number, toId: number) => {
+      anchorId.current = fromId
+      applyIntent(toId, 'range')
+    },
+    [applyIntent]
   )
 
   const toggleRow = React.useCallback(
-    (id: number, selected: boolean) => {
-      const base = selection.active ? selection : enterBulkSelection()
-      onSelectionChanged(toggleRepositorySelection(base, id, selected))
+    (id: number) => {
+      applyIntent(id, 'toggle')
     },
-    [selection, onSelectionChanged]
+    [applyIntent]
   )
 
   const onRowFocus = React.useCallback((id: number) => {
@@ -1166,35 +1403,37 @@ export function Md3RepositoriesView(props: IMd3RepositoriesViewProps) {
     (id: number, event: React.MouseEvent<HTMLElement>) => {
       setFocusedId(id)
 
-      if (event.shiftKey) {
+      const intent = md3SelectionIntent(event)
+
+      if (intent === 'range') {
         event.preventDefault()
         selectRange(anchorId.current ?? id, id)
         return
       }
 
-      if (event.ctrlKey || event.metaKey) {
+      if (intent === 'toggle') {
         event.preventDefault()
-        anchorId.current = id
-        toggleRow(id, !selection.selectedIds.has(id))
+        toggleRow(id)
         return
       }
 
       anchorId.current = id
 
+      // A plain click in selection mode is the checkbox gesture, so it adds or
+      // removes one row rather than replacing the whole selection with it.
       if (selection.active) {
-        toggleRow(id, !selection.selectedIds.has(id))
+        toggleRow(id)
         return
       }
 
       onSelectRepository(id)
     },
-    [selection, selectRange, toggleRow, onSelectRepository]
+    [selection.active, selectRange, toggleRow, onSelectRepository]
   )
 
   const onCheckedChange = React.useCallback(
-    (id: number, checked: boolean) => {
-      anchorId.current = id
-      toggleRow(id, checked)
+    (id: number) => {
+      toggleRow(id)
     },
     [toggleRow]
   )
@@ -1212,6 +1451,18 @@ export function Md3RepositoriesView(props: IMd3RepositoriesViewProps) {
         event.preventDefault()
         const base = selection.active ? selection : enterBulkSelection()
         onSelectionChanged(setVisibleSelection(base, visibleIds, true))
+        return
+      }
+
+      // Ctrl+Space ticks the focused row and Ctrl+Shift+Space extends the
+      // range, matching what Ctrl-click and Shift-click do with a pointer.
+      if (event.key === ' ' && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault()
+        if (event.shiftKey) {
+          selectRange(anchorId.current ?? id, id)
+        } else {
+          toggleRow(id)
+        }
         return
       }
 
@@ -1286,8 +1537,7 @@ export function Md3RepositoriesView(props: IMd3RepositoriesViewProps) {
             return
           }
           event.preventDefault()
-          anchorId.current = id
-          toggleRow(id, !selection.selectedIds.has(id))
+          toggleRow(id)
           return
         }
         default:
@@ -1311,28 +1561,15 @@ export function Md3RepositoriesView(props: IMd3RepositoriesViewProps) {
     )
   }, [selection.active, onSelectionChanged])
 
-  const onSelectAllChange = React.useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const base = selection.active ? selection : enterBulkSelection()
-      onSelectionChanged(
-        setVisibleSelection(base, visibleIds, event.currentTarget.checked)
-      )
-    },
-    [selection, visibleIds, onSelectionChanged]
-  )
+  const onToggleSelectAll = React.useCallback(() => {
+    commitKeys(md3ToggleSelectAll(visibleKeys, checkedKeys))
+    anchorId.current = null
+  }, [visibleKeys, checkedKeys, commitKeys])
 
   const onInvertSelection = React.useCallback(() => {
-    const base = selection.active ? selection : enterBulkSelection()
-    const toSelect = visibleIds.filter(id => !base.selectedIds.has(id))
-    const toClear = visibleIds.filter(id => base.selectedIds.has(id))
-    onSelectionChanged(
-      setVisibleSelection(
-        setVisibleSelection(base, toClear, false),
-        toSelect,
-        true
-      )
-    )
-  }, [selection, visibleIds, onSelectionChanged])
+    commitKeys(md3InvertSelection(visibleKeys, checkedKeys))
+    anchorId.current = null
+  }, [visibleKeys, checkedKeys, commitKeys])
 
   const onClearSelection = React.useCallback(() => {
     onSelectionChanged(clearBulkSelection(selection))
@@ -1349,25 +1586,155 @@ export function Md3RepositoriesView(props: IMd3RepositoriesViewProps) {
     []
   )
 
-  const onBulkClick = React.useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
-      const operation = event.currentTarget.value as Md3RepositoryBulkOperation
+  const onPullAllClick = React.useCallback(() => {
+    onPullAll(visibleIds)
+  }, [onPullAll, visibleIds])
+
+  // ---------------------------------------------------------------------
+  // The shared bulk bar
+  // ---------------------------------------------------------------------
+
+  const [exportOpen, setExportOpen] = React.useState(false)
+  const removeButtonRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
+  const exportButtonRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
+
+  /** What a bulk verb runs over: the ticked rows, or the whole filtered list. */
+  const scopeRows = React.useMemo(
+    () => md3BulkScope(visibleRows, checkedKeys, row => String(row.id)),
+    [visibleRows, checkedKeys]
+  )
+
+  const scopeLabel = md3BulkScopeLabel(
+    selectedCount,
+    visibleIds.length,
+    filtersActive
+  )
+
+  const syncable = React.useMemo(
+    () => md3RepositorySyncable(scopeRows),
+    [scopeRows]
+  )
+
+  const runBulk = React.useCallback(
+    (operation: Md3RepositoryBulkOperation) => {
       onBulkOperation(operation, groupDraft.trim())
     },
     [onBulkOperation, groupDraft]
   )
 
-  const onPullAllClick = React.useCallback(() => {
-    onPullAll(visibleIds)
-  }, [onPullAll, visibleIds])
+  /*
+   * The three verbs that touch the working directory report their skipped rows
+   * before the run starts, so the count on the button, the count in the run's
+   * heading and the count in the summary all describe the same set.
+   */
+  const runSyncBulk = React.useCallback(
+    (operation: Md3RepositoryBulkOperation) => {
+      const skipped = md3BulkPartitionSummary(syncable)
+      if (skipped !== null) {
+        notify(skipped, { kind: 'warning' })
+      }
+      runBulk(operation)
+    },
+    [syncable, runBulk]
+  )
 
-  const selectAllRef = React.useRef<HTMLInputElement>(null)
-  React.useEffect(() => {
-    if (selectAllRef.current !== null) {
-      selectAllRef.current.indeterminate =
-        someVisibleSelected && !allVisibleSelected
-    }
-  }, [someVisibleSelected, allVisibleSelected])
+  const runExport = React.useCallback(
+    (format: Md3ListExportFormat) => {
+      const deliver = props.onExportRepositories
+      if (deliver === undefined) {
+        return
+      }
+      const payload = serializeMd3ListExport(
+        scopeRows.map(md3RepositoryExportRecord),
+        {
+          columns: Md3RepositoryExportColumns,
+          collectionName: 'repositories',
+          recordName: 'repository',
+          title: 'Repositories',
+          baseName: 'repositories',
+        },
+        format,
+        { scope: scopeLabel }
+      )
+      setExportOpen(false)
+      deliver(payload, scopeRows)
+      notify(
+        payload.loss === null
+          ? t('md3.bulk.toast.exported', {
+              count: String(payload.count),
+              format: payload.format.toUpperCase(),
+            })
+          : t('md3.bulk.toast.exportedLossy', {
+              count: String(payload.count),
+              format: payload.format.toUpperCase(),
+              loss: payload.loss,
+            })
+      )
+    },
+    [props.onExportRepositories, scopeRows, scopeLabel]
+  )
+
+  const exportMenuSpec = React.useMemo(
+    () =>
+      md3BulkExportMenuSpec(Md3RepositoryExportColumns, scopeLabel, runExport),
+    [scopeLabel, runExport]
+  )
+
+  const sharedExportOffered = props.onExportRepositories !== undefined
+
+  const bulkActions = React.useMemo((): ReadonlyArray<IMd3BulkAction> => {
+    const groupMissing = groupDraft.trim().length === 0
+    return Md3BulkActions.flatMap((action): Array<IMd3BulkAction> => {
+      // The legacy host-driven export is dropped only when the bar's own
+      // format picker is wired, so neither wiring loses the capability and
+      // neither offers it twice.
+      if (action.operation === 'export-selected' && sharedExportOffered) {
+        return []
+      }
+
+      const syncing =
+        action.operation === 'fetch-selected' ||
+        action.operation === 'pull-selected' ||
+        action.operation === 'open-selected'
+      const eligible = syncing ? syncable.applied.length : scopeRows.length
+      const label = action.label()
+
+      return [
+        {
+          id: action.operation,
+          label,
+          icon: action.icon,
+          destructive: action.destructive,
+          // Removal opens the view's own two-key-and-slider gate, which lists
+          // exactly which repositories go before it authorizes anything.
+          hasPopup: action.destructive === true ? 'dialog' : undefined,
+          buttonRef:
+            action.destructive === true ? removeButtonRef : undefined,
+          disabled:
+            selectedCount === 0 ||
+            eligible === 0 ||
+            (action.needsGroupName === true && groupMissing),
+          onClick: () =>
+            syncing ? runSyncBulk(action.operation) : runBulk(action.operation),
+        },
+      ]
+    })
+  }, [
+    groupDraft,
+    sharedExportOffered,
+    syncable,
+    scopeRows,
+    selectedCount,
+    removeButtonRef,
+    runBulk,
+    runSyncBulk,
+  ])
 
   const renderRows = () => {
     const nodes: Array<React.ReactNode> = []
@@ -1542,44 +1909,44 @@ export function Md3RepositoriesView(props: IMd3RepositoriesViewProps) {
       return null
     }
 
-    const count = String(selectedCount)
-
     return (
       <div
         className="md3-repositories-view__bulk"
         role="group"
         aria-label={t('md3.repositories.bulkRegion')}
       >
-        <label className="md3-repositories-view__bulk-select-all">
-          <input
-            ref={selectAllRef}
-            type="checkbox"
-            checked={allVisibleSelected}
-            disabled={visibleIds.length === 0 || running}
-            onChange={onSelectAllChange}
-          />
-          <span>
-            {t('md3.repositories.selectAllVisible', {
-              count: String(visibleIds.length),
-            })}
-          </span>
-        </label>
+        {/*
+         * The shared bar owns the select-all (with its honest scope label and
+         * its indeterminate state), the live count, invert and clear, every
+         * verb with its scoped accessible name, and the export picker. What
+         * stays beside it is what only this destination has: the group-name
+         * field its two group verbs read, and the exit from selection mode.
+         */}
+        <Md3BulkBar
+          listId="repositories"
+          label={t('md3.repositories.bulkRegion')}
+          visibleIds={visibleKeys}
+          selected={checkedKeys}
+          filtered={filtersActive}
+          scopeLabel={scopeLabel}
+          actions={bulkActions}
+          busy={running}
+          onToggleSelectAll={onToggleSelectAll}
+          onInvertSelection={onInvertSelection}
+          onClearSelection={onClearSelection}
+          onExport={sharedExportOffered ? runExport : undefined}
+          exportColumns={Md3RepositoryExportColumns}
+          onOpenExport={
+            sharedExportOffered ? () => setExportOpen(true) : undefined
+          }
+          exportButtonRef={exportButtonRef}
+        />
         <span className="md3-repositories-view__bulk-scope">
           {t('md3.repositories.selectionScope', {
             shown: String(visibleIds.length),
             total: String(repositories.length),
           })}
         </span>
-        <span className="md3-repositories-view__bulk-count" role="status">
-          {t('md3.repositories.selectedCount', { count })}
-        </span>
-        <Md3IconButton
-          small={true}
-          icon="swap_horiz"
-          label={t('md3.repositories.invertSelection')}
-          disabled={visibleIds.length === 0 || running}
-          onClick={onInvertSelection}
-        />
         <label className="md3-repositories-view__bulk-group">
           <span>{t('md3.repositories.groupFieldLabel')}</span>
           <input
@@ -1597,43 +1964,6 @@ export function Md3RepositoriesView(props: IMd3RepositoriesViewProps) {
             ))}
           </datalist>
         </label>
-        <span className="md3-repositories-view__bulk-actions">
-          {Md3BulkActions.map(action => {
-            const label = action.label()
-            return (
-              <button
-                key={action.operation}
-                type="button"
-                value={action.operation}
-                className={classNames('md3-tonal-button', {
-                  'md3-repositories-view__bulk-destructive':
-                    action.destructive === true,
-                })}
-                disabled={
-                  selectedCount === 0 ||
-                  running ||
-                  (action.needsGroupName === true &&
-                    groupDraft.trim().length === 0)
-                }
-                aria-label={t('md3.repositories.bulkActionName', {
-                  action: label,
-                  count,
-                })}
-                onClick={onBulkClick}
-              >
-                <MaterialSymbol name={action.icon} size={SmallGlyphSize} />
-                <span>{label}</span>
-              </button>
-            )
-          })}
-        </span>
-        <Md3IconButton
-          small={true}
-          icon="close"
-          label={t('md3.repositories.clearSelection')}
-          disabled={selectedCount === 0 || running}
-          onClick={onClearSelection}
-        />
         <Md3TonalButton
           icon="done_all"
           label={t('md3.repositories.exitSelection')}
@@ -1660,6 +1990,11 @@ export function Md3RepositoriesView(props: IMd3RepositoriesViewProps) {
           placeholder={t('md3.repositories.searchPlaceholder')}
           value={props.searchValue}
           regexEnabled={props.regexEnabled}
+          error={
+            filtered.patternInvalid
+              ? t('md3.repositories.invalidPattern')
+              : null
+          }
           onChange={props.onSearchChange}
           onClear={props.onClearSearch}
           onToggleRegex={props.onToggleRegex}
@@ -1709,11 +2044,6 @@ export function Md3RepositoriesView(props: IMd3RepositoriesViewProps) {
             onClick={onPullAllClick}
           />
         </Md3ChipRow>
-        {filtered.patternInvalid ? (
-          <p className="md3-repositories-view__notice" role="status">
-            {t('md3.repositories.invalidPattern')}
-          </p>
-        ) : null}
         {props.notice === null ? null : (
           <div className="md3-repositories-view__notice" role="status">
             <span>{props.notice}</span>
@@ -1749,7 +2079,7 @@ export function Md3RepositoriesView(props: IMd3RepositoriesViewProps) {
         <div className="md3-repositories-view__list">
           {visibleRows.length === 0 ? (
             <Md3EmptyState
-              message={t('md3.repositories.empty')}
+              message={tFunny('md3.repositories.empty')}
               onAction={props.onResetFilters}
             />
           ) : (
@@ -1763,6 +2093,15 @@ export function Md3RepositoriesView(props: IMd3RepositoriesViewProps) {
           )}
         </div>
       </div>
+
+      {exportOpen ? (
+        <Md3MenuOverlay
+          spec={exportMenuSpec}
+          onDismiss={() => setExportOpen(false)}
+          onOpenRegexBuilder={props.onOpenRegexBuilder}
+          returnFocusTo={exportButtonRef}
+        />
+      ) : null}
     </div>
   )
 }

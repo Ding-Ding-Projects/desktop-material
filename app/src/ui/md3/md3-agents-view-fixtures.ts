@@ -33,8 +33,11 @@ export const md3AgentsFixtureSessions: ReadonlyArray<IMd3AgentSession> = [
     errorMessage: null,
     canPause: true,
     canResume: false,
-    canSendInstruction: true,
-    sendUnavailableReason: null,
+    // An instruction starts a run, so a session already running cannot take
+    // one: its runner's stdin closed the moment it was handed its task.
+    canSendInstruction: false,
+    sendUnavailableReason:
+      'The agent is still working. Pause it before sending another instruction.',
   },
   {
     id: '/tmp/worktrees/release-notes',
@@ -74,10 +77,10 @@ export const md3AgentsFixtureSessions: ReadonlyArray<IMd3AgentSession> = [
     isMissing: false,
     errorMessage: 'The runner exited with code 1 before producing any output.',
     canPause: false,
-    canResume: true,
+    canResume: false,
     canSendInstruction: false,
     sendUnavailableReason:
-      'This session stopped with an error. Resume it before sending an instruction.',
+      'Codex CLI is not installed on this computer, so nothing can be sent to it.',
   },
   {
     id: '/tmp/repo',
@@ -88,7 +91,9 @@ export const md3AgentsFixtureSessions: ReadonlyArray<IMd3AgentSession> = [
     branch: 'main',
     startedAt: null,
     model: null,
-    turnCount: 0,
+    // No transcript was ever recorded for this worktree, so the count is
+    // unknown rather than zero and the detail line leaves it out.
+    turnCount: null,
     elapsedMs: null,
     permissionsSummary: 'no agent permissions granted',
     isMainWorktree: true,

@@ -17,6 +17,8 @@ import {
   buildMd3LockMenuItems,
   excludeLockedFromBulkClose,
   md3LockedResultLabel,
+  Md3LockExportColumns,
+  md3LockExportRecord,
   Md3LocksView,
   Md3LockSetupDialog,
   Md3LockUnlockPrompt,
@@ -496,11 +498,15 @@ describe('lock manager', () => {
   it('scopes select-all honestly rather than saying "all" for a filtered set', () => {
     renderManager()
 
+    assert.ok(screen.getByText(/^Select all 2$/i))
+
     fireEvent.change(screen.getByRole('searchbox', { name: /search locks/i }), {
       target: { value: 'seed' },
     })
 
-    assert.ok(screen.getByText(/Select the 1 locks this search is showing/i))
+    // The bar's own select-all stops at the search and says so; the escape
+    // hatch beside it is the only control that reaches the hidden lock.
+    assert.ok(screen.getByText(/Select all 1 matching these filters/i))
     assert.ok(
       screen.getByRole('button', {
         name: /Select all 2 locks, including the ones this search is hiding/i,
@@ -508,16 +514,45 @@ describe('lock manager', () => {
     )
   })
 
+  it('never lets a select-all reach past the search', () => {
+    renderManager()
+
+    fireEvent.change(screen.getByRole('searchbox', { name: /search locks/i }), {
+      target: { value: 'seed' },
+    })
+    fireEvent.click(screen.getByLabelText(/Select all 1 matching these/i))
+    fireEvent.change(screen.getByRole('searchbox', { name: /search locks/i }), {
+      target: { value: '' },
+    })
+
+    assert.ok(screen.getByText('1 selected'))
+    assert.equal(
+      (
+        screen.getByLabelText(
+          /Select the lock on Release notes/i
+        ) as HTMLInputElement
+      ).checked,
+      false
+    )
+  })
+
+  it('carries the scope in every bulk verb’s accessible name', () => {
+    renderManager()
+
+    fireEvent.click(screen.getByLabelText(/Select the lock on Seed colour/i))
+
+    assert.ok(screen.getByRole('button', { name: /Remove locks.* 1 selected/i }))
+    assert.ok(screen.getByRole('button', { name: /Export .* 1 selected/i }))
+  })
+
   it('inverts a selection within the searched set', () => {
     renderManager()
 
     fireEvent.click(screen.getByLabelText(/Select the lock on Release notes/i))
-    assert.ok(screen.getByText('1 of 2 selected'))
+    assert.ok(screen.getByText('1 selected'))
 
-    fireEvent.click(
-      screen.getByRole('button', { name: /invert the selection/i })
-    )
-    assert.ok(screen.getByText('1 of 2 selected'))
+    fireEvent.click(screen.getByRole('button', { name: /invert selection/i }))
+    assert.ok(screen.getByText('1 selected'))
     assert.equal(
       (
         screen.getByLabelText(
@@ -528,24 +563,71 @@ describe('lock manager', () => {
     )
   })
 
-  it('exports the selection in the chosen format, credentials omitted', () => {
+  it('locks again only the locks that are actually open', () => {
+    const relocked: Array<string> = []
+    const { view } = renderManager({
+      activeUnlocks: [{ lockId: 'lock-1', kind: 'session', expiresAt: null }],
+      onLockAgain: lock => relocked.push(lock.id),
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Lock again/i }))
+
+    // Both locks are in scope; only the open one can be locked again, so the
+    // partition holds the other back rather than the verb reporting a count
+    // it never achieved.
+    assert.deepEqual(relocked, ['lock-1'])
+
+    view.unmount()
+    renderManager()
+
+    // Nothing is open, so the verb has nothing eligible and says so by being
+    // unavailable rather than by running over two rows and doing nothing.
+    assert.equal(
+      (
+        screen.getByRole('button', { name: /Lock again/i }) as HTMLButtonElement
+      ).disabled,
+      true
+    )
+  })
+
+  it('exports every declared column through the bar, credentials omitted', () => {
     const { exported } = renderManager()
 
     fireEvent.click(screen.getByLabelText(/Select the lock on Seed colour/i))
-    fireEvent.click(screen.getByLabelText('CSV'))
-    fireEvent.click(screen.getByRole('button', { name: /export 1 lock/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^Export/i }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /CSV/i }))
 
     assert.equal(exported.length, 1)
     assert.equal(exported[0].format, 'csv')
     assert.equal(exported[0].count, 1)
     assert.ok(exported[0].content.includes('Seed colour'))
     assert.ok(exported[0].content.includes('Credentials are not included'))
+    for (const column of Md3LockExportColumns) {
+      assert.ok(
+        exported[0].content.includes(column.name),
+        `the CSV is missing the declared column ${column.name}`
+      )
+    }
+  })
+
+  it('declares exactly the columns the export record carries', () => {
+    const record = md3LockExportRecord(lockFixture())
+
+    assert.deepEqual(
+      Md3LockExportColumns.map(column => column.name).sort(),
+      Object.keys(record).sort()
+    )
+    // The record is the only thing an export writes, so nothing that could
+    // open a lock may appear in it.
+    for (const key of Object.keys(record)) {
+      assert.ok(!/secret|digest|salt|password|credential/i.test(key))
+    }
   })
 
   it('puts a bulk removal behind the two-key super confirmation', () => {
     const { removed } = renderManager()
 
-    fireEvent.click(screen.getByRole('button', { name: /remove 2 locks/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Remove locks/i }))
 
     const gate = screen.getByRole('alertdialog')
     const confirm = screen.getByRole('button', { name: /^Remove 2 locks$/i })

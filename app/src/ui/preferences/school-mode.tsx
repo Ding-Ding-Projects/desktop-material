@@ -16,6 +16,11 @@ import { PasswordTextBox } from '../lib/password-text-box'
 import { TextBox } from '../lib/text-box'
 import { teleportAnchor } from '../../lib/teleport-targets'
 import { Md3SupportTicketEntry } from '../md3/md3-support-ticket-entry'
+import { readSupportTickets } from '../../lib/support-tickets'
+import {
+  readFunnyLevels,
+  translateWithFunnyLevel,
+} from '../../lib/funny-level-text'
 import type { TranslationVariables } from '../../lib/i18n'
 
 interface ISchoolModeProps {
@@ -159,6 +164,26 @@ export class SchoolModePreferences extends React.Component<
     }
   }
 
+  /**
+   * What is actually on this computer, rather than the word "default".
+   *
+   * The desk has no shipped value to fall back to, so the honest provenance
+   * line is the ticket count itself — and it is read on every render because
+   * a ticket filed from the desk a moment ago must not leave this line stale.
+   */
+  private renderTicketProvenance(): string {
+    const count = readSupportTickets().length
+    if (count === 0) {
+      return this.localize('supportTicketsSetting.provenanceNone')
+    }
+    if (count === 1) {
+      return this.localize('supportTicketsSetting.provenanceOne')
+    }
+    return this.localize('supportTicketsSetting.provenanceMany', {
+      count: String(count),
+    })
+  }
+
   private renderSetup() {
     if (!this.state.requestedEnable || this.state.schoolMode.enabled) {
       return null
@@ -275,8 +300,35 @@ export class SchoolModePreferences extends React.Component<
           The lock setting's own route to the recovery desk, available whether
           or not the lock is currently on — the setting is where a user looks
           for what to do when they can no longer get past it.
+
+          It carries the teleport anchor because it is the desk's home: the
+          command palette's "Open Support Tickets" row and the settings search
+          both land on this link rather than on the top of the tab.
         */}
-        <Md3SupportTicketEntry entryPoint="lockSetting" />
+        <div
+          className="support-tickets-setting"
+          {...teleportAnchor('settings-support-tickets')}
+        >
+          <Md3SupportTicketEntry entryPoint="lockSetting" />
+          <details className="support-tickets-setting-explanation">
+            <summary>
+              {this.localize('supportTicketsSetting.explanationSummary')}
+            </summary>
+            <p className="settings-description">
+              {translateWithFunnyLevel(
+                'supportTicketsSetting.explanation',
+                this.props.languageMode,
+                readFunnyLevels()
+              )}
+            </p>
+            <p className="settings-description">
+              {this.localize('supportTicketsSetting.boundaryNote')}
+            </p>
+          </details>
+          <p className="settings-description support-tickets-setting-provenance">
+            {this.renderTicketProvenance()}
+          </p>
+        </div>
       </section>
     )
   }

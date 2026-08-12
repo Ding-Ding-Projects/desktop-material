@@ -1,4 +1,5 @@
 import { PreferencesTab } from '../../models/preferences'
+import type { TeleportTargetId } from '../teleport-targets'
 import { translate, TranslationKey } from '../i18n'
 import { isSchoolModeEnabled, readSchoolMode } from '../school-mode'
 import {
@@ -39,6 +40,22 @@ export interface ISettingsSearchEntry {
    * repeated here.
    */
   readonly keywords: ReadonlyArray<string>
+
+  /**
+   * The exact row a result lands on, when the setting has an anchor of its
+   * own.
+   *
+   * Jumping to the tab and stopping is the "general page" outcome a search
+   * result exists to avoid: the Appearance tab alone is a dozen sections long,
+   * so a reader who searched for a setting by name is still left hunting for
+   * it. Naming the target here rather than in the dialog keeps the mapping
+   * beside the entry it belongs to, where a renamed anchor is a compile error
+   * instead of a silently dead jump.
+   *
+   * An entry without one still jumps to the right tab. That is a smaller
+   * promise, honestly kept, rather than a guess at which row was meant.
+   */
+  readonly teleportTargetId?: TeleportTargetId
 
   /** The setting is omitted while School mode is active. */
   readonly hiddenInSchoolMode?: boolean
@@ -330,6 +347,7 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
         '對話框',
         '訊息框',
       ],
+      teleportTargetId: 'settingsDialogEmoji',
     },
     {
       id: 'appearance-classic-toolbar',
@@ -346,6 +364,7 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
         '工具列',
         '經典',
       ],
+      teleportTargetId: 'settingsClassicToolbar',
     },
     {
       id: 'appearance-school-mode',
@@ -353,6 +372,44 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
       titleKey: 'appearance.schoolModeHeading',
       descriptionKey: 'appearance.schoolModeDescription',
       keywords: ['school', 'classroom', 'english', 'lock', '學校模式'],
+      teleportTargetId: 'settingsSchoolMode',
+    },
+    {
+      id: 'appearance-surface-locks',
+      tab: PreferencesTab.Appearance,
+      titleKey: 'settingsSearch.entry.appearanceSurfaceLocks.title',
+      descriptionKey: 'settingsSearch.entry.appearanceSurfaceLocks.desc',
+      keywords: [
+        'lock',
+        'locks',
+        'locked',
+        'padlock',
+        'tab lock',
+        'appearance lock',
+        'otp',
+        'password',
+        '鎖',
+        '介面鎖',
+      ],
+      teleportTargetId: 'settingsSurfaceLocks',
+    },
+    {
+      id: 'appearance-support-tickets',
+      tab: PreferencesTab.Appearance,
+      titleKey: 'settingsSearch.entry.appearanceSupportTickets.title',
+      descriptionKey: 'settingsSearch.entry.appearanceSupportTickets.desc',
+      keywords: [
+        'support',
+        'ticket',
+        'tickets',
+        'help desk',
+        'forgotten password',
+        'recovery',
+        'reset',
+        '客服',
+        '客服單',
+      ],
+      teleportTargetId: 'settingsSupportTickets',
     },
     {
       id: 'appearance-scheduled-settings',
@@ -374,6 +431,7 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
         '每日',
         '感應器',
       ],
+      teleportTargetId: 'settingsScheduledSettings',
     },
     {
       id: 'appearance-scheduled-enabled',
@@ -712,11 +770,31 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
     },
     // Advanced (reuses the pane's own localized labels where present)
     {
+      id: 'advanced-authenticator',
+      tab: PreferencesTab.Advanced,
+      titleKey: 'settingsSearch.entry.advancedAuthenticator.title',
+      descriptionKey: 'settingsSearch.entry.advancedAuthenticator.desc',
+      keywords: [
+        'authenticator',
+        'totp',
+        'otp',
+        'one-time password',
+        'two factor',
+        '2fa',
+        'mfa',
+        'qr',
+        '驗證器',
+        '一次性密碼',
+      ],
+      teleportTargetId: 'settingsAuthenticator',
+    },
+    {
       id: 'advanced-usage-stats',
       tab: PreferencesTab.Advanced,
       titleKey: 'settings.advancedUsageStatsTitle',
       descriptionKey: 'settings.advancedUsageStatsDescription',
       keywords: ['telemetry', 'stats', 'usage', 'privacy', '統計'],
+      teleportTargetId: 'settingsUsageStats',
     },
     {
       id: 'advanced-credential-storage',
@@ -982,6 +1060,20 @@ export function settingsSearchText(
     languageOrLocale,
     entry.id === 'appearance-school-mode' ? { name: readSchoolMode().name } : {}
   )
+}
+
+/**
+ * The catalog entry with this id, or `undefined`.
+ *
+ * The Settings dialog looks an entry up by id after a result is chosen so it
+ * can land on the row rather than on the tab. Reading the entry back rather
+ * than passing the whole object through the result callback keeps the search
+ * component's props about the search.
+ */
+export function settingsSearchEntry(
+  id: string
+): ISettingsSearchEntry | undefined {
+  return SettingsSearchCatalog.find(entry => entry.id === id)
 }
 
 /**

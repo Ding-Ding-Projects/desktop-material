@@ -27,11 +27,32 @@
 }
 
 // `<span style="flex: none; font-size: 13.5px; font-weight: 700">`.
+//
+// The contract's `flex: none` is the one literal in this file that is not
+// copied forward, and the reason is bilingual mode. The title is the localized
+// destination name, so "History" becomes "History · 歷史" and "Repositories"
+// becomes "Repositories · 倉庫" — roughly double the width the contract's
+// English sample was measured at. A `flex: none` child cannot shrink, and this
+// header is `overflow: hidden`, so the extra width does not push the header
+// wider or wrap: it silently pushes the breadcrumbs, the fetch control, the
+// push affordance and the overflow menu past the right edge, where they are
+// clipped away with nothing on screen to say they exist. Losing the ⋮ menu is
+// the loss of a route, not of a decoration.
+//
+// Shrinking the title instead is the right trade in both directions: it is the
+// one thing in this header the user already knows (they chose the destination,
+// the rail still shows it selected, and the pane's own `<h1>` still carries it
+// in full for a screen reader), and it is the only child here whose width is
+// decided by the language mode rather than by the design.
 .md3-pane-header__title {
   color: var(--md-sys-color-on-surface);
-  flex: none;
+  flex: 0 1 auto;
   font-size: 13.5px;
   font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 // The `chevron_right` between the title and the breadcrumbs.
@@ -49,6 +70,13 @@
 // Breadcrumbs — `crumbStyle`
 // ---------------------------------------------------------------------------
 
+// The `min-width: 0` and the ellipsized label below say plainly that a crumb is
+// meant to truncate, and `flex: none` is what stopped it: a shrink factor of
+// zero holds each crumb at its full width up to the 200px cap, so two of them
+// reserve 400px that no narrow pane can reclaim, and everything to their right
+// is clipped by the header's `overflow: hidden`. `0 1 auto` keeps the contract's
+// resting size — a crumb still lays out at its content width whenever there is
+// room — and lets it give that width back when there is not.
 .md3-pane-header__crumb {
   align-items: center;
   background: transparent;
@@ -57,7 +85,7 @@
   color: var(--md-sys-color-on-surface);
   cursor: pointer;
   display: flex;
-  flex: none;
+  flex: 0 1 auto;
   font-size: 12.5px;
   font-weight: 600;
   gap: 6px;

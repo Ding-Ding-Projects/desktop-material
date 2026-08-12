@@ -1,8 +1,10 @@
 import * as React from 'react'
 import classNames from 'classnames'
+import { tFunny } from '../../lib/funny-level-text'
 import { t } from '../../lib/i18n'
 import { APIError } from '../../lib/http'
 import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
+import { createObservableRef } from '../lib/observable-ref'
 import {
   Md3Chip,
   Md3ChipRow,
@@ -13,6 +15,31 @@ import {
   Md3TonalButton,
   Md3GhostButton,
 } from './md3-primitives'
+import {
+  IMd3BulkAction,
+  Md3BulkBar,
+  md3BulkExportMenuSpec,
+} from './md3-bulk-bar'
+import {
+  IMd3ListExport,
+  IMd3ListExportColumn,
+  Md3ListExportFormat,
+  serializeMd3ListExport,
+} from './md3-list-export'
+import {
+  IMd3BulkPartition,
+  md3ApplySelection,
+  md3BulkPartitionSummary,
+  md3BulkScope,
+  md3BulkScopeLabel,
+  md3InvertSelection,
+  md3PartitionBulk,
+  md3SelectionIntent,
+  md3ToggleSelectAll,
+} from './md3-list-selection'
+import { Md3MenuOverlay } from './md3-menu-overlay'
+import { Md3DestructiveGate } from './md3-destructive-gate'
+import { notify } from './md3-toast'
 import { runIcon, statusTone } from './md3-style-contract'
 
 /**
@@ -132,42 +159,58 @@ export interface IMd3ActionsSearch {
   readonly onOpenBuilder: () => void
 }
 
-/** One workflow run in the left-hand list. */
+/**
+ * One workflow run in the left-hand list.
+ *
+ * Every field the meta and detail lines render is nullable, and `null` means
+ * one thing only: the provider has not reported it yet. It is never a stand-in
+ * for a real value. A run whose job page has not been read has no job count,
+ * and `0` there would read as a run with no jobs; a run summary carrying no
+ * actor has no actor, and `''` there would render `triggered by ` with nothing
+ * after it. Both are statements the reader cannot tell from a true one, so the
+ * formatters below leave the whole segment out instead.
+ */
 export interface IMd3ActionsRun {
   readonly id: string
 
   /** The workflow's name — the row's first line. */
   readonly name: string
 
-  /** The run number, rendered as `#1482`. */
-  readonly number: number
+  /** The run number, rendered as `#1482`. `null` until the provider reports one. */
+  readonly number: number | null
 
-  readonly branch: string
+  readonly branch: string | null
 
   /** The triggering event: `push`, `pull_request`, `workflow_dispatch`. */
   readonly event: string
 
   /** Elapsed or total run time, already formatted: `2m 14s`. */
-  readonly duration: string
+  readonly duration: string | null
 
   readonly status: Md3ActionsStatus
 
   /**
-   * The status word for the detail line. Defaults to `status` — supply it when
-   * the provider's own wording is more precise ("timed out", "action required").
+   * The status word for the detail line. Defaults to
+   * {@link md3ActionsStatusLabel} — supply it when the provider's own
+   * conclusion is more precise ("timed out", "action required").
    */
   readonly statusLabel?: string
 
   /** The login of whoever triggered the run. */
-  readonly actor: string
+  readonly actor: string | null
 
-  /** The abbreviated head SHA, e.g. `4f1c9ae`. */
-  readonly sha: string
+  /**
+   * The **abbreviated** head SHA, e.g. `4f1c9ae` — never the full 40
+   * characters. The row gives it one ellipsing line beside the branch and the
+   * event, and a full identifier there pushes both out of the row.
+   */
+  readonly sha: string | null
 
-  readonly jobCount: number
+  /** How many jobs the run has, or `null` while the job page is unread. */
+  readonly jobCount: number | null
 
   /** When the run started, already formatted for display. */
-  readonly time: string
+  readonly time: string | null
 
   readonly attempt: number
 
@@ -282,6 +325,27 @@ export interface IMd3ActionsViewProps {
   readonly onToggleRunSelection: (runId: string) => void
   readonly onToggleAllVisibleRuns: () => void
   readonly onClearRunSelection: () => void
+
+  /**
+   * Writes a whole selection at once.
+   *
+   * The shell owns the selected set — the bulk re-run and cancel read it
+   * directly — so a range, an invert and a scoped select-all all have to land
+   * there rather than in a second copy the view keeps beside it. Omit it and
+   * the view composes the same result out of `onToggleRunSelection`, one
+   * differing id at a time; that is exact rather than approximate, but it
+   * costs one call per changed row, so a shell that can write the set should.
+   */
+  readonly onSetRunSelection?: (ids: ReadonlyArray<string>) => void
+
+  /**
+   * Writes an export of the runs in scope. Omit it and the export button is
+   * not drawn — a control that cannot do its job is not offered.
+   */
+  readonly onExportRuns?: (
+    payload: IMd3ListExport,
+    runs: ReadonlyArray<IMd3ActionsRun>
+  ) => void
 
   /** Re-runs every selected completed run, behind the shell's review dialog. */
   readonly onBulkRerun: () => void
@@ -420,14 +484,84 @@ export function md3ActionsStatusIcon(
   return status === 'queued' ? 'schedule' : runIcon(status)
 }
 
+/**
+ * The word the detail line opens with, for a status the provider said nothing
+ * more precise about.
+ *
+ * The contract's own vocabulary, not the provider's: GitHub spells these
+ * `in_progress` and `failure`, and the row's glyph and tone are already chosen
+ * from the five states here, so the sentence reads the same five words.
+ */
+export function md3ActionsStatusLabel(status: Md3ActionsStatus): string {
+  switch (status) {
+    case 'queued':
+      return t('md3.actions.status.queued')
+    case 'running':
+      return t('md3.actions.status.running')
+    case 'success':
+      return t('md3.actions.status.success')
+    case 'failed':
+      return t('md3.actions.status.failed')
+    case 'cancelled':
+      return t('md3.actions.status.cancelled')
+  }
+}
+
+/**
+ * The localized word for a provider conclusion that says more than the five
+ * states can, or `undefined` when it says exactly the same thing.
+ *
+ * `failure` adds nothing to `failed`, so it returns nothing and the row keeps
+ * the contract's word. `timed_out` does add something — it is `failed` to the
+ * glyph and a different fact to whoever has to fix it.
+ */
+export function md3ActionsConclusionLabel(
+  conclusion: string | null | undefined
+): string | undefined {
+  switch (conclusion) {
+    case 'timed_out':
+      return t('md3.actions.status.timedOut')
+    case 'action_required':
+      return t('md3.actions.status.actionRequired')
+    case 'stale':
+      return t('md3.actions.status.stale')
+    case 'startup_failure':
+      return t('md3.actions.status.startupFailure')
+    case 'skipped':
+      return t('md3.actions.status.skipped')
+    case 'neutral':
+      return t('md3.actions.status.neutral')
+    default:
+      return undefined
+  }
+}
+
+/** The separator the contract sets every meta and detail segment apart with. */
+const Md3ActionsSegmentSeparator = ' · '
+
+/**
+ * Join the segments that have a value.
+ *
+ * An absent segment takes its separator with it, so a run with no reported
+ * actor reads `failed · 4f1c9ae · attempt 2` rather than `failed ·  · 4f1c9ae`
+ * — a gap that reads as a rendering fault rather than as missing data.
+ */
+function joinMd3Segments(parts: ReadonlyArray<string | null>): string {
+  return parts
+    .filter((part): part is string => part !== null && part.length > 0)
+    .join(Md3ActionsSegmentSeparator)
+}
+
 /** The contract's row meta line: `#1482 · development · push · 2m 14s`. */
 export function formatMd3RunMeta(run: IMd3ActionsRun): string {
-  return t('md3.actions.runMeta', {
-    number: String(run.number),
-    branch: run.branch,
-    event: run.event,
-    duration: run.duration,
-  })
+  return joinMd3Segments([
+    run.number === null
+      ? null
+      : t('md3.actions.meta.number', { number: String(run.number) }),
+    run.branch,
+    run.event,
+    run.duration,
+  ])
 }
 
 /**
@@ -435,23 +569,147 @@ export function formatMd3RunMeta(run: IMd3ActionsRun): string {
  * `failed · triggered by alice · 4f1c9ae · 6 jobs · 2m 14s · attempt 2`.
  */
 export function formatMd3RunDetail(run: IMd3ActionsRun): string {
-  return t('md3.actions.runDetail', {
-    status: run.statusLabel ?? run.status,
-    actor: run.actor,
-    sha: run.sha,
-    jobs: String(run.jobCount),
-    time: run.time,
-    attempt: String(run.attempt),
-  })
+  return joinMd3Segments([
+    run.statusLabel ?? md3ActionsStatusLabel(run.status),
+    run.actor === null
+      ? null
+      : t('md3.actions.detail.actor', { actor: run.actor }),
+    run.sha,
+    run.jobCount === null
+      ? null
+      : t('md3.actions.detail.jobs', { jobs: String(run.jobCount) }),
+    run.time,
+    t('md3.actions.detail.attempt', { attempt: String(run.attempt) }),
+  ])
 }
 
 /** The contract's `runDetail.name`: `Release · #1482 · development`. */
 export function formatMd3RunHeading(run: IMd3ActionsRun): string {
-  return t('md3.actions.detailHeading', {
+  return joinMd3Segments([
+    run.name,
+    run.number === null
+      ? null
+      : t('md3.actions.meta.number', { number: String(run.number) }),
+    run.branch,
+  ])
+}
+
+// ---------------------------------------------------------------------------
+// Bulk actions
+// ---------------------------------------------------------------------------
+
+/**
+ * The export schema for one workflow run.
+ *
+ * Every field the row and its detail line render, plus the identity the list
+ * is keyed by. Nothing here is multiline, so no format drops anything and the
+ * picker offers all of them without a warning — which is only true because the
+ * schema has been checked against {@link IMd3ActionsRun} rather than assumed.
+ * `busy` is deliberately absent: it is the state of a request that was in
+ * flight when the file was written, and a column recording that is a fact
+ * about the export rather than about the run.
+ */
+export const Md3ActionsRunExportColumns: ReadonlyArray<IMd3ListExportColumn> = [
+  { name: 'id' },
+  { name: 'name' },
+  { name: 'number' },
+  { name: 'branch' },
+  { name: 'event' },
+  { name: 'status' },
+  { name: 'statusLabel' },
+  { name: 'duration' },
+  { name: 'actor' },
+  { name: 'sha' },
+  { name: 'jobCount' },
+  { name: 'time' },
+  { name: 'attempt' },
+  { name: 'cancellable' },
+  { name: 'hasFailedJobs' },
+]
+
+/**
+ * Flatten one run for export.
+ *
+ * Every nullable field exports as empty rather than as a zero or a placeholder,
+ * for the reason the interface above already gives: `null` here means the
+ * provider has not reported it, and `0 jobs` in a file is a claim the reader
+ * has no way to doubt.
+ *
+ * `statusLabel` exports the provider's own refinement and nothing else — the
+ * localized fallback is deliberately not substituted. A data file that says
+ * `failed` to one reader and `失敗咗` to another is a file two people cannot
+ * compare, and `status` beside it already carries the machine-readable state.
+ */
+export function md3ActionsRunExportRecord(
+  run: IMd3ActionsRun
+): Readonly<Record<string, string | number | boolean>> {
+  return {
+    id: run.id,
     name: run.name,
-    number: String(run.number),
-    branch: run.branch,
-  })
+    number: run.number === null ? '' : run.number,
+    branch: run.branch ?? '',
+    event: run.event,
+    status: run.status,
+    statusLabel: run.statusLabel ?? '',
+    duration: run.duration ?? '',
+    actor: run.actor ?? '',
+    sha: run.sha ?? '',
+    jobCount: run.jobCount === null ? '' : run.jobCount,
+    time: run.time ?? '',
+    attempt: run.attempt,
+    cancellable: run.cancellable,
+    hasFailedJobs: run.hasFailedJobs,
+  }
+}
+
+/**
+ * Whether anything is narrowing the run list right now.
+ *
+ * This is what decides whether the select-all reads "all 12 matching these
+ * filters" or "all 12", so it has to account for every route that can hide a
+ * run: the query, the four chips and the four advanced selects, whose "no
+ * filter" value is the empty string. Reporting `false` while one of them is on
+ * is the one defect neither the bar nor the user can detect — the label simply
+ * lies about the scope of a button that may delete work.
+ */
+export function md3ActionsFiltersActive(
+  query: string,
+  activeChips: ReadonlyArray<Md3ActionsChip>,
+  filterValues: Readonly<Record<Md3ActionsFilterName, string>>
+): boolean {
+  return (
+    query.trim().length > 0 ||
+    activeChips.length > 0 ||
+    Object.values(filterValues).some(value => value.length > 0)
+  )
+}
+
+/**
+ * The runs a bulk re-run will actually re-run, and the active ones it will not.
+ *
+ * GitHub refuses a re-run of a run that has not finished, so an active run in
+ * the scope is skipped rather than sent and counted. The partition carries the
+ * reason, so the button's count, the preview and the toast describe one set.
+ */
+export function md3ActionsRerunPartition(
+  runs: ReadonlyArray<IMd3ActionsRun>
+): IMd3BulkPartition<IMd3ActionsRun> {
+  return md3PartitionBulk(
+    runs,
+    run => !run.cancellable,
+    t('md3.actions.bulkSkipActive')
+  )
+}
+
+/** The mirror of the above: only an active run can be cancelled. */
+export function md3ActionsCancelPartition(
+  runs: ReadonlyArray<IMd3ActionsRun>
+): IMd3BulkPartition<IMd3ActionsRun> {
+  return md3PartitionBulk(
+    runs,
+    run => run.cancellable,
+    t('md3.actions.bulkSkipFinished')
+  )
 }
 
 /** How a log line is painted. The contract tests the raw text, not the parse. */
@@ -460,15 +718,53 @@ export type Md3LogLineKind = 'error' | 'command' | 'plain'
 const LogErrorPattern = /FAIL|Error|●/
 
 /**
+ * A leading ISO-8601 timestamp, which GitHub prefixes to every line of a
+ * downloaded job log. The contract's own fixture log has none, because it was
+ * typed by hand.
+ */
+const LogTimestampPattern =
+  /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z)\s/
+
+/**
+ * The line with its timestamp taken off, or the line unchanged when it carries
+ * none.
+ */
+export function md3LogLineBody(text: string): string {
+  return text.replace(LogTimestampPattern, '')
+}
+
+/**
  * The contract's two log rules: `/FAIL|Error|●/` paints the error colour, a
  * leading `$` paints primary at weight 500, everything else is
  * on-surface-variant.
+ *
+ * The `$` rule is applied to the line's body rather than to the raw text. A
+ * real downloaded log line is
+ * `2026-08-10T09:41:02.1234567Z $ yarn install`, which starts with a digit, so
+ * testing the raw text means the command rule never fires once in a real run's
+ * log — every command reads as ordinary output, and no test using the
+ * contract's untimestamped fixture can see it.
  */
 export function classifyMd3LogLine(text: string): Md3LogLineKind {
   if (LogErrorPattern.test(text)) {
     return 'error'
   }
-  return text.startsWith('$') ? 'command' : 'plain'
+  return md3LogLineBody(text).startsWith('$') ? 'command' : 'plain'
+}
+
+/**
+ * How wide the line-number gutter has to be, in characters, for a log of this
+ * many lines.
+ *
+ * The contract fixes the gutter at 44px, which its own fourteen-line fixture
+ * never tests: `flex: none` with no `min-width` means a number wider than the
+ * box overflows it and paints over the log text beside it rather than pushing
+ * it along. Real job logs reach six and seven digits, and this view numbers by
+ * the true line number rather than by position in the filtered view, so the
+ * widest number is the log's own length.
+ */
+export function md3ActionsLogDigits(lineCount: number): number {
+  return String(Math.max(lineCount, 1)).length
 }
 
 /** One rendered log row. */
@@ -484,7 +780,20 @@ interface IMd3LogLine {
    * filtered view reads 12, 47, 48, 200 rather than 1, 2, 3, 4.
    */
   readonly number: number
+
+  /** The raw line, timestamp and all. What the log search matches against. */
   readonly text: string
+
+  /**
+   * The leading ISO-8601 timestamp GitHub writes on every line, or `null` on a
+   * log that carries none. It is rendered in its own dimmed column so the 28
+   * characters of it do not push every line of the message into a wrap.
+   */
+  readonly timestamp: string | null
+
+  /** The line without its timestamp — what the message column renders. */
+  readonly body: string
+
   readonly kind: Md3LogLineKind
 
   /**
@@ -497,14 +806,6 @@ interface IMd3LogLine {
   /** The section's title, on the line that opens it and nowhere else. */
   readonly groupTitle: string | null
 }
-
-/**
- * A leading ISO-8601 timestamp, which the Actions log downloader prefixes to
- * every line. A group marker sits after it, so it has to come off before the
- * marker can be recognised — matching only at the very start of the line would
- * find no groups at all in a real downloaded log.
- */
-const LogTimestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z\s/
 
 /** A group marker, in either of the two forms a runner emits. */
 const LogGroupStartPattern = /^(?:::group::|##\[group\])(.*)$/
@@ -520,7 +821,10 @@ export type Md3LogGroupMarker =
  * `::group::` and `##[group]` spellings a runner may write.
  */
 export function parseMd3LogGroupMarker(text: string): Md3LogGroupMarker | null {
-  const body = text.replace(LogTimestampPattern, '').trimStart()
+  // The timestamp comes off first: a group marker sits after it, so matching
+  // only at the very start of the raw line would find no groups at all in a
+  // real downloaded log.
+  const body = md3LogLineBody(text).trimStart()
   const start = LogGroupStartPattern.exec(body)
   if (start !== null) {
     return { kind: 'start', title: start[1].trim() }
@@ -545,15 +849,20 @@ function splitLogLines(log: string): ReadonlyArray<IMd3LogLine> {
   raw.forEach((text, index) => {
     const lineNumber = index + 1
     const marker = parseMd3LogGroupMarker(text)
+    const body = md3LogLineBody(text)
+    const timestamp =
+      body === text ? null : text.slice(0, text.length - body.length).trimEnd()
 
     if (marker !== null && marker.kind === 'start') {
       openGroup = lineNumber
       lines.push({
         number: lineNumber,
         text,
+        timestamp,
+        body,
         kind: classifyMd3LogLine(text),
         group: lineNumber,
-        groupTitle: marker.title.length > 0 ? marker.title : text,
+        groupTitle: marker.title.length > 0 ? marker.title : body,
       })
       return
     }
@@ -561,6 +870,8 @@ function splitLogLines(log: string): ReadonlyArray<IMd3LogLine> {
     lines.push({
       number: lineNumber,
       text,
+      timestamp,
+      body,
       kind: classifyMd3LogLine(text),
       group: openGroup,
       groupTitle: null,
@@ -692,6 +1003,9 @@ function moveRovingFocus(
 
 interface IMd3RunRowProps {
   readonly run: IMd3ActionsRun
+
+  /** The row's position in the visible list — what a Shift range measures. */
+  readonly index: number
   readonly selected: boolean
   readonly focused: boolean
   readonly selectionMode: boolean
@@ -701,7 +1015,9 @@ interface IMd3RunRowProps {
   readonly onFocusRow: (runId: string) => void
   readonly onRerun: (runId: string) => void
   readonly onOpenMenu: (runId: string) => void
-  readonly onToggleSelection: (runId: string) => void
+
+  /** One selection gesture: the row it landed on and whether Shift was held. */
+  readonly onSelectionGesture: (index: number, shiftKey: boolean) => void
   readonly onGrowWindow: () => void
 }
 
@@ -712,8 +1028,9 @@ const Md3RunRow = React.memo(function Md3RunRow(props: IMd3RunRowProps) {
     onFocusRow,
     onRerun,
     onOpenMenu,
-    onToggleSelection,
+    onSelectionGesture,
     onGrowWindow,
+    index,
   } = props
   const tone = statusTone(run.status)
 
@@ -745,16 +1062,41 @@ const Md3RunRow = React.memo(function Md3RunRow(props: IMd3RunRowProps) {
     },
     [onOpenMenu, onSelect, run.id]
   )
-  const toggleSelection = React.useCallback(
-    () => onToggleSelection(run.id),
-    [onToggleSelection, run.id]
-  )
-  const stopClick = React.useCallback(
-    (event: React.MouseEvent<HTMLElement>) => event.stopPropagation(),
+  /*
+   * A checkbox's `change` event is a plain `Event` with no modifier state, so
+   * Shift is captured from the gesture that produced it and read back here.
+   * `nativeEvent.shiftKey` on the change event compiles and is `undefined`
+   * every time — a range that silently never ranges.
+   */
+  const shiftHeld = React.useRef(false)
+  const onCheckboxPointer = React.useCallback(
+    (event: React.MouseEvent<HTMLInputElement>) => {
+      shiftHeld.current = event.shiftKey
+      // Ticking the box must not also select the run and load its log.
+      event.stopPropagation()
+    },
     []
   )
+  const onCheckboxKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      shiftHeld.current = event.shiftKey
+    },
+    []
+  )
+  const toggleSelection = React.useCallback(() => {
+    onSelectionGesture(index, shiftHeld.current)
+    shiftHeld.current = false
+  }, [onSelectionGesture, index])
   const onKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLElement>) => {
+      // The row's keyboard route into the selection, matching what Ctrl-click
+      // and Shift-click do with a pointer. Plain Space still opens the run,
+      // because that is what it did before and no capability may be lost.
+      if (event.key === ' ' && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault()
+        onSelectionGesture(index, event.shiftKey)
+        return
+      }
       if (
         moveRovingFocus(
           event,
@@ -770,7 +1112,7 @@ const Md3RunRow = React.memo(function Md3RunRow(props: IMd3RunRowProps) {
         onSelect(run.id)
       }
     },
-    [onGrowWindow, onSelect, run.id]
+    [onGrowWindow, onSelect, run.id, onSelectionGesture, index]
   )
 
   return (
@@ -792,14 +1134,21 @@ const Md3RunRow = React.memo(function Md3RunRow(props: IMd3RunRowProps) {
     >
       {props.selectionMode ? (
         <span role="gridcell" className="md3-actions-run__check">
-          {/* The click is swallowed so ticking the box does not also select
-              the run and load its log. */}
           <input
             type="checkbox"
+            className="md3-bulk-bar__checkbox"
             checked={props.checked}
             disabled={props.bulkBusy}
+            /*
+             * `-1` because the row is the tab stop: a list of two hundred runs
+             * would otherwise cost two hundred Tabs to cross. Ctrl+Space on
+             * the row reaches the box without leaving the keyboard.
+             */
+            tabIndex={-1}
+            onMouseDown={onCheckboxPointer}
+            onClick={onCheckboxPointer}
+            onKeyDown={onCheckboxKeyDown}
             onChange={toggleSelection}
-            onClick={stopClick}
             aria-label={t('md3.actions.selectRun', { name: run.name })}
           />
         </span>
@@ -855,7 +1204,7 @@ interface IMd3RunListProps {
   readonly onSelectRun: (runId: string) => void
   readonly onRerunRun: (runId: string) => void
   readonly onOpenRunMenu: (runId: string) => void
-  readonly onToggleRunSelection: (runId: string) => void
+  readonly onSelectionGesture: (index: number, shiftKey: boolean) => void
   readonly onResetFilters: () => void
 }
 
@@ -893,10 +1242,11 @@ function Md3RunList(props: IMd3RunListProps) {
         aria-rowcount={runs.length}
       >
         <div role="rowgroup">
-          {runs.slice(0, runWindow.count).map(run => (
+          {runs.slice(0, runWindow.count).map((run, index) => (
             <Md3RunRow
               key={run.id}
               run={run}
+              index={index}
               selected={run.id === props.selectedRunId}
               focused={run.id === rovingId}
               selectionMode={props.selectionMode}
@@ -906,7 +1256,7 @@ function Md3RunList(props: IMd3RunListProps) {
               onFocusRow={onFocusRow}
               onRerun={props.onRerunRun}
               onOpenMenu={props.onOpenRunMenu}
-              onToggleSelection={props.onToggleRunSelection}
+              onSelectionGesture={props.onSelectionGesture}
               onGrowWindow={runWindow.grow}
             />
           ))}
@@ -1093,6 +1443,13 @@ const Md3JobBlock = React.memo(function Md3JobBlock(props: IMd3JobBlockProps) {
 
 interface IMd3LogViewerProps {
   readonly lines: ReadonlyArray<IMd3LogLine>
+
+  /**
+   * How many lines the unfiltered log holds. The gutter is sized from this
+   * rather than from `lines.length`, so filtering the log does not shrink the
+   * gutter under the true line numbers it is still rendering.
+   */
+  readonly totalLineCount: number
   readonly loading: boolean
   readonly error: Error | null
   readonly onRetry: () => void
@@ -1190,7 +1547,7 @@ function Md3LogGroupRow(props: IMd3LogGroupRowProps) {
           size={16}
         />
         <span className="md3-actions-log__text">
-          {line.groupTitle ?? line.text}
+          {line.groupTitle ?? line.body}
         </span>
       </button>
     </div>
@@ -1245,16 +1602,24 @@ function Md3LogViewer(props: IMd3LogViewerProps) {
       <div className="md3-actions-log md3-actions-log--message" role="status">
         {props.filtered
           ? t('md3.actions.logNoMatch')
-          : t('md3.actions.logEmpty')}
+          : tFunny('md3.actions.logEmpty')}
       </div>
     )
   }
+
+  // The gutter is sized from the widest line number this log can produce, not
+  // from the contract's two-digit fixture. `--md3-actions-log-digits` is what
+  // `_md3-actions.scss` widens `.md3-actions-log__number` by.
+  const gutterStyle = {
+    '--md3-actions-log-digits': md3ActionsLogDigits(props.totalLineCount),
+  } as React.CSSProperties
 
   return (
     <div
       className="md3-actions-log"
       role="region"
       aria-label={t('md3.actions.logRegion')}
+      style={gutterStyle}
       // A scrolling container that holds no focusable descendants is
       // unreachable by keyboard unless it is itself a tab stop, so a
       // keyboard-only reader could never page through the log (WCAG 2.1.1).
@@ -1276,7 +1641,12 @@ function Md3LogViewer(props: IMd3LogViewerProps) {
               )}
             >
               <span className="md3-actions-log__number">{line.number}</span>
-              <span className="md3-actions-log__text">{line.text}</span>
+              {line.timestamp === null ? null : (
+                <span className="md3-actions-log__timestamp">
+                  {line.timestamp}
+                </span>
+              )}
+              <span className="md3-actions-log__text">{line.body}</span>
             </div>
           )
         }
@@ -1384,18 +1754,240 @@ export function Md3ActionsView(props: IMd3ActionsViewProps) {
     return allLogLines.filter(line => line.text.toLowerCase().includes(needle))
   }, [allLogLines, logQuery, logSearch.regexEnabled])
 
-  const selectedRunCount = props.selectedRunIds.size
-  const selectedRuns = React.useMemo(
-    () => props.runs.filter(run => props.selectedRunIds.has(run.id)),
-    [props.runs, props.selectedRunIds]
+  // -------------------------------------------------------------------
+  // Bulk selection
+  // -------------------------------------------------------------------
+
+  /*
+   * Unlike the branches list, the selected set is not the view's own: the
+   * shell's `onBulkRerun` and `onBulkCancel` read it directly, so a second
+   * copy kept here would be the set the user ticked while the shell acted on
+   * a different one. The view therefore owns only the gestures and writes the
+   * result back through `applySelection`.
+   */
+  const {
+    runs,
+    selectedRunIds,
+    onToggleRunSelection,
+    onSetRunSelection,
+    onExportRuns,
+    bulkBusy,
+  } = props
+  const anchorIndex = React.useRef<number | null>(null)
+  const [exportOpen, setExportOpen] = React.useState(false)
+  const [gateOpen, setGateOpen] = React.useState(false)
+  const cancelButtonRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
   )
-  const selectedCompletedCount = selectedRuns.filter(
-    run => !run.cancellable
-  ).length
-  const selectedActiveCount = selectedRuns.filter(run => run.cancellable).length
-  const allVisibleSelected =
-    props.runs.length > 0 &&
-    props.runs.every(run => props.selectedRunIds.has(run.id))
+  const exportButtonRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
+
+  const visibleRunIds = React.useMemo(() => runs.map(run => run.id), [runs])
+
+  const applySelection = React.useCallback(
+    (ids: ReadonlyArray<string>) => {
+      if (onSetRunSelection !== undefined) {
+        onSetRunSelection(ids)
+        return
+      }
+      // The shell offers only a per-id toggle, so the difference between what
+      // is selected and what should be is walked one id at a time. Each toggle
+      // lands before the next is made, so the composition is exact rather than
+      // approximate — it simply costs a call per changed row.
+      const next = new Set(ids)
+      for (const id of selectedRunIds) {
+        if (!next.has(id)) {
+          onToggleRunSelection(id)
+        }
+      }
+      for (const id of next) {
+        if (!selectedRunIds.has(id)) {
+          onToggleRunSelection(id)
+        }
+      }
+    },
+    [onSetRunSelection, onToggleRunSelection, selectedRunIds]
+  )
+
+  // A run that leaves the list — filtered out, or paged away — leaves the
+  // selection with it. A bulk cancel running against an id the list no longer
+  // holds is the quiet way a "cancel 9" cancels 8 and reports 9.
+  React.useEffect(() => {
+    const stale = [...selectedRunIds].some(id => !visibleRunIds.includes(id))
+    if (stale) {
+      applySelection(visibleRunIds.filter(id => selectedRunIds.has(id)))
+    }
+  }, [visibleRunIds, selectedRunIds, applySelection])
+
+  const onSelectionGesture = React.useCallback(
+    (index: number, shiftKey: boolean) => {
+      const intent = md3SelectionIntent({
+        shiftKey,
+        // A checkbox click is always additive: the box is the whole gesture,
+        // so a plain click must never replace the rest of the selection.
+        ctrlKey: true,
+        metaKey: false,
+      })
+      const result = md3ApplySelection(
+        visibleRunIds,
+        selectedRunIds,
+        index,
+        intent,
+        anchorIndex.current,
+        // The rows carry checkboxes, so a Shift range adds to the ticks
+        // already there. `replace` here would silently drop them.
+        'extend'
+      )
+      if (intent !== 'range') {
+        anchorIndex.current = result.anchor
+      }
+      applySelection(result.ids)
+    },
+    [visibleRunIds, selectedRunIds, applySelection]
+  )
+
+  const onToggleSelectAll = React.useCallback(() => {
+    applySelection(md3ToggleSelectAll(visibleRunIds, selectedRunIds))
+    anchorIndex.current = null
+  }, [applySelection, visibleRunIds, selectedRunIds])
+
+  const onInvertSelection = React.useCallback(() => {
+    applySelection(md3InvertSelection(visibleRunIds, selectedRunIds))
+    anchorIndex.current = null
+  }, [applySelection, visibleRunIds, selectedRunIds])
+
+  const onClearSelection = React.useCallback(() => {
+    props.onClearRunSelection()
+    anchorIndex.current = null
+  }, [props])
+
+  const filtersActive = md3ActionsFiltersActive(
+    runSearch.value,
+    props.activeChips,
+    props.filterValues
+  )
+
+  /** What a bulk verb runs over: the ticked runs, or the whole filtered list. */
+  const scopeRuns = React.useMemo(
+    () => md3BulkScope(runs, selectedRunIds, run => run.id),
+    [runs, selectedRunIds]
+  )
+
+  const scopeLabel = md3BulkScopeLabel(
+    selectedRunIds.size,
+    runs.length,
+    filtersActive
+  )
+
+  const rerunnable = React.useMemo(
+    () => md3ActionsRerunPartition(scopeRuns),
+    [scopeRuns]
+  )
+  const cancellable = React.useMemo(
+    () => md3ActionsCancelPartition(scopeRuns),
+    [scopeRuns]
+  )
+
+  const onBulkRerun = props.onBulkRerun
+  const runBulkRerun = React.useCallback(() => {
+    onBulkRerun()
+    const skipped = md3BulkPartitionSummary(rerunnable)
+    if (skipped !== null) {
+      notify(skipped, { kind: 'warning' })
+    }
+  }, [onBulkRerun, rerunnable])
+
+  const onRequestBulkCancel = React.useCallback(() => setGateOpen(true), [])
+
+  const onBulkCancel = props.onBulkCancel
+  const onConfirmBulkCancel = React.useCallback(() => {
+    setGateOpen(false)
+    onBulkCancel()
+    const skipped = md3BulkPartitionSummary(cancellable)
+    if (skipped !== null) {
+      notify(skipped, { kind: 'warning' })
+    }
+  }, [onBulkCancel, cancellable])
+
+  const runExport = React.useCallback(
+    (format: Md3ListExportFormat) => {
+      if (onExportRuns === undefined) {
+        return
+      }
+      const payload = serializeMd3ListExport(
+        scopeRuns.map(md3ActionsRunExportRecord),
+        {
+          columns: Md3ActionsRunExportColumns,
+          collectionName: 'workflowRuns',
+          recordName: 'workflowRun',
+          title: 'Workflow runs',
+          baseName: 'workflow-runs',
+        },
+        format,
+        { scope: scopeLabel }
+      )
+      setExportOpen(false)
+      onExportRuns(payload, scopeRuns)
+      notify(
+        payload.loss === null
+          ? t('md3.bulk.toast.exported', {
+              count: String(payload.count),
+              format: payload.format.toUpperCase(),
+            })
+          : t('md3.bulk.toast.exportedLossy', {
+              count: String(payload.count),
+              format: payload.format.toUpperCase(),
+              loss: payload.loss,
+            })
+      )
+    },
+    [onExportRuns, scopeRuns, scopeLabel]
+  )
+
+  const exportMenuSpec = React.useMemo(
+    () =>
+      md3BulkExportMenuSpec(Md3ActionsRunExportColumns, scopeLabel, runExport),
+    [scopeLabel, runExport]
+  )
+
+  const bulkActions = React.useMemo((): ReadonlyArray<IMd3BulkAction> => {
+    return [
+      {
+        id: 'rerun',
+        label: t('md3.actions.bulkRerun', {
+          count: String(rerunnable.applied.length),
+        }),
+        icon: 'refresh',
+        disabled: rerunnable.applied.length === 0 || bulkBusy,
+        onClick: runBulkRerun,
+      },
+      {
+        id: 'cancel',
+        label: t('md3.actions.bulkCancel', {
+          count: String(cancellable.applied.length),
+        }),
+        // Cancelling abandons work a runner is part-way through, and the
+        // partial results go with it. That is destructive, so it goes through
+        // the same gate a bulk delete does rather than firing off a button.
+        icon: 'cancel',
+        destructive: true,
+        hasPopup: 'dialog',
+        buttonRef: cancelButtonRef,
+        disabled: cancellable.applied.length === 0 || bulkBusy,
+        onClick: onRequestBulkCancel,
+      },
+    ]
+  }, [
+    rerunnable,
+    cancellable,
+    bulkBusy,
+    runBulkRerun,
+    onRequestBulkCancel,
+    cancelButtonRef,
+  ])
 
   const banners = props.banners ?? []
 
@@ -1439,16 +2031,12 @@ export function Md3ActionsView(props: IMd3ActionsViewProps) {
             placeholder={t('md3.actions.filterPlaceholder')}
             value={runSearch.value}
             regexEnabled={runSearch.regexEnabled}
+            error={runSearch.error}
             onChange={runSearch.onChange}
             onClear={runSearch.onClear}
             onToggleRegex={runSearch.onToggleRegex}
             onOpenBuilder={runSearch.onOpenBuilder}
           />
-          {runSearch.error ? (
-            <p className="md3-actions-query-error" role="alert">
-              {runSearch.error}
-            </p>
-          ) : null}
 
           <Md3ChipRow label={t('md3.actions.chipRowLabel')}>
             {Md3ActionsChips.map(chip => (
@@ -1531,48 +2119,27 @@ export function Md3ActionsView(props: IMd3ActionsViewProps) {
           ) : null}
 
           {props.selectionMode ? (
-            <div
-              className="md3-actions-bulk"
-              role="group"
-              aria-label={t('md3.actions.bulkLabel')}
-            >
-              <label className="md3-actions-bulk__all">
-                <input
-                  type="checkbox"
-                  checked={allVisibleSelected}
-                  disabled={props.runs.length === 0 || props.bulkBusy}
-                  onChange={props.onToggleAllVisibleRuns}
-                />
-                <span>{t('md3.actions.selectAllVisible')}</span>
-              </label>
-              <span className="md3-actions-bulk__count" role="status">
-                {t('md3.actions.selectedCount', {
-                  count: String(selectedRunCount),
-                })}
-              </span>
-              <Md3GhostButton
-                icon="refresh"
-                label={t('md3.actions.bulkRerun', {
-                  count: String(selectedCompletedCount),
-                })}
-                disabled={selectedCompletedCount === 0 || props.bulkBusy}
-                onClick={props.onBulkRerun}
-              />
-              <Md3GhostButton
-                icon="cancel"
-                label={t('md3.actions.bulkCancel', {
-                  count: String(selectedActiveCount),
-                })}
-                disabled={selectedActiveCount === 0 || props.bulkBusy}
-                onClick={props.onBulkCancel}
-              />
-              <Md3GhostButton
-                icon="backspace"
-                label={t('md3.actions.clearSelection')}
-                disabled={selectedRunCount === 0 || props.bulkBusy}
-                onClick={props.onClearRunSelection}
-              />
-            </div>
+            <Md3BulkBar
+              listId="actions"
+              label={t('md3.actions.bulkLabel')}
+              visibleIds={visibleRunIds}
+              selected={selectedRunIds}
+              filtered={filtersActive}
+              scopeLabel={scopeLabel}
+              actions={bulkActions}
+              busy={bulkBusy}
+              onToggleSelectAll={onToggleSelectAll}
+              onInvertSelection={onInvertSelection}
+              onClearSelection={onClearSelection}
+              onExport={onExportRuns === undefined ? undefined : runExport}
+              exportColumns={Md3ActionsRunExportColumns}
+              onOpenExport={
+                onExportRuns === undefined
+                  ? undefined
+                  : () => setExportOpen(true)
+              }
+              exportButtonRef={exportButtonRef}
+            />
           ) : null}
 
           <Md3RunList
@@ -1584,7 +2151,7 @@ export function Md3ActionsView(props: IMd3ActionsViewProps) {
             onSelectRun={props.onSelectRun}
             onRerunRun={props.onRerunRun}
             onOpenRunMenu={props.onOpenRunMenu}
-            onToggleRunSelection={props.onToggleRunSelection}
+            onSelectionGesture={onSelectionGesture}
             onResetFilters={props.onResetFilters}
           />
 
@@ -1807,19 +2374,16 @@ export function Md3ActionsView(props: IMd3ActionsViewProps) {
                 value={logSearch.value}
                 regexEnabled={logSearch.regexEnabled}
                 matchCount={logLines.length}
+                error={logSearch.error}
                 onChange={logSearch.onChange}
                 onClear={logSearch.onClear}
                 onToggleRegex={logSearch.onToggleRegex}
                 onOpenBuilder={logSearch.onOpenBuilder}
               />
-              {logSearch.error ? (
-                <p className="md3-actions-query-error" role="alert">
-                  {logSearch.error}
-                </p>
-              ) : null}
 
               <Md3LogViewer
                 lines={logLines}
+                totalLineCount={allLogLines.length}
                 loading={props.logLoading}
                 error={props.logError}
                 onRetry={props.onRetryLog}
@@ -1831,6 +2395,50 @@ export function Md3ActionsView(props: IMd3ActionsViewProps) {
           )}
         </section>
       </div>
+
+      {exportOpen ? (
+        <Md3MenuOverlay
+          spec={exportMenuSpec}
+          onDismiss={() => setExportOpen(false)}
+          onOpenRegexBuilder={runSearch.onOpenBuilder}
+          returnFocusTo={exportButtonRef}
+        />
+      ) : null}
+
+      {gateOpen ? (
+        <Md3DestructiveGate
+          actionId="actions-bulk-cancel"
+          icon="cancel"
+          title={t('md3.actions.gate.title', {
+            count: String(cancellable.applied.length),
+          })}
+          summary={t('md3.actions.gate.summary', {
+            count: String(cancellable.applied.length),
+            scope: scopeLabel,
+          })}
+          /*
+           * "Cancel 9 runs" is a number, and a number is not something a
+           * person can check. The run headings are, and the runs that have
+           * already finished are named beside them so the title's count and
+           * the work the button does are the same set.
+           */
+          preview={cancellable.applied.map(formatMd3RunHeading)}
+          previewExcluded={cancellable.excluded.map(formatMd3RunHeading)}
+          previewExcludedReason={cancellable.reason}
+          irreversible={t('md3.actions.gate.irreversible')}
+          targetKeyLabel={t('md3.actions.gate.keyTarget', {
+            count: String(cancellable.applied.length),
+            scope: scopeLabel,
+          })}
+          effectKeyLabel={t('md3.actions.gate.keyEffect')}
+          confirmLabel={t('md3.actions.gate.confirm', {
+            count: String(cancellable.applied.length),
+          })}
+          anchorTo={cancelButtonRef}
+          onConfirm={onConfirmBulkCancel}
+          onDismissed={() => setGateOpen(false)}
+        />
+      ) : null}
     </div>
   )
 }

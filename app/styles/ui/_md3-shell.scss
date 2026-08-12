@@ -374,6 +374,26 @@ body.theme-dark {
   font-size: 11px;
 }
 
+// The reason the query cannot be acted on, beneath the row it belongs to.
+//
+// It is a sibling of the row rather than a child of it: the row is a fixed
+// 34px pill, so a message inside it would either be clipped or would stretch
+// the pill out of the contract's measurements. `flex: none` keeps it out of the
+// space the list is entitled to, and the horizontal padding lines its first
+// character up with the field's own text rather than with the row's edge.
+.md3-search-row__error {
+  color: var(--md-sys-color-error);
+  flex: none;
+  font-size: 11px;
+  line-height: 1.45;
+  margin: -2px 10px 6px 10px;
+  // The engine's own complaint can be a long single token; wrapping it inside
+  // the pane is what keeps the pane from scrolling sideways at narrow widths
+  // and at 200% display scale.
+  overflow-wrap: anywhere;
+  padding: 0 12px;
+}
+
 // ---------------------------------------------------------------------------
 // Chips
 // ---------------------------------------------------------------------------

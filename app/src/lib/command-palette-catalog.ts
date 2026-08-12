@@ -3331,6 +3331,58 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
   },
   ...DocsArticlePaletteCommands,
 
+  // The three managers the rewrite added that are not drawer destinations.
+  //
+  // Each lives as a row in Settings — the manager itself is an overlay that
+  // row owns — so each teleports to that exact row rather than to the Settings
+  // dialog's front door. `app/src/lib/rewrite-surface-registry.ts` holds the
+  // hand-written list these three are checked against.
+  {
+    event: 'palette:authenticator',
+    title: 'Open the authenticator',
+    titleKey: 'palette.authenticator',
+    group: 'App',
+    materialSymbol: 'key',
+    descriptionKey: 'palette.authenticatorDescription',
+    keywords:
+      'authenticator totp otp one-time password code two factor 2fa mfa qr',
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Advanced,
+      targetId: 'settingsAuthenticator',
+    },
+  },
+  {
+    event: 'palette:surface-locks',
+    title: 'Manage surface locks',
+    titleKey: 'palette.surfaceLocks',
+    group: 'App',
+    materialSymbol: 'lock',
+    descriptionKey: 'palette.surfaceLocksDescription',
+    keywords:
+      'lock locks locked tab group appearance password otp manager unlock',
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Appearance,
+      targetId: 'settingsSurfaceLocks',
+    },
+  },
+  {
+    event: 'palette:support-tickets',
+    title: 'Open Support Tickets',
+    titleKey: 'palette.supportTickets',
+    group: 'Help',
+    materialSymbol: 'live_help',
+    descriptionKey: 'palette.supportTicketsDescription',
+    keywords:
+      'support ticket tickets desk forgotten password recovery application data folder',
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Appearance,
+      targetId: 'settingsSupportTickets',
+    },
+  },
+
   // ---------------------------------------------------------------------
   // The MD3 shell.
   //

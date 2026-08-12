@@ -472,6 +472,9 @@ export class Md3MenuOverlay extends React.Component<
               ? this.renderEmptyState()
               : items.map(item => this.renderItem(item))}
           </div>
+          {spec.footer === undefined ? null : (
+            <p className="md3-menu-overlay__footer">{spec.footer}</p>
+          )}
         </div>
       </div>
     )

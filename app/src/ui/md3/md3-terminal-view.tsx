@@ -1,6 +1,7 @@
 import * as React from 'react'
 import classNames from 'classnames'
 
+import { tFunny } from '../../lib/funny-level-text'
 import { t } from '../../lib/i18n'
 import {
   MaxRegexInputLength,
@@ -8,12 +9,37 @@ import {
   compileSafeRegex,
 } from '../../lib/safe-regex'
 import { MaterialSymbol } from '../lib/material-symbol'
+import { createObservableRef } from '../lib/observable-ref'
+import { Tooltip } from '../lib/tooltip'
 import {
   Md3EmptyState,
   Md3IconButton,
   Md3SearchField,
   Md3TonalButton,
 } from './md3-primitives'
+import {
+  IMd3BulkAction,
+  Md3BulkBar,
+  md3BulkExportMenuSpec,
+} from './md3-bulk-bar'
+import {
+  IMd3ListExport,
+  IMd3ListExportColumn,
+  Md3ListExportFormat,
+  serializeMd3ListExport,
+} from './md3-list-export'
+import {
+  md3ApplySelection,
+  md3BulkPartitionSummary,
+  md3BulkScope,
+  md3BulkScopeLabel,
+  md3InvertSelection,
+  md3PartitionBulk,
+  md3SelectionIntent,
+  md3ToggleSelectAll,
+} from './md3-list-selection'
+import { Md3DestructiveGate } from './md3-destructive-gate'
+import { Md3MenuOverlay } from './md3-menu-overlay'
 import { notify } from './md3-toast'
 
 /**
@@ -42,6 +68,12 @@ import { notify } from './md3-toast'
  * command echoes in primary at weight 500, and everything else in on-surface.
  */
 export type Md3TerminalLineKind = 'prompt' | 'cmd' | 'out'
+
+/**
+ * Why a Run press ran nothing: the box was empty, or the shell is already busy
+ * with a command. `null` when the last press did run something.
+ */
+export type Md3TerminalRunNotice = 'empty' | 'busy' | null
 
 export interface IMd3TerminalLine {
   /** Stable within a session, so React can key the list. */
@@ -80,8 +112,22 @@ export interface IMd3TerminalSession {
   /**
    * The contract's `termPrompt` — `'~/code/' + repo + ' $'`. Supplied rather
    * than derived: only the host knows the shell's real working directory.
+   *
+   * It is the ABBREVIATED form, as the contract's own sample is. A full
+   * absolute path here is a defect: the row draws it at `flex: none`, so it
+   * eats the width the command box needs and then ellipses away the only part
+   * of a path that identifies anything.
    */
   readonly prompt: string
+
+  /**
+   * The shell's real working directory, unabbreviated.
+   *
+   * The prompt is what the 12px row draws; this is what its tooltip and the
+   * input's accessible name say, so the abbreviation shortens the label
+   * without hiding where a typed command will actually run.
+   */
+  readonly workingDirectory?: string
 
   /**
    * A sentence for the status banner when the shell is not `ready` — the exit
@@ -128,6 +174,16 @@ export interface IMd3TerminalViewProps {
   /** The contract's `newShell` button. */
   readonly onCreateSession: () => void
 
+  /**
+   * False when the host cannot open a shell at all — no repository is
+   * selected, typically. The `add` button and the empty state's action are
+   * then disabled rather than left looking live and doing nothing, and the
+   * empty state says which condition is unmet.
+   *
+   * Defaults to true.
+   */
+  readonly canCreateSession?: boolean
+
   /** Omit to hide the close affordance entirely. */
   readonly onCloseSession?: (sessionId: string) => void
 
@@ -159,7 +215,67 @@ export interface IMd3TerminalViewProps {
    */
   readonly maxRenderedLines?: number
 
+  /**
+   * Receives a serialized export of the shells in the bulk scope. Omit it and
+   * the bar draws no export button — a control that cannot work is not drawn.
+   */
+  readonly onExportSessions?: (
+    payload: IMd3ListExport,
+    sessions: ReadonlyArray<IMd3TerminalSession>
+  ) => void
+
   readonly className?: string
+}
+
+/**
+ * The export schema for one shell.
+ *
+ * `output` is the whole scrollback, which is the only reason anybody exports a
+ * terminal session at all — and it is `multiline`, so the picker warns before
+ * CSV, TSV or a Markdown table flattens it rather than after.
+ */
+export const Md3TerminalExportColumns: ReadonlyArray<IMd3ListExportColumn> = [
+  { name: 'id' },
+  { name: 'label' },
+  { name: 'status' },
+  { name: 'prompt' },
+  { name: 'workingDirectory' },
+  { name: 'statusDetail' },
+  { name: 'lineCount' },
+  { name: 'output', multiline: true },
+]
+
+/**
+ * Flatten one shell for export.
+ *
+ * `workingDirectory` and `statusDetail` are optional on the session and become
+ * the empty string rather than the word `undefined`; `lineCount` counts the
+ * whole scrollback, not the rendered tail, because the tail is a rendering
+ * budget and an exported file that reported it would understate the session.
+ */
+export function md3TerminalExportRecord(
+  session: IMd3TerminalSession
+): Readonly<Record<string, string | number | boolean>> {
+  return {
+    id: session.id,
+    label: session.label,
+    status: session.status,
+    prompt: session.prompt,
+    workingDirectory: session.workingDirectory ?? '',
+    statusDetail: session.statusDetail ?? '',
+    lineCount: session.lines.length,
+    output: session.lines.map(line => line.text).join('\n'),
+  }
+}
+
+/** A shell a Stop can reach: one with a command actually in flight. */
+export function md3TerminalCanCancel(session: IMd3TerminalSession): boolean {
+  return session.status === 'running'
+}
+
+/** A shell a Restart can reach: one whose process is already gone. */
+export function md3TerminalCanRestart(session: IMd3TerminalSession): boolean {
+  return session.status === 'exited' || session.status === 'error'
 }
 
 /** The tab pill's leading glyph, per the contract's `font-size: 14px`. */
@@ -329,7 +445,9 @@ export function Md3TerminalView(props: IMd3TerminalViewProps) {
     onCancelCommand,
     onCompleteInput,
     onSessionContextMenu,
+    onExportSessions,
   } = props
+  const canCreateSession = props.canCreateSession !== false
 
   const instanceId = React.useMemo(() => ++nextViewInstanceId, [])
   const panelId = `md3-terminal-${instanceId}-panel`
@@ -347,7 +465,12 @@ export function Md3TerminalView(props: IMd3TerminalViewProps) {
   /** Commands actually submitted here, newest last, for Up/Down recall. */
   const [history, setHistory] = React.useState<ReadonlyArray<string>>([])
   const [historyIndex, setHistoryIndex] = React.useState<number | null>(null)
-  const [emptyRunReported, setEmptyRunReported] = React.useState(false)
+  /** Why the last Run did nothing, so the button is never silently inert. */
+  const [runNotice, setRunNotice] = React.useState<Md3TerminalRunNotice>(null)
+  const promptRef = React.useMemo(
+    () => createObservableRef<HTMLSpanElement>(),
+    []
+  )
 
   const activeSession =
     sessions.find(session => session.id === activeSessionId) ??
@@ -472,15 +595,24 @@ export function Md3TerminalView(props: IMd3TerminalViewProps) {
     if (activeSession === null) {
       return
     }
+    if (activeSession.status === 'running') {
+      // This shell takes one command at a time, so the second press would be
+      // dropped by the host without a word. Saying so is what stops Run
+      // reading as broken while a long fetch is in flight — and the typed
+      // command is left in the box rather than thrown away.
+      setRunNotice('busy')
+      notify(t('md3.terminal.alreadyRunning'))
+      return
+    }
     const command = input.trim()
     if (command.length === 0) {
       // The contract runs nothing here and says so; silence would read as a
       // dead button.
-      setEmptyRunReported(true)
+      setRunNotice('empty')
       notify(t('md3.terminal.nothingToRun'))
       return
     }
-    setEmptyRunReported(false)
+    setRunNotice(null)
     setHistory(previous =>
       previous[previous.length - 1] === command
         ? previous
@@ -493,7 +625,7 @@ export function Md3TerminalView(props: IMd3TerminalViewProps) {
 
   const onInputTextChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      setEmptyRunReported(false)
+      setRunNotice(null)
       setHistoryIndex(null)
       onInputChange(event.currentTarget.value)
     },
@@ -585,6 +717,340 @@ export function Md3TerminalView(props: IMd3TerminalViewProps) {
     }
   }, [activeSession, onCancelCommand])
 
+  // ---------------------------------------------------------------------
+  // Bulk selection over the shells
+  // ---------------------------------------------------------------------
+
+  /*
+   * The bulk selection is the view's own and is kept apart from
+   * `activeSessionId` — that one decides which scrollback is on screen, and a
+   * bulk selection of four shells has no single answer to that. Keeping them
+   * separate is what lets a user tick four shells without the output pane
+   * flicking through four sessions on the way.
+   *
+   * These are the shells the bulk bar acts on. The strip is not filtered: the
+   * search field on this surface narrows the OUTPUT of the active shell, never
+   * the shell list, so every open session is visible and `bulkFiltered` is
+   * false. It is derived from the two lists rather than written as a literal
+   * `false`, so the day this strip grows a filter the bar stops lying about its
+   * own scope on its own.
+   */
+  const [checked, setChecked] = React.useState<ReadonlySet<string>>(
+    () => new Set<string>()
+  )
+  const anchorIndex = React.useRef<number | null>(null)
+  const [exportOpen, setExportOpen] = React.useState(false)
+  const [gateOpen, setGateOpen] = React.useState(false)
+  const closeButtonRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
+  const exportButtonRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
+
+  const visibleSessionIds = React.useMemo(
+    () => sessions.map(session => session.id),
+    [sessions]
+  )
+  const bulkFiltered = visibleSessionIds.length < sessions.length
+
+  // A shell that has been closed must leave the selection with it. A bulk stop
+  // running against an id the strip no longer holds is the quiet way "stop 4"
+  // stops 3 and still reports 4.
+  React.useEffect(() => {
+    setChecked(previous => {
+      const next = new Set<string>()
+      for (const id of visibleSessionIds) {
+        if (previous.has(id)) {
+          next.add(id)
+        }
+      }
+      return next.size === previous.size ? previous : next
+    })
+  }, [visibleSessionIds])
+
+  /*
+   * These pills are selectable rows rather than checkboxes, so a Shift gesture
+   * draws one range and that range IS the selection — `replace`, per
+   * `Md3RangeMode`. A plain click is left alone entirely: it still switches
+   * shells, which is what it has always done and what no bulk bar may take
+   * away. Only Ctrl/Cmd-click and Shift-click reach the bulk selection.
+   */
+  const applySessionSelection = React.useCallback(
+    (
+      index: number,
+      modifiers: { shiftKey: boolean; ctrlKey: boolean; metaKey: boolean }
+    ) => {
+      const intent = md3SelectionIntent(modifiers)
+      if (intent === 'replace') {
+        return false
+      }
+      setChecked(previous => {
+        const result = md3ApplySelection(
+          visibleSessionIds,
+          previous,
+          index,
+          intent,
+          anchorIndex.current,
+          'replace'
+        )
+        if (intent !== 'range') {
+          anchorIndex.current = result.anchor
+        }
+        return new Set(result.ids)
+      })
+      return true
+    },
+    [visibleSessionIds]
+  )
+
+  const onToggleSelectAll = React.useCallback(() => {
+    setChecked(
+      previous => new Set(md3ToggleSelectAll(visibleSessionIds, previous))
+    )
+    anchorIndex.current = null
+  }, [visibleSessionIds])
+
+  const onInvertSelection = React.useCallback(() => {
+    setChecked(
+      previous => new Set(md3InvertSelection(visibleSessionIds, previous))
+    )
+    anchorIndex.current = null
+  }, [visibleSessionIds])
+
+  const onClearSelection = React.useCallback(() => {
+    setChecked(new Set<string>())
+    anchorIndex.current = null
+  }, [])
+
+  /** What a bulk verb runs over: the ticked shells, or every open shell. */
+  const scopeSessions = React.useMemo(
+    () => md3BulkScope(sessions, checked, session => session.id),
+    [sessions, checked]
+  )
+
+  const scopeLabel = md3BulkScopeLabel(
+    checked.size,
+    visibleSessionIds.length,
+    bulkFiltered
+  )
+
+  /*
+   * Stop and Restart are the two verbs whose eligibility is a real property of
+   * the shell rather than a preference, so each carries its reason with it: the
+   * button's count, the toast afterwards and the gate's preview all describe
+   * the same set rather than the preview promising more than the action does.
+   */
+  const cancellable = React.useMemo(
+    () =>
+      md3PartitionBulk(
+        scopeSessions,
+        md3TerminalCanCancel,
+        t('md3.terminal.bulkSkipNotRunning')
+      ),
+    [scopeSessions]
+  )
+
+  const restartable = React.useMemo(
+    () =>
+      md3PartitionBulk(
+        scopeSessions,
+        md3TerminalCanRestart,
+        t('md3.terminal.bulkSkipHealthy')
+      ),
+    [scopeSessions]
+  )
+
+  const onBulkCancel = React.useCallback(() => {
+    if (onCancelCommand === undefined) {
+      return
+    }
+    for (const session of cancellable.applied) {
+      onCancelCommand(session.id)
+    }
+    const skipped = md3BulkPartitionSummary(cancellable)
+    if (skipped !== null) {
+      notify(skipped, { kind: 'warning' })
+    }
+  }, [onCancelCommand, cancellable])
+
+  const onBulkRestart = React.useCallback(() => {
+    if (onRestartSession === undefined) {
+      return
+    }
+    for (const session of restartable.applied) {
+      onRestartSession(session.id)
+    }
+    const skipped = md3BulkPartitionSummary(restartable)
+    if (skipped !== null) {
+      notify(skipped, { kind: 'warning' })
+    }
+  }, [onRestartSession, restartable])
+
+  const onRequestBulkClose = React.useCallback(() => setGateOpen(true), [])
+
+  const onConfirmBulkClose = React.useCallback(() => {
+    setGateOpen(false)
+    if (onCloseSession === undefined) {
+      return
+    }
+    for (const session of scopeSessions) {
+      onCloseSession(session.id)
+    }
+    onClearSelection()
+  }, [onCloseSession, scopeSessions, onClearSelection])
+
+  const runExport = React.useCallback(
+    (format: Md3ListExportFormat) => {
+      if (onExportSessions === undefined) {
+        return
+      }
+      const payload = serializeMd3ListExport(
+        scopeSessions.map(md3TerminalExportRecord),
+        {
+          columns: Md3TerminalExportColumns,
+          collectionName: 'sessions',
+          recordName: 'session',
+          title: 'Terminal sessions',
+          baseName: 'terminal-sessions',
+        },
+        format,
+        { scope: scopeLabel }
+      )
+      setExportOpen(false)
+      onExportSessions(payload, scopeSessions)
+      notify(
+        payload.loss === null
+          ? t('md3.bulk.toast.exported', {
+              count: String(payload.count),
+              format: payload.format.toUpperCase(),
+            })
+          : t('md3.bulk.toast.exportedLossy', {
+              count: String(payload.count),
+              format: payload.format.toUpperCase(),
+              loss: payload.loss,
+            })
+      )
+    },
+    [onExportSessions, scopeSessions, scopeLabel]
+  )
+
+  const exportMenuSpec = React.useMemo(
+    () =>
+      md3BulkExportMenuSpec(Md3TerminalExportColumns, scopeLabel, runExport),
+    [scopeLabel, runExport]
+  )
+
+  const bulkActions = React.useMemo((): ReadonlyArray<IMd3BulkAction> => {
+    const actions: Array<IMd3BulkAction> = []
+    if (onCancelCommand !== undefined) {
+      actions.push({
+        id: 'stop',
+        label: t('md3.terminal.stop'),
+        icon: 'block',
+        disabled: cancellable.applied.length === 0,
+        onClick: onBulkCancel,
+      })
+    }
+    if (onRestartSession !== undefined) {
+      actions.push({
+        id: 'restart',
+        label: t('md3.terminal.bulkRestart'),
+        icon: 'restart_alt',
+        disabled: restartable.applied.length === 0,
+        onClick: onBulkRestart,
+      })
+    }
+    if (onCloseSession !== undefined) {
+      actions.push({
+        id: 'close',
+        label: t('md3.terminal.bulkClose'),
+        icon: 'delete_sweep',
+        destructive: true,
+        hasPopup: 'dialog',
+        buttonRef: closeButtonRef,
+        disabled: scopeSessions.length === 0,
+        onClick: onRequestBulkClose,
+      })
+    }
+    return actions
+  }, [
+    onCancelCommand,
+    onRestartSession,
+    onCloseSession,
+    cancellable,
+    restartable,
+    scopeSessions,
+    onBulkCancel,
+    onBulkRestart,
+    onRequestBulkClose,
+    closeButtonRef,
+  ])
+
+  /**
+   * The pill's pointer route into the bulk selection.
+   *
+   * Ctrl/Cmd-click ticks this shell and Shift-click draws a range; a plain
+   * click falls through and switches shells exactly as it always has.
+   */
+  const onTabClickWithSelection = React.useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      const index = visibleSessionIds.indexOf(
+        event.currentTarget.dataset.sessionId ?? ''
+      )
+      if (index !== -1 && applySessionSelection(index, event)) {
+        event.preventDefault()
+        return
+      }
+      onTabClick(event)
+    },
+    [visibleSessionIds, applySessionSelection, onTabClick]
+  )
+
+  /**
+   * And the keyboard equivalent: Ctrl+Space ticks the focused pill,
+   * Ctrl+Shift+Space extends the range. Plain Space still activates the tab,
+   * because that is how a tab has always been operated.
+   */
+  const onTabKeyDownWithSelection = React.useCallback(
+    (event: React.KeyboardEvent<HTMLButtonElement>) => {
+      if (event.key === ' ' && (event.ctrlKey || event.metaKey)) {
+        const index = visibleSessionIds.indexOf(
+          event.currentTarget.dataset.sessionId ?? ''
+        )
+        if (index !== -1 && applySessionSelection(index, event)) {
+          event.preventDefault()
+          return
+        }
+      }
+      onTabKeyDown(event)
+    },
+    [visibleSessionIds, applySessionSelection, onTabKeyDown]
+  )
+
+  const renderBulkBar = () => (
+    <Md3BulkBar
+      listId="terminal"
+      label={t('md3.terminal.bulkLabel')}
+      visibleIds={visibleSessionIds}
+      selected={checked}
+      filtered={bulkFiltered}
+      scopeLabel={scopeLabel}
+      actions={bulkActions}
+      onToggleSelectAll={onToggleSelectAll}
+      onInvertSelection={onInvertSelection}
+      onClearSelection={onClearSelection}
+      onExport={onExportSessions === undefined ? undefined : runExport}
+      exportColumns={Md3TerminalExportColumns}
+      onOpenExport={
+        onExportSessions === undefined ? undefined : () => setExportOpen(true)
+      }
+      exportButtonRef={exportButtonRef}
+    />
+  )
+
   const renderTabStrip = () => (
     <div className="md3-terminal__tab-strip">
       <div
@@ -595,6 +1061,7 @@ export function Md3TerminalView(props: IMd3TerminalViewProps) {
       >
         {sessions.map(session => {
           const selected = session.id === activeSession?.id
+          const ticked = checked.has(session.id)
           return (
             <button
               key={session.id}
@@ -603,14 +1070,16 @@ export function Md3TerminalView(props: IMd3TerminalViewProps) {
               role="tab"
               className={classNames('md3-terminal__tab', {
                 'md3-terminal__tab--active': selected,
+                'md3-terminal__tab--ticked': ticked,
               })}
               aria-selected={selected}
               aria-controls={selected ? panelId : undefined}
               tabIndex={selected ? 0 : -1}
               data-session-id={session.id}
               data-status={session.status}
-              onClick={onTabClick}
-              onKeyDown={onTabKeyDown}
+              data-bulk-selected={ticked}
+              onClick={onTabClickWithSelection}
+              onKeyDown={onTabKeyDownWithSelection}
               onContextMenu={
                 onSessionContextMenu === undefined
                   ? undefined
@@ -622,6 +1091,14 @@ export function Md3TerminalView(props: IMd3TerminalViewProps) {
               {/* The contract's pill is a glyph and a label. The state still
                   has to reach a screen reader, so it rides along unseen. */}
               <span className="sr-only">{statusLabel(session.status)}</span>
+              {/* `aria-selected` on a tab already means "this is the shell on
+                  screen", so bulk membership cannot borrow it and has to be
+                  said in words instead. */}
+              {ticked ? (
+                <span className="sr-only">
+                  {t('md3.terminal.bulkSelected')}
+                </span>
+              ) : null}
             </button>
           )
         })}
@@ -630,6 +1107,12 @@ export function Md3TerminalView(props: IMd3TerminalViewProps) {
         small={true}
         icon="add"
         label={t('md3.terminal.newShell')}
+        disabled={!canCreateSession}
+        tooltip={
+          canCreateSession
+            ? t('md3.terminal.newShell')
+            : t('md3.terminal.noRepository')
+        }
         onClick={onCreateSession}
       />
       {onCloseSession === undefined || activeSession === null ? null : (
@@ -741,9 +1224,16 @@ export function Md3TerminalView(props: IMd3TerminalViewProps) {
 
   const renderInputRow = (session: IMd3TerminalSession) => (
     <div className="md3-terminal__input-row">
-      <span className="md3-terminal__prompt" aria-hidden="true">
+      <span ref={promptRef} className="md3-terminal__prompt" aria-hidden="true">
         {session.prompt}
       </span>
+      {session.workingDirectory === undefined ? null : (
+        // The prompt is abbreviated, so the full directory has to be
+        // recoverable without leaving the row.
+        <Tooltip target={promptRef} applyAriaDescribedBy={false}>
+          {session.workingDirectory}
+        </Tooltip>
+      )}
       <input
         id={inputId}
         type="text"
@@ -751,9 +1241,12 @@ export function Md3TerminalView(props: IMd3TerminalViewProps) {
         placeholder={t('md3.terminal.inputPlaceholder')}
         aria-label={t('md3.terminal.inputLabel', {
           shell: session.label,
-          prompt: session.prompt,
+          // The unabbreviated directory, when it is known: a screen-reader user
+          // gets no benefit from an ellipsis standing in for the path a
+          // command is about to run in.
+          prompt: session.workingDirectory ?? session.prompt,
         })}
-        aria-describedby={emptyRunReported ? `${inputId}-hint` : undefined}
+        aria-describedby={runNotice === null ? undefined : `${inputId}-hint`}
         value={input}
         spellCheck={false}
         autoComplete="off"
@@ -778,13 +1271,18 @@ export function Md3TerminalView(props: IMd3TerminalViewProps) {
         aria-label={t('md3.terminal.region')}
       >
         {renderTabStrip()}
+        {sessions.length === 0 ? null : renderBulkBar()}
         {activeSession === null ? (
           <Md3EmptyState
             className="md3-terminal__empty"
             icon="terminal"
-            message={t('md3.terminal.noSessions')}
+            message={
+              canCreateSession
+                ? tFunny('md3.terminal.noSessions')
+                : t('md3.terminal.noRepository')
+            }
             actionLabel={t('md3.terminal.openShell')}
-            onAction={onCreateSession}
+            onAction={canCreateSession ? onCreateSession : undefined}
           />
         ) : (
           <div
@@ -811,18 +1309,62 @@ export function Md3TerminalView(props: IMd3TerminalViewProps) {
             {renderOutput(activeSession)}
             {renderBanner(activeSession)}
             {renderInputRow(activeSession)}
-            {emptyRunReported ? (
+            {runNotice === null ? null : (
               <p
                 id={`${inputId}-hint`}
                 className="md3-terminal__hint"
                 role="status"
               >
-                {t('md3.terminal.nothingToRun')}
+                {runNotice === 'busy'
+                  ? t('md3.terminal.alreadyRunning')
+                  : t('md3.terminal.nothingToRun')}
               </p>
-            ) : null}
+            )}
           </div>
         )}
       </section>
+
+      {exportOpen ? (
+        <Md3MenuOverlay
+          spec={exportMenuSpec}
+          onDismiss={() => setExportOpen(false)}
+          onOpenRegexBuilder={search.onOpenBuilder}
+          returnFocusTo={exportButtonRef}
+        />
+      ) : null}
+
+      {gateOpen ? (
+        <Md3DestructiveGate
+          actionId="terminal-bulk-close"
+          icon="delete_sweep"
+          title={t('md3.terminal.gate.title', {
+            count: String(scopeSessions.length),
+          })}
+          summary={t('md3.terminal.gate.summary', {
+            count: String(scopeSessions.length),
+            scope: scopeLabel,
+          })}
+          /*
+           * "Close 4 shells" is a number, and a number is not something a
+           * person can check. The labels are — and a shell in the list with a
+           * build running in it is exactly the one a reader spots here and
+           * nowhere else.
+           */
+          preview={scopeSessions.map(session => session.label)}
+          irreversible={t('md3.terminal.gate.irreversible')}
+          targetKeyLabel={t('md3.terminal.gate.keyTarget', {
+            count: String(scopeSessions.length),
+            scope: scopeLabel,
+          })}
+          effectKeyLabel={t('md3.terminal.gate.keyEffect')}
+          confirmLabel={t('md3.terminal.gate.confirm', {
+            count: String(scopeSessions.length),
+          })}
+          anchorTo={closeButtonRef}
+          onConfirm={onConfirmBulkClose}
+          onDismissed={() => setGateOpen(false)}
+        />
+      ) : null}
     </div>
   )
 }

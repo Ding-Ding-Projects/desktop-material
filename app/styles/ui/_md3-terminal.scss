@@ -111,6 +111,14 @@
   }
 }
 
+// A pill in the bulk selection. An outline rather than a fill: the fill already
+// means "this is the shell on screen", and one pill can be both at once, so the
+// two states have to be readable together rather than overwriting each other.
+.md3-terminal__tab--ticked {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: -2px;
+}
+
 .md3-terminal__tab-label {
   overflow: hidden;
   text-overflow: ellipsis;

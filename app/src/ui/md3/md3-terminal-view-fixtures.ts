@@ -35,6 +35,7 @@ export const md3TerminalSampleSessions: ReadonlyArray<IMd3TerminalSession> = [
     label: 'bash — sample',
     status: 'ready',
     prompt: '~/code/sample $',
+    workingDirectory: '/home/sample/code/sample',
     lines: md3TerminalSampleLines,
   },
   {
@@ -42,6 +43,7 @@ export const md3TerminalSampleSessions: ReadonlyArray<IMd3TerminalSession> = [
     label: 'pwsh — sample-tools',
     status: 'running',
     prompt: '~/code/sample-tools $',
+    workingDirectory: '/home/sample/code/sample-tools',
     statusDetail: 'Running npm run build',
     lines: createMd3TerminalLines(
       ['$ npm run build\r\n', 'building…\r\n'],
@@ -53,6 +55,7 @@ export const md3TerminalSampleSessions: ReadonlyArray<IMd3TerminalSession> = [
     label: 'zsh — sample-docs',
     status: 'exited',
     prompt: '~/code/sample-docs $',
+    workingDirectory: '/home/sample/code/sample-docs',
     statusDetail: 'Exited with code 1',
     lines: createMd3TerminalLines(
       ['$ npm test\r\n', '1 failing\r\n'],

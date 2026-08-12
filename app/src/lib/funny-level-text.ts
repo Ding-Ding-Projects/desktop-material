@@ -6,6 +6,7 @@ import {
 } from './audio/audio-settings'
 import {
   bilingualVariable,
+  getPersistedLanguageMode,
   IBilingualVariable,
   translate,
   TranslationKey,
@@ -109,6 +110,13 @@ export type FunnyLevelTextBase =
   // whether the current value was actually chosen are facts a reader acts on.
   | 'dialogEmoji.explanation'
   | 'classicToolbar.explanation'
+  // The same rule for the three settings rows that host a rewrite surface:
+  // only the explanation is banded. What each manager holds, how many of them
+  // there are, and how a locked-out user recovers are facts, and a reader who
+  // came looking for the count must find the count.
+  | 'surfaceLocks.explanation'
+  | 'authenticatorSettings.explanation'
+  | 'supportTicketsSetting.explanation'
   // Only the framing of the shell's destination announcement is banded. The
   // destination's own name is interpolated into every band unchanged, because
   // it is the entire point of the announcement — a screen-reader user who
@@ -122,6 +130,24 @@ export type FunnyLevelTextBase =
   // whose joke leaves the reader unsure whether a code is still valid is not.
   | 'md3.auth.empty.none'
   | 'md3.auth.register.confirmHint'
+  // One banded family per MD3 destination, and in every case it is the empty
+  // state — the sentence a destination says when it has nothing else to say,
+  // which is exactly the copy whose voice can move without a fact moving with
+  // it. Nothing else in these destinations is banded, because everything else
+  // they render is a fact: a repository's name, a file's path, a commit's
+  // summary and abbreviated SHA, a branch's ahead/behind counts, a run's
+  // number and conclusion, an agent's granted permissions, a notification's
+  // source, a shell's exit code. A band that renamed any of those would be a
+  // lie the reader cannot detect, so each band below states the same emptiness
+  // in a different voice and states nothing else at all.
+  | 'md3.repositories.empty'
+  | 'md3.changes.empty'
+  | 'md3.history.empty'
+  | 'md3.branches.empty'
+  | 'md3.actions.logEmpty'
+  | 'md3.agents.emptyNoSessions'
+  | 'md3.inbox.empty.caughtUp'
+  | 'md3.terminal.noSessions'
 
 /** Read the persisted per-language funny levels, defaulting when unreadable. */
 export function readFunnyLevels(): IFunnyLevels {
@@ -198,4 +224,34 @@ export function translateWithFunnyLevel(
     return `${localized.english} · ${localized.cantonese}`
   }
   return localized.english
+}
+
+/**
+ * The banded counterpart of `t()`, for a surface that renders through the
+ * ambient persisted settings rather than through props.
+ *
+ * `t()` reads the persisted language mode for the caller, and the eight MD3
+ * destinations render every other string through it; a destination that had to
+ * thread a language mode and a pair of funny levels down to one empty state
+ * would either grow that plumbing or, far more likely, quietly keep calling
+ * `t()` and never carry a funny level at all. This reads both persisted values
+ * at the same point `t()` reads one of them, so the two sit side by side at a
+ * call site and the banded family cannot be reached by accident with the levels
+ * left behind.
+ *
+ * The two languages stay independent: `translateWithFunnyLevel` picks each
+ * catalog's band from that catalog's own level, so English at 1 and Cantonese
+ * at 5 renders a plain English sentence beside a maximally playful Cantonese
+ * one in bilingual mode.
+ */
+export function tFunny(
+  base: FunnyLevelTextBase,
+  variables: TranslationVariables = {}
+): string {
+  return translateWithFunnyLevel(
+    base,
+    getPersistedLanguageMode(),
+    readFunnyLevels(),
+    variables
+  )
 }

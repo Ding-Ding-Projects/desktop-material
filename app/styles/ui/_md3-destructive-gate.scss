@@ -148,6 +148,49 @@
   padding: 10px 12px;
 }
 
+// The reviewable preview. It is bounded and scrolls inside that bound: a
+// preview of two hundred rows that simply grows pushes the gate's own confirm
+// button past the bottom of the panel, and one capped with `overflow: hidden`
+// silently deletes the rows past the cap.
+.md3-destructive-gate__preview {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.md3-destructive-gate__preview-heading {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11.5px;
+  line-height: 1.45;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.md3-destructive-gate__preview-list {
+  background: var(--md-sys-color-surface-container-high);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  max-block-size: 148px;
+  overflow-y: auto;
+  padding: 8px 10px;
+}
+
+.md3-destructive-gate__preview-list--excluded {
+  opacity: 0.72;
+}
+
+.md3-destructive-gate__preview-item {
+  color: var(--md-sys-color-on-surface);
+  font-family: var(--font-family-monospace);
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
 .md3-destructive-gate__irreversible-label {
   font-weight: 700;
 }

@@ -296,8 +296,30 @@ export interface IMd3SearchFieldProps {
    * Marks the query as one the field cannot currently act on — an unfinished
    * regular expression, typically. The list stays whole while this is true, so
    * the flag is what says *why* nothing is being filtered.
+   *
+   * Leave it unset and the field works it out: a regex-mode query that will not
+   * compile is invalid whether or not the caller noticed. Pass `false` to
+   * suppress that entirely, for a surface whose own matcher is not a regular
+   * expression at all.
    */
   readonly invalid?: boolean
+
+  /**
+   * Why the query cannot be acted on, in the user's own words.
+   *
+   * Rendered as a polite status line beneath the row and pointed at by the
+   * input's `aria-describedby`, so the reason reaches somebody who focuses the
+   * field rather than only somebody who can see the sentence under it. Omit it
+   * and the field supplies its own message for an uncompilable regular
+   * expression; pass `null` to render no message while still reporting
+   * `aria-invalid`.
+   *
+   * It is deliberately polite rather than an alert. This message changes on
+   * every keystroke of a pattern being typed — `(`, `([`, `([a` are each their
+   * own error — and an assertive region would interrupt a screen-reader user on
+   * every one of those characters.
+   */
+  readonly error?: string | null
 
   readonly onContextMenu?: (event: React.MouseEvent<HTMLDivElement>) => void
 
@@ -318,6 +340,58 @@ export interface IMd3SearchFieldProps {
   readonly className?: string
 
   readonly inputRef?: React.Ref<HTMLInputElement>
+}
+
+/**
+ * Compilation is bounded so a pasted megabyte cannot be handed to the engine on
+ * every keystroke. It is a guard on the *build*, not on matching — the
+ * evaluation limits live with the builder.
+ */
+const MaximumSearchPatternLength = 2000
+
+/**
+ * Whether a regex-mode query can be compiled at all, and the engine's own
+ * complaint when it cannot.
+ *
+ * Every MD3 search surface reaches its filter through the same shape — compile
+ * the query, and on failure leave the collection whole. That fallback is the
+ * right behaviour and the wrong silence: the list stops narrowing and nothing
+ * on screen, and nothing at all in the accessibility tree, says why. Deriving
+ * the answer here means a field reports it whether or not its view remembered
+ * to.
+ *
+ * Returns `null` while the query is empty, while regex mode is off, or while
+ * the pattern compiles.
+ */
+export function md3SearchPatternError(
+  value: string,
+  regexEnabled: boolean
+): string | null {
+  if (!regexEnabled) {
+    return null
+  }
+
+  const raw = value.trim()
+  if (raw.length === 0) {
+    return null
+  }
+
+  if (raw.length > MaximumSearchPatternLength) {
+    return t('md3.search.patternTooLong', {
+      limit: String(MaximumSearchPatternLength),
+    })
+  }
+
+  try {
+    // Built and discarded: the question is whether the engine accepts it, and
+    // every caller compiles its own with the flags that surface needs.
+    new RegExp(raw)
+    return null
+  } catch (error) {
+    return t('md3.search.invalidPattern', {
+      reason: error instanceof Error ? error.message : String(error),
+    })
+  }
 }
 
 /**
@@ -344,74 +418,91 @@ export function Md3SearchField(props: IMd3SearchFieldProps) {
   const showHits =
     props.value.trim().length > 0 && props.matchCount !== undefined
 
+  // The caller's message wins when it supplies one, so a view that already
+  // phrases the failure in its own words keeps doing so. `error={null}` is a
+  // deliberate "invalid, but said elsewhere" rather than "no error", which is
+  // why the state below is still derived when the message is suppressed.
+  const derived = md3SearchPatternError(props.value, props.regexEnabled)
+  const message = props.error !== undefined ? props.error : derived
+  const invalid = props.invalid ?? (message !== null || derived !== null)
+  const errorId = `${props.id}-error`
+
   return (
-    <div
-      className={classNames('md3-search-row', props.className)}
-      onContextMenu={props.onContextMenu}
-    >
-      <MaterialSymbol
-        name="search"
-        className="md3-search-row__icon"
-        size={props.iconSize ?? 16}
-      />
-      <input
-        ref={props.inputRef}
-        id={props.id}
-        data-search-surface-id={props.searchSurfaceId}
-        type="text"
-        role="searchbox"
-        className="md3-search-row__input"
-        placeholder={props.placeholder}
-        aria-label={props.placeholder}
-        aria-invalid={props.invalid}
-        value={props.value}
-        spellCheck={false}
-        autoComplete="off"
-        onChange={onInputChange}
-      />
-      {props.value.length === 0 ? null : (
-        <button
-          ref={clearRef}
-          type="button"
-          className="md3-search-row__clear"
-          aria-label={clearLabel}
-          onClick={props.onClear}
-        >
-          <Tooltip target={clearRef} applyAriaDescribedBy={false}>
-            {clearLabel}
-          </Tooltip>
-          <MaterialSymbol name="close" size={props.clearIconSize ?? 15} />
-        </button>
-      )}
-      <button
-        ref={regexRef}
-        type="button"
-        className={classNames('md3-search-row__regex', {
-          'md3-search-row__regex--active': props.regexEnabled,
-        })}
-        aria-pressed={props.regexEnabled}
-        aria-label={regexLabel}
-        onClick={props.onToggleRegex}
+    <>
+      <div
+        className={classNames('md3-search-row', props.className)}
+        onContextMenu={props.onContextMenu}
       >
-        <Tooltip target={regexRef} applyAriaDescribedBy={false}>
-          {regexLabel}
-        </Tooltip>
-        .*
-      </button>
-      <Md3IconButton
-        small={true}
-        icon="construction"
-        iconSize={props.builderIconSize}
-        label={builderLabel}
-        hasPopup="dialog"
-        onClick={props.onOpenBuilder}
-      />
-      {showHits ? (
-        <span className="md3-search-row__hits" role="status">
-          {t('md3.search.hits', { count: String(props.matchCount) })}
-        </span>
-      ) : null}
-    </div>
+        <MaterialSymbol
+          name="search"
+          className="md3-search-row__icon"
+          size={props.iconSize ?? 16}
+        />
+        <input
+          ref={props.inputRef}
+          id={props.id}
+          data-search-surface-id={props.searchSurfaceId}
+          type="text"
+          role="searchbox"
+          className="md3-search-row__input"
+          placeholder={props.placeholder}
+          aria-label={props.placeholder}
+          aria-invalid={invalid || undefined}
+          aria-describedby={message === null ? undefined : errorId}
+          value={props.value}
+          spellCheck={false}
+          autoComplete="off"
+          onChange={onInputChange}
+        />
+        {props.value.length === 0 ? null : (
+          <button
+            ref={clearRef}
+            type="button"
+            className="md3-search-row__clear"
+            aria-label={clearLabel}
+            onClick={props.onClear}
+          >
+            <Tooltip target={clearRef} applyAriaDescribedBy={false}>
+              {clearLabel}
+            </Tooltip>
+            <MaterialSymbol name="close" size={props.clearIconSize ?? 15} />
+          </button>
+        )}
+        <button
+          ref={regexRef}
+          type="button"
+          className={classNames('md3-search-row__regex', {
+            'md3-search-row__regex--active': props.regexEnabled,
+          })}
+          aria-pressed={props.regexEnabled}
+          aria-label={regexLabel}
+          onClick={props.onToggleRegex}
+        >
+          <Tooltip target={regexRef} applyAriaDescribedBy={false}>
+            {regexLabel}
+          </Tooltip>
+          .*
+        </button>
+        <Md3IconButton
+          small={true}
+          icon="construction"
+          iconSize={props.builderIconSize}
+          label={builderLabel}
+          hasPopup="dialog"
+          onClick={props.onOpenBuilder}
+        />
+        {showHits ? (
+          <span className="md3-search-row__hits" role="status">
+            {t('md3.search.hits', { count: String(props.matchCount) })}
+          </span>
+        ) : null}
+      </div>
+      {message === null ? null : (
+        <p id={errorId} className="md3-search-row__error" role="status">
+          {message}
+        </p>
+      )}
+    </>
   )
 }
 

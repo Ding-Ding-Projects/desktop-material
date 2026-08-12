@@ -22,6 +22,7 @@ export async function getBranches(
     sha: '%(objectname)',
     symRef: '%(symref)',
     authorDate: '%(authordate:iso8601)',
+    authorName: '%(authorname)',
   })
 
   if (!prefixes || !prefixes.length) {
@@ -51,11 +52,12 @@ export async function getBranches(
     }
 
     const authorDate = new Date(ref.authorDate)
+    const authorName = ref.authorName.length > 0 ? ref.authorName : undefined
     const tip: IBranchTip = {
       sha: ref.sha,
       author: Number.isNaN(authorDate.getTime())
         ? undefined
-        : { date: authorDate },
+        : { date: authorDate, name: authorName },
     }
 
     const type = ref.fullName.startsWith('refs/heads')

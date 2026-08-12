@@ -861,6 +861,21 @@ export class Md3ActionsController {
     return ids
   }
 
+  /**
+   * The job count of every run whose job page has actually been read.
+   *
+   * A run summary from the runs endpoint carries no job count at all, so this
+   * is one entry — the selected run — until another run's jobs are loaded. Any
+   * run missing from the map has an unknown count and its row says nothing
+   * about jobs, rather than reporting a `0` no real run ever has.
+   */
+  private jobCounts(): ReadonlyMap<number, number> {
+    const { jobList } = this.state
+    return jobList === null
+      ? new Map<number, number>()
+      : new Map<number, number>([[jobList.runId, jobList.totalCount]])
+  }
+
   private filterOptions(): Readonly<
     Record<Md3ActionsFilterName, ReadonlyArray<IMd3ActionsFilterOption>>
   > {
@@ -951,6 +966,7 @@ export class Md3ActionsController {
       runs: visible,
       busyRunId: state.busyRunId,
       failedJobRunIds: this.failedJobRunIds(),
+      jobCounts: this.jobCounts(),
     })
     const selectedRun =
       state.selectedRunId === null

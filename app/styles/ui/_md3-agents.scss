@@ -52,6 +52,14 @@
   outline-offset: -2px;
 }
 
+// The bulk-selection box, ahead of the contract's state glyph. `flex: none` so
+// it keeps its size while the name column shrinks: a checkbox that shrinks is
+// unclickable long before the text beside it becomes unreadable.
+.md3-agents__select {
+  flex: none;
+  margin-inline-end: 2px;
+}
+
 .md3-agents__row-icon {
   flex: none;
 }
@@ -85,10 +93,18 @@
   white-space: nowrap;
 }
 
+// The badges shrink before the name does. Held at `flex: none` in a 320px pane
+// they never gave a pixel back, so a main-and-locked worktree spent roughly a
+// third of the row on two decorations and the session name — the one thing the
+// row exists to identify — was ellipsed away to nothing. The state pill below
+// keeps `flex: none` deliberately: a status truncated to "Ru" is worse than a
+// badge that has gone.
 .md3-agents__badges {
   display: flex;
-  flex: none;
+  flex: 0 1 auto;
   gap: 4px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .md3-agents__badge {
@@ -100,7 +116,10 @@
   font-size: 10.5px;
   font-weight: 600;
   height: 20px;
+  min-width: 0;
+  overflow: hidden;
   padding: 0 8px;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

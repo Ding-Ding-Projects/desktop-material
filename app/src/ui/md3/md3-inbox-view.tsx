@@ -1,6 +1,7 @@
 import * as React from 'react'
 import classNames from 'classnames'
 
+import { tFunny } from '../../lib/funny-level-text'
 import { t } from '../../lib/i18n'
 import { compileSafeRegex } from '../../lib/safe-regex'
 import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
@@ -10,7 +11,6 @@ import {
   Md3ChipRow,
   Md3ChipRowSpacer,
   Md3EmptyState,
-  Md3GhostButton,
   Md3IconButton,
   Md3SearchField,
   Md3TonalButton,
@@ -24,12 +24,29 @@ import {
 } from './md3-regex-builder-dialog'
 import { Md3DestructiveGate } from './md3-destructive-gate'
 import {
-  IMd3InboxExport,
-  IMd3InboxExportRecord,
-  Md3InboxExportFormat,
-  Md3InboxExportFormats,
-  serializeMd3InboxExport,
-} from './md3-inbox-export'
+  IMd3BulkAction,
+  Md3BulkBar,
+  md3BulkExportMenuSpec,
+} from './md3-bulk-bar'
+import {
+  IMd3ListExport,
+  IMd3ListExportColumn,
+  IMd3ListExportSpec,
+  Md3ListExportFormat,
+  Md3ListExportRecord,
+  serializeMd3ListExport,
+} from './md3-list-export'
+import {
+  IMd3BulkPartition,
+  md3ApplySelection,
+  md3BulkPartitionSummary,
+  md3BulkScope,
+  md3BulkScopeLabel,
+  md3InvertSelection,
+  md3PartitionBulk,
+  md3SelectionIntent,
+  md3ToggleSelectAll,
+} from './md3-list-selection'
 import { notify } from './md3-toast'
 
 /**
@@ -137,7 +154,7 @@ export interface IMd3InboxNotification {
 
 /** An export the view has already serialized, ready for the host to write. */
 export interface IMd3InboxExportRequest {
-  readonly payload: IMd3InboxExport
+  readonly payload: IMd3ListExport
   /** The rows the payload was built from, in the order they were exported. */
   readonly notifications: ReadonlyArray<IMd3InboxNotification>
 }
@@ -253,10 +270,43 @@ export function md3InboxDetailLine(
     : t('md3.inbox.detail', { source: notification.source, state, tone })
 }
 
-/** Flatten a row for {@link serializeMd3InboxExport}. */
+/**
+ * The export schema for a notification row.
+ *
+ * Every field the row renders plus the identity it is keyed by and the
+ * absolute timestamp the row only announces — "Yesterday" stops being an
+ * answer the moment the file leaves the application. Nothing here is
+ * multiline, so no format drops anything and the picker says so by offering
+ * every format without a warning — which is only true because this schema has
+ * been checked against the row type, not assumed.
+ */
+export const Md3InboxExportColumns: ReadonlyArray<IMd3ListExportColumn> = [
+  { name: 'id' },
+  { name: 'title' },
+  { name: 'meta' },
+  { name: 'source' },
+  { name: 'tone' },
+  { name: 'state' },
+  { name: 'kind' },
+  { name: 'time' },
+  { name: 'createdAt' },
+  { name: 'read' },
+  { name: 'muted' },
+]
+
+/** Everything the shared serializer needs to write a notification export. */
+export const Md3InboxExportSpec: IMd3ListExportSpec = {
+  columns: Md3InboxExportColumns,
+  collectionName: 'notifications',
+  recordName: 'notification',
+  title: 'Notifications',
+  baseName: 'notifications',
+}
+
+/** Flatten a row for {@link serializeMd3ListExport}. */
 export function md3InboxExportRecord(
   notification: IMd3InboxNotification
-): IMd3InboxExportRecord {
+): Md3ListExportRecord {
   return {
     id: notification.id,
     title: notification.title,
@@ -350,6 +400,64 @@ export function filterMd3InboxNotifications(
   })
 
   return { visible, patternInvalid }
+}
+
+/**
+ * Whether a query or a chip is narrowing the list.
+ *
+ * The bulk bar's select-all reads this to decide whether it says "all 12
+ * matching these filters" or "all 12". Passing `false` while a filter is on is
+ * the one defect neither the bar nor the user can detect, so the rule is a
+ * named function the view calls and a test can check, rather than an
+ * expression buried in the render.
+ */
+export function md3InboxFiltersActive(
+  state: Pick<IMd3InboxFilterState, 'query' | 'filters'>
+): boolean {
+  return state.filters.size > 0 || state.query.trim().length > 0
+}
+
+/** The four eligibility splits the bulk verbs run over. */
+export interface IMd3InboxBulkPartitions {
+  readonly markable: IMd3BulkPartition<IMd3InboxNotification>
+  readonly unmarkable: IMd3BulkPartition<IMd3InboxNotification>
+  readonly mutable: IMd3BulkPartition<IMd3InboxNotification>
+  readonly unmutable: IMd3BulkPartition<IMd3InboxNotification>
+}
+
+/**
+ * Split the scope by what each verb can actually change.
+ *
+ * Marking read a row that is already read is not an error, it is a lie in the
+ * toast afterwards: the count says twelve and nine changed. Each partition
+ * carries its own localized reason so the button's disabled state, the work
+ * and the report all describe one set.
+ */
+export function md3InboxBulkPartitions(
+  rows: ReadonlyArray<IMd3InboxNotification>
+): IMd3InboxBulkPartitions {
+  return {
+    markable: md3PartitionBulk(
+      rows,
+      entry => !entry.read,
+      t('md3.inbox.bulkSkipAlreadyRead')
+    ),
+    unmarkable: md3PartitionBulk(
+      rows,
+      entry => entry.read,
+      t('md3.inbox.bulkSkipAlreadyUnread')
+    ),
+    mutable: md3PartitionBulk(
+      rows,
+      entry => entry.muted !== true,
+      t('md3.inbox.bulkSkipAlreadyMuted')
+    ),
+    unmutable: md3PartitionBulk(
+      rows,
+      entry => entry.muted === true,
+      t('md3.inbox.bulkSkipNotMuted')
+    ),
+  }
 }
 
 interface IMd3InboxRowProps {
@@ -510,7 +618,12 @@ function Md3InboxRow(props: IMd3InboxRowProps) {
       </span>
       <span role="gridcell" className="md3-inbox__cell md3-inbox__text">
         <span className="md3-inbox__title">
-          {notification.title}
+          {/* The title is its own element rather than a bare text node: the
+              row's title is a flex container so it can seat the MUTED badge,
+              and `text-overflow` never applies to a flex container's anonymous
+              text item. Without this span a long title clips mid-character and
+              the badge is pushed off the row. */}
+          <span className="md3-inbox__title-text">{notification.title}</span>
           {notification.muted === true ? (
             <span className="md3-inbox__badge">{t('md3.inbox.muted')}</span>
           ) : null}
@@ -585,7 +698,6 @@ export function Md3InboxView(props: IMd3InboxViewProps) {
   const rowElements = React.useRef(new Map<string, HTMLDivElement>())
   const anchorIndex = React.useRef<number | null>(null)
   const pendingFocus = React.useRef(false)
-  const selectAllRef = React.useRef<HTMLInputElement | null>(null)
   const listMenuButtonRef = React.useMemo(
     () => createObservableRef<HTMLButtonElement>(),
     []
@@ -593,6 +705,10 @@ export function Md3InboxView(props: IMd3InboxViewProps) {
   // The gate anchors itself beside the control that opened it, and focus
   // returns there when it closes either way.
   const bulkDeleteButtonRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
+  const exportButtonRef = React.useMemo(
     () => createObservableRef<HTMLButtonElement>(),
     []
   )
@@ -619,7 +735,16 @@ export function Md3InboxView(props: IMd3InboxViewProps) {
     [notifications, query, regexEnabled, caseSensitive, filters]
   )
 
-  const filtersActive = filters.size > 0 || query.trim().length > 0
+  // The ids the bulk bar reasons over are the ones left AFTER the query and
+  // the chips: a select-all that reached past the filter would tick rows
+  // nobody has looked at.
+  const visibleIds = React.useMemo(
+    () => visible.map(entry => entry.id),
+    [visible]
+  )
+  const visibleIdSet = React.useMemo(() => new Set(visibleIds), [visibleIds])
+
+  const filtersActive = md3InboxFiltersActive({ query, filters })
 
   // Selection survives a filter change — deliberately, so a user can build a
   // selection across several searches — but never survives the disappearance
@@ -657,30 +782,25 @@ export function Md3InboxView(props: IMd3InboxViewProps) {
     [visible, selected]
   )
 
-  React.useEffect(() => {
-    if (selectAllRef.current !== null) {
-      selectAllRef.current.indeterminate =
-        selectedVisibleCount > 0 && selectedVisibleCount < visible.length
-    }
-  }, [selectedVisibleCount, visible.length])
-
-  const selectedNotifications = React.useMemo(
-    () => notifications.filter(entry => selected.has(entry.id)),
-    [notifications, selected]
+  /**
+   * What a bulk verb runs over: the ticked rows, or the whole filtered list.
+   *
+   * Resolved against `visible` rather than every notification, so a row a
+   * filter is hiding is never in the scope even when it is still ticked from
+   * an earlier search. The label below counts the same set for the same
+   * reason — a button reading "12 selected" that acts on nine is the exact
+   * disagreement the shared scope helpers exist to prevent.
+   */
+  const scopeNotifications = React.useMemo(
+    () => md3BulkScope(visible, selected, entry => entry.id),
+    [visible, selected]
   )
 
-  /** What a bulk action runs on: the selection when there is one, else the filter. */
-  const scopeNotifications =
-    selectedNotifications.length > 0 ? selectedNotifications : visible
-
-  const scopeDescription =
-    selectedNotifications.length > 0
-      ? t('md3.inbox.scope.selection', {
-          count: String(selectedNotifications.length),
-        })
-      : filtersActive
-      ? t('md3.inbox.scope.filtered', { count: String(visible.length) })
-      : t('md3.inbox.scope.all', { count: String(visible.length) })
+  const scopeDescription = md3BulkScopeLabel(
+    selectedVisibleCount,
+    visible.length,
+    filtersActive
+  )
 
   const closeMenu = React.useCallback(() => setMenu(null), [])
 
@@ -761,44 +881,67 @@ export function Md3InboxView(props: IMd3InboxViewProps) {
     setSelected(current => new Set([...current, ...ids]))
   }, [])
 
-  const onToggleSelected = React.useCallback(
-    (notification: IMd3InboxNotification, index: number, extend: boolean) => {
-      setFocusIndex(index)
-      if (extend && anchorIndex.current !== null) {
-        const from = Math.min(anchorIndex.current, index)
-        const to = Math.max(anchorIndex.current, index)
-        const range = visible.slice(from, to + 1).map(entry => entry.id)
-        setSelected(current => new Set([...current, ...range]))
-        return
+  /**
+   * One selection gesture, resolved by the shared algebra.
+   *
+   * The range mode is `extend` because these rows carry checkboxes: somebody
+   * who has ticked four notifications and then Shift-clicks a fifth is asking
+   * for more, not for those four to vanish.
+   *
+   * `md3ApplySelection` returns the selection ordered within `visibleIds`,
+   * which necessarily drops any id the filter is hiding. This view lets a
+   * selection survive a filter change on purpose — a user builds one across
+   * several searches — so the hidden ids are carried back over the result
+   * rather than being quietly discarded by a tick on an unrelated row.
+   */
+  const applySelectionAt = React.useCallback(
+    (
+      index: number,
+      modifiers: {
+        readonly shiftKey: boolean
+        readonly ctrlKey: boolean
+        readonly metaKey: boolean
       }
-      anchorIndex.current = index
+    ) => {
+      setFocusIndex(index)
+      const intent = md3SelectionIntent(modifiers)
       setSelected(current => {
-        const next = new Set(current)
-        if (next.has(notification.id)) {
-          next.delete(notification.id)
-        } else {
-          next.add(notification.id)
+        const result = md3ApplySelection(
+          visibleIds,
+          current,
+          index,
+          intent,
+          anchorIndex.current,
+          'extend'
+        )
+        // A range must not walk its own anchor along with it, or Shift-click,
+        // Shift-click stops growing one range and starts drawing new ones.
+        if (intent !== 'range') {
+          anchorIndex.current = result.anchor
         }
-        return next
+        const hidden = [...current].filter(id => !visibleIdSet.has(id))
+        return new Set([...hidden, ...result.ids])
       })
     },
-    [visible]
+    [visibleIds, visibleIdSet]
+  )
+
+  const onToggleSelected = React.useCallback(
+    (notification: IMd3InboxNotification, index: number, extend: boolean) =>
+      applySelectionAt(index, {
+        shiftKey: extend,
+        // A checkbox click is the whole gesture, so it is always additive: a
+        // plain tick must never replace the rest of the selection.
+        ctrlKey: true,
+        metaKey: false,
+      }),
+    [applySelectionAt]
   )
 
   const onSelectAllVisible = React.useCallback(() => {
-    const ids = visible.map(entry => entry.id)
-    setSelected(current => {
-      const everySelected = ids.every(id => current.has(id))
-      if (everySelected) {
-        const next = new Set(current)
-        for (const id of ids) {
-          next.delete(id)
-        }
-        return next
-      }
-      return new Set([...current, ...ids])
-    })
-  }, [visible])
+    setSelected(current => new Set(md3ToggleSelectAll(visibleIds, current)))
+    anchorIndex.current = null
+  }, [visibleIds])
 
   const onSelectEverything = React.useCallback(() => {
     setSelectionFrom(notifications.map(entry => entry.id))
@@ -808,16 +951,9 @@ export function Md3InboxView(props: IMd3InboxViewProps) {
   }, [notifications, setSelectionFrom])
 
   const onInvertSelection = React.useCallback(() => {
-    setSelected(current => {
-      const next = new Set<string>()
-      for (const entry of visible) {
-        if (!current.has(entry.id)) {
-          next.add(entry.id)
-        }
-      }
-      return next
-    })
-  }, [visible])
+    setSelected(current => new Set(md3InvertSelection(visibleIds, current)))
+    anchorIndex.current = null
+  }, [visibleIds])
 
   const onClearSelection = React.useCallback(() => {
     setSelected(new Set<string>())
@@ -862,23 +998,93 @@ export function Md3InboxView(props: IMd3InboxViewProps) {
     [onSetRead]
   )
 
+  /*
+   * Each verb names what it will skip and why, so the button's own count, the
+   * toast afterwards and — for the delete — the gate's preview all describe
+   * the same set. "Marked 12 read" after marking nine is the quiet failure a
+   * partition exists to prevent.
+   */
+  const { markable, unmarkable, mutable, unmutable } = React.useMemo(
+    () => md3InboxBulkPartitions(scopeNotifications),
+    [scopeNotifications]
+  )
+
+  const reportSkipped = React.useCallback(
+    (summary: string | null) => {
+      if (summary !== null) {
+        notify(summary, { kind: 'warning' })
+      }
+    },
+    []
+  )
+
   const onBulkMarkRead = React.useCallback(() => {
-    const ids = scopeNotifications.filter(e => !e.read).map(e => e.id)
+    const ids = markable.applied.map(entry => entry.id)
     if (ids.length === 0) {
       return
     }
     onSetRead(ids, true)
     notify(t('md3.inbox.toast.markedRead', { count: String(ids.length) }))
-  }, [scopeNotifications, onSetRead])
+    reportSkipped(md3BulkPartitionSummary(markable))
+  }, [markable, onSetRead, reportSkipped])
 
   const onBulkMarkUnread = React.useCallback(() => {
-    const ids = scopeNotifications.filter(e => e.read).map(e => e.id)
+    const ids = unmarkable.applied.map(entry => entry.id)
     if (ids.length === 0) {
       return
     }
     onSetRead(ids, false)
     notify(t('md3.inbox.toast.markedUnread', { count: String(ids.length) }))
-  }, [scopeNotifications, onSetRead])
+    reportSkipped(md3BulkPartitionSummary(unmarkable))
+  }, [unmarkable, onSetRead, reportSkipped])
+
+  const onBulkMute = React.useCallback(() => {
+    if (onSetMuted === undefined) {
+      return
+    }
+    for (const entry of mutable.applied) {
+      onSetMuted(entry, true)
+    }
+    notify(
+      t('md3.inbox.toast.mutedMany', {
+        count: String(mutable.applied.length),
+      })
+    )
+    reportSkipped(md3BulkPartitionSummary(mutable))
+  }, [onSetMuted, mutable, reportSkipped])
+
+  const onBulkUnmute = React.useCallback(() => {
+    if (onSetMuted === undefined) {
+      return
+    }
+    for (const entry of unmutable.applied) {
+      onSetMuted(entry, false)
+    }
+    notify(
+      t('md3.inbox.toast.unmutedMany', {
+        count: String(unmutable.applied.length),
+      })
+    )
+    reportSkipped(md3BulkPartitionSummary(unmutable))
+  }, [onSetMuted, unmutable, reportSkipped])
+
+  const onBulkCopyDetails = React.useCallback(() => {
+    if (onCopyDetails === undefined) {
+      return
+    }
+    onCopyDetails(
+      scopeNotifications
+        .map(entry =>
+          [
+            entry.title,
+            entry.meta,
+            md3InboxDetailLine(entry),
+            entry.createdAt,
+          ].join('\n')
+        )
+        .join('\n\n')
+    )
+  }, [onCopyDetails, scopeNotifications])
 
   const onRequestBulkDelete = React.useCallback(() => {
     if (scopeNotifications.length === 0) {
@@ -910,7 +1116,7 @@ export function Md3InboxView(props: IMd3InboxViewProps) {
   }, [onMarkAllRead])
 
   const runExport = React.useCallback(
-    (format: Md3InboxExportFormat, only: string | null) => {
+    (format: Md3ListExportFormat, only: string | null) => {
       const rows =
         only === null
           ? scopeNotifications
@@ -919,18 +1125,25 @@ export function Md3InboxView(props: IMd3InboxViewProps) {
         only === null
           ? scopeDescription
           : t('md3.inbox.scope.one', { count: String(rows.length) })
-      const payload = serializeMd3InboxExport(
+      const payload = serializeMd3ListExport(
         rows.map(md3InboxExportRecord),
+        Md3InboxExportSpec,
         format,
         { scope }
       )
       setMenu(null)
       onExport?.({ payload, notifications: rows })
       notify(
-        t('md3.inbox.toast.exported', {
-          count: String(rows.length),
-          format: payload.format.toUpperCase(),
-        })
+        payload.loss === null
+          ? t('md3.bulk.toast.exported', {
+              count: String(payload.count),
+              format: payload.format.toUpperCase(),
+            })
+          : t('md3.bulk.toast.exportedLossy', {
+              count: String(payload.count),
+              format: payload.format.toUpperCase(),
+              loss: payload.loss,
+            })
       )
     },
     [scopeNotifications, scopeDescription, notifications, onExport]
@@ -948,14 +1161,20 @@ export function Md3InboxView(props: IMd3InboxViewProps) {
     ) => {
       setFocusIndex(index)
       if (event.shiftKey || event.ctrlKey || event.metaKey) {
-        onToggleSelected(notification, index, event.shiftKey)
+        // A modified row click is a selection gesture, and the modifiers say
+        // which one: Shift ranges, Ctrl/Cmd ticks this row alone.
+        applySelectionAt(index, {
+          shiftKey: event.shiftKey,
+          ctrlKey: event.ctrlKey,
+          metaKey: event.metaKey,
+        })
         return
       }
       anchorIndex.current = index
       onOpen(notification)
       notify(t('md3.inbox.toast.opened', { title: notification.title }))
     },
-    [onOpen, onToggleSelected]
+    [onOpen, applySelectionAt]
   )
 
   const onRowContextMenu = React.useCallback(
@@ -1397,23 +1616,18 @@ export function Md3InboxView(props: IMd3InboxViewProps) {
 
   const exportOnly = menu !== null && menu.kind === 'export' ? menu.only : null
 
+  // The shared picker: every format, each row carrying what that format would
+  // drop from this schema, and the declared schema itself in the footer.
   const exportMenuSpec = React.useMemo(
-    (): IMd3MenuSpec => ({
-      kind: 'listMenu',
-      title: t('md3.inbox.exportMenu.title'),
-      icon: 'cloud_download',
-      width: 420,
-      hasFilter: true,
-      filterPlaceholder: t('md3.inbox.exportMenu.filterPlaceholder'),
-      items: Md3InboxExportFormats.map(descriptor => ({
-        id: descriptor.format,
-        label: descriptor.label,
-        icon: 'description' as MaterialSymbolName,
-        hint: `.${descriptor.extension}`,
-        onClick: () => runExport(descriptor.format, exportOnly),
-      })),
-    }),
-    [runExport, exportOnly]
+    (): IMd3MenuSpec =>
+      md3BulkExportMenuSpec(
+        Md3InboxExportColumns,
+        exportOnly === null
+          ? scopeDescription
+          : t('md3.inbox.scope.one', { count: '1' }),
+        format => runExport(format, exportOnly)
+      ),
+    [runExport, exportOnly, scopeDescription]
   )
 
   const onOpenListMenu = React.useCallback(() => setMenu({ kind: 'list' }), [])
@@ -1421,6 +1635,111 @@ export function Md3InboxView(props: IMd3InboxViewProps) {
   const onOpenBulkExport = React.useCallback(
     () => setMenu({ kind: 'export', only: null }),
     []
+  )
+
+  /**
+   * The bar's verbs: every row action this list already performs singly,
+   * except the two that are navigations to one place rather than operations
+   * over a set — "Open in browser" and the per-notification automations
+   * dialog, neither of which has a meaning for forty rows at once.
+   *
+   * Each verb is disabled by the count its own partition will actually act
+   * on, so a button that would do nothing says so before it is pressed.
+   */
+  const bulkActions = React.useMemo((): ReadonlyArray<IMd3BulkAction> => {
+    const actions: Array<IMd3BulkAction> = [
+      {
+        id: 'markRead',
+        label: t('md3.inbox.bulkMarkRead'),
+        icon: 'mark_email_read',
+        disabled: markable.applied.length === 0,
+        onClick: onBulkMarkRead,
+      },
+      {
+        id: 'markUnread',
+        label: t('md3.inbox.bulkMarkUnread'),
+        icon: 'mark_email_unread',
+        disabled: unmarkable.applied.length === 0,
+        onClick: onBulkMarkUnread,
+      },
+    ]
+
+    if (onSetMuted !== undefined) {
+      actions.push(
+        {
+          id: 'mute',
+          label: t('md3.inbox.bulkMute'),
+          icon: 'notifications_off',
+          disabled: mutable.applied.length === 0,
+          onClick: onBulkMute,
+        },
+        {
+          id: 'unmute',
+          label: t('md3.inbox.bulkUnmute'),
+          // `notifications`, the plain bell: the bundled subset carries no
+          // `notifications_active`, and a name the font does not have renders
+          // the literal English word rather than a glyph.
+          icon: 'notifications',
+          disabled: unmutable.applied.length === 0,
+          onClick: onBulkUnmute,
+        }
+      )
+    }
+
+    if (onCopyDetails !== undefined) {
+      actions.push({
+        id: 'copyDetails',
+        label: t('md3.inbox.bulkCopyDetails'),
+        icon: 'content_copy',
+        disabled: scopeNotifications.length === 0,
+        onClick: onBulkCopyDetails,
+      })
+    }
+
+    actions.push({
+      id: 'delete',
+      label: t('md3.inbox.bulkDelete'),
+      icon: 'delete_sweep',
+      destructive: true,
+      hasPopup: 'dialog',
+      buttonRef: bulkDeleteButtonRef,
+      disabled: scopeNotifications.length === 0,
+      onClick: onRequestBulkDelete,
+    })
+
+    actions.push({
+      id: 'more',
+      label: t('md3.inbox.moreActions'),
+      icon: 'more_vert',
+      hasPopup: 'menu',
+      buttonRef: listMenuButtonRef,
+      onClick: onOpenListMenu,
+    })
+
+    return actions
+  }, [
+    markable,
+    unmarkable,
+    mutable,
+    unmutable,
+    scopeNotifications,
+    onSetMuted,
+    onCopyDetails,
+    onBulkMarkRead,
+    onBulkMarkUnread,
+    onBulkMute,
+    onBulkUnmute,
+    onBulkCopyDetails,
+    onRequestBulkDelete,
+    onOpenListMenu,
+    bulkDeleteButtonRef,
+    listMenuButtonRef,
+  ])
+
+  /** The bar hands back a format directly; the row menu supplies its own id. */
+  const onBulkExportFormat = React.useCallback(
+    (format: Md3ListExportFormat) => runExport(format, null),
+    [runExport]
   )
 
   /**
@@ -1441,9 +1760,6 @@ export function Md3InboxView(props: IMd3InboxViewProps) {
   // ---------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------
-
-  const allVisibleSelected =
-    visible.length > 0 && selectedVisibleCount === visible.length
 
   return (
     <div className="md3-inbox md3-anim-up">
@@ -1492,93 +1808,22 @@ export function Md3InboxView(props: IMd3InboxViewProps) {
           />
         </Md3ChipRow>
 
-        <div className="md3-inbox__bulk">
-          <label className="md3-inbox__select-all">
-            <input
-              ref={selectAllRef}
-              type="checkbox"
-              className="md3-inbox-checkbox"
-              checked={allVisibleSelected}
-              disabled={visible.length === 0}
-              onChange={onSelectAllVisible}
-            />
-            <span>
-              {filtersActive
-                ? t('md3.inbox.selectAllFiltered', {
-                    count: String(visible.length),
-                  })
-                : t('md3.inbox.selectAllEverything', {
-                    count: String(visible.length),
-                  })}
-            </span>
-          </label>
-
-          <span className="md3-inbox__selection-count" role="status">
-            {t('md3.inbox.selectionCount', { count: String(selected.size) })}
-          </span>
-
-          <Md3GhostButton
-            label={t('md3.inbox.invertSelection')}
-            icon="swap_horiz"
-            disabled={visible.length === 0}
-            onClick={onInvertSelection}
-          />
-          <Md3GhostButton
-            label={t('md3.inbox.bulkMarkRead')}
-            accessibleName={t('md3.inbox.bulkMarkReadScoped', {
-              label: t('md3.inbox.bulkMarkRead'),
-              scope: scopeDescription,
-            })}
-            icon="mark_email_read"
-            disabled={scopeNotifications.every(entry => entry.read)}
-            onClick={onBulkMarkRead}
-          />
-          <Md3GhostButton
-            label={t('md3.inbox.bulkMarkUnread')}
-            accessibleName={t('md3.inbox.bulkMarkUnreadScoped', {
-              label: t('md3.inbox.bulkMarkUnread'),
-              scope: scopeDescription,
-            })}
-            icon="mark_email_unread"
-            disabled={scopeNotifications.every(entry => !entry.read)}
-            onClick={onBulkMarkUnread}
-          />
-          <Md3GhostButton
-            label={t('md3.inbox.bulkDelete')}
-            accessibleName={t('md3.inbox.bulkDeleteScoped', {
-              label: t('md3.inbox.bulkDelete'),
-              scope: scopeDescription,
-            })}
-            icon="delete_sweep"
-            className="md3-inbox__danger"
-            disabled={scopeNotifications.length === 0}
-            hasPopup="dialog"
-            buttonRef={bulkDeleteButtonRef}
-            onClick={onRequestBulkDelete}
-          />
-          {onExport === undefined ? null : (
-            <Md3GhostButton
-              label={t('md3.inbox.bulkExport')}
-              accessibleName={t('md3.inbox.bulkExportScoped', {
-                label: t('md3.inbox.bulkExport'),
-                scope: scopeDescription,
-              })}
-              icon="cloud_download"
-              hasPopup="menu"
-              disabled={scopeNotifications.length === 0}
-              onClick={onOpenBulkExport}
-            />
-          )}
-          <Md3IconButton
-            small={true}
-            icon="more_vert"
-            label={t('md3.inbox.moreActions')}
-            hasPopup="menu"
-            expanded={menu !== null && menu.kind === 'list'}
-            buttonRef={listMenuButtonRef}
-            onClick={onOpenListMenu}
-          />
-        </div>
+        <Md3BulkBar
+          listId="inbox"
+          label={t('md3.inbox.bulkLabel')}
+          visibleIds={visibleIds}
+          selected={selected}
+          filtered={filtersActive}
+          scopeLabel={scopeDescription}
+          actions={bulkActions}
+          onToggleSelectAll={onSelectAllVisible}
+          onInvertSelection={onInvertSelection}
+          onClearSelection={onClearSelection}
+          onExport={onExport === undefined ? undefined : onBulkExportFormat}
+          exportColumns={Md3InboxExportColumns}
+          onOpenExport={onExport === undefined ? undefined : onOpenBulkExport}
+          exportButtonRef={exportButtonRef}
+        />
 
         {visible.length === 0 ? (
           <Md3EmptyState
@@ -1586,7 +1831,7 @@ export function Md3InboxView(props: IMd3InboxViewProps) {
             message={
               filtersActive
                 ? t('md3.inbox.empty.noMatch')
-                : t('md3.inbox.empty.caughtUp')
+                : tFunny('md3.inbox.empty.caughtUp')
             }
             onAction={filtersActive ? onResetFilters : undefined}
           />

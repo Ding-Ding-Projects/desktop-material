@@ -49,43 +49,12 @@
 // this project carries. It sits between the chip row and the list so the
 // scope it acts on — the selection, or the filter — is stated directly above
 // the rows it will change.
-
-.md3-inbox__bulk {
-  align-items: center;
-  border-bottom: 1px solid var(--md-sys-color-outline-variant);
-  display: flex;
-  flex: none;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 0 10px 8px 12px;
-}
-
-.md3-inbox__select-all {
-  align-items: center;
-  color: var(--md-sys-color-on-surface-variant);
-  cursor: pointer;
-  display: flex;
-  font-size: 11.5px;
-  gap: 6px;
-  min-height: 28px;
-}
-
-.md3-inbox__selection-count {
-  color: var(--md-sys-color-on-surface-variant);
-  flex: none;
-  font-size: 11px;
-  margin-right: 4px;
-}
-
-// A destructive ghost button keeps the ghost shape and takes the error role,
-// so severity is carried by the label and the colour together.
-.md3-ghost-button.md3-inbox__danger {
-  color: var(--md-sys-color-error);
-
-  &:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--md-sys-color-error-container) 60%, transparent);
-  }
-}
+//
+// The bar itself is the shared `Md3BulkBar`, so its layout, its select-all,
+// its count and its destructive-verb colour all live in
+// `_md3-bulk-bar.scss`. What stays here is only what the rows need — one
+// stylesheet owning the bar is what keeps nine lists from drifting into nine
+// slightly different bars.
 
 // The shared checkbox: an MD3 square rather than the platform control, sized
 // so its hit target stays comfortable at every display scale.
@@ -182,6 +151,11 @@
 }
 
 // `titleStyle` — `nameStyle(false)` plus weight 700 while the row is unread.
+//
+// The title lays its parts out in a flex row so the MUTED badge can sit beside
+// the name. `text-overflow` does not apply to a flex container, so the name
+// carries the ellipsis itself in `.md3-inbox__title-text` below; setting it
+// here as well would look right and do nothing.
 .md3-inbox__title {
   align-items: center;
   color: var(--md-sys-color-on-surface);
@@ -190,6 +164,15 @@
   font-weight: 700;
   gap: 6px;
   line-height: 1.3;
+  min-width: 0;
+  overflow: hidden;
+}
+
+// The name itself. `min-width: 0` is what lets it shrink: without it the flex
+// item refuses to go below its content width and pushes the badge out of the
+// row instead of ellipsing.
+.md3-inbox__title-text {
+  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -221,8 +204,13 @@
   white-space: nowrap;
 }
 
+// The relative time. `flex: none` keeps it out of the shrink, and `nowrap`
+// keeps it on one line: "Yesterday", "3 hours ago" and the Cantonese "3 個鐘前"
+// are all wider than the contract's "2m", and a wrapped time makes the row
+// taller than every other row in the list.
 .md3-inbox__time {
   color: var(--md-sys-color-on-surface-variant);
   flex: none;
   font-size: 10.5px;
+  white-space: nowrap;
 }

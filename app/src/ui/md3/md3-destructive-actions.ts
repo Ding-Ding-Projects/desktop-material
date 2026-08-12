@@ -28,7 +28,13 @@ export type Md3DestructiveActionId =
   | 'repository-transfer'
   | 'self-hosted-runner-removal'
   | 'inbox-bulk-delete'
+  | 'branches-bulk-delete'
+  | 'changes-bulk-discard'
+  | 'actions-bulk-cancel'
+  | 'agents-bulk-delete'
+  | 'history-bulk-revert'
   | 'authenticator-bulk-delete'
+  | 'terminal-bulk-close'
   | 'authenticator-secrets-export'
 
 /**
@@ -143,6 +149,57 @@ export const Md3DestructiveActions: ReadonlyArray<IMd3DestructiveAction> = [
     label: 'Delete notifications in bulk',
     destroys: 'Every notification in the current selection or filter.',
     module: 'app/src/ui/md3/md3-inbox-view.tsx',
+    host: 'overlay',
+  },
+  {
+    id: 'branches-bulk-delete',
+    label: 'Delete branches in bulk',
+    destroys:
+      'Every selected local branch, and any commit reachable only from one.',
+    module: 'app/src/ui/md3/md3-branches-view.tsx',
+    host: 'overlay',
+  },
+  {
+    id: 'changes-bulk-discard',
+    label: 'Discard changed files in bulk',
+    destroys:
+      'Every working-tree change to the files in scope, which are in no ' +
+      'commit and cannot be recovered from this app.',
+    module: 'app/src/ui/md3/md3-changes-view.tsx',
+    host: 'overlay',
+  },
+  {
+    id: 'actions-bulk-cancel',
+    label: 'Cancel workflow runs in bulk',
+    destroys:
+      'The unfinished work of every selected run, and any partial result a ' +
+      'cancelled job would have produced.',
+    module: 'app/src/ui/md3/md3-actions-view.tsx',
+    host: 'overlay',
+  },
+  {
+    id: 'agents-bulk-delete',
+    label: 'Delete agent sessions in bulk',
+    destroys:
+      'Every selected worktree session, its directory, and any work only it holds.',
+    module: 'app/src/ui/md3/md3-agents-view.tsx',
+    host: 'overlay',
+  },
+  {
+    id: 'history-bulk-revert',
+    label: 'Revert commits in bulk',
+    destroys:
+      'The effect of every selected commit, by writing one revert commit per ' +
+      'commit onto the current branch.',
+    module: 'app/src/ui/md3/md3-history-view.tsx',
+    host: 'overlay',
+  },
+  {
+    id: 'terminal-bulk-close',
+    label: 'Close shell sessions in bulk',
+    destroys:
+      'Every selected shell, the command running in it, and its scrollback.',
+    module: 'app/src/ui/md3/md3-terminal-view.tsx',
     host: 'overlay',
   },
   {

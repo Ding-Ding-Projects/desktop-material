@@ -29,6 +29,7 @@ import {
   getPinnedRepositories,
   removePinnedRepository,
 } from '../../lib/stores/repository-pinning'
+import { getHiddenRepositories } from '../../lib/stores/repository-list-visibility'
 import {
   IRepositoryBulkSelection,
   emptyRepositoryBulkSelection,
@@ -83,6 +84,19 @@ export class Md3RepositoriesController {
   /** Repository ids the user has pinned, for the row adapter. */
   public getPinnedIds(): ReadonlySet<number> {
     return this.pinnedIds
+  }
+
+  /**
+   * Repository ids the user has hidden from the repository picker, for the row
+   * adapter's `isHidden` flag.
+   *
+   * Read on demand rather than cached at construction: hiding a repository is
+   * done from the classic picker's own menu, which writes local storage without
+   * telling this controller, so a value captured once would leave the row's
+   * Hidden flag permanently off for anything hidden after the shell started.
+   */
+  public getHiddenIds(): ReadonlySet<number> {
+    return new Set(getHiddenRepositories())
   }
 
   private changed(): void {

@@ -234,7 +234,14 @@
   padding: 8px 10px;
 }
 
-.md3-repositories-view__bulk-select-all,
+// The shared bar (`_md3-bulk-bar.scss`) owns select-all, the count, invert,
+// clear, every verb and the export picker; it takes the whole row so what
+// stays beside it — the group field and the exit — sits underneath rather
+// than being squeezed against it.
+.md3-repositories-view__bulk .md3-bulk-bar {
+  flex: 1 1 100%;
+}
+
 .md3-repositories-view__bulk-group {
   align-items: center;
   color: var(--md-sys-color-on-surface);
@@ -276,27 +283,6 @@
   min-width: 0;
 }
 
-.md3-repositories-view__bulk-count {
-  color: var(--md-sys-color-on-surface-variant);
-  flex: none;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.md3-repositories-view__bulk-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.md3-repositories-view__bulk-destructive {
-  background: var(--md-sys-color-error-container);
-  color: var(--md-sys-color-on-error-container);
-
-  &:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--md-sys-color-error-container) 88%, var(--md-sys-color-on-error-container));
-  }
-}
 
 // ---------------------------------------------------------------------------
 // The determinate run

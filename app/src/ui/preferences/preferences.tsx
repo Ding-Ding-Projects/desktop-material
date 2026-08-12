@@ -109,6 +109,7 @@ import { SettingsSearch, SettingsSearchSurfaceId } from './settings-search'
 import {
   filterSettingsEntries,
   settingsTabsWithMatches,
+  settingsSearchEntry,
   ISettingsSearchEntry,
 } from '../../lib/settings-search/settings-search-catalog'
 import { FilterMode, IMatch } from '../../lib/fuzzy-find'
@@ -526,10 +527,16 @@ export class Preferences extends React.Component<
       const field = scheduledFieldByEntryId[entryId]
       if (field !== undefined) {
         void this.focusScheduledSetting(field)
-      } else if (entryId === 'appearance-scheduled-settings') {
-        void teleportTo('settingsScheduledSettings')
-      } else if (entryId === 'appearance-school-mode') {
-        void teleportTo('settingsSchoolMode')
+        return
+      }
+
+      // Every other result lands on the row itself when the entry names one.
+      // Selecting the tab and stopping is the outcome a result exists to
+      // avoid: the Appearance tab alone is a dozen sections long, so a reader
+      // who searched a setting by name would still be hunting for it.
+      const target = settingsSearchEntry(entryId)?.teleportTargetId
+      if (target !== undefined) {
+        void teleportTo(target)
       }
     })
   }

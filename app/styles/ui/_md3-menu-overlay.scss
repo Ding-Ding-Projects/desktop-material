@@ -84,6 +84,20 @@
   color: var(--md-sys-color-error);
 }
 
+// The standing note under the items — the export pickers' encoding and field
+// schema. It wraps rather than truncating: a schema that ends in an ellipsis
+// answers none of the question it exists to answer.
+.md3-menu-overlay__footer {
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+  color: var(--md-sys-color-on-surface-variant);
+  flex: none;
+  font-size: 10.5px;
+  line-height: 1.45;
+  margin: 0;
+  overflow-wrap: anywhere;
+  padding: 6px 16px 8px 16px;
+}
+
 // ---------------------------------------------------------------------------
 // Item list
 // ---------------------------------------------------------------------------

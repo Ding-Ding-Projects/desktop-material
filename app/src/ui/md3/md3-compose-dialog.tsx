@@ -49,11 +49,20 @@ export interface IMd3ComposeDialogProps {
   /** How many changed files there are in total. */
   readonly totalFileCount: number
 
-  /** Added lines across the included files. */
-  readonly addedLineCount: number
+  /**
+   * Added lines across the included files, or `null` when nobody has counted
+   * them.
+   *
+   * `git status` reports which files changed and never by how much, so a total
+   * across the included files exists only once every one of their diffs has
+   * been loaded — which, with one diff loaded at a time, is normally not the
+   * case. `null` drops the `+a −d` segment from the context line; passing `0`
+   * would tell the user the commit they are about to make changes nothing.
+   */
+  readonly addedLineCount: number | null
 
-  /** Deleted lines across the included files. */
-  readonly deletedLineCount: number
+  /** Deleted lines across the included files, or `null` when uncounted. */
+  readonly deletedLineCount: number | null
 
   /** The branch the commit will land on — the contract's `activeBranch`. */
   readonly branchName: string
@@ -255,12 +264,19 @@ export function Md3ComposeDialog(props: IMd3ComposeDialogProps) {
   const summaryPlaceholder = t('md3.compose.summaryPlaceholder')
   const descriptionPlaceholder = t('md3.compose.descriptionPlaceholder')
 
-  const context = t('md3.compose.context', {
-    included: String(props.includedFileCount),
-    total: String(props.totalFileCount),
-    stat: formatAddDelete(props.addedLineCount, props.deletedLineCount),
-    branch: props.branchName,
-  })
+  const context =
+    props.addedLineCount === null || props.deletedLineCount === null
+      ? t('md3.compose.contextWithoutStats', {
+          included: String(props.includedFileCount),
+          total: String(props.totalFileCount),
+          branch: props.branchName,
+        })
+      : t('md3.compose.context', {
+          included: String(props.includedFileCount),
+          total: String(props.totalFileCount),
+          stat: formatAddDelete(props.addedLineCount, props.deletedLineCount),
+          branch: props.branchName,
+        })
 
   const hint = armed
     ? t('md3.compose.hintCharacters', {

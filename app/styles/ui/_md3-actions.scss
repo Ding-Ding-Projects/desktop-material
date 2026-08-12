@@ -102,14 +102,6 @@
 // Filter validation
 // ---------------------------------------------------------------------------
 
-.md3-actions-query-error {
-  color: var(--md-sys-color-error);
-  flex: none;
-  font-size: 11px;
-  margin: 0 0 6px 0;
-  padding: 0 12px;
-}
-
 // ---------------------------------------------------------------------------
 // Advanced filters
 // ---------------------------------------------------------------------------
@@ -173,39 +165,9 @@
   }
 }
 
-// ---------------------------------------------------------------------------
-// Bulk selection
-// ---------------------------------------------------------------------------
-
-.md3-actions-bulk {
-  align-items: center;
-  display: flex;
-  flex: none;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 0 10px 8px 10px;
-}
-
-.md3-actions-bulk__all {
-  align-items: center;
-  color: var(--md-sys-color-on-surface-variant);
-  display: inline-flex;
-  font-size: 11.5px;
-  font-weight: 600;
-  gap: 6px;
-
-  input {
-    accent-color: var(--md-sys-color-primary);
-    height: 16px;
-    margin: 0;
-    width: 16px;
-  }
-}
-
-.md3-actions-bulk__count {
-  color: var(--md-sys-color-on-surface-variant);
-  font-size: 11px;
-}
+// Bulk selection is the shared `Md3BulkBar` (`_md3-bulk-bar.scss`) — the run
+// list wears the same bar as every other MD3 list rather than a private copy
+// of it, so the two cannot drift apart a pixel at a time.
 
 // ---------------------------------------------------------------------------
 // Run list
@@ -512,13 +474,34 @@
 
 // `flex: none; width: 44px; padding-right: 10px; text-align: right;
 //  opacity: 0.45; user-select: none`.
+//
+// The contract's 44px holds its own fourteen-line fixture and nothing longer:
+// `flex: none` with no `min-width` means a number too wide for the box
+// overflows it and paints over the log text beside it rather than pushing the
+// text along. A real job log reaches six and seven digits, and these are true
+// line numbers, so the widest one is the log's own length. `Md3LogViewer` sets
+// `--md3-actions-log-digits` from that length; the `ch` unit is exactly one
+// digit wide in the monospace face, so the gutter is never short and never
+// wider than it has to be. The fallback is the contract's own 44px.
 .md3-actions-log__number {
   flex: none;
   opacity: 0.45;
   padding-right: 10px;
   text-align: right;
   user-select: none;
-  width: 44px;
+  width: max(44px, calc(var(--md3-actions-log-digits, 2) * 1ch));
+}
+
+// The ISO-8601 timestamp GitHub writes on every line of a downloaded log. It
+// is real data, so it is rendered rather than dropped, but it is not what the
+// reader came for: dimmed and in its own fixed column so the message beside it
+// still starts at the same place on every line.
+.md3-actions-log__timestamp {
+  flex: none;
+  opacity: 0.45;
+  padding-right: 10px;
+  user-select: none;
+  white-space: nowrap;
 }
 
 // `padding-right: 16px; white-space: pre-wrap; word-break: break-word`.
@@ -617,6 +600,13 @@
 
   .md3-actions-steps {
     max-height: 30%;
+  }
+
+  // Twenty-eight characters of timestamp in a stacked pane leaves the message
+  // nothing to be read in. The line's raw text still carries it, so the log
+  // search finds a timestamp whether or not this column is drawn.
+  .md3-actions-log__timestamp {
+    display: none;
   }
 }
 
