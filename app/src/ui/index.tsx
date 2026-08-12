@@ -114,10 +114,27 @@ import {
   getBrowserOpenModePreference,
 } from '../lib/internal-browser'
 import { showBrowserExternalOpenFailure } from './lib/browser-external-open-failure'
+import { installOsLockCredentialVault } from '../lib/md3-locks/lock-vault-os'
+import { installAppearanceLockGate } from './appearance'
 
 if (__DEV__) {
   installDevGlobals()
 }
+
+// Surface locks keep their credentials in the operating-system vault, and the
+// vault has to be handed to them before any lock control runs. Without this
+// call every attempt to create a lock fails with "No credential vault is
+// installed for surface locks" — the lock is written, the credential is
+// refused, the lock is rolled back, and the user is left pressing a button
+// that appears to do nothing. It is installed here rather than in the feature's
+// own barrel because it loads a native dependency that a plain Node test
+// process cannot import.
+installOsLockCredentialVault()
+
+// And a lock has to be felt to be a lock. This gates activation of any element
+// carrying a lock target id, so locking an element's appearance locks the
+// element itself rather than only recording a row in the lock manager.
+installAppearanceLockGate()
 
 migrateRendererGUID()
 
