@@ -5540,6 +5540,12 @@ export type TranslationKey =
   | 'classicExperience.provenanceStored'
   | 'classicExperience.stateOn'
   | 'classicExperience.stateOff'
+  | 'md3.classicSection.releases'
+  | 'md3.classicSection.issues'
+  | 'md3.classicSection.triage'
+  | 'md3.classicSection.cheapLfs'
+  | 'md3.classicSection.launchpad'
+  | 'md3.classicSection.historyGraph'
 
 /** Complete base catalog. Every missing locale entry falls back to this. */
 export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
@@ -12504,6 +12510,14 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'A mode was chosen on this computer: {value}.',
   'classicExperience.stateOn': 'Classic mode',
   'classicExperience.stateOff': 'Material mode',
+
+  // Bulk actions across every MD3 list destination. English.
+  'md3.classicSection.releases': 'Releases',
+  'md3.classicSection.issues': 'Issues',
+  'md3.classicSection.triage': 'Triage',
+  'md3.classicSection.cheapLfs': 'Large files',
+  'md3.classicSection.launchpad': 'Launchpad',
+  'md3.classicSection.historyGraph': 'History graph',
 }
 
 /** Hong Kong Cantonese catalog. Missing entries deliberately use English. */
@@ -19001,4 +19015,12 @@ export const cantoneseTranslations: Readonly<
   'classicExperience.provenanceStored': '呢部電腦揀咗一個模式：{value}。',
   'classicExperience.stateOn': 'Classic 模式',
   'classicExperience.stateOff': 'Material 模式',
+
+  // Bulk actions across every MD3 list destination. Cantonese.
+  'md3.classicSection.releases': '發佈版本',
+  'md3.classicSection.issues': '議題',
+  'md3.classicSection.triage': '分流',
+  'md3.classicSection.cheapLfs': '大檔案',
+  'md3.classicSection.launchpad': '發射台',
+  'md3.classicSection.historyGraph': '歷史圖譜',
 }

@@ -40,6 +40,7 @@ import {
   translatedVariable,
   translateForAccessibleName,
   type IBilingualVariable,
+  type TranslationKey,
 } from '../lib/i18n'
 import { RetryAction } from '../models/retry-actions'
 import { FetchType } from '../models/fetch'
@@ -349,7 +350,9 @@ import {
   defaultMd3MenuContext,
   type IMd3MenuContext,
   type IMd3MenuHandlers,
+  type IMd3MenuItem,
 } from './md3/md3-menu-specs'
+import type { MaterialSymbolName } from './lib/material-symbol'
 import {
   runMd3MenuCommand,
   type IMd3MenuCommandEnvironment,
@@ -931,6 +934,22 @@ export class App extends React.Component<IAppProps, IAppState> {
    * setting people conclude is broken.
    */
   private classicExperience = isClassicMode()
+
+  /**
+   * A classic repository section the reader has opened from the pane menu, or
+   * `null` when the Material destination is showing its own view.
+   *
+   * Six sections of the classic workspace — Releases, Issues, Triage, Cheap
+   * LFS, Launchpad and the history graph — have no destination of their own,
+   * so the shell had no route to any of them. Rather than invent a ninth
+   * destination the contract does not have, the pane menu opens them: the
+   * current destination hands its pane to the classic workspace, which already
+   * carries the tab bar for every section.
+   *
+   * Cleared the moment the reader picks a destination, so choosing one from
+   * the drawer is the way back and no mode is entered that has to be escaped.
+   */
+  private md3ClassicSection: RepositorySectionTab | null = null
 
   /**
    * The three destinations whose data does not live in the app store.
@@ -8551,6 +8570,12 @@ export class App extends React.Component<IAppProps, IAppState> {
     // eleven search fields, so a keystroke in one of them changes what a view
     // shows. The shell is controlled, which means this is the only place the
     // state moves.
+    //
+    // Picking a destination is also how a reader leaves a classic section, so
+    // no mode is entered here that has to be deliberately escaped.
+    if (state.destination !== this.md3ShellState.destination) {
+      this.md3ClassicSection = null
+    }
     this.md3ShellState = state
     this.forceUpdate()
   }
@@ -10244,7 +10269,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     const attempt = this.md3ActionsController.getSelectedAttempt()
     const preferences = getMd3ViewPreferences()
 
-    return buildMd3CarryOverExtensions(
+    const extensions = buildMd3CarryOverExtensions(
       {
         compareToBranch: () => this.md3GoToDestination('branches'),
         unreachableCommits: () =>
@@ -10395,6 +10420,97 @@ export class App extends React.Component<IAppProps, IAppState> {
         paneDivider: `${preferences.actionsRunListWidth}px`,
       }
     )
+
+    const paneMenu = [
+      ...(extensions.paneMenu ?? []),
+      ...this.md3ClassicSectionItems(),
+    ]
+
+    return { ...extensions, paneMenu }
+  }
+
+  /**
+   * The classic workspace sections that have no Material destination.
+   *
+   * Every other section the classic tab bar offers already has a destination
+   * of its own — Changes, History, Actions, and the repository tools the
+   * Terminal destination hosts. These six had no route at all from the shell,
+   * so preferring the newer interface cost a user six surfaces.
+   *
+   * They open in the current destination's pane rather than in a ninth
+   * destination the contract does not have, and picking any drawer destination
+   * puts the Material view back. The classic workspace brings its own tab bar,
+   * so arriving at one of the six is also arriving at all of them.
+   */
+  private md3ClassicSectionItems(): ReadonlyArray<IMd3MenuItem> {
+    if (this.md3Selection === null) {
+      return []
+    }
+
+    const sections: ReadonlyArray<{
+      readonly id: string
+      readonly section: RepositorySectionTab
+      readonly labelKey: TranslationKey
+      readonly icon: MaterialSymbolName
+    }> = [
+      {
+        id: 'classicReleases',
+        section: RepositorySectionTab.Releases,
+        labelKey: 'md3.classicSection.releases',
+        icon: 'label',
+      },
+      {
+        id: 'classicIssues',
+        section: RepositorySectionTab.Issues,
+        labelKey: 'md3.classicSection.issues',
+        icon: 'flag',
+      },
+      {
+        id: 'classicTriage',
+        section: RepositorySectionTab.Triage,
+        labelKey: 'md3.classicSection.triage',
+        icon: 'inbox',
+      },
+      {
+        id: 'classicCheapLfs',
+        section: RepositorySectionTab.CheapLfs,
+        labelKey: 'md3.classicSection.cheapLfs',
+        icon: 'inventory_2',
+      },
+      {
+        id: 'classicLaunchpad',
+        section: RepositorySectionTab.Launchpad,
+        labelKey: 'md3.classicSection.launchpad',
+        icon: 'rocket_launch',
+      },
+      {
+        id: 'classicHistoryGraph',
+        section: RepositorySectionTab.HistoryGraph,
+        labelKey: 'md3.classicSection.historyGraph',
+        icon: 'account_tree',
+      },
+    ]
+
+    return sections.map(entry => ({
+      id: entry.id,
+      label: t(entry.labelKey),
+      icon: entry.icon,
+      hint: '',
+      onClick: () => this.md3OpenClassicSection(entry.section),
+    }))
+  }
+
+  private md3OpenClassicSection(section: RepositorySectionTab) {
+    const selection = this.md3Selection
+    if (selection === null) {
+      return
+    }
+    this.md3ClassicSection = section
+    void this.props.dispatcher.changeRepositorySection(
+      selection.repository,
+      section
+    )
+    this.forceUpdate()
   }
 
   /**
@@ -10502,6 +10618,14 @@ export class App extends React.Component<IAppProps, IAppState> {
       views = this.md3Views()
     } finally {
       this.md3RenderInProgress = false
+    }
+
+    if (this.md3ClassicSection !== null) {
+      // A `null` destination is how the shell is told to render the classic
+      // workspace in that pane instead of its own view. Only the destination
+      // being looked at is handed over, so the other seven keep their views
+      // and picking one from the drawer is the way back.
+      views = { ...views, [this.md3ShellState.destination]: null }
     }
 
     return (

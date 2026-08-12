@@ -48,20 +48,18 @@ function classicSections(): ReadonlyArray<string> {
 }
 
 /**
- * Sections Material mode cannot currently reach.
+ * Sections Material mode cannot reach. Empty, and meant to stay that way.
  *
- * Each is reachable in Classic mode, so nothing is lost outright — but a user
- * who prefers the new interface cannot get to any of them, which is not the
- * deal two equal modes are meant to offer.
+ * It held six — Releases, Issues, Triage, Cheap LFS, Launchpad and the history
+ * graph — each reachable in Classic mode and by no route at all in Material
+ * mode. The pane menu now opens all six, so the list is empty and the two
+ * modes reach the same sections.
+ *
+ * The list is kept rather than deleted because the assertions around it are
+ * what stop the gap reopening: a section stranded by the next change fails the
+ * test below instead of being noticed by a user months later.
  */
-const UnreachableInMaterialMode: ReadonlyArray<string> = [
-  'Releases',
-  'Issues',
-  'Triage',
-  'CheapLfs',
-  'Launchpad',
-  'HistoryGraph',
-]
+const UnreachableInMaterialMode: ReadonlyArray<string> = []
 
 describe('interface mode section parity', () => {
   it('reads a section list worth asserting against', () => {
