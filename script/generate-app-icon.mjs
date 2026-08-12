@@ -321,6 +321,9 @@ for (const target of targets) {
   )
 }
 
-const chromePng = join(root, 'app/static/logos/master/desktop-material-logo.png')
+const chromePng = join(
+  root,
+  'app/static/logos/master/desktop-material-logo.png'
+)
 writeFileSync(chromePng, images.get(256))
 say(`wrote ${chromePng}`)
