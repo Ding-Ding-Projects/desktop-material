@@ -491,6 +491,19 @@
     gap: 6px;
     padding: 0 16px 10px;
 
+    // `.tab-bar` is `height: var(--tab-bar-height)`, which is 29px — a fixed
+    // height sized for the original 25px tabs. These pills are 40px with 10px
+    // of padding under them, so 50px of content was being laid out inside a
+    // 29px box and the extra 21px simply overflowed onto whatever came next.
+    // In the Branches sheet that is `Checkout from another fork…`, which the
+    // tabs were visibly sitting on top of.
+    //
+    // `auto` rather than a new fixed number: the pills already state their own
+    // height, and a second hard-coded value here is the same bug again the
+    // next time one of them changes.
+    height: auto;
+    flex: none;
+
     .tab-bar-item {
       flex: 1;
       justify-content: center;
@@ -639,12 +652,28 @@
     grid-template-columns: minmax(0, 1fr);
     gap: var(--spacing);
 
+    // Rows sized to their buttons, and pinned to the top of whatever height
+    // the row ends up with.
+    //
+    // Previously the buttons carried `align-self: stretch`, which is only
+    // correct while the grid is exactly as tall as its content. The moment it
+    // is taller — an empty branch list leaving slack, a container that sizes
+    // differently, a future change to the footer — both buttons inflate to
+    // fill it, and two 40px actions become two 100px slabs with their labels
+    // marooned in the middle. Nothing errors and no test notices, because the
+    // buttons still work; they are simply enormous.
+    grid-auto-rows: min-content;
+    align-content: start;
+
     > .button-component {
       width: 100%;
       max-width: 100%;
       min-width: 0;
       margin-right: 0;
-      align-self: stretch;
+      // A floor, not a fixed height: a long branch name wraps to a second line
+      // and the button has to grow with it.
+      min-height: var(--button-height);
+      align-self: start;
       justify-self: stretch;
     }
   }
