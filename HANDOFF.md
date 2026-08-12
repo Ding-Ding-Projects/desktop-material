@@ -9707,3 +9707,55 @@ which is how the gap opened.
   Material 3 button change and both new controls are unverified visually.
 - The empty branch list visible in the reported Branches screenshot was never
   diagnosed; the two layout faults beside it were.
+
+
+## 2026-08-12 capture harness — three distinct failures, two fixed
+
+Worth separating, because they arrived one behind the other and the temptation
+was to treat them as one problem with one cause.
+
+**1. `ERR_CONNECTION_REFUSED` — fixed.** A development compile sets webpack's
+`publicPath` to `http://localhost:3000/build/`, so the renderer fetches its own
+bundle from a dev server no capture run has any reason to be running. Run
+`yarn compile:prod` before capturing. The harness now names this outright when it
+sees a refused connection, because the bare error sends a reader looking at the
+network rather than at which webpack config produced the bundle.
+
+This was found only because the harness was changed to report the console errors
+it had been collecting all along. It reported them **only on the success path**,
+so the one failure where they are decisive was the one failure that discarded
+them — leaving `locator timed out waiting for #desktop-app-contents`, which reads
+identically whether the app is broken, the machine is slow, or this.
+
+**2. Silent process abort on `--tabs=N` — fixed.** With no dialog handler
+registered, Playwright auto-dismisses every dialog, and that auto-dismiss races
+Electron's teardown: it calls `Page.handleJavaScriptDialog` after the dialog has
+gone, rejects with `No dialog is showing`, and Node turns the unhandled rejection
+into a process abort. No failure line, no console errors, no indication of which
+step was in flight — indistinguishable from the application crashing. The harness
+now accepts dialogs deliberately, tolerates one that has already closed, and
+reports a driver-level rejection as an ordinary non-zero exit.
+
+**3. `--tabs=N` still fails, but now legibly — NOT fixed.**
+`page.reload: Timeout 30000ms exceeded, waiting for navigation until "load"`.
+
+The cause is understood and neither half is misbehaving. `profile-git.ts`
+installs a `beforeunload` guard while a profile write is in flight
+(`profileRepositoryNavigationGuards`), and the tab-seeding path writes
+repositories into IndexedDB and then reloads the renderer straight into it.
+Electron cancels the navigation rather than prompting, so `page.reload` waits for
+a navigation that will never happen. Accepting the dialog does not help, because
+there is no dialog to accept.
+
+Candidate fixes for whoever picks this up: reload with
+`waitUntil: 'domcontentloaded'`; or wait for the profile write to settle before
+reloading; or have the seeding path avoid the reload entirely. Not attempted here
+— the settings captures this session needed did not use `--tabs`, and guessing at
+a fix for a path that is not exercised would have shipped an unverified change.
+
+**Captures taken this session:** `docs/assets/screenshots/personal-vocabulary.png`
+and `docs/assets/screenshots/narrator-voice-pickers.png`, both from the built app
+at the commits named in their feature articles. Both caught defects no test was
+looking at — a label that repeated its own heading, and a disabled text button
+that rendered as stray grey text because a Material text button has no container
+until it is interacted with.
