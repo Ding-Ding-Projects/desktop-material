@@ -45,3 +45,14 @@ tui/.venv/
 
 # Agent worktrees are transient checkouts, never lint targets
 .claude/
+
+# `design/*.dc.html` is the same arrangement as `site/index.html` above: a
+# design authored in a design tool and re-imported wholesale. Reformatting it
+# turns every future re-import into an unreviewable diff, and the encoder that
+# reads it is sensitive to the whitespace before a camelCase attribute.
+design/*.dc.html
+
+# `script/fetch-material-symbols-subset.mjs` owns this file's layout, one font
+# asset per entry. Reformatting it only means the next regeneration shows up as
+# a whole-file diff.
+app/styles/fonts/font-assets-manifest.json

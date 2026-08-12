@@ -46,11 +46,7 @@
   color: var(--md-sys-color-error);
 
   &:hover:not(:disabled) {
-    background: color-mix(
-      in srgb,
-      var(--md-sys-color-error-container) 60%,
-      transparent
-    );
+    background: color-mix(in srgb, var(--md-sys-color-error-container) 60%, transparent);
   }
 }
 
