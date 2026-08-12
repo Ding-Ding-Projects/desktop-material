@@ -110,6 +110,7 @@ export type FunnyLevelTextBase =
   // whether the current value was actually chosen are facts a reader acts on.
   | 'dialogEmoji.explanation'
   | 'classicToolbar.explanation'
+  | 'classicExperience.explanation'
   // The same rule for the three settings rows that host a rewrite surface:
   // only the explanation is banded. What each manager holds, how many of them
   // there are, and how a locked-out user recovers are facts, and a reader who

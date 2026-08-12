@@ -5528,6 +5528,18 @@ export type TranslationKey =
   | 'settingsSearch.entry.appearanceSupportTickets.desc'
   | 'settingsSearch.entry.advancedAuthenticator.title'
   | 'settingsSearch.entry.advancedAuthenticator.desc'
+  | 'classicExperience.heading'
+  | 'classicExperience.toggleLabel'
+  | 'classicExperience.explanationSummary'
+  | 'classicExperience.explanation.plain'
+  | 'classicExperience.explanation.light'
+  | 'classicExperience.explanation.playful'
+  | 'classicExperience.explanation.maximum'
+  | 'classicExperience.boundaryNote'
+  | 'classicExperience.provenanceDefault'
+  | 'classicExperience.provenanceStored'
+  | 'classicExperience.stateOn'
+  | 'classicExperience.stateOff'
 
 /** Complete base catalog. Every missing locale entry falls back to this. */
 export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
@@ -12397,6 +12409,20 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settingsSearch.entry.appearanceSupportTickets.desc': 'The local, entirely fictional support desk that walks a locked-out user to the application data folder. Nothing is sent anywhere.',
   'settingsSearch.entry.advancedAuthenticator.title': 'Authenticator',
   'settingsSearch.entry.advancedAuthenticator.desc': 'Register one-time-code accounts by QR, otpauth link or typed secret, and read their live codes. Everything is generated on this computer.',
+
+  // Bulk actions across every MD3 list destination. English.
+  'classicExperience.heading': 'Classic experience',
+  'classicExperience.toggleLabel': 'Use the classic experience',
+  'classicExperience.explanationSummary': 'What this setting changes',
+  'classicExperience.explanation.plain': 'When this is on, the app uses the interface it had before the Material Design 3 rewrite: the repository tab strip, the classic toolbar, the sidebar and the repository workspace. When it is off, the app uses the MD3 shell with its navigation drawer and eight destinations. Both reach the same features; only the layout differs, and the setting takes effect immediately.',
+  'classicExperience.explanation.light': 'On brings back the interface from before the MD3 rewrite — tab strip, classic toolbar, sidebar, repository workspace. Off keeps the new shell with its drawer and eight destinations. Same features either way, different furniture, and the change lands immediately.',
+  'classicExperience.explanation.playful': 'On, and the old interface walks back in exactly as it was: tab strip, classic toolbar, sidebar, repository workspace, every one of them where a decade of muscle memory left them. Off, and the MD3 shell takes the room again with its drawer and eight destinations. Neither one can do anything the other cannot; the change takes effect the moment you click it, no restart, no ceremony.',
+  'classicExperience.explanation.maximum': 'On, and the entire pre-rewrite interface strolls back to its old seat — tab strip, classic toolbar, sidebar, repository workspace, the whole crew present and correct and exactly where you left them. Off, and the MD3 shell reclaims the place with its navigation drawer and its eight destinations. Not one capability lives on only one side of this switch: everything the classic chrome offered is carried into the shell, and everything the shell added opens perfectly well from the classic layout. It takes effect the instant you click it — no restart, no relaunch, no being told to try turning it off and on again.',
+  'classicExperience.boundaryNote': 'Neither layout can reach anything the other cannot. While the classic experience is on, the separate "Show the classic toolbar" setting no longer applies: the toolbar is part of this layout rather than a band above the MD3 pane.',
+  'classicExperience.provenanceDefault': 'No choice has been recorded on this computer, so the shipped value is in use: {value}.',
+  'classicExperience.provenanceStored': 'A choice was recorded on this computer: {value}.',
+  'classicExperience.stateOn': 'the classic experience',
+  'classicExperience.stateOff': 'the MD3 shell',
 }
 
 /** Hong Kong Cantonese catalog. Missing entries deliberately use English. */
@@ -18822,4 +18848,18 @@ export const cantoneseTranslations: Readonly<
   'settingsSearch.entry.appearanceSupportTickets.desc': '純屬虛構、淨係喺本機行嘅支援櫃檯，帶俾鎖住咗嘅用家搵返個應用程式資料夾。乜都唔會 send 去邊。',
   'settingsSearch.entry.advancedAuthenticator.title': '驗證器',
   'settingsSearch.entry.advancedAuthenticator.desc': '用 QR、otpauth 連結或者手打密鑰去登記一次性密碼帳戶，睇佢哋嘅即時密碼。全部喺呢部電腦度計出嚟。',
+
+  // Bulk actions across every MD3 list destination. Cantonese.
+  'classicExperience.heading': '經典介面',
+  'classicExperience.toggleLabel': '用返經典介面',
+  'classicExperience.explanationSummary': '呢個設定會改咩',
+  'classicExperience.explanation.plain': '開咗之後，個 app 會用返 Material Design 3 重寫之前嗰個介面：repository 分頁條、經典工具列、側欄同 repository 工作區。閂咗就會用 MD3 新殼，有導覽抽屜同八個目的地。兩邊功能一樣齊，淨係擺位唔同，而且一撳即刻生效。',
+  'classicExperience.explanation.light': '開咗就攞返 MD3 重寫之前嗰個介面——分頁條、經典工具列、側欄、repository 工作區。閂咗就繼續用新殼、有抽屜同八個目的地。兩邊功能一樣，淨係傢俬擺法唔同，而且一撳即刻見到。',
+  'classicExperience.explanation.playful': '開咗，舊介面就原原本本行返入嚟：分頁條、經典工具列、側欄、repository 工作區，件件都喺你十年肌肉記憶擺低嗰個位。閂咗，MD3 新殼就再接手，帶埋佢個抽屜同八個目的地。兩邊冇邊個做得到啲嘢另一邊做唔到；撳落去即刻生效，唔使重開，唔使搞儀式。',
+  'classicExperience.explanation.maximum': '開咗，成個重寫之前嘅介面就施施然行返去佢個舊位——分頁條、經典工具列、側欄、repository 工作區，成班人齊齊整整，一個唔少，全部喺你走嗰陣擺低嗰度。閂咗，MD3 新殼就收返個場，帶住佢個導覽抽屜同八個目的地。冇任何一樣功能係淨係得一邊有：經典外殼有嘅嘢全部搬咗入新殼，新殼加嘅嘢喺經典佈局度一樣開得。撳落去嗰秒即刻生效——唔使重開、唔使重新啟動、更加唔使人叫你「試吓熄咗再開」。',
+  'classicExperience.boundaryNote': '兩個佈局冇邊個去得到啲地方另一邊去唔到。開咗經典介面嗰陣，另外嗰個「顯示舊版工具列」設定就唔再適用：工具列本身就係呢個佈局嘅一部分，唔係 MD3 面板上面嗰條額外橫額。',
+  'classicExperience.provenanceDefault': '呢部電腦未記低過任何選擇，所以用緊出廠設定：{value}。',
+  'classicExperience.provenanceStored': '呢部電腦記低咗一個選擇：{value}。',
+  'classicExperience.stateOn': '經典介面',
+  'classicExperience.stateOff': 'MD3 新殼',
 }

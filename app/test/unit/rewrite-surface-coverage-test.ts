@@ -299,10 +299,7 @@ describe('rewrite surface coverage', () => {
     ]
 
     for (const expectation of expectations) {
-      const source = await readFile(
-        Path.join(src, expectation.file),
-        'utf8'
-      )
+      const source = await readFile(Path.join(src, expectation.file), 'utf8')
       assert.ok(
         source.includes('<details'),
         `${expectation.file} must put its explanation behind progressive disclosure`

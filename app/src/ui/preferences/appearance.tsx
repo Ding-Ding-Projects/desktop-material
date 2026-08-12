@@ -45,6 +45,12 @@ import {
   setShowClassicToolbar,
 } from '../../lib/classic-toolbar'
 import {
+  ClassicExperienceProvenance,
+  getUseClassicExperience,
+  getUseClassicExperienceProvenance,
+  setUseClassicExperience,
+} from '../../lib/classic-experience'
+import {
   clampFunnyLevel,
   IAudioSystemSettings,
 } from '../../lib/audio/audio-settings'
@@ -120,6 +126,10 @@ interface IAppearanceState {
   readonly showDialogEmojiProvenance: DialogEmojiProvenance
   /** Live value of "Show the classic toolbar". */
   readonly showClassicToolbar: boolean
+
+  readonly useClassicExperience: boolean
+
+  readonly useClassicExperienceProvenance: ClassicExperienceProvenance
   /** Whether that value was recorded here or is the shipped fallback. */
   readonly showClassicToolbarProvenance: ClassicToolbarProvenance
 }
@@ -149,6 +159,8 @@ export class Appearance extends React.Component<
       showDialogEmojiProvenance: getShowDialogEmojiProvenance(),
       showClassicToolbar: getShowClassicToolbar(),
       showClassicToolbarProvenance: getShowClassicToolbarProvenance(),
+      useClassicExperience: getUseClassicExperience(),
+      useClassicExperienceProvenance: getUseClassicExperienceProvenance(),
     }
 
     if (!usePropTheme) {
@@ -388,6 +400,86 @@ export class Appearance extends React.Component<
         </p>
       </div>
     )
+  }
+
+  /**
+   * "Use the classic experience" — the whole pre-rewrite interface.
+   *
+   * Same shape as the toolbar row above it: a checkbox, the explanation behind
+   * progressive disclosure, and a provenance line naming the real value rather
+   * than the word "default".
+   *
+   * The boundary note says plainly that the toolbar setting no longer applies
+   * while this is on. Two switches that appear to disagree is worse than one
+   * that explains itself, and in the classic layout the toolbar is the chrome
+   * rather than a band above it.
+   */
+  private renderClassicExperience() {
+    const languageMode = this.props.appearanceCustomization.languageMode
+    const localize = (key: Parameters<typeof translate>[0]) =>
+      translate(key, languageMode)
+    const levels: IFunnyLevels = {
+      english: this.state.funnyLevelEnglish,
+      cantonese: this.state.funnyLevelCantonese,
+    }
+
+    const enabled = this.state.useClassicExperience
+    const provenance = translate(
+      this.state.useClassicExperienceProvenance === 'stored'
+        ? 'classicExperience.provenanceStored'
+        : 'classicExperience.provenanceDefault',
+      languageMode,
+      {
+        value: translatedVariable(
+          enabled ? 'classicExperience.stateOn' : 'classicExperience.stateOff'
+        ),
+      }
+    )
+
+    return (
+      <div
+        className="appearance-section appearance-customization-section appearance-classic-experience"
+        {...teleportAnchor('settings-classic-experience')}
+      >
+        <h2>{localize('classicExperience.heading')}</h2>
+        <Checkbox
+          label={localize('classicExperience.toggleLabel')}
+          value={enabled ? CheckboxValue.On : CheckboxValue.Off}
+          onChange={this.onUseClassicExperienceChanged}
+          ariaDescribedBy="classic-experience-provenance"
+        />
+        <details className="appearance-classic-experience-explanation">
+          <summary>{localize('classicExperience.explanationSummary')}</summary>
+          <p className="appearance-customization-caption">
+            {translateWithFunnyLevel(
+              'classicExperience.explanation',
+              languageMode,
+              levels
+            )}
+          </p>
+          <p className="appearance-customization-caption">
+            {localize('classicExperience.boundaryNote')}
+          </p>
+        </details>
+        <p
+          id="classic-experience-provenance"
+          className="appearance-customization-caption appearance-classic-experience-provenance"
+        >
+          {provenance}
+        </p>
+      </div>
+    )
+  }
+
+  private onUseClassicExperienceChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    const enabled = event.currentTarget.checked
+    setUseClassicExperience(enabled)
+    this.setState({
+      useClassicExperience: enabled,
+      useClassicExperienceProvenance: getUseClassicExperienceProvenance(),
+    })
   }
 
   private onShowClassicToolbarChanged = (
@@ -999,6 +1091,7 @@ export class Appearance extends React.Component<
         {this.renderElementGestureNote()}
         {this.renderLanguageAndNavigation()}
         {this.renderDialogEmoji()}
+        {this.renderClassicExperience()}
         {this.renderClassicToolbar()}
         <SchoolModePreferences
           languageMode={this.props.appearanceCustomization.languageMode}

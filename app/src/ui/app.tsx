@@ -418,6 +418,11 @@ import {
   getShowClassicToolbar,
   setShowClassicToolbar,
 } from '../lib/classic-toolbar'
+import {
+  UseClassicExperienceChangedEvent,
+  getUseClassicExperience,
+  setUseClassicExperience,
+} from '../lib/classic-experience'
 import { BranchType } from '../models/branch'
 import { DiffSelectionType } from '../models/diff'
 import { initials as md3Initials } from './md3/md3-style-contract'
@@ -917,6 +922,16 @@ export class App extends React.Component<IAppProps, IAppState> {
   private md3ClassicToolbarVisible = getShowClassicToolbar()
 
   /**
+   * Whether the whole pre-rewrite interface is in use.
+   *
+   * Read once and kept live through the change event, the same way the toolbar
+   * band's setting is, so switching layouts takes effect immediately rather
+   * than at the next launch. A setting that needs a restart to be believed is
+   * a setting people conclude is broken.
+   */
+  private classicExperience = getUseClassicExperience()
+
+  /**
    * The three destinations whose data does not live in the app store.
    *
    * Actions reads the GitHub Actions API, Terminal owns real CLI workbench
@@ -1305,6 +1320,10 @@ export class App extends React.Component<IAppProps, IAppState> {
     window.removeEventListener(
       ShowClassicToolbarChangedEvent,
       this.onClassicToolbarVisibilityChanged
+    )
+    window.removeEventListener(
+      UseClassicExperienceChangedEvent,
+      this.onClassicExperienceChanged
     )
     window.removeEventListener(
       Md3ViewPreferencesChangedEvent,
@@ -2447,6 +2466,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     values.set('palette:set-underline-links', this.state.underlineLinks)
     values.set('palette:set-dialog-emoji', getShowDialogEmoji())
     values.set('palette:set-classic-toolbar', this.md3ClassicToolbarVisible)
+    values.set('palette:set-classic-experience', this.classicExperience)
 
     // The MD3 shell's own values: two read out of live shell state, six out of
     // the persisted view preferences the contract's menus flip. Every one of
@@ -2806,6 +2826,11 @@ export class App extends React.Component<IAppProps, IAppState> {
         // listens for, so the shell picks the change up without a second path
         // through this class.
         setShowClassicToolbar(asBoolean)
+        return
+      case 'palette:set-classic-experience':
+        // Same shape: the setter raises the window event `App` listens for, so
+        // the layout swaps without a second path through this class.
+        setUseClassicExperience(asBoolean)
         return
       case 'palette:md3-search-regex':
         return this.md3Dispatch({
@@ -3961,6 +3986,10 @@ export class App extends React.Component<IAppProps, IAppState> {
     window.addEventListener(
       ShowClassicToolbarChangedEvent,
       this.onClassicToolbarVisibilityChanged
+    )
+    window.addEventListener(
+      UseClassicExperienceChangedEvent,
+      this.onClassicExperienceChanged
     )
     // The MD3 presentation preferences can be written from a menu row, a
     // palette row or a destination view. Listening for the change rather than
@@ -8484,6 +8513,14 @@ export class App extends React.Component<IAppProps, IAppState> {
     }
   }
 
+  private onClassicExperienceChanged = () => {
+    const next = getUseClassicExperience()
+    if (next !== this.classicExperience) {
+      this.classicExperience = next
+      this.forceUpdate()
+    }
+  }
+
   private onMd3ShellStateChange = (state: IMd3ShellState) => {
     // Every action re-renders now: the destination views are built from these
     // eleven search fields, so a keystroke in one of them changes what a view
@@ -10335,7 +10372,94 @@ export class App extends React.Component<IAppProps, IAppState> {
     )
   }
 
+  /**
+   * The drop target both layouts share.
+   *
+   * Shared rather than copied: two definitions of the same overlay is two
+   * chances for one of them to stop matching what dropping a folder actually
+   * does.
+   */
+  private renderRepositoryDropOverlay() {
+    return (
+      <div className="repository-drop-overlay" role="status" aria-live="polite">
+        <span className="repository-drop-overlay-icon">
+          <Octicon symbol={octicons.repoPush} height={28} />
+        </span>
+        <strong>Drop repository folders to open tabs</strong>
+        <span>Existing repositories switch instantly; new ones are added.</span>
+      </div>
+    )
+  }
+
+  /**
+   * The pre-rewrite interface, rendered when the classic experience is on.
+   *
+   * This is the layout `renderApp` had before the MD3 shell, not an imitation
+   * of it: the repository tab strip, the classic toolbar, the banners and the
+   * repository workspace, in the order they were in, from the same components
+   * that still ship. The popup layer, the drag element and the drop overlay are
+   * shared with the shell rather than duplicated, because a dialog that only
+   * opened in one of the two layouts would be exactly the split this setting
+   * exists to avoid.
+   *
+   * The classic toolbar is unconditional here. Its own setting decides whether
+   * the band sits above the *MD3* pane; in this layout the toolbar is the
+   * chrome, so hiding it would leave a classic experience with no classic
+   * anything.
+   */
+  private renderClassicApp() {
+    const selectedState = this.state.selectedState
+    const repositoryBoundaryKey =
+      selectedState === null
+        ? `none:${this.state.repositories.length}`
+        : `${selectedState.type}:${selectedState.repository.hash}`
+
+    return (
+      <div
+        id="desktop-app-contents"
+        className={this.getDesktopAppContentsClassNames()}
+        {...teleportAnchor('app-workspace')}
+        data-customization-surface="app-workspace"
+        data-customization-label="App workspace"
+        data-customization-scope="profile"
+      >
+        {this.renderUpdateDownloadProgress()}
+        {this.renderRepositoryTabStrip()}
+        {this.renderToolbar()}
+        {this.renderCheapLfsRestoreProgress()}
+        {this.renderBanner()}
+        {this.renderSubmoduleRepositoryContext()}
+        <CrashProofBoundary
+          name="Repository workspace"
+          resetKey={repositoryBoundaryKey}
+        >
+          {this.renderRepository()}
+        </CrashProofBoundary>
+        <CrashProofBoundary
+          name="Build runner"
+          resetKey={repositoryBoundaryKey}
+        >
+          {this.renderBuildRunPanel()}
+        </CrashProofBoundary>
+        <CrashProofBoundary
+          name="Notification center"
+          resetKey={this.state.isNotificationCentreOpen ? 'open' : 'closed'}
+        >
+          {this.renderNotificationCentre()}
+        </CrashProofBoundary>
+        {this.renderAppearanceEditor()}
+        {this.renderPopups()}
+        {this.renderDragElement()}
+        {this.renderRepositoryDropOverlay()}
+      </div>
+    )
+  }
+
   private renderApp() {
+    if (this.classicExperience) {
+      return this.renderClassicApp()
+    }
+
     // The controllers are pointed at the current repository before the views
     // are built, so a repository switch never renders one destination's data
     // under another repository's name.
@@ -10413,19 +10537,7 @@ export class App extends React.Component<IAppProps, IAppState> {
           {this.renderAppearanceEditor()}
           {this.renderPopups()}
           {this.renderDragElement()}
-          <div
-            className="repository-drop-overlay"
-            role="status"
-            aria-live="polite"
-          >
-            <span className="repository-drop-overlay-icon">
-              <Octicon symbol={octicons.repoPush} height={28} />
-            </span>
-            <strong>Drop repository folders to open tabs</strong>
-            <span>
-              Existing repositories switch instantly; new ones are added.
-            </span>
-          </div>
+          {this.renderRepositoryDropOverlay()}
         </Md3Shell>
       </div>
     )
