@@ -256,6 +256,7 @@ describe('elements advertise their lock target', () => {
     const surfaces = [
       'app/src/ui/submodules/submodule-back-button.tsx',
       'app/src/ui/repository-tabs/repository-tab.tsx',
+      'app/src/ui/repositories-list/repository-list-item.tsx',
     ]
     for (const surface of surfaces) {
       const source = readFileSync(join(process.cwd(), surface), 'utf8')
