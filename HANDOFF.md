@@ -9759,3 +9759,24 @@ at the commits named in their feature articles. Both caught defects no test was
 looking at — a label that repeated its own heading, and a disabled text button
 that rendered as stray grey text because a Material text button has no container
 until it is interacted with.
+
+
+## 2026-08-12 the trailer question, settled by checking rather than by rewriting
+
+Ten commits in this session carry no `Co-Authored-By` trailer, because
+`commit.template` does not apply to `git commit -F`. The obvious remedy is a
+history rewrite and a force-push, which needs explicit authorization and is
+worth not asking for, because the premise turns out to be wrong.
+
+`script/count-lines.mjs` attributes a commit to an agent when **either** the
+author matches `AgentAuthorPattern` (`/^(claude|codex|opencode|…)/i`) **or** a
+`Co-Authored-By` trailer matches. Every commit in this repository is authored by
+`Claude Fable 5`, so the first branch is satisfied and the trailer is redundant.
+
+Verified rather than reasoned: running `agentCommits()` over the real history and
+checking all ten SHAs returns **10/10 attributed to an agent**.
+
+So there is nothing to fix, and rewriting ten pushed commits would have changed
+no number anywhere. The trailer still goes on every new commit — it is the rule,
+and it is the branch that carries the attribution in any repository where an
+agent commits under a person's identity. It simply is not load-bearing here.
