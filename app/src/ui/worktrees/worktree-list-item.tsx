@@ -1,5 +1,6 @@
 import * as React from 'react'
 import * as Path from 'path'
+import { Branch } from '../../models/branch'
 import { WorktreeEntry } from '../../models/worktree'
 import { shortenSHA } from '../../models/commit'
 import { IMatches } from '../../lib/fuzzy-find'
@@ -10,16 +11,33 @@ import classNames from 'classnames'
 import { TooltippedContent } from '../lib/tooltipped-content'
 import { enableAccessibleListToolTips } from '../../lib/feature-flag'
 import { RelativeTime } from '../relative-time'
+import { Button } from '../lib/button'
 
 interface IWorktreeListItemProps {
   readonly worktree: WorktreeEntry
   readonly isCurrentWorktree: boolean
   readonly matches: IMatches
+  readonly mergeBranch?: Branch
+  readonly onMergeWorktree?: (branch: Branch) => void
 }
 
 export class WorktreeListItem extends React.Component<IWorktreeListItemProps> {
+  private onMergeWorktree = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation()
+    const { mergeBranch, onMergeWorktree } = this.props
+    if (mergeBranch !== undefined && onMergeWorktree !== undefined) {
+      onMergeWorktree(mergeBranch)
+    }
+  }
+
   public render() {
-    const { worktree, isCurrentWorktree, matches } = this.props
+    const {
+      worktree,
+      isCurrentWorktree,
+      matches,
+      mergeBranch,
+      onMergeWorktree,
+    } = this.props
     const name = Path.basename(worktree.path)
     const icon = isCurrentWorktree ? octicons.check : octicons.fileDirectory
     const refLabel = worktree.branch
@@ -73,6 +91,16 @@ export class WorktreeListItem extends React.Component<IWorktreeListItemProps> {
             />
           )}
         </div>
+        {mergeBranch !== undefined && onMergeWorktree !== undefined && (
+          <Button
+            className="merge-worktree-button"
+            size="small"
+            tooltip={`Merge ${mergeBranch.name} into the current branch`}
+            onClick={this.onMergeWorktree}
+          >
+            Merge worktree
+          </Button>
+        )}
       </div>
     )
   }

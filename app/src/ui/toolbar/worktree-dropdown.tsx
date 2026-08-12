@@ -17,6 +17,7 @@ import { Resizable } from '../resizable'
 import { enableResizingToolbarButtons } from '../../lib/feature-flag'
 import { WorktreeAdministration } from '../worktrees/worktree-administration'
 import { menuAccelerator } from '../../lib/menu-accelerators'
+import { Branch } from '../../models/branch'
 
 interface IWorktreeDropdownProps {
   readonly dispatcher: Dispatcher
@@ -125,6 +126,15 @@ export class WorktreeDropdown extends React.Component<
     })
   }
 
+  private onMergeWorktree = (branch: Branch) => {
+    this.props.dispatcher.closeFoldout(FoldoutType.Worktree)
+    this.props.dispatcher.startMergeBranchOperation(
+      this.props.repository,
+      false,
+      branch
+    )
+  }
+
   private onContextMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
 
@@ -191,6 +201,7 @@ export class WorktreeDropdown extends React.Component<
         onFilterTextChanged={this.onFilterTextChanged}
         canCreateNewWorktree={true}
         onCreateNewWorktree={this.onCreateNewWorktree}
+        onMergeWorktree={this.onMergeWorktree}
         onMergeAllWorktrees={this.onMergeAllWorktrees}
         onWorktreeContextMenu={this.onWorktreeContextMenu}
         renderAdministration={this.renderAdministration}

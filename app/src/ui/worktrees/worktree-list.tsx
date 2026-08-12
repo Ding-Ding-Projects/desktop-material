@@ -1,5 +1,6 @@
 import * as React from 'react'
 import * as Path from 'path'
+import { Branch, BranchType } from '../../models/branch'
 import { WorktreeEntry } from '../../models/worktree'
 import { IFilterListGroup, IFilterListItem } from '../lib/filter-list'
 import { SectionFilterList } from '../lib/section-filter-list'
@@ -29,6 +30,7 @@ interface IWorktreeListProps {
   readonly filterText: string
   readonly canCreateNewWorktree: boolean
   readonly onCreateNewWorktree?: () => void
+  readonly onMergeWorktree?: (branch: Branch) => void
   readonly onMergeAllWorktrees?: () => void
   readonly renderAdministration?: () => React.ReactNode
   readonly onWorktreeContextMenu?: (
@@ -76,14 +78,21 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
   })
 
   private renderItem = (item: IWorktreeListItem, matches: IMatches) => {
+    const isCurrentWorktree =
+      this.props.currentWorktree !== null &&
+      this.props.currentWorktree.path === item.worktree.path
+    const mergeBranch =
+      this.props.onMergeWorktree === undefined
+        ? undefined
+        : getMergeBranchForWorktree(item.worktree, isCurrentWorktree)
+
     return (
       <WorktreeListItem
         worktree={item.worktree}
-        isCurrentWorktree={
-          this.props.currentWorktree !== null &&
-          this.props.currentWorktree.path === item.worktree.path
-        }
+        isCurrentWorktree={isCurrentWorktree}
         matches={matches}
+        mergeBranch={mergeBranch}
+        onMergeWorktree={this.props.onMergeWorktree}
       />
     )
   }
@@ -170,6 +179,36 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
       />
     )
   }
+}
+
+export function getMergeBranchForWorktree(
+  worktree: WorktreeEntry,
+  isCurrentWorktree: boolean
+): Branch | undefined {
+  if (
+    worktree.type !== 'linked' ||
+    worktree.branch === null ||
+    worktree.isDetached ||
+    isCurrentWorktree ||
+    worktree.dirtyFileCount === null ||
+    worktree.isLocked ||
+    worktree.isPrunable
+  ) {
+    return undefined
+  }
+
+  const branchName = worktree.branch.replace(/^refs\/heads\//, '')
+  if (branchName === worktree.branch) {
+    return undefined
+  }
+
+  return new Branch(
+    branchName,
+    null,
+    { sha: worktree.head },
+    BranchType.Local,
+    worktree.branch
+  )
 }
 
 function worktreeFilterText(worktree: WorktreeEntry): ReadonlyArray<string> {

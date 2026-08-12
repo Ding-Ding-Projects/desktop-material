@@ -130,6 +130,12 @@
         white-space: nowrap;
       }
     }
+
+    .merge-worktree-button {
+      flex-shrink: 0;
+      margin-left: var(--spacing-half);
+      padding: 0 var(--spacing);
+    }
   }
 
   // The foldout is only min(365px, 100vw - 16px) wide; the labeled
