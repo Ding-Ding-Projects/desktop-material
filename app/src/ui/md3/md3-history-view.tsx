@@ -582,7 +582,9 @@ interface IMd3HistoryRowProps {
   /** The row's index within the visible list, which is what a range spans. */
   readonly selectIndex: number
 
-  readonly onCheckboxPointer: (event: React.MouseEvent<HTMLInputElement>) => void
+  readonly onCheckboxPointer: (
+    event: React.MouseEvent<HTMLInputElement>
+  ) => void
   readonly onCheckboxKeyDown: (
     event: React.KeyboardEvent<HTMLInputElement>
   ) => void
@@ -1662,9 +1664,7 @@ export function Md3HistoryView(props: IMd3HistoryViewProps) {
   const onRowKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (event.key === ' ' && (event.ctrlKey || event.metaKey)) {
-        const index = visibleShas.indexOf(
-          event.currentTarget.dataset.sha ?? ''
-        )
+        const index = visibleShas.indexOf(event.currentTarget.dataset.sha ?? '')
         if (index !== -1) {
           event.preventDefault()
           toggleChecked(index, event.shiftKey)

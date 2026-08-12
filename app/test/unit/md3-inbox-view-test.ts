@@ -248,7 +248,9 @@ describe('Md3InboxView bulk wiring', () => {
   it('offers the bar only the ids the query and the chips left', () => {
     const failures = filterWith(['failures'])
     const ids = failures.visible.map(entry => entry.id)
-    assert.ok(ids.length > 0 && ids.length < md3InboxFixtureNotifications.length)
+    assert.ok(
+      ids.length > 0 && ids.length < md3InboxFixtureNotifications.length
+    )
     assert.ok(
       failures.visible.every(entry => entry.tone === 'bad'),
       'a chip-filtered id list must not carry a row the chip hides'
@@ -291,7 +293,10 @@ describe('Md3InboxView bulk wiring', () => {
 
     assert.ok(markable.applied.every(entry => !entry.read))
     assert.ok(markable.excluded.every(entry => entry.read))
-    assert.equal(markable.applied.length + markable.excluded.length, rows.length)
+    assert.equal(
+      markable.applied.length + markable.excluded.length,
+      rows.length
+    )
 
     assert.ok(unmarkable.applied.every(entry => entry.read))
     assert.ok(mutable.applied.every(entry => entry.muted !== true))

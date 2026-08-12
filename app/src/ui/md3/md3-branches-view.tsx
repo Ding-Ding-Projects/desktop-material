@@ -1371,11 +1371,7 @@ export function Md3BranchesView(props: IMd3BranchesViewProps) {
     [rows, checked]
   )
 
-  const scopeLabel = md3BulkScopeLabel(
-    checked.size,
-    rows.length,
-    filtersActive
-  )
+  const scopeLabel = md3BulkScopeLabel(checked.size, rows.length, filtersActive)
 
   /*
    * Every partition names what it will skip and why, so the button's own
@@ -1747,10 +1743,7 @@ export function Md3BranchesView(props: IMd3BranchesViewProps) {
                     onKeyDown={onRowKeyDownWithSelection}
                     onContextMenu={onRowContextMenu}
                   >
-                    <div
-                      role="gridcell"
-                      className="md3-branches__select-cell"
-                    >
+                    <div role="gridcell" className="md3-branches__select-cell">
                       <input
                         type="checkbox"
                         className="md3-bulk-bar__checkbox"

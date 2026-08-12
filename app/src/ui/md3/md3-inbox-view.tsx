@@ -1009,14 +1009,11 @@ export function Md3InboxView(props: IMd3InboxViewProps) {
     [scopeNotifications]
   )
 
-  const reportSkipped = React.useCallback(
-    (summary: string | null) => {
-      if (summary !== null) {
-        notify(summary, { kind: 'warning' })
-      }
-    },
-    []
-  )
+  const reportSkipped = React.useCallback((summary: string | null) => {
+    if (summary !== null) {
+      notify(summary, { kind: 'warning' })
+    }
+  }, [])
 
   const onBulkMarkRead = React.useCallback(() => {
     const ids = markable.applied.map(entry => entry.id)

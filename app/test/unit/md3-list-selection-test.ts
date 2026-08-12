@@ -185,14 +185,14 @@ describe('md3 list selection', () => {
     const rows = [{ id: 'a' }, { id: 'b' }, { id: 'c' }]
     const identify = (row: { id: string }) => row.id
 
-    assert.deepEqual(
-      md3BulkScope(rows, set('b'), identify).map(identify),
-      ['b']
-    )
-    assert.deepEqual(
-      md3BulkScope(rows, set(), identify).map(identify),
-      ['a', 'b', 'c']
-    )
+    assert.deepEqual(md3BulkScope(rows, set('b'), identify).map(identify), [
+      'b',
+    ])
+    assert.deepEqual(md3BulkScope(rows, set(), identify).map(identify), [
+      'a',
+      'b',
+      'c',
+    ])
   })
 
   it('partitions a bulk action and names what it skipped', () => {

@@ -74,7 +74,10 @@ describe('md3 list export', () => {
       ]
     )
     for (const descriptor of Md3ListExportFormats) {
-      assert.ok(descriptor.label.length > 0, `${descriptor.format} needs a name`)
+      assert.ok(
+        descriptor.label.length > 0,
+        `${descriptor.format} needs a name`
+      )
       assert.ok(
         !descriptor.extension.startsWith('.'),
         `${descriptor.format}'s extension must not carry its own dot`
@@ -162,13 +165,7 @@ describe('md3 list export', () => {
   it('round-trips through JSON with every value intact', () => {
     const parsed = JSON.parse(run('json').content)
     assert.deepEqual(parsed.rows, records)
-    assert.deepEqual(parsed.schema, [
-      'id',
-      'title',
-      'body',
-      'count',
-      'done',
-    ])
+    assert.deepEqual(parsed.schema, ['id', 'title', 'body', 'count', 'done'])
     assert.equal(parsed.scope, '2 selected rows')
   })
 
@@ -245,16 +242,20 @@ describe('md3 list export', () => {
   })
 
   it('writes the scope and the schema into the file itself', () => {
-    for (const format of ['yaml', 'toml', 'xml', 'markdown', 'html', 'sql'] as const) {
+    for (const format of [
+      'yaml',
+      'toml',
+      'xml',
+      'markdown',
+      'html',
+      'sql',
+    ] as const) {
       const content = run(format).content
       assert.ok(
         content.includes('2 selected rows'),
         `${format} must state what was exported`
       )
-      assert.ok(
-        content.includes('UTF-8'),
-        `${format} must state its encoding`
-      )
+      assert.ok(content.includes('UTF-8'), `${format} must state its encoding`)
     }
   })
 
@@ -275,12 +276,9 @@ describe('md3 list export', () => {
   })
 
   it('leaves an absent value empty rather than writing the word undefined', () => {
-    const payload = serializeMd3ListExport(
-      [{ id: 'r3' }],
-      spec,
-      'csv',
-      { scope: 'one row' }
-    )
+    const payload = serializeMd3ListExport([{ id: 'r3' }], spec, 'csv', {
+      scope: 'one row',
+    })
     assert.ok(!payload.content.includes('undefined'))
     assert.ok(payload.content.includes('"r3","","","",""'))
 

@@ -384,7 +384,11 @@ describe('md3 history bulk actions', () => {
      */
     it('extends a range rather than replacing the ticks', () => {
       assert.ok(source.includes("'extend'"))
-      assert.ok(!/anchorIndex\.current,\s*(?:\/\*[\s\S]*?\*\/\s*)?'replace'/.test(source))
+      assert.ok(
+        !/anchorIndex\.current,\s*(?:\/\*[\s\S]*?\*\/\s*)?'replace'/.test(
+          source
+        )
+      )
     })
 
     it('offers a keyboard equivalent of the checkbox gesture', () => {

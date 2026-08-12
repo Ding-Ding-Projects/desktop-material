@@ -271,7 +271,9 @@ function raw(value: Md3ListExportValue | undefined): string {
 
 /** One line, for the formats whose record separator *is* the line break. */
 function flattened(value: Md3ListExportValue | undefined): string {
-  return raw(value).replace(/\r\n|\r|\n/g, ' ').trim()
+  return raw(value)
+    .replace(/\r\n|\r|\n/g, ' ')
+    .trim()
 }
 
 function quoteDelimited(value: string): string {

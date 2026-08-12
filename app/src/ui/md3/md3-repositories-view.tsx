@@ -1249,10 +1249,7 @@ export function Md3RepositoriesView(props: IMd3RepositoriesViewProps) {
     [visibleRows]
   )
   /* The same ids in the shared selection algebra's own currency. */
-  const visibleKeys = React.useMemo(
-    () => visibleIds.map(String),
-    [visibleIds]
-  )
+  const visibleKeys = React.useMemo(() => visibleIds.map(String), [visibleIds])
   const groupChips = React.useMemo(
     () => md3RepositoryGroupChips(repositories),
     [repositories]
@@ -1714,8 +1711,7 @@ export function Md3RepositoriesView(props: IMd3RepositoriesViewProps) {
           // Removal opens the view's own two-key-and-slider gate, which lists
           // exactly which repositories go before it authorizes anything.
           hasPopup: action.destructive === true ? 'dialog' : undefined,
-          buttonRef:
-            action.destructive === true ? removeButtonRef : undefined,
+          buttonRef: action.destructive === true ? removeButtonRef : undefined,
           disabled:
             selectedCount === 0 ||
             eligible === 0 ||

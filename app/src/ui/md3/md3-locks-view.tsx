@@ -391,9 +391,10 @@ export function Md3LocksView(props: IMd3LocksViewProps) {
     [locks, query, regexEnabled, caseSensitive]
   )
 
-  const visibleIds = React.useMemo(() => visible.map(lock => lock.id), [
-    visible,
-  ])
+  const visibleIds = React.useMemo(
+    () => visible.map(lock => lock.id),
+    [visible]
+  )
 
   /*
    * A lock that leaves the collection — removed here, or removed by another
