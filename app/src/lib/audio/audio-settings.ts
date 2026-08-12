@@ -88,6 +88,28 @@ export interface IAudioSystemSettings {
    */
   readonly useRecordedNarration: boolean
 
+  /**
+   * The chosen English narrator voice, as a `SpeechSynthesisVoice.voiceURI`,
+   * or the empty string for "let the app pick".
+   *
+   * A URI rather than a display name because names are not unique — a machine
+   * can carry several voices called "Microsoft Zira" from different engines —
+   * and because a name is localized by the platform, so a profile written on
+   * an English install would stop matching on a Chinese one.
+   *
+   * Stored per language rather than as one setting: a listener who wants a
+   * particular English voice has said nothing whatsoever about which Cantonese
+   * voice should read the other half of a bilingual line.
+   */
+  readonly ttsVoiceEnglish: string
+  /** The chosen Cantonese narrator voice, same contract as above. */
+  readonly ttsVoiceCantonese: string
+
+  /** Speaking rate, 0.5..2. 1 is the platform's own normal pace. */
+  readonly ttsRate: number
+  /** Pitch, 0..2. 1 is the voice's own pitch. */
+  readonly ttsPitch: number
+
   readonly musicEnabled: boolean
   /** 0..1 gain for the looped per-repository track (kept deliberately low). */
   readonly musicVolume: number
@@ -101,6 +123,27 @@ export interface IAudioSystemSettings {
   readonly funnyLevelEnglish: number
   /** Narrator playfulness 1 (serious) .. 5 (max) for Cantonese lines. */
   readonly funnyLevelCantonese: number
+}
+
+/** The Web Speech API's own documented range for `rate`. */
+export const MinTtsRate = 0.5
+export const MaxTtsRate = 2
+/** And for `pitch`. */
+export const MinTtsPitch = 0
+export const MaxTtsPitch = 2
+
+/**
+ * A stored voice choice, or the empty string meaning automatic.
+ *
+ * Bounded because this value is written straight into a `<select>` and matched
+ * against the platform's voice list: an unbounded string from a hand-edited
+ * profile has no business being either. A value that matches no installed
+ * voice is not rejected here — the picker reports it as missing, which is far
+ * more useful than silently resetting a choice the user made on a machine that
+ * still has that voice.
+ */
+function coerceVoiceUri(value: unknown): string {
+  return typeof value === 'string' && value.length <= 512 ? value : ''
 }
 
 /** Minimum sensible spacing between spoken lines. */
@@ -118,6 +161,13 @@ export const DefaultAudioSystemSettings: IAudioSystemSettings = {
   // Recorded assets ship with the app, so recorded narration is the default
   // when the narrator is turned on.
   useRecordedNarration: true,
+  // Empty means automatic. The app cannot know what voices this machine has
+  // until it asks, so shipping a named default would be a preference for a
+  // voice most installs do not have.
+  ttsVoiceEnglish: '',
+  ttsVoiceCantonese: '',
+  ttsRate: 1,
+  ttsPitch: 1,
   musicEnabled: false,
   musicVolume: 0.15,
   respectReducedMotion: true,
@@ -196,6 +246,15 @@ export function normalizeAudioSettings(value: unknown): IAudioSystemSettings {
     useRecordedNarration: coerceBoolean(
       raw.useRecordedNarration,
       d.useRecordedNarration
+    ),
+    ttsVoiceEnglish: coerceVoiceUri(raw.ttsVoiceEnglish),
+    ttsVoiceCantonese: coerceVoiceUri(raw.ttsVoiceCantonese),
+    ttsRate: clamp(raw.ttsRate as number, MinTtsRate, MaxTtsRate, d.ttsRate),
+    ttsPitch: clamp(
+      raw.ttsPitch as number,
+      MinTtsPitch,
+      MaxTtsPitch,
+      d.ttsPitch
     ),
     musicEnabled: coerceBoolean(raw.musicEnabled, d.musicEnabled),
     musicVolume: clampVolume(raw.musicVolume, d.musicVolume),

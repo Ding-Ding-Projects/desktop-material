@@ -530,6 +530,8 @@ export class AudioCueStore {
       const utterance = new SpeechSynthesisUtterance(item.ttsText)
       utterance.lang = item.lang
       utterance.volume = clamp01(this.settings.ttsVolume)
+      utterance.rate = this.settings.ttsRate
+      utterance.pitch = this.settings.ttsPitch
       const voice = this.pickVoice(synthesis, item.lang)
       if (voice !== null) {
         utterance.voice = voice
@@ -579,6 +581,23 @@ export class AudioCueStore {
       return null
     }
     const prefix = lang.toLowerCase().split('-')[0]
+
+    // The user's own choice wins, when they have made one and the voice is
+    // still installed. A chosen voice that has since been uninstalled falls
+    // through to the automatic search rather than silencing the narrator —
+    // the settings screen is where that is reported, because that is where the
+    // user can do something about it.
+    const chosen =
+      prefix === 'zh' || prefix === 'yue'
+        ? this.settings.ttsVoiceCantonese
+        : this.settings.ttsVoiceEnglish
+    if (chosen !== '') {
+      const picked = voices.find(v => v.voiceURI === chosen)
+      if (picked !== undefined) {
+        return picked
+      }
+    }
+
     // Prefer an exact locale match, then a language-family match.
     return (
       voices.find(v => v.lang.toLowerCase() === lang.toLowerCase()) ??

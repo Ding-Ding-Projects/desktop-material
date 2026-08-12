@@ -178,6 +178,10 @@ export const TeleportTargetSelectors = {
   settingsSoundNarrator: '[data-teleport-target="settings-sound-narrator"]',
   settingsSoundRecordedNarration:
     '[data-teleport-target="settings-sound-recorded-narration"]',
+  settingsPersonalVocabulary:
+    '[data-teleport-target="settings-personal-vocabulary"]',
+  settingsSoundNarratorVoice:
+    '[data-teleport-target="settings-sound-narrator-voice"]',
   settingsSoundNarratorVolume:
     '[data-teleport-target="settings-sound-narrator-volume"]',
   settingsSoundNarratorCooldown:

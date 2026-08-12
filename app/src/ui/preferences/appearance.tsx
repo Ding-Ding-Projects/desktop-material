@@ -21,6 +21,7 @@ import {
   numberFormatToKey,
 } from '../../models/formatting-preferences'
 import { formatNumber } from '../../lib/format-number'
+import { PersonalVocabularyControl } from './personal-vocabulary-control'
 import { assertNever } from '../../lib/fatal-error'
 import { BranchSortOrder } from '../../models/branch-sort-order'
 import { ShowBranchNameInRepoListSetting } from '../../models/show-branch-name-in-repo-list'
@@ -276,6 +277,26 @@ export class Appearance extends React.Component<
    * actually chosen on this computer or is the shipped fallback — naming the
    * real value rather than the opaque word "default".
    */
+  /**
+   * The personal-vocabulary upload.
+   *
+   * It lives in Appearance because that is where the rest of "how this app
+   * reads to me" lives, and it is present whether or not a file has ever been
+   * supplied — a control that only appears once it is in use is a control
+   * nobody finds.
+   */
+  private renderPersonalVocabulary() {
+    return (
+      <div
+        className="appearance-section appearance-customization-section"
+        {...teleportAnchor('settings-personal-vocabulary')}
+      >
+        <h2>Personal vocabulary</h2>
+        <PersonalVocabularyControl />
+      </div>
+    )
+  }
+
   private renderDialogEmoji() {
     const languageMode = this.props.appearanceCustomization.languageMode
     const localize = (key: Parameters<typeof translate>[0]) =>
@@ -1092,6 +1113,7 @@ export class Appearance extends React.Component<
         {this.renderElementGestureNote()}
         {this.renderLanguageAndNavigation()}
         {this.renderDialogEmoji()}
+        {this.renderPersonalVocabulary()}
         {this.renderClassicExperience()}
         {this.renderClassicToolbar()}
         <SchoolModePreferences
