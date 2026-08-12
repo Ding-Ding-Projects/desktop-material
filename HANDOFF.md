@@ -9780,3 +9780,32 @@ So there is nothing to fix, and rewriting ten pushed commits would have changed
 no number anywhere. The trailer still goes on every new commit — it is the rule,
 and it is the branch that carries the attribution in any repository where an
 agent commits under a person's identity. It simply is not load-bearing here.
+
+
+## 2026-08-12 undeclared imports — one fixed, three named, guard added
+
+`app/test/unit/declared-dependencies-test.ts` reads the two manifests and fails
+on any package `app/src` imports that neither declares. It reads the manifests
+rather than the module graph on purpose: the graph is exactly what lied.
+
+It found three pre-existing direct imports of transitive packages:
+
+| Imported | Reaches the build through |
+| --- | --- |
+| `winston-transport` | `winston` |
+| `@floating-ui/core` | `@floating-ui/react-dom` |
+| `focus-trap` | `focus-trap-react` |
+
+They are the same latent shape as the `fs-extra` failure — resolving only
+because something else pulls them in — but they differ in two ways that make
+them lower risk: each ships its own types, so they cannot produce TS7016, and
+each parent is a direct dependency that reliably installs them.
+
+They are listed as exceptions **anchored to their parent**, and a second
+assertion fails if a parent ever stops being declared, so the list cannot become
+somewhere new undeclared imports are parked.
+
+**Follow-up, deliberately not done here:** declare all three at the versions
+already installed (`winston-transport@4.5.0`, `@floating-ui/core@1.8.0`,
+`focus-trap@6.1.0`). That is a manifest and lockfile change and had no business
+riding along in a commit whose job was turning a red build green.
