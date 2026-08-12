@@ -121,3 +121,63 @@ describe('interface mode section parity', () => {
     )
   })
 })
+
+/**
+ * The two modes share one chrome.
+ *
+ * Classic mode was first built as a bare toolbar over the repository
+ * workspace — the shape the app had before the MD3 shell existed at all. That
+ * was wrong: the tip before the rewrite (`f443f3cd10`) already rendered the
+ * shell, and passed `md3NoViews` so every destination fell through to the
+ * classic workspace. So "classic" is this shell minus its views, not a
+ * different application.
+ *
+ * The failure that produced was silent — the mode rendered, nothing errored,
+ * it simply looked like something nobody had used. These assertions are what
+ * makes the next divergence loud instead: one `<Md3Shell` in the file means
+ * neither mode can grow a banner, a popup or a boundary the other lacks.
+ */
+describe('both interface modes render the same chrome', () => {
+  it('builds the shell in exactly one place', () => {
+    const occurrences = [...app.matchAll(/<Md3Shell[\s>]/g)].length
+    assert.strictEqual(
+      occurrences,
+      1,
+      'a second <Md3Shell> is a second chrome that can drift from the first'
+    )
+  })
+
+  it('routes classic mode through that shared shell', () => {
+    // Matched as a call rather than as a substring: `renderMd3Shell` is a
+    // prefix of any longer name a rename could produce, so the parenthesis is
+    // what keeps this from passing on a function that no longer exists.
+    const classic = /private renderClassicApp\(\)[\s\S]{0,900}?\n  \}/.exec(app)
+    assert.ok(classic !== null, 'renderClassicApp not found')
+    assert.match(
+      classic[0],
+      /return this\.renderMd3Shell\(/,
+      'classic mode must render the shared shell, not a tree of its own'
+    )
+  })
+
+  it('hands classic mode the no-views set, which is the whole difference', () => {
+    const classic = /private renderClassicApp\(\)[\s\S]{0,900}?\n  \}/.exec(app)
+    assert.ok(classic !== null)
+    assert.match(
+      classic[0],
+      /renderMd3Shell\(md3NoViews\)/,
+      'classic mode is the shell with no MD3 views in its destinations'
+    )
+  })
+
+  it('keeps the shell a single argument away from either mode', () => {
+    // If `renderMd3Shell` ever stops taking the views it renders, the two
+    // modes are no longer one function with one parameter between them.
+    assert.match(
+      app,
+      /private renderMd3Shell\(views: IMd3ShellViews\)/,
+      'the shell takes its views as an argument'
+    )
+    assert.match(app, /views=\{views\}/, 'and passes that argument through')
+  })
+})

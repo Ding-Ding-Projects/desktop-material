@@ -131,3 +131,77 @@
     }
   }
 }
+
+// ---------------------------------------------------------------------------
+// Resizable panes
+//
+// The width itself is set inline by `Md3ResizablePane`, because it is a value
+// the user chose and this stylesheet has no way to know it. What lives here is
+// everything around it: the grab area, the visible line, and the states.
+//
+// The handle is 8px of grab area with a 1px line drawn inside it. A 1px target
+// is findable with a mouse and essentially unhittable with a trackpad, and it
+// is well under any minimum touch size, so the target and the mark it draws
+// are deliberately different sizes.
+.md3-resizable-handle {
+  align-self: stretch;
+  background: transparent;
+  border: none;
+  cursor: col-resize;
+  flex: none;
+  padding: 0;
+  position: relative;
+  touch-action: none;
+  width: 8px;
+
+  &::after {
+    background: var(--md-sys-color-outline-variant, var(--box-border-color));
+    border-radius: 1px;
+    bottom: 8px;
+    content: '';
+    left: 50%;
+    opacity: 0;
+    position: absolute;
+    top: 8px;
+    transform: translateX(-50%);
+    transition: opacity 120ms ease, background-color 120ms ease;
+    width: 2px;
+  }
+
+  // Shown on approach and while in use, rather than drawn permanently: a
+  // divider between every pair of panes is a lot of lines for a layout whose
+  // panes are already separated by their own surfaces and radii.
+  &:hover::after,
+  &:focus-visible::after,
+  &.is-dragging::after {
+    opacity: 1;
+  }
+
+  &:focus-visible::after,
+  &.is-dragging::after {
+    background: var(--md-sys-color-primary, var(--focus-color));
+  }
+
+  // The focus ring is the separator's own, not a rectangle around 8px of
+  // nothing: a keyboard user needs to see which divider they are about to move.
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary, var(--focus-color));
+    outline-offset: -1px;
+    border-radius: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::after {
+      transition: none;
+    }
+  }
+}
+
+// A pane being resized must not let its content pick its width back up. The
+// scroller inside it defaults to `min-width: auto`, which refuses to shrink
+// below the widest row, so dragging narrower would simply stop having an
+// effect part-way.
+.md3-resizable-pane {
+  min-width: 0;
+  overflow: hidden;
+}

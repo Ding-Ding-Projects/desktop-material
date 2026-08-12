@@ -1,4 +1,6 @@
 import * as React from 'react'
+
+import { Md3ResizablePane } from './md3-resizable-pane'
 import classNames from 'classnames'
 
 import { tFunny } from '../../lib/funny-level-text'
@@ -1735,7 +1737,14 @@ export function Md3HistoryView(props: IMd3HistoryViewProps) {
 
   return (
     <div className="md3-history md3-anim-up">
-      <div className="md3-history__list-pane">
+      <Md3ResizablePane
+        surface="history-list"
+        label="the commit list"
+        defaultWidth={356}
+        minimumWidth={240}
+        maximumWidth={720}
+        className="md3-history__list-pane"
+      >
         <Md3SearchField
           id="md3-history-filter"
           searchSurfaceId="md3-history"
@@ -1861,7 +1870,7 @@ export function Md3HistoryView(props: IMd3HistoryViewProps) {
             />
           ) : null}
         </div>
-      </div>
+      </Md3ResizablePane>
 
       <Md3DiffPane
         {...diff}

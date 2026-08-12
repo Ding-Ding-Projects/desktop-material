@@ -1,4 +1,6 @@
 import * as React from 'react'
+
+import { Md3ResizablePane } from './md3-resizable-pane'
 import classNames from 'classnames'
 import { tFunny } from '../../lib/funny-level-text'
 import { t } from '../../lib/i18n'
@@ -1459,7 +1461,14 @@ export function Md3ChangesView(props: IMd3ChangesViewProps) {
     <div
       className={classNames('md3-changes-view', 'md3-anim-up', props.className)}
     >
-      <div className="md3-changes-view__sidebar">
+      <Md3ResizablePane
+        surface="changes-sidebar"
+        label="the changed files list"
+        defaultWidth={356}
+        minimumWidth={240}
+        maximumWidth={720}
+        className="md3-changes-view__sidebar"
+      >
         <Md3SearchField
           id="md3-changes-search"
           searchSurfaceId="md3-changes"
@@ -1667,7 +1676,7 @@ export function Md3ChangesView(props: IMd3ChangesViewProps) {
             </button>
           </div>
         </form>
-      </div>
+      </Md3ResizablePane>
 
       <Md3DiffPane
         {...props.diff}

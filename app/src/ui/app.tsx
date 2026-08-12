@@ -10559,48 +10559,23 @@ export class App extends React.Component<IAppProps, IAppState> {
       : `${selectedState.type}:${selectedState.repository.hash}`
   }
 
+  /**
+   * The interface as it stood immediately before the MD3 rewrite.
+   *
+   * Getting this wrong once is worth writing down. "Classic" was first built
+   * as a bare toolbar over the repository workspace — the shape the app had
+   * before the shell existed at all — and it did not look like what anybody
+   * was actually using, because by then the shell was already there. The tip
+   * before the rewrite is `f443f3cd10`, and what it rendered was this shell,
+   * with `md3NoViews`, so every destination fell through to the classic
+   * workspace via `renderLegacyDestination`.
+   *
+   * So the difference between the two modes is exactly one prop. That is the
+   * point: sharing `renderMd3Shell` means a change to the chrome reaches both
+   * modes at once and neither can quietly rot while the other is maintained.
+   */
   private renderClassicApp() {
-    const repositoryBoundaryKey = this.md3RepositoryBoundaryKey()
-
-    return (
-      <div
-        id="desktop-app-contents"
-        className={this.getDesktopAppContentsClassNames()}
-        {...teleportAnchor('app-workspace')}
-        data-customization-surface="app-workspace"
-        data-customization-label="App workspace"
-        data-customization-scope="profile"
-      >
-        {this.renderUpdateDownloadProgress()}
-        {this.renderRepositoryTabStrip()}
-        {this.renderToolbar()}
-        {this.renderCheapLfsRestoreProgress()}
-        {this.renderBanner()}
-        {this.renderSubmoduleRepositoryContext()}
-        <CrashProofBoundary
-          name="Repository workspace"
-          resetKey={repositoryBoundaryKey}
-        >
-          {this.renderRepository()}
-        </CrashProofBoundary>
-        <CrashProofBoundary
-          name="Build runner"
-          resetKey={repositoryBoundaryKey}
-        >
-          {this.renderBuildRunPanel()}
-        </CrashProofBoundary>
-        <CrashProofBoundary
-          name="Notification center"
-          resetKey={this.state.isNotificationCentreOpen ? 'open' : 'closed'}
-        >
-          {this.renderNotificationCentre()}
-        </CrashProofBoundary>
-        {this.renderAppearanceEditor()}
-        {this.renderPopups()}
-        {this.renderDragElement()}
-        {this.renderRepositoryDropOverlay()}
-      </div>
-    )
+    return this.renderMd3Shell(md3NoViews)
   }
 
   private renderApp() {
@@ -10628,6 +10603,19 @@ export class App extends React.Component<IAppProps, IAppState> {
       views = { ...views, [this.md3ShellState.destination]: null }
     }
 
+    return this.renderMd3Shell(views)
+  }
+
+  /**
+   * The chrome, once, for both interface modes.
+   *
+   * Everything about the window except which views the destinations hold lives
+   * here. The two modes differ by the `views` argument and nothing else, so a
+   * control added to the top bar, a banner, a popup or a boundary cannot land
+   * in one mode and be missing from the other — which is exactly how the first
+   * attempt at classic mode ended up a different application.
+   */
+  private renderMd3Shell(views: IMd3ShellViews) {
     return (
       <div
         id="desktop-app-contents"
