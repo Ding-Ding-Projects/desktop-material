@@ -100,6 +100,8 @@ function Harness(props: IHarnessProps) {
       <button type="button">Outside</button>
       <AnchoredAppearanceEditor
         title="Toolbar appearance"
+        lockTargetId="test:toolbar"
+        lockTargetLabel="Toolbar appearance"
         anchor={anchor}
         historySource={props.historySource ?? createHistorySource()}
         repositoryPath={RepositoryPath}

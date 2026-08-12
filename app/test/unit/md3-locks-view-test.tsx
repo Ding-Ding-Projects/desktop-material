@@ -541,7 +541,9 @@ describe('lock manager', () => {
 
     fireEvent.click(screen.getByLabelText(/Select the lock on Seed colour/i))
 
-    assert.ok(screen.getByRole('button', { name: /Remove locks.* 1 selected/i }))
+    assert.ok(
+      screen.getByRole('button', { name: /Remove locks.* 1 selected/i })
+    )
     assert.ok(screen.getByRole('button', { name: /Export .* 1 selected/i }))
   })
 
@@ -583,9 +585,8 @@ describe('lock manager', () => {
     // Nothing is open, so the verb has nothing eligible and says so by being
     // unavailable rather than by running over two rows and doing nothing.
     assert.equal(
-      (
-        screen.getByRole('button', { name: /Lock again/i }) as HTMLButtonElement
-      ).disabled,
+      (screen.getByRole('button', { name: /Lock again/i }) as HTMLButtonElement)
+        .disabled,
       true
     )
   })

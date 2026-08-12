@@ -8439,6 +8439,8 @@ export class App extends React.Component<IAppProps, IAppState> {
           anchor={target.anchor}
           historySource={historySource}
           repositoryPath={repositoryPath}
+          lockTargetId={`feature:${target.featureId}`}
+          lockTargetLabel={target.label}
           onClose={this.closeAppearanceEditor}
           onMutation={this.refreshFeatureAppearanceTarget}
           contentOwnsHeader={true}
@@ -8462,6 +8464,8 @@ export class App extends React.Component<IAppProps, IAppState> {
           anchor={target.anchor}
           historySource={target.historySource}
           repositoryPath={target.repositoryPath}
+          lockTargetId={`repository:${target.repository.id}:${target.elementId}`}
+          lockTargetLabel={title}
           onClose={this.closeAppearanceEditor}
           onMutation={this.refreshRepositoryAppearanceTarget}
           contentOwnsHeader={true}
@@ -8490,6 +8494,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         anchor={target.anchor}
         historySource={historySource}
         repositoryPath={repositoryPath}
+        lockTargetId={`profile:${target.elementId}`}
+        lockTargetLabel={this.profileAppearanceTitle(target.elementId)}
         onClose={this.closeAppearanceEditor}
         contentOwnsHeader={true}
         anchorPosition={this.getAppearanceEditorAnchorPosition(target)}
