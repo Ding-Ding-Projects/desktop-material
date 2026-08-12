@@ -1,5 +1,5 @@
 import * as Path from 'path'
-import * as FSE from 'fs-extra'
+import { open as openFile } from 'fs/promises'
 import * as React from 'react'
 import {
   AppLogoChoice,
@@ -285,12 +285,12 @@ export class AppIdentity extends React.Component<
       // The byte ceiling is applied to the read itself rather than only to what
       // comes back. Reading a four-gigabyte file into memory and *then*
       // deciding it is too large is the failure the limit exists to prevent.
-      const fd = await FSE.open(customLogoPath, 'r')
+      const handle = await openFile(customLogoPath, 'r')
       try {
-        // Sized through the open descriptor rather than the path, so the file
-        // that is measured is the file that is then read. Stat-then-open leaves
-        // a window in which the path can be pointed somewhere else.
-        const { size } = await FSE.fstat(fd)
+        // Sized through the open handle rather than the path, so the file that
+        // is measured is the file that is then read. Stat-then-open leaves a
+        // window in which the path can be pointed somewhere else.
+        const { size } = await handle.stat()
         if (size > MaxLogoImageBytes) {
           this.setState({
             logoStatus: {
@@ -304,10 +304,10 @@ export class AppIdentity extends React.Component<
           return
         }
         const buffer = Buffer.alloc(Number(size))
-        await FSE.read(fd, buffer, 0, buffer.length, 0)
+        await handle.read(buffer, 0, buffer.length, 0)
         bytes = new Uint8Array(buffer)
       } finally {
-        await FSE.close(fd)
+        await handle.close()
       }
     } catch (error) {
       this.setState({
