@@ -1821,9 +1821,37 @@ async function captureApp(options) {
     await page.waitForLoadState('domcontentloaded')
 
     const welcomeSteps = await completeWelcomeFlow(page, timeoutMilliseconds)
-    await page
-      .locator('#desktop-app-contents')
-      .waitFor({ state: 'visible', timeout: timeoutMilliseconds })
+    try {
+      await page
+        .locator('#desktop-app-contents')
+        .waitFor({ state: 'visible', timeout: timeoutMilliseconds })
+    } catch (error) {
+      // The app never rendered. Everything this harness knows about why is in
+      // the console errors it has been collecting, and they were previously
+      // reported only on the success path — so the one failure where they are
+      // decisive was the one failure that threw them away, leaving a bare
+      // "locator timed out" that says nothing about the cause.
+      const detail =
+        consoleErrors.length === 0
+          ? 'the renderer logged no errors, so the app is hanging rather than throwing'
+          : ['renderer errors:', ...consoleErrors].join('\n')
+      // The commonest cause by a distance, and the one whose bare message says
+      // least. A development compile sets webpack's `publicPath` to
+      // `http://localhost:3000/build/`, so the renderer fetches its own bundle
+      // from a dev server a capture run has no reason to be running. The window
+      // opens, the page loads, nothing renders, and the only clue is a refused
+      // connection for a resource nobody names.
+      const devServer = consoleErrors.some(line =>
+        line.includes('ERR_CONNECTION_REFUSED')
+      )
+        ? ' This looks like a development build, whose renderer loads from the ' +
+          'webpack dev server on localhost. Run `yarn compile:prod` first.'
+        : ''
+      throw new Error(
+        `#desktop-app-contents never appeared.${devServer} ${detail}`,
+        { cause: error }
+      )
+    }
 
     if (options.size) {
       await setWindowContentSize(electronApp, options.size)
