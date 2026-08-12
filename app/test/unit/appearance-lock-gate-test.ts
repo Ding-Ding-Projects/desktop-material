@@ -279,3 +279,56 @@ describe('elements advertise their lock target', () => {
     assert.match(source, /installOsLockCredentialVault\(\)/)
   })
 })
+
+describe('a blocked element gets a prompt, not silence', () => {
+  it('mounts the prompt host in the shell', () => {
+    // The gate without this is arguably worse than no gate: a locked button
+    // simply stops responding, with nothing on screen to say why or how to
+    // get in. A control that silently does nothing is the exact defect this
+    // project forbids everywhere else, and a deliberate silence is no better.
+    const shell = readFileSync(
+      join(process.cwd(), 'app/src/ui/app.tsx'),
+      'utf8'
+    )
+    assert.match(shell, /<AppearanceLockPromptHost/)
+  })
+
+  it('listens for the gate event the block raises', () => {
+    const host = readFileSync(
+      join(
+        process.cwd(),
+        'app/src/ui/appearance/appearance-lock-prompt-host.tsx'
+      ),
+      'utf8'
+    )
+    assert.match(host, /addEventListener\(AppearanceLockBlockedEvent/)
+    assert.match(host, /removeEventListener\(AppearanceLockBlockedEvent/)
+  })
+
+  it('does not replay the activation it refused', () => {
+    // Replaying the click would perform an action the user made before being
+    // asked for a credential, and has not chosen since being interrupted. On
+    // a destructive control that is a genuinely bad outcome, so the decision
+    // is recorded in the code rather than left to be re-litigated.
+    const host = readFileSync(
+      join(
+        process.cwd(),
+        'app/src/ui/appearance/appearance-lock-prompt-host.tsx'
+      ),
+      'utf8'
+    )
+    assert.doesNotMatch(host, /anchor\.click\(\)/)
+    assert.doesNotMatch(host, /dispatchEvent\(new MouseEvent/)
+  })
+
+  it('returns focus to the control that was blocked', () => {
+    const host = readFileSync(
+      join(
+        process.cwd(),
+        'app/src/ui/appearance/appearance-lock-prompt-host.tsx'
+      ),
+      'utf8'
+    )
+    assert.match(host, /anchor\?\.focus\(\)/)
+  })
+})

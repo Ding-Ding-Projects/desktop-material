@@ -270,6 +270,7 @@ import { SubmoduleConfigDialog } from './submodules/submodule-config-dialog'
 import { SubmoduleBackButton } from './submodules/submodule-back-button'
 import {
   AnchoredAppearanceEditor,
+  AppearanceLockPromptHost,
   IAnchoredAppearanceEditorControls,
   IFeatureHighlightingAppearance,
   IRepositoryTabsAppearance,
@@ -12547,6 +12548,15 @@ export class App extends React.Component<IAppProps, IAppState> {
             {this.renderDimSumSurprise()}
             {this.renderZoomInfo()}
             {this.renderFullScreenInfo()}
+            {/*
+              The prompt a locked element opens. Mounted at the shell rather
+              than beside each lockable control, because the gate that blocks
+              the activation is also one listener at the document — a prompt
+              per control would be several hundred of them, and the ones
+              nobody remembered would leave a button that silently refuses to
+              work with nothing on screen to explain it.
+            */}
+            <AppearanceLockPromptHost />
           </>
         )}
       </div>

@@ -73,3 +73,5 @@ export {
   uninstallAppearanceLockGate,
 } from './appearance-lock-gate'
 export type { IAppearanceLockBlockedDetail } from './appearance-lock-gate'
+
+export { AppearanceLockPromptHost } from './appearance-lock-prompt-host'
