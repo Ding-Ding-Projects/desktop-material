@@ -8779,7 +8779,19 @@ export class App extends React.Component<IAppProps, IAppState> {
             this.props.dispatcher.showCreateGitHubPullRequest(
               selection.repository,
               branch
-            )
+            ),
+          {
+            // `showRebaseDialog` refreshes the status and then opens the
+            // branch-choice flow — the same route the old branch dropdown
+            // took. Rebase is the one row action the carry-over catalogue
+            // never claimed, so until this was supplied the row menu simply
+            // never drew it.
+            onRebaseBranch: branch =>
+              void this.props.dispatcher.showRebaseDialog(
+                selection.repository,
+                branch
+              ),
+          }
         ),
         onExportBranches: this.onMd3ListExport,
       },

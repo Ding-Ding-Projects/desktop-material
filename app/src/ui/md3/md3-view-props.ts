@@ -318,6 +318,11 @@ export function buildMd3HistoryProps(
       context.setLocal({ historyPinnedShas: pinned })
     },
     onCopySha: sha => clipboard.writeText(sha),
+    // The bulk bar's Copy SHAs verb writes the whole scope as one string.
+    // Calling `onCopySha` in a loop would overwrite the clipboard once per
+    // commit and leave only the last one, so the verb reads this instead — and
+    // returns early when it is absent, which is why it silently did nothing.
+    onCopyText: text => clipboard.writeText(text),
     onViewOnGitHub: sha => {
       const gitHubRepository = repository.gitHubRepository
       if (gitHubRepository !== null) {
@@ -564,12 +569,32 @@ export function buildMd3ChangesProps(
 // ---------------------------------------------------------------------------
 
 /** Build the Branches destination's props from the real branches store. */
+/**
+ * The row actions that need something only `App` can do — a dialog, a
+ * multi-step operation, or moving the reader to another destination.
+ *
+ * They are parameters rather than dispatcher calls made here because each one
+ * ends somewhere outside this list: Compare lands the reader on History,
+ * Checkout in a new worktree opens a dialog, and Merge and delete runs a
+ * multi-commit operation with its own progress surface.
+ *
+ * Every one of them is optional on the view, and the view draws no menu row for
+ * an action it has no handler for. That is the right behaviour and it is also
+ * why all five were absent from the running app without anything going red:
+ * five row-menu items the branches test proves are *reachable* when handlers
+ * exist, and which nothing was handing in.
+ */
+export interface IMd3BranchAppActions {
+  readonly onRebaseBranch: (branch: Branch) => void
+}
+
 export function buildMd3BranchesProps(
   context: IMd3ViewContext,
   onNewBranch: () => void,
   onDeleteBranch: (branch: Branch) => void,
   onRenameBranch: (branch: Branch) => void,
-  onOpenPullRequest: (branch: Branch) => void
+  onOpenPullRequest: (branch: Branch) => void,
+  appActions: IMd3BranchAppActions
 ): IMd3BranchesViewProps {
   const { dispatcher, repository, state, local } = context
   const branchesState = state.branchesState
@@ -660,6 +685,20 @@ export function buildMd3BranchesProps(
       }
     },
     onCopyBranchName: row => clipboard.writeText(row.name),
+    // Rebase, and only rebase.
+    //
+    // Compare, Checkout in a new worktree, Merge and delete and Bulk delete
+    // look equally absent from this list, and are not: each is a carry-over
+    // command already contributed to `branchRowMenu` by the shell's menu
+    // extensions. Handling them here as well would draw every one of them
+    // twice in the same menu. Rebase is the one the carry-over catalogue never
+    // claimed, so the row menu has never offered it at all.
+    onRebaseBranch: row => {
+      const branch = resolve(row)
+      if (branch !== undefined) {
+        appActions.onRebaseBranch(branch)
+      }
+    },
     onRenameBranch: row => {
       const branch = resolve(row)
       if (branch !== undefined) {
@@ -760,6 +799,10 @@ export function buildMd3BranchesProps(
     listHandlers,
     sortOrder: local.branchSortOrder,
     hasHiddenBranches: hidden.size > 0,
+    // The bulk bar's Copy names verb writes one string for the whole scope.
+    // `onCopyBranchName` writes a single name, so using it in a loop would
+    // leave the clipboard holding only whichever branch happened to be last.
+    onCopyText: text => clipboard.writeText(text),
   }
 }
 
