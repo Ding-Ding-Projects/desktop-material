@@ -207,6 +207,14 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       sourcePath: 'docs/features/design-system/narration-assets.md',
     },
     {
+      id: 'design-system/narrator-voice',
+      category: 'design-system',
+      title: 'Narrator voice',
+      description:
+        'Which voice reads app events aloud, chosen per language on Settings → Sound → Narrator. English and Cantonese pick separately, and either can be left to the app.',
+      sourcePath: 'docs/features/design-system/narrator-voice.md',
+    },
+    {
       id: 'design-system/offline-documentation-browser',
       category: 'design-system',
       title: 'Offline documentation browser',
@@ -214,6 +222,14 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
         'Every feature article in docs/features ships inside the application. Help → Feature documentation (or the command palette) opens a browser that lists all of them, searches…',
       sourcePath:
         'docs/features/design-system/offline-documentation-browser.md',
+    },
+    {
+      id: 'design-system/personal-vocabulary',
+      category: 'design-system',
+      title: 'Personal vocabulary',
+      description:
+        'A local JSON file that renames the words this app shows you. Load it from Settings → Appearance → Personal vocabulary. Nothing ships with it, nothing is uploaded, and until you…',
+      sourcePath: 'docs/features/design-system/personal-vocabulary.md',
     },
     {
       id: 'design-system/README',
@@ -1347,7 +1363,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'design-system',
     label: 'Design System',
-    count: 19,
+    count: 21,
   },
   {
     name: 'identity-and-workspace',
@@ -1387,4 +1403,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 155
+export const DocsBrowserArticleCount = 157

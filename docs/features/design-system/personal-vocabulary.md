@@ -1,0 +1,166 @@
+# Personal vocabulary
+
+A local JSON file that renames the words this app shows you. Load it from
+**Settings → Appearance → Personal vocabulary**. Nothing ships with it, nothing
+is uploaded, and until you supply a valid file every surface renders its
+original wording unchanged.
+
+一個本機 JSON 檔，可以換走呢個 app 顯示嘅字眼。 冇預設，唔會上載，未載入之前一個字都唔會變。
+
+---
+
+## What it is, and what it deliberately is not
+
+The app has opinions about what to call things. This lets you overrule them —
+per install, on your own machine, in a file only you have.
+
+It is **not** a translation system. The three language modes already do that,
+and this runs after them: it renames words inside whichever language you are
+already reading. Nor is it a theming or scripting hook. It maps text to text,
+and that is the whole of its power.
+
+**No mappings ship with the app.** No samples, no templates, no defaults. A
+built-in example would be exactly the private content this feature exists to
+keep out of the repository, and it would also misrepresent what the app is
+currently rendering.
+
+## The control
+
+Always present, whether or not a file has ever been loaded. A control that only
+appears once it is in use is a control nobody finds, so there is always a file
+picker, always an honest statement of what is currently in effect, and — before
+any file exists — an explicit *no vocabulary file is loaded, every surface is
+rendering its original wording*.
+
+| State | What the control says |
+| --- | --- |
+| No file | No vocabulary file is loaded, and every surface is rendering its original wording |
+| Loaded | A count of terms, and that they are held on this computer only |
+| Refused | The exact reason, and that **nothing has been changed** |
+| Unreadable | The underlying read error, and that nothing has been changed |
+
+The status line reports a **count**, never the terms. The terms are the private
+part; the number is not.
+
+## The file
+
+```json
+{
+  "version": 1,
+  "terms": {
+    "Fetch origin": "Check for changes",
+    "Stash": "Set aside"
+  }
+}
+```
+
+| Bound | Value |
+| --- | --- |
+| Schema version | Exactly `1`; anything else is refused |
+| File size | 1 MB |
+| Entries | 2000 |
+| Term length | 1–200 characters |
+| Replacement length | 0–500 characters |
+| Top-level fields | `version` and `terms`, and nothing else |
+
+## Validation
+
+The **complete byte payload** is validated before anything is displayed or
+cached, and a refused file **never applies partially**. That is the rule the
+whole feature turns on: a half-applied vocabulary is worse than none, because
+you cannot tell which words on screen are yours and which are ours.
+
+A refused file also never displaces a good one. Load something broken and the
+vocabulary you already had carries on working.
+
+| Refused | Because |
+| --- | --- |
+| Empty file | Nothing to load |
+| Over 1 MB | Checked against what was read from disk, before parsing |
+| Not valid UTF-8 | Decoded with `fatal: true`, so a mangled byte is an error rather than a silent `U+FFFD` substitution that parses as something you never wrote |
+| Not JSON, or not an object | A JSON array or string is not a vocabulary |
+| Wrong or missing `version` | Version is declared, not inferred |
+| No `terms` object | — |
+| A field this build does not recognise | An unexpected field is a rejection, not a warning: it usually means the file was written for something else |
+| A reserved object key (`__proto__`, `constructor`, `prototype`) | `JSON.parse` does not follow these, but `Object.keys` still reports them, and a validator copying blindly into a plain object is one assignment from a prototype write |
+| Any bound exceeded | Rejection, never truncation |
+
+**The refusal message never quotes a term or a replacement back.** It is
+rendered on screen and could be read over a shoulder or land in a capture, so a
+message that helpfully echoes the offending term would defeat the feature.
+
+## How replacement works
+
+Applied at `translate` in `app/src/lib/i18n.ts` — the single boundary every
+piece of user-facing copy passes through. One place, so the feature reaches
+every surface at once rather than every surface having to remember it.
+
+It runs **after interpolation**, so a term inside a substituted value — a branch
+name, a file path — is reachable too.
+
+- **Longest term first.** Regex alternation takes the first branch that
+  matches, not the longest, so `force push` must be tried before `push`.
+- **Single pass.** Replacing term by term would let one replacement's output be
+  rewritten by a later term: `{"a": "b", "b": "c"}` applied to `a` would give
+  `c`. A mapping is not a chain, and nobody wrote one.
+- **Terms are literal.** They go into a `RegExp`, so they are escaped. An
+  unescaped `.` would match any character, and a stray `(` would throw
+  mid-render and take the surface down with it.
+- **Compiled once per vocabulary**, in a `WeakMap`. `translate` runs for every
+  string the app renders, and rebuilding a pattern from two thousand terms on
+  each call is not an optimisation worth skipping.
+
+## Privacy
+
+- **Local only.** No network request, at any point.
+- **The cache holds the validated terms; the source path is never stored.**
+- Nothing about the file reaches an export, a log, telemetry, a crash report, a
+  screenshot, a local-history snapshot, or any repository.
+- The cache is **revalidated on every read**, through the same validator as a
+  freshly chosen file, because it outlives the release that wrote it. It fails
+  closed to the original wording.
+
+## School mode
+
+Suppressed entirely. The mode requires the vocabulary feature to behave as
+though it were not installed, rather than merely disabled, so `personalize`
+returns the text untouched and no replacement occurs anywhere.
+
+## Failure modes
+
+| Situation | Behavior |
+| --- | --- |
+| Storage unavailable | The vocabulary applies for this session and is not cached; the resize is never failed by a failure to persist |
+| Cache corrupt or from a newer release | Revalidation refuses it and the app renders its original wording |
+| A file refused | Nothing changes at all, and the previous vocabulary stays active |
+| A term that is also a substring of another | The longest wins |
+
+## Verification
+
+```
+node script/test.mjs app/test/unit/personal-vocabulary-test.ts
+```
+
+27 tests. Three guards were verified by breaking the thing they guard and
+watching them go red:
+
+| Guard | Broken by | Result |
+| --- | --- | --- |
+| Reserved keys are refused | Deleting the `unsafeKeys` check | red |
+| Terms are escaped before compiling | Dropping `escapeForRegExp` | red |
+| A pattern survives reuse | (see below) | could not be made to fail |
+
+The third is worth recording rather than hiding. A `lastIndex` reset was added
+to the cached pattern with a confident comment about why it was necessary, and
+the test written to prove it **could not be made to fail** — `String.replace`
+with a global pattern manages `lastIndex` itself. The line was removed and the
+comment now says so, and the test was kept as a regression guard on reuse
+rather than as proof of a reset that was never needed.
+
+## Suggested articles
+
+- [Show emojis in dialogs and message boxes](dialog-emoji-decoration.md) — the
+  other Appearance switch that changes presentation without changing facts.
+- [School mode](school-mode.md) — which suppresses this feature entirely.
+- [Tone: per-language funny-level sliders](tone-funny-level.md) — what may and
+  may not be styled in user-facing copy.

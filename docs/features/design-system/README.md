@@ -40,6 +40,16 @@
   beside every dialog title, chosen from a shared kind-to-glyph catalog, with
   byte-identical accessible names and factual copy in both states and no emoji
   in any button, action label, or field label.
+- [Personal vocabulary](personal-vocabulary.md) — a local JSON file, loaded from
+  Settings → Appearance, that renames the words the app shows you; nothing ships
+  with it, the whole byte payload is validated before a single word is applied,
+  a refused file changes nothing even partially, and no term ever reaches an
+  export, a log, a capture or the network.
+- [Narrator voice](narrator-voice.md) — per-language voice, rate and pitch for
+  the spoken narrator, enumerated from the platform at runtime with an explicit
+  automatic default, the stable voice identity persisted rather than the
+  localized display name, and honest status for a voice that is missing,
+  network-backed, or absent entirely.
 - [School mode](school-mode.md) — a persisted, user-renamable English-only
   presentation lock with local credential unlock, hidden language/playfulness
   surfaces, dim-sum suppression, and explicit reset semantics.
@@ -91,6 +101,8 @@
 - [對話框滾輪同觸控板捲動](dialog-wheel-scrolling.md) — 將任何子元素嘅指標捲動導向最近可用嘅對話框捲動擁有者，同時保留巢狀控制項同堆疊面板行為。
 - [語氣：分語言搞笑程度滑桿](tone-funny-level.md) — 喺設定 → 外觀語言模式旁邊，獨立嘅英文同廣東話 1..5 滑桿，接駁到每一類文案（唔淨係旁白），有即時預覽、「改語氣唔改事實」規則同可搜尋嘅等級名。
 - [喺對話框同訊息框顯示 emoji](dialog-emoji-decoration.md) — 設定 → 外觀入面一個會記住嘅開關，喺每個對話框標題側邊加一粒裝飾用、`aria-hidden` 嘅 emoji，由共用嘅「種類對應字元」目錄揀；開同閂嘅無障礙名稱同事實文案完全一樣，而按鈕、動作名同欄位標籤永遠唔會有 emoji。
+- [個人字典](personal-vocabulary.md) — 一個由設定 → 外觀載入嘅本機 JSON 檔，可以換走個 app 顯示嘅字眼；冇任何預設對應、成個檔案要完全驗證先會用、被拒嘅檔案連一半都唔會套用，而啲字眼永遠唔會出現喺匯出、日誌、截圖或者網絡。
+- [旁白把聲](narrator-voice.md) — 分語言嘅旁白聲音、語速同音高，執行時向系統攞返實際裝咗嘅聲音清單，預設係「自動揀」，儲存穩定嘅聲音識別碼而唔係會隨語言變嘅顯示名，而且會老實講明把聲係咪唔見咗、要上網先用到、定係根本一把都冇。
 - [School mode](school-mode.md) — 一個持久化、用戶改得名嘅純英文呈現鎖，配本機憑證解鎖、收埋語言／玩味介面、抑制點心彩蛋同明確嘅重設語意。
 - [版面鎖](surface-locks.md) — 自願開啟、純粹好玩嘅密碼／一次性密碼路障，可以落喺分頁、分頁群組或者任何外觀數值上面；每把鎖有自己獨立嘅憑證、貼住控制項嘅非模態解鎖提示、用戶自己揀解鎖時效、可列舉可搜尋兼支援批量刪除同匯出嘅鎖管理器、喺各搜尋度照樣誠實標示，同埋刪資料夾就重設嘅退路。
 - [音效系統](audio-system.md) — 可選、預設關閉嘅語音旁白、合成音效同逐儲存庫音樂，配速率限制、安靜時段、減少聲音、同螢幕閱讀器共存同搞笑程度語氣。
