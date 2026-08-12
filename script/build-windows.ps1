@@ -52,12 +52,54 @@ function Invoke-StatusCommand {
 }
 
 function Refresh-ProcessPath {
+  <#
+    .SYNOPSIS
+      Pick up PATH entries written by an installer, without growing PATH.
+
+    .DESCRIPTION
+      The process PATH already contains the machine and user entries it was
+      started with, so appending both again duplicates every one of them. This
+      function is called more than once per build, and each call roughly
+      doubled the string.
+
+      That is not merely untidy. Windows hands a child process its environment
+      as one block, and `cmd.exe` will not carry an oversized one: entries fall
+      off the end. Yarn runs package install scripts through `cmd`, those
+      scripts invoke `node` by name, and the symptom is
+
+        'node' is not recognized as an internal or external command
+
+      on a machine where node is installed, on PATH, and runnable from any
+      other shell — which sends the reader looking for a missing Node rather
+      than an overfull PATH.
+
+      Entries are therefore deduplicated, case-insensitively as Windows
+      compares them, keeping first occurrence so precedence is preserved.
+  #>
   $machinePath = [Environment]::GetEnvironmentVariable('Path', 'Machine')
   $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
-  $parts = @($userPath, $machinePath, $env:Path) | Where-Object {
-    -not [string]::IsNullOrWhiteSpace($_)
+  $separator = [IO.Path]::PathSeparator
+  $seen = [Collections.Generic.HashSet[string]]::new(
+    [StringComparer]::OrdinalIgnoreCase
+  )
+  $ordered = [Collections.Generic.List[string]]::new()
+
+  foreach ($source in @($env:Path, $userPath, $machinePath)) {
+    if ([string]::IsNullOrWhiteSpace($source)) {
+      continue
+    }
+    foreach ($entry in $source -split [regex]::Escape($separator)) {
+      $trimmed = $entry.Trim().TrimEnd('\')
+      if ([string]::IsNullOrWhiteSpace($trimmed)) {
+        continue
+      }
+      if ($seen.Add($trimmed)) {
+        $ordered.Add($trimmed)
+      }
+    }
   }
-  $env:Path = $parts -join [IO.Path]::PathSeparator
+
+  $env:Path = $ordered -join $separator
 }
 
 function Test-NodeVersion {
@@ -116,11 +158,40 @@ function Install-PortableNode {
   return $nodePath
 }
 
+function Add-NodeToProcessPath {
+  <#
+    .SYNOPSIS
+      Put the resolved Node.js first on this process's PATH.
+
+    .DESCRIPTION
+      Knowing where node.exe lives is not the same as node being runnable, and
+      the difference is invisible until something else needs it. This script
+      invokes yarn through the resolved binary, so yarn itself always works —
+      but yarn spawns package install scripts, and those run `node` by name.
+      With node absent from PATH they fail with
+
+        'node' is not recognized as an internal or external command
+
+      which reads as a machine with no Node at all, on a machine that has just
+      finished installing it. Only the portable fallback used to prepend, so a
+      host that already had a usable node, or got one from winget, hit this.
+  #>
+  param([Parameter(Mandatory = $true)][string]$NodePath)
+
+  $nodeDirectory = Split-Path -Parent $NodePath
+  $separator = [IO.Path]::PathSeparator
+  $existing = $env:Path -split [regex]::Escape($separator)
+  if ($existing -notcontains $nodeDirectory) {
+    $env:Path = "$nodeDirectory$separator$env:Path"
+  }
+  return $NodePath
+}
+
 function Resolve-PinnedNode {
   $nodeCommand = Get-Command node.exe -ErrorAction SilentlyContinue
   if ($null -ne $nodeCommand -and (Test-NodeVersion -NodePath $nodeCommand.Source)) {
     Write-Phase "Using Node.js $PinnedNodeVersion at $($nodeCommand.Source)"
-    return $nodeCommand.Source
+    return (Add-NodeToProcessPath -NodePath $nodeCommand.Source)
   }
 
   $winget = Get-Command winget.exe -ErrorAction SilentlyContinue
@@ -135,7 +206,7 @@ function Resolve-PinnedNode {
     Refresh-ProcessPath
     $nodeCommand = Get-Command node.exe -ErrorAction SilentlyContinue
     if ($wingetExit -eq 0 -and $null -ne $nodeCommand -and (Test-NodeVersion -NodePath $nodeCommand.Source)) {
-      return $nodeCommand.Source
+      return (Add-NodeToProcessPath -NodePath $nodeCommand.Source)
     }
     Write-Warning "winget did not provide Node.js $PinnedNodeVersion (exit $wingetExit); using the canonical portable distribution."
   } else {
@@ -143,8 +214,7 @@ function Resolve-PinnedNode {
   }
 
   $portableNode = Install-PortableNode
-  $env:Path = "$(Split-Path -Parent $portableNode)$([IO.Path]::PathSeparator)$env:Path"
-  return $portableNode
+  return (Add-NodeToProcessPath -NodePath $portableNode)
 }
 
 function Resolve-VendoredYarn {
