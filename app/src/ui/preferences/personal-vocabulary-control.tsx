@@ -171,7 +171,7 @@ export class PersonalVocabularyControl extends React.Component<
     const loaded = this.state.status.kind === 'loaded'
     return (
       <div className="personal-vocabulary-control">
-        <label htmlFor={this.inputId}>Personal vocabulary file</label>
+        <label htmlFor={this.inputId}>Choose a vocabulary file</label>
         <input
           id={this.inputId}
           type="file"
@@ -179,18 +179,23 @@ export class PersonalVocabularyControl extends React.Component<
           aria-describedby={this.statusId}
           onChange={this.onFileChosen}
         />
-        <button
-          type="button"
-          onClick={this.onClear}
-          disabled={!loaded}
-          title={
-            loaded
-              ? 'Remove the loaded vocabulary and restore the original wording'
-              : 'There is no vocabulary file to clear'
-          }
-        >
-          {loaded ? 'Clear and restore original wording' : 'Nothing to clear'}
-        </button>
+        {/*
+          Absent rather than disabled. A disabled text button has no container
+          and no border, so "Nothing to clear" rendered as a line of stray grey
+          text floating between two controls — it read as a caption nobody had
+          styled rather than as a button that was unavailable. The state it was
+          reporting is already stated, in words, by the status line directly
+          below it.
+        */}
+        {loaded ? (
+          <button
+            type="button"
+            onClick={this.onClear}
+            title="Remove the loaded vocabulary and restore the original wording"
+          >
+            Clear and restore original wording
+          </button>
+        ) : null}
         {this.renderStatus()}
         <details>
           <summary>What this file looks like</summary>

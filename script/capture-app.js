@@ -2021,6 +2021,24 @@ module.exports = {
 }
 
 if (require.main === module) {
+  // Playwright's own dialog manager can reject after the dialog it is handling
+  // has already gone — `Page.handleJavaScriptDialog: No dialog is showing`, a
+  // race inside the driver rather than anything the app or this script did.
+  // Node turns an unhandled rejection into a process abort, so it killed the
+  // run outright: no CAPTURE_FAIL line, no console errors, no clue which step
+  // was in flight. Reported and turned into an ordinary non-zero exit instead,
+  // because a harness that dies without saying anything is indistinguishable
+  // from the application crashing.
+  process.on('unhandledRejection', reason => {
+    // eslint-disable-next-line no-console
+    console.error(
+      'CAPTURE_FAIL unhandled rejection (usually a Playwright driver race, ' +
+        'not the app):',
+      reason && reason.stack ? reason.stack : reason
+    )
+    process.exit(1)
+  })
+
   main().catch(err => {
     // eslint-disable-next-line no-console
     console.error('CAPTURE_FAIL', err && err.stack ? err.stack : err)

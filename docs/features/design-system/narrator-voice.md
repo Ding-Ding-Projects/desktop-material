@@ -77,6 +77,14 @@ app will pick one, and there is nothing to pick from. Saying "chosen
 automatically" on a machine that will stay silent is a claim the user cannot
 check.
 
+![Settings → Sound showing both narrator voice pickers. English reads "Chosen automatically: the closest match this computer has for the language being spoken." Cantonese reads "This computer has no voice installed that can read this language. The narrator will stay silent for it until one is added." — the two states the picker keeps distinct.](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/narrator-voice-pickers.png)
+
+Captured from the built application through `script/capture-app.js` at commit
+`cce8632302`. The capture happens to show both states side by side: the machine
+it ran on has English voices installed and no Cantonese one, so the honest
+distinction between *automatic* and *no voice available* is visible rather than
+merely asserted.
+
 ## Which voices each side accepts
 
 | Side | Language tags |

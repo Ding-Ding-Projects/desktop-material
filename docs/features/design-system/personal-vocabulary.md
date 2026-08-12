@@ -42,6 +42,12 @@ rendering its original wording*.
 The status line reports a **count**, never the terms. The terms are the private
 part; the number is not.
 
+![Settings → Appearance showing the Personal vocabulary section: a file picker reading "No file chosen", and beneath it "No vocabulary file is loaded. Every surface is rendering its original wording." A collapsed "What this file looks like" disclosure sits below.](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/personal-vocabulary.png)
+
+Captured from the built application through `script/capture-app.js`. This is the
+state before any file exists, which is the state the control has to be good at:
+present, discoverable, and saying plainly that nothing has been changed.
+
 ## The file
 
 ```json
