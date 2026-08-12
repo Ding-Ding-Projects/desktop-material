@@ -1085,7 +1085,6 @@
   min-height: 0;
   min-width: 0;
   padding: 10px 8px 12px;
-  width: 356px;
   border-right: 1px solid var(--md-sys-color-outline-variant);
   background: var(--md-sys-color-surface-container-high);
 }
@@ -1987,5 +1986,19 @@
   .repository-tools-functions {
     flex: none;
     max-height: 96px;
+  }
+}
+
+// The tool list is a shared resizable pane now, so it takes its width from the
+// pane wrapper rather than restating one. A fixed width here would silently
+// win over the user's own choice.
+.repository-tools-sidebar-pane {
+  display: flex;
+  min-height: 0;
+
+  > .repository-tools-sidebar {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
   }
 }

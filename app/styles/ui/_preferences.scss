@@ -2895,3 +2895,128 @@
     }
   }
 }
+
+// The personal-vocabulary upload and the narrator voice pickers.
+//
+// Both are new surfaces, so both are built to the Material 3 rules rather than
+// inheriting whatever a bare `<input type="file">` and `<select>` look like:
+// a native file input renders as a small grey system button that matches
+// nothing else in the app, and an unstyled select keeps the platform's own
+// chrome and corner radius.
+.personal-vocabulary-control,
+.sound-voice-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-block: 12px;
+
+  > label {
+    color: var(--md-sys-color-on-surface);
+    font-size: 13px;
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.01em;
+  }
+
+  // M3 outlined field: 40px tall, 4px corner, outline in `outline`, and the
+  // focus state thickening to the primary role rather than drawing a
+  // platform focus ring outside the control.
+  > select,
+  > input[type='file'] {
+    background: var(--md-sys-color-surface-container-highest);
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 4px;
+    color: var(--md-sys-color-on-surface);
+    font-family: var(--font-family-sans-serif);
+    font-size: 13px;
+    min-height: 40px;
+    padding: 0 12px;
+    width: 100%;
+
+    &:hover:not(:disabled) {
+      border-color: var(--md-sys-color-on-surface);
+    }
+
+    &:focus-visible {
+      border-color: var(--md-sys-color-primary);
+      box-shadow: inset 0 0 0 1px var(--md-sys-color-primary);
+      outline: none;
+    }
+
+    &:disabled {
+      // M3's disabled treatment is the same colour at 38% rather than a
+      // different, greyer colour — so a disabled control still reads as the
+      // control it is.
+      border-color: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+      color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+    }
+  }
+
+  // The file input's own button, which is a separate shadow part and keeps the
+  // operating system's styling unless it is addressed directly.
+  > input[type='file']::file-selector-button {
+    background: var(--md-sys-color-secondary-container);
+    border: 0;
+    border-radius: 20px;
+    color: var(--md-sys-color-on-secondary-container);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: var(--font-weight-semibold);
+    margin-right: 12px;
+    min-height: 32px;
+    padding: 0 16px;
+  }
+
+  // M3 text button for the clear action: no container until it is interacted
+  // with, primary label, fully rounded.
+  > button {
+    align-self: flex-start;
+    background: transparent;
+    border: 0;
+    border-radius: 20px;
+    color: var(--md-sys-color-primary);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: var(--font-weight-semibold);
+    min-height: 40px;
+    padding: 0 12px;
+
+    &:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent);
+    }
+
+    &:disabled {
+      color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+      cursor: default;
+    }
+  }
+
+  .settings-description {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 12px;
+    line-height: 16px;
+    margin: 0;
+
+    // A refusal is a message the user has to read, so it takes the error role
+    // rather than sitting in the same muted grey as the ordinary caption.
+    &.is-error {
+      color: var(--md-sys-color-error);
+    }
+  }
+
+  details > summary {
+    color: var(--md-sys-color-primary);
+    cursor: pointer;
+    font-size: 12px;
+    min-height: 24px;
+  }
+
+  code {
+    background: var(--md-sys-color-surface-container-high);
+    border-radius: 4px;
+    font-family: var(--font-family-monospace);
+    font-size: 11.5px;
+    padding: 1px 4px;
+  }
+}
