@@ -20,6 +20,8 @@ import { Dispatcher } from '../dispatcher'
 import { Repository } from '../../models/repository'
 import { Branch, BranchType } from '../../models/branch'
 import { Commit } from '../../models/commit'
+import { DragType } from '../../models/drag-drop'
+import { dragAndDropManager } from '../../lib/drag-and-drop-manager'
 import { IRepositoryState } from '../../lib/app-state'
 import { TipState } from '../../models/tip'
 import { CommittedFileChange } from '../../models/status'
@@ -318,6 +320,35 @@ export function buildMd3HistoryProps(
       context.setLocal({ historyPinnedShas: pinned })
     },
     onCopySha: sha => clipboard.writeText(sha),
+    /**
+     * Keep the drag-a-commit-onto-a-branch cherry-pick gesture alive.
+     *
+     * The view makes its rows draggable only when this exists, so without it
+     * the gesture is not broken — it is absent, with nothing to notice. The
+     * drop targets in the branch list are unchanged and still read
+     * `DragType.Commit` off the shared manager, so supplying the same payload
+     * the old commit row set is all that is needed.
+     *
+     * A SHA the lookup has not loaded is dropped rather than faked: cherry-pick
+     * needs the commit itself, and a placeholder would fail later and further
+     * away from the cause.
+     */
+    onCommitDragStart: shas => {
+      // The old row blurred first so the selection did not stay highlighted
+      // under the drag image.
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur()
+      }
+      const dragged = shas
+        .map(sha => state.commitLookup.get(sha))
+        .filter((commit): commit is Commit => commit !== undefined)
+      if (dragged.length > 0) {
+        dragAndDropManager.setDragData({
+          type: DragType.Commit,
+          commits: dragged,
+        })
+      }
+    },
     // The bulk bar's Copy SHAs verb writes the whole scope as one string.
     // Calling `onCopySha` in a loop would overwrite the clipboard once per
     // commit and leave only the last one, so the verb reads this instead — and

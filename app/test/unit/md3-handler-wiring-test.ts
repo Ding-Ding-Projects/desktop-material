@@ -85,6 +85,14 @@ const MustBeWired: ReadonlyArray<IWiredHandler> = [
     handler: 'onSetMuted',
     suppliedBy: 'app/src/ui/md3/md3-view-props.ts',
   },
+  // The view makes its rows draggable only when this exists, so without it the
+  // drag-a-commit-onto-a-branch cherry-pick gesture is not broken — it is
+  // absent, with no control and nothing to notice.
+  {
+    view: 'md3-history-view.tsx',
+    handler: 'onCommitDragStart',
+    suppliedBy: 'app/src/ui/md3/md3-view-props.ts',
+  },
 ]
 
 describe('MD3 destination handler wiring', () => {
