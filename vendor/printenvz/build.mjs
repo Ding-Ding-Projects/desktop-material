@@ -5,7 +5,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs'
-import { basename, dirname, join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const packageRoot = dirname(fileURLToPath(import.meta.url))
@@ -153,7 +153,17 @@ let result
 try {
   result = spawnSync(
     process.env.ComSpec ?? 'cmd.exe',
-    ['/d', '/s', '/c', 'call', basename(commandFilePath)],
+    // The absolute path, not the bare file name. `call foo.cmd` relies on cmd
+    // searching the current directory, which a host can turn off — and does,
+    // through `NoDefaultCurrentDirectoryInExePath`. The failure is
+    // `'printenvz-build.cmd' is not recognized`, naming a file sitting in the
+    // working directory the command was given, which reads as a missing file
+    // rather than a lookup rule.
+    //
+    // Unquoted: `spawnSync` already quotes an argument containing spaces, and
+    // adding quotes here gets them escaped into the argument itself — the
+    // command then fails naming a path wrapped in literal `\"` marks.
+    ['/d', '/s', '/c', 'call', commandFilePath],
     {
       cwd: packageRoot,
       stdio: 'inherit',

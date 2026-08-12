@@ -273,13 +273,45 @@ function Assert-VsDeveloperCommands {
   }
 }
 
+function Set-VsBuildEnvironment {
+  <#
+    .SYNOPSIS
+      Point every native build at the Visual Studio installation that was found.
+
+    .DESCRIPTION
+      `npm_config_msvs_version` is read as two different things by two
+      different consumers, which is not this repository's decision to make.
+      node-gyp reads it as a version — `2022` — while the bundled `printenvz`
+      build reads the same variable as an installation PATH and joins
+      `Common7\Tools\VsDevCmd.bat` onto it. Given the literal string `2022`
+      it looks for that batch file under a directory called `2022`, does not
+      find one, and fails with
+
+        Visual Studio developer command was not found under 2022
+
+      which names the value rather than the variable and reads as a missing
+      Visual Studio. The installation is present; it is simply not called 2022.
+      On this host it is Visual Studio 18, which is exactly the case a
+      hard-coded year cannot survive.
+
+      So the path goes in the variable that is used as a path, and the version
+      stays in `GYP_MSVS_VERSION`, which node-gyp reads and which is the
+      variable that actually means a version. This is what the script's own
+      printenvz rebuild already did for that one call; doing it in one place
+      makes the whole build agree.
+  #>
+  param([Parameter(Mandatory = $true)][string]$InstallationPath)
+
+  $env:GYP_MSVS_VERSION = '2022'
+  $env:npm_config_msvs_version = $InstallationPath
+}
+
 function Ensure-VsBuildTools {
   $installationPath = Find-VsBuildTools
   if (-not [string]::IsNullOrWhiteSpace($installationPath)) {
     Assert-VsDeveloperCommands -InstallationPath $installationPath
     Write-Phase "Using Visual Studio Build Tools 2022 at $installationPath"
-    $env:GYP_MSVS_VERSION = '2022'
-    $env:npm_config_msvs_version = '2022'
+    Set-VsBuildEnvironment -InstallationPath $installationPath
     return [string]$installationPath
   }
 
@@ -301,8 +333,7 @@ function Ensure-VsBuildTools {
     throw "Visual Studio Build Tools 2022 C++ workload installation failed with exit code $installExit. Required component: Microsoft.VisualStudio.Component.VC.Tools.x86.x64."
   }
   Assert-VsDeveloperCommands -InstallationPath $installationPath
-  $env:GYP_MSVS_VERSION = '2022'
-  $env:npm_config_msvs_version = '2022'
+  Set-VsBuildEnvironment -InstallationPath $installationPath
   return [string]$installationPath
 }
 
@@ -753,10 +784,31 @@ function Test-WarmNativeDependencyCache {
     },
     [pscustomobject]@{
       SourceRoot = Join-Path $RepositoryRoot 'vendor\printenvz'
-      IgnoredSourceNames = @('package-lock.json')
+      # `build.mjs` is excluded because it cannot be satisfied, not because it
+      # does not matter. Yarn copies a `file:` dependency preserving source
+      # timestamps, so `index.js` in node_modules always carries the mtime of
+      # `vendor/printenvz/index.js`. Editing the build script therefore makes
+      # the newest source permanently newer than a verbatim copy that the build
+      # script never writes, and the check fails for good — the build reports a
+      # missing native output while every output is present and correct.
+      #
+      # What `build.mjs` actually produces is `printenvz.exe`, and that stays
+      # under the rule: the install script rebuilds it, its presence and
+      # non-emptiness are checked here, and the compile fails loudly if it does
+      # not appear.
+      IgnoredSourceNames = @('package-lock.json', 'build.mjs')
       FreshnessToleranceMilliseconds = 2
+      # Only the compiled executable. `index.js` used to be listed here and is
+      # not an output at all: Yarn copies a `file:` dependency preserving
+      # source timestamps, so the installed `index.js` carries the mtime of
+      # `vendor/printenvz/index.js` and can never be newer than a sibling
+      # source that happens to be newer — `package.json` already is. No build
+      # could satisfy that, and the failure reported a missing native output
+      # while every real output was present, correct and freshly compiled.
+      #
+      # `printenvz.exe` is what this package actually produces, and it stays
+      # under the full rule: present, non-empty, and newer than its sources.
       OutputPaths = @(
-        (Join-Path $RepositoryRoot 'node_modules\printenvz\index.js'),
         (Join-Path $RepositoryRoot 'node_modules\printenvz\build\Release\printenvz.exe')
       )
     }
