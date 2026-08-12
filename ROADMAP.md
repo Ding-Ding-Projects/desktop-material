@@ -1818,6 +1818,17 @@ installer/portable-ZIP release workflow.
   agent responses.
 - Preserve Material token usage when adapting upstream or Desktop Plus code; do not import
   their branding or SCSS wholesale.
+- A design token declared in more than one stylesheet is decided by import order, not by
+  the file a reader opens first. `_variables.scss` and `_material.scss` both set the button
+  tokens on `:root`; the Material layer is imported second and wins. Keep the two in step,
+  and treat a "fix" applied to the losing declaration as a change that shipped nothing —
+  `app/test/unit/button-token-test.ts` exists because exactly that happened.
+- Every element that offers an appearance lock must also advertise its lock target in the
+  DOM via `appearanceLockTargetProps`. A lock without the attribute is recorded, listed in
+  the manager, and gates nothing. The guard's surface list is hand-written, so adding a
+  lockable surface means adding its row in the same change.
+- `commit.template` does not apply to `git commit -F`. Append the `Co-Authored-By` trailer
+  to the message file explicitly, or a scripted commit silently drops it.
 
 ## Current maintenance acceptance
 
