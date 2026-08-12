@@ -9643,3 +9643,67 @@ Verification for this correction:
 - The prior aggregate CI run remains unverified for this correction: its result
   is red because TUI jobs fail outside the Windows desktop scope, while the
   next commit will rerun the corrected Windows unit contract.
+
+
+## 2026-08-12 surface locks wired, narrator voice, personal vocabulary
+
+### What changed
+
+**Surface locks did nothing.** `setMd3LockCredentialVault` was never called at
+renderer start-up — a gap the feature's own documentation had recorded months
+earlier under a heading called *Not yet wired*. Every attempt to lock an
+element wrote a lock record, was refused the credential, rolled the record
+back, and left a button that appeared to be made of paint. The vault is now
+installed in `app/src/ui/index.tsx`.
+
+A recorded lock also **gated nothing**: the row appeared in the manager and the
+element carried on working. `app/src/ui/appearance/appearance-lock-gate.ts`
+adds one capture-phase gate over `mousedown`, `click` and Enter/Space, keyed on
+a `data-md3-lock-target` attribute an element carries via
+`appearanceLockTargetProps`. `AppearanceLockPromptHost`, mounted once in the
+shell, opens the existing unlock prompt anchored to the blocked control.
+
+**Narrator voice is selectable**, per language, with rate and pitch —
+`app/src/lib/audio/narrator-voices.ts` plus pickers in Sound preferences.
+
+**Personal vocabulary** — `app/src/lib/personal-vocabulary.ts` and the control
+on Settings → Appearance. Applied at `translate`, which is the single
+user-facing text boundary.
+
+**Two Material 3 corrections.** `--button-height` 25px → 40px and
+`--button-border-radius` 6px → 20px, which were the last values in the app
+reading as Material 2 and were under the minimum touch target besides.
+
+### Verification
+
+- `personal-vocabulary-test.ts` 27, `narrator-voices-test.ts` 16,
+  `appearance-lock-gate-test.ts` 26, plus the existing layout, palette,
+  settings-search, i18n, changelog and docs-bundle suites.
+- Ten guards were broken on purpose and watched go red, then restored.
+
+### What a successor needs to know
+
+**One guard could not be made to fail, and that is recorded rather than
+hidden.** A `lastIndex` reset was added to the vocabulary's cached regex with a
+confident comment about why it was necessary; `String.replace` with a global
+pattern manages `lastIndex` itself, so the test written to prove the reset was
+needed passed with the reset removed. The line was deleted and the comment now
+says so. Anyone reviewing a module-level `/g` regex will want to add it back.
+
+**Seven commits in this session are missing the `Co-Authored-By` trailer.**
+Author and committer are correct throughout, so `git blame` attribution is
+intact, but the trailer is what the release line-count attribution reads.
+Correcting them needs a history rewrite and therefore explicit authorization;
+they were left alone. `commit.template` does **not** apply to `git commit -F`,
+which is how the gap opened.
+
+### Still open
+
+- The lock gate stamps the submodule Back button and repository tabs. The
+  repository list rows and the shell-wide `feature:` / `profile:` appearance
+  targets have lock records but no DOM attribute, so their locks still gate
+  nothing.
+- No HuiShots have been captured against a built artifact this session, so the
+  Material 3 button change and both new controls are unverified visually.
+- The empty branch list visible in the reported Branches screenshot was never
+  diagnosed; the two layout faults beside it were.
