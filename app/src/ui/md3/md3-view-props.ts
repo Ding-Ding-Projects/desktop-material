@@ -871,6 +871,18 @@ export interface IMd3InboxContext {
   readonly onExport: (request: IMd3InboxExportRequest) => void
   /** Redraw after a mute, which is view state rather than store state. */
   readonly onMutedThreadsChanged?: () => void
+
+  /**
+   * The signed-in account's notification inbox on its own provider, or `null`
+   * when nobody is signed in.
+   *
+   * It has to be derived from the account rather than hard-coded, because an
+   * Enterprise account's inbox is on its own host and sending that user to
+   * github.com would be both wrong and a small privacy leak. `null` is honest:
+   * the list menu simply does not offer the row, rather than offering one that
+   * opens the wrong site.
+   */
+  readonly gitHubInboxURL?: string | null
 }
 
 /** Build the Inbox destination's props from the real notification centre. */
@@ -896,6 +908,13 @@ export function buildMd3InboxProps(
       setNotificationThreadMuted(md3NotificationThreadKey(entry), muted)
       context.onMutedThreadsChanged?.()
     },
+    // Undefined rather than a no-op when there is no account: the list menu
+    // draws the row only when a handler exists, which is exactly the behaviour
+    // wanted here — no signed-in account, no inbox to open, no row.
+    onOpenGitHubInbox:
+      context.gitHubInboxURL == null
+        ? undefined
+        : () => void shell.openExternal(context.gitHubInboxURL as string),
     onOpen: notification => {
       const entry = byId.get(notification.id)
       if (entry === undefined) {

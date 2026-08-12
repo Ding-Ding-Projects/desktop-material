@@ -556,6 +556,7 @@ import { CopilotConflictResolutionAlwaysNudge } from './multi-commit-operation/d
 import {
   IAPICreatePushProtectionBypassResponse,
   IAPIRepository,
+  getHTMLURL,
 } from '../lib/api'
 import {
   BypassPushProtectionDialog,
@@ -8681,6 +8682,15 @@ export class App extends React.Component<IAppProps, IAppState> {
       // A mute is view state rather than store state, so nothing else is going
       // to redraw the row it just changed.
       onMutedThreadsChanged: () => this.forceUpdate(),
+      // Built from the account's own endpoint, so an Enterprise user is sent
+      // to their own host rather than to github.com.
+      gitHubInboxURL:
+        this.state.accounts.length === 0
+          ? null
+          : new URL(
+              '/notifications',
+              getHTMLURL(this.state.accounts[0].endpoint)
+            ).toString(),
       onExport: request =>
         this.props.dispatcher.postNotification({
           kind: 'info',
