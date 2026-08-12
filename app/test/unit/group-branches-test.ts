@@ -121,14 +121,23 @@ describe('Branches grouping', () => {
       }
     )
 
+    // `other` is absent rather than present-and-empty, which is what this
+    // asserted before. Every other group here is pushed only when it has
+    // members; `other` alone was pushed unconditionally, so a repository with
+    // nothing left over rendered an "Other branches" heading with no rows
+    // beneath it. That reads as a list that failed to load rather than as a
+    // list with nothing in it — it was reported, from a screenshot, as "the
+    // branch list is empty", and this assertion was holding it in place.
+    //
+    // With the group omitted the filter list reaches its own empty state,
+    // which says so in words instead of promising rows it does not have.
     assert.deepEqual(
       groups.map(group => group.identifier),
-      ['default', 'pinned', 'other']
+      ['default', 'pinned']
     )
     assert.equal(groups[0].items[0].branch.name, 'master')
     assert.equal(groups[1].items[0].branch.name, 'other-branch')
     assert.equal(groups[1].items[0].isPinned, true)
-    assert.equal(groups[2].items.length, 0)
   })
 
   it('keeps the default and current branches available in solo view', () => {
@@ -146,5 +155,34 @@ describe('Branches grouping', () => {
       groups.flatMap(group => group.items.map(item => item.branch.name)),
       ['master', 'feature', 'other-branch']
     )
+  })
+})
+
+describe('an empty group is never rendered as a heading with no rows', () => {
+  const tip = {
+    sha: 'deadbeef',
+    author: new CommitIdentity('n', 'n@example.com', new Date(0)),
+  }
+  const only = new Branch('main', null, tip, BranchType.Local, '')
+
+  it('omits `other` when the default branch is the only branch', () => {
+    // The commonest repository in the world at the moment somebody first opens
+    // this sheet: a fresh clone, or one they just created.
+    const groups = groupBranches(only, only, [only], [])
+    assert.deepEqual(
+      groups.map(group => group.identifier),
+      ['default']
+    )
+  })
+
+  it('still produces `other` when something is actually left over', () => {
+    // The other half. A guard that removed the group unconditionally would
+    // pass the test above and lose every branch that is not recent or pinned.
+    const spare = new Branch('spare', null, tip, BranchType.Local, '')
+    const groups = groupBranches(only, only, [only, spare], [])
+    assert.ok(groups.some(group => group.identifier === 'other'))
+    const other = groups.find(group => group.identifier === 'other')
+    assert.equal(other?.items.length, 1)
+    assert.equal(other?.items[0].branch.name, 'spare')
   })
 })

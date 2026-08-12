@@ -80,6 +80,44 @@ export enum ProfileAppearanceElementId {
   DefaultRepositoryLogo = 'default-repository-logo',
 }
 
+/**
+ * How a rendered element is recognised as one of the profile-level owners.
+ *
+ * One table, consumed by both the appearance editor's Shift+right-click
+ * resolution and the surface-lock activation gate. They must agree about which
+ * element an id belongs to: if the editor locks `profile:toolbar` from the
+ * toolbar and the gate looks for it somewhere else, the lock exists, appears in
+ * the manager, and gates nothing — which is precisely the failure the gate was
+ * built to end, reintroduced one level up by two copies of the same list.
+ *
+ * Order matters. The first match wins, so the most specific selectors come
+ * first and `#desktop-app-contents` — which contains everything — comes last.
+ */
+export const ProfileAppearanceOwnerSelectors: ReadonlyArray<
+  readonly [selector: string, elementId: ProfileAppearanceElementId]
+> = [
+  [
+    '[data-customization-surface="app-identity"]',
+    ProfileAppearanceElementId.AppIdentity,
+  ],
+  ['.update-download-progress', ProfileAppearanceElementId.UpdateProgress],
+  ['#desktop-app-toolbar', ProfileAppearanceElementId.Toolbar],
+  ['.repository-list', ProfileAppearanceElementId.RepositoryList],
+  ['.repository-tab-strip', ProfileAppearanceElementId.RepositoryTabs],
+  [
+    '.diff-container, .code-viewer, .blob-wrapper',
+    ProfileAppearanceElementId.CodeDiff,
+  ],
+  ['#desktop-app-contents', ProfileAppearanceElementId.AppWorkspace],
+]
+
+/** The lock target id a profile-level appearance owner is locked under. */
+export function profileAppearanceLockTargetId(
+  elementId: ProfileAppearanceElementId
+): string {
+  return `profile:${elementId}`
+}
+
 /** Stable repository-level owners. Instances are keyed by appearance UUID. */
 export enum RepositoryAppearanceElementId {
   Workspace = 'workspace',

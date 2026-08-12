@@ -72,6 +72,11 @@
 //   menu:<menu-event-id>         emit one of the app's own menu events (the
 //                                only route to a menu-only surface, because a
 //                                menu accelerator never reaches the page)
+//   probe:<selector>             measure a selector and add its real geometry and
+//                                computed layout properties to the JSON report.
+//                                Reading the built app rather than reasoning
+//                                about the stylesheet, which is the only way to
+//                                tell "the rule is written" from "the rule wins"
 //   optional:<step>              run <step>, but do not fail when it cannot
 
 const { execFileSync } = require('child_process')
@@ -308,6 +313,13 @@ function parseStep(raw) {
         throw new Error(`Step menu needs a menu-event id: ${value}`)
       }
       return { kind, name }
+    }
+    case 'probe': {
+      const selector = rest.trim()
+      if (selector.length === 0) {
+        throw new Error(`Step probe needs a selector: ${value}`)
+      }
+      return { kind, selector }
     }
     case 'optional': {
       // Some scenes only appear sometimes — the update banner a fresh profile
@@ -888,7 +900,13 @@ async function openRepositoryTabs(
   }
 }
 
-async function runStep(page, electronApp, step, timeoutMilliseconds) {
+async function runStep(
+  page,
+  electronApp,
+  step,
+  timeoutMilliseconds,
+  probes = []
+) {
   switch (step.kind) {
     case 'optional':
       try {
@@ -1031,6 +1049,37 @@ async function runStep(page, electronApp, step, timeoutMilliseconds) {
       await setDeviceMetrics(electronApp, page, step.size, step.scale)
       await page.waitForTimeout(400)
       return
+    case 'probe': {
+      const measured = await page.evaluate(selector => {
+        const elements = [...document.querySelectorAll(selector)]
+        return {
+          count: elements.length,
+          elements: elements.slice(0, 6).map(element => {
+            const rect = element.getBoundingClientRect()
+            const style = getComputedStyle(element)
+            return {
+              width: Math.round(rect.width),
+              height: Math.round(rect.height),
+              top: Math.round(rect.top),
+              left: Math.round(rect.left),
+              display: style.display,
+              flex: style.flex,
+              alignSelf: style.alignSelf,
+              alignItems: style.alignItems,
+              alignContent: style.alignContent,
+              gridAutoRows: style.gridAutoRows,
+              height_: style.height,
+              minHeight: style.minHeight,
+              borderRadius: style.borderRadius,
+              padding: style.padding,
+              overflow: style.overflow,
+            }
+          }),
+        }
+      }, step.selector)
+      probes.push({ selector: step.selector, ...measured })
+      return
+    }
     case 'menu':
       await emitMenuEvent(electronApp, step.name)
       await page.waitForTimeout(600)
@@ -1746,6 +1795,44 @@ async function collectWindowControlsEvidence(page, electronApp) {
 }
 
 /**
+ * Reload, tolerating a navigation the app has deliberately refused.
+ *
+ * See the call site for why. Each attempt is given a short timeout rather than
+ * the full one, because a refused navigation fails instantly in practice and
+ * waiting the whole budget on the first attempt is what turned this into a
+ * thirty-second hang with no explanation.
+ */
+async function reloadPastNavigationGuard(page, timeoutMilliseconds) {
+  const attempts = 12
+  const perAttempt = 2500
+  let lastError = null
+
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      await page.reload({ timeout: perAttempt })
+      return
+    } catch (error) {
+      lastError = error
+      // Give the in-flight profile write a moment to finish and release the
+      // guard. Nothing here can force it: the guard exists so a reload cannot
+      // interrupt a half-written profile.
+      await page.waitForTimeout(500)
+    }
+  }
+
+  throw new Error(
+    `The renderer refused to reload after ${attempts} attempts over ` +
+      `${Math.round(
+        (attempts * (perAttempt + 500)) / 1000
+      )}s. This is usually ` +
+      `a profile write that never completed, holding the beforeunload guard in ` +
+      `profile-git.ts open. Last error: ${
+        lastError && lastError.message ? lastError.message : lastError
+      }`
+  )
+}
+
+/**
  * Launch the built app with the given repositories open as tabs, run the given
  * steps, and write a PNG. Resolves with a report describing what happened.
  */
@@ -1787,6 +1874,9 @@ async function captureApp(options) {
   )
 
   const consoleErrors = []
+  // Geometry read from the running app by `probe:` steps. Measuring beats
+  // reasoning about a stylesheet: a rule can be present, correct, and losing.
+  const probes = []
   let electronApp = null
 
   try {
@@ -1890,7 +1980,17 @@ async function captureApp(options) {
 
       // The app reads its repositories (and its startup preferences) once at
       // startup, so seeded rows only take effect after the renderer reloads.
-      await page.reload({ timeout: Math.max(timeoutMilliseconds, 30000) })
+      //
+      // Retried, because a single attempt reliably hangs. `profile-git.ts`
+      // installs a refcounted `beforeunload` guard while a profile write is in
+      // flight and sets `event.returnValue = false`, which makes Electron
+      // *cancel* the navigation outright rather than prompt — so `page.reload`
+      // waits thirty seconds for something that was refused in the first
+      // moment, and no dialog handler can help because no dialog is shown.
+      //
+      // The guard releases itself when the write completes, so the fix is to
+      // ask again rather than to weaken a guard that is protecting real work.
+      await reloadPastNavigationGuard(page, timeoutMilliseconds)
       await page.waitForLoadState('domcontentloaded')
       await completeWelcomeFlow(page, 1500)
       await page
@@ -1906,7 +2006,7 @@ async function captureApp(options) {
     }
 
     for (const step of options.steps || []) {
-      await runStep(page, electronApp, step, timeoutMilliseconds)
+      await runStep(page, electronApp, step, timeoutMilliseconds, probes)
     }
 
     await page.waitForTimeout(
@@ -1966,6 +2066,7 @@ async function captureApp(options) {
       ),
       windowControls,
       consoleErrors,
+      probes,
     }
   } finally {
     if (electronApp !== null) {

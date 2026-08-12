@@ -82,6 +82,7 @@ import {
   IProfileAppearanceElementSettings,
   IRepositoryAppearanceElementSettings,
   ProfileAppearanceElementId,
+  ProfileAppearanceOwnerSelectors,
   RepositoryAppearanceElementId,
 } from '../models/element-appearance'
 import {
@@ -4334,23 +4335,10 @@ export class App extends React.Component<IAppProps, IAppState> {
     readonly elementId: ProfileAppearanceElementId
     readonly anchor: HTMLElement
   } | null {
-    const candidates: ReadonlyArray<
-      readonly [string, ProfileAppearanceElementId]
-    > = [
-      [
-        '[data-customization-surface="app-identity"]',
-        ProfileAppearanceElementId.AppIdentity,
-      ],
-      ['.update-download-progress', ProfileAppearanceElementId.UpdateProgress],
-      ['#desktop-app-toolbar', ProfileAppearanceElementId.Toolbar],
-      ['.repository-list', ProfileAppearanceElementId.RepositoryList],
-      ['.repository-tab-strip', ProfileAppearanceElementId.RepositoryTabs],
-      [
-        '.diff-container, .code-viewer, .blob-wrapper',
-        ProfileAppearanceElementId.CodeDiff,
-      ],
-      ['#desktop-app-contents', ProfileAppearanceElementId.AppWorkspace],
-    ]
+    // The one shared table, so the gate that blocks a locked element and the
+    // editor that locks it cannot disagree about which element an id means.
+    const candidates = ProfileAppearanceOwnerSelectors
+
     for (const [selector, elementId] of candidates) {
       const anchor = target.closest<HTMLElement>(selector)
       if (anchor !== null) {

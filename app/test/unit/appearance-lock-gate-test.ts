@@ -15,6 +15,10 @@ import {
   resolveAppearanceLockTarget,
   uninstallAppearanceLockGate,
 } from '../../src/ui/appearance/appearance-lock-gate'
+import {
+  ProfileAppearanceElementId,
+  profileAppearanceLockTargetId,
+} from '../../src/models/element-appearance'
 import { addMd3Lock, writeMd3Locks } from '../../src/lib/md3-locks'
 import { DefaultMd3UnlockDuration } from '../../src/lib/md3-locks/lock-model'
 
@@ -128,6 +132,61 @@ describe('finding which element an event belongs to', () => {
   it('ignores a non-element event target', () => {
     assert.strictEqual(resolveAppearanceLockTarget(null), null)
     assert.strictEqual(resolveAppearanceLockTarget(window), null)
+  })
+})
+
+describe('profile-level owners, which have no attribute to stamp', () => {
+  // The shell's `feature:` and `profile:` appearance targets are resolved by
+  // walking a table of selectors, because any element inside the toolbar is the
+  // toolbar's appearance target — there is no single element to mark. The gate
+  // walks the same table the editor does, from one shared export, so a lock
+  // created from one element cannot be looked for on another.
+
+  let toolbar: HTMLElement
+
+  beforeEach(() => {
+    writeMd3Locks([])
+    clearAppearanceUnlocks()
+    toolbar = document.createElement('div')
+    toolbar.id = 'desktop-app-toolbar'
+    document.body.appendChild(toolbar)
+  })
+
+  afterEach(() => {
+    toolbar.remove()
+    writeMd3Locks([])
+    clearAppearanceUnlocks()
+  })
+
+  it('resolves a profile owner from a descendant', () => {
+    const child = document.createElement('button')
+    toolbar.appendChild(child)
+    assert.strictEqual(
+      resolveAppearanceLockTarget(child)?.targetId,
+      'profile:toolbar'
+    )
+  })
+
+  it('derives the same id the appearance editor locks under', () => {
+    // The join. If these two ever disagree the lock is recorded, listed in the
+    // manager, and gates nothing — the exact failure the gate exists to end.
+    assert.strictEqual(
+      profileAppearanceLockTargetId(ProfileAppearanceElementId.Toolbar),
+      'profile:toolbar'
+    )
+  })
+
+  it('prefers an explicit attribute over the containing owner', () => {
+    // A repository tab declares itself and sits inside the tab strip, which is
+    // also an owner. The tab's own lock must win, or locking one tab would be
+    // answered by a lock on the whole strip.
+    const tab = document.createElement('div')
+    tab.setAttribute(AppearanceLockTargetAttribute, 'repository-tab:7')
+    toolbar.appendChild(tab)
+    assert.strictEqual(
+      resolveAppearanceLockTarget(tab)?.targetId,
+      'repository-tab:7'
+    )
   })
 })
 

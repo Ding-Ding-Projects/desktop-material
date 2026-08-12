@@ -146,3 +146,49 @@ describe('the merge footer buttons stay the size of buttons', () => {
     assert.doesNotMatch(buttons, /^\s*height:\s*var\(--button-height\)/m)
   })
 })
+
+/**
+ * The rule that actually wins.
+ *
+ * The assertions above check the first `.merge-button-row` block. A second,
+ * later block in the same file overrides it — `display: flex`,
+ * `grid-template-columns: none`, and a `flex` shorthand on the buttons — so
+ * every grid property asserted above is inert at runtime, and the fix that was
+ * shipped for the oversized merge actions changed nothing at all.
+ *
+ * That was found by measuring the built app, not by reading the stylesheet:
+ * the row came back 316px tall, which is 150 + 150 + 4 gap + 12 padding — the
+ * arithmetic of a 150px flex basis applied twice down a column. `flex: 1 1
+ * 150px` reads as a width, and is a height here, because the row is a column.
+ *
+ * It is the second time in one session that a correct-looking edit landed on a
+ * losing declaration. Hence this block: the later rule is asserted directly.
+ */
+describe('the merge footer rule that wins', () => {
+  /** The second block, which overrides the first. */
+  const LaterAnchor = '.merge-button-row {\n    display: flex;'
+
+  it('still overrides the earlier block', () => {
+    // If this ever stops being true the assertions above become the live ones
+    // again, and this block is describing a rule that no longer exists.
+    assert.ok(
+      styles.includes(LaterAnchor),
+      'the later flex override is gone — re-check which block now wins'
+    )
+  })
+
+  it('does not give a merge action a fixed size along the column', () => {
+    const buttons = declarationsFor('> .button-component', LaterAnchor)
+    assert.doesNotMatch(
+      buttons,
+      /flex:\s*1 1 150px/,
+      'a 150px basis down a flex column is a 150px-tall button'
+    )
+    assert.match(buttons, /flex:\s*0 0 auto/)
+  })
+
+  it('keeps a floor so the action stays a usable target', () => {
+    const buttons = declarationsFor('> .button-component', LaterAnchor)
+    assert.match(buttons, /min-height:\s*\d+px/)
+  })
+})

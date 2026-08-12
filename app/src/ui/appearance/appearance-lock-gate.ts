@@ -4,6 +4,10 @@ import {
   isTargetLocked,
   readMd3Locks,
 } from '../../lib/md3-locks'
+import {
+  ProfileAppearanceOwnerSelectors,
+  profileAppearanceLockTargetId,
+} from '../../models/element-appearance'
 
 /**
  * A lock on an element's appearance also locks the element.
@@ -116,14 +120,32 @@ export function resolveAppearanceLockTarget(
   if (!(node instanceof Element)) {
     return null
   }
+
+  // An explicit attribute wins. It is the more specific of the two routes —
+  // a repository tab declares itself, and must not be resolved as the tab
+  // strip that contains it.
   const owner = node.closest(`[${AppearanceLockTargetAttribute}]`)
-  if (!(owner instanceof HTMLElement)) {
-    return null
+  if (owner instanceof HTMLElement) {
+    const targetId = owner.getAttribute(AppearanceLockTargetAttribute)
+    if (targetId !== null && targetId !== '') {
+      return { targetId, anchor: owner }
+    }
   }
-  const targetId = owner.getAttribute(AppearanceLockTargetAttribute)
-  return targetId === null || targetId === ''
-    ? null
-    : { targetId, anchor: owner }
+
+  // Then the profile-level owners, resolved from the same table the appearance
+  // editor uses. These have no fixed anchor to stamp: any element inside the
+  // toolbar is the toolbar's appearance target, so the gate has to walk for
+  // them exactly as the editor does. Sharing the table is what stops a lock
+  // created from one element being looked for on another — which would leave
+  // the lock recorded, listed, and gating nothing.
+  for (const [selector, elementId] of ProfileAppearanceOwnerSelectors) {
+    const anchor = node.closest(selector)
+    if (anchor instanceof HTMLElement) {
+      return { targetId: profileAppearanceLockTargetId(elementId), anchor }
+    }
+  }
+
+  return null
 }
 
 /**
