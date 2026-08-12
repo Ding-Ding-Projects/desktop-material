@@ -1077,13 +1077,13 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     },
   },
   {
-    event: 'palette:set-classic-experience',
-    title: 'Use the classic experience',
+    event: 'palette:set-classic-mode',
+    title: 'Use Classic mode',
     titleKey: 'classicExperience.toggleLabel',
     group: 'App',
     materialSymbol: 'history_toggle_off',
     keywords:
-      'classic experience legacy old previous before rewrite shell layout sidebar toolbar',
+      'classic mode material interface legacy old previous before rewrite shell layout sidebar toolbar',
     descriptionKey: 'classicExperience.boundaryNote',
     control: { kind: 'toggle' },
     home: {

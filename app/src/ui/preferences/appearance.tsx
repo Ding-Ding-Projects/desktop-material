@@ -45,11 +45,12 @@ import {
   setShowClassicToolbar,
 } from '../../lib/classic-toolbar'
 import {
-  ClassicExperienceProvenance,
-  getUseClassicExperience,
-  getUseClassicExperienceProvenance,
-  setUseClassicExperience,
-} from '../../lib/classic-experience'
+  InterfaceModeProvenance,
+  getInterfaceMode,
+  getInterfaceModeProvenance,
+  isClassicMode,
+  setInterfaceMode,
+} from '../../lib/interface-mode'
 import {
   clampFunnyLevel,
   IAudioSystemSettings,
@@ -127,9 +128,9 @@ interface IAppearanceState {
   /** Live value of "Show the classic toolbar". */
   readonly showClassicToolbar: boolean
 
-  readonly useClassicExperience: boolean
+  readonly classicMode: boolean
 
-  readonly useClassicExperienceProvenance: ClassicExperienceProvenance
+  readonly interfaceModeProvenance: InterfaceModeProvenance
   /** Whether that value was recorded here or is the shipped fallback. */
   readonly showClassicToolbarProvenance: ClassicToolbarProvenance
 }
@@ -159,8 +160,8 @@ export class Appearance extends React.Component<
       showDialogEmojiProvenance: getShowDialogEmojiProvenance(),
       showClassicToolbar: getShowClassicToolbar(),
       showClassicToolbarProvenance: getShowClassicToolbarProvenance(),
-      useClassicExperience: getUseClassicExperience(),
-      useClassicExperienceProvenance: getUseClassicExperienceProvenance(),
+      classicMode: isClassicMode(),
+      interfaceModeProvenance: getInterfaceModeProvenance(),
     }
 
     if (!usePropTheme) {
@@ -423,9 +424,9 @@ export class Appearance extends React.Component<
       cantonese: this.state.funnyLevelCantonese,
     }
 
-    const enabled = this.state.useClassicExperience
+    const enabled = this.state.classicMode
     const provenance = translate(
-      this.state.useClassicExperienceProvenance === 'stored'
+      this.state.interfaceModeProvenance === 'stored'
         ? 'classicExperience.provenanceStored'
         : 'classicExperience.provenanceDefault',
       languageMode,
@@ -475,10 +476,10 @@ export class Appearance extends React.Component<
     event: React.FormEvent<HTMLInputElement>
   ) => {
     const enabled = event.currentTarget.checked
-    setUseClassicExperience(enabled)
+    setInterfaceMode(enabled ? 'classic' : 'material')
     this.setState({
-      useClassicExperience: enabled,
-      useClassicExperienceProvenance: getUseClassicExperienceProvenance(),
+      classicMode: getInterfaceMode() === 'classic',
+      interfaceModeProvenance: getInterfaceModeProvenance(),
     })
   }
 

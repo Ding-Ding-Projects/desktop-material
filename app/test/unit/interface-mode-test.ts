@@ -4,13 +4,15 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import {
-  UseClassicExperienceChangedEvent,
-  UseClassicExperienceDefault,
-  UseClassicExperienceKey,
-  getUseClassicExperience,
-  getUseClassicExperienceProvenance,
-  setUseClassicExperience,
-} from '../../src/lib/classic-experience'
+  InterfaceModeChangedEvent,
+  InterfaceModeDefault,
+  InterfaceModeKey,
+  LegacyUseClassicExperienceKey,
+  getInterfaceMode,
+  getInterfaceModeProvenance,
+  isClassicMode,
+  setInterfaceMode,
+} from '../../src/lib/interface-mode'
 import '../helpers/ui/setup'
 
 /**
@@ -29,54 +31,105 @@ const app = readFileSync(join(root, 'app/src/ui/app.tsx'), 'utf8')
 
 // jsdom's real `localStorage`, not a stub. A stub would prove the module's own
 // arithmetic and nothing about whether the key it writes is the key it reads.
-beforeEach(() => localStorage.removeItem(UseClassicExperienceKey))
-afterEach(() => localStorage.removeItem(UseClassicExperienceKey))
+beforeEach(() => {
+  localStorage.removeItem(InterfaceModeKey)
+  localStorage.removeItem(LegacyUseClassicExperienceKey)
+})
+afterEach(() => {
+  localStorage.removeItem(InterfaceModeKey)
+  localStorage.removeItem(LegacyUseClassicExperienceKey)
+})
 
-describe('classic experience', () => {
-  it('ships off, because a fork that hid its own rewrite would ship it to nobody', () => {
-    assert.equal(UseClassicExperienceDefault, false)
+describe('interface mode', () => {
+  it('ships in Material mode, because a fork that hid its own rewrite would ship it to nobody', () => {
+    assert.equal(InterfaceModeDefault, 'material')
+    assert.equal(getInterfaceMode(), 'material')
+    assert.equal(isClassicMode(), false)
   })
 
   it('round-trips and reports where the value came from', () => {
     assert.equal(
-      getUseClassicExperience(),
-      UseClassicExperienceDefault,
+      getInterfaceMode(),
+      InterfaceModeDefault,
       'an unset preference must read as the shipped default'
     )
     assert.equal(
-      getUseClassicExperienceProvenance(),
+      getInterfaceModeProvenance(),
       'default',
       'nobody has chosen yet, and "default" is the honest word for that'
     )
 
-    assert.equal(setUseClassicExperience(true), true)
-    assert.equal(getUseClassicExperience(), true)
-    assert.equal(getUseClassicExperienceProvenance(), 'stored')
+    assert.equal(setInterfaceMode('classic'), 'classic')
+    assert.equal(getInterfaceMode(), 'classic')
+    assert.equal(getInterfaceModeProvenance(), 'stored')
 
-    // A deliberate `false` must be distinguishable from never having chosen.
-    assert.equal(setUseClassicExperience(false), false)
-    assert.equal(getUseClassicExperience(), false)
+    // Choosing the default explicitly is still a decision, and must be
+    // distinguishable from never having chosen.
+    assert.equal(setInterfaceMode('material'), 'material')
+    assert.equal(getInterfaceMode(), 'material')
     assert.equal(
-      getUseClassicExperienceProvenance(),
+      getInterfaceModeProvenance(),
       'stored',
-      'a recorded `false` is a decision, not an absence'
+      'a recorded `material` is a decision, not an absence'
     )
   })
 
-  it('announces the change, so a mounted surface can swap layouts at once', () => {
+  it('announces the change, so a mounted surface can swap modes at once', () => {
     const fired: Array<string> = []
-    const listener = () => fired.push(UseClassicExperienceChangedEvent)
-    window.addEventListener(UseClassicExperienceChangedEvent, listener)
+    const listener = () => fired.push(InterfaceModeChangedEvent)
+    window.addEventListener(InterfaceModeChangedEvent, listener)
     try {
-      setUseClassicExperience(true)
-      assert.deepEqual(fired, [UseClassicExperienceChangedEvent])
+      setInterfaceMode('classic')
+      assert.deepEqual(fired, [InterfaceModeChangedEvent])
     } finally {
-      window.removeEventListener(UseClassicExperienceChangedEvent, listener)
+      window.removeEventListener(InterfaceModeChangedEvent, listener)
     }
   })
 
   it('uses one key and not a store of its own', () => {
-    assert.equal(UseClassicExperienceKey, 'use-classic-experience')
+    assert.equal(InterfaceModeKey, 'interface-mode')
+  })
+
+  /**
+   * The rename must not reset anyone. Somebody who chose the classic interface
+   * before it was called a mode keeps that choice.
+   */
+  it('honours a choice recorded before the rename', () => {
+    localStorage.setItem(LegacyUseClassicExperienceKey, '1')
+    assert.equal(getInterfaceMode(), 'classic')
+    assert.equal(
+      getInterfaceModeProvenance(),
+      'stored',
+      'an old recorded choice is still a choice'
+    )
+
+    localStorage.setItem(LegacyUseClassicExperienceKey, '0')
+    assert.equal(
+      getInterfaceMode(),
+      'material',
+      'an old recorded `false` meant the new interface and still does'
+    )
+  })
+
+  it('retires the old key once a mode is chosen', () => {
+    localStorage.setItem(LegacyUseClassicExperienceKey, '1')
+    setInterfaceMode('material')
+
+    assert.equal(
+      localStorage.getItem(LegacyUseClassicExperienceKey),
+      null,
+      'leaving the old key behind lets the migration resurrect a stale answer'
+    )
+    assert.equal(getInterfaceMode(), 'material')
+  })
+
+  it('falls back rather than throwing on an unrecognised stored value', () => {
+    localStorage.setItem(InterfaceModeKey, 'wharrgarbl')
+    assert.equal(
+      getInterfaceMode(),
+      InterfaceModeDefault,
+      'the interface a user sees must not depend on a settings value parsing'
+    )
   })
 
   /**
@@ -86,8 +139,8 @@ describe('classic experience', () => {
   it('is what App branches on before rendering the shell', () => {
     assert.match(
       app,
-      /private classicExperience = getUseClassicExperience\(\)/,
-      'App never reads the preference'
+      /private classicExperience = isClassicMode\(\)/,
+      'App never reads the mode'
     )
     assert.match(
       app,
@@ -173,7 +226,7 @@ describe('classic experience', () => {
   it('keeps updating live rather than waiting for a relaunch', () => {
     assert.match(
       app,
-      /UseClassicExperienceChangedEvent,\s*\n\s*this\.onClassicExperienceChanged/
+      /InterfaceModeChangedEvent,\s*\n\s*this\.onClassicExperienceChanged/
     )
     assert.match(
       app,

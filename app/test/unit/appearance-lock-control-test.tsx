@@ -54,8 +54,48 @@ const control = () => (
   <AppearanceLockControl targetId="test:toolbar" targetLabel="Toolbar" />
 )
 
-/** Wait for the component's async lock work to settle. */
-const settle = () => new Promise(resolve => setTimeout(resolve, 0))
+/**
+ * Wait until `condition` holds, rather than for a fixed tick.
+ *
+ * Locking and unlocking both await a salted digest, so a single
+ * `setTimeout(0)` is a bet that the crypto resolves within one turn of the
+ * loop. It does on an idle machine and does not under a full parallel suite —
+ * this test passed alone and failed once in the whole run, which is the shape
+ * every hardware-dependent wait eventually takes.
+ */
+async function waitFor(
+  condition: () => boolean,
+  what: string,
+  attempts = 200
+): Promise<void> {
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    if (condition()) {
+      return
+    }
+    await new Promise(resolve => setTimeout(resolve, 5))
+  }
+  assert.fail(`timed out waiting for ${what}`)
+}
+
+const locked = () =>
+  isTargetLocked(readMd3Locks(), 'appearanceElement', 'test:toolbar')
+
+/**
+ * The rendered lock state, which is a strictly later event than the stored one.
+ *
+ * Waiting on the store alone returns as soon as the write lands and before
+ * React has re-rendered, so the next `getByRole` looks for a button that is
+ * about to exist. Waiting on the UI proves both.
+ */
+const showsRemove = () =>
+  screen.queryByRole('button', { name: /Remove the lock…/ }) !== null
+
+const showsLock = () =>
+  screen.queryByRole('button', { name: /Lock this appearance…/ }) !== null
+
+/** An alert with real text, which is how the component reports a refusal. */
+const alerted = () =>
+  (screen.queryByRole('alert')?.textContent ?? '').length > 0
 
 describe('appearance lock control', () => {
   it('says it is a toy before anything is locked', () => {
@@ -88,12 +128,8 @@ describe('appearance lock control', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Lock this appearance' })
     )
-    await settle()
+    await waitFor(showsRemove, 'the locked state to render')
 
-    assert.ok(
-      isTargetLocked(readMd3Locks(), 'appearanceElement', 'test:toolbar'),
-      'the element should be locked'
-    )
     const [lock] = readMd3Locks()
     assert.equal(lock.factor, 'password')
     assert.equal(lock.target.kind, 'appearanceElement')
@@ -112,7 +148,7 @@ describe('appearance lock control', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Lock this appearance' })
     )
-    await settle()
+    await waitFor(alerted, 'the refusal to be reported')
 
     assert.equal(readMd3Locks().length, 0, 'nothing may be locked')
     // The message says what to do, not merely that something was wrong.
@@ -134,19 +170,16 @@ describe('appearance lock control', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Lock this appearance' })
     )
-    await settle()
+    await waitFor(showsRemove, 'the locked state to render')
 
     fireEvent.click(screen.getByRole('button', { name: /Remove the lock…/ }))
     fireEvent.change(screen.getByLabelText(/Remove the lock/), {
       target: { value: 'wrong horse' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Remove the lock' }))
-    await settle()
+    await waitFor(alerted, 'the refusal to be reported')
 
-    assert.ok(
-      isTargetLocked(readMd3Locks(), 'appearanceElement', 'test:toolbar'),
-      'a wrong password must leave the lock alone'
-    )
+    assert.ok(locked(), 'a wrong password must leave the lock alone')
     assert.match(
       screen.getByRole('alert').textContent ?? '',
       /still in place/,
@@ -166,14 +199,14 @@ describe('appearance lock control', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Lock this appearance' })
     )
-    await settle()
+    await waitFor(showsRemove, 'the locked state to render')
 
     fireEvent.click(screen.getByRole('button', { name: /Remove the lock…/ }))
     fireEvent.change(screen.getByLabelText(/Remove the lock/), {
       target: { value: 'correct horse' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Remove the lock' }))
-    await settle()
+    await waitFor(showsLock, 'the unlocked state to render')
 
     assert.equal(readMd3Locks().length, 0)
   })

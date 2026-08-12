@@ -420,10 +420,10 @@ import {
   setShowClassicToolbar,
 } from '../lib/classic-toolbar'
 import {
-  UseClassicExperienceChangedEvent,
-  getUseClassicExperience,
-  setUseClassicExperience,
-} from '../lib/classic-experience'
+  InterfaceModeChangedEvent,
+  isClassicMode,
+  setInterfaceMode,
+} from '../lib/interface-mode'
 import { BranchType } from '../models/branch'
 import { DiffSelectionType } from '../models/diff'
 import { initials as md3Initials } from './md3/md3-style-contract'
@@ -923,14 +923,14 @@ export class App extends React.Component<IAppProps, IAppState> {
   private md3ClassicToolbarVisible = getShowClassicToolbar()
 
   /**
-   * Whether the whole pre-rewrite interface is in use.
+   * Whether Classic mode is the interface in use.
    *
    * Read once and kept live through the change event, the same way the toolbar
-   * band's setting is, so switching layouts takes effect immediately rather
-   * than at the next launch. A setting that needs a restart to be believed is
-   * a setting people conclude is broken.
+   * band's setting is, so switching modes takes effect immediately rather than
+   * at the next launch. A setting that needs a restart to be believed is a
+   * setting people conclude is broken.
    */
-  private classicExperience = getUseClassicExperience()
+  private classicExperience = isClassicMode()
 
   /**
    * The three destinations whose data does not live in the app store.
@@ -1331,7 +1331,7 @@ export class App extends React.Component<IAppProps, IAppState> {
       this.onClassicToolbarVisibilityChanged
     )
     window.removeEventListener(
-      UseClassicExperienceChangedEvent,
+      InterfaceModeChangedEvent,
       this.onClassicExperienceChanged
     )
     window.removeEventListener(
@@ -2475,7 +2475,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     values.set('palette:set-underline-links', this.state.underlineLinks)
     values.set('palette:set-dialog-emoji', getShowDialogEmoji())
     values.set('palette:set-classic-toolbar', this.md3ClassicToolbarVisible)
-    values.set('palette:set-classic-experience', this.classicExperience)
+    values.set('palette:set-classic-mode', this.classicExperience)
 
     // The MD3 shell's own values: two read out of live shell state, six out of
     // the persisted view preferences the contract's menus flip. Every one of
@@ -2836,10 +2836,10 @@ export class App extends React.Component<IAppProps, IAppState> {
         // through this class.
         setShowClassicToolbar(asBoolean)
         return
-      case 'palette:set-classic-experience':
+      case 'palette:set-classic-mode':
         // Same shape: the setter raises the window event `App` listens for, so
-        // the layout swaps without a second path through this class.
-        setUseClassicExperience(asBoolean)
+        // the mode swaps without a second path through this class.
+        setInterfaceMode(asBoolean ? 'classic' : 'material')
         return
       case 'palette:md3-search-regex':
         return this.md3Dispatch({
@@ -3997,7 +3997,7 @@ export class App extends React.Component<IAppProps, IAppState> {
       this.onClassicToolbarVisibilityChanged
     )
     window.addEventListener(
-      UseClassicExperienceChangedEvent,
+      InterfaceModeChangedEvent,
       this.onClassicExperienceChanged
     )
     // The MD3 presentation preferences can be written from a menu row, a
@@ -8539,7 +8539,7 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private onClassicExperienceChanged = () => {
-    const next = getUseClassicExperience()
+    const next = isClassicMode()
     if (next !== this.classicExperience) {
       this.classicExperience = next
       this.forceUpdate()
