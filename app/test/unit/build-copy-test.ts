@@ -104,6 +104,25 @@ describe('build copying', () => {
         'documentation quoting the binding must not fail the build'
       )
 
+      // Webpack's own name for the wrapper of a module that does not use it.
+      // It merely CONTAINS the token, and a development bundle is full of
+      // them — the real one from this repository carried forty-three, every
+      // one harmless, and the guard failed the build on all of them. `\b` is
+      // no help because `_` is a word character, so the binding has to be
+      // matched as a whole identifier.
+      for (const bundlePath of bundlePaths) {
+        writeFileSync(
+          bundlePath,
+          'window.start();\n(__unused_webpack___webpack_module__, ' +
+            '__webpack_exports__, __webpack_require__) => {};'
+        )
+      }
+
+      assert.doesNotThrow(
+        () => assertRendererBundlesAreRunnable(root),
+        "Webpack's unused-module parameter must not fail the build"
+      )
+
       // …and the real thing is still caught when it sits beside that prose,
       // so the fix cannot have been "stop looking".
       for (const bundlePath of bundlePaths) {

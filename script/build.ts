@@ -148,6 +148,24 @@ export function stripStringLiterals(source: string): string {
 }
 
 /**
+ * The leaked binding, matched as a whole identifier rather than a substring.
+ *
+ * `\b` is no use here because `_` is a word character, so a plain
+ * `includes('__webpack_module__')` also matches
+ * `__unused_webpack___webpack_module__` — the name Webpack itself gives the
+ * module wrapper of a module that does not use it. Development bundles are
+ * full of those, every one of them harmless, and the guard failed the build on
+ * all of them while the thing it exists to catch looks exactly the same to a
+ * substring search.
+ *
+ * This is the mirror of a trap worth remembering in the other direction too: a
+ * substring assertion over source survives the rename that breaks the code,
+ * because the new name still contains the old one.
+ */
+const leakedModuleBinding =
+  /(?<![A-Za-z0-9_$])__webpack_module__(?![A-Za-z0-9_$])/
+
+/**
  * Fail the build before packaging when Webpack leaves a Node-only module
  * wrapper reference in a renderer bundle. That reference is not defined by
  * Electron's browser runtime and prevents React from mounting, which otherwise
@@ -167,7 +185,7 @@ export function assertRendererBundlesAreRunnable(
     const code = stripStringLiterals(bundle)
 
     assert(
-      !code.includes('__webpack_module__'),
+      !leakedModuleBinding.test(code),
       `Renderer bundle contains the undefined Webpack module binding: ${bundlePath}`
     )
   }
