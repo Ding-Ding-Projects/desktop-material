@@ -1933,6 +1933,37 @@
       }
     }
 
+    // What the control is currently saying about the chosen file. A refusal is
+    // an alert rather than a colour: the copy has to name the file and the
+    // reason, so the styling only has to keep it legible against the error
+    // role's own background at every theme.
+    .app-identity-logo-status {
+      margin: 8px 0 0;
+      font-size: var(--font-size-sm);
+      line-height: 1.45;
+      color: var(--text-secondary-color);
+
+      ul {
+        margin: 4px 0 0;
+        padding-left: 18px;
+      }
+
+      li {
+        margin-top: 2px;
+      }
+
+      &.is-error {
+        color: var(--md-sys-color-on-error-container, var(--error-color));
+        background: var(--md-sys-color-error-container, transparent);
+        border-radius: var(--md-sys-shape-corner-small, 4px);
+        padding: 8px 10px;
+      }
+
+      &.is-accepted p:first-child {
+        color: var(--text-color);
+      }
+    }
+
     .app-identity-file-actions {
       display: flex;
       flex-wrap: wrap;

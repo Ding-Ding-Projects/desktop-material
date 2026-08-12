@@ -1,3 +1,5 @@
+import * as Path from 'path'
+import * as FSE from 'fs-extra'
 import * as React from 'react'
 import {
   AppLogoChoice,
@@ -29,6 +31,14 @@ import {
   MinAppLogoRotation,
   MinAppLogoSize,
 } from '../../models/app-identity'
+import {
+  IAcceptedLogoImage,
+  ILogoConversionPlan,
+  MaxLogoImageBytes,
+  describeLogoRejection,
+  inspectLogoImage,
+  planLogoConversion,
+} from '../../lib/logo-image'
 import { tabFontOptions } from '../../models/repository-tab'
 import { showOpenDialog } from '../main-process-proxy'
 import { Octicon, OcticonSymbol } from '../octicons'
@@ -43,9 +53,40 @@ interface IAppIdentityProps {
   readonly onChange: (identity: IAppIdentityCustomization) => void
 }
 
+/**
+ * What the custom-logo control is currently saying.
+ *
+ * These are separate states rather than one nullable error because the user
+ * needs to be able to tell them apart: nothing chosen yet is not the same as a
+ * file that was refused, and a file being read is not the same as one that
+ * failed to read. A single "something is wrong" string collapses all of that.
+ */
+type CustomLogoStatus =
+  | { readonly kind: 'none' }
+  /** In use from a previous session, and not being re-read merely to say so. */
+  | { readonly kind: 'carried'; readonly path: string }
+  | { readonly kind: 'reading'; readonly path: string }
+  | {
+      readonly kind: 'rejected'
+      readonly path: string
+      readonly reason: string
+    }
+  | {
+      readonly kind: 'unreadable'
+      readonly path: string
+      readonly reason: string
+    }
+  | {
+      readonly kind: 'accepted'
+      readonly path: string
+      readonly image: IAcceptedLogoImage
+      readonly plan: ILogoConversionPlan
+    }
+
 interface IAppIdentityState {
   readonly draftName: string
   readonly nameError: string | null
+  readonly logoStatus: CustomLogoStatus
 }
 
 const logoChoices: ReadonlyArray<{
@@ -138,7 +179,17 @@ export class AppIdentity extends React.Component<
   public constructor(props: IAppIdentityProps) {
     super(props)
     this.currentValue = props.value
-    this.state = { draftName: props.value.displayName, nameError: null }
+    this.state = {
+      draftName: props.value.displayName,
+      nameError: null,
+      // A logo carried over from a previous session is already in use, so the
+      // control reports it as chosen rather than re-reading the file to
+      // announce something the user can see in the preview.
+      logoStatus:
+        props.value.customLogoPath === null
+          ? { kind: 'none' }
+          : { kind: 'carried', path: props.value.customLogoPath },
+    }
   }
 
   public componentDidUpdate(prevProps: IAppIdentityProps) {
@@ -213,17 +264,171 @@ export class AppIdentity extends React.Component<
       filters: [
         {
           name: 'Image files',
-          extensions: ['png', 'jpg', 'jpeg', 'webp', 'ico'],
+          extensions: ['png', 'jpg', 'jpeg', 'webp', 'bmp'],
         },
       ],
     })
-    if (isValidCustomLogoPath(customLogoPath)) {
-      this.update({ customLogoPath, logo: 'custom' })
+
+    // The dialog's filter is a convenience for the user, never a check: a file
+    // can be renamed to `.png` and picked through the "all files" entry every
+    // platform dialog offers. The path shape is checked here only so a
+    // nonsense value never reaches the reader; what the file *is* comes from
+    // its bytes below.
+    if (!isValidCustomLogoPath(customLogoPath)) {
+      return
     }
+
+    this.setState({ logoStatus: { kind: 'reading', path: customLogoPath } })
+
+    let bytes: Uint8Array
+    try {
+      // The byte ceiling is applied to the read itself rather than only to what
+      // comes back. Reading a four-gigabyte file into memory and *then*
+      // deciding it is too large is the failure the limit exists to prevent.
+      const fd = await FSE.open(customLogoPath, 'r')
+      try {
+        // Sized through the open descriptor rather than the path, so the file
+        // that is measured is the file that is then read. Stat-then-open leaves
+        // a window in which the path can be pointed somewhere else.
+        const { size } = await FSE.fstat(fd)
+        if (size > MaxLogoImageBytes) {
+          this.setState({
+            logoStatus: {
+              kind: 'rejected',
+              path: customLogoPath,
+              reason:
+                `That file is ${Math.round(size / 1024)}KB and the limit is ` +
+                `${Math.round(MaxLogoImageBytes / 1024)}KB.`,
+            },
+          })
+          return
+        }
+        const buffer = Buffer.alloc(Number(size))
+        await FSE.read(fd, buffer, 0, buffer.length, 0)
+        bytes = new Uint8Array(buffer)
+      } finally {
+        await FSE.close(fd)
+      }
+    } catch (error) {
+      this.setState({
+        logoStatus: {
+          kind: 'unreadable',
+          path: customLogoPath,
+          reason:
+            error instanceof Error
+              ? error.message
+              : 'The file could not be read.',
+        },
+      })
+      return
+    }
+
+    const inspection = inspectLogoImage(bytes)
+    if (!inspection.accepted) {
+      // The previously chosen logo stays active. A refused file must never
+      // half-apply, and the state the user was in is the safe one to leave
+      // them in.
+      this.setState({
+        logoStatus: {
+          kind: 'rejected',
+          path: customLogoPath,
+          reason: describeLogoRejection(inspection.rejection),
+        },
+      })
+      return
+    }
+
+    const plan = planLogoConversion(inspection.image, {
+      renderedSize: MaxAppLogoSize * 4,
+      flattenTransparency: false,
+      cropped: false,
+    })
+
+    this.setState({
+      logoStatus: {
+        kind: 'accepted',
+        path: customLogoPath,
+        image: inspection.image,
+        plan,
+      },
+    })
+    this.update({ customLogoPath, logo: 'custom' })
   }
 
   private onRemoveCustomLogo = () => {
+    this.setState({ logoStatus: { kind: 'none' } })
     this.update({ customLogoPath: null, logo: 'github' })
+  }
+
+  /**
+   * The control's current state, in words.
+   *
+   * Every branch names the file it is talking about. A refusal that does not
+   * say which file was refused is unreadable the moment a user has tried two.
+   */
+  private renderCustomLogoStatus() {
+    const status = this.state.logoStatus
+
+    if (status.kind === 'none') {
+      return (
+        <p className="app-identity-logo-status" role="status">
+          No custom image is in use. The built-in marks above are always
+          available.
+        </p>
+      )
+    }
+
+    const name = Path.basename(status.path)
+
+    if (status.kind === 'reading') {
+      return (
+        <p className="app-identity-logo-status" role="status">
+          Reading {name}…
+        </p>
+      )
+    }
+
+    if (status.kind === 'carried') {
+      return (
+        <p className="app-identity-logo-status" role="status">
+          <strong>{name}</strong> is in use from a previous session. Choose it
+          again to see what converting it changes.
+        </p>
+      )
+    }
+
+    if (status.kind === 'rejected' || status.kind === 'unreadable') {
+      return (
+        <p className="app-identity-logo-status is-error" role="alert">
+          <strong>{name} was not used.</strong> {status.reason} The previous
+          logo is still in place.
+        </p>
+      )
+    }
+
+    const { image, plan } = status
+    return (
+      <div className="app-identity-logo-status is-accepted" role="status">
+        <p>
+          <strong>{name}</strong> — {image.format.toUpperCase()},{' '}
+          {image.dimensions.width}x{image.dimensions.height},{' '}
+          {Math.round(image.bytes / 1024)}KB. It is read from this computer and
+          never uploaded anywhere.
+        </p>
+        {plan.losses.length === 0 ? (
+          <p>Nothing is lost converting it for display.</p>
+        ) : (
+          <>
+            <p>Converting it for display changes the following:</p>
+            <ul>
+              {plan.losses.map(loss => (
+                <li key={loss.kind}>{loss.detail}</li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
+    )
   }
 
   private onLogoShapeChanged = (event: React.FormEvent<HTMLSelectElement>) => {
@@ -519,6 +724,7 @@ export class AppIdentity extends React.Component<
                   Remove
                 </Button>
               </div>
+              {this.renderCustomLogoStatus()}
             </div>
 
             <Select
