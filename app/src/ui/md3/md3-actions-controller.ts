@@ -160,6 +160,16 @@ export interface IMd3ActionsControllerHost {
   readonly onOpenExternal: (url: string) => void
   /** Opens the local CI-fix flow for a failed run, when the host has one. */
   readonly onFixCiLocally?: (repository: Repository, runId: number) => void
+
+  /**
+   * Opens the run's artifacts.
+   *
+   * The artifact list is a real surface the classic layout rendered inside the
+   * run-details pane — download, provenance, the lot. The MD3 shell has no
+   * run-details pane, so the view offers a button instead, and drew nothing at
+   * all while nobody supplied this.
+   */
+  readonly onOpenArtifacts?: (repository: Repository, runId: number) => void
 }
 
 export class Md3ActionsController {
@@ -607,6 +617,18 @@ export class Md3ActionsController {
     this.setState({ selectedRunIds: next })
   }
 
+  /**
+   * Replace the whole selection in one write.
+   *
+   * The view can compose the same result out of `onToggleRunSelection`, one
+   * differing id at a time, and does when this is absent — exact, but one
+   * `setState` per changed row, so a select-all over a few hundred runs is a
+   * few hundred renders. A shell that can write the set should.
+   */
+  private onSetRunSelection = (ids: ReadonlyArray<string>) => {
+    this.setState({ selectedRunIds: new Set(ids) })
+  }
+
   private onToggleAllVisibleRuns = () => {
     const visible = this.visibleRuns().map(run => `${run.id}`)
     const allSelected = visible.every(id => this.state.selectedRunIds.has(id))
@@ -1009,6 +1031,20 @@ export class Md3ActionsController {
       onToggleSelectionMode: this.onToggleSelectionMode,
       selectedRunIds: state.selectedRunIds,
       onToggleRunSelection: this.onToggleRunSelection,
+      onSetRunSelection: this.onSetRunSelection,
+      // Undefined when there is no selected run or no host handler, because
+      // the view draws no Artifacts button without one — which is right: an
+      // artifacts button with no run to fetch them for is a dead control.
+      onOpenArtifacts:
+        this.host.onOpenArtifacts === undefined ||
+        repository === null ||
+        state.selectedRunId === null
+          ? undefined
+          : () =>
+              this.host.onOpenArtifacts?.(
+                repository,
+                Number(state.selectedRunId)
+              ),
       onToggleAllVisibleRuns: this.onToggleAllVisibleRuns,
       onClearRunSelection: this.onClearRunSelection,
       onBulkRerun: this.onBulkRerun,

@@ -93,6 +93,19 @@ const MustBeWired: ReadonlyArray<IWiredHandler> = [
     handler: 'onCommitDragStart',
     suppliedBy: 'app/src/ui/md3/md3-view-props.ts',
   },
+  // The Actions destination's two. `onOpenArtifacts` opens a surface the
+  // classic run-details pane rendered and the MD3 shell has no pane for, so
+  // without it the Artifacts button was never drawn at all.
+  {
+    view: 'md3-actions-view.tsx',
+    handler: 'onOpenArtifacts',
+    suppliedBy: 'app/src/ui/md3/md3-actions-controller.ts',
+  },
+  {
+    view: 'md3-actions-view.tsx',
+    handler: 'onSetRunSelection',
+    suppliedBy: 'app/src/ui/md3/md3-actions-controller.ts',
+  },
 ]
 
 describe('MD3 destination handler wiring', () => {

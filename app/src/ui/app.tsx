@@ -210,6 +210,7 @@ import {
 } from '../lib/effective-branch-rules-context'
 import { CreateGitHubIssueDialog } from './create-github-issue'
 import { ActionsLocalRunDialog } from './actions-local-run/actions-local-run-dialog'
+import { ActionsRunArtifactsDialog } from './actions/actions-run-artifacts-dialog'
 import { CreateGitHubPullRequestDialog } from './create-github-pull-request'
 import { GitHubPullRequestLifecycleDialog } from './github-pull-request-lifecycle'
 import { GitLabMergeRequestDialog } from './merge-request'
@@ -947,6 +948,14 @@ export class App extends React.Component<IAppProps, IAppState> {
       this.forceUpdate()
     },
     onOpenExternal: url => void this.props.dispatcher.openInBrowser(url),
+    // The artifact list is a surface the classic run-details pane rendered and
+    // the MD3 shell has no pane for, so it opens as its own dialog.
+    onOpenArtifacts: (repository, runId) =>
+      void this.props.dispatcher.showPopup({
+        type: PopupType.ActionsRunArtifacts,
+        repository,
+        runId,
+      }),
   })
 
   /** Whether the real workflow-dispatch dialog is open over the shell. */
@@ -5561,6 +5570,16 @@ export class App extends React.Component<IAppProps, IAppState> {
           <ActionsLocalRunDialog
             key={`actions-local-run-${popup.repository.id}`}
             repository={popup.repository}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.ActionsRunArtifacts:
+        return (
+          <ActionsRunArtifactsDialog
+            key={`actions-run-artifacts-${popup.runId}`}
+            repository={popup.repository}
+            runId={popup.runId}
+            actionsStore={this.props.actionsStore}
             onDismissed={onPopupDismissedFn}
           />
         )

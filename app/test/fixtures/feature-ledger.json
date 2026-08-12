@@ -12,6 +12,7 @@
     "About",
     "Acknowledgements",
     "ActionsLocalRun",
+    "ActionsRunArtifacts",
     "AddRepository",
     "AddSSHHost",
     "AddSubmodule",
