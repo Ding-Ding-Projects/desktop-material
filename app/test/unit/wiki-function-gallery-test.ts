@@ -42,7 +42,12 @@ describe('wiki function screenshot catalog', () => {
       ),
     ].map(([, asset]) => asset)
 
-    assert.equal(rows.length, 92)
+    // 95, not 92: the personal-vocabulary, narrator-voice-pickers and
+    // branches-sheet frames were added to the gallery. The number is asserted
+    // rather than derived on purpose — it is what makes an accidentally dropped
+    // row fail here instead of passing silently — so it has to be updated
+    // deliberately whenever the gallery genuinely grows.
+    assert.equal(rows.length, 95)
     assert.equal(new Set(rows.map(row => row.asset)).size, rows.length)
     assert.equal(new Set(rows.map(row => row.name)).size, rows.length)
     assert.deepEqual(archivedRows.sort(), historicalGalleryAssets)
