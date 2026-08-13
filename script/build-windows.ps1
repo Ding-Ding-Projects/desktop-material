@@ -261,16 +261,31 @@ function Find-VsBuildTools {
   if ([string]::IsNullOrWhiteSpace($vswhere)) {
     return $null
   }
-  $installationOutput = @(& $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+  $jsonOutput = @(& $vswhere -all -products '*' -format json)
   if (
     $LASTEXITCODE -ne 0 -or
-    $installationOutput.Count -ne 1 -or
-    [string]::IsNullOrWhiteSpace([string]$installationOutput[0])
+    $jsonOutput.Count -eq 0
   ) {
     return $null
   }
-  $installationPath = ([string]$installationOutput[0]).Trim()
-  return $installationPath
+  try {
+    $instances = (($jsonOutput -join [Environment]::NewLine) | ConvertFrom-Json)
+  } catch {
+    return $null
+  }
+  foreach ($instance in @($instances)) {
+    $installationPath = ([string]$instance.installationPath).Trim()
+    if ([string]::IsNullOrWhiteSpace($installationPath) -or -not (Test-Path -LiteralPath $installationPath -PathType Container)) {
+      continue
+    }
+    try {
+      Assert-VsDeveloperCommands -InstallationPath $installationPath
+      return $installationPath
+    } catch {
+      continue
+    }
+  }
+  return $null
 }
 
 function Assert-VsDeveloperCommands {
@@ -283,6 +298,17 @@ function Assert-VsDeveloperCommands {
   $vcVarsPath = Join-Path $InstallationPath 'VC\Auxiliary\Build\vcvarsall.bat'
   if (-not (Test-Path -LiteralPath $vcVarsPath -PathType Leaf)) {
     throw "Visual Studio installation '$InstallationPath' is missing required compiler environment command '$vcVarsPath'."
+  }
+  $compilerRoot = Join-Path $InstallationPath 'VC\Tools\MSVC'
+  $compiler = Get-ChildItem -LiteralPath $compilerRoot -Filter 'cl.exe' -File -Recurse -ErrorAction SilentlyContinue |
+    Sort-Object -Property FullName -Descending |
+    Select-Object -First 1
+  if ($null -eq $compiler) {
+    throw "Visual Studio installation '$InstallationPath' is missing a usable cl.exe compiler under '$compilerRoot'."
+  }
+  $compilerOutput = @(& $compiler.FullName '/?' 2>$null)
+  if ($LASTEXITCODE -ne 0 -or $compilerOutput.Count -eq 0) {
+    throw "Visual Studio installation '$InstallationPath' has a cl.exe compiler that could not be executed."
   }
 }
 
@@ -323,7 +349,7 @@ function Ensure-VsBuildTools {
   $installationPath = Find-VsBuildTools
   if (-not [string]::IsNullOrWhiteSpace($installationPath)) {
     Assert-VsDeveloperCommands -InstallationPath $installationPath
-    Write-Phase "Using Visual Studio Build Tools 2022 at $installationPath"
+    Write-Phase "Using Visual Studio installation at $installationPath"
     Set-VsBuildEnvironment -InstallationPath $installationPath
     return [string]$installationPath
   }
