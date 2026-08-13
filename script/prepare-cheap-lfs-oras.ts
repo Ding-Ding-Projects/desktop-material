@@ -323,6 +323,78 @@ async function responseFollowingTrustedRedirects(
   )
 }
 
+/**
+ * How many times a transport failure is retried before the build gives up.
+ *
+ * A single dropped connection used to fail the whole Windows build. It happened
+ * for real: in one run the arm64 job failed here at 00:03:13 and the x64 job
+ * fetched the identical URL forty-five seconds later and succeeded — same run,
+ * same runner image, same asset. Seventeen minutes of compilation thrown away by
+ * one HTTP request that did not get through.
+ */
+const MaximumDownloadAttempts = 4
+
+/** Growing pause between attempts, so a brief outage is not hammered. */
+const RetryBackoffMilliseconds = [1_000, 3_000, 7_000]
+
+/**
+ * Whether a failure is worth trying again.
+ *
+ * **Only `download`.** Every other kind is a refusal, not a hiccup: `integrity`
+ * means the bytes did not match the pinned digest, `redirect` means the asset
+ * pointed somewhere outside the allowlist, `invalid-input` means the call itself
+ * was wrong. Retrying any of those would be asking a security check the same
+ * question until it gives a different answer, which is the one thing a retry
+ * must never do.
+ */
+function isRetryableDownloadFailure(error: unknown): boolean {
+  return (
+    error instanceof CheapLfsOrasBuildPreparationError &&
+    error.kind === 'download'
+  )
+}
+
+const delay = (milliseconds: number) =>
+  new Promise<void>(resolve => setTimeout(resolve, milliseconds))
+
+/**
+ * Download and verify, retrying a transport failure and nothing else.
+ *
+ * Each attempt starts from scratch — a fresh request, a fresh file, a fresh
+ * digest over the bytes that actually arrived. Nothing is resumed and no partial
+ * download is trusted, so a retry is verified exactly as strictly as a first
+ * attempt.
+ */
+async function downloadVerifiedArchiveWithRetries(
+  fetch: CheapLfsOrasBuildFetch,
+  trust: ICheapLfsOrasBuildTrust,
+  destination: string,
+  signal: AbortSignal
+): Promise<string> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await downloadVerifiedArchive(fetch, trust, destination, signal)
+    } catch (error) {
+      const lastAttempt = attempt >= MaximumDownloadAttempts - 1
+      if (lastAttempt || signal.aborted || !isRetryableDownloadFailure(error)) {
+        throw error
+      }
+      // `open(destination, 'wx')` refuses to overwrite, which is deliberate —
+      // so a partly-written file from the failed attempt has to go before the
+      // next one can start. Ignoring a removal failure on purpose: if the file
+      // is genuinely un-removable the next attempt fails on `wx` and reports
+      // that, which is more informative than a cleanup error here.
+      await rm(destination, { force: true }).catch(() => undefined)
+      process.stdout.write(
+        `The pinned ORAS release archive could not be downloaded ` +
+          `(attempt ${attempt + 1} of ${MaximumDownloadAttempts}); retrying.
+`
+      )
+      await delay(RetryBackoffMilliseconds[attempt] ?? 7_000)
+    }
+  }
+}
+
 async function downloadVerifiedArchive(
   fetch: CheapLfsOrasBuildFetch,
   trust: ICheapLfsOrasBuildTrust,
@@ -673,7 +745,7 @@ async function prepareWithTrust(
     downloadDeadlineMilliseconds
   )
   try {
-    const archiveSha256 = await downloadVerifiedArchive(
+    const archiveSha256 = await downloadVerifiedArchiveWithRetries(
       options.fetch ?? (globalThis.fetch as CheapLfsOrasBuildFetch),
       trust,
       archivePath,

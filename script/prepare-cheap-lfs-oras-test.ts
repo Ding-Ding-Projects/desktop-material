@@ -273,6 +273,95 @@ describe('pinned Cheap LFS ORAS build preparation', () => {
     }
   })
 
+  it('retries a dropped connection and still verifies what finally arrives', async () => {
+    // This is not hypothetical. In one CI run the arm64 job failed here at
+    // 00:03:13 and the x64 job fetched the identical URL forty-five seconds
+    // later and succeeded — same run, same runner image, same asset. Seventeen
+    // minutes of compilation thrown away by one HTTP request that did not get
+    // through, because a single transport failure ended the build.
+    const root = await makeRoot()
+    const output = join(root, 'out')
+    const executable = Buffer.from('deterministic ORAS executable fixture')
+    const archive = zipWithOras(executable)
+    const trust = fixtureTrust(archive, executable)
+    let attempts = 0
+
+    const result = await prepareCheapLfsOrasForBuildWithTrustForTests(
+      {
+        generatedOutputRoot: output,
+        platform: 'win32',
+        fetch: async () => {
+          attempts++
+          if (attempts < 3) {
+            throw new Error('socket hang up')
+          }
+          return okResponse(archive)
+        },
+      },
+      trust
+    )
+
+    assert.equal(attempts, 3)
+    // And the archive that finally arrived went through the same verification
+    // a first attempt would have. A retry that trusted a later response more
+    // than the first would be worse than no retry at all.
+    assert.equal(result.archiveSha256, trust.archiveSha256)
+  })
+
+  it('never retries a refusal, only a transport failure', async () => {
+    // The distinction the retry turns on. An integrity mismatch means the bytes
+    // did not match the pinned digest; asking again is asking a security check
+    // the same question until it answers differently. It must be attempted
+    // exactly once.
+    const root = await makeRoot()
+    const output = join(root, 'out')
+    const executable = Buffer.from('deterministic ORAS executable fixture')
+    const archive = zipWithOras(executable)
+    const trust = fixtureTrust(archive, executable)
+    let attempts = 0
+
+    await assert.rejects(
+      prepareCheapLfsOrasForBuildWithTrustForTests(
+        {
+          generatedOutputRoot: output,
+          platform: 'win32',
+          fetch: async () => {
+            attempts++
+            return okResponse(Buffer.from('not the pinned archive at all'))
+          },
+        },
+        trust
+      )
+    )
+
+    assert.equal(attempts, 1, 'an integrity refusal must not be retried')
+  })
+
+  it('gives up rather than retrying forever', async () => {
+    const root = await makeRoot()
+    const output = join(root, 'out')
+    const executable = Buffer.from('deterministic ORAS executable fixture')
+    const trust = fixtureTrust(zipWithOras(executable), executable)
+    let attempts = 0
+
+    await assert.rejects(
+      prepareCheapLfsOrasForBuildWithTrustForTests(
+        {
+          generatedOutputRoot: output,
+          platform: 'win32',
+          fetch: async () => {
+            attempts++
+            throw new Error('socket hang up')
+          },
+        },
+        trust
+      )
+    )
+
+    assert.ok(attempts > 1, 'a transport failure must be retried at all')
+    assert.ok(attempts <= 4, `retried ${attempts} times, which is unbounded`)
+  })
+
   it('rejects archive, executable, and license integrity mismatches before staging', async () => {
     const root = await makeRoot()
     const output = join(root, 'out')
