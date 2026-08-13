@@ -12,21 +12,21 @@
 
 Snapshot recorded on **August 13, 2026**:
 
-- `origin/main` is [`96c25861dba7`](https://github.com/Ding-Ding-Projects/desktop-material/commit/96c25861dba76055e3063544e7f22036751916ea).
+- `main` and `origin/main` point to [`5cb2281643b788b0038412072b939b4ee9a6e635`](https://github.com/Ding-Ding-Projects/desktop-material/commit/5cb2281643b788b0038412072b939b4ee9a6e635).
 - GitHub has one open issue: [#190 — Reconcile current roadmap and release receipts](https://github.com/Ding-Ding-Projects/desktop-material/issues/190).
-- The latest published release is [`v4.0.118401`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.118401), published at `2026-08-13T20:48:00Z` for that exact commit, with six downloadable assets.
-- [CI Linux run 31742643323](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31742643323) completed successfully; [CI Windows run 31742643430](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31742643430) was still in progress when this snapshot was recorded.
+- The latest published release is [`v4.0.119101`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.119101), published at `2026-08-13T23:02:56Z` for that exact commit. It has six downloadable assets: `GitHub.Desktop-x64.zip`, `GitHubDesktop-4.0.119101-full.nupkg`, `GitHubDesktop-4.0.119101-x64-full.nupkg`, `GitHubDesktopSetup-x64.exe`, `GitHubDesktopSetup-x64.msi`, and `RELEASES`.
+- [CI Windows run 31747636431](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31747636431), [CI Linux run 31747636425](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31747636425), [Cheap LFS run 31747636429](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31747636429), and [release workflow run 31750286839](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31750286839) all completed successfully for this release evidence.
 
-This tab's dated CI, release, and acceptance receipts remain historical evidence. Older *open*, *pending*, and *not claimed* statements describe their checkpoint only; use this snapshot and the linked release before treating them as current work.
+This tab's dated CI, release, and acceptance receipts remain historical evidence. Use this snapshot and the linked release for the current status.
 
 **目前狀態快照 — 2026 年 8 月 13 日：**
 
-- `origin/main` 係 [`96c25861dba7`](https://github.com/Ding-Ding-Projects/desktop-material/commit/96c25861dba76055e3063544e7f22036751916ea)。
+- `main` 同 `origin/main` 係 [`5cb2281643b788b0038412072b939b4ee9a6e635`](https://github.com/Ding-Ding-Projects/desktop-material/commit/5cb2281643b788b0038412072b939b4ee9a6e635)。
 - GitHub 而家有一個 open issue：[#190 — Reconcile current roadmap and release receipts](https://github.com/Ding-Ding-Projects/desktop-material/issues/190)。
-- 最新已發佈嘅 Release 係 [`v4.0.118401`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.118401)，喺 `2026-08-13T20:48:00Z` 為同一個 commit 發佈，有六個可下載資產。
-- [CI Linux 執行 `31742643323`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31742643323) 已經成功完成；[CI Windows 執行 `31742643430`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31742643430) 喺呢個快照記錄嗰陣仲進行緊。
+- 最新已發佈嘅 Release 係 [`v4.0.119101`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.119101)，喺 `2026-08-13T23:02:56Z` 為呢個 exact commit 發佈。佢有六個可下載資產：`GitHub.Desktop-x64.zip`、`GitHubDesktop-4.0.119101-full.nupkg`、`GitHubDesktop-4.0.119101-x64-full.nupkg`、`GitHubDesktopSetup-x64.exe`、`GitHubDesktopSetup-x64.msi` 同 `RELEASES`。
+- [CI Windows 執行 `31747636431`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31747636431)、[CI Linux 執行 `31747636425`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31747636425)、[Cheap LFS 執行 `31747636429`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31747636429) 同 [Release workflow 執行 `31750286839`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31750286839) 都已經為今次 Release 證據成功完成。
 
-呢個分頁入面有日期嘅 CI、Release 同接受憑證仍然係歷史證據。舊嘅 *open*、*pending* 同 *not claimed* 只係描述佢哋當時嘅檢查點；目前工作請以上面嘅快照同已連結嘅 Release 為準。
+呢個分頁入面有日期嘅 CI、Release 同接受憑證仍然係歷史證據；目前狀態請以上面嘅快照同已連結嘅 Release 為準。
 
 ## Product scope / 產品範圍
 
