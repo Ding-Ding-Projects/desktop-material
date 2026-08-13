@@ -8,211 +8,200 @@
 
 # Desktop Material
 
-> **Current repository snapshot — August 13, 2026:** `origin/main` is
-> `28f6d0f36a3109a2793e67e078b887ac4729d7db`; the GitHub issue tracker reported
-> **0 open issues**. The most recently observed published release is
-> [`v4.0.118301`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.118301),
-> published at `2026-08-13T01:49:17Z` for that same commit. This is an inventory
-> snapshot, not new CI, installer, test, or capture evidence. Dated notes below
-> preserve their original evidence boundaries: words such as *open*, *pending*,
-> and *not claimed* do not state the current tracker or release status.
+## Current status / 目前狀態
 
-> **目前儲存庫快照 — 2026 年 8 月 13 日：** `origin/main` 係
-> `28f6d0f36a3109a2793e67e078b887ac4729d7db`；GitHub issue tracker 顯示
-> **0 個開住嘅 issue**。最新觀察到嘅已發佈 Release 係
-> [`v4.0.118301`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.118301)，
-> 喺 `2026-08-13T01:49:17Z` 為同一個 commit 發佈。呢個只係盤點快照，唔係新嘅
-> CI、安裝程式、測試或者擷取證據。下面有日期嘅筆記保留返當時嘅證據界線：*open*、
-> *pending* 同 *not claimed* 呢類字唔係講緊而家嘅 issue tracker 或者 Release 狀態。
+Snapshot recorded on **August 13, 2026**:
 
-> **Material Design 3 shell — August 11, 2026 (historical evidence boundary):** the application chrome is
-> now the MD3 shell from `design/History MD3.dc.html`: eight destinations
-> behind a navigation drawer, a 56px application header carrying the global
-> search field, and a content pane whose header holds the repository and branch
-> breadcrumbs, the fetch and push controls and the pane menu. Its eleven search
-> fields each keep their own query **and** their own regex mode, and a pattern
-> built in the regex builder is written into the field that opened it. **Nothing
-> was removed:** the repository tab strip is unchanged and still shown by
-> default, and the classic toolbar is kept behind **Settings → Appearance →
-> Show the classic toolbar**, which also ships **on**. Every destination still
-> renders the real repository workspace, so every capability is exactly where it
-> was. Typecheck, ESLint and Prettier are clean; the feature-preservation ledger
-> and the design-contract conformance suite are green. Installer, remote CI and
-> release evidence for this change were **not claimed at that August 11
-> checkpoint**. See the
-> [MD3 shell feature guide](docs/features/design-system/md3-shell.md).
+- `main` and `origin/main` point to [`96c25861dba7`](https://github.com/Ding-Ding-Projects/desktop-material/commit/96c25861dba76055e3063544e7f22036751916ea).
+- The latest published Windows release is [`v4.0.118401`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.118401), published at `2026-08-13T20:48:00Z` from that exact commit. It has six downloadable assets: `GitHub.Desktop-x64.zip`, `GitHubDesktop-4.0.118401-full.nupkg`, `GitHubDesktop-4.0.118401-x64-full.nupkg`, `GitHubDesktopSetup-x64.exe`, `GitHubDesktopSetup-x64.msi`, and `RELEASES`.
+- GitHub currently has one open issue: [#190 — Reconcile current roadmap and release receipts](https://github.com/Ding-Ding-Projects/desktop-material/issues/190). It tracks this documentation correction; it is not a product-feature backlog.
+- For the same commit, [CI Linux run 31742643323](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31742643323) completed successfully and [CI Windows run 31742643430](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31742643430) was still in progress when this snapshot was recorded. The published release receipt is separate: its notes record the exact source, assets, line count, release code name, and workflow timing.
 
-> **Material Design 3 外殼 — 2026 年 8 月 11 日（歷史證據界線）：** 應用程式框架而家係照住 `design/History MD3.dc.html` 重寫嘅 MD3 外殼：側邊導航加八個目的地、56px 頂部列連全域搜尋欄，內容窗嘅標題列拎住儲存庫同分支麵包屑、fetch／push 同選單。十一個搜尋欄各有各嘅字**同埋**各有各嘅 regex 掣，喺邊個欄開 regex builder，套用個 pattern 就寫返落嗰個欄。**一樣嘢都冇拆：** 儲存庫分頁列原封不動、預設照顯示，經典工具列收喺**設定 → 外觀 → 顯示經典工具列**後面，而且都係預設開。每個目的地仲係 render 緊真嘅儲存庫工作區，所以每一樣功能都仲喺原本嗰個位。Typecheck、ESLint、Prettier 全部乾淨，功能保存清單同設計合約一致性測試都綠。喺當時 8 月 11 日檢查點，安裝程式、遠端 CI 同發佈證據**未有**，唔會當有。詳情睇 [MD3 外殼功能指南](docs/features/design-system/md3-shell.md)。
+This README update adds no application, test, or capture evidence. The dated records below preserve the evidence boundary at each historical checkpoint; words such as *open*, *pending*, and *not claimed* describe those checkpoints only, not the current tracker or release state.
 
-> **Windows closeout — August 9, 2026 (historical snapshot):** School mode is now a real
-> Appearance setting: it can be renamed, uses a local salted credential for
-> unlock, forces English, hides language/playfulness controls and search rows,
-> and suppresses the dim-sum surprise while active. The exact implementation is
-> in the [School mode feature guide](docs/features/design-system/school-mode.md).
-> (This banner originally said the palette opened with **Ctrl+Shift+P**. It does
-> not: the shortcut collision with the file browser was resolved in favour of
-> the palette, so **Ctrl+Shift+F** opens the command palette and is what the
-> application menu registers.)
+**目前狀態快照 — 2026 年 8 月 13 日：**
 
-> **Windows 收尾 — 2026 年 8 月 9 日（歷史快照）：** School mode 而家係一個真正嘅外觀設定：改得名、用本機加鹽憑證解鎖、強制英文、收埋語言同玩味控制項同相關搜尋列，開住嗰陣亦唔會出點心彩蛋。實作詳情睇 [School mode 功能指南](docs/features/design-system/school-mode.md)。（呢段原本寫命令面板用 **Ctrl+Shift+P**，其實唔係：同檔案瀏覽器爭快捷鍵嗰件事已經判咗畀面板，所以開命令面板係 **Ctrl+Shift+F**，亦都係應用程式選單真正註冊嗰個。）
+- `main` 同 `origin/main` 指向 [`96c25861dba7`](https://github.com/Ding-Ding-Projects/desktop-material/commit/96c25861dba76055e3063544e7f22036751916ea)。
+- 最新已發佈嘅 Windows Release 係 [`v4.0.118401`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.118401)，喺 `2026-08-13T20:48:00Z` 由同一個 commit 發佈。佢有六個可下載資產：`GitHub.Desktop-x64.zip`、`GitHubDesktop-4.0.118401-full.nupkg`、`GitHubDesktop-4.0.118401-x64-full.nupkg`、`GitHubDesktopSetup-x64.exe`、`GitHubDesktopSetup-x64.msi` 同 `RELEASES`。
+- GitHub 而家有一個 open issue：[#190 — Reconcile current roadmap and release receipts](https://github.com/Ding-Ding-Projects/desktop-material/issues/190)。佢係今次文件修正嘅追蹤項目，唔係產品功能待辦清單。
+- 同一個 commit 嘅 [CI Linux 執行 `31742643323`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31742643323) 已經成功完成，而 [CI Windows 執行 `31742643430`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31742643430) 喺呢個快照記錄嗰陣仲進行緊。已發佈 Release 收據係獨立證據：佢嘅 notes 記錄精確來源、資產、行數、Release code name 同 workflow 時間。
 
-> **Self-hosted runner risk confirmation — August 9, 2026:** the Windows
-> Actions runner setup form now audits all assigned labels—including
-> `self-hosted`—before creating runner files or registration, and limits users
-> to 20 custom labels. A completed known unsafe preflight can be reviewed in
-> the form, but the renderer cannot authorize it: the main process reruns the
-> audit and requires a Windows-owned confirmation bound to the current setup
-> evidence. That volatile decision never reaches disk and is never reused by
-> later Start or scheduled monitoring. Focused runner verification passes
-> **94/94**, the root TypeScript check, and the complete desktop suite
-> (**1,008/1,008** files; **8,494** tests) pass with no React
-> unmounted-state-update warnings. The pinned Node 24.15.0 production build
-> produced an unpackaged Windows application directory; installer verification,
-> remote CI, and release evidence were still pending at that August 9 handoff
-> boundary.
-> See the [self-hosted runner manager guide](docs/features/integrations/self-hosted-runner-manager.md).
+呢次 README 更新冇新增應用程式、測試或者擷取證據。下面有日期嘅紀錄保留每個歷史檢查點當時嘅證據界線；*open*、*pending* 同 *not claimed* 只係描述嗰啲檢查點，唔係目前 tracker 或 Release 狀態。
 
-> **自架 runner 風險確認 — 2026 年 8 月 9 日：** Windows Actions runner 設定表格而家會喺建立 runner 檔案或者註冊之前，審核所有指派標籤（包括 `self-hosted`），並且限制用戶最多 20 個自訂標籤。已完成嘅「已知不安全」預檢可以喺表格入面覆核，但係 renderer 授權唔到：主行程會重新審核一次，並且要求一個綁住今次設定證據嘅 Windows 原生確認。嗰個易變決定永遠唔會落磁碟，之後嘅 Start 或者排程監察亦唔會重用。聚焦 runner 驗證 **94/94** 通過，root TypeScript 檢查同完整 desktop 測試（**1,008/1,008** 個檔案；**8,494** 個測試）全部通過，冇 React unmounted-state-update 警告。用 pinned Node 24.15.0 嘅生產建置整咗一個未打包嘅 Windows 應用程式目錄；喺當時 8 月 9 日 handoff 界線，安裝程式驗證、遠端 CI 同發佈證據仍然待辦。睇 [自架 runner 管理指南](docs/features/integrations/self-hosted-runner-manager.md)。
-
-> **GitHub Actions and OAuth repair — August 8, 2026:** the Windows Actions
-> view now uses a searchable rich account picker, audits public repositories
-> instead of blanket-blocking them, fills the run-list row when no detail is
-> open, and keeps release notes outside the Release details dropdown. GitHub
-> sign-in follows the upstream Desktop OAuth request shape and omits the
-> unregistered custom `redirect_uri`. Focused source verification passes
-> **130/130**; at that August 8 checkpoint, remote CI and release evidence had
-> not yet been observed for the integrated `main` commit.
-
-> **GitHub Actions 同 OAuth 修復 — 2026 年 8 月 8 日：** Windows Actions 檢視而家用可搜尋嘅豐富帳戶選擇器，會審核公開儲存庫而唔係一刀切封鎖，冇開詳情嗰陣會填滿執行清單嗰行，亦會將發佈說明放喺 Release 詳情下拉之外。GitHub 登入跟返上游 Desktop 嘅 OAuth 請求形狀，唔再帶未註冊嘅自訂 `redirect_uri`。聚焦原始碼驗證 **130/130** 通過；喺當時 8 月 8 日檢查點，遠端 CI 同發佈證據仲未觀察到整合咗嘅 `main` commit。
-
-> **Stash recovery manager:** the Windows app now keeps every Git stash entry
-> without a Desktop entry-count cap and provides a separate searchable dialog
-> for exact-identity recovery and export to a directory, ZIP, or configurable
-> 7z archive. See [stash export and recovery](docs/features/repository-management/stash-export.md).
-
-> **Stash 復原管理員：** Windows app 而家保留每一個 Git stash 項目，冇咗 Desktop 原本嘅數量上限，並且提供一個獨立、可搜尋嘅對話框做精確身分復原，同埋匯出去資料夾、ZIP 或者可設定嘅 7z 封存檔。睇 [stash 匯出同復原](docs/features/repository-management/stash-export.md)。
-
-> **Actions job-log recovery — August 5, 2026:** a completed GitHub Actions job
-> can briefly report `HTTP 404` while its log archive is being prepared. The
-> Windows viewer now retries that API response with bounded 250/750/1,500 ms
-> waits, refreshes the signed redirect each time, and offers **Retry** plus
-> **Open on GitHub** when the provider still has not produced the archive. The
-> built-app recovery proof is documented in the [Actions workflow manager
-> guide](docs/features/integrations/actions-workflow-manager.md).
-
-> **Actions 工作紀錄復原 — 2026 年 8 月 5 日：** 一個已完成嘅 GitHub Actions job 喺準備緊 log 封存嗰陣，可能會短暫回 `HTTP 404`。Windows 檢視器而家會用 250/750/1,500 毫秒嘅有界等待重試，每次都刷新已簽署嘅轉址，如果供應方仲未整好封存，就提供**重試**同**喺 GitHub 開啟**。已建置 app 嘅復原證明記錄喺 [Actions 工作流程管理指南](docs/features/integrations/actions-workflow-manager.md)。
-
-> **Windows startup renderer repair — August 6, 2026:** the Node-oriented
-> Copilot SDK is now packaged as an external instead of being concatenated into
-> the browser renderer. The build rejects both renderer bundles if the
-> undefined `__webpack_module__` binding returns, preventing the packaged app
-> from opening as a blank white window. The exact Windows artifact now reaches
-> the first-run surface in a hidden-desktop capture; see the [renderer startup
-> bundle safety guide](docs/features/quality-and-reliability/renderer-startup-bundle-safety.md).
-
-> **Windows 啟動 renderer 修復 — 2026 年 8 月 6 日：** 針對 Node 嘅 Copilot SDK 而家以 external 方式打包，唔會再併入瀏覽器 renderer。如果未定義嘅 `__webpack_module__` 綁定返嚟，建置會直接拒絕兩個 renderer bundle，避免打包好嘅 app 開出一個白色空白視窗。真實 Windows 產物而家喺隱藏桌面擷取入面去到首次執行畫面；睇 [renderer 啟動 bundle 安全指南](docs/features/quality-and-reliability/renderer-startup-bundle-safety.md)。
-
-![Packaged Windows Desktop Material first-run surface after the renderer startup fix](docs/assets/screenshots/material-blank-startup-fixed-20260806.png)
-
-![Centered stash manager dialog with Manage, Export, History, and Appearance and voice tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager-centered-20260803.png)
-
-> **Full-width History Graph page — August 5, 2026:** the repository rail now
-> gives the ancestry graph its own **Graph** page, so Branch / Tag, Graph, and
-> Commit Message columns can use the full workspace width while retaining the
-> existing scope, search, lane, selection, and commit actions. Focused source
-> verification passes **85/85**; a fresh built-app capture of this page is
-> still pending the required hidden-desktop verification route.
-
-> **全寬 History Graph 版面 — 2026 年 8 月 5 日：** 儲存庫側欄而家俾祖先圖自己一版 **Graph**，等分支／標籤、Graph 同 Commit 訊息三欄用得晒成個工作區闊度，同時保留原有嘅範圍、搜尋、線道、選取同 commit 操作。聚焦原始碼驗證 **85/85** 通過；呢一版嘅新建置 app 擷取仲要等隱藏桌面驗證路線。
-
-> **Dirty branch switching:** when a branch has uncommitted work, choose
-> **Leave my changes here** to open Add worktree with the destination branch
-> prefilled while leaving the current worktree and its files untouched. See the
-> [branch-switcher workflow](docs/features/identity-and-workspace/branch-switcher-workflows.md)
-> and its [runtime capture](docs/verification/dirty-worktree-worktree-option-20260805/dirty-worktree-switch-dialog.png).
-
-> **有未提交改動嗰陣切分支：** 當一條分支仲有未提交嘅工作，揀**留低我嘅改動**就會開 Add worktree 並且預先填好目的分支，同時唔郁目前 worktree 同佢啲檔案。睇 [分支切換工作流程](docs/features/identity-and-workspace/branch-switcher-workflows.md) 同佢嘅 [執行期擷取](docs/verification/dirty-worktree-worktree-option-20260805/dirty-worktree-switch-dialog.png)。
-
-> **Local repair and background progress — July 30, 2026:** conflict and failed
-> CI surfaces launch bounded Codex/OpenCode tasks; long work has hideable
-> elapsed/ETA progress; Cheap LFS restore details collapse; and every action is
-> directly searchable and executable from the command palette.
-
-> **本機修復同背景進度 — 2026 年 7 月 30 日：** 衝突同 CI 失敗嘅畫面可以啟動有界嘅 Codex／OpenCode 工作；長時間嘅工作有得收埋嘅已用時間／ETA 進度；Cheap LFS 還原詳情摺得埋；而且每一個操作都可以喺命令面板直接搵到同執行。
-
-> **Repository workflow refinements — July 30, 2026:** the repository sheet
-> folds its filters behind one state-preserving disclosure, History hover cards
-> show exact and relative time, and command rows support stable per-repository
-> appearance. Automatic Cheap LFS discovery now ignores ineligible ordinary Git
-> metadata such as `.gitmodules`; explicitly selected unsafe paths remain
-> rejected.
-
-> **儲存庫工作流程改良 — 2026 年 7 月 30 日：** 儲存庫面板將篩選器收埋喺一個會保留狀態嘅摺疊控制項後面，History 懸停卡片同時顯示精確同相對時間，命令列支援每個儲存庫穩定嘅外觀。自動 Cheap LFS 探索而家會略過唔合資格嘅普通 Git metadata（例如 `.gitmodules`）；明確揀咗嘅不安全路徑一樣照拒絕。
-
-> **Publish organization picker sizing — July 30, 2026 (implementation
-> pushed; final hosted proof pending):** Publish repository no longer squeezes its Organization
-> choices into a native select. The replacement is an explicit-None,
-> searchable listbox with persisted fuzzy, substring, and bounded-regex modes,
-> the full Regex Builder, complete keyboard operation, and stale-account
-> response protection. Its 128–176 CSS px list keeps scrolling contained and
-> long names ellipsized; shared select wrappers can now shrink inside narrow
-> dialogs. The accepted built-app frame is 1440×960 (133,919 bytes, SHA-256
-> `7db03d5db789d19e1ad49de66bd79abb62e46c7909eda9de08878aac367033d8`).
-> A 390×844 physical receipt also proves a visible, bottom-reachable list with
-> no horizontal overflow and None selected. The promoted gallery will contain
-> exactly **86 current Windows scenes** (66 canonical plus 20 specialist).
-> Local tests and the exact production build are green. Implementation commit
-> `63c1ec08c4f24f85d87f21d98851dcd5784c7800` is proven on `origin/main`;
-> this follow-up publishes the retained receipt and regenerated parity input
-> that its first hosted matrix found missing. Final hosted CI and
-> installer-release proof remain pending.
-
-> **Publish 組織選擇器尺寸 — 2026 年 7 月 30 日（實作已推送；最終線上證明待辦）：** Publish repository 唔再將組織選項塞入原生 select。取而代之係一個明確有 None、可搜尋嘅 listbox，支援持久化嘅模糊、子字串同有界 regex 模式、完整 Regex Builder、完整鍵盤操作，同埋過時帳戶回應保護。佢 128–176 CSS px 嘅清單令捲動困喺入面、長名字省略號處理；共用嘅 select 外殼而家喺窄對話框入面縮得。接受嘅已建置 app 畫面係 1440×960（133,919 bytes，SHA-256 `7db03d5db789d19e1ad49de66bd79abb62e46c7909eda9de08878aac367033d8`）。另一張 390×844 實體憑證亦都證明清單見得到、去到底、冇水平溢出，而且揀住 None。推廣嘅相簿會啱啱好有 **86 個目前 Windows 場景**（66 個標準加 20 個專門）。本機測試同精確生產建置都係綠色。實作 commit `63c1ec08c4f24f85d87f21d98851dcd5784c7800` 喺 `origin/main` 上獲證；今次跟進發佈嘅係第一次線上矩陣搵唔到嘅保留憑證同重新產生嘅 parity 輸入。最終線上 CI 同安裝程式發佈證明仍然待辦。
+## What it is / 產品簡介
 
 Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [GitHub Desktop](https://github.com/desktop/desktop). It rebuilds the entire application shell around Material Design 3 while keeping GitHub Desktop's full Git workflow and the same underlying stack: [TypeScript](https://www.typescriptlang.org), [React](https://react.dev), [Electron](https://www.electronjs.org), and [Sass](https://sass-lang.com). This project is in active development.
 
 Desktop Material 係 [GitHub Desktop](https://github.com/desktop/desktop) 嘅獨立 Material Design 3（M3 Expressive）重製版。佢圍住 Material Design 3 重建成個應用程式外殼，同時保留 GitHub Desktop 完整嘅 Git 工作流程同一樣嘅底層技術棧：[TypeScript](https://www.typescriptlang.org)、[React](https://react.dev)、[Electron](https://www.electronjs.org) 同 [Sass](https://sass-lang.com)。呢個項目仲喺積極開發中。
 
-> **Repository transfer:** from the Repository menu, list context menu,
-> Command Palette, or **Repository settings → Remote**, choose another signed-in
-> GitHub account or organization and keep the repository name or enter a custom
-> one. **Full history** publishes every local branch and tag; **Clean state**
-> publishes the current files as one root commit while retaining a local
-> recovery ref. `origin` changes only after destination verification, and the
-> source remote remains reachable as `upstream` when needed. See the
-> [repository transfer guide](docs/features/repository-management/repository-transfer.md).
+**Repository transfer:** from the Repository menu, list context menu, Command Palette, or **Repository settings → Remote**, choose another signed-in GitHub account or organization and keep the repository name or enter a custom one. **Full history** publishes every local branch and tag; **Clean state** publishes the current files as one root commit while retaining a local recovery ref. `origin` changes only after destination verification, and the source remote remains reachable as `upstream` when needed. See the [repository transfer guide](docs/features/repository-management/repository-transfer.md).
 
-> **儲存庫轉移：** 喺 Repository 選單、清單右鍵選單、命令面板或者**儲存庫設定 → Remote**，揀另一個已登入嘅 GitHub 帳戶或者組織，可以保留儲存庫名或者自己入一個。**Full history** 會發佈每一條本機分支同標籤；**Clean state** 將目前檔案發佈成一個 root commit，同時保留本機復原 ref。`origin` 要等目的地驗證咗先會轉，需要嘅話原本嘅 remote 仍然以 `upstream` 存在。睇 [儲存庫轉移指南](docs/features/repository-management/repository-transfer.md)。
+**儲存庫轉移：** 喺 Repository 選單、清單右鍵選單、命令面板或者**儲存庫設定 → Remote**，揀另一個已登入嘅 GitHub 帳戶或者組織，可以保留儲存庫名或者自己入一個。**Full history** 會發佈每一條本機分支同標籤；**Clean state** 將目前檔案發佈成一個 root commit，同時保留本機復原 ref。`origin` 要等目的地驗證咗先會轉，需要嘅話原本嘅 remote 仍然以 `upstream` 存在。睇 [儲存庫轉移指南](docs/features/repository-management/repository-transfer.md)。
 
-> **Multi-remote fetch:** a repository with one configured remote keeps the
-> familiar **Fetch `<remote>`** action. When more than one remote is configured,
-> the toolbar says **Fetch all remotes** and fetches every configured remote in a
-> stable current-first order. See the [multi-remote fetch sync
-> guide](docs/features/repository-management/multi-remote-fetch-sync.md).
+**Multi-remote fetch:** a repository with one configured remote keeps the familiar **Fetch `<remote>`** action. When more than one remote is configured, the toolbar says **Fetch all remotes** and fetches every configured remote in a stable current-first order. See the [multi-remote fetch sync guide](docs/features/repository-management/multi-remote-fetch-sync.md).
 
-> **多 remote 抓取：** 只設定咗一個 remote 嘅儲存庫，繼續用熟悉嘅 **Fetch `<remote>`** 操作。當設定咗多過一個 remote，工具列會變成 **Fetch all remotes**，並且以穩定嘅「目前優先」次序抓取每一個已設定 remote。睇 [多 remote 抓取同步指南](docs/features/repository-management/multi-remote-fetch-sync.md)。
+**多 remote 抓取：** 只設定咗一個 remote 嘅儲存庫，繼續用熟悉嘅 **Fetch `<remote>`** 操作。當設定咗多過一個 remote，工具列會變成 **Fetch all remotes**，並且以穩定嘅「目前優先」次序抓取每一個已設定 remote。睇 [多 remote 抓取同步指南](docs/features/repository-management/multi-remote-fetch-sync.md)。
 
-> **Platform support:** Desktop Material ships a Windows Electron desktop
-> application. Windows keeps the x64 installer/portable ZIP, x64/arm64 build
-> validation, packaged x64 E2E, and the automated release payload. The retained
-> [Linux-first terminal application](docs/features/linux-tui/README.md) is a
-> historical prototype with separate manual verification; it is deliberately
-> excluded from standard CI and automated release gating.
+**Platform support:** Desktop Material ships a Windows Electron desktop application. Windows keeps the x64 installer/portable ZIP, x64/arm64 build validation, packaged x64 E2E, and the automated release payload. The retained [Linux-first terminal application](docs/features/linux-tui/README.md) is a historical prototype with separate manual verification; it is deliberately excluded from standard CI and automated release gating.
 
-> **平台支援：** Desktop Material 出嘅係 Windows Electron 桌面應用程式。Windows 保留 x64 安裝程式／可攜 ZIP、x64／arm64 建置驗證、已打包 x64 E2E 同自動發佈負載。保留低嘅 [Linux 優先終端機應用程式](docs/features/linux-tui/README.md) 係歷史原型，有獨立嘅人手驗證，並且刻意排除喺標準 CI 同自動發佈把關之外。
-
-Fresh Linux, including machines with no developer tools installed: copy the
-single command from the [Install tab](docs/readme-tabs/install.md#install-the-linux-tui-on-a-fresh-machine).
-After reopening the shell, run `github` in the current repository or pass a
-path. The installer also supplies GitHub CLI's `gh` and configures `PATH`.
-
-全新嘅 Linux 機（連開發工具都未裝過都得）：喺 [Install 分頁](docs/readme-tabs/install.md#install-the-linux-tui-on-a-fresh-machine) 複製嗰一行命令。重開個 shell 之後，喺目前儲存庫行 `github`，或者傳一個路徑俾佢。安裝程式亦都會提供 GitHub CLI 嘅 `gh` 同設定好 `PATH`。
+**平台支援：** Desktop Material 出嘅係 Windows Electron 桌面應用程式。Windows 保留 x64 安裝程式／可攜 ZIP、x64／arm64 建置驗證、已打包 x64 E2E 同自動發佈負載。保留低嘅 [Linux 優先終端機應用程式](docs/features/linux-tui/README.md) 係歷史原型，有獨立嘅人手驗證，並且刻意排除喺標準 CI 同自動發佈把關之外。
 
 <img
   width="1072"
   src="docs/assets/screenshots/material-app-identity-workspace.png"
   alt="Desktop Material workspace with a profile-customized app name and logo, a favorite repository tab, the Material navigation rail, and the Changes view"
 />
+
+<details>
+<summary><strong>Historical development receipts — dated evidence only, not current status / 歷史開發收據 — 只係有日期證據，唔係目前狀態</strong></summary>
+
+The entries below are retained for traceability. They are historical records, not an active work queue; use the current status above and the linked release receipt for present-day evidence.
+
+下面啲紀錄保留低係為咗追溯。佢哋係歷史紀錄，唔係目前工作清單；目前證據請以上面嘅狀態同已連結嘅 Release 收據為準。
+
+**Material Design 3 shell — August 11, 2026 (historical evidence boundary):** the application chrome is
+now the MD3 shell from `design/History MD3.dc.html`: eight destinations
+behind a navigation drawer, a 56px application header carrying the global
+search field, and a content pane whose header holds the repository and branch
+breadcrumbs, the fetch and push controls and the pane menu. Its eleven search
+fields each keep their own query **and** their own regex mode, and a pattern
+built in the regex builder is written into the field that opened it. **Nothing
+was removed:** the repository tab strip is unchanged and still shown by
+default, and the classic toolbar is kept behind **Settings → Appearance →
+Show the classic toolbar**, which also ships **on**. Every destination still
+renders the real repository workspace, so every capability is exactly where it
+was. Typecheck, ESLint and Prettier are clean; the feature-preservation ledger
+and the design-contract conformance suite are green. Installer, remote CI and
+release evidence for this change were **not claimed at that August 11
+checkpoint**. See the
+[MD3 shell feature guide](docs/features/design-system/md3-shell.md).
+
+**Material Design 3 外殼 — 2026 年 8 月 11 日（歷史證據界線）：** 應用程式框架而家係照住 `design/History MD3.dc.html` 重寫嘅 MD3 外殼：側邊導航加八個目的地、56px 頂部列連全域搜尋欄，內容窗嘅標題列拎住儲存庫同分支麵包屑、fetch／push 同選單。十一個搜尋欄各有各嘅字**同埋**各有各嘅 regex 掣，喺邊個欄開 regex builder，套用個 pattern 就寫返落嗰個欄。**一樣嘢都冇拆：** 儲存庫分頁列原封不動、預設照顯示，經典工具列收喺**設定 → 外觀 → 顯示經典工具列**後面，而且都係預設開。每個目的地仲係 render 緊真嘅儲存庫工作區，所以每一樣功能都仲喺原本嗰個位。Typecheck、ESLint、Prettier 全部乾淨，功能保存清單同設計合約一致性測試都綠。喺當時 8 月 11 日檢查點，安裝程式、遠端 CI 同發佈證據**未有**，唔會當有。詳情睇 [MD3 外殼功能指南](docs/features/design-system/md3-shell.md)。
+
+**Windows closeout — August 9, 2026 (historical snapshot):** School mode is now a real
+Appearance setting: it can be renamed, uses a local salted credential for
+unlock, forces English, hides language/playfulness controls and search rows,
+and suppresses the dim-sum surprise while active. The exact implementation is
+in the [School mode feature guide](docs/features/design-system/school-mode.md).
+(This banner originally said the palette opened with **Ctrl+Shift+P**. It does
+not: the shortcut collision with the file browser was resolved in favour of
+the palette, so **Ctrl+Shift+F** opens the command palette and is what the
+application menu registers.)
+
+**Windows 收尾 — 2026 年 8 月 9 日（歷史快照）：** School mode 而家係一個真正嘅外觀設定：改得名、用本機加鹽憑證解鎖、強制英文、收埋語言同玩味控制項同相關搜尋列，開住嗰陣亦唔會出點心彩蛋。實作詳情睇 [School mode 功能指南](docs/features/design-system/school-mode.md)。（呢段原本寫命令面板用 **Ctrl+Shift+P**，其實唔係：同檔案瀏覽器爭快捷鍵嗰件事已經判咗畀面板，所以開命令面板係 **Ctrl+Shift+F**，亦都係應用程式選單真正註冊嗰個。）
+
+**Self-hosted runner risk confirmation — August 9, 2026:** the Windows
+Actions runner setup form now audits all assigned labels—including
+`self-hosted`—before creating runner files or registration, and limits users
+to 20 custom labels. A completed known unsafe preflight can be reviewed in
+the form, but the renderer cannot authorize it: the main process reruns the
+audit and requires a Windows-owned confirmation bound to the current setup
+evidence. That volatile decision never reaches disk and is never reused by
+later Start or scheduled monitoring. Focused runner verification passes
+**94/94**, the root TypeScript check, and the complete desktop suite
+(**1,008/1,008** files; **8,494** tests) pass with no React
+unmounted-state-update warnings. The pinned Node 24.15.0 production build
+produced an unpackaged Windows application directory; installer verification,
+remote CI, and release evidence were still pending at that August 9 handoff
+boundary.
+See the [self-hosted runner manager guide](docs/features/integrations/self-hosted-runner-manager.md).
+
+**自架 runner 風險確認 — 2026 年 8 月 9 日：** Windows Actions runner 設定表格而家會喺建立 runner 檔案或者註冊之前，審核所有指派標籤（包括 `self-hosted`），並且限制用戶最多 20 個自訂標籤。已完成嘅「已知不安全」預檢可以喺表格入面覆核，但係 renderer 授權唔到：主行程會重新審核一次，並且要求一個綁住今次設定證據嘅 Windows 原生確認。嗰個易變決定永遠唔會落磁碟，之後嘅 Start 或者排程監察亦唔會重用。聚焦 runner 驗證 **94/94** 通過，root TypeScript 檢查同完整 desktop 測試（**1,008/1,008** 個檔案；**8,494** 個測試）全部通過，冇 React unmounted-state-update 警告。用 pinned Node 24.15.0 嘅生產建置整咗一個未打包嘅 Windows 應用程式目錄；喺當時 8 月 9 日 handoff 界線，安裝程式驗證、遠端 CI 同發佈證據仍然待辦。睇 [自架 runner 管理指南](docs/features/integrations/self-hosted-runner-manager.md)。
+
+**GitHub Actions and OAuth repair — August 8, 2026:** the Windows Actions
+view now uses a searchable rich account picker, audits public repositories
+instead of blanket-blocking them, fills the run-list row when no detail is
+open, and keeps release notes outside the Release details dropdown. GitHub
+sign-in follows the upstream Desktop OAuth request shape and omits the
+unregistered custom `redirect_uri`. Focused source verification passes
+**130/130**; at that August 8 checkpoint, remote CI and release evidence had
+not yet been observed for the integrated `main` commit.
+
+**GitHub Actions 同 OAuth 修復 — 2026 年 8 月 8 日：** Windows Actions 檢視而家用可搜尋嘅豐富帳戶選擇器，會審核公開儲存庫而唔係一刀切封鎖，冇開詳情嗰陣會填滿執行清單嗰行，亦會將發佈說明放喺 Release 詳情下拉之外。GitHub 登入跟返上游 Desktop 嘅 OAuth 請求形狀，唔再帶未註冊嘅自訂 `redirect_uri`。聚焦原始碼驗證 **130/130** 通過；喺當時 8 月 8 日檢查點，遠端 CI 同發佈證據仲未觀察到整合咗嘅 `main` commit。
+
+**Stash recovery manager:** the Windows app now keeps every Git stash entry
+without a Desktop entry-count cap and provides a separate searchable dialog
+for exact-identity recovery and export to a directory, ZIP, or configurable
+7z archive. See [stash export and recovery](docs/features/repository-management/stash-export.md).
+
+**Stash 復原管理員：** Windows app 而家保留每一個 Git stash 項目，冇咗 Desktop 原本嘅數量上限，並且提供一個獨立、可搜尋嘅對話框做精確身分復原，同埋匯出去資料夾、ZIP 或者可設定嘅 7z 封存檔。睇 [stash 匯出同復原](docs/features/repository-management/stash-export.md)。
+
+**Actions job-log recovery — August 5, 2026:** a completed GitHub Actions job
+can briefly report `HTTP 404` while its log archive is being prepared. The
+Windows viewer now retries that API response with bounded 250/750/1,500 ms
+waits, refreshes the signed redirect each time, and offers **Retry** plus
+**Open on GitHub** when the provider still has not produced the archive. The
+built-app recovery proof is documented in the [Actions workflow manager
+guide](docs/features/integrations/actions-workflow-manager.md).
+
+**Actions 工作紀錄復原 — 2026 年 8 月 5 日：** 一個已完成嘅 GitHub Actions job 喺準備緊 log 封存嗰陣，可能會短暫回 `HTTP 404`。Windows 檢視器而家會用 250/750/1,500 毫秒嘅有界等待重試，每次都刷新已簽署嘅轉址，如果供應方仲未整好封存，就提供**重試**同**喺 GitHub 開啟**。已建置 app 嘅復原證明記錄喺 [Actions 工作流程管理指南](docs/features/integrations/actions-workflow-manager.md)。
+
+**Windows startup renderer repair — August 6, 2026:** the Node-oriented
+Copilot SDK is now packaged as an external instead of being concatenated into
+the browser renderer. The build rejects both renderer bundles if the
+undefined `__webpack_module__` binding returns, preventing the packaged app
+from opening as a blank white window. The exact Windows artifact now reaches
+the first-run surface in a hidden-desktop capture; see the [renderer startup
+bundle safety guide](docs/features/quality-and-reliability/renderer-startup-bundle-safety.md).
+
+**Windows 啟動 renderer 修復 — 2026 年 8 月 6 日：** 針對 Node 嘅 Copilot SDK 而家以 external 方式打包，唔會再併入瀏覽器 renderer。如果未定義嘅 `__webpack_module__` 綁定返嚟，建置會直接拒絕兩個 renderer bundle，避免打包好嘅 app 開出一個白色空白視窗。真實 Windows 產物而家喺隱藏桌面擷取入面去到首次執行畫面；睇 [renderer 啟動 bundle 安全指南](docs/features/quality-and-reliability/renderer-startup-bundle-safety.md)。
+
+![Packaged Windows Desktop Material first-run surface after the renderer startup fix](docs/assets/screenshots/material-blank-startup-fixed-20260806.png)
+
+![Centered stash manager dialog with Manage, Export, History, and Appearance and voice tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager-centered-20260803.png)
+
+**Full-width History Graph page — August 5, 2026:** the repository rail now
+gives the ancestry graph its own **Graph** page, so Branch / Tag, Graph, and
+Commit Message columns can use the full workspace width while retaining the
+existing scope, search, lane, selection, and commit actions. Focused source
+verification passes **85/85**; a fresh built-app capture of this page is
+still pending the required hidden-desktop verification route.
+
+**全寬 History Graph 版面 — 2026 年 8 月 5 日：** 儲存庫側欄而家俾祖先圖自己一版 **Graph**，等分支／標籤、Graph 同 Commit 訊息三欄用得晒成個工作區闊度，同時保留原有嘅範圍、搜尋、線道、選取同 commit 操作。聚焦原始碼驗證 **85/85** 通過；呢一版嘅新建置 app 擷取仲要等隱藏桌面驗證路線。
+
+**Dirty branch switching:** when a branch has uncommitted work, choose
+**Leave my changes here** to open Add worktree with the destination branch
+prefilled while leaving the current worktree and its files untouched. See the
+[branch-switcher workflow](docs/features/identity-and-workspace/branch-switcher-workflows.md)
+and its [runtime capture](docs/verification/dirty-worktree-worktree-option-20260805/dirty-worktree-switch-dialog.png).
+
+**有未提交改動嗰陣切分支：** 當一條分支仲有未提交嘅工作，揀**留低我嘅改動**就會開 Add worktree 並且預先填好目的分支，同時唔郁目前 worktree 同佢啲檔案。睇 [分支切換工作流程](docs/features/identity-and-workspace/branch-switcher-workflows.md) 同佢嘅 [執行期擷取](docs/verification/dirty-worktree-worktree-option-20260805/dirty-worktree-switch-dialog.png)。
+
+**Local repair and background progress — July 30, 2026:** conflict and failed
+CI surfaces launch bounded Codex/OpenCode tasks; long work has hideable
+elapsed/ETA progress; Cheap LFS restore details collapse; and every action is
+directly searchable and executable from the command palette.
+
+**本機修復同背景進度 — 2026 年 7 月 30 日：** 衝突同 CI 失敗嘅畫面可以啟動有界嘅 Codex／OpenCode 工作；長時間嘅工作有得收埋嘅已用時間／ETA 進度；Cheap LFS 還原詳情摺得埋；而且每一個操作都可以喺命令面板直接搵到同執行。
+
+**Repository workflow refinements — July 30, 2026:** the repository sheet
+folds its filters behind one state-preserving disclosure, History hover cards
+show exact and relative time, and command rows support stable per-repository
+appearance. Automatic Cheap LFS discovery now ignores ineligible ordinary Git
+metadata such as `.gitmodules`; explicitly selected unsafe paths remain
+rejected.
+
+**儲存庫工作流程改良 — 2026 年 7 月 30 日：** 儲存庫面板將篩選器收埋喺一個會保留狀態嘅摺疊控制項後面，History 懸停卡片同時顯示精確同相對時間，命令列支援每個儲存庫穩定嘅外觀。自動 Cheap LFS 探索而家會略過唔合資格嘅普通 Git metadata（例如 `.gitmodules`）；明確揀咗嘅不安全路徑一樣照拒絕。
+
+**Publish organization picker sizing — July 30, 2026 (implementation
+pushed; final hosted proof pending):** Publish repository no longer squeezes its Organization
+choices into a native select. The replacement is an explicit-None,
+searchable listbox with persisted fuzzy, substring, and bounded-regex modes,
+the full Regex Builder, complete keyboard operation, and stale-account
+response protection. Its 128–176 CSS px list keeps scrolling contained and
+long names ellipsized; shared select wrappers can now shrink inside narrow
+dialogs. The accepted built-app frame is 1440×960 (133,919 bytes, SHA-256
+`7db03d5db789d19e1ad49de66bd79abb62e46c7909eda9de08878aac367033d8`).
+A 390×844 physical receipt also proves a visible, bottom-reachable list with
+no horizontal overflow and None selected. The promoted gallery will contain
+exactly **86 current Windows scenes** (66 canonical plus 20 specialist).
+Local tests and the exact production build are green. Implementation commit
+`63c1ec08c4f24f85d87f21d98851dcd5784c7800` is proven on `origin/main`;
+this follow-up publishes the retained receipt and regenerated parity input
+that its first hosted matrix found missing. Final hosted CI and
+installer-release proof remain pending.
+
+**Publish 組織選擇器尺寸 — 2026 年 7 月 30 日（實作已推送；最終線上證明待辦）：** Publish repository 唔再將組織選項塞入原生 select。取而代之係一個明確有 None、可搜尋嘅 listbox，支援持久化嘅模糊、子字串同有界 regex 模式、完整 Regex Builder、完整鍵盤操作，同埋過時帳戶回應保護。佢 128–176 CSS px 嘅清單令捲動困喺入面、長名字省略號處理；共用嘅 select 外殼而家喺窄對話框入面縮得。接受嘅已建置 app 畫面係 1440×960（133,919 bytes，SHA-256 `7db03d5db789d19e1ad49de66bd79abb62e46c7909eda9de08878aac367033d8`）。另一張 390×844 實體憑證亦都證明清單見得到、去到底、冇水平溢出，而且揀住 None。推廣嘅相簿會啱啱好有 **86 個目前 Windows 場景**（66 個標準加 20 個專門）。本機測試同精確生產建置都係綠色。實作 commit `63c1ec08c4f24f85d87f21d98851dcd5784c7800` 喺 `origin/main` 上獲證；今次跟進發佈嘅係第一次線上矩陣搵唔到嘅保留憑證同重新產生嘅 parity 輸入。最終線上 CI 同安裝程式發佈證明仍然待辦。
 
 <details>
 <summary><strong>Open the August 11 packaged Windows gallery</strong></summary>
@@ -251,152 +240,152 @@ labelled manual captures were promoted; failed specialist outputs were not.
 
 ![CI](https://github.com/Ding-Ding-Projects/desktop-material/actions/workflows/ci-windows.yml/badge.svg?branch=main)
 
-> **The site is one Material Design 3 component — August 3, 2026:** the
-> [project site](https://ding-ding-projects.github.io/desktop-material/) is
-> rebuilt as six pages behind a browser-style tab strip — Overview, Cheap LFS,
-> Cheap LFS vs Git LFS, Docs hub, the regex-builder article, and Docs search —
-> with the three language modes, both playfulness sliders, the regex builder on
-> every search bar, all four tab searches, the anchored per-element appearance
-> editor, the notification centre, and export all working rather than described.
-> It loads nothing from another host: React and four font families are served
-> from the site itself, with the icon and Hong Kong Chinese faces cut to only
-> the characters the pages use. The two previous standalone Cheap LFS addresses
-> redirect, and the 249 rendered Markdown articles keep publishing under
-> [`/docs/`](https://ding-ding-projects.github.io/desktop-material/docs/). How
-> it is built, changed, and verified is in
-> [its own article](docs/features/design-system/material-design-3-site.md).
+**The site is one Material Design 3 component — August 3, 2026:** the
+[project site](https://ding-ding-projects.github.io/desktop-material/) is
+rebuilt as six pages behind a browser-style tab strip — Overview, Cheap LFS,
+Cheap LFS vs Git LFS, Docs hub, the regex-builder article, and Docs search —
+with the three language modes, both playfulness sliders, the regex builder on
+every search bar, all four tab searches, the anchored per-element appearance
+editor, the notification centre, and export all working rather than described.
+It loads nothing from another host: React and four font families are served
+from the site itself, with the icon and Hong Kong Chinese faces cut to only
+the characters the pages use. The two previous standalone Cheap LFS addresses
+redirect, and the 249 rendered Markdown articles keep publishing under
+[`/docs/`](https://ding-ding-projects.github.io/desktop-material/docs/). How
+it is built, changed, and verified is in
+[its own article](docs/features/design-system/material-design-3-site.md).
 
-> **個網站本身就係一個 Material Design 3 元件 — 2026 年 8 月 3 日：** [項目網站](https://ding-ding-projects.github.io/desktop-material/) 重建成瀏覽器式分頁列後面嘅六版 — Overview、Cheap LFS、Cheap LFS vs Git LFS、Docs hub、regex builder 文章同 Docs search — 三種語言模式、兩個玩味滑桿、每個搜尋列上嘅 regex builder、全部四個分頁搜尋、錨定嘅逐元素外觀編輯器、通知中心同匯出，全部係真係行得而唔係寫喺度。佢唔會由第二個 host 載任何嘢：React 同四款字體都由網站自己提供，圖示同香港中文字體只切出頁面用到嘅字。之前兩個獨立 Cheap LFS 網址會轉址，249 篇已渲染 Markdown 文章繼續喺 [`/docs/`](https://ding-ding-projects.github.io/desktop-material/docs/) 發佈。點樣建、點樣改、點樣驗證，寫喺 [佢自己嗰篇文](docs/features/design-system/material-design-3-site.md)。
+**個網站本身就係一個 Material Design 3 元件 — 2026 年 8 月 3 日：** [項目網站](https://ding-ding-projects.github.io/desktop-material/) 重建成瀏覽器式分頁列後面嘅六版 — Overview、Cheap LFS、Cheap LFS vs Git LFS、Docs hub、regex builder 文章同 Docs search — 三種語言模式、兩個玩味滑桿、每個搜尋列上嘅 regex builder、全部四個分頁搜尋、錨定嘅逐元素外觀編輯器、通知中心同匯出，全部係真係行得而唔係寫喺度。佢唔會由第二個 host 載任何嘢：React 同四款字體都由網站自己提供，圖示同香港中文字體只切出頁面用到嘅字。之前兩個獨立 Cheap LFS 網址會轉址，249 篇已渲染 Markdown 文章繼續喺 [`/docs/`](https://ding-ding-projects.github.io/desktop-material/docs/) 發佈。點樣建、點樣改、點樣驗證，寫喺 [佢自己嗰篇文](docs/features/design-system/material-design-3-site.md)。
 
-> **Cheap LFS hook bypass and central diagnostics — July 29, 2026:** the
-> app-authored cloud-compression workflow commit now runs against an owned,
-> empty hooks directory, so a broken Git LFS post-commit hook cannot falsely
-> fail it; normal user commits keep every configured hook. Desktop clients can
-> also choose local, central, or dual logging through launch configuration.
-> The authenticated, double-redacted
-> [diagnostic service](docs/features/quality-and-reliability/central-diagnostic-logging.md)
-> is live on the private Docker host with searchable agent APIs, operator-picked
-> storage, bounded retention, and a browser dashboard.
+**Cheap LFS hook bypass and central diagnostics — July 29, 2026:** the
+app-authored cloud-compression workflow commit now runs against an owned,
+empty hooks directory, so a broken Git LFS post-commit hook cannot falsely
+fail it; normal user commits keep every configured hook. Desktop clients can
+also choose local, central, or dual logging through launch configuration.
+The authenticated, double-redacted
+[diagnostic service](docs/features/quality-and-reliability/central-diagnostic-logging.md)
+is live on the private Docker host with searchable agent APIs, operator-picked
+storage, bounded retention, and a browser dashboard.
 
-> **Cheap LFS 略過 hook 同中央診斷 — 2026 年 7 月 29 日：** app 自己寫嘅雲端壓縮工作流程 commit 而家喺一個自己擁有嘅空 hooks 目錄下執行，所以一個壞咗嘅 Git LFS post-commit hook 唔會令佢錯誤失敗；用戶自己嘅 commit 一樣行晒所有已設定 hook。桌面客戶端亦都可以透過啟動設定揀本機、中央或者雙重記錄。經過驗證、雙重遮蔽嘅 [診斷服務](docs/features/quality-and-reliability/central-diagnostic-logging.md) 已經喺私人 Docker 主機上線，有可搜尋嘅 agent API、營運者自選儲存、有界保留期同瀏覽器儀表板。
+**Cheap LFS 略過 hook 同中央診斷 — 2026 年 7 月 29 日：** app 自己寫嘅雲端壓縮工作流程 commit 而家喺一個自己擁有嘅空 hooks 目錄下執行，所以一個壞咗嘅 Git LFS post-commit hook 唔會令佢錯誤失敗；用戶自己嘅 commit 一樣行晒所有已設定 hook。桌面客戶端亦都可以透過啟動設定揀本機、中央或者雙重記錄。經過驗證、雙重遮蔽嘅 [診斷服務](docs/features/quality-and-reliability/central-diagnostic-logging.md) 已經喺私人 Docker 主機上線，有可搜尋嘅 agent API、營運者自選儲存、有界保留期同瀏覽器儀表板。
 
-> **July 29 close-out status (historical snapshot):** the active issue-closing wave is
-> merged locally with the Cheap LFS helper train and the Windows shutdown/profile
-> persistence corrections, and remains in final verification. Its capture and
-> publication contracts own exactly **86 current Windows scenes**; five earlier
-> Linux/Xvfb files remain immutable historical evidence outside that set. The
-> distinct current-source updater frame is now accepted and published from
-> runtime source `b069384ad7d8a65d1192ee06859a705fe484c9c8` through promotion
-> `e3967f1b81ec039624500797dca40a1ab6d98598`; it proves the real
-> Electron/Squirrel event path with a disclosed verifier-owned inert payload,
-> not a published updater payload. The complete local regression accounted for
-> 873/873 files and 7,112 tests with zero failures; final-SHA remote CI and each
-> issue's own runtime-closure evidence remain separate gates. The dated notes
-> below are preserved chronology, not current blockers or issue states.
+**July 29 close-out status (historical snapshot):** the active issue-closing wave is
+merged locally with the Cheap LFS helper train and the Windows shutdown/profile
+persistence corrections, and remains in final verification. Its capture and
+publication contracts own exactly **86 current Windows scenes**; five earlier
+Linux/Xvfb files remain immutable historical evidence outside that set. The
+distinct current-source updater frame is now accepted and published from
+runtime source `b069384ad7d8a65d1192ee06859a705fe484c9c8` through promotion
+`e3967f1b81ec039624500797dca40a1ab6d98598`; it proves the real
+Electron/Squirrel event path with a disclosed verifier-owned inert payload,
+not a published updater payload. The complete local regression accounted for
+873/873 files and 7,112 tests with zero failures; final-SHA remote CI and each
+issue's own runtime-closure evidence remain separate gates. The dated notes
+below are preserved chronology, not current blockers or issue states.
 
-> **7 月 29 日收尾狀態（歷史快照）：** 進行緊嘅關閉 issue 浪潮已經喺本機同 Cheap LFS 輔助系列同 Windows 關機／設定檔持久化修正合併埋，仍然喺最終驗證階段。佢嘅擷取同發佈契約啱啱好擁有 **86 個目前 Windows 場景**；五個更早嘅 Linux/Xvfb 檔案作為不可變歷史證據留喺嗰個集合以外。獨立嘅目前來源更新器畫面已經由執行期來源 `b069384ad7d8a65d1192ee06859a705fe484c9c8` 經推廣 `e3967f1b81ec039624500797dca40a1ab6d98598` 接受同發佈；佢證明嘅係真正 Electron/Squirrel 事件路徑，配一個已披露、由驗證者擁有嘅惰性負載，唔係一個已發佈嘅更新負載。完整本機回歸涵蓋 873/873 個檔案同 7,112 個測試，零失敗；最終 SHA 嘅遠端 CI 同每個 issue 自己嘅執行期收尾證據係另外嘅關卡。下面啲有日期嘅筆記係保留低嘅時序紀錄，唔係目前嘅阻塞或者 issue 狀態。
+**7 月 29 日收尾狀態（歷史快照）：** 進行緊嘅關閉 issue 浪潮已經喺本機同 Cheap LFS 輔助系列同 Windows 關機／設定檔持久化修正合併埋，仍然喺最終驗證階段。佢嘅擷取同發佈契約啱啱好擁有 **86 個目前 Windows 場景**；五個更早嘅 Linux/Xvfb 檔案作為不可變歷史證據留喺嗰個集合以外。獨立嘅目前來源更新器畫面已經由執行期來源 `b069384ad7d8a65d1192ee06859a705fe484c9c8` 經推廣 `e3967f1b81ec039624500797dca40a1ab6d98598` 接受同發佈；佢證明嘅係真正 Electron/Squirrel 事件路徑，配一個已披露、由驗證者擁有嘅惰性負載，唔係一個已發佈嘅更新負載。完整本機回歸涵蓋 873/873 個檔案同 7,112 個測試，零失敗；最終 SHA 嘅遠端 CI 同每個 issue 自己嘅執行期收尾證據係另外嘅關卡。下面啲有日期嘅筆記係保留低嘅時序紀錄，唔係目前嘅阻塞或者 issue 狀態。
 
-> **Cheap LFS long-name correction — July 28, 2026:** valid long Windows
-> filenames now use bounded basename-independent recovery and materialization
-> sidecars across Release, OCI, and generated clone hydration. Focused
-> regressions pass **82/82**, including 255-unit tracked names. The separate
-> Pull warning shown for already-materialized payloads is ordinary Git safety:
-> back up those verified caches, return them to committed pointers, pull, and
-> materialize again; do not pack multi-gigabyte caches into a Git stash.
-> Final-tip build, push, CI, and installer proof remain pending.
+**Cheap LFS long-name correction — July 28, 2026:** valid long Windows
+filenames now use bounded basename-independent recovery and materialization
+sidecars across Release, OCI, and generated clone hydration. Focused
+regressions pass **82/82**, including 255-unit tracked names. The separate
+Pull warning shown for already-materialized payloads is ordinary Git safety:
+back up those verified caches, return them to committed pointers, pull, and
+materialize again; do not pack multi-gigabyte caches into a Git stash.
+Final-tip build, push, CI, and installer proof remain pending.
 
-> **Cheap LFS 長檔名修正 — 2026 年 7 月 28 日：** 合法嘅長 Windows 檔名而家喺 Release、OCI 同產生嘅 clone 補水入面，用有界、唔靠 basename 嘅復原同實體化 sidecar。聚焦回歸 **82/82** 通過，包括 255 單位嘅追蹤檔名。針對已實體化負載另外顯示嘅 Pull 警告係普通 Git 安全提示：備份好嗰啲已驗證快取、還原返做已提交嘅 pointer、pull，然後再實體化一次；唔好將幾 GB 嘅快取塞入 Git stash。最終 tip 嘅建置、推送、CI 同安裝程式證明仍然待辦。
+**Cheap LFS 長檔名修正 — 2026 年 7 月 28 日：** 合法嘅長 Windows 檔名而家喺 Release、OCI 同產生嘅 clone 補水入面，用有界、唔靠 basename 嘅復原同實體化 sidecar。聚焦回歸 **82/82** 通過，包括 255 單位嘅追蹤檔名。針對已實體化負載另外顯示嘅 Pull 警告係普通 Git 安全提示：備份好嗰啲已驗證快取、還原返做已提交嘅 pointer、pull，然後再實體化一次；唔好將幾 GB 嘅快取塞入 Git stash。最終 tip 嘅建置、推送、CI 同安裝程式證明仍然待辦。
 
-> **Standalone Cheap LFS versus Git LFS atlas — July 28, 2026:** the
-> [separate comparison page](https://ding-ding-projects.github.io/desktop-material/cheap-lfs-vs-git-lfs.html)
-> maps **72 sourced differences in 12 categories**, with row-level receipts,
-> provider-first and pre-push graphics, composable text/category/fit filters,
-> a bounded worker-isolated regex builder, an interactive fit finder, and a
-> dedicated six-stage `git push` proof. It does not pretend the pointer formats
-> interoperate, and it gives Git LFS the advantage where standards,
-> cross-platform support, locking, migration, caching, CI, and automation are
-> the better fit. The assembled route passed 35/35 installed-Chrome checks at
-> 1440×960 and 390×844; the exact local boundary and post-push publication
-> status are recorded in the
-> [dated receipt](docs/verification/cheap-lfs-vs-git-lfs-pages-2026-07-28/README.md).
+**Standalone Cheap LFS versus Git LFS atlas — July 28, 2026:** the
+[separate comparison page](https://ding-ding-projects.github.io/desktop-material/cheap-lfs-vs-git-lfs.html)
+maps **72 sourced differences in 12 categories**, with row-level receipts,
+provider-first and pre-push graphics, composable text/category/fit filters,
+a bounded worker-isolated regex builder, an interactive fit finder, and a
+dedicated six-stage `git push` proof. It does not pretend the pointer formats
+interoperate, and it gives Git LFS the advantage where standards,
+cross-platform support, locking, migration, caching, CI, and automation are
+the better fit. The assembled route passed 35/35 installed-Chrome checks at
+1440×960 and 390×844; the exact local boundary and post-push publication
+status are recorded in the
+[dated receipt](docs/verification/cheap-lfs-vs-git-lfs-pages-2026-07-28/README.md).
 
-> **獨立 Cheap LFS 對 Git LFS 對照 — 2026 年 7 月 28 日：** [獨立比較頁](https://ding-ding-projects.github.io/desktop-material/cheap-lfs-vs-git-lfs.html) 整理咗 **12 個類別、72 項有出處嘅差異**，附逐行憑證、供應方優先同 pre-push 圖表、可組合嘅文字／類別／適用性篩選、一個有界並且 worker 隔離嘅 regex builder、一個互動式適用性搜尋器，同一個專門嘅六階段 `git push` 證明。佢唔會扮兩種 pointer 格式互通，亦都喺標準、跨平台支援、鎖定、遷移、快取、CI 同自動化呢啲場合明講 Git LFS 更啱。整合好嘅路線喺 1440×960 同 390×844 通過 35/35 個已安裝 Chrome 檢查；精確嘅本機界線同推送後發佈狀態記錄喺 [有日期嘅憑證](docs/verification/cheap-lfs-vs-git-lfs-pages-2026-07-28/README.md)。
+**獨立 Cheap LFS 對 Git LFS 對照 — 2026 年 7 月 28 日：** [獨立比較頁](https://ding-ding-projects.github.io/desktop-material/cheap-lfs-vs-git-lfs.html) 整理咗 **12 個類別、72 項有出處嘅差異**，附逐行憑證、供應方優先同 pre-push 圖表、可組合嘅文字／類別／適用性篩選、一個有界並且 worker 隔離嘅 regex builder、一個互動式適用性搜尋器，同一個專門嘅六階段 `git push` 證明。佢唔會扮兩種 pointer 格式互通，亦都喺標準、跨平台支援、鎖定、遷移、快取、CI 同自動化呢啲場合明講 Git LFS 更啱。整合好嘅路線喺 1440×960 同 390×844 通過 35/35 個已安裝 Chrome 檢查；精確嘅本機界線同推送後發佈狀態記錄喺 [有日期嘅憑證](docs/verification/cheap-lfs-vs-git-lfs-pages-2026-07-28/README.md)。
 
-> **Cheap LFS Pages guide — July 28, 2026:** the
-> [product guide](https://ding-ding-projects.github.io/desktop-material/cheap-lfs.html)
-> now pairs a provider-first `git push` walkthrough with a sourced, filterable
-> 30-point Cheap LFS versus Git LFS comparison. It calls out the first-branch
-> Release-anchor exception, distinguishes provider proof from remote branch
-> proof, and gives Git LFS the win where its open ecosystem is the better fit.
-> The Pages-only headless gate passed **46/46** across desktop and 390 px
-> layouts; see the
-> [verification receipt](docs/verification/cheap-lfs-pages-revamp-2026-07-28/README.md).
+**Cheap LFS Pages guide — July 28, 2026:** the
+[product guide](https://ding-ding-projects.github.io/desktop-material/cheap-lfs.html)
+now pairs a provider-first `git push` walkthrough with a sourced, filterable
+30-point Cheap LFS versus Git LFS comparison. It calls out the first-branch
+Release-anchor exception, distinguishes provider proof from remote branch
+proof, and gives Git LFS the win where its open ecosystem is the better fit.
+The Pages-only headless gate passed **46/46** across desktop and 390 px
+layouts; see the
+[verification receipt](docs/verification/cheap-lfs-pages-revamp-2026-07-28/README.md).
 
-> **Cheap LFS Pages 指南 — 2026 年 7 月 28 日：** [產品指南](https://ding-ding-projects.github.io/desktop-material/cheap-lfs.html) 而家將供應方優先嘅 `git push` 逐步教學，配埋一個有出處、可篩選嘅 30 點 Cheap LFS 對 Git LFS 比較。佢明確指出第一條分支嘅 Release 錨點例外，分清楚供應方證明同遠端分支證明，亦都喺 Git LFS 開放生態更啱嘅地方畀佢贏。淨係 Pages 嘅無頭關卡喺桌面同 390 px 版面通過 **46/46**；睇 [驗證憑證](docs/verification/cheap-lfs-pages-revamp-2026-07-28/README.md)。
+**Cheap LFS Pages 指南 — 2026 年 7 月 28 日：** [產品指南](https://ding-ding-projects.github.io/desktop-material/cheap-lfs.html) 而家將供應方優先嘅 `git push` 逐步教學，配埋一個有出處、可篩選嘅 30 點 Cheap LFS 對 Git LFS 比較。佢明確指出第一條分支嘅 Release 錨點例外，分清楚供應方證明同遠端分支證明，亦都喺 Git LFS 開放生態更啱嘅地方畀佢贏。淨係 Pages 嘅無頭關卡喺桌面同 390 px 版面通過 **46/46**；睇 [驗證憑證](docs/verification/cheap-lfs-pages-revamp-2026-07-28/README.md)。
 
-> **Measured responsiveness checkpoint — July 28, 2026:** the exact released
-> baseline Windows build at `9bdfdb8b25` held every sampled idle frame below
-> 17 ms, but twelve warmed Changes/History switches still took 56–104 ms and
-> produced six long tasks. The navigation path was emitting an identical
-> compare-form update after the real section change, forcing a second root
-> render. Navigation and `AppStore` now suppress that no-op; focused
-> responsiveness and adjacent lifecycle/lazy-loading coverage passed **42/42**
-> at that source checkpoint. Exact post-fix release timing remains pending;
-> this does not replace the close-out gates above.
+**Measured responsiveness checkpoint — July 28, 2026:** the exact released
+baseline Windows build at `9bdfdb8b25` held every sampled idle frame below
+17 ms, but twelve warmed Changes/History switches still took 56–104 ms and
+produced six long tasks. The navigation path was emitting an identical
+compare-form update after the real section change, forcing a second root
+render. Navigation and `AppStore` now suppress that no-op; focused
+responsiveness and adjacent lifecycle/lazy-loading coverage passed **42/42**
+at that source checkpoint. Exact post-fix release timing remains pending;
+this does not replace the close-out gates above.
 
-> **量度過嘅反應速度檢查點 — 2026 年 7 月 28 日：** 精確嘅已發佈基準 Windows 建置 `9bdfdb8b25` 令每一個取樣嘅閒置畫格都低過 17 毫秒，但係十二次熱身後嘅 Changes／History 切換仍然用咗 56–104 毫秒，並且產生六個長工作。原來導覽路徑喺真正切換區段之後，仲會發出一個一模一樣嘅 compare 表單更新，逼多咗一次 root render。導覽同 `AppStore` 而家會壓下嗰個無效更新；喺嗰個原始碼檢查點，聚焦反應速度同相鄰嘅生命週期／延遲載入覆蓋通過 **42/42**。修正後嘅精確發佈計時仍然待辦；呢樣嘢唔取代上面嘅收尾關卡。
+**量度過嘅反應速度檢查點 — 2026 年 7 月 28 日：** 精確嘅已發佈基準 Windows 建置 `9bdfdb8b25` 令每一個取樣嘅閒置畫格都低過 17 毫秒，但係十二次熱身後嘅 Changes／History 切換仍然用咗 56–104 毫秒，並且產生六個長工作。原來導覽路徑喺真正切換區段之後，仲會發出一個一模一樣嘅 compare 表單更新，逼多咗一次 root render。導覽同 `AppStore` 而家會壓下嗰個無效更新；喺嗰個原始碼檢查點，聚焦反應速度同相鄰嘅生命週期／延遲載入覆蓋通過 **42/42**。修正後嘅精確發佈計時仍然待辦；呢樣嘢唔取代上面嘅收尾關卡。
 
-> **Historical local reliability checkpoint — July 28, 2026 (superseded):**
-> the root renderer now owns
-> and releases its store/updater/drag/IPC subscriptions, telemetry and update
-> polling timers, and global document/window handlers. Queued idle and
-> animation-frame callbacks cannot restart work after unmount. Focused
-> lifecycle tests passed **4/4** and changed-file ESLint was clean. That
-> predecessor checkout stopped before compilation because its dependency tree
-> was absent. This was a checkout-specific historical condition, not the
-> current build blocker or current verification state.
+**Historical local reliability checkpoint — July 28, 2026 (superseded):**
+the root renderer now owns
+and releases its store/updater/drag/IPC subscriptions, telemetry and update
+polling timers, and global document/window handlers. Queued idle and
+animation-frame callbacks cannot restart work after unmount. Focused
+lifecycle tests passed **4/4** and changed-file ESLint was clean. That
+predecessor checkout stopped before compilation because its dependency tree
+was absent. This was a checkout-specific historical condition, not the
+current build blocker or current verification state.
 
-> **歷史本機可靠性檢查點 — 2026 年 7 月 28 日（已被取代）：** root renderer 而家自己擁有同釋放佢嘅 store／updater／拖放／IPC 訂閱、遙測同更新輪詢計時器，以及全域 document／window 處理器。排咗隊嘅 idle 同 animation-frame callback 唔可以喺 unmount 之後再開工。聚焦生命週期測試通過 **4/4**，改動檔案嘅 ESLint 乾淨。嗰個前身 checkout 因為冇依賴樹所以喺編譯之前停低。呢個係 checkout 專有嘅歷史情況，唔係目前嘅建置阻塞或者目前驗證狀態。
+**歷史本機可靠性檢查點 — 2026 年 7 月 28 日（已被取代）：** root renderer 而家自己擁有同釋放佢嘅 store／updater／拖放／IPC 訂閱、遙測同更新輪詢計時器，以及全域 document／window 處理器。排咗隊嘅 idle 同 animation-frame callback 唔可以喺 unmount 之後再開工。聚焦生命週期測試通過 **4/4**，改動檔案嘅 ESLint 乾淨。嗰個前身 checkout 因為冇依賴樹所以喺編譯之前停低。呢個係 checkout 專有嘅歷史情況，唔係目前嘅建置阻塞或者目前驗證狀態。
 
-> **Historical local implementation checkpoint — July 27, 2026
-> (superseded):** #78 added optional
-> AES-256-GCM encryption to GitHub Release-backed Cheap LFS payloads. Passwords
-> are requested once per operation or, only when the user opts in, retrieved
-> from the Windows credential vault; existing pointer formats remain compatible,
-> plaintext legacy restores never prompt, and combined authentication/cleanup
-> failures fail closed. #80 observes asynchronous push, fetch, and pull actions
-> and keeps an invalid canonical remote visible as a yellow warning with a
-> **Change remote URL** action. #83 restores independent persisted English and
-> Cantonese funny-level sliders from 1–5. #81 and #82 are deliberately deferred
-> to a later continuation. Local evidence is **194/194 focused tests** and
-> **6768/6768 full tests across 831 files**, with TypeScript and `yarn lint`
-> clean. #78, #80, and #83 remain open pending real built-app screenshots;
-> packaged visual evidence and remote CI are not yet claimed.
+**Historical local implementation checkpoint — July 27, 2026
+(superseded):** #78 added optional
+AES-256-GCM encryption to GitHub Release-backed Cheap LFS payloads. Passwords
+are requested once per operation or, only when the user opts in, retrieved
+from the Windows credential vault; existing pointer formats remain compatible,
+plaintext legacy restores never prompt, and combined authentication/cleanup
+failures fail closed. #80 observes asynchronous push, fetch, and pull actions
+and keeps an invalid canonical remote visible as a yellow warning with a
+**Change remote URL** action. #83 restores independent persisted English and
+Cantonese funny-level sliders from 1–5. #81 and #82 are deliberately deferred
+to a later continuation. Local evidence is **194/194 focused tests** and
+**6768/6768 full tests across 831 files**, with TypeScript and `yarn lint`
+clean. #78, #80, and #83 remain open pending real built-app screenshots;
+packaged visual evidence and remote CI are not yet claimed.
 
-> **歷史本機實作檢查點 — 2026 年 7 月 27 日（已被取代）：** #78 為 GitHub Release 支援嘅 Cheap LFS 負載加入可選 AES-256-GCM 加密。密碼每次操作問一次，或者只喺用戶主動選擇嗰陣先由 Windows 憑證保管庫攞；現有 pointer 格式保持相容，純文字舊還原永遠唔會問，認證同清理同時失敗會 fail closed。#80 觀察非同步嘅 push、fetch 同 pull 操作，並且將無效嘅標準 remote 以黃色警告顯示，附一個**變更 remote URL** 操作。#83 還原獨立持久化嘅英文同廣東話搞笑程度滑桿（1–5）。#81 同 #82 刻意延後到之後嘅接續。本機證據係 **194/194 聚焦測試** 同 **831 個檔案入面 6768/6768 全部測試**，TypeScript 同 `yarn lint` 乾淨。#78、#80 同 #83 仍然開住，等真實已建置 app 截圖；打包後嘅視覺證據同遠端 CI 未算數。
+**歷史本機實作檢查點 — 2026 年 7 月 27 日（已被取代）：** #78 為 GitHub Release 支援嘅 Cheap LFS 負載加入可選 AES-256-GCM 加密。密碼每次操作問一次，或者只喺用戶主動選擇嗰陣先由 Windows 憑證保管庫攞；現有 pointer 格式保持相容，純文字舊還原永遠唔會問，認證同清理同時失敗會 fail closed。#80 觀察非同步嘅 push、fetch 同 pull 操作，並且將無效嘅標準 remote 以黃色警告顯示，附一個**變更 remote URL** 操作。#83 還原獨立持久化嘅英文同廣東話搞笑程度滑桿（1–5）。#81 同 #82 刻意延後到之後嘅接續。本機證據係 **194/194 聚焦測試** 同 **831 個檔案入面 6768/6768 全部測試**，TypeScript 同 `yarn lint` 乾淨。#78、#80 同 #83 仍然開住，等真實已建置 app 截圖；打包後嘅視覺證據同遠端 CI 未算數。
 
-> **Historical merged and published checkpoint — July 27, 2026:** Cheap LFS
-> Release restores then
-> open one bounded look-ahead lane at the exact 90% download point and expose
-> detailed overall/file/part progress. Browser-bound links can also use a
-> secure app-hosted tabbed browser with an explicit system-browser escape.
-> Private repositories then kept a separate lock badge even when their leading
-> repository glyph is a fork or custom logo. The final focused gate passed
-> **760/760**, verifier contracts passed **14/14**, TypeScript was clean, the
-> exact Windows production build completed successfully, and the real built
-> app passed isolated off-screen English/bilingual interaction and privacy
-> inspection. The source was merged and pushed through `2abccae8fd`; Pages and
-> wiki publication went live. TUI correction commit `f555d374a6` is contained
-> in `origin/main`; remote run `30317262582` passed its Linux TUI matrix and
-> Windows TUI core job but failed overall in the unrelated Windows x64 unit
-> job. Installer run `30318769692` failed and published no Release. Packaged
-> Windows E2E was verified.
-> See
-> [Release-backed Cheap LFS](docs/features/repository-management/release-backed-cheap-lfs.md),
-> the [app-hosted browser](docs/features/integrations/app-hosted-browser.md),
-> and the [private-repository lock badge](docs/features/repository-management/private-repository-lock-badge.md).
+**Historical merged and published checkpoint — July 27, 2026:** Cheap LFS
+Release restores then
+open one bounded look-ahead lane at the exact 90% download point and expose
+detailed overall/file/part progress. Browser-bound links can also use a
+secure app-hosted tabbed browser with an explicit system-browser escape.
+Private repositories then kept a separate lock badge even when their leading
+repository glyph is a fork or custom logo. The final focused gate passed
+**760/760**, verifier contracts passed **14/14**, TypeScript was clean, the
+exact Windows production build completed successfully, and the real built
+app passed isolated off-screen English/bilingual interaction and privacy
+inspection. The source was merged and pushed through `2abccae8fd`; Pages and
+wiki publication went live. TUI correction commit `f555d374a6` is contained
+in `origin/main`; remote run `30317262582` passed its Linux TUI matrix and
+Windows TUI core job but failed overall in the unrelated Windows x64 unit
+job. Installer run `30318769692` failed and published no Release. Packaged
+Windows E2E was verified.
+See
+[Release-backed Cheap LFS](docs/features/repository-management/release-backed-cheap-lfs.md),
+the [app-hosted browser](docs/features/integrations/app-hosted-browser.md),
+and the [private-repository lock badge](docs/features/repository-management/private-repository-lock-badge.md).
 
-> **歷史已合併同已發佈檢查點 — 2026 年 7 月 27 日：** Cheap LFS Release 還原而家會喺啱啱好 90% 下載點開一條有界嘅預讀線道，並且顯示詳細嘅整體／檔案／分段進度。綁去瀏覽器嘅連結亦都可以用一個安全、app 自寄嘅分頁瀏覽器，並且明確有系統瀏覽器出口。私人儲存庫之後仍然保留獨立嘅鎖標記，就算佢頭嘅儲存庫圖示係 fork 或者自訂標誌。最終聚焦關卡通過 **760/760**，驗證者契約通過 **14/14**，TypeScript 乾淨，精確嘅 Windows 生產建置成功完成，真實已建置 app 通過隔離離屏嘅英文／雙語互動同私隱檢查。原始碼經 `2abccae8fd` 合併同推送；Pages 同 wiki 發佈已上線。TUI 修正 commit `f555d374a6` 已包含喺 `origin/main`；遠端執行 `30317262582` 通過佢嘅 Linux TUI 矩陣同 Windows TUI 核心工作，但係喺無關嘅 Windows x64 單元工作度整體失敗。安裝程式執行 `30318769692` 失敗，冇發佈任何 Release。已打包 Windows E2E 已驗證。睇 [Release 支援嘅 Cheap LFS](docs/features/repository-management/release-backed-cheap-lfs.md)、[app 自寄瀏覽器](docs/features/integrations/app-hosted-browser.md) 同 [私人儲存庫鎖標記](docs/features/repository-management/private-repository-lock-badge.md)。
+**歷史已合併同已發佈檢查點 — 2026 年 7 月 27 日：** Cheap LFS Release 還原而家會喺啱啱好 90% 下載點開一條有界嘅預讀線道，並且顯示詳細嘅整體／檔案／分段進度。綁去瀏覽器嘅連結亦都可以用一個安全、app 自寄嘅分頁瀏覽器，並且明確有系統瀏覽器出口。私人儲存庫之後仍然保留獨立嘅鎖標記，就算佢頭嘅儲存庫圖示係 fork 或者自訂標誌。最終聚焦關卡通過 **760/760**，驗證者契約通過 **14/14**，TypeScript 乾淨，精確嘅 Windows 生產建置成功完成，真實已建置 app 通過隔離離屏嘅英文／雙語互動同私隱檢查。原始碼經 `2abccae8fd` 合併同推送；Pages 同 wiki 發佈已上線。TUI 修正 commit `f555d374a6` 已包含喺 `origin/main`；遠端執行 `30317262582` 通過佢嘅 Linux TUI 矩陣同 Windows TUI 核心工作，但係喺無關嘅 Windows x64 單元工作度整體失敗。安裝程式執行 `30318769692` 失敗，冇發佈任何 Release。已打包 Windows E2E 已驗證。睇 [Release 支援嘅 Cheap LFS](docs/features/repository-management/release-backed-cheap-lfs.md)、[app 自寄瀏覽器](docs/features/integrations/app-hosted-browser.md) 同 [私人儲存庫鎖標記](docs/features/repository-management/private-repository-lock-badge.md)。
 
 ![Detailed Cheap LFS restore progress with the current transfer at exactly 90% and the next transfer already active](docs/assets/screenshots/cheap-lfs-restore-lookahead.png)
 
@@ -407,6 +396,8 @@ labelled manual captures were promoted; failed specialist outputs were not.
 ![Dark repository side sheet with collapsed Filters and one compact Add, Select, and More action row](docs/assets/screenshots/material-repositories-sheet.png)
 
 ![Bilingual Publish repository dialog with a searchable, contained organization owner listbox](docs/assets/screenshots/material-publish-organization-picker.png)
+
+</details>
 
 ## Install on Windows / Windows 安裝
 

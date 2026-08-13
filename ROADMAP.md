@@ -4,11 +4,15 @@ Updated: **August 13, 2026**
 
 ## Current repository snapshot — August 13, 2026
 
-- `origin/main` is `28f6d0f36a3109a2793e67e078b887ac4729d7db`.
-- The GitHub issue tracker reported **0 open issues**.
-- The most recently observed published release is
-  [`v4.0.118301`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.118301),
-  published at `2026-08-13T01:49:17Z` for that same commit.
+- `origin/main` is `96c25861dba76055e3063544e7f22036751916ea`.
+- The GitHub issue tracker has one open issue: [#190 — Reconcile current roadmap and release receipts](https://github.com/Ding-Ding-Projects/desktop-material/issues/190).
+- The latest published release is
+  [`v4.0.118401`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.118401),
+  published at `2026-08-13T20:48:00Z` for that same commit, with six downloadable
+  assets.
+- For that commit, [CI Linux run 31742643323](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31742643323)
+  completed successfully and [CI Windows run 31742643430](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31742643430)
+  was still in progress when this snapshot was recorded.
 - This is a status reconciliation, not new CI, installer, test, or capture
   evidence. Each dated entry below retains the evidence boundary that existed
   at its own checkpoint; words such as *open*, *pending*, and *not claimed* do
