@@ -12,21 +12,21 @@
 
 Snapshot recorded from the current main evidence on **August 13, 2026**:
 
-- `main` and `origin/main` point to [`d6819521dff2dd1d014536e51e0c7088482fc73f`](https://github.com/Ding-Ding-Projects/desktop-material/commit/d6819521dff2dd1d014536e51e0c7088482fc73f).
-- The latest published Windows release remains [`v4.0.118401`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.118401), published at `2026-08-13T20:48:00Z`. A newer release is not claimed until its tag, target commit, publication state, and downloadable assets are verified. It has six downloadable assets: `GitHub.Desktop-x64.zip`, `GitHubDesktop-4.0.118401-full.nupkg`, `GitHubDesktop-4.0.118401-x64-full.nupkg`, `GitHubDesktopSetup-x64.exe`, `GitHubDesktopSetup-x64.msi`, and `RELEASES`.
+- `main` and `origin/main` point to [`5cb2281643b788b0038412072b939b4ee9a6e635`](https://github.com/Ding-Ding-Projects/desktop-material/commit/5cb2281643b788b0038412072b939b4ee9a6e635).
+- The latest published Windows release is [`v4.0.119101`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.119101), published at `2026-08-13T23:02:56Z` for that exact commit. It has six downloadable assets: `GitHub.Desktop-x64.zip`, `GitHubDesktop-4.0.119101-full.nupkg`, `GitHubDesktop-4.0.119101-x64-full.nupkg`, `GitHubDesktopSetup-x64.exe`, `GitHubDesktopSetup-x64.msi`, and `RELEASES`.
 - GitHub currently has one open issue: [#190 — Reconcile current roadmap and release receipts](https://github.com/Ding-Ding-Projects/desktop-material/issues/190). It tracks this documentation correction; it is not a product-feature backlog.
-- Current workflow evidence is [CI Windows run 31745728101](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31745728101), which is in progress; [CI Linux run 31745727950](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31745727950), which completed successfully; and [Cheap LFS run 31745727846](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31745727846), which completed successfully. The published release receipt is separate: its notes record the exact source, assets, line count, release code name, and workflow timing.
+- Current workflow evidence is [CI Windows run 31747636431](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31747636431), [CI Linux run 31747636425](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31747636425), [Cheap LFS run 31747636429](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31747636429), and [release workflow run 31750286839](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31750286839); all four completed successfully for this release evidence.
 
-This README update adds no application, test, or capture evidence. The dated records below preserve the evidence boundary at each historical checkpoint; words such as *open*, *pending*, and *not claimed* describe those checkpoints only, not the current tracker or release state.
+This README update adds no application, test, or capture evidence. The dated records below preserve the evidence boundary at each historical checkpoint; they are historical receipts, not the current tracker or release state.
 
 **目前狀態快照 — 2026 年 8 月 13 日：**
 
-- `main` 同 `origin/main` 而家指向 [`d6819521dff2dd1d014536e51e0c7088482fc73f`](https://github.com/Ding-Ding-Projects/desktop-material/commit/d6819521dff2dd1d014536e51e0c7088482fc73f)。
-- [`v4.0.118401`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.118401) 仍然係最新已發佈嘅 Windows Release，喺 `2026-08-13T20:48:00Z` 發佈。新 Release 要等 tag、目標 commit、發佈狀態同可下載資產全部驗證咗先算數；未驗證之前唔會當佢已經出街。佢有六個可下載資產：`GitHub.Desktop-x64.zip`、`GitHubDesktop-4.0.118401-full.nupkg`、`GitHubDesktop-4.0.118401-x64-full.nupkg`、`GitHubDesktopSetup-x64.exe`、`GitHubDesktopSetup-x64.msi` 同 `RELEASES`。
+- `main` 同 `origin/main` 而家指向 [`5cb2281643b788b0038412072b939b4ee9a6e635`](https://github.com/Ding-Ding-Projects/desktop-material/commit/5cb2281643b788b0038412072b939b4ee9a6e635)。
+- [`v4.0.119101`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.119101) 係最新已發佈嘅 Windows Release，喺 `2026-08-13T23:02:56Z` 為呢個 exact commit 發佈。佢有六個可下載資產：`GitHub.Desktop-x64.zip`、`GitHubDesktop-4.0.119101-full.nupkg`、`GitHubDesktop-4.0.119101-x64-full.nupkg`、`GitHubDesktopSetup-x64.exe`、`GitHubDesktopSetup-x64.msi` 同 `RELEASES`。
 - GitHub 而家有一個 open issue：[#190 — Reconcile current roadmap and release receipts](https://github.com/Ding-Ding-Projects/desktop-material/issues/190)。佢係今次文件修正嘅追蹤項目，唔係產品功能待辦清單。
-- 目前 workflow 證據包括：[CI Windows 執行 `31745728101`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31745728101) 而家仲進行緊；[CI Linux 執行 `31745727950`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31745727950) 已經成功完成；同埋 [Cheap LFS 執行 `31745727846`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31745727846) 都已經成功完成。已發佈 Release 收據係獨立證據：佢嘅 notes 記錄精確來源、資產、行數、Release code name 同 workflow 時間。
+- 目前 workflow 證據包括：[CI Windows 執行 `31747636431`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31747636431)、[CI Linux 執行 `31747636425`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31747636425)、[Cheap LFS 執行 `31747636429`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31747636429) 同 [Release workflow 執行 `31750286839`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31750286839)；四個執行都已經為今次 Release 證據成功完成。
 
-呢次 README 更新冇新增應用程式、測試或者擷取證據。下面有日期嘅紀錄保留每個歷史檢查點當時嘅證據界線；*open*、*pending* 同 *not claimed* 只係描述嗰啲檢查點，唔係目前 tracker 或 Release 狀態。
+呢次 README 更新冇新增應用程式、測試或者擷取證據。下面有日期嘅紀錄保留每個歷史檢查點當時嘅證據界線；佢哋係歷史收據，唔係目前 tracker 或 Release 狀態。
 
 ## What it is / 產品簡介
 
