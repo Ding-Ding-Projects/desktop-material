@@ -36,7 +36,8 @@
       "[Added] The narrator's voice is selectable, separately for English and Cantonese, along with speaking rate and pitch. A chosen voice that is no longer installed is reported as missing and the choice is kept - 4d17b1053c056ce0d186d4b313bc6789912c4387",
       "[Added] Personal vocabulary, on Settings then Appearance: a local JSON file that renames the words the app shows you. Nothing is uploaded, the whole file is validated before a single word is applied, and a refused file changes nothing at all - 4d17b1053c056ce0d186d4b313bc6789912c4387",
       "[Added] The commit list, the changes sidebar and the repository tools list can be resized by dragging or from the keyboard, and remember their width - a9ed7506c8f58b626d6758571b1218de4991c065",
-      "[Fixed] Classic mode renders the same chrome as the new interface, differing by exactly one argument, so a change to the chrome reaches both - 5c71d509cbc283e20f26fd92b4b9cb1b2afaae94"
+      "[Fixed] Classic mode renders the same chrome as the new interface, differing by exactly one argument, so a change to the chrome reaches both - 5c71d509cbc283e20f26fd92b4b9cb1b2afaae94",
+      "[Fixed] A failing agent-session panel expectation no longer makes Node recursively serialize the jsdom document: nullable queries and DOM identity checks now report compact failures instead - 418e56a592722b72ee9f8ff4f6eb1dec2f8469bb"
     ],
     "3.6.3-material22": [
       "[Fixed] The Windows renderer no longer opens as a blank white window when the Node-oriented Copilot SDK is bundled: the SDK stays external, and the build rejects missing or unsafe startup bundles - 5fbc28b6cfe458943cdecd456fdc3622a4719fc1",

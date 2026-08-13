@@ -16,6 +16,19 @@ handoff below remains historical: *open*, *pending*, *not claimed*, and
 historic item with later commits and the current tracker or release state before
 treating it as live work.
 
+## 2026-08-13 — Bound DOM assertions in the agent-session panel test
+
+`app/test/unit/agent-sessions-panel-test.tsx` no longer passes nullable query
+results or DOM nodes to Node's object-formatting assertions. The remaining
+absence checks use boolean identity and the parent/focus checks use
+`assertSameNode`, so a failed expectation reports the small mismatch instead of
+synchronously serializing the jsdom document until it exhausts memory.
+
+Implementation commit: `418e56a592722b72ee9f8ff4f6eb1dec2f8469bb`.
+
+Tests, lint, review, captures, and packaging were intentionally not run in this
+lane.
+
 ## 2026-08-11 — The MD3 shell is assembled, wired and documented
 
 **Scope.** Assemble the Material Design 3 rewrite into the application chrome,
