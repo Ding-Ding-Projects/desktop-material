@@ -305,6 +305,7 @@ describe('pinned Cheap LFS ORAS build preparation', () => {
     // And the archive that finally arrived went through the same verification
     // a first attempt would have. A retry that trusted a later response more
     // than the first would be worse than no retry at all.
+    assert.ok(result !== null)
     assert.equal(result.archiveSha256, trust.archiveSha256)
   })
 
