@@ -8,23 +8,25 @@
 
 # Roadmap & receipts / 路線圖同憑證
 
-> **Current status — August 13, 2026:** `origin/main` is
-> `28f6d0f36a3109a2793e67e078b887ac4729d7db`; the GitHub issue tracker reported
-> **0 open issues**. The most recently observed published release is
-> [`v4.0.118301`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.118301),
-> published at `2026-08-13T01:49:17Z` for that same commit. This tab's dated
-> CI, release, and acceptance receipts remain historical evidence; use the
-> current snapshots in [`ROADMAP.md`](../../ROADMAP.md) and
-> [`HANDOFF.md`](../../HANDOFF.md) before treating an old *open* or *pending*
-> statement as live work.
+## Current status / 目前狀態
 
-> **目前狀態 — 2026 年 8 月 13 日：** `origin/main` 係
-> `28f6d0f36a3109a2793e67e078b887ac4729d7db`；GitHub issue tracker 顯示
-> **0 個開住嘅 issue**。最新觀察到嘅已發佈 Release 係
-> [`v4.0.118301`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.118301)，
-> 喺 `2026-08-13T01:49:17Z` 為同一個 commit 發佈。呢個分頁入面有日期嘅
-> CI、Release 同接受憑證仍然係歷史證據；將舊嘅 *open* 或 *pending* 當成目前工作之前，
-> 先睇 [`ROADMAP.md`](../../ROADMAP.md) 同 [`HANDOFF.md`](../../HANDOFF.md) 嘅目前快照。
+Snapshot recorded on **August 13, 2026**:
+
+- `origin/main` is [`96c25861dba7`](https://github.com/Ding-Ding-Projects/desktop-material/commit/96c25861dba76055e3063544e7f22036751916ea).
+- GitHub has one open issue: [#190 — Reconcile current roadmap and release receipts](https://github.com/Ding-Ding-Projects/desktop-material/issues/190).
+- The latest published release is [`v4.0.118401`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.118401), published at `2026-08-13T20:48:00Z` for that exact commit, with six downloadable assets.
+- [CI Linux run 31742643323](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31742643323) completed successfully; [CI Windows run 31742643430](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31742643430) was still in progress when this snapshot was recorded.
+
+This tab's dated CI, release, and acceptance receipts remain historical evidence. Older *open*, *pending*, and *not claimed* statements describe their checkpoint only; use this snapshot and the linked release before treating them as current work.
+
+**目前狀態快照 — 2026 年 8 月 13 日：**
+
+- `origin/main` 係 [`96c25861dba7`](https://github.com/Ding-Ding-Projects/desktop-material/commit/96c25861dba76055e3063544e7f22036751916ea)。
+- GitHub 而家有一個 open issue：[#190 — Reconcile current roadmap and release receipts](https://github.com/Ding-Ding-Projects/desktop-material/issues/190)。
+- 最新已發佈嘅 Release 係 [`v4.0.118401`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.118401)，喺 `2026-08-13T20:48:00Z` 為同一個 commit 發佈，有六個可下載資產。
+- [CI Linux 執行 `31742643323`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31742643323) 已經成功完成；[CI Windows 執行 `31742643430`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31742643430) 喺呢個快照記錄嗰陣仲進行緊。
+
+呢個分頁入面有日期嘅 CI、Release 同接受憑證仍然係歷史證據。舊嘅 *open*、*pending* 同 *not claimed* 只係描述佢哋當時嘅檢查點；目前工作請以上面嘅快照同已連結嘅 Release 為準。
 
 ## Product scope / 產品範圍
 
