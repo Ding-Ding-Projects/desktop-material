@@ -351,7 +351,7 @@
         data-screenshot-search="material-scale-200-autofit material-scale-200-autofit.png 200% requested scale safely auto-fitted at minimum size windows-canonical-cdp scale-200 Material shell and accessibility"
       >
         <div class="section__head">
-          <p class="eyebrow">Frame 37 of 104 · windows-canonical-cdp</p>
+          <p class="eyebrow">Frame 37 of 107 · windows-canonical-cdp</p>
           <h1 class="md-headline">
             200% requested scale safely auto-fitted at minimum size
           </h1>
@@ -1861,6 +1861,63 @@
               "docs/verification/publish-organization-picker-2026-07-30/README.md",
               "docs/verification/publish-organization-picker-2026-07-30/runtime-receipt.json"
             ]
+          },
+          {
+            "output": "personal-vocabulary",
+            "file": "personal-vocabulary.png",
+            "caption": "Personal vocabulary upload on Settings then Appearance, in its no-file state",
+            "altText": "Settings then Appearance showing the Personal vocabulary section: a Choose a vocabulary file picker reading No file chosen, and beneath it the sentence No vocabulary file is loaded, every surface is rendering its original wording",
+            "scene": "personal-vocabulary",
+            "batch": "windows-personal-vocabulary",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Open Settings from the application menu, select Appearance, scroll the Personal vocabulary section into view and drop focus, so the frame is the control in its no-file state rather than mid-hover.",
+            "width": 1280,
+            "height": 900,
+            "bytes": 128267,
+            "commands": [
+              "yarn compile:prod",
+              "node script/capture-app.js --out=\u003cowned-run-root>personal-vocabulary.png --size=1280x900 --step=menu:show-preferences --step=wait:1500 --step=click-text:Appearance --step=wait:900 --step=scroll-to:.personal-vocabulary-control --step=wait:700 --step=blur"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "narrator-voice-pickers",
+            "file": "narrator-voice-pickers.png",
+            "caption": "Per-language narrator voice pickers showing an automatic choice and a language with no installed voice",
+            "altText": "Settings then Sound showing both narrator voice pickers, English reporting that a voice was chosen automatically and Cantonese reporting that this computer has no voice installed that can read the language",
+            "scene": "narrator-voice-pickers",
+            "batch": "windows-narrator-voice",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Open Settings from the application menu, select Sound, scroll both narrator voice pickers into view and drop focus. The capture host has English voices and no Cantonese one, so the frame shows the automatic and no-voice-available states together.",
+            "width": 1280,
+            "height": 900,
+            "bytes": 127208,
+            "commands": [
+              "yarn compile:prod",
+              "node script/capture-app.js --out=\u003cowned-run-root>\narrator-voice-pickers.png --size=1280x900 --step=menu:show-preferences --step=wait:1500 --step=click-text:Sound --step=wait:900 --step=scroll-to:.sound-voice-picker --step=wait:700 --step=blur"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "branches-sheet",
+            "file": "branches-sheet.png",
+            "caption": "Branches side sheet with its tab strip, filter, branch list and merge footer at their real sizes",
+            "altText": "Branches side sheet with its Local and Remote tabs clear of the control beneath them, the default branch listed with its current-branch check, and two ordinary pill-sized merge actions in the footer",
+            "scene": "branches-sheet",
+            "batch": "windows-branches-sheet",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Open the Branches sheet from the application menu on a throwaway single-branch repository and drop focus, so the tab strip, filter row, branch list and merge footer are all measurable in one frame.",
+            "width": 1280,
+            "height": 900,
+            "bytes": 89608,
+            "commands": [
+              "yarn compile:prod",
+              "node script/capture-app.js --out=\u003cowned-run-root>\branches-sheet.png --tabs=1 --size=1280x900 --step=wait:1200 --step=menu:show-branches --step=wait:2000 --step=blur"
+            ],
+            "datedReceipts": []
           },
           {
             "output": "material-history-hover-time",

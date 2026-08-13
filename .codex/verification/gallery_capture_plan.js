@@ -13,7 +13,7 @@
 const fs = require('fs')
 const path = require('path')
 
-const ExpectedPublishedGalleryCount = 92
+const ExpectedPublishedGalleryCount = 95
 const CanonicalCandidateCount = 68
 const DeferredCanonicalOutputs = Object.freeze([
   'material-cheap-lfs-preparing',
@@ -205,6 +205,46 @@ const CaptureBatches = Object.freeze({
       'Fresh owned P0 run root with its clean real git-source repository (no remote), provider-backed fixture clone, isolated profile, and three deterministic organization owners including one deliberately long login.',
     privacyGate:
       'The scene proves the owned no-remote source before opening Publish Repository, rejects provider mutations, runs the renderer privacy assertion, and requires contained physical 390x844 auto-fit geometry before restoring and capturing at 1440x960.',
+  }),
+  // Three frames captured through `script/capture-app.js` rather than the
+  // gallery CDP harness, and recorded as such rather than dressed up to match
+  // its neighbours. The harness launches the real production bundle under
+  // Playwright's Electron driver with a throwaway user-data directory and a
+  // fake HOME for Git, so it can never touch a developer profile, identity or
+  // SSH agent — which is this scene's privacy gate, stated in the terms that
+  // are actually true of it.
+  'windows-personal-vocabulary': Object.freeze({
+    platform: 'windows-headless',
+    commands: Object.freeze([
+      'yarn compile:prod',
+      'node script/capture-app.js --out=<owned-run-root>\personal-vocabulary.png --size=1280x900 --step=menu:show-preferences --step=wait:1500 --step=click-text:Appearance --step=wait:900 --step=scroll-to:.personal-vocabulary-control --step=wait:700 --step=blur',
+    ]),
+    fixture:
+      'No repository. The control is reachable from the application menu alone, and the frame is deliberately the state before any vocabulary file exists — which is the state the control has to be good at.',
+    privacyGate:
+      'A throwaway user-data directory and a fake HOME for Git, so no developer profile, identity or SSH agent is reachable. The frame contains no vocabulary terms because none is loaded, and the control never renders terms in any case — only a count.',
+  }),
+  'windows-narrator-voice': Object.freeze({
+    platform: 'windows-headless',
+    commands: Object.freeze([
+      'yarn compile:prod',
+      'node script/capture-app.js --out=<owned-run-root>\narrator-voice-pickers.png --size=1280x900 --step=menu:show-preferences --step=wait:1500 --step=click-text:Sound --step=wait:900 --step=scroll-to:.sound-voice-picker --step=wait:700 --step=blur',
+    ]),
+    fixture:
+      'No repository. The capture host had English voices installed and no Cantonese one, which is why the frame shows both honest states at once rather than one of them twice.',
+    privacyGate:
+      'A throwaway user-data directory and a fake HOME for Git. Installed voice names are platform-provided and carry no user data.',
+  }),
+  'windows-branches-sheet': Object.freeze({
+    platform: 'windows-headless',
+    commands: Object.freeze([
+      'yarn compile:prod',
+      'node script/capture-app.js --out=<owned-run-root>\branches-sheet.png --tabs=1 --size=1280x900 --step=wait:1200 --step=menu:show-branches --step=wait:2000 --step=blur',
+    ]),
+    fixture:
+      'One throwaway Git repository created by the harness, with a single commit and only its default branch — the case that exposed both defects this frame documents as fixed.',
+    privacyGate:
+      'A throwaway user-data directory, a fake HOME for Git, and a repository created inside the run root, so no real repository path or author appears in the frame.',
   }),
   'windows-history-hover': Object.freeze({
     platform: 'windows-headless',
@@ -436,6 +476,27 @@ const SpecialistCaptureEntries = Object.freeze([
     batch: 'windows-ui-state-lowlevel',
     interaction:
       'Open the built repository stash manager in the isolated production profile and preserve its centered Material dialog with Manage, Export, History, and Appearance and voice tabs at the reviewed capture size.',
+  },
+  {
+    output: 'personal-vocabulary',
+    scene: 'personal-vocabulary',
+    batch: 'windows-personal-vocabulary',
+    interaction:
+      'Open Settings from the application menu, select Appearance, scroll the Personal vocabulary section into view and drop focus, so the frame is the control in its no-file state rather than mid-hover.',
+  },
+  {
+    output: 'narrator-voice-pickers',
+    scene: 'narrator-voice-pickers',
+    batch: 'windows-narrator-voice',
+    interaction:
+      'Open Settings from the application menu, select Sound, scroll both narrator voice pickers into view and drop focus. The capture host has English voices and no Cantonese one, so the frame shows the automatic and no-voice-available states together.',
+  },
+  {
+    output: 'branches-sheet',
+    scene: 'branches-sheet',
+    batch: 'windows-branches-sheet',
+    interaction:
+      'Open the Branches sheet from the application menu on a throwaway single-branch repository and drop focus, so the tab strip, filter row, branch list and merge footer are all measurable in one frame.',
   },
   {
     output: 'material-history-hover-time',
