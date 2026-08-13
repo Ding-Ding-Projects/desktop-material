@@ -8,7 +8,24 @@
 
 # Desktop Material
 
-> **The Material Design 3 shell — August 11, 2026:** the application chrome is
+> **Current repository snapshot — August 13, 2026:** `origin/main` is
+> `28f6d0f36a3109a2793e67e078b887ac4729d7db`; the GitHub issue tracker reported
+> **0 open issues**. The most recently observed published release is
+> [`v4.0.118301`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.118301),
+> published at `2026-08-13T01:49:17Z` for that same commit. This is an inventory
+> snapshot, not new CI, installer, test, or capture evidence. Dated notes below
+> preserve their original evidence boundaries: words such as *open*, *pending*,
+> and *not claimed* do not state the current tracker or release status.
+
+> **目前儲存庫快照 — 2026 年 8 月 13 日：** `origin/main` 係
+> `28f6d0f36a3109a2793e67e078b887ac4729d7db`；GitHub issue tracker 顯示
+> **0 個開住嘅 issue**。最新觀察到嘅已發佈 Release 係
+> [`v4.0.118301`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.118301)，
+> 喺 `2026-08-13T01:49:17Z` 為同一個 commit 發佈。呢個只係盤點快照，唔係新嘅
+> CI、安裝程式、測試或者擷取證據。下面有日期嘅筆記保留返當時嘅證據界線：*open*、
+> *pending* 同 *not claimed* 呢類字唔係講緊而家嘅 issue tracker 或者 Release 狀態。
+
+> **Material Design 3 shell — August 11, 2026 (historical evidence boundary):** the application chrome is
 > now the MD3 shell from `design/History MD3.dc.html`: eight destinations
 > behind a navigation drawer, a 56px application header carrying the global
 > search field, and a content pane whose header holds the repository and branch
@@ -21,12 +38,13 @@
 > renders the real repository workspace, so every capability is exactly where it
 > was. Typecheck, ESLint and Prettier are clean; the feature-preservation ledger
 > and the design-contract conformance suite are green. Installer, remote CI and
-> release evidence for this change are **not yet claimed**. See the
+> release evidence for this change were **not claimed at that August 11
+> checkpoint**. See the
 > [MD3 shell feature guide](docs/features/design-system/md3-shell.md).
 
-> **Material Design 3 外殼 — 2026 年 8 月 11 日：** 應用程式框架而家係照住 `design/History MD3.dc.html` 重寫嘅 MD3 外殼：側邊導航加八個目的地、56px 頂部列連全域搜尋欄，內容窗嘅標題列拎住儲存庫同分支麵包屑、fetch／push 同選單。十一個搜尋欄各有各嘅字**同埋**各有各嘅 regex 掣，喺邊個欄開 regex builder，套用個 pattern 就寫返落嗰個欄。**一樣嘢都冇拆：** 儲存庫分頁列原封不動、預設照顯示，經典工具列收喺**設定 → 外觀 → 顯示經典工具列**後面，而且都係預設開。每個目的地仲係 render 緊真嘅儲存庫工作區，所以每一樣功能都仲喺原本嗰個位。Typecheck、ESLint、Prettier 全部乾淨，功能保存清單同設計合約一致性測試都綠。安裝程式、遠端 CI 同發佈證據**未有**，唔會當有。詳情睇 [MD3 外殼功能指南](docs/features/design-system/md3-shell.md)。
+> **Material Design 3 外殼 — 2026 年 8 月 11 日（歷史證據界線）：** 應用程式框架而家係照住 `design/History MD3.dc.html` 重寫嘅 MD3 外殼：側邊導航加八個目的地、56px 頂部列連全域搜尋欄，內容窗嘅標題列拎住儲存庫同分支麵包屑、fetch／push 同選單。十一個搜尋欄各有各嘅字**同埋**各有各嘅 regex 掣，喺邊個欄開 regex builder，套用個 pattern 就寫返落嗰個欄。**一樣嘢都冇拆：** 儲存庫分頁列原封不動、預設照顯示，經典工具列收喺**設定 → 外觀 → 顯示經典工具列**後面，而且都係預設開。每個目的地仲係 render 緊真嘅儲存庫工作區，所以每一樣功能都仲喺原本嗰個位。Typecheck、ESLint、Prettier 全部乾淨，功能保存清單同設計合約一致性測試都綠。喺當時 8 月 11 日檢查點，安裝程式、遠端 CI 同發佈證據**未有**，唔會當有。詳情睇 [MD3 外殼功能指南](docs/features/design-system/md3-shell.md)。
 
-> **Current Windows closeout — August 9, 2026:** School mode is now a real
+> **Windows closeout — August 9, 2026 (historical snapshot):** School mode is now a real
 > Appearance setting: it can be renamed, uses a local salted credential for
 > unlock, forces English, hides language/playfulness controls and search rows,
 > and suppresses the dim-sum surprise while active. The exact implementation is
@@ -36,7 +54,7 @@
 > the palette, so **Ctrl+Shift+F** opens the command palette and is what the
 > application menu registers.)
 
-> **Windows 最新收尾 — 2026 年 8 月 9 日：** School mode 而家係一個真正嘅外觀設定：改得名、用本機加鹽憑證解鎖、強制英文、收埋語言同玩味控制項同相關搜尋列，開住嗰陣亦唔會出點心彩蛋。實作詳情睇 [School mode 功能指南](docs/features/design-system/school-mode.md)。（呢段原本寫命令面板用 **Ctrl+Shift+P**，其實唔係：同檔案瀏覽器爭快捷鍵嗰件事已經判咗畀面板，所以開命令面板係 **Ctrl+Shift+F**，亦都係應用程式選單真正註冊嗰個。）
+> **Windows 收尾 — 2026 年 8 月 9 日（歷史快照）：** School mode 而家係一個真正嘅外觀設定：改得名、用本機加鹽憑證解鎖、強制英文、收埋語言同玩味控制項同相關搜尋列，開住嗰陣亦唔會出點心彩蛋。實作詳情睇 [School mode 功能指南](docs/features/design-system/school-mode.md)。（呢段原本寫命令面板用 **Ctrl+Shift+P**，其實唔係：同檔案瀏覽器爭快捷鍵嗰件事已經判咗畀面板，所以開命令面板係 **Ctrl+Shift+F**，亦都係應用程式選單真正註冊嗰個。）
 
 > **Self-hosted runner risk confirmation — August 9, 2026:** the Windows
 > Actions runner setup form now audits all assigned labels—including
@@ -50,10 +68,11 @@
 > (**1,008/1,008** files; **8,494** tests) pass with no React
 > unmounted-state-update warnings. The pinned Node 24.15.0 production build
 > produced an unpackaged Windows application directory; installer verification,
-> remote CI, and release evidence remain pending.
+> remote CI, and release evidence were still pending at that August 9 handoff
+> boundary.
 > See the [self-hosted runner manager guide](docs/features/integrations/self-hosted-runner-manager.md).
 
-> **自架 runner 風險確認 — 2026 年 8 月 9 日：** Windows Actions runner 設定表格而家會喺建立 runner 檔案或者註冊之前，審核所有指派標籤（包括 `self-hosted`），並且限制用戶最多 20 個自訂標籤。已完成嘅「已知不安全」預檢可以喺表格入面覆核，但係 renderer 授權唔到：主行程會重新審核一次，並且要求一個綁住今次設定證據嘅 Windows 原生確認。嗰個易變決定永遠唔會落磁碟，之後嘅 Start 或者排程監察亦唔會重用。聚焦 runner 驗證 **94/94** 通過，root TypeScript 檢查同完整 desktop 測試（**1,008/1,008** 個檔案；**8,494** 個測試）全部通過，冇 React unmounted-state-update 警告。用 pinned Node 24.15.0 嘅生產建置整咗一個未打包嘅 Windows 應用程式目錄；安裝程式驗證、遠端 CI 同發佈證據仍然待辦。睇 [自架 runner 管理指南](docs/features/integrations/self-hosted-runner-manager.md)。
+> **自架 runner 風險確認 — 2026 年 8 月 9 日：** Windows Actions runner 設定表格而家會喺建立 runner 檔案或者註冊之前，審核所有指派標籤（包括 `self-hosted`），並且限制用戶最多 20 個自訂標籤。已完成嘅「已知不安全」預檢可以喺表格入面覆核，但係 renderer 授權唔到：主行程會重新審核一次，並且要求一個綁住今次設定證據嘅 Windows 原生確認。嗰個易變決定永遠唔會落磁碟，之後嘅 Start 或者排程監察亦唔會重用。聚焦 runner 驗證 **94/94** 通過，root TypeScript 檢查同完整 desktop 測試（**1,008/1,008** 個檔案；**8,494** 個測試）全部通過，冇 React unmounted-state-update 警告。用 pinned Node 24.15.0 嘅生產建置整咗一個未打包嘅 Windows 應用程式目錄；喺當時 8 月 9 日 handoff 界線，安裝程式驗證、遠端 CI 同發佈證據仍然待辦。睇 [自架 runner 管理指南](docs/features/integrations/self-hosted-runner-manager.md)。
 
 > **GitHub Actions and OAuth repair — August 8, 2026:** the Windows Actions
 > view now uses a searchable rich account picker, audits public repositories
@@ -61,10 +80,10 @@
 > open, and keeps release notes outside the Release details dropdown. GitHub
 > sign-in follows the upstream Desktop OAuth request shape and omits the
 > unregistered custom `redirect_uri`. Focused source verification passes
-> **130/130**; remote CI and release evidence remain pending until the
-> integrated `main` commit is observed.
+> **130/130**; at that August 8 checkpoint, remote CI and release evidence had
+> not yet been observed for the integrated `main` commit.
 
-> **GitHub Actions 同 OAuth 修復 — 2026 年 8 月 8 日：** Windows Actions 檢視而家用可搜尋嘅豐富帳戶選擇器，會審核公開儲存庫而唔係一刀切封鎖，冇開詳情嗰陣會填滿執行清單嗰行，亦會將發佈說明放喺 Release 詳情下拉之外。GitHub 登入跟返上游 Desktop 嘅 OAuth 請求形狀，唔再帶未註冊嘅自訂 `redirect_uri`。聚焦原始碼驗證 **130/130** 通過；遠端 CI 同發佈證據要見到整合咗嘅 `main` commit 之後先算數。
+> **GitHub Actions 同 OAuth 修復 — 2026 年 8 月 8 日：** Windows Actions 檢視而家用可搜尋嘅豐富帳戶選擇器，會審核公開儲存庫而唔係一刀切封鎖，冇開詳情嗰陣會填滿執行清單嗰行，亦會將發佈說明放喺 Release 詳情下拉之外。GitHub 登入跟返上游 Desktop 嘅 OAuth 請求形狀，唔再帶未註冊嘅自訂 `redirect_uri`。聚焦原始碼驗證 **130/130** 通過；喺當時 8 月 8 日檢查點，遠端 CI 同發佈證據仲未觀察到整合咗嘅 `main` commit。
 
 > **Stash recovery manager:** the Windows app now keeps every Git stash entry
 > without a Desktop entry-count cap and provides a separate searchable dialog
@@ -261,7 +280,7 @@ labelled manual captures were promoted; failed specialist outputs were not.
 
 > **Cheap LFS 略過 hook 同中央診斷 — 2026 年 7 月 29 日：** app 自己寫嘅雲端壓縮工作流程 commit 而家喺一個自己擁有嘅空 hooks 目錄下執行，所以一個壞咗嘅 Git LFS post-commit hook 唔會令佢錯誤失敗；用戶自己嘅 commit 一樣行晒所有已設定 hook。桌面客戶端亦都可以透過啟動設定揀本機、中央或者雙重記錄。經過驗證、雙重遮蔽嘅 [診斷服務](docs/features/quality-and-reliability/central-diagnostic-logging.md) 已經喺私人 Docker 主機上線，有可搜尋嘅 agent API、營運者自選儲存、有界保留期同瀏覽器儀表板。
 
-> **Current close-out status — July 29, 2026:** the active issue-closing wave is
+> **July 29 close-out status (historical snapshot):** the active issue-closing wave is
 > merged locally with the Cheap LFS helper train and the Windows shutdown/profile
 > persistence corrections, and remains in final verification. Its capture and
 > publication contracts own exactly **86 current Windows scenes**; five earlier
@@ -275,7 +294,7 @@ labelled manual captures were promoted; failed specialist outputs were not.
 > issue's own runtime-closure evidence remain separate gates. The dated notes
 > below are preserved chronology, not current blockers or issue states.
 
-> **目前收尾狀態 — 2026 年 7 月 29 日：** 進行緊嘅關閉 issue 浪潮已經喺本機同 Cheap LFS 輔助系列同 Windows 關機／設定檔持久化修正合併埋，仍然喺最終驗證階段。佢嘅擷取同發佈契約啱啱好擁有 **86 個目前 Windows 場景**；五個更早嘅 Linux/Xvfb 檔案作為不可變歷史證據留喺嗰個集合以外。獨立嘅目前來源更新器畫面已經由執行期來源 `b069384ad7d8a65d1192ee06859a705fe484c9c8` 經推廣 `e3967f1b81ec039624500797dca40a1ab6d98598` 接受同發佈；佢證明嘅係真正 Electron/Squirrel 事件路徑，配一個已披露、由驗證者擁有嘅惰性負載，唔係一個已發佈嘅更新負載。完整本機回歸涵蓋 873/873 個檔案同 7,112 個測試，零失敗；最終 SHA 嘅遠端 CI 同每個 issue 自己嘅執行期收尾證據係另外嘅關卡。下面啲有日期嘅筆記係保留低嘅時序紀錄，唔係目前嘅阻塞或者 issue 狀態。
+> **7 月 29 日收尾狀態（歷史快照）：** 進行緊嘅關閉 issue 浪潮已經喺本機同 Cheap LFS 輔助系列同 Windows 關機／設定檔持久化修正合併埋，仍然喺最終驗證階段。佢嘅擷取同發佈契約啱啱好擁有 **86 個目前 Windows 場景**；五個更早嘅 Linux/Xvfb 檔案作為不可變歷史證據留喺嗰個集合以外。獨立嘅目前來源更新器畫面已經由執行期來源 `b069384ad7d8a65d1192ee06859a705fe484c9c8` 經推廣 `e3967f1b81ec039624500797dca40a1ab6d98598` 接受同發佈；佢證明嘅係真正 Electron/Squirrel 事件路徑，配一個已披露、由驗證者擁有嘅惰性負載，唔係一個已發佈嘅更新負載。完整本機回歸涵蓋 873/873 個檔案同 7,112 個測試，零失敗；最終 SHA 嘅遠端 CI 同每個 issue 自己嘅執行期收尾證據係另外嘅關卡。下面啲有日期嘅筆記係保留低嘅時序紀錄，唔係目前嘅阻塞或者 issue 狀態。
 
 > **Cheap LFS long-name correction — July 28, 2026:** valid long Windows
 > filenames now use bounded basename-independent recovery and materialization

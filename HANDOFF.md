@@ -1,5 +1,21 @@
 # Desktop Material — Active parity handoff
 
+## Current repository snapshot — 2026-08-13
+
+- `origin/main` is `28f6d0f36a3109a2793e67e078b887ac4729d7db`.
+- The GitHub issue tracker reported **0 open issues**.
+- The most recently observed published release is
+  [`v4.0.118301`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.118301),
+  published at `2026-08-13T01:49:17Z` for that same commit.
+
+This is a current-state reconciliation only. It does not turn a dated local
+check into CI, installer, test, or capture evidence, and it does not certify
+any earlier milestone beyond the evidence that milestone recorded. Every dated
+handoff below remains historical: *open*, *pending*, *not claimed*, and
+*remaining work* describe the boundary at that entry's time. Reconcile a
+historic item with later commits and the current tracker or release state before
+treating it as live work.
+
 ## 2026-08-11 — The MD3 shell is assembled, wired and documented
 
 **Scope.** Assemble the Material Design 3 rewrite into the application chrome,

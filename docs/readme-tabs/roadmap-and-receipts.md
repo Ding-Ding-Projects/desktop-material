@@ -8,6 +8,24 @@
 
 # Roadmap & receipts / 路線圖同憑證
 
+> **Current status — August 13, 2026:** `origin/main` is
+> `28f6d0f36a3109a2793e67e078b887ac4729d7db`; the GitHub issue tracker reported
+> **0 open issues**. The most recently observed published release is
+> [`v4.0.118301`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.118301),
+> published at `2026-08-13T01:49:17Z` for that same commit. This tab's dated
+> CI, release, and acceptance receipts remain historical evidence; use the
+> current snapshots in [`ROADMAP.md`](../../ROADMAP.md) and
+> [`HANDOFF.md`](../../HANDOFF.md) before treating an old *open* or *pending*
+> statement as live work.
+
+> **目前狀態 — 2026 年 8 月 13 日：** `origin/main` 係
+> `28f6d0f36a3109a2793e67e078b887ac4729d7db`；GitHub issue tracker 顯示
+> **0 個開住嘅 issue**。最新觀察到嘅已發佈 Release 係
+> [`v4.0.118301`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.118301)，
+> 喺 `2026-08-13T01:49:17Z` 為同一個 commit 發佈。呢個分頁入面有日期嘅
+> CI、Release 同接受憑證仍然係歷史證據；將舊嘅 *open* 或 *pending* 當成目前工作之前，
+> 先睇 [`ROADMAP.md`](../../ROADMAP.md) 同 [`HANDOFF.md`](../../HANDOFF.md) 嘅目前快照。
+
 ## Product scope / 產品範圍
 
 The numbered roadmap now extends through M27. M0–M21 and M23 have published

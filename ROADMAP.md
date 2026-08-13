@@ -1,6 +1,18 @@
 # Desktop Material roadmap
 
-Updated: **August 11, 2026**
+Updated: **August 13, 2026**
+
+## Current repository snapshot — August 13, 2026
+
+- `origin/main` is `28f6d0f36a3109a2793e67e078b887ac4729d7db`.
+- The GitHub issue tracker reported **0 open issues**.
+- The most recently observed published release is
+  [`v4.0.118301`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.118301),
+  published at `2026-08-13T01:49:17Z` for that same commit.
+- This is a status reconciliation, not new CI, installer, test, or capture
+  evidence. Each dated entry below retains the evidence boundary that existed
+  at its own checkpoint; words such as *open*, *pending*, and *not claimed* do
+  not describe the current issue tracker or release state.
 
 ## August 11 — the Material Design 3 shell is the application chrome
 
@@ -37,8 +49,9 @@ Updated: **August 11, 2026**
   touched file; the feature-preservation ledger, the design-contract conformance
   suite, the i18n catalogs, the command-palette catalog, settings search and
   palette settings coverage all pass.
-- **Not claimed:** no installer was built, no remote CI run was observed, no
-  release was published, and no hidden-desktop capture of this shell exists yet.
+- **At the August 11 shell checkpoint, not claimed:** no installer was built,
+  no remote CI run was observed, no release was published, and no hidden-desktop
+  capture of this shell existed yet.
   The screenshot gallery still photographs the pre-rewrite chrome; the capture
   coverage contract landed in `ab2374968` enumerates what has to be replaced.
 
@@ -352,11 +365,16 @@ Updated: **August 11, 2026**
   remain at their existing states; R3/R4/R5/R8 retain their documented capture
   or live-wiring gaps.
 
-## Planned work — **mirrored one-to-one into GitHub issues**
+## Historical August 2 roadmap register — archived issue references
 
-Every item below has its own issue (**#118–#135**), and the issue is closed only
-when the item is genuinely finished and verified — not when the code compiles. Two rules govern all of them, set by the
-project owner:
+Every item below had its own issue (**#118–#135**). This table preserves the
+planning and acceptance state recorded at that time; its issue links are
+archival references, not a live issue queue. The August 13 snapshot above
+reports zero open issues. A later issue closure is not, by itself, proof that a
+row's historic acceptance work completed, and a historic *pending* state is not
+a present issue or release claim. The original rule was that an item could be
+called finished only when it was genuinely verified, not merely when code
+compiled. Two rules govern that historical plan, set by the project owner:
 
 - **Every screenshotted feature MUST be added** — not should, must. If it does
   not exist it is built from scratch, a web server included, and a way is found.
