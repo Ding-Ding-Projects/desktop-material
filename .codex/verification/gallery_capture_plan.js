@@ -217,7 +217,7 @@ const CaptureBatches = Object.freeze({
     platform: 'windows-headless',
     commands: Object.freeze([
       'yarn compile:prod',
-      'node script/capture-app.js --out=<owned-run-root>\personal-vocabulary.png --size=1280x900 --step=menu:show-preferences --step=wait:1500 --step=click-text:Appearance --step=wait:900 --step=scroll-to:.personal-vocabulary-control --step=wait:700 --step=blur',
+      'node script/capture-app.js --out=<owned-run-root>personal-vocabulary.png --size=1280x900 --step=menu:show-preferences --step=wait:1500 --step=click-text:Appearance --step=wait:900 --step=scroll-to:.personal-vocabulary-control --step=wait:700 --step=blur',
     ]),
     fixture:
       'No repository. The control is reachable from the application menu alone, and the frame is deliberately the state before any vocabulary file exists — which is the state the control has to be good at.',
