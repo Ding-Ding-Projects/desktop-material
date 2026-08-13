@@ -106,8 +106,16 @@ function Test-NodeVersion {
   param([Parameter(Mandatory = $true)][string]$NodePath)
 
   try {
-    $version = (& $NodePath --version 2>$null).TrimStart('v').Trim()
-    return $LASTEXITCODE -eq 0 -and $version -eq $PinnedNodeVersion
+    $versionOutput = @(& $NodePath --version 2>$null)
+    if (
+      $LASTEXITCODE -ne 0 -or
+      $versionOutput.Count -ne 1 -or
+      [string]::IsNullOrWhiteSpace([string]$versionOutput[0])
+    ) {
+      return $false
+    }
+    $version = ([string]$versionOutput[0]).TrimStart('v').Trim()
+    return $version -eq $PinnedNodeVersion
   } catch {
     return $false
   }
@@ -137,8 +145,8 @@ function Install-PortableNode {
   $baseUrl = "https://nodejs.org/dist/v$PinnedNodeVersion"
 
   Write-Phase "Downloading canonical Node.js $PinnedNodeVersion portable archive"
-  Invoke-WebRequest -UseBasicParsing -Uri "$baseUrl/$archiveName" -OutFile $archivePath
-  Invoke-WebRequest -UseBasicParsing -Uri "$baseUrl/SHASUMS256.txt" -OutFile $checksumsPath
+  Invoke-WebRequest -UseBasicParsing -Uri "$baseUrl/$archiveName" -OutFile $archivePath | Out-Null
+  Invoke-WebRequest -UseBasicParsing -Uri "$baseUrl/SHASUMS256.txt" -OutFile $checksumsPath | Out-Null
   $checksumLine = Get-Content -LiteralPath $checksumsPath | Where-Object {
     $_ -match [regex]::Escape($archiveName) + '$'
   }
@@ -151,7 +159,7 @@ function Install-PortableNode {
     throw "Node.js archive checksum mismatch: expected $expectedHash, received $actualHash."
   }
 
-  Expand-Archive -LiteralPath $archivePath -DestinationPath $toolchainRoot -Force
+  Expand-Archive -LiteralPath $archivePath -DestinationPath $toolchainRoot -Force | Out-Null
   if (-not (Test-NodeVersion -NodePath $nodePath)) {
     throw "Canonical Node.js $PinnedNodeVersion extracted, but '$nodePath' is missing or reports another version."
   }
@@ -1008,8 +1016,20 @@ try {
   $OverallStopwatch.Stop()
   Write-Host ("Completed in {0:hh\:mm\:ss}." -f $OverallStopwatch.Elapsed)
 } catch {
+  $failure = $_
   $OverallStopwatch.Stop()
-  Write-Error ("Build failed after {0:hh\:mm\:ss}: {1}" -f $OverallStopwatch.Elapsed, $_.Exception.Message)
+  $failureMessage = if ($null -ne $failure -and $null -ne $failure.Exception) {
+    [string]$failure.Exception.Message
+  } else {
+    [string]$failure
+  }
+  if ([string]::IsNullOrWhiteSpace($failureMessage)) {
+    $failureMessage = [string]$failure
+  }
+  if ([string]::IsNullOrWhiteSpace($failureMessage)) {
+    $failureMessage = 'Unknown build failure.'
+  }
+  Write-Error -ErrorAction Continue -Message ("Build failed after {0:hh\:mm\:ss}: {1}" -f $OverallStopwatch.Elapsed, $failureMessage)
   $exitCode = 1
 } finally {
   foreach ($name in $managedEnvironmentNames) {
