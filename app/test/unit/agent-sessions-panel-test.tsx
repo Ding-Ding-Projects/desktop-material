@@ -160,7 +160,10 @@ describe('AgentSessionsPanel fleet', () => {
 
     assert.ok(within(log).getByText('Implement the repository navigation.'))
     assert.ok(within(log).getByText('Repository navigation implemented.'))
-    assert.equal(within(conversation).queryByRole('textbox'), null)
+    assert.ok(
+      within(conversation).queryByRole('textbox') === null,
+      'the transcript must not expose a follow-up textbox'
+    )
     clearAgentSessionConversations()
   })
 
@@ -338,7 +341,11 @@ describe('AgentSessionsPanel fleet', () => {
     const card = view.getByRole('button', { name: /busy is working/i })
     const stop = view.getByRole('button', { name: /Stop — busy/i })
     assert.strictEqual(card.contains(stop), false)
-    assert.strictEqual(card.parentElement, stop.parentElement)
+    assertSameNode(
+      card.parentElement,
+      stop.parentElement,
+      'the Stop control must be a sibling of the session card'
+    )
 
     fireEvent.click(stop)
     assert.deepStrictEqual(cancelled, [busy.path])
@@ -498,7 +505,10 @@ describe('AgentSessionsPanel creator', () => {
 
     result.resolve(true)
     await new Promise<void>(resolve => setImmediate(resolve))
-    assert.strictEqual(view.queryByLabelText('Worktree name'), null)
+    assert.ok(
+      view.queryByLabelText('Worktree name') === null,
+      'the creator must close after acceptance'
+    )
     assertSameNode(document.activeElement, trigger)
   })
 
@@ -677,9 +687,10 @@ describe('AgentSessionsPanel creator', () => {
     const addArgument = within(groups[0]).getByRole('button', {
       name: 'Add argument',
     })
-    assert.strictEqual(
+    assertSameNode(
       document.activeElement,
-      within(groups[0]).getByLabelText('Argument 1')
+      within(groups[0]).getByLabelText('Argument 1'),
+      'focus should move to the remaining argument'
     )
     fireEvent.click(addArgument)
     fireEvent.change(within(groups[0]).getByLabelText('Argument 2'), {
@@ -823,7 +834,10 @@ describe('AgentSessionsPanel creator', () => {
     })
     const start = view.getByRole('button', { name: 'Start' })
     assert.strictEqual(start.getAttribute('aria-disabled'), null)
-    assert.strictEqual(view.queryByText(/already exists/), null)
+    assert.ok(
+      view.queryByText(/already exists/) === null,
+      'a retryable setup should not be treated as an existing worktree'
+    )
     assert.ok(view.getByText(/1 unchanged completed/))
 
     fireEvent.click(view.getByRole('button', { name: /^Options$/ }))
