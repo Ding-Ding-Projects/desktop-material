@@ -261,10 +261,15 @@ function Find-VsBuildTools {
   if ([string]::IsNullOrWhiteSpace($vswhere)) {
     return $null
   }
-  $installationPath = (& $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath).Trim()
-  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($installationPath)) {
+  $installationOutput = @(& $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+  if (
+    $LASTEXITCODE -ne 0 -or
+    $installationOutput.Count -ne 1 -or
+    [string]::IsNullOrWhiteSpace([string]$installationOutput[0])
+  ) {
     return $null
   }
+  $installationPath = ([string]$installationOutput[0]).Trim()
   return $installationPath
 }
 
