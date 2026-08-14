@@ -52,6 +52,9 @@ jobs:
         id: target
         shell: bash
         env:
+          GH_TOKEN:
+            ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN ||
+            secrets.GITHUB_TOKEN }}
           EVENT_NAME: ${{ github.event_name }}
           DISPATCH_REF: ${{ github.ref }}
           DISPATCH_SHA: ${{ github.sha }}
