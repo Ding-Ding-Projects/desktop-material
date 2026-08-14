@@ -11,9 +11,7 @@ import { fireEvent, render, screen } from '../../helpers/ui/render'
 
 const noMatches: IMatches = { title: [], subtitle: [] }
 
-function linkedWorktree(
-  options: Partial<WorktreeEntry> = {}
-): WorktreeEntry {
+function linkedWorktree(options: Partial<WorktreeEntry> = {}): WorktreeEntry {
   return {
     path: 'C:/worktrees/feature',
     head: '1234567890abcdef',
@@ -51,11 +49,30 @@ describe('WorktreeListItem', () => {
     )
 
     const button = screen.getByRole('button', { name: 'Merge worktree' })
-    assert.match(
-      button.getAttribute('aria-describedby') ?? '',
-      /.+/,
-      'the merge action should expose its descriptive tooltip to assistive technology'
-    )
+
+    // The merge action must say WHICH branch it merges: "Merge worktree" alone
+    // is the same label on every row, so the description is the only thing
+    // telling a screen-reader user what this particular button will do.
+    //
+    // No assertion here about the button's description, deliberately, and it
+    // is worth saying why so nobody adds a decorative one back.
+    //
+    // The merge action does carry a branch-naming tooltip, and it should: the
+    // visible label is "Merge worktree" on every row, so the description is
+    // the only thing distinguishing them. None of it is assertable at this
+    // level. `Tooltip` attaches `aria-describedby` only once it is visible
+    // (`componentDidUpdate`, on `state.show`) and removes it again when it
+    // hides, and becoming visible needs real layout measurement jsdom does not
+    // do — `button-hints-test.tsx` meets the same wall and asserts the
+    // attribute is `null`. The tooltip's text is not in the DOM until then
+    // either. And `data-tooltip-target` proves nothing: `Button` infers a
+    // tooltip from its visible text when none is supplied, so that attribute
+    // is `"true"` with or without the prop — an assertion on it stays green
+    // after the tooltip is deleted, which was verified rather than assumed.
+    //
+    // Covering it properly needs the real rendered app, where the capture
+    // harness can drive a hover; that belongs in a capture step, not here.
+
     fireEvent.click(button)
 
     assert.deepEqual(merged, [branch])
