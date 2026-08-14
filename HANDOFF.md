@@ -107,17 +107,30 @@ work is preserved on the jer **`wip/stopped-fleets-2026-08-14`**, commit
 - **Guards must be watched failing.** Two written this session passed after the
   thing they guarded was deleted.
 
-## Current repository snapshot — 2026-08-13
+## Current repository snapshot — 2026-08-14
 
-- `origin/main` is `96c25861dba76055e3063544e7f22036751916ea`.
-- The GitHub issue tracker has one open issue: [#190 — Reconcile current roadmap and release receipts](https://github.com/Ding-Ding-Projects/desktop-material/issues/190).
+Checked at `2026-08-14T16:23:33Z` against the fetched default branch and GitHub
+state.
+
+- `origin/main` is `514ce07e1cf0c567007b6d762149f1f0b8400503` — *Render the
+  interface the app had before the MD3 rewrite*.
+- The GitHub issue tracker has zero open issues. [#190 — Reconcile current
+  roadmap and release receipts](https://github.com/Ding-Ding-Projects/desktop-material/issues/190)
+  is closed.
 - The latest published release is
-  [`v4.0.118401`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.118401),
-  published at `2026-08-13T20:48:00Z` for that same commit, with six downloadable
-  assets.
-- For that commit, [CI Linux run 31742643323](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31742643323)
-  completed successfully and [CI Windows run 31742643430](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31742643430)
-  was still in progress when this snapshot was recorded.
+  [`v4.0.119701`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.119701),
+  published at `2026-08-14T05:35:30Z` for
+  `b7cfb51963157b431e37aa49a7183a6d135146fd`, with six downloadable assets.
+  No release for `514ce07e1cf0c567007b6d762149f1f0b8400503` was observed.
+- For `514ce07e1cf0c567007b6d762149f1f0b8400503`, [CI Linux run
+  31817029168](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31817029168)
+  and [Cheap LFS cloud compression run
+  31817029399](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31817029399)
+  completed successfully. [CI Windows run
+  31817029209](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31817029209)
+  and [Build Installers / Express Release run
+  31817209038](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31817209038)
+  were still in progress when this snapshot was recorded.
 
 This is a current-state reconciliation only. It does not turn a dated local
 check into CI, installer, test, or capture evidence, and it does not certify
