@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
@@ -8,8 +14,13 @@ import { describe, it } from 'node:test'
 import captureModule from './capture-app.js'
 
 const {
+  AllowStaleBuildVariable,
   assertCaptureBuildArtifacts,
+  assertCaptureBuildFreshness,
   assertCapturePrivacy,
+  isTestSource,
+  newestShippingSource,
+  oldestRequiredBuildFile,
   assertWindowControlsEvidence,
   captureApp,
   createCaptureRepositories,
@@ -774,6 +785,169 @@ describe('capture-app fixture', () => {
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
+  })
+
+  /**
+   * A complete fake build whose every file carries one exact mtime, so a
+   * freshness assertion is deterministic rather than a race with the clock.
+   */
+  function makeBuild(prefix, when) {
+    const root = mkdtempSync(join(tmpdir(), prefix))
+    for (const file of [
+      'main.js',
+      'renderer.js',
+      'internal-browser.js',
+      'crash.js',
+      'quick-action.js',
+      'index.html',
+      'internal-browser.html',
+      'crash.html',
+      'quick-action.html',
+    ]) {
+      const absolute = join(root, file)
+      writeFileSync(absolute, 'fixture')
+      utimesSync(absolute, when, when)
+    }
+    return root
+  }
+
+  it('refuses to photograph a build older than the sources it claims to show', () => {
+    // Older than every file in this repository, whatever the newest one is.
+    const root = makeBuild('capture-stale-', new Date('2000-01-01T00:00:00Z'))
+    try {
+      const newest = newestShippingSource()
+      assert.notEqual(newest, null)
+
+      assert.throws(
+        () => assertCaptureBuildArtifacts(join(root, 'main.js')),
+        error => {
+          assert.match(error.message, /Stale build at/)
+          // The exact offending source, so the reader does not have to guess
+          // which edit invalidated the build.
+          assert.ok(
+            error.message.includes(newest.file),
+            `expected the newest source ${newest.file} in: ${error.message}`
+          )
+          // Both timestamps, so the size of the gap is visible rather than
+          // taken on trust.
+          assert.ok(error.message.includes('2000-01-01T00:00:00.000Z'))
+          // The exact command that fixes it.
+          assert.match(
+            error.message,
+            /cross-env DESKTOP_SKIP_PACKAGE=1 yarn build:prod/
+          )
+          return true
+        }
+      )
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('accepts a build newer than every shipping source', () => {
+    // A minute ahead, so a source edited while this test runs cannot flip it.
+    const root = makeBuild('capture-fresh-', new Date(Date.now() + 60_000))
+    try {
+      assert.doesNotThrow(() =>
+        assertCaptureBuildArtifacts(join(root, 'main.js'))
+      )
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('judges a build by its oldest renderer, not its newest', () => {
+    // One bundle rebuilt over stale siblings is exactly the half-built output
+    // a capture must not be taken from.
+    const root = makeBuild('capture-mixed-', new Date('2000-01-01T00:00:00Z'))
+    try {
+      const fresh = new Date()
+      utimesSync(join(root, 'renderer.js'), fresh, fresh)
+
+      const oldest = oldestRequiredBuildFile(root)
+      assert.notEqual(oldest, null)
+      assert.notEqual(oldest.file, 'renderer.js')
+      assert.equal(
+        new Date(oldest.mtimeMs).toISOString(),
+        '2000-01-01T00:00:00.000Z'
+      )
+      assert.throws(
+        () => assertCaptureBuildArtifacts(join(root, 'main.js')),
+        /Stale build at/
+      )
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('photographs an old build only when told to, and says loudly that it did', () => {
+    const root = makeBuild('capture-allow-stale-', new Date('2000-01-01Z'))
+    const previous = process.env[AllowStaleBuildVariable]
+    const warnings = []
+    const realWarn = console.warn
+    console.warn = (...args) => warnings.push(args.join(' '))
+
+    try {
+      process.env[AllowStaleBuildVariable] = '1'
+      assert.doesNotThrow(() =>
+        assertCaptureBuildArtifacts(join(root, 'main.js'))
+      )
+      assert.equal(warnings.length, 1)
+      assert.match(warnings[0], /CAPTURE_STALE_BUILD_ALLOWED/)
+      // The images must never be mistaken for current, so the escape hatch
+      // says which build they are of.
+      assert.match(warnings[0], /NOT the current sources/)
+    } finally {
+      console.warn = realWarn
+      if (previous === undefined) {
+        delete process.env[AllowStaleBuildVariable]
+      } else {
+        process.env[AllowStaleBuildVariable] = previous
+      }
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('excludes tests from the freshness check but never shipping sources', () => {
+    for (const testPath of [
+      'app/test/unit/md3-shell-test.tsx',
+      'app/src/lib/__tests__/thing.ts',
+      'app/src/lib/thing-test.ts',
+      'app/src/lib/thing.spec.tsx',
+      'app/test/fixtures/md3-contract.json',
+    ]) {
+      assert.equal(isTestSource(testPath), true, testPath)
+    }
+
+    for (const shipping of [
+      'app/src/ui/app.tsx',
+      'app/src/ui/md3/md3-shell.tsx',
+      'app/styles/_ui.scss',
+      'app/webpack.common.ts',
+      // Not a test: the word "test" here is the tail of "latest", which a
+      // looser pattern would happily swallow along with the file.
+      'app/src/lib/latest.ts',
+      // Fixture *data* that ships as placeholder content, unlike a fixtures
+      // directory under test.
+      'app/src/ui/md3/md3-changes-view-fixtures.ts',
+    ]) {
+      assert.equal(isTestSource(shipping), false, shipping)
+    }
+  })
+
+  it('runs the freshness guard from the entry points, not merely beside them', () => {
+    // Defined and exported is not the same as reached. Both capture entry
+    // points must actually go through it.
+    assert.match(
+      captureSource,
+      /assertCaptureBuildFreshness\(outputDirectory\)/
+    )
+
+    const headless = readFileSync(
+      new URL('./headless-screenshot.js', import.meta.url),
+      'utf8'
+    )
+    assert.match(headless, /assertCaptureBuildArtifacts\(mainPath\)/)
   })
 
   it('runs the privacy gate before either screenshot implementation', () => {

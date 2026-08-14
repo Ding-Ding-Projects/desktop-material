@@ -143,7 +143,199 @@ const RequiredCaptureBuildFiles = Object.freeze([
   'quick-action.html',
 ])
 
-/** Require every renderer that can appear during a capture from one build. */
+/**
+ * The source trees whose files end up inside the renderers a capture
+ * photographs. A capture is a claim about what these produce, so anything here
+ * being newer than the build means the claim is about code the bundle does not
+ * contain.
+ */
+const CaptureSourceRoots = Object.freeze(['app/src', 'app/styles'])
+
+/**
+ * Build inputs that decide the bundle without living in those trees. A webpack
+ * config change can move every byte of the output while `app/src` is untouched.
+ */
+const CaptureSourceFiles = Object.freeze([
+  'app/webpack.common.ts',
+  'app/webpack.development.ts',
+  'app/webpack.production.ts',
+])
+
+/**
+ * Extensions that actually reach a bundle. An allowlist rather than a
+ * denylist: a `.md` beside a component does not change a pixel, and a guard
+ * that fails on one is a guard somebody turns off.
+ */
+const ShippingSourceExtensions = new Set([
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+  '.json',
+  '.scss',
+  '.css',
+])
+
+/**
+ * Whether a source is a test rather than something that ships.
+ *
+ * Tests are excluded deliberately. Editing a unit test does not change a single
+ * rendered pixel, so a freshness check that counted them would go red on the
+ * most ordinary edit in the repository — and a check that cries wolf is a check
+ * the next person disables, which costs more than it ever saved.
+ */
+function isTestSource(relativePath) {
+  const normalized = relativePath.replace(/\\/g, '/')
+  return (
+    /(^|\/)(test|tests|__tests__|__mocks__|fixtures)\//.test(normalized) ||
+    /[.-](test|spec)\.[cm]?[jt]sx?$/.test(normalized)
+  )
+}
+
+/** The newest shipping source, or null when none can be read. */
+function newestShippingSource() {
+  let newest = null
+
+  const consider = absolute => {
+    const relative = path.relative(repoRoot, absolute)
+    if (isTestSource(relative)) {
+      return
+    }
+    if (!ShippingSourceExtensions.has(path.extname(absolute).toLowerCase())) {
+      return
+    }
+    let stats
+    try {
+      stats = fs.statSync(absolute)
+    } catch {
+      return
+    }
+    if (newest === null || stats.mtimeMs > newest.mtimeMs) {
+      newest = { file: relative.replace(/\\/g, '/'), mtimeMs: stats.mtimeMs }
+    }
+  }
+
+  const visit = directory => {
+    let entries
+    try {
+      entries = fs.readdirSync(directory, { withFileTypes: true })
+    } catch {
+      return
+    }
+    for (const entry of entries) {
+      const child = path.join(directory, entry.name)
+      if (entry.isDirectory()) {
+        if (entry.name === 'node_modules' || entry.name === '.git') {
+          continue
+        }
+        visit(child)
+      } else {
+        consider(child)
+      }
+    }
+  }
+
+  for (const root of CaptureSourceRoots) {
+    visit(path.join(repoRoot, root))
+  }
+  for (const file of CaptureSourceFiles) {
+    consider(path.join(repoRoot, file))
+  }
+
+  return newest
+}
+
+/**
+ * The oldest of the required built files.
+ *
+ * The oldest rather than the newest, because a build is only as current as its
+ * least recently written renderer: one bundle rebuilt over a stale sibling is
+ * exactly the half-built output a capture must not be taken from. Every file in
+ * `RequiredCaptureBuildFiles` is webpack-emitted, so none of them carries an
+ * mtime copied from somewhere else.
+ */
+function oldestRequiredBuildFile(outputDirectory) {
+  let oldest = null
+  for (const file of RequiredCaptureBuildFiles) {
+    let stats
+    try {
+      stats = fs.statSync(path.join(outputDirectory, file))
+    } catch {
+      continue
+    }
+    if (oldest === null || stats.mtimeMs < oldest.mtimeMs) {
+      oldest = { file, mtimeMs: stats.mtimeMs }
+    }
+  }
+  return oldest
+}
+
+/** Set to `1` to photograph an old build on purpose. */
+const AllowStaleBuildVariable = 'CAPTURE_ALLOW_STALE_BUILD'
+
+/** The exact command that makes a stale build current. */
+const RebuildCommand = 'cross-env DESKTOP_SKIP_PACKAGE=1 yarn build:prod'
+
+function isoStamp(milliseconds) {
+  return new Date(milliseconds).toISOString()
+}
+
+/**
+ * Refuse to photograph a build older than the sources it claims to show.
+ *
+ * This exists because it happened. On 2026-08-13 a capture ran against an
+ * `out/` built on 2026-08-11 and printed `CAPTURE_OK ... 1440x900 tabs=3` and
+ * `CAPTURE_CONSOLE_ERRORS 0`, while that bundle contained no
+ * `md3-navigation-drawer` and no `md3.drawer.destination.changes` — both of
+ * which were present in `app/src`. The images were read as evidence about
+ * current behaviour and were evidence about deleted behaviour. Nothing in the
+ * run said so, because the only check asked whether the files existed.
+ *
+ * It throws rather than warns. The failure it prevents is silent by nature: a
+ * capture of the wrong code looks exactly like a capture of the right code, and
+ * a warning in a log nobody opens is precisely how the first one got through.
+ */
+function assertCaptureBuildFreshness(outputDirectory) {
+  const newest = newestShippingSource()
+  const oldest = oldestRequiredBuildFile(outputDirectory)
+
+  if (newest === null || oldest === null) {
+    return
+  }
+  if (newest.mtimeMs <= oldest.mtimeMs) {
+    return
+  }
+
+  const detail =
+    `${newest.file} (${isoStamp(newest.mtimeMs)}) is newer than the built ` +
+    `${oldest.file} (${isoStamp(oldest.mtimeMs)})`
+
+  if (process.env[AllowStaleBuildVariable] === '1') {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `CAPTURE_STALE_BUILD_ALLOWED ${detail}. ${AllowStaleBuildVariable}=1 is ` +
+        `set, so this run is photographing an OLD build on purpose. The images ` +
+        `it produces describe ${outputDirectory} as it was built, NOT the ` +
+        `current sources, and must not be presented as current.`
+    )
+    return
+  }
+
+  throw new Error(
+    `Stale build at ${outputDirectory}: ${detail}, so this capture would ` +
+      `photograph code that is no longer there and report success. ` +
+      `Run: ${RebuildCommand}\n` +
+      `To photograph the old build deliberately, set ` +
+      `${AllowStaleBuildVariable}=1.`
+  )
+}
+
+/**
+ * Require every renderer that can appear during a capture from one build, and
+ * require that build to be newer than the sources it is about.
+ */
 function assertCaptureBuildArtifacts(mainPath) {
   const outputDirectory = path.dirname(path.resolve(mainPath))
   const missing = RequiredCaptureBuildFiles.filter(
@@ -153,9 +345,11 @@ function assertCaptureBuildArtifacts(mainPath) {
     throw new Error(
       `No complete built app at ${outputDirectory}; missing ${missing.join(
         ', '
-      )}. Run: cross-env DESKTOP_SKIP_PACKAGE=1 yarn build:prod`
+      )}. Run: ${RebuildCommand}`
     )
   }
+
+  assertCaptureBuildFreshness(outputDirectory)
 }
 
 /** Parse `<width>x<height>`, or return null when it is not a size. */
@@ -2124,8 +2318,13 @@ async function main() {
 }
 
 module.exports = {
+  AllowStaleBuildVariable,
   assertCaptureBuildArtifacts,
+  assertCaptureBuildFreshness,
   assertCapturePrivacy,
+  isTestSource,
+  newestShippingSource,
+  oldestRequiredBuildFile,
   assertWindowControlsEvidence,
   captureApp,
   collectCapturePrivacyEvidence,
