@@ -1,6 +1,20 @@
 import { spawnSync } from 'node:child_process'
 import { resolve } from 'node:path'
 
+import { ensureVendoredDependencies } from './ensure-vendored-dependencies.mjs'
+
+// Before webpack, not after. A vendored `file:` dependency whose TypeScript was
+// never compiled fails deep inside the bundle with an error that names a
+// missing module or a missing webpack loader, and neither is the actual
+// problem. `build:prod:e2e` reaches webpack through this file rather than
+// through `compile:prod`, so the npm pre-hook alone would not cover it.
+try {
+  ensureVendoredDependencies()
+} catch (error) {
+  console.error(error.message)
+  process.exit(1)
+}
+
 const environment = { ...process.env }
 if (!environment.NODE_OPTIONS?.trim()) {
   environment.NODE_OPTIONS = '--max_old_space_size=16384'
