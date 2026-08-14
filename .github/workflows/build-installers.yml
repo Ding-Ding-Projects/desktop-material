@@ -61,6 +61,7 @@ jobs:
           CI_BRANCH: ${{ github.event.workflow_run.head_branch }}
           CI_REPOSITORY:
             ${{ github.event.workflow_run.head_repository.full_name }}
+          CI_RUN_ID: ${{ github.event.workflow_run.id }}
           CI_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           windows_ok=true
@@ -86,7 +87,25 @@ jobs:
               echo "proceed=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
-            target="$CI_SHA"
+            if [[ ! "$CI_RUN_ID" =~ ^[0-9]+$ ]]; then
+              echo "Triggering CI run ID is not a valid Actions run ID." >&2
+              exit 1
+            fi
+            if ! authoritative_ci_sha=$(gh api \
+              "repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN_ID" \
+              --jq '.head_sha // empty'); then
+              echo "Unable to resolve the triggering CI run $CI_RUN_ID." >&2
+              exit 1
+            fi
+            if [[ ! "$authoritative_ci_sha" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "Triggering CI run $CI_RUN_ID did not resolve to an exact commit SHA." >&2
+              exit 1
+            fi
+            if [ "$CI_SHA" != "$authoritative_ci_sha" ]; then
+              echo "workflow_run payload SHA $CI_SHA does not match triggering CI run $CI_RUN_ID SHA $authoritative_ci_sha; refusing to package or publish." >&2
+              exit 1
+            fi
+            target="$authoritative_ci_sha"
             if [ "$CI_CONCLUSION" = "success" ]; then
               ci_can_publish=true
               block_reason=
