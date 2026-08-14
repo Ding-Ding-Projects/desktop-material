@@ -360,7 +360,10 @@ import {
   type IMd3MenuCommandEnvironment,
   type IMd3MenuRowContext,
 } from './md3/md3-menu-bindings'
-import type { Md3DestinationId } from './md3/md3-navigation-drawer'
+import type {
+  Md3DestinationId,
+  IMd3Destination,
+} from './md3/md3-navigation-drawer'
 import {
   Md3ViewPreferencesChangedEvent,
   getMd3ViewPreferences,
@@ -938,18 +941,22 @@ export class App extends React.Component<IAppProps, IAppState> {
   private classicExperience = isClassicMode()
 
   /**
-   * A classic repository section the reader has opened from the pane menu, or
-   * `null` when the Material destination is showing its own view.
+   * A classic repository section the reader has opened from the pane menu or
+   * Classic mode's rail, or `null` when the current destination is showing
+   * its own view (Material) or its own pane content (Classic).
    *
-   * Six sections of the classic workspace — Releases, Issues, Triage, Cheap
-   * LFS, Launchpad and the history graph — have no destination of their own,
-   * so the shell had no route to any of them. Rather than invent a ninth
-   * destination the contract does not have, the pane menu opens them: the
-   * current destination hands its pane to the classic workspace, which already
-   * carries the tab bar for every section.
+   * Eight sections of the classic workspace — Releases, Issues, Triage, Cheap
+   * LFS, Launchpad, the history graph, Repository tools and the GitHub API
+   * Explorer — have no `Md3DestinationId` of their own, so the shell had no
+   * route to any of them. Rather than invent an ever-growing destination the
+   * contract does not have, both the pane menu and (in Classic mode only)
+   * the rail's own extra pills open them: `md3ClassicSectionEntries()` is the
+   * one list both are built from, so a section reachable from one is
+   * reachable from the other.
    *
-   * Cleared the moment the reader picks a destination, so choosing one from
-   * the drawer is the way back and no mode is entered that has to be escaped.
+   * Cleared the moment the reader picks one of the shell's own eight
+   * destinations, so choosing one from the drawer or rail is the way back and
+   * no mode is entered that has to be escaped.
    */
   private md3ClassicSection: RepositorySectionTab | null = null
 
@@ -8554,17 +8561,66 @@ export class App extends React.Component<IAppProps, IAppState> {
     }
   }
 
+  /**
+   * The three shell destinations that name an existing repository section
+   * directly, once Classic mode's own now-suppressed Changes/History/Actions
+   * tabs stop being the only thing that ever changed `RepositorySectionTab`.
+   *
+   * `renderMd3LegacyDestination` renders the same `renderRepository()` for
+   * every one of the shell's eight destinations — Classic mode's pane content
+   * is driven entirely by `RepositorySectionTab`, never by `state.destination`
+   * itself. Without this map, clicking "Changes" on Classic mode's rail would
+   * relight that one pill and leave the pane showing whatever section it
+   * already did; this is what makes the click do what it visibly promises.
+   */
+  private static readonly Md3DestinationSections: Partial<
+    Record<Md3DestinationId, RepositorySectionTab>
+  > = {
+    changes: RepositorySectionTab.Changes,
+    history: RepositorySectionTab.History,
+    actions: RepositorySectionTab.Actions,
+  }
+
+  /**
+   * Reacts to a destination change common to both ways the shell's state can
+   * move: a click inside the shell (`onMd3ShellStateChange`) and a palette
+   * teleport (`md3Dispatch`, below). Both call this with the state that was
+   * current a moment ago and the one replacing it, so it fires exactly once
+   * per real destination change regardless of which path caused it.
+   */
+  private md3SyncDestinationChange(
+    previous: IMd3ShellState,
+    next: IMd3ShellState
+  ) {
+    if (next.destination === previous.destination) {
+      return
+    }
+    // Picking one of the shell's own eight is also how a reader leaves a
+    // classic section, so no mode is entered here that has to be deliberately
+    // escaped.
+    this.md3ClassicSection = null
+    if (!this.classicExperience) {
+      // Material mode's eight destinations own real MD3 views keyed by
+      // `state.destination` already; forwarding into `RepositorySectionTab`
+      // here is Classic mode's problem alone.
+      return
+    }
+    const selection = this.md3Selection
+    const section = App.Md3DestinationSections[next.destination]
+    if (selection !== null && section !== undefined) {
+      void this.props.dispatcher.changeRepositorySection(
+        selection.repository,
+        section
+      )
+    }
+  }
+
   private onMd3ShellStateChange = (state: IMd3ShellState) => {
     // Every action re-renders now: the destination views are built from these
     // eleven search fields, so a keystroke in one of them changes what a view
     // shows. The shell is controlled, which means this is the only place the
     // state moves.
-    //
-    // Picking a destination is also how a reader leaves a classic section, so
-    // no mode is entered here that has to be deliberately escaped.
-    if (state.destination !== this.md3ShellState.destination) {
-      this.md3ClassicSection = null
-    }
+    this.md3SyncDestinationChange(this.md3ShellState, state)
     this.md3ShellState = state
     this.forceUpdate()
   }
@@ -8573,6 +8629,7 @@ export class App extends React.Component<IAppProps, IAppState> {
   private md3Dispatch = (action: Md3ShellAction) => {
     const next = md3ShellReducer(this.md3ShellState, action)
     if (next !== this.md3ShellState) {
+      this.md3SyncDestinationChange(this.md3ShellState, next)
       this.md3ShellState = next
       this.forceUpdate()
     }
@@ -9074,6 +9131,31 @@ export class App extends React.Component<IAppProps, IAppState> {
   private md3AheadCount(): number {
     const aheadBehind = this.md3Selection?.state.aheadBehind ?? null
     return aheadBehind === null ? 0 : aheadBehind.ahead
+  }
+
+  /**
+   * Badge text per destination for the shell's navigation.
+   *
+   * Only Changes carries one, and it is the same number the repository
+   * workspace's own rail drew as a `FilesChangedBadge`: how many files in the
+   * working directory are uncommitted. Classic mode suppresses that rail's
+   * navigation now that the shell provides it, so without this the count would
+   * simply stop being shown anywhere — the kind of loss nobody reports, because
+   * a signal that quietly stops appearing looks like a repository with nothing
+   * to commit.
+   *
+   * An empty string means "no badge" rather than "zero", which is the contract
+   * `IMd3Destination.count` already documents and what the old badge did by
+   * returning null below one.
+   */
+  private md3DestinationCounts(): Partial<Record<Md3DestinationId, string>> {
+    const selectedState = this.state.selectedState
+    const changedFiles =
+      selectedState !== null && selectedState.type === SelectionType.Repository
+        ? selectedState.state.changesState.workingDirectory.files.length
+        : 0
+
+    return { changes: changedFiles > 0 ? String(changedFiles) : '' }
   }
 
   private md3AccountInitials(): string {
@@ -10419,29 +10501,29 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   /**
-   * The classic workspace sections that have no Material destination.
+   * The classic workspace sections that have no Material destination,
+   * `Md3DestinationId` member, or dedicated MD3 view — the source both
+   * `md3ClassicSectionItems()` (the pane menu) and `md3ClassicRailDestinations()`
+   * (Classic mode's rail) build from, so a section reachable from one is
+   * reachable from the other rather than one quietly falling behind.
    *
-   * Every other section the classic tab bar offers already has a destination
-   * of its own — Changes, History, Actions, and the repository tools the
-   * Terminal destination hosts. These six had no route at all from the shell,
-   * so preferring the newer interface cost a user six surfaces.
-   *
-   * They open in the current destination's pane rather than in a ninth
-   * destination the contract does not have, and picking any drawer destination
-   * puts the Material view back. The classic workspace brings its own tab bar,
-   * so arriving at one of the six is also arriving at all of them.
+   * Every other section the classic tab bar offers already has a route: the
+   * three `App.Md3DestinationSections` names directly, and these eight do
+   * not — Releases, Issues, Triage, Cheap LFS, Launchpad, the history graph,
+   * Repository tools and the GitHub API Explorer. They open in the current
+   * destination's pane rather than in a ninth-and-beyond destination the
+   * contract does not have, and picking any of the shell's own eight puts the
+   * Material view back (`md3SyncDestinationChange` clears `md3ClassicSection`).
+   * The classic workspace brings its own tab bar, so arriving at one of the
+   * eight is also arriving at all of them.
    */
-  private md3ClassicSectionItems(): ReadonlyArray<IMd3MenuItem> {
-    if (this.md3Selection === null) {
-      return []
-    }
-
-    const sections: ReadonlyArray<{
-      readonly id: string
-      readonly section: RepositorySectionTab
-      readonly labelKey: TranslationKey
-      readonly icon: MaterialSymbolName
-    }> = [
+  private md3ClassicSectionEntries(): ReadonlyArray<{
+    readonly id: string
+    readonly section: RepositorySectionTab
+    readonly labelKey: TranslationKey
+    readonly icon: MaterialSymbolName
+  }> {
+    return [
       {
         id: 'classicReleases',
         section: RepositorySectionTab.Releases,
@@ -10478,9 +10560,39 @@ export class App extends React.Component<IAppProps, IAppState> {
         labelKey: 'md3.classicSection.historyGraph',
         icon: 'account_tree',
       },
+      {
+        // Neither one of the shell's eight destinations nor a member of the
+        // original six the pane menu shipped with — `RepositoryView`'s own
+        // `repository-tools-tab` had no route from the shell at all before
+        // this entry existed. Reuses the tab's own labels/icon rather than
+        // inventing a second `md3.classicSection.*` string for one label.
+        id: 'classicRepositoryTools',
+        section: RepositorySectionTab.RepositoryTools,
+        labelKey: 'repositorySection.tools',
+        icon: 'build',
+      },
+      {
+        // Same gap as Repository tools, for `github-api-tab`. Visibility is
+        // intentionally not re-derived here: the six original entries above
+        // are not gated on `RepositoryView`'s own
+        // supportsGitHubActions/showsGitHubReleases/showsGitHubIssues checks
+        // either, so an entry for a repository that cannot use it degrades
+        // the same way theirs already do — `getSelectedSection()` silently
+        // falls back to Changes rather than crashing.
+        id: 'classicGitHubAPI',
+        section: RepositorySectionTab.GitHubAPI,
+        labelKey: 'githubApi.railLabel',
+        icon: 'code',
+      },
     ]
+  }
 
-    return sections.map(entry => ({
+  private md3ClassicSectionItems(): ReadonlyArray<IMd3MenuItem> {
+    if (this.md3Selection === null) {
+      return []
+    }
+
+    return this.md3ClassicSectionEntries().map(entry => ({
       id: entry.id,
       label: t(entry.labelKey),
       icon: entry.icon,
@@ -10489,10 +10601,48 @@ export class App extends React.Component<IAppProps, IAppState> {
     }))
   }
 
+  /**
+   * The same eight sections as `md3ClassicSectionItems()`, presented as
+   * `Md3Shell`'s `railExtraDestinations` — Classic mode's rail is the only
+   * caller (`renderMd3Shell` passes this only when `navigation === 'rail'`),
+   * so Material mode's drawer never sees them.
+   *
+   * `active` reads `md3ClassicSection` rather than `Md3DestinationId`,
+   * because none of these eight ids are a member of that closed union.
+   */
+  private md3ClassicRailDestinations(): ReadonlyArray<IMd3Destination> {
+    if (this.md3Selection === null) {
+      return []
+    }
+
+    return this.md3ClassicSectionEntries().map(entry => ({
+      id: entry.id,
+      label: t(entry.labelKey),
+      icon: entry.icon,
+      count: '',
+      active: entry.section === this.md3ClassicSection,
+    }))
+  }
+
+  /** `Md3Shell`'s `onSelectExtraDestination`, wired only in Classic mode. */
+  private md3OnSelectExtraDestination = (id: string) => {
+    const entry = this.md3ClassicSectionEntries().find(e => e.id === id)
+    if (entry !== undefined) {
+      this.md3OpenClassicSection(entry.section)
+    }
+  }
+
   private md3OpenClassicSection(section: RepositorySectionTab) {
     const selection = this.md3Selection
     if (selection === null) {
       return
+    }
+    if (section === RepositorySectionTab.GitHubAPI) {
+      // The rail item can be user-hidden per repository; navigating while
+      // hidden would be silently overridden back to Changes by
+      // `RepositoryView.getSelectedSection`. Un-hide first, mirroring
+      // `showGitHubAPIExplorer`'s own path.
+      setGitHubAPITabHidden(selection.repository.hash, false)
     }
     this.md3ClassicSection = section
     void this.props.dispatcher.changeRepositorySection(
@@ -10567,8 +10717,9 @@ export class App extends React.Component<IAppProps, IAppState> {
     // Classic mode asks the shared renderer for the rail —
     // `design/Desktop Material v2.dc.html`'s fixed 88px icon-pill `<nav>` —
     // rather than the Material shell's own 208px/68px drawer. It is still the
-    // same eight-destination array and the same shared chrome; only the
-    // presentation of that one `<nav>` differs.
+    // same eight-destination array and the same shared chrome, plus the
+    // eight classic-only sections `md3ClassicRailDestinations()` appends
+    // (rail-only, per `renderMd3Shell`'s `railExtraDestinations` below).
     return this.renderMd3Shell(md3NoViews, 'rail')
   }
 
@@ -10651,6 +10802,28 @@ export class App extends React.Component<IAppProps, IAppState> {
           menuHandlers={this.md3MenuHandlers()}
           menuExtensions={this.md3CarryOverExtensions()}
           compose={this.md3ComposeProps()}
+          // Classic mode's rail only: the eight sections the shell's own
+          // eight destinations do not name. `navigation === 'rail'` is
+          // Classic mode's own signal (see `renderClassicApp`), so Material
+          // mode's drawer — which ignores this prop entirely — never
+          // receives it regardless.
+          railExtraDestinations={
+            navigation === 'rail' ? this.md3ClassicRailDestinations() : []
+          }
+          onSelectExtraDestination={this.md3OnSelectExtraDestination}
+          // The uncommitted-file count, which the repository workspace's own
+          // rail used to carry as a `FilesChangedBadge` inside its Changes tab.
+          // Suppressing that rail in Classic mode took the badge with it — a
+          // small, always-on signal that a user would simply stop seeing — so
+          // the same number now feeds the shell rail's own count slot instead.
+          //
+          // Rail-only for the same reason as the extras above: restoring what
+          // Classic mode had is the job, and giving Material mode's drawer a
+          // badge it has never had would be a change nobody asked for. The
+          // drawer renders this prop identically if it is ever wanted there.
+          destinationCounts={
+            navigation === 'rail' ? this.md3DestinationCounts() : undefined
+          }
           views={views}
           renderLegacyDestination={this.renderMd3LegacyDestination}
           repositoryTabStrip={this.renderRepositoryTabStrip()}
@@ -12406,6 +12579,14 @@ export class App extends React.Component<IAppProps, IAppState> {
           actionsStore={this.props.actionsStore}
           releasesStore={this.props.releasesStore}
           issueWorkflowsStore={this.props.issueWorkflowsStore}
+          // Classic mode's own MD3 rail (`renderClassicApp`) already carries
+          // every section this view's own `<nav className="repository-rail">`
+          // would repeat, plus Settings — both dispatch the identical
+          // `PopupType.Preferences` popup, so that one is a true duplicate.
+          // Material mode never sets this, so its own repository-section
+          // fallback (`renderMd3LegacyDestination`, reached only while a
+          // classic section is open inside an MD3 destination) is unchanged.
+          shellProvidesNavigation={this.classicExperience}
         />
       )
     } else if (selectedState.type === SelectionType.CloningRepository) {

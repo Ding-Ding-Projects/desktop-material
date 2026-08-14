@@ -13,6 +13,7 @@ import { Md3AppHeader } from './md3-app-header'
 import {
   Md3NavigationDrawer,
   Md3DestinationId,
+  IMd3Destination,
   md3Destinations,
 } from './md3-navigation-drawer'
 import { Md3NavigationRail } from './md3-navigation-rail'
@@ -569,8 +570,9 @@ export interface IMd3ShellProps {
    * 208px/68px `<nav>` drawer (`design/History MD3.dc.html`), or the fixed
    * 88px icon-pill rail Classic mode uses instead
    * (`design/Desktop Material v2.dc.html`). Both take the identical
-   * destination array built by `md3Destinations()`, so switching never
-   * changes which destinations are reachable — only how they are drawn.
+   * destination array built by `md3Destinations()`, so switching never takes
+   * away one of its eight — only how they are drawn. The rail alone can also
+   * carry `railExtraDestinations`, appended after those eight; see that prop.
    *
    * Defaults to `'drawer'`, so every existing caller is unchanged.
    */
@@ -657,6 +659,34 @@ export interface IMd3ShellProps {
   readonly renderLegacyDestination: (
     destination: Md3DestinationId
   ) => React.ReactNode
+
+  /**
+   * Extra destinations appended after the contract's eight, shown only on the
+   * rail presentation (`navigation="rail"`) — the drawer always renders
+   * exactly the eight `md3Destinations()` built, unchanged.
+   *
+   * This is where a capability none of `Md3DestinationId`'s eight names gets
+   * a real rail entry: Classic mode's repository sections the contract has no
+   * destination for. An id here is never a member of that closed union, so
+   * the shell cannot dispatch `select-destination` for it — selecting one
+   * calls `onSelectExtraDestination` instead, and the host decides what it
+   * means. Each entry carries its own `active` flag, computed by the host;
+   * when any extra destination is active the shell renders the contract's
+   * own eight as inactive on the rail, so the two never claim to both be the
+   * current one at once.
+   *
+   * Defaults to empty, so a caller that never sets this — including every
+   * drawer caller — renders exactly as before.
+   */
+  readonly railExtraDestinations?: ReadonlyArray<IMd3Destination>
+
+  /**
+   * Receives the `id` of a `railExtraDestinations` entry the user chose.
+   * Never called for one of the contract's own eight ids — those still
+   * dispatch `select-destination` through the shell's own state, exactly as
+   * they did before this prop existed.
+   */
+  readonly onSelectExtraDestination?: (id: string) => void
 
   // -- Legacy chrome -------------------------------------------------------
 
@@ -767,6 +797,7 @@ export function Md3Shell(props: IMd3ShellProps) {
     menuContext,
     menuHandlers,
     menuExtensions,
+    onSelectExtraDestination,
   } = props
 
   const [internalState, internalDispatch] = React.useReducer(
@@ -807,6 +838,20 @@ export function Md3Shell(props: IMd3ShellProps) {
   const destinationLabel = active.label
   const destinationIcon: MaterialSymbolName = active.icon
 
+  // The rail's own destination list: the contract's eight, plus whatever the
+  // host appended. When one of the extras is active, the eight are rendered
+  // inactive here — the array handed to `Md3NavigationRail` is the only place
+  // that happens, so `active`/`destinationLabel`/`destinationIcon` above (the
+  // pane header's own title) are untouched by it.
+  const railExtraDestinations = props.railExtraDestinations ?? []
+  const railHasActiveExtra = railExtraDestinations.some(d => d.active)
+  const railDestinations = railHasActiveExtra
+    ? [
+        ...destinations.map(d => ({ ...d, active: false })),
+        ...railExtraDestinations,
+      ]
+    : [...destinations, ...railExtraDestinations]
+
   // -- Focus and announcement ---------------------------------------------
 
   const headingRef = React.useRef<HTMLHeadingElement>(null)
@@ -832,9 +877,13 @@ export function Md3Shell(props: IMd3ShellProps) {
     (id: string) => {
       if (isDestinationId(id)) {
         dispatch({ type: 'select-destination', destination: id })
+      } else {
+        // Not one of the contract's eight — a `railExtraDestinations` id, or
+        // nothing this shell knows about, either way not its business.
+        onSelectExtraDestination?.(id)
       }
     },
-    [dispatch]
+    [dispatch, onSelectExtraDestination]
   )
 
   const onToggleDrawer = React.useCallback(
@@ -1163,7 +1212,7 @@ export function Md3Shell(props: IMd3ShellProps) {
       <div className="md3-shell__body">
         {props.navigation === 'rail' ? (
           <Md3NavigationRail
-            destinations={destinations}
+            destinations={railDestinations}
             activeRepositoryName={props.repositoryName}
             accountInitials={props.accountInitials}
             accountName={props.accountName}

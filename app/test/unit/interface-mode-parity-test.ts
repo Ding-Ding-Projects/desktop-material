@@ -201,4 +201,34 @@ describe('both interface modes render the same chrome', () => {
       'material mode must not ask for the rail'
     )
   })
+
+  it('keeps the uncommitted-file badge when the rail replaces the workspace tabs', () => {
+    // This was lost once and nobody would have reported it. The repository
+    // workspace's own rail drew a `FilesChangedBadge` inside its Changes tab;
+    // suppressing those tabs in Classic mode took the badge with it, and a
+    // count that quietly stops appearing looks exactly like a repository with
+    // nothing to commit. The shell rail's own count slot carries it now.
+    assert.match(
+      app,
+      /destinationCounts=\{/,
+      'the shell is given per-destination badge text'
+    )
+
+    const counts = /private md3DestinationCounts\(\)[\s\S]{0,900}?\n  \}/.exec(
+      app
+    )
+    assert.ok(counts !== null, 'md3DestinationCounts not found')
+    assert.match(
+      counts[0],
+      /changesState\.workingDirectory\.files\.length/,
+      'the badge counts uncommitted working-directory files, as it always did'
+    )
+    // An empty string is "no badge"; a literal zero would draw a badge saying
+    // there is nothing to commit, which is worse than drawing none.
+    assert.match(
+      counts[0],
+      /changes: \w+ > 0 \? String\(\w+\) : ''/,
+      'zero changed files must render no badge rather than a zero'
+    )
+  })
 })
