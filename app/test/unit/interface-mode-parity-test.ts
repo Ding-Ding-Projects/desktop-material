@@ -160,24 +160,45 @@ describe('both interface modes render the same chrome', () => {
     )
   })
 
-  it('hands classic mode the no-views set, which is the whole difference', () => {
+  it('hands classic mode the no-views set and the rail, which is the whole difference', () => {
     const classic = /private renderClassicApp\(\)[\s\S]{0,900}?\n  \}/.exec(app)
     assert.ok(classic !== null)
     assert.match(
       classic[0],
-      /renderMd3Shell\(md3NoViews\)/,
-      'classic mode is the shell with no MD3 views in its destinations'
+      /renderMd3Shell\(md3NoViews, 'rail'\)/,
+      'classic mode is the shell with no MD3 views and the navigation rail'
     )
   })
 
-  it('keeps the shell a single argument away from either mode', () => {
+  it('keeps the shell one views argument away from either mode', () => {
     // If `renderMd3Shell` ever stops taking the views it renders, the two
-    // modes are no longer one function with one parameter between them.
+    // modes are no longer one function with the views between them. The
+    // signature spans lines now that a second parameter exists, so the match
+    // stops at the views rather than at a closing parenthesis that has moved.
     assert.match(
       app,
-      /private renderMd3Shell\(views: IMd3ShellViews\)/,
+      /private renderMd3Shell\(\s*views: IMd3ShellViews/,
       'the shell takes its views as an argument'
     )
     assert.match(app, /views=\{views\}/, 'and passes that argument through')
+  })
+
+  it('leaves material mode on the drawer by default', () => {
+    // The second parameter is what makes the rail additive rather than a
+    // replacement: a caller that says nothing still gets the drawer, so
+    // Material mode cannot be moved onto the rail by omission.
+    assert.match(
+      app,
+      /navigation: 'drawer' \| 'rail' = 'drawer'/,
+      'the navigation presentation defaults to the drawer'
+    )
+
+    const material = /private renderApp\(\)[\s\S]{0,2000}?\n  \}/.exec(app)
+    assert.ok(material !== null, 'renderApp not found')
+    assert.doesNotMatch(
+      material[0],
+      /renderMd3Shell\([^)]*'rail'/,
+      'material mode must not ask for the rail'
+    )
   })
 })

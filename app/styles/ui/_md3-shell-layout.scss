@@ -11,6 +11,20 @@
 // feature the single-repository prototype never drew, and the classic toolbar
 // is kept behind a persisted setting that ships enabled. Both are laid out
 // here so the pane below them keeps the contract's exact geometry.
+//
+// Material mode follows that contract's four boxes exactly, with its own
+// navigation drawer as the body row's first child. Classic mode's body row is
+// the same three-box shape — nav, panel, main — but the nav in question is
+// `design/Desktop Material v2.dc.html`'s fixed 88px navigation rail rather
+// than the drawer; `Md3Shell` picks between the two components by its
+// `navigation` prop and marks the root `.md3-shell--rail` when the rail is
+// showing. The body row, `<main>` and the pane below stay the identical boxes
+// either way — nothing here branches on `.md3-shell--rail` today, because the
+// rail declares its own fixed width, padding and scroll behaviour in
+// `_md3-navigation-rail.scss`, exactly as the drawer already does for itself
+// in `_md3-navigation-drawer.scss`. The modifier class exists so a rail-only
+// override has somewhere to go the day one is actually needed, without
+// touching the drawer's geometry to make room for it.
 
 .md3-shell {
   display: flex;

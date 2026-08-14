@@ -272,6 +272,34 @@ function oldestRequiredBuildFile(outputDirectory) {
   return oldest
 }
 
+/**
+ * The file `script/build.ts` writes at the end of every successful build.
+ *
+ * This is the only trustworthy record of when a build actually happened, and
+ * the reason it is needed is webpack's own optimization: an output whose
+ * contents did not change is reported `[compared for emit]` and left alone, so
+ * it keeps the mtime of whichever earlier build last altered it. A real,
+ * complete, current build routinely contains files days older than itself —
+ * observed on 2026-08-13, when a successful rebuild left `index.html` and
+ * `crash.js` at their timestamps from three days earlier.
+ *
+ * The stamp does not have that problem in either direction. `build.ts` runs
+ * only after webpack exits zero, so a build that failed part-way never reaches
+ * it, and a webpack-only rerun that emits one fresh bundle over stale siblings
+ * does not touch it either. Both of those correctly read as stale.
+ */
+const CaptureBuildStampFile = 'package.json'
+
+/** When the build actually completed, or null when it left no stamp. */
+function buildStampTime(outputDirectory) {
+  try {
+    const stats = fs.statSync(path.join(outputDirectory, CaptureBuildStampFile))
+    return { file: CaptureBuildStampFile, mtimeMs: stats.mtimeMs }
+  } catch {
+    return null
+  }
+}
+
 /** Set to `1` to photograph an old build on purpose. */
 const AllowStaleBuildVariable = 'CAPTURE_ALLOW_STALE_BUILD'
 
@@ -299,18 +327,24 @@ function isoStamp(milliseconds) {
  */
 function assertCaptureBuildFreshness(outputDirectory) {
   const newest = newestShippingSource()
-  const oldest = oldestRequiredBuildFile(outputDirectory)
 
-  if (newest === null || oldest === null) {
+  // The stamp when the build left one, and the oldest emitted file otherwise.
+  // The fallback matters for an output directory assembled by something other
+  // than `build.ts` — it is stricter than the stamp rather than looser, so
+  // falling back can only ever refuse a capture, never wave one through.
+  const built =
+    buildStampTime(outputDirectory) ?? oldestRequiredBuildFile(outputDirectory)
+
+  if (newest === null || built === null) {
     return
   }
-  if (newest.mtimeMs <= oldest.mtimeMs) {
+  if (newest.mtimeMs <= built.mtimeMs) {
     return
   }
 
   const detail =
     `${newest.file} (${isoStamp(newest.mtimeMs)}) is newer than the built ` +
-    `${oldest.file} (${isoStamp(oldest.mtimeMs)})`
+    `${built.file} (${isoStamp(built.mtimeMs)})`
 
   if (process.env[AllowStaleBuildVariable] === '1') {
     // eslint-disable-next-line no-console
@@ -2322,6 +2356,8 @@ module.exports = {
   assertCaptureBuildArtifacts,
   assertCaptureBuildFreshness,
   assertCapturePrivacy,
+  buildStampTime,
+  CaptureBuildStampFile,
   isTestSource,
   newestShippingSource,
   oldestRequiredBuildFile,

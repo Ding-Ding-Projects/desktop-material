@@ -18,6 +18,7 @@ const {
   assertCaptureBuildArtifacts,
   assertCaptureBuildFreshness,
   assertCapturePrivacy,
+  CaptureBuildStampFile,
   isTestSource,
   newestShippingSource,
   oldestRequiredBuildFile,
@@ -874,6 +875,59 @@ describe('capture-app fixture', () => {
       assert.throws(
         () => assertCaptureBuildArtifacts(join(root, 'main.js')),
         /Stale build at/
+      )
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('accepts a current build whose unchanged bundles kept an older mtime', () => {
+    // webpack reports an output whose content did not change as
+    // `[compared for emit]` and leaves it alone, so a real, complete, current
+    // build routinely contains files days older than itself. Judging by those
+    // files refuses builds that are perfectly fine — which is exactly what an
+    // earlier version of this guard did to a successful rebuild.
+    const root = makeBuild('capture-emit-compared-', new Date('2000-01-01Z'))
+    try {
+      assert.throws(
+        () => assertCaptureBuildArtifacts(join(root, 'main.js')),
+        /Stale build at/,
+        'without a stamp the old bundles are all there is to go on'
+      )
+
+      // `build.ts` writes this at the end of a successful build, and only
+      // after webpack exits zero.
+      const stamp = join(root, CaptureBuildStampFile)
+      const soon = new Date(Date.now() + 60_000)
+      writeFileSync(stamp, '{}')
+      utimesSync(stamp, soon, soon)
+
+      assert.doesNotThrow(
+        () => assertCaptureBuildArtifacts(join(root, 'main.js')),
+        'a current stamp means the build is current, whatever the bundles say'
+      )
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('refuses a stale stamp however fresh a single bundle looks', () => {
+    // The other half: a webpack-only rerun emits one bundle over stale
+    // siblings and never reaches `build.ts`, so the stamp stays old. That is
+    // a half-built output and must not be photographed.
+    const root = makeBuild('capture-partial-', new Date('2000-01-01Z'))
+    try {
+      const stamp = join(root, CaptureBuildStampFile)
+      writeFileSync(stamp, '{}')
+      utimesSync(stamp, new Date('2000-01-01Z'), new Date('2000-01-01Z'))
+
+      const now = new Date()
+      utimesSync(join(root, 'renderer.js'), now, now)
+
+      assert.throws(
+        () => assertCaptureBuildArtifacts(join(root, 'main.js')),
+        /Stale build at/,
+        'one freshly emitted bundle does not make the build current'
       )
     } finally {
       rmSync(root, { recursive: true, force: true })

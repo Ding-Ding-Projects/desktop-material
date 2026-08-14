@@ -4350,6 +4350,12 @@ export type TranslationKey =
   | 'md3.drawer.destination.terminal'
   | 'md3.drawer.destination.agents'
   | 'md3.drawer.destination.repositories'
+  | 'md3.rail.label'
+  | 'md3.rail.destinations'
+  | 'md3.rail.destinationWithCount'
+  | 'md3.rail.settings'
+  | 'md3.rail.account'
+  | 'md3.rail.accountFor'
   | 'md3.compose.title'
   | 'md3.compose.close'
   | 'md3.compose.context'
@@ -11392,6 +11398,12 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'md3.drawer.destination.terminal': 'Terminal',
   'md3.drawer.destination.agents': 'Agents',
   'md3.drawer.destination.repositories': 'Repositories',
+  'md3.rail.label': 'Main navigation',
+  'md3.rail.destinations': 'Destinations',
+  'md3.rail.destinationWithCount': '{label}, {count}',
+  'md3.rail.settings': 'Settings',
+  'md3.rail.account': '{repository}, switch account',
+  'md3.rail.accountFor': '{name}, switch account · {repository}',
   'md3.compose.title': 'Compose commit message',
   'md3.compose.close': 'Close the commit composer',
   'md3.compose.context':
@@ -17972,6 +17984,12 @@ export const cantoneseTranslations: Readonly<
   'md3.drawer.destination.terminal': '終端機',
   'md3.drawer.destination.agents': '代理',
   'md3.drawer.destination.repositories': '倉庫',
+  'md3.rail.label': '主導覽',
+  'md3.rail.destinations': '目的地',
+  'md3.rail.destinationWithCount': '{label}，{count}',
+  'md3.rail.settings': '設定',
+  'md3.rail.account': '{repository}，轉帳戶',
+  'md3.rail.accountFor': '{name}，轉帳戶 · {repository}',
   'md3.compose.title': '砌返個 commit 訊息',
   'md3.compose.close': '閂咗個 commit 編寫器',
   'md3.compose.context':

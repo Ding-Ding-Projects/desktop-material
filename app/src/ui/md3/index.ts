@@ -273,6 +273,9 @@ export type {
   Md3DestinationId,
 } from './md3-navigation-drawer'
 
+export { Md3NavigationRail } from './md3-navigation-rail'
+export type { IMd3NavigationRailProps } from './md3-navigation-rail'
+
 export {
   Md3InboxView,
   filterMd3InboxNotifications,

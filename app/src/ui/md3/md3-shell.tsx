@@ -15,6 +15,7 @@ import {
   Md3DestinationId,
   md3Destinations,
 } from './md3-navigation-drawer'
+import { Md3NavigationRail } from './md3-navigation-rail'
 import { Md3PaneHeader, Md3Destination, Md3PushState } from './md3-pane-header'
 import { Md3MenuOverlay } from './md3-menu-overlay'
 import {
@@ -562,6 +563,18 @@ export interface IMd3ShellProps {
 
   /** Seeds the internal state when the shell is uncontrolled. */
   readonly initialState?: Partial<IMd3ShellState>
+
+  /**
+   * Which navigation presentation the shell renders: the contract's own
+   * 208px/68px `<nav>` drawer (`design/History MD3.dc.html`), or the fixed
+   * 88px icon-pill rail Classic mode uses instead
+   * (`design/Desktop Material v2.dc.html`). Both take the identical
+   * destination array built by `md3Destinations()`, so switching never
+   * changes which destinations are reachable — only how they are drawn.
+   *
+   * Defaults to `'drawer'`, so every existing caller is unchanged.
+   */
+  readonly navigation?: 'drawer' | 'rail'
 
   // -- Header --------------------------------------------------------------
 
@@ -1113,7 +1126,11 @@ export function Md3Shell(props: IMd3ShellProps) {
   return (
     <div
       {...props.rootProps}
-      className={classNames('md3-shell', props.className)}
+      className={classNames(
+        'md3-shell',
+        { 'md3-shell--rail': props.navigation === 'rail' },
+        props.className
+      )}
     >
       <Md3AppHeader
         appIdentity={props.appIdentity}
@@ -1144,16 +1161,30 @@ export function Md3Shell(props: IMd3ShellProps) {
       ) : null}
 
       <div className="md3-shell__body">
-        <Md3NavigationDrawer
-          destinations={destinations}
-          expanded={state.drawerExpanded}
-          activeRepositoryName={props.repositoryName}
-          mainPaneId={Md3ShellPaneId}
-          onSelectDestination={onSelectDestination}
-          onOpenCompose={onOpenCompose}
-          onSelectRepository={onSelectRepositoryDestination}
-          onContextMenu={onOpenDrawerMenu}
-        />
+        {props.navigation === 'rail' ? (
+          <Md3NavigationRail
+            destinations={destinations}
+            activeRepositoryName={props.repositoryName}
+            accountInitials={props.accountInitials}
+            accountName={props.accountName}
+            mainPaneId={Md3ShellPaneId}
+            onSelectDestination={onSelectDestination}
+            onOpenSettings={props.onOpenSettings}
+            onOpenAccountSwitcher={props.onOpenAccountSwitcher}
+            onContextMenu={onOpenDrawerMenu}
+          />
+        ) : (
+          <Md3NavigationDrawer
+            destinations={destinations}
+            expanded={state.drawerExpanded}
+            activeRepositoryName={props.repositoryName}
+            mainPaneId={Md3ShellPaneId}
+            onSelectDestination={onSelectDestination}
+            onOpenCompose={onOpenCompose}
+            onSelectRepository={onSelectRepositoryDestination}
+            onContextMenu={onOpenDrawerMenu}
+          />
+        )}
 
         <main className="md3-shell__main">
           {showClassicToolbar ? (

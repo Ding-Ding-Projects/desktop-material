@@ -10564,7 +10564,12 @@ export class App extends React.Component<IAppProps, IAppState> {
    * modes at once and neither can quietly rot while the other is maintained.
    */
   private renderClassicApp() {
-    return this.renderMd3Shell(md3NoViews)
+    // Classic mode asks the shared renderer for the rail —
+    // `design/Desktop Material v2.dc.html`'s fixed 88px icon-pill `<nav>` —
+    // rather than the Material shell's own 208px/68px drawer. It is still the
+    // same eight-destination array and the same shared chrome; only the
+    // presentation of that one `<nav>` differs.
+    return this.renderMd3Shell(md3NoViews, 'rail')
   }
 
   private renderApp() {
@@ -10604,7 +10609,10 @@ export class App extends React.Component<IAppProps, IAppState> {
    * in one mode and be missing from the other — which is exactly how the first
    * attempt at classic mode ended up a different application.
    */
-  private renderMd3Shell(views: IMd3ShellViews) {
+  private renderMd3Shell(
+    views: IMd3ShellViews,
+    navigation: 'drawer' | 'rail' = 'drawer'
+  ) {
     return (
       <div
         id="desktop-app-contents"
@@ -10618,6 +10626,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         <Md3Shell
           state={this.md3ShellState}
           onStateChange={this.onMd3ShellStateChange}
+          navigation={navigation}
           appIdentity={this.state.appearanceCustomization.appIdentity}
           accountInitials={this.md3AccountInitials()}
           accountName={
