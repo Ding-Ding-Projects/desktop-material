@@ -202,6 +202,32 @@ describe('both interface modes render the same chrome', () => {
     )
   })
 
+  it('offers only the classic sections the repository can actually reach', () => {
+    // The tabs the rail replaced were gated: a repository with no GitHub
+    // remote never showed Releases, Issues, Cheap LFS or the API explorer.
+    // An ungated rail looks harmless and is not — selecting one dispatches a
+    // real section change and `getSelectedSection` quietly falls back to
+    // Changes, so the button appears to work and silently does something else.
+    const rail =
+      /private md3ClassicRailDestinations\(\)[\s\S]{0,900}?\n  \}/.exec(app)
+    assert.ok(rail !== null, 'md3ClassicRailDestinations not found')
+    assert.match(
+      rail[0],
+      /\.filter\(entry => this\.md3ClassicSectionAvailable\(entry\.section\)\)/,
+      'the rail must drop sections this repository cannot reach'
+    )
+
+    const available =
+      /private md3ClassicSectionAvailable\([\s\S]{0,1600}?\n  \}/.exec(app)
+    assert.ok(available !== null, 'md3ClassicSectionAvailable not found')
+    for (const gated of ['Releases', 'CheapLfs', 'Issues', 'GitHubAPI']) {
+      assert.ok(
+        available[0].includes(`RepositorySectionTab.${gated}`),
+        `${gated} is gated on its tab, so it must be gated on the rail too`
+      )
+    }
+  })
+
   it('keeps the uncommitted-file badge when the rail replaces the workspace tabs', () => {
     // This was lost once and nobody would have reported it. The repository
     // workspace's own rail drew a `FilesChangedBadge` inside its Changes tab;

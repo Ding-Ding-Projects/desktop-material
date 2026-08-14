@@ -470,6 +470,11 @@ import {
   getAccountForCommitMessageGeneration,
   getAccountForRepository,
 } from '../lib/get-account-for-repository'
+// The same availability predicates `RepositoryView` gates its section tabs
+// with. The rail that replaced those tabs has to answer the same questions, or
+// it offers destinations the repository cannot reach.
+import { getGitHubReleasesAvailability } from '../lib/stores/github-releases-store'
+import { getGitHubIssuesAvailability } from '../lib/stores/github-issues-store'
 import { CommitOneLine } from '../models/commit'
 import { CommitDragElement } from './drag-elements/commit-drag-element'
 import classNames from 'classnames'
@@ -10610,18 +10615,72 @@ export class App extends React.Component<IAppProps, IAppState> {
    * `active` reads `md3ClassicSection` rather than `Md3DestinationId`,
    * because none of these eight ids are a member of that closed union.
    */
+  /**
+   * Whether a classic section can actually be reached for this repository.
+   *
+   * `RepositoryView` gated its section tabs on exactly these questions, so a
+   * repository with no GitHub remote never showed Releases, Issues, Cheap LFS
+   * or the API explorer. The rail took those tabs' place and at first offered
+   * all of them unconditionally, which looks harmless and is not: selecting one
+   * dispatches a real section change, and `RepositoryView.getSelectedSection`
+   * quietly falls back to Changes for a section the repository cannot show. The
+   * user presses "Releases" and lands on Changes with nothing to explain it,
+   * which is the decorative-control failure this repository forbids.
+   *
+   * Deliberately NOT mirrored: `showsGitHubAPI`'s extra `isGitHubAPIHidden`
+   * term. That flag is a per-repository user preference the rail intentionally
+   * overrides — `md3OpenClassicSection` un-hides the tab before navigating,
+   * exactly as `showGitHubAPIExplorer` does — so the rail asks only whether the
+   * repository could use the API at all.
+   */
+  private md3ClassicSectionAvailable(section: RepositorySectionTab): boolean {
+    const selection = this.md3Selection
+    if (selection === null) {
+      return false
+    }
+
+    const repository = selection.repository
+    const accounts = this.state.accounts
+
+    switch (section) {
+      case RepositorySectionTab.Releases:
+      case RepositorySectionTab.CheapLfs:
+        // Cheap LFS shares the Releases condition, as its tab always has.
+        return (
+          getGitHubReleasesAvailability(repository, accounts) !== 'not-github'
+        )
+      case RepositorySectionTab.Issues:
+        return (
+          getGitHubIssuesAvailability(repository, accounts) !== 'not-github'
+        )
+      case RepositorySectionTab.GitHubAPI: {
+        if (repository.gitHubRepository === null) {
+          return false
+        }
+        const account = getAccountForRepository(accounts, repository)
+        return account === null || account.provider === 'github'
+      }
+      default:
+        // Triage, Launchpad, the history graph and Repository tools have no
+        // gate on their tabs either — they are always available.
+        return true
+    }
+  }
+
   private md3ClassicRailDestinations(): ReadonlyArray<IMd3Destination> {
     if (this.md3Selection === null) {
       return []
     }
 
-    return this.md3ClassicSectionEntries().map(entry => ({
-      id: entry.id,
-      label: t(entry.labelKey),
-      icon: entry.icon,
-      count: '',
-      active: entry.section === this.md3ClassicSection,
-    }))
+    return this.md3ClassicSectionEntries()
+      .filter(entry => this.md3ClassicSectionAvailable(entry.section))
+      .map(entry => ({
+        id: entry.id,
+        label: t(entry.labelKey),
+        icon: entry.icon,
+        count: '',
+        active: entry.section === this.md3ClassicSection,
+      }))
   }
 
   /** `Md3Shell`'s `onSelectExtraDestination`, wired only in Classic mode. */
