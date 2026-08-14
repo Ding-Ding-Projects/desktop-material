@@ -41,10 +41,14 @@ afterEach(() => {
 })
 
 describe('interface mode', () => {
-  it('ships in Material mode, because a fork that hid its own rewrite would ship it to nobody', () => {
-    assert.equal(InterfaceModeDefault, 'material')
-    assert.equal(getInterfaceMode(), 'material')
-    assert.equal(isClassicMode(), false)
+  it('ships in Classic mode, the interface the app rendered before the MD3 rewrite', () => {
+    // Reverted from 'material' on 2026-08-14 at the user's request. Pinned
+    // rather than left to drift: which interface a new profile opens in is a
+    // product decision somebody made deliberately, and a default that changes
+    // because nobody was watching is how it got changed the first time.
+    assert.equal(InterfaceModeDefault, 'classic')
+    assert.equal(getInterfaceMode(), 'classic')
+    assert.equal(isClassicMode(), true)
   })
 
   it('round-trips and reports where the value came from', () => {

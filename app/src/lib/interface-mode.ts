@@ -58,11 +58,25 @@ export const LegacyUseClassicExperienceKey = 'use-classic-experience'
 /**
  * Shipped default.
  *
- * Material: the MD3 shell is what the application is now, and a fork that
- * shipped its own rewrite switched off by default would be shipping it to
- * nobody. Classic mode is a choice a user makes, not the state they start in.
+ * Classic, since 2026-08-14, at the user's explicit request: the new interface
+ * was "causing more issues than good" and the UI was to render as it did
+ * before the MD3 rewrite. This is that, exactly — the pre-rewrite tip
+ * `f443f3cd10` rendered `Md3Shell` with `md3NoViews` and the drawer, every
+ * destination falling through to the classic repository workspace, which is
+ * precisely what `renderClassicApp` does.
+ *
+ * It was Material before, on the reasoning that a fork shipping its own
+ * rewrite switched off by default would be shipping it to nobody. That
+ * reasoning was sound and lost to evidence: the rewrite is switched off by
+ * default now because it was not serving the person using it.
+ *
+ * Nothing was deleted to achieve this and nothing needs re-adding. Every MD3
+ * destination, controller, adapter, palette entry and localized string is
+ * still in the tree, and Material mode is still one setting away for anyone
+ * who wants it — including whoever eventually makes the shell good enough to
+ * default to again.
  */
-export const InterfaceModeDefault: InterfaceMode = 'material'
+export const InterfaceModeDefault: InterfaceMode = 'classic'
 
 /** Fired on `window` whenever the mode changes, so the app re-renders. */
 export const InterfaceModeChangedEvent =

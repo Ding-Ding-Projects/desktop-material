@@ -1,5 +1,112 @@
 # Desktop Material — Active parity handoff
 
+## UI reverted to the pre-rewrite interface — 2026-08-14
+
+**Read this first if you are picking up UI work.** The default interface was
+changed back at the user's explicit and repeated request: *"please revert the ui
+to how it was one week ago before this rewrite"*, *"the new ui is causing more
+issues than good"*, *"and keep all features"*.
+
+### What "the pre-rewrite UI" actually is
+
+The pre-rewrite tip is `f443f3cd10` (2026-08-11, "Report the lint state of
+app.tsx honestly in the handoff"), named as such by `app/src/lib/interface-mode.ts`
+itself. Reading `git show f443f3cd10:app/src/ui/app.tsx` shows `renderApp()`
+rendered `<Md3Shell views={md3NoViews} renderLegacyDestination={…}>` with the
+**navigation drawer** — every destination falling through to the classic
+repository workspace.
+
+That is *identical* to what `renderClassicApp()` does today. The shell existed
+and rendered before the rewrite; what the rewrite (`0f5525ec89`, "Render the app
+through the MD3 shell") added was the eight real MD3 destination **views**.
+
+So the revert did not require removing the rewrite. Three changes were enough:
+
+| Change | File |
+| --- | --- |
+| `renderClassicApp()` asks for the drawer again, not the rail | `app/src/ui/app.tsx` |
+| `shellProvidesNavigation={false}` — the workspace rail draws its own tabs, Settings and avatar again | `app/src/ui/app.tsx` |
+| `InterfaceModeDefault` is `'classic'` | `app/src/lib/interface-mode.ts` |
+
+### Nothing was deleted, and nothing needs re-adding
+
+The user asked to "use the git commits to add features back once reverted".
+**No features were lost, so there is nothing to add back.** Every MD3
+destination, controller, adapter, command-palette entry, localized string and
+the navigation rail itself are all still in the tree. Material mode is one
+setting away (Settings → Appearance, or the command palette's "Use Classic
+mode" toggle). A caller passing `navigation='rail'` still gets the rail.
+
+If a specific feature does turn out to be unreachable from the pre-rewrite
+chrome, that is a real bug and should be fixed by making it reachable — not by
+switching the default back.
+
+### Work stopped mid-flight, preserved not discarded
+
+Two multi-agent fleets were running when the revert was requested and were
+stopped so they could not write into a tree being rewound. Their unfinished
+work is preserved on the jer **`wip/stopped-fleets-2026-08-14`**, commit
+`064fdab5fd`. It is incomplete and unverified. It covers:
+
+- **The account-switcher wiring.** `onMd3OpenAccountSwitcher` in `app/src/ui/app.tsx`
+  dispatches `PopupType.Preferences`, so a control whose accessible name promises
+  "switch account" opens Settings, directly below a gear that opens the same
+  popup. A working `AccountSwitcher` already exists (`app/src/ui/account-switcher/`,
+  rendered by `repository.tsx`'s `renderAccountSwitcher()` anchored to
+  `railAvatarButtonRef`). The wrinkle: one handler serves two avatars (header and
+  rail) and the popover must anchor to whichever was clicked. `ObservableRef` is
+  structurally assignable to `React.RefObject`, so the rail's existing observable
+  ref can be the `anchorRef` without breaking its Tooltip. **Still a live bug in
+  the reverted UI** — the header avatar has the same defect.
+- **GitLab design conformance.** `renderGitLabAccounts()` in
+  `app/src/ui/preferences/accounts.tsx` diverges from
+  `design/Desktop Material v2.dc.html` lines 5174-5296 in five strings and one
+  layout. See the "GitLab" section below.
+
+### Known open items in the reverted UI
+
+1. **Actions is offered where it cannot work.** The rail's *extra* classic
+   destinations are gated by `md3ClassicSectionAvailable` (`app.tsx`), but
+   `actions` is one of the fixed eight in `md3Destinations()`
+   (`md3-navigation-drawer.tsx`), so it renders unconditionally. In Classic mode
+   `views` is `md3NoViews`, so selecting it falls through to the workspace and
+   `RepositoryView.getSelectedSection()` silently lands on Changes. The tab it
+   replaced was gated on `supportsGitHubActions()`. Do **not** just drop it from
+   `md3Destinations()` — those eight are the design contract asserted by
+   `md3-contract-conformance-test.ts`, and Material mode legitimately shows
+   Actions because its real view handles the unavailable case.
+2. **Two red tests in the one-click Windows build contract**, pre-existing:
+   `bounds only printenvz lock metadata and timestamp rounding for native
+   freshness` and `passes the detected Visual Studio path only to the direct
+   native rebuild`. Confirmed at pristine HEAD.
+3. **GitLab does not match the design** and the user has asked that it must:
+   description says "Connect GitLab.com … instance" where the design says "Sign
+   in to gitlab.com … server"; URL label "GitLab server" vs "GitLab server URL";
+   default endpoint `https://gitlab.com` vs `https://gitlab.example.com`; token
+   placeholder "Token with api scope" vs `glpat-••••••••••••••••`; button "Add
+   GitLab account" vs "Sign in to GitLab". Structurally the shipped
+   `.provider-sign-in-card` is a bordered three-column grid; the design is an
+   unbordered flex column, 460px, 48px monospace fields, outlined pill button.
+   The design is a single-state mock — keep the connected-accounts list, the
+   provider error region, the loading state and the disabled-until-valid logic,
+   and add the reduced-motion block and focus rings the mock lacks.
+
+### Traps this session paid for, worth not repeating
+
+- **A backgrounded command ending in `tail` reports exit 0 for a failed build or
+  push.** Write `EXIT=$?` into the log and grep for it; confirm effects
+  independently (`git merge-base --is-ancestor`, grep the bundle for a symbol
+  only new code contains).
+- **The capture harness can photograph a stale build.** Fixed in `b9f1bb2c18`;
+  the freshness stamp is `out/package.json`, written by `build.ts` only after
+  webpack exits zero. Bundle mtimes are meaningless because webpack's
+  `[compared for emit]` leaves unchanged outputs untouched.
+- **Vendored `file:` dependencies arrive with node-gyp run and `tsc` not.**
+  `script/ensure-vendored-dependencies.mjs` detects and repairs this; the errors
+  otherwise blame a missing module or a webpack loader.
+- **Guards must be watched failing.** Two written this session passed after the
+  thing they guarded was deleted.
+
 ## Current repository snapshot — 2026-08-13
 
 - `origin/main` is `96c25861dba76055e3063544e7f22036751916ea`.

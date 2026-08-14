@@ -151,7 +151,9 @@ describe('both interface modes render the same chrome', () => {
     // Matched as a call rather than as a substring: `renderMd3Shell` is a
     // prefix of any longer name a rename could produce, so the parenthesis is
     // what keeps this from passing on a function that no longer exists.
-    const classic = /private renderClassicApp\(\)[\s\S]{0,900}?\n  \}/.exec(app)
+    const classic = /private renderClassicApp\(\)[\s\S]{0,1800}?\n  \}/.exec(
+      app
+    )
     assert.ok(classic !== null, 'renderClassicApp not found')
     assert.match(
       classic[0],
@@ -160,13 +162,30 @@ describe('both interface modes render the same chrome', () => {
     )
   })
 
-  it('hands classic mode the no-views set and the rail, which is the whole difference', () => {
-    const classic = /private renderClassicApp\(\)[\s\S]{0,900}?\n  \}/.exec(app)
+  it('hands classic mode the no-views set, which is the whole difference', () => {
+    // Reverted on 2026-08-14: Classic mode asks for the drawer again, because
+    // the pre-rewrite tip `f443f3cd10` rendered exactly this — `Md3Shell` with
+    // `md3NoViews` and no second argument, every destination falling through to
+    // the classic workspace. Pinned as a bare call rather than loosened to
+    // "renderMd3Shell(md3NoViews" with anything after it: a future change that
+    // quietly reintroduces a second argument is the thing this must catch.
+    const classic = /private renderClassicApp\(\)[\s\S]{0,1800}?\n  \}/.exec(
+      app
+    )
     assert.ok(classic !== null)
     assert.match(
       classic[0],
-      /renderMd3Shell\(md3NoViews, 'rail'\)/,
-      'classic mode is the shell with no MD3 views and the navigation rail'
+      /return this\.renderMd3Shell\(md3NoViews\)/,
+      'classic mode is the shell with no MD3 views'
+    )
+    // The second half, and the one that actually guards the revert. Asserted
+    // as the absence of a comma rather than by anchoring to a line ending,
+    // because this file is checked out with CRLF and a `\n` anchor silently
+    // never matches — a guard that cannot fail for a reason nobody can see.
+    assert.doesNotMatch(
+      classic[0],
+      /renderMd3Shell\(md3NoViews\s*,/,
+      'classic mode must take the default drawer, not ask for another navigation'
     )
   })
 

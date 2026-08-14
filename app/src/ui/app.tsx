@@ -10779,7 +10779,14 @@ export class App extends React.Component<IAppProps, IAppState> {
     // same eight-destination array and the same shared chrome, plus the
     // eight classic-only sections `md3ClassicRailDestinations()` appends
     // (rail-only, per `renderMd3Shell`'s `railExtraDestinations` below).
-    return this.renderMd3Shell(md3NoViews, 'rail')
+    // Reverted to the drawer on 2026-08-14 at the user's request: the UI is
+    // to render as it did before the MD3 rewrite, and the pre-rewrite tip
+    // `f443f3cd10` rendered exactly this — `Md3Shell` with `md3NoViews` and
+    // the DRAWER, every destination falling through to the classic workspace.
+    // The rail is not deleted; `Md3NavigationRail` and its stylesheet, tests
+    // and i18n all remain, and a caller that asks for 'rail' still gets it.
+    // Only what Classic mode renders by default has changed back.
+    return this.renderMd3Shell(md3NoViews)
   }
 
   private renderApp() {
@@ -12645,7 +12652,13 @@ export class App extends React.Component<IAppProps, IAppState> {
           // Material mode never sets this, so its own repository-section
           // fallback (`renderMd3LegacyDestination`, reached only while a
           // classic section is open inside an MD3 destination) is unchanged.
-          shellProvidesNavigation={this.classicExperience}
+          // False since the 2026-08-14 revert. The workspace rail's own
+          // section tabs, Settings button and avatar are drawn again, because
+          // that is what the pre-rewrite UI showed and the shell is back on
+          // the drawer, which does not reach the eleven repository sections.
+          // Suppressing them now would remove navigation with nothing
+          // standing in for it.
+          shellProvidesNavigation={false}
         />
       )
     } else if (selectedState.type === SelectionType.CloningRepository) {
