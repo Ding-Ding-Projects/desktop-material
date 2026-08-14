@@ -21,6 +21,7 @@ import {
 import { ThrottledScheduler } from '../lib/throttled-scheduler'
 
 import { Dispatcher } from '../dispatcher'
+import { Resizable } from '../resizable'
 import { showContextualMenu } from '../../lib/menu-item'
 
 import { FileList } from './file-list'
@@ -38,9 +39,6 @@ import { Account } from '../../models/account'
 import { Emoji } from '../../lib/emoji'
 import { createFileHistoryMenuItem } from '../file-history'
 import { EmptyState } from '../lib/empty-state'
-import { mapStatus } from '../../lib/status'
-import { materialSymbolForStatus } from '../octicons'
-import { MaterialSymbol } from '../lib/material-symbol'
 import {
   collapsibleRepositoryKey,
   readCollapsibleState,
@@ -181,7 +179,6 @@ export class SelectedCommits extends React.Component<
     return (
       <div className="diff-container">
         {this.renderDiffHeader()}
-        {this.renderFileChips()}
         <SeamlessDiffSwitcher
           repository={this.props.repository}
           imageDiffType={this.props.selectedDiffType}
@@ -218,48 +215,7 @@ export class SelectedCommits extends React.Component<
         hideWhitespaceInDiff={this.props.hideWhitespaceInDiff}
         onHideWhitespaceInDiffChanged={this.onHideWhitespaceInDiffChanged}
         onDiffOptionsOpened={this.props.onDiffOptionsOpened}
-        onToggleCommitDetails={this.onToggleCommitDetails}
-        commitDetailsExpanded={this.state.isExpanded}
       />
-    )
-  }
-
-  private renderFileChips() {
-    const { files } = this.props.changesetData
-    if (files.length === 0) {
-      return null
-    }
-
-    return (
-      <div
-        className="history-file-chip-row"
-        role="toolbar"
-        aria-label="Files changed in the selected commit"
-      >
-        {files.map(file => {
-          const status = mapStatus(file.status)
-          const selected = this.props.selectedFile?.path === file.path
-          return (
-            <button
-              type="button"
-              key={file.id}
-              className="history-file-chip"
-              aria-pressed={selected}
-              aria-label={`${file.path}, ${status}`}
-              title={file.path}
-              onClick={() => this.onFileSelected(file)}
-              onDoubleClick={() => this.props.onOpenInExternalEditor(file.path)}
-            >
-              <MaterialSymbol
-                name={materialSymbolForStatus(file.status)}
-                size={15}
-                className={`status status-${status.toLowerCase()}`}
-              />
-              <span>{Path.basename(file.path)}</span>
-            </button>
-          )
-        })}
-      </div>
     )
   }
 
@@ -310,6 +266,14 @@ export class SelectedCommits extends React.Component<
 
   private onShowSideBySideDiffChanged = (showSideBySideDiff: boolean) => {
     this.props.dispatcher.onShowSideBySideDiffChanged(showSideBySideDiff)
+  }
+
+  private onCommitSummaryReset = () => {
+    this.props.dispatcher.resetCommitSummaryWidth()
+  }
+
+  private onCommitSummaryResize = (width: number) => {
+    this.props.dispatcher.setCommitSummaryWidth(width)
   }
 
   private renderFileList() {
@@ -369,41 +333,27 @@ export class SelectedCommits extends React.Component<
     }
 
     const className = this.state.isExpanded ? 'expanded' : 'collapsed'
+    const { commitSummaryWidth } = this.props
 
     return (
       <div id="history" className={className}>
-        <div className="commit-details">{this.renderDiff()}</div>
-        {this.state.isExpanded && (
-          <div className="history-commit-details-layer">
-            <button
-              type="button"
-              className="history-commit-details-scrim"
-              aria-label="Close commit details"
-              onClick={this.onCloseCommitDetails}
-            />
-            <aside
-              id="history-commit-details-sheet"
-              className="history-commit-details-sheet"
-              aria-label="Selected commit details"
-            >
-              {this.renderCommitSummary(selectedCommits)}
-              <div className="history-commit-details-files">
-                {this.renderFileList()}
-              </div>
-            </aside>
-          </div>
-        )}
+        {this.renderCommitSummary(selectedCommits)}
+        <div className="commit-details">
+          <Resizable
+            width={commitSummaryWidth.value}
+            minimumWidth={commitSummaryWidth.min}
+            maximumWidth={commitSummaryWidth.max}
+            onResize={this.onCommitSummaryResize}
+            onReset={this.onCommitSummaryReset}
+            description="Selected commit file list"
+          >
+            {this.renderFileList()}
+          </Resizable>
+          {this.renderDiff()}
+        </div>
         {this.renderDragOverlay()}
       </div>
     )
-  }
-
-  private onToggleCommitDetails = () => {
-    this.onExpandChanged(!this.state.isExpanded)
-  }
-
-  private onCloseCommitDetails = () => {
-    this.onExpandChanged(false)
   }
 
   private renderDragOverlay(): JSX.Element | null {

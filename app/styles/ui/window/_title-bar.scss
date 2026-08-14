@@ -43,21 +43,6 @@
       margin: 0 var(--spacing);
       align-self: center;
     }
-
-    // The Material shell mounts its product actions (drawer toggle, commit
-    // pill, command search, notification/theme/settings/account buttons) inside
-    // this bar as one flexible lane. Several of those are fixed-width icon
-    // buttons that cannot shrink, so at a narrow window or a high renderer zoom
-    // the lane's content would overflow its content box - which ends exactly
-    // where the reserved caption cluster begins - and paint underneath
-    // Minimize, Maximize and Close. Clipping the lane at that boundary keeps
-    // the caption cluster the unobstructed, edge-pinned thing it has to be.
-    // Declared here rather than in the shell layer so the win32 selector wins
-    // on specificity regardless of stylesheet order.
-    > .dm-shell-header-controls {
-      min-width: 0;
-      overflow: hidden;
-    }
   }
 
   .resize-handle {
@@ -207,13 +192,11 @@
 
 // A 390px native window at 200% renderer zoom exposes roughly 195 CSS pixels.
 // Once the 138px caption cluster and 10px leading inset are reserved, 47px
-// remain. Collapse every non-caption lane at that extreme - branding, the app
-// menu, and the Material shell's product actions - so the drag lane owns all
-// 47px and ends exactly where the caption cluster begins, with no overlap.
+// remain. Collapse non-caption content at that extreme so the drag lane owns
+// all 47px and ends exactly where the caption cluster begins, with no overlap.
 @media (max-width: 210px) {
   #desktop-app-title-bar {
     @include win32 {
-      > .dm-shell-header-controls,
       > .app-brand-container,
       > #app-menu-bar {
         display: none;

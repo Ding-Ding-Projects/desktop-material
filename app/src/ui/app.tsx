@@ -1,6 +1,5 @@
 import * as React from 'react'
 import * as Path from 'path'
-import { EOL } from 'os'
 import { randomUUID } from 'crypto'
 import { CompositeDisposable } from 'event-kit'
 
@@ -11,8 +10,6 @@ import {
   FoldoutType,
   SelectionType,
   HistoryTabMode,
-  ComparisonMode,
-  ChangesSelectionKind,
   CommitOptions,
 } from '../lib/app-state'
 import { Dispatcher } from './dispatcher'
@@ -40,7 +37,6 @@ import {
   translatedVariable,
   translateForAccessibleName,
   type IBilingualVariable,
-  type TranslationKey,
 } from '../lib/i18n'
 import { RetryAction } from '../models/retry-actions'
 import { FetchType } from '../models/fetch'
@@ -82,7 +78,6 @@ import {
   IProfileAppearanceElementSettings,
   IRepositoryAppearanceElementSettings,
   ProfileAppearanceElementId,
-  ProfileAppearanceOwnerSelectors,
   RepositoryAppearanceElementId,
 } from '../models/element-appearance'
 import {
@@ -212,7 +207,6 @@ import {
 } from '../lib/effective-branch-rules-context'
 import { CreateGitHubIssueDialog } from './create-github-issue'
 import { ActionsLocalRunDialog } from './actions-local-run/actions-local-run-dialog'
-import { ActionsRunArtifactsDialog } from './actions/actions-run-artifacts-dialog'
 import { CreateGitHubPullRequestDialog } from './create-github-pull-request'
 import { GitHubPullRequestLifecycleDialog } from './github-pull-request-lifecycle'
 import { GitLabMergeRequestDialog } from './merge-request'
@@ -233,8 +227,7 @@ import {
 } from '../models/dim-sum'
 import { isWithinQuietHours } from '../lib/audio/audio-throttle'
 import { readFunnyLevels } from '../lib/funny-level-text'
-import { isSchoolModeEnabled, SchoolModeChangedEvent } from '../lib/school-mode'
-import { getShowDialogEmoji, setShowDialogEmoji } from '../lib/dialog-emoji'
+import { isSchoolModeEnabled } from '../lib/school-mode'
 import { CrashProofBoundary } from './crash-proof-boundary'
 import { Button } from './lib/button'
 import { Loading } from './lib/loading'
@@ -271,7 +264,6 @@ import { SubmoduleConfigDialog } from './submodules/submodule-config-dialog'
 import { SubmoduleBackButton } from './submodules/submodule-back-button'
 import {
   AnchoredAppearanceEditor,
-  AppearanceLockPromptHost,
   IAnchoredAppearanceEditorControls,
   IFeatureHighlightingAppearance,
   IRepositoryTabsAppearance,
@@ -290,8 +282,6 @@ import {
   UpdateProgressAppearanceEditor,
 } from './appearance'
 import { LocalizedText } from './lib/localized-text'
-import { MaterialSymbol } from './lib/material-symbol'
-import { NotificationBellButton } from './notifications/notification-bell-button'
 import { SubtreeManagerDialog } from './subtrees/subtree-manager-dialog'
 import { AddSubtreeDialog } from './subtrees/add-subtree-dialog'
 import { IGitModulesEntry } from '../lib/git/gitmodules'
@@ -324,118 +314,12 @@ import { InitializeLFS, AttributeMismatch } from './lfs'
 import { UpstreamAlreadyExists } from './upstream-already-exists'
 import { ReleaseNotes } from './release-notes'
 import { ChangelogDialog } from './changelog/changelog-dialog'
-import { DocsBrowserDialog } from './docs-browser/docs-browser-dialog'
-import { parseDocsArticlePaletteEvent } from '../lib/docs-browser/docs-browser-palette'
 import { writeFile } from 'fs/promises'
 import { DeletePullRequest } from './delete-branch/delete-pull-request-dialog'
 import { CommitConflictsWarning } from './merge-conflicts'
 import { AppTheme } from './app-theme'
 import { ButtonHints } from './lib/button-hints'
 import { ApplicationTheme } from './lib/application-theme'
-import {
-  Md3Shell,
-  createMd3ShellState,
-  md3NoViews,
-  md3SearchBinding,
-  md3ShellReducer,
-} from './md3/md3-shell'
-import type {
-  IMd3SearchBinding,
-  IMd3ShellState,
-  IMd3ShellViews,
-  Md3SearchFieldKey,
-  Md3ShellAction,
-} from './md3/md3-shell'
-import { md3ListExportDescriptor } from './md3/md3-list-export'
-import type { IMd3ListExport } from './md3/md3-list-export'
-import {
-  defaultMd3MenuContext,
-  type IMd3MenuContext,
-  type IMd3MenuHandlers,
-  type IMd3MenuItem,
-} from './md3/md3-menu-specs'
-import type { MaterialSymbolName } from './lib/material-symbol'
-import {
-  runMd3MenuCommand,
-  type IMd3MenuCommandEnvironment,
-  type IMd3MenuRowContext,
-} from './md3/md3-menu-bindings'
-import type {
-  Md3DestinationId,
-  IMd3Destination,
-} from './md3/md3-navigation-drawer'
-import {
-  Md3ViewPreferencesChangedEvent,
-  getMd3ViewPreferences,
-  setMd3CommitGraphVisible,
-  setMd3CommitSortOrder,
-  setMd3DiffContextLines,
-  setMd3GroupChangesByFolder,
-  setMd3GroupCommitsByDay,
-  setMd3LogGroupsCollapsed,
-  setMd3WrapLongLines,
-  stepMd3ActionsRunListWidth,
-} from '../lib/md3-view-preferences'
-import {
-  buildMd3CarryOverExtensions,
-  md3CarryOverIsDestructive,
-  type Md3CarryOverCommand,
-} from './md3/md3-shell-carryover'
-import { Md3DestructiveGate } from './md3/md3-destructive-gate'
-import type { Md3DestructiveActionId } from './md3/md3-destructive-actions'
-import { Md3ActionsController } from './md3/md3-actions-controller'
-import { Md3TerminalController } from './md3/md3-terminal-controller'
-import { Md3RepositoriesController } from './md3/md3-repositories-controller'
-import {
-  Md3AgentInstructionResult,
-  Md3AgentsController,
-} from './md3/md3-agents-controller'
-import {
-  buildMd3AgentsProps,
-  buildMd3BranchesProps,
-  buildMd3ChangesProps,
-  buildMd3HistoryProps,
-  buildMd3InboxProps,
-  defaultMd3LocalViewState,
-  type IMd3LocalViewState,
-  type IMd3ViewContext,
-  type Md3ViewMenu,
-} from './md3/md3-view-props'
-import {
-  md3NotificationSourceName,
-  md3RepositoryRows,
-} from './md3/md3-destination-adapters'
-import {
-  loadRepositoryBranchVisibilityState,
-  saveRepositoryBranchVisibilityState,
-} from '../lib/branch-visibility'
-import { WorkflowDispatchDialog } from './actions/workflow-dispatch-dialog'
-import { WorkflowManager } from './actions/workflow-manager'
-import { WorkflowCatalogDialog } from './actions/workflow-catalog-dialog'
-import { ActionsCacheManager } from './actions/actions-cache-manager'
-import { SelfHostedRunnerManager } from './actions/self-hosted-runner-manager'
-import { BulkBranchDelete } from './branches/bulk-branch-delete'
-import { NewAgentSessionForm } from './agent-sessions/new-agent-session-form'
-import { UnreachableCommitsTab } from './history/unreachable-commits-dialog'
-import { openFile } from './lib/open-file'
-import { readAgentSessionConversation } from './agent-sessions/agent-session-conversation'
-import type { IAheadBehind } from '../models/branch'
-import type { WorkingDirectoryFileChange } from '../models/status'
-import { AppFileStatusKind } from '../models/status'
-import {
-  ShowClassicToolbarChangedEvent,
-  getShowClassicToolbar,
-  setShowClassicToolbar,
-} from '../lib/classic-toolbar'
-import {
-  InterfaceModeChangedEvent,
-  isClassicMode,
-  setInterfaceMode,
-} from '../lib/interface-mode'
-import { BranchType } from '../models/branch'
-import { DiffSelectionType } from '../models/diff'
-import { initials as md3Initials } from './md3/md3-style-contract'
-import type { Md3MenuCommand, Md3MenuToggle } from './md3/md3-menu-specs'
 import { RepositoryStateCache } from '../lib/stores/repository-state-cache'
 import { hasModalPopup, PopupType, Popup } from '../models/popup'
 import { OversizedFiles } from './changes/oversized-files-warning'
@@ -470,11 +354,6 @@ import {
   getAccountForCommitMessageGeneration,
   getAccountForRepository,
 } from '../lib/get-account-for-repository'
-// The same availability predicates `RepositoryView` gates its section tabs
-// with. The rail that replaced those tabs has to answer the same questions, or
-// it offers destinations the repository cannot reach.
-import { getGitHubReleasesAvailability } from '../lib/stores/github-releases-store'
-import { getGitHubIssuesAvailability } from '../lib/stores/github-issues-store'
 import { CommitOneLine } from '../models/commit'
 import { CommitDragElement } from './drag-elements/commit-drag-element'
 import classNames from 'classnames'
@@ -524,12 +403,7 @@ import { sendNonFatalException } from '../lib/helpers/non-fatal-exception'
 import { ICustomIntegration } from '../lib/custom-integration'
 import { createCommitURL } from '../lib/commit-url'
 import { InstallingUpdate } from './installing-update/installing-update'
-import {
-  DialogStackContext,
-  Dialog,
-  DialogContent,
-  DefaultDialogFooter,
-} from './dialog'
+import { DialogStackContext } from './dialog'
 import { TestNotifications } from './test-notifications/test-notifications'
 import { NotificationsDebugStore } from '../lib/stores/notifications-debug-store'
 import { PullRequestComment } from './notifications/pull-request-comment'
@@ -575,7 +449,6 @@ import { CopilotConflictResolutionAlwaysNudge } from './multi-commit-operation/d
 import {
   IAPICreatePushProtectionBypassResponse,
   IAPIRepository,
-  getHTMLURL,
 } from '../lib/api'
 import {
   BypassPushProtectionDialog,
@@ -641,17 +514,6 @@ const HourInMilliseconds = MinuteInMilliseconds * 60
  * Check for updates every 4 hours
  */
 const UpdateCheckInterval = 4 * HourInMilliseconds
-
-/** The navigation drawer is a shell preference, independent of repository state. */
-const MaterialShellDrawerExpandedKey = 'desktop-material-shell-drawer-expanded'
-
-function readMaterialShellDrawerExpanded(): boolean {
-  try {
-    return localStorage.getItem(MaterialShellDrawerExpandedKey) !== '0'
-  } catch {
-    return true
-  }
-}
 
 /**
  * Send usage stats every 4 hours
@@ -854,235 +716,9 @@ function localizeAgentSetupFailure(
   }
 }
 
-/**
- * The forge host an account belongs to, for the accounts menu's hint.
- *
- * The account records an API endpoint rather than a host, and a malformed one
- * must not take the menu down with it — an unparseable endpoint simply has no
- * host to show.
- */
-function md3AccountHost(endpoint: string): string {
-  try {
-    return new URL(endpoint).host
-  } catch {
-    return ''
-  }
-}
-
-/**
- * Navigation, opening another menu and opening the regex builder are all shell
- * state, and `Md3Shell` handles each of them before the host's handler runs.
- * These are the host's half of that: there is genuinely nothing for `App` to
- * do, and a comment saying so is worth more than three identical closures
- * scattered through the menu handlers.
- */
-function noopMd3Navigate() {}
-function noopMd3OpenMenu() {}
-function noopMd3OpenBuilder() {}
-
-/**
- * A destructive carried-over capability, waiting on the shared two-key gate.
- *
- * The target is resolved when the menu row is clicked and captured here, not
- * re-read when the gate is confirmed: activating the row closes the menu that
- * raised it, so a `run` that looked the row up again would find the menu gone
- * and act on the pane's selection instead — a different set of files, silently.
- */
-interface IMd3CarryOverGateRequest {
-  /** The registered action, so the gate is auditable against the registry. */
-  readonly actionId: Md3DestructiveActionId
-
-  readonly title: string
-  readonly summary: string
-  readonly irreversible: string
-  readonly targetKeyLabel: string
-  readonly effectKeyLabel: string
-  readonly confirmLabel: string
-
-  /** Runs once both keys are turned and the slider has reached its maximum. */
-  readonly run: () => void
-}
-
-/** How many file names a gate's summary spells out before it says "and more". */
-const Md3GateNamedFileLimit = 3
-
 export class App extends React.Component<IAppProps, IAppState> {
   private loading = true
   private mounted = false
-
-  /**
-   * The MD3 shell's state, owned here rather than by the shell.
-   *
-   * The eight destination views are built from this: each one's search field,
-   * regex mode and builder target is one of the shell's eleven fields, so the
-   * host has to hold them to bind them. The shell is rendered controlled
-   * (`state` plus `onStateChange`), which makes this the single source of
-   * truth for both halves rather than two copies that can drift.
-   */
-  private md3ShellState: IMd3ShellState = createMd3ShellState()
-
-  /** The destination toggles the views own themselves. */
-  private md3LocalViewState: IMd3LocalViewState = defaultMd3LocalViewState
-
-  /** The repository whose branch visibility `md3LocalViewState` was loaded for. */
-  private md3BranchVisibilityRepositoryId: number | null = null
-
-  /** Whether the drawer is expanded, read by the menu context. */
-  private get md3DrawerExpanded(): boolean {
-    return this.md3ShellState.drawerExpanded
-  }
-
-  /** Live value of the persisted "Show the classic toolbar" preference. */
-  private md3ClassicToolbarVisible = getShowClassicToolbar()
-
-  /**
-   * Whether Classic mode is the interface in use.
-   *
-   * Read once and kept live through the change event, the same way the toolbar
-   * band's setting is, so switching modes takes effect immediately rather than
-   * at the next launch. A setting that needs a restart to be believed is a
-   * setting people conclude is broken.
-   */
-  private classicExperience = isClassicMode()
-
-  /**
-   * A classic repository section the reader has opened from the pane menu or
-   * Classic mode's rail, or `null` when the current destination is showing
-   * its own view (Material) or its own pane content (Classic).
-   *
-   * Eight sections of the classic workspace — Releases, Issues, Triage, Cheap
-   * LFS, Launchpad, the history graph, Repository tools and the GitHub API
-   * Explorer — have no `Md3DestinationId` of their own, so the shell had no
-   * route to any of them. Rather than invent an ever-growing destination the
-   * contract does not have, both the pane menu and (in Classic mode only)
-   * the rail's own extra pills open them: `md3ClassicSectionEntries()` is the
-   * one list both are built from, so a section reachable from one is
-   * reachable from the other.
-   *
-   * Cleared the moment the reader picks one of the shell's own eight
-   * destinations, so choosing one from the drawer or rail is the way back and
-   * no mode is entered that has to be escaped.
-   */
-  private md3ClassicSection: RepositorySectionTab | null = null
-
-  /**
-   * The three destinations whose data does not live in the app store.
-   *
-   * Actions reads the GitHub Actions API, Terminal owns real CLI workbench
-   * runs, and Repositories owns a sequential bulk run. All three are
-   * asynchronous state with a lifecycle, so they are owned by controllers that
-   * outlive a render rather than rebuilt inside one.
-   */
-  private readonly md3ActionsController = new Md3ActionsController({
-    actionsStore: this.props.actionsStore,
-    onChanged: () => this.md3ControllerChanged(),
-    onDispatchWorkflow: () => {
-      this.md3WorkflowDispatchOpen = true
-      this.forceUpdate()
-    },
-    onOpenExternal: url => void this.props.dispatcher.openInBrowser(url),
-    // The artifact list is a surface the classic run-details pane rendered and
-    // the MD3 shell has no pane for, so it opens as its own dialog.
-    onOpenArtifacts: (repository, runId) =>
-      void this.props.dispatcher.showPopup({
-        type: PopupType.ActionsRunArtifacts,
-        repository,
-        runId,
-      }),
-  })
-
-  /** Whether the real workflow-dispatch dialog is open over the shell. */
-  private md3WorkflowDispatchOpen = false
-
-  /** Which of the three Actions managers is open over the shell, if any. */
-  private md3ActionsManager: 'workflows' | 'caches' | 'runners' | null = null
-
-  /** Whether the workflow template catalog is open over the shell. */
-  private md3WorkflowCatalogOpen = false
-
-  /** Whether the reviewed bulk branch deletion is open over the shell. */
-  private md3BulkBranchDeleteOpen = false
-
-  /** Whether the new-agent-session form is open over the shell. */
-  private md3NewAgentSessionOpen = false
-
-  /** The destructive carry-over waiting on the shared two-key gate, if any. */
-  private md3CarryOverGate: IMd3CarryOverGateRequest | null = null
-
-  /** True while `renderApp` is assembling the destination views. */
-  private md3RenderInProgress = false
-
-  /** A pending re-render a controller asked for mid-render. */
-  private md3DeferredUpdateHandle: number | null = null
-
-  /** The row a destination menu was raised from, or null. */
-  private md3MenuPayload: string | null = null
-
-  /** The agent session whose transcript the Agents pane is showing. */
-  private md3SelectedAgentSessionPath: string | null = null
-
-  /**
-   * Send and Resume in the Agents pane. Both launch a real run in the selected
-   * worktree, so the composer is a working control rather than a decoration.
-   */
-  private readonly md3AgentsController = new Md3AgentsController({
-    sessionFor: path => this.md3AgentSessionForPath(path),
-    conversationFor: path => readAgentSessionConversation(path),
-    runnerAvailable: session => this.md3AgentRunnerAvailable(session),
-    newOperationId: () => randomUUID(),
-    startRun: (session, instruction, operationId) => {
-      this.agentSessionLiveStore.beginRun(
-        session.path,
-        session.agent,
-        operationId
-      )
-      void this.runAgentSession(
-        {
-          name: session.name,
-          baseBranch: session.branch ?? '',
-          agent: session.agent,
-          prompt: instruction,
-        },
-        session.name,
-        session.path,
-        operationId
-      )
-    },
-  })
-
-  private readonly md3TerminalController = new Md3TerminalController({
-    onChanged: () => this.md3ControllerChanged(),
-    onRefreshRepository: async () => {
-      const repository = this.md3Selection?.repository
-      if (repository !== undefined) {
-        await this.props.dispatcher.refreshRepository(repository)
-      }
-    },
-    // The contract wires the terminal's own `onContextTerminal` to
-    // `terminalMenu` — clear output, split shell, open in the system terminal.
-    // `paneMenu` is the destination-agnostic one and carries none of them.
-    onContextMenu: () => this.md3OpenViewMenu('terminalMenu'),
-  })
-
-  private readonly md3RepositoriesController = new Md3RepositoriesController({
-    dispatcher: this.props.dispatcher,
-    onChanged: () => this.md3ControllerChanged(),
-    getRepositories: () => this.state.repositories,
-    onClone: () => this.showCloneRepo(),
-    onAddLocal: () => this.showAddLocalRepo(),
-    onOpenRowMenu: repository =>
-      this.props.dispatcher.selectRepository(repository),
-    onExportSelection: repositories =>
-      this.props.dispatcher.postNotification({
-        kind: 'info',
-        title: t('md3.repositories.exportTitle'),
-        body: t('md3.repositories.exportBody', {
-          count: String(repositories.length),
-        }),
-      }),
-    onOpenRepository: repository =>
-      this.props.dispatcher.selectRepository(repository),
-  })
   private disposed = false
   private readySent = false
   private readonly subscriptions = new CompositeDisposable()
@@ -1104,7 +740,6 @@ export class App extends React.Component<IAppProps, IAppState> {
   private dimSumDish: IDimSumDish | null = null
   private repositoryFileDragDepth = 0
   private repositorySidebarView: RepositorySidebarView = 'list'
-  private materialShellDrawerExpanded = readMaterialShellDrawerExpanded()
   private agentRunnerAvailability = UnknownAgentRunnerAvailability
   private isCreatingAgentSession = false
   private activeAgentSetupOperationId: string | null = null
@@ -1353,24 +988,6 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   public componentWillUnmount() {
     this.mounted = false
-    this.md3ActionsController.dispose()
-    this.md3TerminalController.dispose()
-    if (this.md3DeferredUpdateHandle !== null) {
-      window.clearTimeout(this.md3DeferredUpdateHandle)
-      this.md3DeferredUpdateHandle = null
-    }
-    window.removeEventListener(
-      ShowClassicToolbarChangedEvent,
-      this.onClassicToolbarVisibilityChanged
-    )
-    window.removeEventListener(
-      InterfaceModeChangedEvent,
-      this.onClassicExperienceChanged
-    )
-    window.removeEventListener(
-      Md3ViewPreferencesChangedEvent,
-      this.onMd3ViewPreferencesChanged
-    )
     this.disposed = true
     this.disposeAgentSessionStore?.()
     this.disposeAgentSessionStore = null
@@ -1393,7 +1010,6 @@ export class App extends React.Component<IAppProps, IAppState> {
     document.removeEventListener('focus', this.onDocumentFocus, {
       capture: true,
     })
-    window.removeEventListener(SchoolModeChangedEvent, this.onSchoolModeChanged)
     document.ondragenter = null
     document.ondragleave = null
     document.ondragover = null
@@ -1748,8 +1364,6 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showAbout()
       case 'show-changelog':
         return this.showChangelog()
-      case 'show-docs-browser':
-        return this.showDocsBrowser()
       case 'go-to-commit-message':
         return this.goToCommitMessage()
       case 'open-pull-request':
@@ -1773,9 +1387,8 @@ export class App extends React.Component<IAppProps, IAppState> {
       case 'hide-stashed-changes':
         return this.hideStashedChanges()
       case 'find-text':
-        // Ctrl+Shift+P opens the master command palette; Ctrl+Shift+F opens the
-        // current repository folder, and find-in-view remains available inside
-        // the palette as "Find in current view".
+        // Ctrl+Shift+F opens the master command palette; the previous find-in-view
+        // behavior remains available as the palette's "Find in current view".
         return this.props.dispatcher.showPopup({
           type: PopupType.CommandPalette,
         })
@@ -2252,59 +1865,12 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.props.dispatcher.showDotComSignInDialog()
       case 'palette:sign-in-enterprise':
         return this.props.dispatcher.showEnterpriseSignInDialog()
-      // The MD3 shell's own surfaces. Each of these changes shell state — the
-      // showing destination, the open overlay — which is why they are palette
-      // actions rather than menu events: nothing in the application menu can
-      // reach them. The teleport that follows lands on the exact drawer tab or
-      // header control, so choosing "Go to History" both switches the pane and
-      // shows the reader which row does it next time.
-      case 'palette:md3-changes':
-        return this.md3GoToDestination('changes')
-      case 'palette:md3-history':
-        return this.md3GoToDestination('history')
-      case 'palette:md3-branches':
-        return this.md3GoToDestination('branches')
-      case 'palette:md3-actions':
-        return this.md3GoToDestination('actions')
-      case 'palette:md3-inbox':
-        return this.md3GoToDestination('inbox')
-      case 'palette:md3-terminal':
-        return this.md3GoToDestination('terminal')
-      case 'palette:md3-agents':
-        return this.md3GoToDestination('agents')
-      case 'palette:md3-repositories':
-        return this.md3GoToDestination('repositories')
-      case 'palette:md3-compose':
-        return this.md3Dispatch({ type: 'open-compose' })
-      case 'palette:md3-search-builder':
-        return this.md3Dispatch({
-          type: 'open-builder',
-          target: { kind: 'search', field: 'global' },
-        })
-      case 'palette:md3-search-menu':
-        return this.md3Dispatch({ type: 'open-menu', menu: 'searchMenu' })
-      case 'palette:md3-regex-guide':
-        return this.md3Dispatch({ type: 'open-menu', menu: 'guide' })
-      case 'palette:md3-drawer-menu':
-        return this.md3Dispatch({ type: 'open-menu', menu: 'drawerMenu' })
-      case 'palette:md3-repository-menu':
-        return this.md3Dispatch({ type: 'open-menu', menu: 'repoMenu' })
-      case 'palette:md3-branch-menu':
-        return this.md3Dispatch({ type: 'open-menu', menu: 'branchMenu' })
-      case 'palette:md3-pane-menu':
-        return this.md3Dispatch({ type: 'open-menu', menu: 'paneMenu' })
       default:
         // A `palette:` id is a palette-only action, never a menu event. One
         // that reaches here is a settings row whose whole meaning is its
         // destination — running it is not a thing that exists — so it goes
         // where the setting lives instead of being cast to a MenuEvent the
         // menu has never heard of.
-        // A documentation row names its article in the event itself, so it
-        // opens that article rather than the browser's front page.
-        const articleId = parseDocsArticlePaletteEvent(event)
-        if (articleId !== null) {
-          return this.showDocsBrowser(articleId)
-        }
         if (event.startsWith('palette:')) {
           const command = CommandPaletteCatalog.find(c => c.event === event)
           if (command !== undefined) {
@@ -2506,38 +2072,6 @@ export class App extends React.Component<IAppProps, IAppState> {
       this.state.notificationsEnabled
     )
     values.set('palette:set-underline-links', this.state.underlineLinks)
-    values.set('palette:set-dialog-emoji', getShowDialogEmoji())
-    values.set('palette:set-classic-toolbar', this.md3ClassicToolbarVisible)
-    values.set('palette:set-classic-mode', this.classicExperience)
-
-    // The MD3 shell's own values: two read out of live shell state, six out of
-    // the persisted view preferences the contract's menus flip. Every one of
-    // these is the same value the menu hint prints, read from the same place,
-    // so the palette row and the menu row cannot disagree.
-    values.set(
-      'palette:md3-search-regex',
-      this.md3ShellState.search.global.regexEnabled
-    )
-    values.set('palette:md3-drawer', this.md3ShellState.drawerExpanded)
-    const md3ViewPreferences = getMd3ViewPreferences()
-    values.set('palette:md3-commit-sort', md3ViewPreferences.commitSortOrder)
-    values.set(
-      'palette:md3-group-commits-by-day',
-      md3ViewPreferences.groupCommitsByDay
-    )
-    values.set(
-      'palette:md3-commit-graph',
-      md3ViewPreferences.commitGraphVisible
-    )
-    values.set('palette:md3-wrap-long-lines', md3ViewPreferences.wrapLongLines)
-    values.set(
-      'palette:md3-diff-context-lines',
-      md3ViewPreferences.diffContextLines
-    )
-    values.set(
-      'palette:md3-group-changes-by-folder',
-      md3ViewPreferences.groupChangesByFolder
-    )
     values.set(
       'palette:set-external-credential-helper',
       this.state.useExternalCredentialHelper
@@ -2860,52 +2394,6 @@ export class App extends React.Component<IAppProps, IAppState> {
         return dispatcher.setNotificationsEnabled(asBoolean)
       case 'palette:set-underline-links':
         return dispatcher.setUnderlineLinksSetting(asBoolean)
-      case 'palette:set-dialog-emoji':
-        setShowDialogEmoji(asBoolean)
-        return
-      case 'palette:set-classic-toolbar':
-        // `setShowClassicToolbar` raises the window event `App` already
-        // listens for, so the shell picks the change up without a second path
-        // through this class.
-        setShowClassicToolbar(asBoolean)
-        return
-      case 'palette:set-classic-mode':
-        // Same shape: the setter raises the window event `App` listens for, so
-        // the mode swaps without a second path through this class.
-        setInterfaceMode(asBoolean ? 'classic' : 'material')
-        return
-      case 'palette:md3-search-regex':
-        return this.md3Dispatch({
-          type: 'set-search-regex',
-          field: 'global',
-          enabled: asBoolean,
-        })
-      case 'palette:md3-drawer':
-        return this.md3Dispatch({ type: 'set-drawer', expanded: asBoolean })
-      case 'palette:md3-commit-sort':
-        // The select only ever offers the two documented orders, and an
-        // unrecognized value would silently become "oldest" — so it is read as
-        // "oldest only when it says so" rather than "anything but newest".
-        // Each of these raises the preferences-changed event this component
-        // listens for, so the re-render that refreshes the row and the menu
-        // hint comes from one place rather than from six call sites.
-        setMd3CommitSortOrder(asText === 'oldest' ? 'oldest' : 'newest')
-        return
-      case 'palette:md3-group-commits-by-day':
-        setMd3GroupCommitsByDay(asBoolean)
-        return
-      case 'palette:md3-commit-graph':
-        setMd3CommitGraphVisible(asBoolean)
-        return
-      case 'palette:md3-wrap-long-lines':
-        setMd3WrapLongLines(asBoolean)
-        return
-      case 'palette:md3-diff-context-lines':
-        setMd3DiffContextLines(asNumber)
-        return
-      case 'palette:md3-group-changes-by-folder':
-        setMd3GroupChangesByFolder(asBoolean)
-        return
       case 'palette:set-external-credential-helper':
         return dispatcher.setUseExternalCredentialHelper(asBoolean)
       case 'palette:set-windows-openssh':
@@ -3696,38 +3184,6 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   /**
-   * Open the offline documentation browser, optionally on one article.
-   *
-   * The command palette passes an article id so a documentation row lands on
-   * the page the reader picked rather than on the browser's front door.
-   */
-  private showDocsBrowser = (articleId?: string) => {
-    this.props.dispatcher.showPopup({ type: PopupType.DocsBrowser, articleId })
-  }
-
-  /** Writes a documentation export to wherever the user picks, or null. */
-  private onExportDocsArticles = async (contents: string, fileName: string) => {
-    const destination = await showSaveDialog({
-      title: 'Export feature documentation',
-      defaultPath: fileName,
-      filters: fileName.endsWith('.json')
-        ? [{ name: 'JSON', extensions: ['json'] }]
-        : fileName.endsWith('.md')
-        ? [{ name: 'Markdown', extensions: ['md'] }]
-        : [{ name: 'Plain text', extensions: ['txt'] }],
-    })
-    if (destination === null) {
-      return null
-    }
-    await writeFile(destination, contents, 'utf8')
-    return destination
-  }
-
-  private onOpenDocsExternalLink = (url: string) => {
-    this.props.dispatcher.openInBrowser(url)
-  }
-
-  /**
    * Writes an export to wherever the user picks, returning the path, or null
    * when they cancel. The dialog stays out of the file system itself so its
    * export path is testable without one.
@@ -3745,51 +3201,6 @@ export class App extends React.Component<IAppProps, IAppState> {
     }
     await writeFile(destination, contents, 'utf8')
     return destination
-  }
-
-  /**
-   * Writes a bulk list export to wherever the user picks.
-   *
-   * Every MD3 list serializes its own scope — the picker, the declared schema
-   * and the per-format loss warning all live in the view — and hands the
-   * finished payload here. All this has to do is put it on disk.
-   *
-   * It is one handler rather than seven because the payload already carries
-   * everything that differs: the filename, the MIME type, the format and the
-   * content. Seven copies of this would be seven chances for one list's export
-   * to quietly disagree with the others about encoding or extension.
-   *
-   * Supplying it is what makes the Export button appear at all: the bar draws
-   * no button when its delivery callback is absent, on the principle that a
-   * control which cannot produce a file is not a control. Every one of these
-   * pickers was built and none was reachable until this was wired.
-   *
-   * The confirming toast is the view's own, because the view knows what it
-   * exported and what the format dropped. This stays silent on success and
-   * reports only a real write failure.
-   */
-  private onMd3ListExport = async (payload: IMd3ListExport) => {
-    const descriptor = md3ListExportDescriptor(payload.format)
-    const destination = await showSaveDialog({
-      title: t('md3.bulk.exportMenu.title', { scope: payload.scope }),
-      defaultPath: payload.filename,
-      filters: [{ name: descriptor.label, extensions: [descriptor.extension] }],
-    })
-    if (destination === null) {
-      return
-    }
-
-    try {
-      await writeFile(destination, payload.content, 'utf8')
-    } catch (error) {
-      // The view has already said the export succeeded, because from where it
-      // stands it did. Correct that rather than leaving the claim standing.
-      this.props.dispatcher.postNotification({
-        kind: 'app-error',
-        title: t('md3.bulk.export'),
-        body: error instanceof Error ? error.message : String(error),
-      })
-    }
   }
 
   private onChangelogNotify = (body: string) => {
@@ -4024,23 +3435,6 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   public componentDidMount() {
     this.mounted = true
-    this.md3TerminalController.start()
-    window.addEventListener(
-      ShowClassicToolbarChangedEvent,
-      this.onClassicToolbarVisibilityChanged
-    )
-    window.addEventListener(
-      InterfaceModeChangedEvent,
-      this.onClassicExperienceChanged
-    )
-    // The MD3 presentation preferences can be written from a menu row, a
-    // palette row or a destination view. Listening for the change rather than
-    // re-rendering at each write site is what keeps the menu hints, the
-    // palette controls and the views showing one value.
-    window.addEventListener(
-      Md3ViewPreferencesChangedEvent,
-      this.onMd3ViewPreferencesChanged
-    )
     this.disposed = false
     this.syncAgentSessionWorktrees()
     this.syncAgentSessionPolling()
@@ -4129,7 +3523,6 @@ export class App extends React.Component<IAppProps, IAppState> {
     document.addEventListener('focus', this.onDocumentFocus, {
       capture: true,
     })
-    window.addEventListener(SchoolModeChangedEvent, this.onSchoolModeChanged)
 
     this.updateWindowTitle()
     window.requestAnimationFrame(() => {
@@ -4347,10 +3740,23 @@ export class App extends React.Component<IAppProps, IAppState> {
     readonly elementId: ProfileAppearanceElementId
     readonly anchor: HTMLElement
   } | null {
-    // The one shared table, so the gate that blocks a locked element and the
-    // editor that locks it cannot disagree about which element an id means.
-    const candidates = ProfileAppearanceOwnerSelectors
-
+    const candidates: ReadonlyArray<
+      readonly [string, ProfileAppearanceElementId]
+    > = [
+      [
+        '[data-customization-surface="app-identity"]',
+        ProfileAppearanceElementId.AppIdentity,
+      ],
+      ['.update-download-progress', ProfileAppearanceElementId.UpdateProgress],
+      ['#desktop-app-toolbar', ProfileAppearanceElementId.Toolbar],
+      ['.repository-list', ProfileAppearanceElementId.RepositoryList],
+      ['.repository-tab-strip', ProfileAppearanceElementId.RepositoryTabs],
+      [
+        '.diff-container, .code-viewer, .blob-wrapper',
+        ProfileAppearanceElementId.CodeDiff,
+      ],
+      ['#desktop-app-contents', ProfileAppearanceElementId.AppWorkspace],
+    ]
     for (const [selector, elementId] of candidates) {
       const anchor = target.closest<HTMLElement>(selector)
       if (anchor !== null) {
@@ -4508,12 +3914,6 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   private onDocumentFocus = (event: FocusEvent) => {
     this.props.dispatcher.appFocusedElementChanged()
-  }
-
-  private onSchoolModeChanged = () => {
-    if (this.mounted) {
-      this.forceUpdate()
-    }
   }
 
   /**
@@ -5108,148 +4508,6 @@ export class App extends React.Component<IAppProps, IAppState> {
     this.props.dispatcher.setAppMenuState(menu => menu.withReset())
   }
 
-  private toggleMaterialShellDrawer = () => {
-    this.materialShellDrawerExpanded = !this.materialShellDrawerExpanded
-    try {
-      localStorage.setItem(
-        MaterialShellDrawerExpandedKey,
-        this.materialShellDrawerExpanded ? '1' : '0'
-      )
-    } catch {
-      // The drawer remains usable for this session when storage is unavailable.
-    }
-    this.forceUpdate()
-  }
-
-  private showCommandPalette = () => {
-    this.props.dispatcher.showPopup({ type: PopupType.CommandPalette })
-  }
-
-  private showShellSettings = () => {
-    this.props.dispatcher.showPopup({ type: PopupType.Preferences })
-  }
-
-  private toggleNotificationCentre = () => {
-    this.props.dispatcher.setNotificationCentreOpen(
-      !this.state.isNotificationCentreOpen
-    )
-  }
-
-  private getAccountInitials(): string {
-    const account = this.state.accounts[0]
-    if (account === undefined) {
-      return '?'
-    }
-
-    const words = account.friendlyName.trim().split(/\s+/).filter(Boolean)
-    if (words.length > 1) {
-      return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase()
-    }
-
-    return account.friendlyName.slice(0, 2).toUpperCase() || '?'
-  }
-
-  private renderMaterialShellHeaderControls(): JSX.Element | null {
-    if (!__WIN32__ || this.state.showWelcomeFlow) {
-      return null
-    }
-
-    const repositoryState =
-      this.state.selectedState?.type === SelectionType.Repository
-        ? this.state.selectedState.state
-        : null
-    const operationInProgress =
-      repositoryState !== null &&
-      (repositoryState.isPushPullFetchInProgress ||
-        repositoryState.isCommitting ||
-        repositoryState.oneClickCommitPushPhase !== null)
-
-    return (
-      <div className="dm-shell-header-controls">
-        {repositoryState !== null ? (
-          <button
-            type="button"
-            className="dm-shell-icon-button dm-shell-drawer-toggle"
-            aria-label={
-              this.materialShellDrawerExpanded
-                ? 'Collapse navigation drawer'
-                : 'Expand navigation drawer'
-            }
-            aria-expanded={this.materialShellDrawerExpanded}
-            aria-controls="repository"
-            onClick={this.toggleMaterialShellDrawer}
-          >
-            <Octicon
-              symbol={
-                this.materialShellDrawerExpanded
-                  ? octicons.sidebarCollapse
-                  : octicons.sidebarExpand
-              }
-              height={20}
-            />
-          </button>
-        ) : null}
-
-        <div className="dm-shell-commit-pill">
-          {this.renderOneClickCommitPushButton()}
-        </div>
-
-        <button
-          type="button"
-          className="dm-shell-search"
-          aria-label={t('commandPalette.title')}
-          aria-keyshortcuts="Control+Shift+F"
-          onClick={this.showCommandPalette}
-        >
-          <MaterialSymbol name="search" size={18} />
-          <span className="dm-shell-search-label">
-            {t('commandPalette.searchPlaceholder')}
-          </span>
-          <kbd>Ctrl+Shift+F</kbd>
-        </button>
-
-        <div className="dm-shell-header-actions">
-          <NotificationBellButton
-            unreadCount={this.state.unreadNotificationCount}
-            isOpen={this.state.isNotificationCentreOpen}
-            onClick={this.toggleNotificationCentre}
-          />
-          <ThemeToggleButton
-            dispatcher={this.props.dispatcher}
-            selectedTheme={this.state.selectedTheme}
-            currentTheme={this.state.currentTheme}
-          />
-          <button
-            type="button"
-            className="dm-shell-icon-button dm-shell-settings"
-            aria-label={t('settings.dialogTitle')}
-            onClick={this.showShellSettings}
-          >
-            <MaterialSymbol name="settings" size={20} />
-          </button>
-          <button
-            type="button"
-            className="dm-shell-account-button"
-            aria-label={`${t('settings.accountsTab')}: ${
-              this.state.accounts[0]?.friendlyName ?? t('palette.signInDotcom')
-            }`}
-            onClick={this.showAccountSettings}
-          >
-            {this.getAccountInitials()}
-          </button>
-        </div>
-
-        {operationInProgress ? (
-          <span
-            className="dm-shell-progress-line"
-            role="progressbar"
-            aria-label="Repository operation in progress"
-          />
-        ) : null}
-      </div>
-    )
-  }
-
   private renderTitlebar() {
     const inFullScreen = this.state.windowState === 'full-screen'
 
@@ -5295,7 +4553,6 @@ export class App extends React.Component<IAppProps, IAppState> {
         windowZoomFactor={this.state.windowZoomFactor}
       >
         {this.renderAppMenuBar()}
-        {this.renderMaterialShellHeaderControls()}
       </TitleBar>
     )
   }
@@ -5557,7 +4814,6 @@ export class App extends React.Component<IAppProps, IAppState> {
             key={`file-history-${popup.repository.id}-${popup.path}`}
             repository={popup.repository}
             path={popup.path}
-            initialView={popup.initialView}
             onRefreshRepository={this.getOnRefreshRepositoryFn(
               popup.repository
             )}
@@ -5590,16 +4846,6 @@ export class App extends React.Component<IAppProps, IAppState> {
           <ActionsLocalRunDialog
             key={`actions-local-run-${popup.repository.id}`}
             repository={popup.repository}
-            onDismissed={onPopupDismissedFn}
-          />
-        )
-      case PopupType.ActionsRunArtifacts:
-        return (
-          <ActionsRunArtifactsDialog
-            key={`actions-run-artifacts-${popup.runId}`}
-            repository={popup.repository}
-            runId={popup.runId}
-            actionsStore={this.props.actionsStore}
             onDismissed={onPopupDismissedFn}
           />
         )
@@ -6352,18 +5598,6 @@ export class App extends React.Component<IAppProps, IAppState> {
             newReleases={popup.newReleases}
             onDismissed={onPopupDismissedFn}
             underlineLinks={this.state.underlineLinks}
-          />
-        )
-      case PopupType.DocsBrowser:
-        return (
-          <DocsBrowserDialog
-            key="docs-browser"
-            initialArticleId={popup.articleId}
-            emoji={this.state.emoji}
-            underlineLinks={this.state.underlineLinks}
-            onDismissed={onPopupDismissedFn}
-            onExport={this.onExportDocsArticles}
-            onOpenExternalLink={this.onOpenDocsExternalLink}
           />
         )
       case PopupType.Changelog:
@@ -7717,9 +6951,6 @@ export class App extends React.Component<IAppProps, IAppState> {
       currentDragElement !== null && currentDragElement.type === DragType.Commit
     return classNames({
       'commit-being-dragged': isCommitBeingDragged,
-      'dm-material-shell': true,
-      'dm-drawer-expanded': this.materialShellDrawerExpanded,
-      'dm-drawer-collapsed': !this.materialShellDrawerExpanded,
     })
   }
 
@@ -8478,8 +7709,6 @@ export class App extends React.Component<IAppProps, IAppState> {
           anchor={target.anchor}
           historySource={historySource}
           repositoryPath={repositoryPath}
-          lockTargetId={`feature:${target.featureId}`}
-          lockTargetLabel={target.label}
           onClose={this.closeAppearanceEditor}
           onMutation={this.refreshFeatureAppearanceTarget}
           contentOwnsHeader={true}
@@ -8503,8 +7732,6 @@ export class App extends React.Component<IAppProps, IAppState> {
           anchor={target.anchor}
           historySource={target.historySource}
           repositoryPath={target.repositoryPath}
-          lockTargetId={`repository:${target.repository.id}:${target.elementId}`}
-          lockTargetLabel={title}
           onClose={this.closeAppearanceEditor}
           onMutation={this.refreshRepositoryAppearanceTarget}
           contentOwnsHeader={true}
@@ -8533,8 +7760,6 @@ export class App extends React.Component<IAppProps, IAppState> {
         anchor={target.anchor}
         historySource={historySource}
         repositoryPath={repositoryPath}
-        lockTargetId={`profile:${target.elementId}`}
-        lockTargetLabel={this.profileAppearanceTitle(target.elementId)}
         onClose={this.closeAppearanceEditor}
         contentOwnsHeader={true}
         anchorPosition={this.getAppearanceEditorAnchorPosition(target)}
@@ -8544,1040 +7769,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     )
   }
 
-  private onMd3ViewPreferencesChanged = () => {
-    if (this.mounted && !this.disposed) {
-      this.forceUpdate()
-    }
-  }
-
-  private onClassicToolbarVisibilityChanged = () => {
-    const next = getShowClassicToolbar()
-    if (next !== this.md3ClassicToolbarVisible) {
-      this.md3ClassicToolbarVisible = next
-      this.forceUpdate()
-    }
-  }
-
-  private onClassicExperienceChanged = () => {
-    const next = isClassicMode()
-    if (next !== this.classicExperience) {
-      this.classicExperience = next
-      this.forceUpdate()
-    }
-  }
-
-  /**
-   * The three shell destinations that name an existing repository section
-   * directly, once Classic mode's own now-suppressed Changes/History/Actions
-   * tabs stop being the only thing that ever changed `RepositorySectionTab`.
-   *
-   * `renderMd3LegacyDestination` renders the same `renderRepository()` for
-   * every one of the shell's eight destinations — Classic mode's pane content
-   * is driven entirely by `RepositorySectionTab`, never by `state.destination`
-   * itself. Without this map, clicking "Changes" on Classic mode's rail would
-   * relight that one pill and leave the pane showing whatever section it
-   * already did; this is what makes the click do what it visibly promises.
-   */
-  private static readonly Md3DestinationSections: Partial<
-    Record<Md3DestinationId, RepositorySectionTab>
-  > = {
-    changes: RepositorySectionTab.Changes,
-    history: RepositorySectionTab.History,
-    actions: RepositorySectionTab.Actions,
-  }
-
-  /**
-   * Reacts to a destination change common to both ways the shell's state can
-   * move: a click inside the shell (`onMd3ShellStateChange`) and a palette
-   * teleport (`md3Dispatch`, below). Both call this with the state that was
-   * current a moment ago and the one replacing it, so it fires exactly once
-   * per real destination change regardless of which path caused it.
-   */
-  private md3SyncDestinationChange(
-    previous: IMd3ShellState,
-    next: IMd3ShellState
-  ) {
-    if (next.destination === previous.destination) {
-      return
-    }
-    // Picking one of the shell's own eight is also how a reader leaves a
-    // classic section, so no mode is entered here that has to be deliberately
-    // escaped.
-    this.md3ClassicSection = null
-    if (!this.classicExperience) {
-      // Material mode's eight destinations own real MD3 views keyed by
-      // `state.destination` already; forwarding into `RepositorySectionTab`
-      // here is Classic mode's problem alone.
-      return
-    }
-    const selection = this.md3Selection
-    const section = App.Md3DestinationSections[next.destination]
-    if (selection !== null && section !== undefined) {
-      void this.props.dispatcher.changeRepositorySection(
-        selection.repository,
-        section
-      )
-    }
-  }
-
-  private onMd3ShellStateChange = (state: IMd3ShellState) => {
-    // Every action re-renders now: the destination views are built from these
-    // eleven search fields, so a keystroke in one of them changes what a view
-    // shows. The shell is controlled, which means this is the only place the
-    // state moves.
-    this.md3SyncDestinationChange(this.md3ShellState, state)
-    this.md3ShellState = state
-    this.forceUpdate()
-  }
-
-  /** Apply one shell action from a view's own binding. */
-  private md3Dispatch = (action: Md3ShellAction) => {
-    const next = md3ShellReducer(this.md3ShellState, action)
-    if (next !== this.md3ShellState) {
-      this.md3SyncDestinationChange(this.md3ShellState, next)
-      this.md3ShellState = next
-      this.forceUpdate()
-    }
-  }
-
-  private md3Bind = (field: Md3SearchFieldKey): IMd3SearchBinding =>
-    md3SearchBinding(this.md3ShellState, this.md3Dispatch, field)
-
-  /**
-   * Show one of the shell's destinations, for a palette row.
-   *
-   * The palette's teleport then spotlights that destination's own drawer tab.
-   * Switching the pane without moving focus there would leave a keyboard user
-   * on a control belonging to the surface that just went away.
-   */
-  private md3GoToDestination(destination: Md3DestinationId) {
-    this.md3Dispatch({ type: 'select-destination', destination })
-  }
-
-  /** A controller reported new data; re-render if we are still mounted. */
-  private md3ControllerChanged(): void {
-    if (!this.mounted || this.disposed) {
-      return
-    }
-
-    // A controller can report during a render: pointing it at the newly
-    // selected repository is done from `renderApp`, and a store subscription
-    // answers synchronously. Re-entering React from inside its own render is
-    // the classic "cannot update during an existing state transition", so the
-    // update is deferred to the next tick instead — coalesced, because several
-    // controllers can report in the same pass.
-    if (this.md3RenderInProgress) {
-      if (this.md3DeferredUpdateHandle !== null) {
-        return
-      }
-      this.md3DeferredUpdateHandle = window.setTimeout(() => {
-        this.md3DeferredUpdateHandle = null
-        if (this.mounted && !this.disposed) {
-          this.forceUpdate()
-        }
-      }, 0)
-      return
-    }
-
-    this.forceUpdate()
-  }
-
-  /**
-   * Open one of the shell's menus on behalf of a destination view.
-   *
-   * The payload — a commit sha, a file path, a branch name — is recorded so the
-   * menu's own items act on the row that raised them rather than on whatever
-   * the pane happened to have selected.
-   */
-  private md3OpenViewMenu = (menu: Md3ViewMenu, payload?: string) => {
-    this.md3MenuPayload = payload ?? null
-    this.md3Dispatch({ type: 'open-menu', menu })
-  }
-
-  private md3SetLocal = (patch: Partial<IMd3LocalViewState>) => {
-    const next = { ...this.md3LocalViewState, ...patch }
-    this.md3LocalViewState = next
-
-    // Branch visibility is a persisted per-repository record, not a session
-    // toggle: hiding a branch has to survive a restart the way it does in the
-    // classic branch list.
-    const repository = this.md3Selection?.repository
-    if (patch.branchVisibility !== undefined && repository !== undefined) {
-      this.md3LocalViewState = {
-        ...next,
-        branchVisibility: saveRepositoryBranchVisibilityState(
-          repository,
-          patch.branchVisibility
-        ),
-      }
-    }
-    this.forceUpdate()
-  }
-
-  /**
-   * Point the controllers at the current repository and load its persisted
-   * branch visibility. Called from render, which is the only place that knows
-   * the selection is current.
-   */
-  private md3SyncDestinationSources(): void {
-    const selection = this.md3Selection
-    const repository = selection?.repository ?? null
-
-    this.md3ActionsController.setRepository(repository, this.state.accounts)
-    this.md3ActionsController.setCurrentBranch(this.md3BranchName())
-    this.md3TerminalController.setRepositoryPath(repository?.path ?? null)
-
-    const repositoryId = repository?.id ?? null
-    if (repositoryId !== this.md3BranchVisibilityRepositoryId) {
-      this.md3BranchVisibilityRepositoryId = repositoryId
-      this.md3LocalViewState = {
-        ...this.md3LocalViewState,
-        branchVisibility:
-          repository === null
-            ? defaultMd3LocalViewState.branchVisibility
-            : loadRepositoryBranchVisibilityState(repository),
-        selectedBranchName: null,
-        historyPinnedShas: new Set<string>(),
-      }
-    }
-  }
-
-  /** The signed-in accounts' e-mail addresses, for History's `mine` chip. */
-  private md3UserEmails(): ReadonlySet<string> {
-    const emails = new Set<string>()
-    for (const account of this.state.accounts) {
-      for (const email of account.emails) {
-        emails.add(email.email.toLowerCase())
-      }
-    }
-    return emails
-  }
-
-  /** Ahead/behind for every branch the ahead/behind store has measured. */
-  private md3AheadBehind(): ReadonlyMap<string, IAheadBehind> {
-    const measured = new Map<string, IAheadBehind>()
-    const selection = this.md3Selection
-    if (selection === null) {
-      return measured
-    }
-    const tip = selection.state.branchesState.tip
-    const aheadBehind = selection.state.aheadBehind
-    if (tip.kind === TipState.Valid && aheadBehind !== null) {
-      // The store measures the checked-out branch against its upstream. Every
-      // other branch is left out rather than reported as zero/zero, which
-      // would claim every branch is in sync with its remote.
-      measured.set(tip.branch.name, aheadBehind)
-    }
-    return measured
-  }
-
-  private md3ViewContext(
-    selection: NonNullable<App['md3Selection']>
-  ): IMd3ViewContext {
-    return {
-      dispatcher: this.props.dispatcher,
-      repository: selection.repository,
-      state: selection.state,
-      local: this.md3LocalViewState,
-      setLocal: this.md3SetLocal,
-      bind: field => this.md3Bind(field),
-      openMenu: this.md3OpenViewMenu,
-      userEmails: this.md3UserEmails(),
-      aheadBehind: this.md3AheadBehind(),
-      preferAbsoluteDates: this.state.preferAbsoluteDates,
-    }
-  }
-
-  /**
-   * The eight destination views, bound to the real application state.
-   *
-   * A destination whose data needs a repository returns `null` when there is
-   * none selected, which makes the shell fall back to the app's own existing
-   * surface rather than rendering an MD3 pane about nothing.
-   */
-  private md3Views(): IMd3ShellViews {
-    const selection = this.md3Selection
-    // `owner/repo`, which is what the Inbox row's detail line renders. The
-    // folder name alone is the same string type and reads as plausible, so it
-    // has to be derived rather than assumed.
-    const repositoryNames = new Map<number, string>(
-      this.state.repositories.map(repository => [
-        repository.id,
-        md3NotificationSourceName(repository),
-      ])
-    )
-
-    const inbox = buildMd3InboxProps({
-      dispatcher: this.props.dispatcher,
-      notifications: this.state.notifications,
-      repositoryNames,
-      onOpenHistory: () =>
-        void this.props.dispatcher.showPopup({
-          type: PopupType.NotificationHistory,
-        }),
-      onOpenAutomations: () =>
-        void this.props.dispatcher.showPopup({ type: PopupType.Preferences }),
-      // A mute is view state rather than store state, so nothing else is going
-      // to redraw the row it just changed.
-      onMutedThreadsChanged: () => this.forceUpdate(),
-      // Built from the account's own endpoint, so an Enterprise user is sent
-      // to their own host rather than to github.com.
-      gitHubInboxURL:
-        this.state.accounts.length === 0
-          ? null
-          : new URL(
-              '/notifications',
-              getHTMLURL(this.state.accounts[0].endpoint)
-            ).toString(),
-      onExport: request =>
-        this.props.dispatcher.postNotification({
-          kind: 'info',
-          title: t('md3.inbox.exportTitle'),
-          body: t('md3.inbox.exportBody', {
-            count: String(request.notifications.length),
-          }),
-        }),
-    })
-
-    // Both maps carry an entry only for a repository whose Git state has
-    // actually been read — today, the selected one. Presence is what the
-    // adapter reads as "this was inspected", so an entry of `null` is a real
-    // "never fetched" while an absent key stays an honest "not checked yet".
-    const lastFetchedById = new Map<number, Date | null>()
-    const remoteCountById = new Map<number, number>()
-    if (selection !== null) {
-      lastFetchedById.set(selection.repository.id, selection.state.lastFetched)
-      remoteCountById.set(
-        selection.repository.id,
-        selection.state.remotes.length
-      )
-    }
-
-    const repositories = {
-      ...this.md3RepositoriesController.getViewProps(
-        md3RepositoryRows({
-          repositories: this.state.repositories,
-          localState: this.state.localRepositoryStateLookup,
-          selectedRepositoryId: selection?.repository.id ?? null,
-          pinnedRepositoryIds: this.md3RepositoriesController.getPinnedIds(),
-          hiddenRepositoryIds: this.md3RepositoriesController.getHiddenIds(),
-          lastFetchedById,
-          remoteCountById,
-        }),
-        this.md3Bind('repositories'),
-        selection?.repository.id ?? null,
-        id => this.md3SelectRepositoryById(id),
-        id => this.md3SelectRepositoryById(id)
-      ),
-      onExportRepositories: this.onMd3ListExport,
-    }
-
-    if (selection === null) {
-      return {
-        ...md3NoViews,
-        inbox,
-        repositories,
-        terminal: {
-          ...this.md3TerminalController.getViewProps(this.md3Bind('terminal')),
-          onExportSessions: this.onMd3ListExport,
-        },
-      }
-    }
-
-    const context = this.md3ViewContext(selection)
-
-    return {
-      history: {
-        ...buildMd3HistoryProps(context),
-        onExportCommits: this.onMd3ListExport,
-      },
-      changes: {
-        ...buildMd3ChangesProps(context, {
-          authorInitials: this.md3AccountInitials(),
-          authorName:
-            selection.state.commitAuthor?.name ??
-            this.state.accounts[0]?.friendlyName ??
-            '',
-          onOpenComposer: () => this.md3Dispatch({ type: 'open-compose' }),
-          onCommit: this.onMd3Commit,
-          onCommitAndPush: this.onMd3CommitAndPush,
-          onDraftWithCopilot: this.onMd3FocusCommitMessage,
-          onAddCoAuthors: this.onMd3FocusCommitMessage,
-        }),
-        onExportChanges: this.onMd3ListExport,
-      },
-      branches: {
-        ...buildMd3BranchesProps(
-          context,
-          this.showCreateBranch,
-          branch =>
-            void this.props.dispatcher.showPopup({
-              type: PopupType.DeleteBranch,
-              repository: selection.repository,
-              branch,
-              existsOnRemote: branch.upstream !== null,
-            }),
-          branch =>
-            void this.props.dispatcher.showPopup({
-              type: PopupType.RenameBranch,
-              repository: selection.repository,
-              branch,
-            }),
-          branch =>
-            this.props.dispatcher.showCreateGitHubPullRequest(
-              selection.repository,
-              branch
-            ),
-          {
-            // `showRebaseDialog` refreshes the status and then opens the
-            // branch-choice flow — the same route the old branch dropdown
-            // took. Rebase is the one row action the carry-over catalogue
-            // never claimed, so until this was supplied the row menu simply
-            // never drew it.
-            onRebaseBranch: branch =>
-              void this.props.dispatcher.showRebaseDialog(
-                selection.repository,
-                branch
-              ),
-          }
-        ),
-        onExportBranches: this.onMd3ListExport,
-      },
-      actions: {
-        ...this.md3ActionsController.getViewProps(
-          this.md3Bind('actions'),
-          this.md3Bind('logs'),
-          () => this.md3OpenViewMenu('paneMenu'),
-          runId => this.md3OpenViewMenu('rowMenu', runId)
-        ),
-        onExportRuns: this.onMd3ListExport,
-      },
-      inbox,
-      terminal: {
-        ...this.md3TerminalController.getViewProps(this.md3Bind('terminal')),
-        onExportSessions: this.onMd3ListExport,
-      },
-      agents: {
-        ...buildMd3AgentsProps({
-          sessions: selection.state.worktrees.map(worktree =>
-            toAgentSession(
-              worktree,
-              this.agentSessionLiveStore.getOverlay(worktree.path)
-            )
-          ),
-          selectedSessionId: this.md3SelectedAgentSessionPath,
-          conversationFor: path => readAgentSessionConversation(path),
-          runnerAvailable: session => this.md3AgentRunnerAvailable(session),
-          // The runners take their task on stdin at launch and never gain a
-          // second channel, so an agent may read the worktree and write to it,
-          // and every commit or push stays the person's own action.
-          readAccess: 'on',
-          commitAccess: 'ask',
-          pushAccess: 'off',
-          onSelectSession: path => {
-            this.md3SelectedAgentSessionPath = path
-            this.forceUpdate()
-          },
-          onNewSession: () => this.md3OpenViewMenu('paneMenu'),
-          onPauseSession: path => this.md3CancelAgentSessionByPath(path),
-          onResumeSession: path => this.md3ResumeAgentSessionByPath(path),
-          onSendInstruction: (path, instruction) =>
-            this.md3SendAgentInstruction(path, instruction),
-          onOpenSessionLog: path => {
-            this.md3SelectedAgentSessionPath = path
-            this.forceUpdate()
-          },
-          onDuplicateSession: () => this.md3OpenViewMenu('paneMenu'),
-          onDeleteSession: path => this.md3RequestDeleteAgentWorktree(path),
-          onConfigureAgentAccess: () =>
-            void this.props.dispatcher.showPopup({
-              type: PopupType.Preferences,
-            }),
-        }),
-        onExportSessions: this.onMd3ListExport,
-      },
-      repositories,
-    }
-  }
-
-  private md3SelectRepositoryById(id: number): void {
-    const repository = this.state.repositories.find(
-      candidate => candidate.id === id
-    )
-    if (repository !== undefined) {
-      this.props.dispatcher.selectRepository(repository)
-    }
-  }
-
-  /** The live session for a worktree path, or `null` when there is none. */
-  private md3AgentSessionForPath(path: string): IAgentSession | null {
-    const worktree = this.md3Selection?.state.worktrees.find(
-      candidate => candidate.path === path
-    )
-    return worktree === undefined
-      ? null
-      : toAgentSession(worktree, this.agentSessionLiveStore.getOverlay(path))
-  }
-
-  private md3AgentRunnerAvailable(session: IAgentSession): boolean {
-    switch (session.agent) {
-      case 'codex':
-        return this.agentRunnerAvailability.codexInstalled
-      case 'opencode':
-        return this.agentRunnerAvailability.opencodeInstalled
-      case 'none':
-        return false
-    }
-  }
-
-  /**
-   * Report what Send or Resume actually did.
-   *
-   * A refusal is stated rather than swallowed: the composer already disables
-   * itself for every condition the adapter knows about, so anything that
-   * reaches here changed between the render and the click and the person needs
-   * to hear about it.
-   */
-  private md3ReportAgentInstruction(
-    path: string,
-    result: Md3AgentInstructionResult
-  ): void {
-    if (result.kind === 'refused') {
-      this.props.dispatcher.postNotification({
-        kind: 'app-error',
-        title: t('md3.adapters.agent.instructionRefusedTitle'),
-        body: result.reason,
-      })
-      return
-    }
-
-    const session = this.md3AgentSessionForPath(path)
-    const agent = this.md3AgentsController.agentName(path)
-    this.md3SelectedAgentSessionPath = path
-    this.props.dispatcher.postNotification({
-      kind: 'info',
-      title: t('md3.adapters.agent.instructionSentTitle', { agent }),
-      body: t('md3.adapters.agent.instructionSentBody', {
-        agent,
-        name: session?.name ?? path,
-      }),
-    })
-    this.forceUpdate()
-  }
-
-  private md3SendAgentInstruction(path: string, instruction: string): void {
-    this.md3ReportAgentInstruction(
-      path,
-      this.md3AgentsController.sendInstruction(path, instruction)
-    )
-  }
-
-  private md3ResumeAgentSessionByPath(path: string): void {
-    this.md3ReportAgentInstruction(
-      path,
-      this.md3AgentsController.resumeSession(path)
-    )
-  }
-
-  private md3CancelAgentSessionByPath(path: string): void {
-    const selection = this.md3Selection
-    if (selection === null) {
-      return
-    }
-    const worktree = selection.state.worktrees.find(
-      candidate => candidate.path === path
-    )
-    if (worktree === undefined) {
-      return
-    }
-    this.onCancelAgentSession(
-      toAgentSession(worktree, this.agentSessionLiveStore.getOverlay(path))
-    )
-  }
-
-  private md3RequestDeleteAgentWorktree(path: string): void {
-    const selection = this.md3Selection
-    if (selection === null) {
-      return
-    }
-    const worktree = selection.state.worktrees.find(
-      candidate => candidate.path === path
-    )
-    if (worktree !== undefined) {
-      this.props.dispatcher.requestDeleteWorktree(
-        selection.repository,
-        worktree.path
-      )
-    }
-  }
-
-  /** The current repository selection, or `null` when there is not one. */
-  private get md3Selection() {
-    const selection = this.state.selectedState
-    return selection !== null && selection.type === SelectionType.Repository
-      ? selection
-      : null
-  }
-
-  private md3RepositoryName(): string {
-    const selection = this.state.selectedState
-    return selection === null ? '' : selection.repository.name
-  }
-
-  private md3BranchName(): string {
-    const selection = this.md3Selection
-    if (selection === null) {
-      return ''
-    }
-    const tip = selection.state.branchesState.tip
-    return tip.kind === TipState.Valid ? tip.branch.name : ''
-  }
-
-  private md3AheadCount(): number {
-    const aheadBehind = this.md3Selection?.state.aheadBehind ?? null
-    return aheadBehind === null ? 0 : aheadBehind.ahead
-  }
-
-  /**
-   * Badge text per destination for the shell's navigation.
-   *
-   * Only Changes carries one, and it is the same number the repository
-   * workspace's own rail drew as a `FilesChangedBadge`: how many files in the
-   * working directory are uncommitted. Classic mode suppresses that rail's
-   * navigation now that the shell provides it, so without this the count would
-   * simply stop being shown anywhere — the kind of loss nobody reports, because
-   * a signal that quietly stops appearing looks like a repository with nothing
-   * to commit.
-   *
-   * An empty string means "no badge" rather than "zero", which is the contract
-   * `IMd3Destination.count` already documents and what the old badge did by
-   * returning null below one.
-   */
-  private md3DestinationCounts(): Partial<Record<Md3DestinationId, string>> {
-    const selectedState = this.state.selectedState
-    const changedFiles =
-      selectedState !== null && selectedState.type === SelectionType.Repository
-        ? selectedState.state.changesState.workingDirectory.files.length
-        : 0
-
-    return { changes: changedFiles > 0 ? String(changedFiles) : '' }
-  }
-
-  private md3AccountInitials(): string {
-    const account = this.state.accounts[0]
-    return account === undefined ? '' : md3Initials(account.friendlyName)
-  }
-
-  /**
-   * The values the contract's menus read out of state.
-   *
-   * Every field with a real owner in the app store is read from it. The
-   * remainder — the view-local toggles the MD3 destinations own themselves,
-   * which nothing in the store has taken over yet — fall back to the
-   * contract's own documented defaults, which are plain booleans and counts
-   * rather than invented identities. The accounts, repositories, branches,
-   * repository, branch, theme, dates, diff mode and whitespace setting below
-   * are all real values read from the store.
-   */
-  private md3MenuContext(): IMd3MenuContext {
-    const selection = this.md3Selection
-    const allBranches = selection?.state.branchesState.allBranches ?? []
-    const shas = selection?.state.commitSelection.shas ?? []
-    const accounts = this.state.accounts
-    const viewPreferences = getMd3ViewPreferences()
-
-    return {
-      ...defaultMd3MenuContext,
-      theme:
-        this.state.currentTheme === ApplicationTheme.Dark ? 'dark' : 'light',
-      branch: this.md3BranchName(),
-      // A row menu raised from a commit the user has not selected still has to
-      // name that commit, so the row's own sha wins over the pane selection
-      // whenever a destination raised the menu from a specific row.
-      selectedCommitSha: this.md3RowMenuSha(shas),
-      accounts: accounts.map(account => ({
-        name: account.friendlyName,
-        host: md3AccountHost(account.endpoint),
-      })),
-      activeAccount: accounts.length > 0 ? accounts[0].friendlyName : '',
-      repositories: this.state.repositories.map(repository => ({
-        name: repository.name,
-        org:
-          repository instanceof Repository &&
-          repository.gitHubRepository !== null
-            ? repository.gitHubRepository.owner.login
-            : '',
-        changesSummary: '',
-      })),
-      repository: this.md3RepositoryName(),
-      branches: allBranches.map(branch => ({
-        name: branch.name,
-        group:
-          branch.type === BranchType.Local
-            ? t('md3.shell.branchGroup.local')
-            : t('md3.shell.branchGroup.remote'),
-      })),
-      absoluteDates: this.state.preferAbsoluteDates,
-      diffMode: this.state.showSideBySideDiff ? 'split' : 'unified',
-      hideWhitespaceChanges: this.state.hideWhitespaceInChangesDiff,
-      drawerExpanded: this.md3DrawerExpanded,
-      // The six presentation values the contract's menus flip. They are read
-      // from the persisted preferences the same menu items write, so each hint
-      // states the value that is actually in force rather than a default the
-      // menu was built with.
-      commitSortOrder: viewPreferences.commitSortOrder,
-      groupCommitsByDay: viewPreferences.groupCommitsByDay,
-      commitGraphVisible: viewPreferences.commitGraphVisible,
-      wrapLongLines: viewPreferences.wrapLongLines,
-      diffContextLines: viewPreferences.diffContextLines,
-      groupChangesByFolder: viewPreferences.groupChangesByFolder,
-    }
-  }
-
-  /**
-   * The menu actions.
-   *
-   * The shell overrides navigation, the drawer toggle, opening another menu
-   * and opening the regex builder, because those four are its own state. The
-   * rest arrive here and are routed to the surfaces the app already has.
-   */
-  private md3MenuHandlers(): IMd3MenuHandlers {
-    return {
-      onCommand: this.onMd3MenuCommand,
-      onNavigate: noopMd3Navigate,
-      onToggle: this.onMd3MenuToggle,
-      onSwitchRepository: this.onMd3SwitchRepository,
-      onSwitchBranch: this.onMd3SwitchBranch,
-      onSwitchAccount: this.onMd3OpenAccountSwitcher,
-      onOpenMenu: noopMd3OpenMenu,
-      onOpenRegexBuilder: noopMd3OpenBuilder,
-    }
-  }
-
-  /**
-   * The commit a menu is about: the row it was raised from when a destination
-   * supplied one, and otherwise the pane's own selection.
-   */
-  private md3RowMenuSha(shas: ReadonlyArray<string>): string {
-    const overlay = this.md3ShellState.overlay
-    const payload = this.md3MenuPayload
-    if (
-      payload !== null &&
-      overlay !== null &&
-      overlay.kind === 'menu' &&
-      overlay.menu === 'rowMenu' &&
-      /^[0-9a-f]{7,40}$/.test(payload)
-    ) {
-      return payload.slice(0, 7)
-    }
-    return shas.length > 0 ? shas[0].slice(0, 7) : ''
-  }
-
-  private onMd3SwitchRepository = (name: string) => {
-    const repository = this.state.repositories.find(r => r.name === name)
-    if (repository !== undefined) {
-      this.props.dispatcher.selectRepository(repository)
-    }
-  }
-
-  private onMd3SwitchBranch = (name: string) => {
-    const selection = this.md3Selection
-    if (selection === null) {
-      return
-    }
-    const branch = selection.state.branchesState.allBranches.find(
-      candidate => candidate.name === name
-    )
-    if (branch !== undefined) {
-      observeUserInitiatedOperation(
-        () =>
-          this.props.dispatcher.checkoutBranch(selection.repository, branch),
-        this.props.dispatcher,
-        'MD3 branch menu checkout'
-      )
-    }
-  }
-
-  private onMd3MenuToggle = (toggle: Md3MenuToggle) => {
-    switch (toggle) {
-      case 'theme':
-        this.onMd3ToggleTheme()
-        return
-      case 'absoluteDates':
-        this.props.dispatcher.setPreferAbsoluteDates(
-          !this.state.preferAbsoluteDates
-        )
-        return
-      case 'commitGraph':
-        // Persisted through `md3-view-preferences`, which is the same place
-        // the menu hint and the palette row read it back from.
-        setMd3CommitGraphVisible(!getMd3ViewPreferences().commitGraphVisible)
-        return
-      case 'wrapLongLines':
-        setMd3WrapLongLines(!getMd3ViewPreferences().wrapLongLines)
-        return
-      case 'drawer':
-        // The shell's own state, already handled before this ran.
-        return
-    }
-  }
-
-  private onMd3MenuCommand = (command: Md3MenuCommand) => {
-    const selection = this.md3Selection
-
-    switch (command) {
-      case 'fetchOrigin':
-      case 'fetchRepository':
-        if (selection !== null) {
-          observeUserInitiatedOperation(
-            () =>
-              this.props.dispatcher.fetch(
-                selection.repository,
-                FetchType.UserInitiatedTask
-              ),
-            this.props.dispatcher,
-            'MD3 menu fetch'
-          )
-        }
-        return
-      case 'pullOrigin':
-      case 'pullRepository':
-        if (selection !== null) {
-          observeUserInitiatedOperation(
-            () => this.props.dispatcher.pull(selection.repository),
-            this.props.dispatcher,
-            'MD3 menu pull'
-          )
-        }
-        return
-      case 'commitAndPushAllChanges':
-      case 'commitAndPush':
-        if (selection !== null) {
-          observeUserInitiatedOperation(
-            () =>
-              this.props.dispatcher.oneClickCommitAndPush(selection.repository),
-            this.props.dispatcher,
-            'MD3 menu commit and push'
-          )
-        }
-        return
-      default:
-        // Everything else is bound in `md3/md3-menu-bindings.ts`, whose action
-        // map is a `Record` over the command union — a command with no binding
-        // is a compile error there rather than a menu row that does nothing
-        // here. The three cases above stay in this switch because they wrap a
-        // network operation in the failure observer, which the binding map has
-        // no way to reach.
-        runMd3MenuCommand(command, this.md3MenuCommandEnvironment())
-        return
-    }
-  }
-
-  /**
-   * The row a destination's menu was raised from, as far as it is known.
-   *
-   * The payload is recorded per opened menu, so it is read back against the
-   * menu that is actually open: a file path recorded for a change row must
-   * never be handed to a command expecting a notification id.
-   */
-  private md3RowContext(): IMd3MenuRowContext {
-    const overlay = this.md3ShellState.overlay
-    const payload = this.md3MenuPayload
-    if (payload === null || overlay === null || overlay.kind !== 'menu') {
-      return {}
-    }
-    switch (overlay.menu) {
-      case 'inboxRowMenu':
-        return { notificationId: payload }
-      case 'agentRowMenu':
-        return { agentSessionId: payload }
-      default:
-        return {}
-    }
-  }
-
-  /** Everything the MD3 menu bindings need from this component. */
-  private md3MenuCommandEnvironment(): IMd3MenuCommandEnvironment {
-    const selection = this.md3Selection
-
-    return {
-      dispatcher: this.props.dispatcher,
-      repository: selection?.repository ?? null,
-      state: selection?.state ?? null,
-      hideWhitespaceInChangesDiff: this.state.hideWhitespaceInChangesDiff,
-      runMenuEvent: event => this.onMenuEvent(event),
-      showPreferences: tab => this.showPreferencesTab(tab),
-      showRepositoryTool: tool => void this.showRepositoryTools(tool),
-      openNotificationCentre: () =>
-        this.props.dispatcher.setNotificationCentreOpen(true),
-      showAgentSessions: () => this.onRepositorySidebarViewChanged('agents'),
-      cherryPick: (repository, commits) =>
-        this.startCherryPickWithoutBranch(repository, commits),
-      rows: this.md3RowContext(),
-    }
-  }
-
-  private onMd3ToggleTheme = () => {
-    const next =
-      this.state.currentTheme === ApplicationTheme.Dark
-        ? ApplicationTheme.Light
-        : ApplicationTheme.Dark
-    this.props.dispatcher.setSelectedTheme(next)
-  }
-
-  /*
-   * Every one of these starts a Git operation the user just asked for, and
-   * React discards whatever a click handler returns. A bare `void` would drop
-   * the rejection on the floor — the exact defect
-   * `docs/features/quality-and-reliability/observed-user-initiated-operations.md`
-   * records against the toolbar's own handlers — so each goes through the same
-   * shared observer the toolbar sync pill uses.
-   */
-
-  private onMd3CommitAndPush = () => {
-    const selection = this.md3Selection
-    if (selection !== null) {
-      observeUserInitiatedOperation(
-        () => this.props.dispatcher.oneClickCommitAndPush(selection.repository),
-        this.props.dispatcher,
-        'MD3 header commit and push'
-      )
-    }
-  }
-
-  private onMd3Fetch = () => {
-    const selection = this.md3Selection
-    if (selection !== null) {
-      observeUserInitiatedOperation(
-        () =>
-          this.props.dispatcher.fetch(
-            selection.repository,
-            FetchType.UserInitiatedTask
-          ),
-        this.props.dispatcher,
-        'MD3 pane header fetch'
-      )
-    }
-  }
-
-  private onMd3Push = () => {
-    const selection = this.md3Selection
-    if (selection !== null) {
-      observeUserInitiatedOperation(
-        () => this.props.dispatcher.push(selection.repository),
-        this.props.dispatcher,
-        'MD3 pane header push'
-      )
-    }
-  }
-
-  private onMd3OpenNotifications = () => {
-    this.props.dispatcher.setNotificationCentreOpen(
-      !this.state.isNotificationCentreOpen
-    )
-  }
-
-  private onMd3OpenPalette = () => {
-    void this.props.dispatcher.showPopup({ type: PopupType.CommandPalette })
-  }
-
-  private onMd3OpenSettings = () => {
-    void this.props.dispatcher.showPopup({ type: PopupType.Preferences })
-  }
-
-  /**
-   * The floating account switcher is owned by the repository view's own state
-   * and cannot be opened from here, so the header's avatar opens the surface
-   * `App` does own: Preferences, whose Accounts tab is where accounts are
-   * actually added, removed and signed in.
-   */
-  private onMd3OpenAccountSwitcher = () => {
-    void this.props.dispatcher.showPopup({ type: PopupType.Preferences })
-  }
-
-  private onMd3CommitSummaryChanged = (summary: string) => {
-    const selection = this.md3Selection
-    if (selection === null) {
-      return
-    }
-    const message = selection.state.changesState.commitMessage
-    void this.props.dispatcher.setCommitMessage(selection.repository, {
-      ...message,
-      summary,
-    })
-  }
-
-  private onMd3CommitDescriptionChanged = (description: string) => {
-    const selection = this.md3Selection
-    if (selection === null) {
-      return
-    }
-    const message = selection.state.changesState.commitMessage
-    void this.props.dispatcher.setCommitMessage(selection.repository, {
-      ...message,
-      description,
-    })
-  }
-
-  private onMd3Commit = () => {
-    const selection = this.md3Selection
-    if (selection === null) {
-      return
-    }
-    const message = selection.state.changesState.commitMessage
-    observeUserInitiatedOperation(
-      () =>
-        this.props.dispatcher.commitIncludedChanges(selection.repository, {
-          summary: message.summary,
-          description: message.description,
-        }),
-      this.props.dispatcher,
-      'MD3 compose dialog commit'
-    )
-  }
-
-  private onMd3FocusCommitMessage = () => {
-    this.props.dispatcher.setCommitMessageFocus(true)
-  }
-
-  private md3ComposeProps() {
-    const selection = this.md3Selection
-    const message = selection?.state.changesState.commitMessage
-    const files = selection?.state.changesState.workingDirectory.files ?? []
-    const included = files.filter(
-      file => file.selection.getSelectionType() !== DiffSelectionType.None
-    )
-
-    return {
-      summary: message?.summary ?? '',
-      description: message?.description ?? '',
-      includedFileCount: included.length,
-      totalFileCount: files.length,
-      // The working directory carries no per-file line totals until a diff has
-      // been loaded, and the app loads one at a time, so a total across the
-      // included files is genuinely unknown. `null` drops the segment; `0`
-      // would have told the user their commit changes nothing.
-      addedLineCount: null,
-      deletedLineCount: null,
-      branchName: this.md3BranchName(),
-      onSummaryChanged: this.onMd3CommitSummaryChanged,
-      onDescriptionChanged: this.onMd3CommitDescriptionChanged,
-      onCommit: this.onMd3Commit,
-      onCommitAndPush: this.onMd3CommitAndPush,
-      onDraftWithCopilot: this.onMd3FocusCommitMessage,
-      onAddCoAuthors: this.onMd3FocusCommitMessage,
-    }
-  }
-
-  /**
-   * The surface for a destination the MD3 views have not taken over.
-   *
-   * This is the app's real existing workspace, not a placeholder: the
-   * repository view and its build runner, exactly as they were. It is what
-   * keeps every capability reachable while the eight destinations are wired
-   * one at a time.
-   */
-  private renderMd3LegacyDestination = (): React.ReactNode => {
+  private renderApp() {
     const selectedState = this.state.selectedState
     const repositoryBoundaryKey =
       selectedState === null
@@ -9585,7 +7777,20 @@ export class App extends React.Component<IAppProps, IAppState> {
         : `${selectedState.type}:${selectedState.repository.hash}`
 
     return (
-      <>
+      <div
+        id="desktop-app-contents"
+        className={this.getDesktopAppContentsClassNames()}
+        {...teleportAnchor('app-workspace')}
+        data-customization-surface="app-workspace"
+        data-customization-label="App workspace"
+        data-customization-scope="profile"
+      >
+        {this.renderUpdateDownloadProgress()}
+        {this.renderRepositoryTabStrip()}
+        {this.renderToolbar()}
+        {this.renderCheapLfsRestoreProgress()}
+        {this.renderBanner()}
+        {this.renderSubmoduleRepositoryContext()}
         <CrashProofBoundary
           name="Repository workspace"
           resetKey={repositoryBoundaryKey}
@@ -9598,1341 +7803,28 @@ export class App extends React.Component<IAppProps, IAppState> {
         >
           {this.renderBuildRunPanel()}
         </CrashProofBoundary>
-      </>
-    )
-  }
-
-  /**
-   * The real workflow-dispatch dialog, opened by the Actions pane's own
-   * `Run workflow` action.
-   *
-   * It is the same dialog the classic Actions view opens, driven by the same
-   * store, so a dispatch started here is the identical operation.
-   */
-  private renderMd3WorkflowDispatch() {
-    const selection = this.md3Selection
-    if (!this.md3WorkflowDispatchOpen || selection === null) {
-      return null
-    }
-
-    const { workflows, runs } = this.md3ActionsController.getDispatchContext()
-    const branchNames = [
-      ...new Set(
-        selection.state.branchesState.allBranches
-          .filter(branch => branch.type === BranchType.Local)
-          .map(branch => branch.name)
-      ),
-    ]
-    const currentBranch = this.md3BranchName()
-
-    return (
-      <WorkflowDispatchDialog
-        repository={selection.repository}
-        workflows={workflows.filter(workflow => workflow.state === 'active')}
-        runs={runs}
-        initialWorkflowId={null}
-        branchNames={branchNames}
-        initialRef={
-          currentBranch.length > 0 ? currentBranch : branchNames[0] ?? 'main'
-        }
-        actionsStore={this.props.actionsStore}
-        onSubmit={this.onMd3DispatchWorkflow}
-        onDismissed={this.closeMd3WorkflowDispatch}
-      />
-    )
-  }
-
-  private onMd3DispatchWorkflow = (
-    workflowId: number,
-    ref: string,
-    inputs: Readonly<Record<string, string>>
-  ): Promise<void> =>
-    this.md3ActionsController.dispatchWorkflow(workflowId, ref, inputs)
-
-  private closeMd3WorkflowDispatch = () => {
-    this.md3WorkflowDispatchOpen = false
-    this.forceUpdate()
-  }
-
-  // -------------------------------------------------------------------------
-  // Carried-over capabilities
-  // -------------------------------------------------------------------------
-  //
-  // `md3-shell-carryover.ts` catalogues every capability the eight MD3
-  // destination views could not host, with the menu each one now belongs to.
-  // A catalogue is not a route: until something builds the handlers and hands
-  // them to the shell, all of it compiles, keeps its dispatcher operation and
-  // its dialog, and is unreachable. This is that something. Every handler below
-  // calls the surface the application already owns — the same popup the classic
-  // chrome opened, the same dispatcher call the old menu made — rather than a
-  // second implementation built for the occasion.
-
-  /**
-   * The working-directory files a Changes carry-over acts on.
-   *
-   * The row that raised the menu wins, exactly as `md3RowMenuSha` lets a
-   * commit row's own sha win over the pane's selection; with no row, the app
-   * store's own file selection is what every other changes command uses.
-   */
-  private md3CarryOverFiles(): ReadonlyArray<WorkingDirectoryFileChange> {
-    const selection = this.md3Selection
-    if (selection === null) {
-      return []
-    }
-
-    const changes = selection.state.changesState
-    const files = changes.workingDirectory.files
-    const overlay = this.md3ShellState.overlay
-    const payload = this.md3MenuPayload
-
-    if (
-      payload !== null &&
-      overlay !== null &&
-      overlay.kind === 'menu' &&
-      overlay.menu === 'changeRowMenu'
-    ) {
-      const row = files.find(file => file.path === payload)
-      if (row !== undefined) {
-        return [row]
-      }
-    }
-
-    if (changes.selection.kind !== ChangesSelectionKind.WorkingDirectory) {
-      return []
-    }
-    const ids = new Set(changes.selection.selectedFileIDs)
-    return files.filter(file => ids.has(file.id))
-  }
-
-  /** Every uncommitted file, for the list-level carry-overs. */
-  private md3AllChangedFiles(): ReadonlyArray<WorkingDirectoryFileChange> {
-    return this.md3Selection?.state.changesState.workingDirectory.files ?? []
-  }
-
-  /**
-   * The branch a Branches carry-over acts on: the row that raised the menu,
-   * and otherwise whichever branch the pane has selected.
-   */
-  private md3CarryOverBranch(): Branch | null {
-    const selection = this.md3Selection
-    if (selection === null) {
-      return null
-    }
-
-    const overlay = this.md3ShellState.overlay
-    const payload = this.md3MenuPayload
-    const name =
-      payload !== null &&
-      overlay !== null &&
-      overlay.kind === 'menu' &&
-      overlay.menu === 'branchRowMenu'
-        ? payload
-        : this.md3LocalViewState.selectedBranchName
-
-    if (name === null) {
-      return null
-    }
-    return (
-      selection.state.branchesState.allBranches.find(
-        branch => branch.name === name
-      ) ?? null
-    )
-  }
-
-  /**
-   * Route a destructive carry-over through the shared two-key gate.
-   *
-   * Whether a command is destructive is read from the catalogue rather than
-   * decided here, so a call site cannot quietly skip the gate and a command
-   * that stops being destructive stops being gated without a second edit.
-   */
-  private md3GatedCarryOver(
-    command: Md3CarryOverCommand,
-    build: () => IMd3CarryOverGateRequest | null
-  ): () => void {
-    return () => {
-      const request = build()
-      if (request === null) {
-        // Nothing resolved to act on — no files selected, no branch, no
-        // repository. A gate offering to destroy nothing is worse than no row.
-        return
-      }
-      if (!md3CarryOverIsDestructive(command)) {
-        request.run()
-        return
-      }
-      this.md3CarryOverGate = request
-      this.forceUpdate()
-    }
-  }
-
-  private closeMd3CarryOverGate = () => {
-    this.md3CarryOverGate = null
-    this.forceUpdate()
-  }
-
-  private onMd3CarryOverGateConfirmed = () => {
-    const gate = this.md3CarryOverGate
-    this.md3CarryOverGate = null
-    this.forceUpdate()
-    gate?.run()
-  }
-
-  private renderMd3CarryOverGate() {
-    const gate = this.md3CarryOverGate
-    if (gate === null) {
-      return null
-    }
-
-    return (
-      <Md3DestructiveGate
-        actionId={gate.actionId}
-        title={gate.title}
-        summary={gate.summary}
-        irreversible={gate.irreversible}
-        targetKeyLabel={gate.targetKeyLabel}
-        effectKeyLabel={gate.effectKeyLabel}
-        confirmLabel={gate.confirmLabel}
-        onConfirm={this.onMd3CarryOverGateConfirmed}
-        onDismissed={this.closeMd3CarryOverGate}
-      />
-    )
-  }
-
-  /** The gate for discarding uncommitted work, permanently or to the trash. */
-  private md3DiscardGate(
-    files: ReadonlyArray<WorkingDirectoryFileChange>,
-    permanently: boolean
-  ): IMd3CarryOverGateRequest | null {
-    const selection = this.md3Selection
-    if (selection === null || files.length === 0) {
-      return null
-    }
-
-    const repository = selection.repository
-    const captured = [...files]
-    const count = String(captured.length)
-    const named = captured
-      .slice(0, Md3GateNamedFileLimit)
-      .map(file => file.path)
-      .join(', ')
-    const names =
-      captured.length > Md3GateNamedFileLimit ? `${named}, …` : named
-
-    return {
-      actionId: 'discard-changes',
-      title: permanently
-        ? t('md3.carry.gate.discardPermanentTitle')
-        : t('md3.carry.gate.discardTitle'),
-      summary: permanently
-        ? t('md3.carry.gate.discardPermanentSummary', { count, files: names })
-        : t('md3.carry.gate.discardSummary', { count, files: names }),
-      irreversible: permanently
-        ? t('md3.carry.gate.discardPermanentIrreversible')
-        : t('md3.carry.gate.discardIrreversible'),
-      targetKeyLabel: t('md3.carry.gate.discardTargetKey', {
-        count,
-        repository: repository.name,
-      }),
-      effectKeyLabel: permanently
-        ? t('md3.carry.gate.discardPermanentEffectKey')
-        : t('md3.carry.gate.discardEffectKey'),
-      confirmLabel: permanently
-        ? t('md3.carry.gate.discardPermanentConfirm')
-        : t('md3.carry.gate.discardConfirm'),
-      // The same call the discard dialog makes: a permanent discard skips the
-      // trash and cleans the untracked files it named.
-      run: () =>
-        void this.props.dispatcher.discardChanges(
-          repository,
-          captured,
-          !permanently,
-          permanently
-        ),
-    }
-  }
-
-  /** The gate for merging a branch and then deleting it. */
-  private md3MergeAndDeleteGate(): IMd3CarryOverGateRequest | null {
-    const selection = this.md3Selection
-    const branch = this.md3CarryOverBranch()
-    if (selection === null || branch === null) {
-      return null
-    }
-
-    const current = this.md3BranchName()
-    const defaultBranch = selection.state.branchesState.defaultBranch
-    if (
-      branch.type !== BranchType.Local ||
-      branch.name === current ||
-      branch.name === defaultBranch?.name
-    ) {
-      // The same three refusals `branches-container` makes: merging a branch
-      // into itself, or deleting the branch you are standing on, or deleting
-      // the default branch, are all mistakes rather than intentions.
-      return null
-    }
-
-    const repository = selection.repository
-    return {
-      actionId: 'delete-branch',
-      title: t('md3.carry.gate.mergeAndDeleteTitle'),
-      summary: t('md3.carry.gate.mergeAndDeleteSummary', {
-        branch: branch.name,
-        target: current,
-      }),
-      irreversible: t('md3.carry.gate.mergeAndDeleteIrreversible'),
-      targetKeyLabel: t('md3.carry.gate.mergeAndDeleteTargetKey', {
-        branch: branch.name,
-      }),
-      effectKeyLabel: t('md3.carry.gate.mergeAndDeleteEffectKey'),
-      confirmLabel: t('md3.carry.gate.mergeAndDeleteConfirm'),
-      run: () =>
-        this.props.dispatcher.startMergeBranchOperation(
-          repository,
-          false,
-          branch,
-          true
-        ),
-    }
-  }
-
-  /** The gate in front of the reviewed bulk branch deletion. */
-  private md3BulkDeleteBranchesGate(): IMd3CarryOverGateRequest | null {
-    const selection = this.md3Selection
-    if (selection === null) {
-      return null
-    }
-
-    const { branchesState } = selection.state
-    const current = this.md3BranchName()
-    const candidates = branchesState.allBranches.filter(
-      branch =>
-        branch.type === BranchType.Local &&
-        branch.name !== current &&
-        branch.name !== branchesState.defaultBranch?.name
-    )
-    if (candidates.length === 0) {
-      return null
-    }
-
-    return {
-      actionId: 'delete-branch',
-      title: t('md3.carry.gate.bulkDeleteTitle'),
-      summary: t('md3.carry.gate.bulkDeleteSummary', {
-        repository: selection.repository.name,
-        count: String(candidates.length),
-      }),
-      irreversible: t('md3.carry.gate.bulkDeleteIrreversible'),
-      targetKeyLabel: t('md3.carry.gate.bulkDeleteTargetKey', {
-        repository: selection.repository.name,
-      }),
-      effectKeyLabel: t('md3.carry.gate.bulkDeleteEffectKey'),
-      confirmLabel: t('md3.carry.gate.bulkDeleteConfirm'),
-      run: () => {
-        this.md3BulkBranchDeleteOpen = true
-        this.forceUpdate()
-      },
-    }
-  }
-
-  private md3StashFiles(files: ReadonlyArray<WorkingDirectoryFileChange>) {
-    const repository = this.md3Selection?.repository
-    if (repository !== undefined && files.length > 0) {
-      void this.props.dispatcher.stashChanges(repository, files)
-    }
-  }
-
-  private md3IncludeFiles(
-    files: ReadonlyArray<WorkingDirectoryFileChange>,
-    include: boolean
-  ) {
-    const repository = this.md3Selection?.repository
-    if (repository !== undefined && files.length > 0) {
-      void this.props.dispatcher.changeFileIncluded(repository, files, include)
-    }
-  }
-
-  /**
-   * Add the row's own folder to `.gitignore`, which is what the native file
-   * menu's `Ignore folder` submenu writes for its innermost entry.
-   */
-  private md3IgnoreFolder() {
-    const repository = this.md3Selection?.repository
-    const [file] = this.md3CarryOverFiles()
-    if (repository === undefined || file === undefined) {
-      return
-    }
-    // Git paths always use `/`, on every platform, so this is not `Path.sep`.
-    const components = file.path.split('/').slice(0, -1)
-    if (components.length === 0) {
-      return
-    }
-    void this.props.dispatcher.appendIgnoreFile(
-      repository,
-      `/${components.join('/')}`
-    )
-  }
-
-  /** Copy the files' paths, relative to the repository or absolute. */
-  private md3CopyPaths(
-    files: ReadonlyArray<WorkingDirectoryFileChange>,
-    relative: boolean
-  ) {
-    const repository = this.md3Selection?.repository
-    if (repository === undefined || files.length === 0) {
-      return
-    }
-    const paths = files.map(file =>
-      relative
-        ? Path.normalize(file.path)
-        : Path.join(repository.path, file.path)
-    )
-    clipboard.writeText(paths.join(EOL))
-  }
-
-  private md3OpenWithDefaultProgram() {
-    const repository = this.md3Selection?.repository
-    const [file] = this.md3CarryOverFiles()
-    if (repository === undefined || file === undefined) {
-      return
-    }
-    openFile(Path.join(repository.path, file.path), this.props.dispatcher)
-  }
-
-  /**
-   * Hand the selected files to Cheap LFS, naming the ones it cannot take.
-   *
-   * A deleted file has nothing to store and a partially staged one would store
-   * a version the user never chose, so both are excluded by name rather than
-   * silently dropped — the dialog prints the reason beside each.
-   */
-  private md3PinWithCheapLfs(files: ReadonlyArray<WorkingDirectoryFileChange>) {
-    const repository = this.md3Selection?.repository
-    if (repository === undefined || files.length === 0) {
-      return
-    }
-
-    const targets = files.filter(
-      file =>
-        file.status.kind !== AppFileStatusKind.Deleted &&
-        file.selection.getSelectionType() !== DiffSelectionType.Partial
-    )
-    const excludedPaths = files.flatMap(file => {
-      if (file.status.kind === AppFileStatusKind.Deleted) {
-        return [
-          {
-            path: file.path,
-            reason: t('cheapLfs.workingTree.skipped.deleted'),
-          },
-        ]
-      }
-      if (file.selection.getSelectionType() === DiffSelectionType.Partial) {
-        return [
-          {
-            path: file.path,
-            reason: t('cheapLfs.workingTree.skipped.partial'),
-          },
-        ]
-      }
-      return []
-    })
-
-    if (targets.length === 0) {
-      return
-    }
-
-    void this.props.dispatcher.showPopup({
-      type: PopupType.StoreWorkingTreeFilesInCheapLfs,
-      repository,
-      paths: targets.map(target => target.path),
-      excludedPaths,
-    })
-  }
-
-  /** Compare the history list against the branch the row menu was raised from. */
-  private md3CompareToCarryOverBranch() {
-    const selection = this.md3Selection
-    const branch = this.md3CarryOverBranch()
-    if (selection === null || branch === null) {
-      return
-    }
-    this.props.dispatcher.executeCompare(selection.repository, {
-      kind: HistoryTabMode.Compare,
-      branch,
-      comparisonMode: ComparisonMode.Behind,
-    })
-    // The comparison is what History renders, so land the user on it rather
-    // than leaving the result on a pane they are not looking at.
-    this.md3GoToDestination('history')
-  }
-
-  private md3SetBranchVisibility(
-    change: (
-      visibility: IMd3LocalViewState['branchVisibility'],
-      branch: Branch
-    ) => IMd3LocalViewState['branchVisibility']
-  ) {
-    const branch = this.md3CarryOverBranch()
-    if (branch === null) {
-      return
-    }
-    this.md3SetLocal({
-      branchVisibility: change(this.md3LocalViewState.branchVisibility, branch),
-    })
-  }
-
-  private md3SwitchToCarryOverWorktree() {
-    const selection = this.md3Selection
-    const branch = this.md3CarryOverBranch()
-    if (selection === null || branch === null) {
-      return
-    }
-    const worktree = selection.state.worktrees.find(
-      candidate => candidate.branch === branch.name
-    )
-    if (worktree !== undefined) {
-      void this.props.dispatcher.switchWorktree(selection.repository, worktree)
-    }
-  }
-
-  private md3OpenCarryOverBranchOnForge(pullRequest: boolean) {
-    const selection = this.md3Selection
-    const branch = this.md3CarryOverBranch()
-    const gitHubRepository = selection?.repository.gitHubRepository ?? null
-    if (selection === null || branch === null || gitHubRepository === null) {
-      return
-    }
-
-    if (!pullRequest) {
-      void this.props.dispatcher.openInBrowser(
-        `${gitHubRepository.htmlURL}/tree/${encodeURIComponent(branch.name)}`
-      )
-      return
-    }
-
-    const open = selection.state.branchesState.openPullRequests.find(
-      candidate => candidate.head.ref === branch.name
-    )
-    if (open !== undefined) {
-      void this.props.dispatcher.openInBrowser(
-        `${gitHubRepository.htmlURL}/pull/${open.pullRequestNumber}`
-      )
-    }
-  }
-
-  private openMd3ActionsManager(tab: 'workflows' | 'caches' | 'runners') {
-    if (tab === 'caches') {
-      // The manager renders what the store holds and never fetches for itself,
-      // so opening it cold would show an empty inventory that reads exactly
-      // like a repository with no caches.
-      this.md3ActionsController.ensureCacheManagerLoaded()
-    }
-    this.md3ActionsManager = tab
-    this.forceUpdate()
-  }
-
-  private closeMd3ActionsManager = () => {
-    this.md3ActionsManager = null
-    this.forceUpdate()
-  }
-
-  private openMd3WorkflowCatalog = () => {
-    this.md3ActionsManager = null
-    this.md3WorkflowCatalogOpen = true
-    this.forceUpdate()
-  }
-
-  private closeMd3WorkflowCatalog = () => {
-    this.md3WorkflowCatalogOpen = false
-    this.forceUpdate()
-  }
-
-  private onMd3SetWorkflowEnabled = (
-    workflow: { readonly id: number },
-    enabled: boolean
-  ) => this.md3ActionsController.setWorkflowEnabled(workflow.id, enabled)
-
-  private onMd3WorkflowTemplateAdded = () => {
-    this.md3WorkflowCatalogOpen = false
-    this.md3ActionsController.refresh()
-    this.forceUpdate()
-  }
-
-  private closeMd3BulkBranchDelete = () => {
-    this.md3BulkBranchDeleteOpen = false
-    this.forceUpdate()
-  }
-
-  private closeMd3NewAgentSession = () => {
-    if (this.isCreatingAgentSession) {
-      return
-    }
-    this.md3NewAgentSessionOpen = false
-    this.forceUpdate()
-  }
-
-  private onMd3NewAgentSessionStarted = async (
-    request: INewAgentSessionRequest,
-    setupCommands: ReadonlyArray<IAgentSetupCommand>,
-    restartSetup: boolean
-  ) => {
-    const accepted = await this.createAgentSession(
-      request,
-      setupCommands,
-      restartSetup
-    )
-    if (accepted) {
-      this.md3NewAgentSessionOpen = false
-      this.forceUpdate()
-    }
-  }
-
-  private renderMd3ActionsManager() {
-    const tab = this.md3ActionsManager
-    const repository = this.md3Selection?.repository ?? null
-    if (tab === null || repository === null) {
-      return null
-    }
-
-    const actions = this.md3ActionsController.getActionsState()
-    const title =
-      tab === 'workflows'
-        ? t('md3.carry.workflowManagerTitle')
-        : tab === 'caches'
-        ? t('md3.carry.cacheManagerTitle')
-        : t('md3.carry.runnerManagerTitle')
-
-    return (
-      <Dialog
-        id="md3-actions-manager"
-        title={title}
-        onDismissed={this.closeMd3ActionsManager}
-        onSubmit={this.closeMd3ActionsManager}
-      >
-        <DialogContent>
-          {tab === 'workflows' ? (
-            <WorkflowManager
-              workflows={actions.workflows}
-              runs={actions.runs}
-              busyWorkflowId={null}
-              onRequestChange={this.onMd3SetWorkflowEnabled}
-              onNewWorkflow={this.openMd3WorkflowCatalog}
-            />
-          ) : null}
-          {tab === 'caches' && repository.gitHubRepository !== null ? (
-            <ActionsCacheManager
-              repository={repository}
-              actionsStore={this.props.actionsStore}
-              state={actions}
-            />
-          ) : null}
-          {tab === 'runners' ? (
-            <SelfHostedRunnerManager
-              repository={repository}
-              accounts={this.state.accounts}
-            />
-          ) : null}
-        </DialogContent>
-        <DefaultDialogFooter buttonText={t('md3.carry.close')} />
-      </Dialog>
-    )
-  }
-
-  private renderMd3WorkflowCatalog() {
-    const selection = this.md3Selection
-    if (!this.md3WorkflowCatalogOpen || selection === null) {
-      return null
-    }
-
-    const branch = this.md3BranchName()
-    return (
-      <WorkflowCatalogDialog
-        repository={selection.repository}
-        workflows={this.md3ActionsController.getActionsState().workflows}
-        branchName={branch.length > 0 ? branch : 'main'}
-        onTemplateAdded={this.onMd3WorkflowTemplateAdded}
-        onDismissed={this.closeMd3WorkflowCatalog}
-      />
-    )
-  }
-
-  private renderMd3BulkBranchDelete() {
-    const selection = this.md3Selection
-    if (!this.md3BulkBranchDeleteOpen || selection === null) {
-      return null
-    }
-
-    const { branchesState } = selection.state
-    return (
-      <Dialog
-        id="md3-bulk-branch-delete"
-        title={t('md3.carry.bulkDeleteTitle')}
-        onDismissed={this.closeMd3BulkBranchDelete}
-        onSubmit={this.closeMd3BulkBranchDelete}
-      >
-        <DialogContent>
-          <BulkBranchDelete
-            repository={selection.repository}
-            allBranches={branchesState.allBranches}
-            currentBranch={
-              branchesState.tip.kind === TipState.Valid
-                ? branchesState.tip.branch
-                : null
-            }
-            defaultBranch={branchesState.defaultBranch}
-            dispatcher={this.props.dispatcher}
-          />
-        </DialogContent>
-        <DefaultDialogFooter buttonText={t('md3.carry.close')} />
-      </Dialog>
-    )
-  }
-
-  private renderMd3NewAgentSession() {
-    const context = this.md3NewAgentSessionOpen
-      ? this.agentSessionFormContext()
-      : null
-    if (context === null) {
-      return null
-    }
-
-    const busy = this.isCreatingAgentSession
-    return (
-      <Dialog
-        id="md3-new-agent-session"
-        title={t('agentSessions.newSession')}
-        className="new-agent-session-dialog"
-        loading={busy}
-        dismissDisabled={busy}
-        onDismissed={this.closeMd3NewAgentSession}
-      >
-        <DialogContent>
-          <NewAgentSessionForm
-            availability={this.agentRunnerAvailability}
-            baseBranches={context.baseBranches}
-            defaultBaseBranch={context.defaultBaseBranch}
-            existingWorktreeNames={context.sessions.map(
-              session => session.name
-            )}
-            existingBranchNames={context.branchNames}
-            isStarting={busy}
-            onStart={this.onMd3NewAgentSessionStarted}
-            onCancel={this.closeMd3NewAgentSession}
-            setupCommands={context.setupCommandsState.commands}
-            setupCommandsAvailable={context.setupCommandsState.available}
-            onSaveSetupCommands={this.saveAgentSetupCommands}
-            canCancelStart={this.activeAgentSetupOperationId !== null}
-            onCancelStart={this.onCancelAgentSessionCreate}
-            retryableSetups={context.retryableSetups}
-          />
-        </DialogContent>
-      </Dialog>
-    )
-  }
-
-  /**
-   * Every carried-over capability, as the `menuExtensions` the shell renders.
-   *
-   * The object below has one entry per command in `Md3CarryOverCommands`.
-   * `md3UnplacedCarryOverCommands` reports any that do not, and
-   * `md3-carryover-reachability-test.ts` reads this very call, so a command
-   * that loses its handler goes red rather than quietly disappearing from a
-   * menu nobody was watching.
-   */
-  private md3CarryOverExtensions() {
-    const runs = this.md3ActionsController.getRunCounts()
-    const attempt = this.md3ActionsController.getSelectedAttempt()
-    const preferences = getMd3ViewPreferences()
-
-    const extensions = buildMd3CarryOverExtensions(
-      {
-        compareToBranch: () => this.md3GoToDestination('branches'),
-        unreachableCommits: () =>
-          this.props.dispatcher.showUnreachableCommits(
-            UnreachableCommitsTab.Unreachable
-          ),
-        workflowManager: () => this.openMd3ActionsManager('workflows'),
-        workflowCatalog: this.openMd3WorkflowCatalog,
-        cacheManager: () => this.openMd3ActionsManager('caches'),
-        runnerManager: () => this.openMd3ActionsManager('runners'),
-        refreshRuns: () => this.md3ActionsController.refresh(),
-        runCount: () => this.md3ActionsController.loadAllRuns(),
-        jumpToAttempt: () => {
-          this.md3ActionsController.stepSelectedAttempt()
-        },
-        logGroupCollapse: () =>
-          void setMd3LogGroupsCollapsed(
-            !getMd3ViewPreferences().logGroupsCollapsed
-          ),
-        paneDivider: () =>
-          void stepMd3ActionsRunListWidth(
-            getMd3ViewPreferences().actionsRunListWidth
-          ),
-        discardFile: this.md3GatedCarryOver('discardFile', () =>
-          this.md3DiscardGate(this.md3CarryOverFiles(), false)
-        ),
-        permanentlyDiscardFile: this.md3GatedCarryOver(
-          'permanentlyDiscardFile',
-          () => this.md3DiscardGate(this.md3CarryOverFiles(), true)
-        ),
-        stashFile: () => this.md3StashFiles(this.md3CarryOverFiles()),
-        ignoreFolder: () => this.md3IgnoreFolder(),
-        copyRelativePath: () =>
-          this.md3CopyPaths(this.md3CarryOverFiles(), true),
-        copySelectedPaths: () =>
-          this.md3CopyPaths(this.md3CarryOverFiles(), false),
-        openWithDefaultProgram: () => this.md3OpenWithDefaultProgram(),
-        cheapLfsPin: () => this.md3PinWithCheapLfs(this.md3CarryOverFiles()),
-        includeSelectedFiles: () =>
-          this.md3IncludeFiles(this.md3CarryOverFiles(), true),
-        excludeSelectedFiles: () =>
-          this.md3IncludeFiles(this.md3CarryOverFiles(), false),
-        discardAll: this.md3GatedCarryOver('discardAll', () =>
-          this.md3DiscardGate(this.md3AllChangedFiles(), false)
-        ),
-        permanentlyDiscardAll: this.md3GatedCarryOver(
-          'permanentlyDiscardAll',
-          () => this.md3DiscardGate(this.md3AllChangedFiles(), true)
-        ),
-        stashAll: () => {
-          const repository = this.md3Selection?.repository
-          if (repository !== undefined) {
-            this.props.dispatcher.createStashForCurrentBranch(repository)
-          }
-        },
-        mergeAndDelete: this.md3GatedCarryOver('mergeAndDelete', () =>
-          this.md3MergeAndDeleteGate()
-        ),
-        compareBranch: () => this.md3CompareToCarryOverBranch(),
-        copyBranchName: () => {
-          const branch = this.md3CarryOverBranch()
-          if (branch !== null) {
-            clipboard.writeText(branch.name)
-          }
-        },
-        togglePinBranch: () =>
-          this.md3SetBranchVisibility((visibility, branch) => {
-            const pinned = new Set(visibility.pinned)
-            if (pinned.has(branch.name)) {
-              pinned.delete(branch.name)
-            } else {
-              pinned.add(branch.name)
-            }
-            return { ...visibility, pinned: [...pinned] }
-          }),
-        hideBranch: () =>
-          this.md3SetBranchVisibility((visibility, branch) => ({
-            ...visibility,
-            hidden: [...new Set([...visibility.hidden, branch.name])],
-          })),
-        soloBranch: () =>
-          this.md3SetBranchVisibility((visibility, branch) => ({
-            ...visibility,
-            solo: visibility.solo === branch.name ? null : branch.name,
-          })),
-        restoreBranchVisibility: () =>
-          this.md3SetLocal({
-            branchVisibility: {
-              pinned: this.md3LocalViewState.branchVisibility.pinned,
-              hidden: [],
-              solo: null,
-            },
-          }),
-        checkoutInNewWorktree: () => {
-          const selection = this.md3Selection
-          const branch = this.md3CarryOverBranch()
-          if (selection === null || branch === null) {
-            return
-          }
-          void this.props.dispatcher.showPopup({
-            type: PopupType.AddWorktree,
-            repository: selection.repository,
-            initialBranchName: branch.name,
-          })
-        },
-        switchToWorktree: () => this.md3SwitchToCarryOverWorktree(),
-        viewBranchOnForge: () => this.md3OpenCarryOverBranchOnForge(false),
-        viewPullRequestOnForge: () => this.md3OpenCarryOverBranchOnForge(true),
-        sortBranchesByName: () => this.md3SetLocal({ branchSortOrder: 'name' }),
-        sortBranchesByRecent: () =>
-          this.md3SetLocal({ branchSortOrder: 'recent' }),
-        showPullRequests: () => {
-          const repository = this.md3Selection?.repository
-          if (repository !== undefined) {
-            void this.props.dispatcher.refreshPullRequests(repository)
-          }
-        },
-        fetchRemoteBranches: () => {
-          const repository = this.md3Selection?.repository
-          if (repository !== undefined) {
-            void this.props.dispatcher.refreshRepository(repository)
-          }
-        },
-        restoreAllBranches: () =>
-          this.md3SetLocal({
-            branchVisibility: {
-              pinned: this.md3LocalViewState.branchVisibility.pinned,
-              hidden: [],
-              solo: null,
-            },
-          }),
-        bulkDeleteBranches: this.md3GatedCarryOver('bulkDeleteBranches', () =>
-          this.md3BulkDeleteBranchesGate()
-        ),
-        repositoryListMenu: this.onRepositoryToolbarButtonContextMenu,
-        newAgentSession: () => {
-          this.md3NewAgentSessionOpen = true
-          this.forceUpdate()
-        },
-      },
-      {
-        // Trailing hints, so a row that reports a value reports the real one.
-        runCount: `${runs.loaded}/${runs.total}`,
-        jumpToAttempt: attempt === null ? '' : String(attempt),
-        logGroupCollapse: preferences.logGroupsCollapsed
-          ? t('md3.menu.hint.on')
-          : t('md3.menu.hint.off'),
-        paneDivider: `${preferences.actionsRunListWidth}px`,
-      }
-    )
-
-    const paneMenu = [
-      ...(extensions.paneMenu ?? []),
-      ...this.md3ClassicSectionItems(),
-    ]
-
-    return { ...extensions, paneMenu }
-  }
-
-  /**
-   * The classic workspace sections that have no Material destination,
-   * `Md3DestinationId` member, or dedicated MD3 view — the source both
-   * `md3ClassicSectionItems()` (the pane menu) and `md3ClassicRailDestinations()`
-   * (Classic mode's rail) build from, so a section reachable from one is
-   * reachable from the other rather than one quietly falling behind.
-   *
-   * Every other section the classic tab bar offers already has a route: the
-   * three `App.Md3DestinationSections` names directly, and these eight do
-   * not — Releases, Issues, Triage, Cheap LFS, Launchpad, the history graph,
-   * Repository tools and the GitHub API Explorer. They open in the current
-   * destination's pane rather than in a ninth-and-beyond destination the
-   * contract does not have, and picking any of the shell's own eight puts the
-   * Material view back (`md3SyncDestinationChange` clears `md3ClassicSection`).
-   * The classic workspace brings its own tab bar, so arriving at one of the
-   * eight is also arriving at all of them.
-   */
-  private md3ClassicSectionEntries(): ReadonlyArray<{
-    readonly id: string
-    readonly section: RepositorySectionTab
-    readonly labelKey: TranslationKey
-    readonly icon: MaterialSymbolName
-  }> {
-    return [
-      {
-        id: 'classicReleases',
-        section: RepositorySectionTab.Releases,
-        labelKey: 'md3.classicSection.releases',
-        icon: 'label',
-      },
-      {
-        id: 'classicIssues',
-        section: RepositorySectionTab.Issues,
-        labelKey: 'md3.classicSection.issues',
-        icon: 'flag',
-      },
-      {
-        id: 'classicTriage',
-        section: RepositorySectionTab.Triage,
-        labelKey: 'md3.classicSection.triage',
-        icon: 'inbox',
-      },
-      {
-        id: 'classicCheapLfs',
-        section: RepositorySectionTab.CheapLfs,
-        labelKey: 'md3.classicSection.cheapLfs',
-        icon: 'inventory_2',
-      },
-      {
-        id: 'classicLaunchpad',
-        section: RepositorySectionTab.Launchpad,
-        labelKey: 'md3.classicSection.launchpad',
-        icon: 'rocket_launch',
-      },
-      {
-        id: 'classicHistoryGraph',
-        section: RepositorySectionTab.HistoryGraph,
-        labelKey: 'md3.classicSection.historyGraph',
-        icon: 'account_tree',
-      },
-      {
-        // Neither one of the shell's eight destinations nor a member of the
-        // original six the pane menu shipped with — `RepositoryView`'s own
-        // `repository-tools-tab` had no route from the shell at all before
-        // this entry existed. Reuses the tab's own labels/icon rather than
-        // inventing a second `md3.classicSection.*` string for one label.
-        id: 'classicRepositoryTools',
-        section: RepositorySectionTab.RepositoryTools,
-        labelKey: 'repositorySection.tools',
-        icon: 'build',
-      },
-      {
-        // Same gap as Repository tools, for `github-api-tab`. Visibility is
-        // intentionally not re-derived here: the six original entries above
-        // are not gated on `RepositoryView`'s own
-        // supportsGitHubActions/showsGitHubReleases/showsGitHubIssues checks
-        // either, so an entry for a repository that cannot use it degrades
-        // the same way theirs already do — `getSelectedSection()` silently
-        // falls back to Changes rather than crashing.
-        id: 'classicGitHubAPI',
-        section: RepositorySectionTab.GitHubAPI,
-        labelKey: 'githubApi.railLabel',
-        icon: 'code',
-      },
-    ]
-  }
-
-  private md3ClassicSectionItems(): ReadonlyArray<IMd3MenuItem> {
-    if (this.md3Selection === null) {
-      return []
-    }
-
-    return this.md3ClassicSectionEntries().map(entry => ({
-      id: entry.id,
-      label: t(entry.labelKey),
-      icon: entry.icon,
-      hint: '',
-      onClick: () => this.md3OpenClassicSection(entry.section),
-    }))
-  }
-
-  /**
-   * The same eight sections as `md3ClassicSectionItems()`, presented as
-   * `Md3Shell`'s `railExtraDestinations` — Classic mode's rail is the only
-   * caller (`renderMd3Shell` passes this only when `navigation === 'rail'`),
-   * so Material mode's drawer never sees them.
-   *
-   * `active` reads `md3ClassicSection` rather than `Md3DestinationId`,
-   * because none of these eight ids are a member of that closed union.
-   */
-  /**
-   * Whether a classic section can actually be reached for this repository.
-   *
-   * `RepositoryView` gated its section tabs on exactly these questions, so a
-   * repository with no GitHub remote never showed Releases, Issues, Cheap LFS
-   * or the API explorer. The rail took those tabs' place and at first offered
-   * all of them unconditionally, which looks harmless and is not: selecting one
-   * dispatches a real section change, and `RepositoryView.getSelectedSection`
-   * quietly falls back to Changes for a section the repository cannot show. The
-   * user presses "Releases" and lands on Changes with nothing to explain it,
-   * which is the decorative-control failure this repository forbids.
-   *
-   * Deliberately NOT mirrored: `showsGitHubAPI`'s extra `isGitHubAPIHidden`
-   * term. That flag is a per-repository user preference the rail intentionally
-   * overrides — `md3OpenClassicSection` un-hides the tab before navigating,
-   * exactly as `showGitHubAPIExplorer` does — so the rail asks only whether the
-   * repository could use the API at all.
-   */
-  private md3ClassicSectionAvailable(section: RepositorySectionTab): boolean {
-    const selection = this.md3Selection
-    if (selection === null) {
-      return false
-    }
-
-    const repository = selection.repository
-    const accounts = this.state.accounts
-
-    switch (section) {
-      case RepositorySectionTab.Releases:
-      case RepositorySectionTab.CheapLfs:
-        // Cheap LFS shares the Releases condition, as its tab always has.
-        return (
-          getGitHubReleasesAvailability(repository, accounts) !== 'not-github'
-        )
-      case RepositorySectionTab.Issues:
-        return (
-          getGitHubIssuesAvailability(repository, accounts) !== 'not-github'
-        )
-      case RepositorySectionTab.GitHubAPI: {
-        if (repository.gitHubRepository === null) {
-          return false
-        }
-        const account = getAccountForRepository(accounts, repository)
-        return account === null || account.provider === 'github'
-      }
-      default:
-        // Triage, Launchpad, the history graph and Repository tools have no
-        // gate on their tabs either — they are always available.
-        return true
-    }
-  }
-
-  private md3ClassicRailDestinations(): ReadonlyArray<IMd3Destination> {
-    if (this.md3Selection === null) {
-      return []
-    }
-
-    return this.md3ClassicSectionEntries()
-      .filter(entry => this.md3ClassicSectionAvailable(entry.section))
-      .map(entry => ({
-        id: entry.id,
-        label: t(entry.labelKey),
-        icon: entry.icon,
-        count: '',
-        active: entry.section === this.md3ClassicSection,
-      }))
-  }
-
-  /** `Md3Shell`'s `onSelectExtraDestination`, wired only in Classic mode. */
-  private md3OnSelectExtraDestination = (id: string) => {
-    const entry = this.md3ClassicSectionEntries().find(e => e.id === id)
-    if (entry !== undefined) {
-      this.md3OpenClassicSection(entry.section)
-    }
-  }
-
-  private md3OpenClassicSection(section: RepositorySectionTab) {
-    const selection = this.md3Selection
-    if (selection === null) {
-      return
-    }
-    if (section === RepositorySectionTab.GitHubAPI) {
-      // The rail item can be user-hidden per repository; navigating while
-      // hidden would be silently overridden back to Changes by
-      // `RepositoryView.getSelectedSection`. Un-hide first, mirroring
-      // `showGitHubAPIExplorer`'s own path.
-      setGitHubAPITabHidden(selection.repository.hash, false)
-    }
-    this.md3ClassicSection = section
-    void this.props.dispatcher.changeRepositorySection(
-      selection.repository,
-      section
-    )
-    this.forceUpdate()
-  }
-
-  /**
-   * The drop target both layouts share.
-   *
-   * Shared rather than copied: two definitions of the same overlay is two
-   * chances for one of them to stop matching what dropping a folder actually
-   * does.
-   */
-  private renderRepositoryDropOverlay() {
-    return (
-      <div className="repository-drop-overlay" role="status" aria-live="polite">
-        <span className="repository-drop-overlay-icon">
-          <Octicon symbol={octicons.repoPush} height={28} />
-        </span>
-        <strong>Drop repository folders to open tabs</strong>
-        <span>Existing repositories switch instantly; new ones are added.</span>
-      </div>
-    )
-  }
-
-  /**
-   * The pre-rewrite interface, rendered when the classic experience is on.
-   *
-   * This is the layout `renderApp` had before the MD3 shell, not an imitation
-   * of it: the repository tab strip, the classic toolbar, the banners and the
-   * repository workspace, in the order they were in, from the same components
-   * that still ship. The popup layer, the drag element and the drop overlay are
-   * shared with the shell rather than duplicated, because a dialog that only
-   * opened in one of the two layouts would be exactly the split this setting
-   * exists to avoid.
-   *
-   * The classic toolbar is unconditional here. Its own setting decides whether
-   * the band sits above the *MD3* pane; in this layout the toolbar is the
-   * chrome, so hiding it would leave a classic experience with no classic
-   * anything.
-   */
-  /**
-   * The reset key both layouts give their per-repository crash boundaries, so
-   * a crash in one repository's workspace cannot follow the user to the next.
-   */
-  private md3RepositoryBoundaryKey(): string {
-    const selectedState = this.state.selectedState
-    return selectedState === null
-      ? `none:${this.state.repositories.length}`
-      : `${selectedState.type}:${selectedState.repository.hash}`
-  }
-
-  /**
-   * The interface as it stood immediately before the MD3 rewrite.
-   *
-   * Getting this wrong once is worth writing down. "Classic" was first built
-   * as a bare toolbar over the repository workspace — the shape the app had
-   * before the shell existed at all — and it did not look like what anybody
-   * was actually using, because by then the shell was already there. The tip
-   * before the rewrite is `f443f3cd10`, and what it rendered was this shell,
-   * with `md3NoViews`, so every destination fell through to the classic
-   * workspace via `renderLegacyDestination`.
-   *
-   * So the difference between the two modes is exactly one prop. That is the
-   * point: sharing `renderMd3Shell` means a change to the chrome reaches both
-   * modes at once and neither can quietly rot while the other is maintained.
-   */
-  private renderClassicApp() {
-    // Classic mode asks the shared renderer for the rail —
-    // `design/Desktop Material v2.dc.html`'s fixed 88px icon-pill `<nav>` —
-    // rather than the Material shell's own 208px/68px drawer. It is still the
-    // same eight-destination array and the same shared chrome, plus the
-    // eight classic-only sections `md3ClassicRailDestinations()` appends
-    // (rail-only, per `renderMd3Shell`'s `railExtraDestinations` below).
-    // Reverted to the drawer on 2026-08-14 at the user's request: the UI is
-    // to render as it did before the MD3 rewrite, and the pre-rewrite tip
-    // `f443f3cd10` rendered exactly this — `Md3Shell` with `md3NoViews` and
-    // the DRAWER, every destination falling through to the classic workspace.
-    // The rail is not deleted; `Md3NavigationRail` and its stylesheet, tests
-    // and i18n all remain, and a caller that asks for 'rail' still gets it.
-    // Only what Classic mode renders by default has changed back.
-    return this.renderMd3Shell(md3NoViews)
-  }
-
-  private renderApp() {
-    if (this.classicExperience) {
-      return this.renderClassicApp()
-    }
-
-    // The controllers are pointed at the current repository before the views
-    // are built, so a repository switch never renders one destination's data
-    // under another repository's name.
-    this.md3RenderInProgress = true
-    let views: IMd3ShellViews
-    try {
-      this.md3SyncDestinationSources()
-      views = this.md3Views()
-    } finally {
-      this.md3RenderInProgress = false
-    }
-
-    if (this.md3ClassicSection !== null) {
-      // A `null` destination is how the shell is told to render the classic
-      // workspace in that pane instead of its own view. Only the destination
-      // being looked at is handed over, so the other seven keep their views
-      // and picking one from the drawer is the way back.
-      views = { ...views, [this.md3ShellState.destination]: null }
-    }
-
-    return this.renderMd3Shell(views)
-  }
-
-  /**
-   * The chrome, once, for both interface modes.
-   *
-   * Everything about the window except which views the destinations hold lives
-   * here. The two modes differ by the `views` argument and nothing else, so a
-   * control added to the top bar, a banner, a popup or a boundary cannot land
-   * in one mode and be missing from the other — which is exactly how the first
-   * attempt at classic mode ended up a different application.
-   */
-  private renderMd3Shell(
-    views: IMd3ShellViews,
-    navigation: 'drawer' | 'rail' = 'drawer'
-  ) {
-    return (
-      <div
-        id="desktop-app-contents"
-        className={this.getDesktopAppContentsClassNames()}
-        {...teleportAnchor('app-workspace')}
-        data-customization-surface="app-workspace"
-        data-customization-label="App workspace"
-        data-customization-scope="profile"
-      >
-        {this.renderUpdateDownloadProgress()}
-        <Md3Shell
-          state={this.md3ShellState}
-          onStateChange={this.onMd3ShellStateChange}
-          navigation={navigation}
-          appIdentity={this.state.appearanceCustomization.appIdentity}
-          accountInitials={this.md3AccountInitials()}
-          accountName={
-            this.state.accounts.length > 0
-              ? this.state.accounts[0].friendlyName
-              : undefined
-          }
-          unreadCount={this.state.unreadNotificationCount}
-          onCommitAndPush={this.onMd3CommitAndPush}
-          onOpenPalette={this.onMd3OpenPalette}
-          onOpenNotifications={this.onMd3OpenNotifications}
-          onToggleTheme={this.onMd3ToggleTheme}
-          onOpenSettings={this.onMd3OpenSettings}
-          onOpenAccountSwitcher={this.onMd3OpenAccountSwitcher}
-          repositoryName={this.md3RepositoryName()}
-          branchName={this.md3BranchName()}
-          pushState={this.md3AheadCount() > 0 ? 'ahead' : 'clean'}
-          aheadCount={this.md3AheadCount()}
-          onFetch={this.onMd3Fetch}
-          onPush={this.onMd3Push}
-          menuContext={this.md3MenuContext()}
-          menuHandlers={this.md3MenuHandlers()}
-          menuExtensions={this.md3CarryOverExtensions()}
-          compose={this.md3ComposeProps()}
-          // Classic mode's rail only: the eight sections the shell's own
-          // eight destinations do not name. `navigation === 'rail'` is
-          // Classic mode's own signal (see `renderClassicApp`), so Material
-          // mode's drawer — which ignores this prop entirely — never
-          // receives it regardless.
-          railExtraDestinations={
-            navigation === 'rail' ? this.md3ClassicRailDestinations() : []
-          }
-          onSelectExtraDestination={this.md3OnSelectExtraDestination}
-          // The uncommitted-file count, which the repository workspace's own
-          // rail used to carry as a `FilesChangedBadge` inside its Changes tab.
-          // Suppressing that rail in Classic mode took the badge with it — a
-          // small, always-on signal that a user would simply stop seeing — so
-          // the same number now feeds the shell rail's own count slot instead.
-          //
-          // Rail-only for the same reason as the extras above: restoring what
-          // Classic mode had is the job, and giving Material mode's drawer a
-          // badge it has never had would be a change nobody asked for. The
-          // drawer renders this prop identically if it is ever wanted there.
-          destinationCounts={
-            navigation === 'rail' ? this.md3DestinationCounts() : undefined
-          }
-          views={views}
-          renderLegacyDestination={this.renderMd3LegacyDestination}
-          repositoryTabStrip={this.renderRepositoryTabStrip()}
-          classicToolbar={this.renderToolbar()}
-          showClassicToolbar={this.md3ClassicToolbarVisible}
-          paneBanners={
-            <>
-              {this.renderCheapLfsRestoreProgress()}
-              {this.renderBanner()}
-              {this.renderSubmoduleRepositoryContext()}
-            </>
-          }
+        <CrashProofBoundary
+          name="Notification center"
+          resetKey={this.state.isNotificationCentreOpen ? 'open' : 'closed'}
         >
-          {/*
-            Build and run. The shell shipped without it — the classic layout
-            rendered it and this one simply did not, so the panel was
-            unreachable for anyone on the new chrome, with no error and nothing
-            to notice. It is a panel rather than a destination, so it belongs
-            here beside the notification centre rather than in the drawer.
-          */}
-          <CrashProofBoundary
-            name="Build runner"
-            resetKey={this.md3RepositoryBoundaryKey()}
-          >
-            {this.renderBuildRunPanel()}
-          </CrashProofBoundary>
-          <CrashProofBoundary
-            name="Notification center"
-            resetKey={this.state.isNotificationCentreOpen ? 'open' : 'closed'}
-          >
-            {this.renderNotificationCentre()}
-          </CrashProofBoundary>
-          {this.renderMd3WorkflowDispatch()}
-          {this.renderMd3ActionsManager()}
-          {this.renderMd3WorkflowCatalog()}
-          {this.renderMd3BulkBranchDelete()}
-          {this.renderMd3NewAgentSession()}
-          {this.renderMd3CarryOverGate()}
-          {this.renderAppearanceEditor()}
-          {this.renderPopups()}
-          {this.renderDragElement()}
-          {this.renderRepositoryDropOverlay()}
-        </Md3Shell>
+          {this.renderNotificationCentre()}
+        </CrashProofBoundary>
+        {this.renderAppearanceEditor()}
+        {this.renderPopups()}
+        {this.renderDragElement()}
+        <div
+          className="repository-drop-overlay"
+          role="status"
+          aria-live="polite"
+        >
+          <span className="repository-drop-overlay-icon">
+            <Octicon symbol={octicons.repoPush} height={28} />
+          </span>
+          <strong>Drop repository folders to open tabs</strong>
+          <span>
+            Existing repositories switch instantly; new ones are added.
+          </span>
+        </div>
       </div>
     )
   }
@@ -11583,16 +8475,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     })
   }
 
-  /**
-   * Everything the agent-session surfaces need, computed once.
-   *
-   * Both the classic panel and the MD3 shell's own `New agent session…` row
-   * open the same form over the same repository, so the base branches, the
-   * reviewed setup commands and the retryable setups are resolved here rather
-   * than twice — two copies of this are two chances for one surface to offer a
-   * base branch the other one does not.
-   */
-  private agentSessionFormContext() {
+  private renderAgentSessionsPanel() {
     const selection = this.getSelectedRepositoryState()
     if (
       selection === null ||
@@ -11635,51 +8518,30 @@ export class App extends React.Component<IAppProps, IAppState> {
       }))
       .sort((left, right) => left.name.localeCompare(right.name))
 
-    const sessions = worktrees.map(worktree =>
-      toAgentSession(
-        worktree,
-        this.agentSessionLiveStore.getOverlay(worktree.path)
-      )
-    )
-
-    return {
-      selection,
-      repositoryIdentity,
-      worktrees,
-      sessions,
-      branchNames,
-      baseBranches,
-      defaultBaseBranch,
-      setupCommandsState,
-      retryableSetups,
-    }
-  }
-
-  private renderAgentSessionsPanel() {
-    const context = this.agentSessionFormContext()
-    if (context === null) {
-      return null
-    }
-
     return (
       <AgentSessionsPanel
-        key={`agent-sessions-${context.repositoryIdentity}`}
-        sessions={context.sessions}
+        key={`agent-sessions-${repositoryIdentity}`}
+        sessions={worktrees.map(worktree =>
+          toAgentSession(
+            worktree,
+            this.agentSessionLiveStore.getOverlay(worktree.path)
+          )
+        )}
         availability={this.agentRunnerAvailability}
-        baseBranches={context.baseBranches}
-        defaultBaseBranch={context.defaultBaseBranch}
-        existingBranchNames={context.branchNames}
-        selectedPath={context.selection.repository.path}
+        baseBranches={baseBranches}
+        defaultBaseBranch={defaultBaseBranch}
+        existingBranchNames={branchNames}
+        selectedPath={selection.repository.path}
         onSelectSession={this.onSelectAgentSession}
         onCancelSession={this.onCancelAgentSession}
         onCreateSession={this.onCreateAgentSession}
         isCreating={this.isCreatingAgentSession}
-        setupCommands={context.setupCommandsState.commands}
-        setupCommandsAvailable={context.setupCommandsState.available}
+        setupCommands={setupCommandsState.commands}
+        setupCommandsAvailable={setupCommandsState.available}
         onSaveSetupCommands={this.saveAgentSetupCommands}
         canCancelCreate={this.activeAgentSetupOperationId !== null}
         onCancelCreate={this.onCancelAgentSessionCreate}
-        retryableSetups={context.retryableSetups}
+        retryableSetups={retryableSetups}
       />
     )
   }
@@ -12451,6 +9313,15 @@ export class App extends React.Component<IAppProps, IAppState> {
           {this.renderPushPullToolbarButton()}
         </ToolbarItem>
         <ToolbarItem
+          id="one-click-commit-push"
+          preferredWidth={180}
+          overflowPriority={2}
+          desktopMaterialFeature={true}
+          renderOverflow={this.renderOneClickCommitPushOverflowButton}
+        >
+          {this.renderOneClickCommitPushButton()}
+        </ToolbarItem>
+        <ToolbarItem
           id="build-run"
           preferredWidth={210}
           overflowPriority={1}
@@ -12532,6 +9403,9 @@ export class App extends React.Component<IAppProps, IAppState> {
       />
     )
   }
+
+  private renderOneClickCommitPushOverflowButton = () =>
+    this.renderOneClickCommitPushButton()
 
   private renderBuildRunPanel() {
     const selection = this.state.selectedState
@@ -12645,20 +9519,6 @@ export class App extends React.Component<IAppProps, IAppState> {
           actionsStore={this.props.actionsStore}
           releasesStore={this.props.releasesStore}
           issueWorkflowsStore={this.props.issueWorkflowsStore}
-          // Classic mode's own MD3 rail (`renderClassicApp`) already carries
-          // every section this view's own `<nav className="repository-rail">`
-          // would repeat, plus Settings — both dispatch the identical
-          // `PopupType.Preferences` popup, so that one is a true duplicate.
-          // Material mode never sets this, so its own repository-section
-          // fallback (`renderMd3LegacyDestination`, reached only while a
-          // classic section is open inside an MD3 destination) is unchanged.
-          // False since the 2026-08-14 revert. The workspace rail's own
-          // section tabs, Settings button and avatar are drawn again, because
-          // that is what the pre-rewrite UI showed and the shell is back on
-          // the drawer, which does not reach the eleven repository sections.
-          // Suppressing them now would remove navigation with nothing
-          // standing in for it.
-          shellProvidesNavigation={false}
         />
       )
     } else if (selectedState.type === SelectionType.CloningRepository) {
@@ -12798,15 +9658,6 @@ export class App extends React.Component<IAppProps, IAppState> {
             {this.renderDimSumSurprise()}
             {this.renderZoomInfo()}
             {this.renderFullScreenInfo()}
-            {/*
-              The prompt a locked element opens. Mounted at the shell rather
-              than beside each lockable control, because the gate that blocks
-              the activation is also one listener at the document — a prompt
-              per control would be several hundred of them, and the ones
-              nobody remembered would leave a button that silently refuses to
-              work with nothing on screen to explain it.
-            */}
-            <AppearanceLockPromptHost />
           </>
         )}
       </div>

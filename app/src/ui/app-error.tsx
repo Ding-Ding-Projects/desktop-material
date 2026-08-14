@@ -52,7 +52,6 @@ interface IAppErrorState {
  */
 export class AppError extends React.Component<IAppErrorProps, IAppErrorState> {
   private dialogContent: HTMLDivElement | null = null
-  private showPreferencesTimer: number | null = null
 
   public constructor(props: IAppErrorProps) {
     super(props)
@@ -77,20 +76,9 @@ export class AppError extends React.Component<IAppErrorProps, IAppErrorState> {
 
     //This is a hacky solution to resolve multiple dialog windows
     //being open at the same time.
-    if (this.showPreferencesTimer !== null) {
-      window.clearTimeout(this.showPreferencesTimer)
-    }
-    this.showPreferencesTimer = window.setTimeout(() => {
-      this.showPreferencesTimer = null
+    window.setTimeout(() => {
       this.props.onShowPopup({ type: PopupType.Preferences })
     }, dialogTransitionTimeout.exit)
-  }
-
-  public componentWillUnmount() {
-    if (this.showPreferencesTimer !== null) {
-      window.clearTimeout(this.showPreferencesTimer)
-      this.showPreferencesTimer = null
-    }
   }
 
   private onRetryAction = (event: React.MouseEvent<HTMLButtonElement>) => {

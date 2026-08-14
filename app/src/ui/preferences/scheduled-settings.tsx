@@ -48,7 +48,6 @@ import { teleportAnchor } from '../../lib/teleport-targets'
 
 export interface IScheduledSettingsProps {
   readonly languageMode: LanguageMode
-  readonly schoolModeEnabled?: boolean
   readonly scheduledSettings: IScheduledSettingsConfig
   readonly onScheduledSettingsChanged: (value: IScheduledSettingsConfig) => void
   readonly onHomeAssistantTokenChanged: (
@@ -564,22 +563,21 @@ export class ScheduledSettings extends React.Component<
           </p>
         </details>
         <Row>
-          {!this.props.schoolModeEnabled &&
-            this.renderValueSelect(
-              this.text('appearance.scheduledSettingsLanguage'),
-              value.languageMode,
-              languageModes,
-              next => this.updateLanguageValue(rule, next),
-              option =>
-                this.text(
-                  option === 'english'
-                    ? 'appearance.scheduledSettingsLanguageEnglish'
-                    : option === 'cantonese'
-                    ? 'appearance.scheduledSettingsLanguageCantonese'
-                    : 'appearance.scheduledSettingsLanguageBilingual'
-                ),
-              'language'
-            )}
+          {this.renderValueSelect(
+            this.text('appearance.scheduledSettingsLanguage'),
+            value.languageMode,
+            languageModes,
+            next => this.updateLanguageValue(rule, next),
+            option =>
+              this.text(
+                option === 'english'
+                  ? 'appearance.scheduledSettingsLanguageEnglish'
+                  : option === 'cantonese'
+                  ? 'appearance.scheduledSettingsLanguageCantonese'
+                  : 'appearance.scheduledSettingsLanguageBilingual'
+              ),
+            'language'
+          )}
           {this.renderValueSelect(
             this.text('appearance.scheduledSettingsTheme'),
             value.theme,

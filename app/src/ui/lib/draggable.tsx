@@ -39,7 +39,6 @@ interface IDraggableProps {
 export class Draggable extends React.Component<IDraggableProps> {
   private hasDragStarted: boolean = false
   private hasDragEnded: boolean = false
-  private disposed = false
   private dragElement: HTMLElement | null = null
   private elemBelow: Element | null = null
   // Default offset to place the cursor slightly above the top left corner of
@@ -50,26 +49,6 @@ export class Draggable extends React.Component<IDraggableProps> {
 
   public componentDidMount() {
     this.dragElement = document.getElementById('dragElement')
-  }
-
-  public componentWillUnmount() {
-    this.disposed = true
-    this.hasDragEnded = true
-
-    if (this.hasDragStarted) {
-      this.onDragEnd()
-    } else {
-      this.cleanupDragListeners()
-    }
-  }
-
-  private cleanupDragListeners(): void {
-    document.removeEventListener('mousemove', this.onMouseMove)
-    if (document.onmouseup === this.handleDragEndEvent) {
-      document.onmouseup = null
-    }
-    window.removeEventListener('keyup', this.onKeyUp)
-    mouseScroller.clearScrollTimer()
   }
 
   /**
@@ -112,13 +91,13 @@ export class Draggable extends React.Component<IDraggableProps> {
    * - sets up mouse move and mouse up listeners
    */
   private onMouseDown = async (event: React.MouseEvent<HTMLDivElement>) => {
-    if (this.disposed || !this.canDragCommit(event)) {
+    if (!this.canDragCommit(event)) {
       return
     }
     this.hasDragEnded = false
     document.onmouseup = this.handleDragEndEvent
     await sleep(100)
-    if (this.disposed || this.hasDragEnded) {
+    if (this.hasDragEnded) {
       return
     }
 
@@ -175,7 +154,8 @@ export class Draggable extends React.Component<IDraggableProps> {
     if (this.hasDragStarted) {
       this.onDragEnd()
     }
-    this.cleanupDragListeners()
+    document.onmouseup = null
+    window.removeEventListener('keyup', this.onKeyUp)
   }
 
   private onKeyUp = (event: KeyboardEvent) => {
@@ -186,7 +166,8 @@ export class Draggable extends React.Component<IDraggableProps> {
   }
 
   private onDragEnd(): void {
-    this.cleanupDragListeners()
+    document.removeEventListener('mousemove', this.onMouseMove)
+    mouseScroller.clearScrollTimer()
     this.props.onRemoveDragElement()
     if (this.props.onDragEnd !== undefined) {
       this.props.onDragEnd(this.getLastElemBelowDropTarget())

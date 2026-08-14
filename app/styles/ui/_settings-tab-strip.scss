@@ -18,34 +18,6 @@
   min-width: 0;
 }
 
-// Shared Claude-authored settings workbench anatomy. The owning dialogs keep
-// their existing data, navigation and persistence; these hooks only align the
-// two surfaces around one tonal navigation panel and one quiet content panel.
-.settings-workbench {
-  --settings-workbench-navigation-width: 260px;
-
-  background: var(--md-sys-color-surface-container-low);
-  color: var(--md-sys-color-on-surface);
-  isolation: isolate;
-}
-
-.settings-workbench-navigation {
-  background: var(--md-sys-color-surface-container-high);
-}
-
-.settings-workbench-heading {
-  flex: none;
-}
-
-.settings-workbench-search {
-  flex: none;
-  min-width: 0;
-}
-
-.settings-workbench-content {
-  background: var(--md-sys-color-surface-container-lowest);
-}
-
 .settings-tab-strip-list {
   display: flex;
   flex: 1;
@@ -203,7 +175,7 @@
 
 .settings-tab-strip-browser {
   align-items: flex-end;
-  background: transparent;
+  background: var(--md-sys-color-surface-container);
   border-bottom: 1px solid var(--md-sys-color-outline-variant);
   flex-direction: row;
   flex: 0 0 auto;
@@ -247,8 +219,7 @@
   .settings-browser-tab {
     align-items: stretch;
     background: var(--md-sys-color-surface-container-high);
-    border: 1px solid transparent;
-    border-radius: 14px 14px 0 0;
+    border-radius: 12px 12px 0 0;
     display: flex;
     flex: 0 1 240px;
     height: 40px;
@@ -257,13 +228,7 @@
     overflow: hidden;
 
     &.active {
-      background: var(--md-sys-color-secondary-container);
-      border-color: color-mix(in srgb, var(--md-sys-color-primary) 24%, transparent);
-
-      .settings-browser-tab-select {
-        color: var(--md-sys-color-on-secondary-container);
-        font-weight: var(--font-weight-semibold);
-      }
+      background: var(--md-sys-color-surface);
     }
 
     &:focus-within {
@@ -390,8 +355,7 @@
   border-bottom: 0;
   flex-direction: column;
   min-height: 0;
-  gap: 6px;
-  padding: 8px 0 0;
+  padding: var(--spacing) 0;
 
   .settings-browser-tabs {
     align-items: stretch;
@@ -404,33 +368,15 @@
     align-items: stretch;
     flex-direction: column;
     min-width: 0;
-    gap: 2px;
     width: 100%;
   }
 
   .settings-browser-tab {
-    background: transparent;
-    border: 0;
-    border-radius: 10px;
     flex: 0 0 auto;
-    min-height: 42px;
+    height: auto;
     max-width: none;
     min-width: 0;
     width: 100%;
-
-    &:hover:not(.active) {
-      background: var(--md-sys-color-surface-container-highest);
-    }
-
-    &.active {
-      background: var(--md-sys-color-secondary-container);
-      box-shadow: inset 3px 0 0 var(--md-sys-color-primary);
-    }
-  }
-
-  .settings-browser-tab-select {
-    min-height: 42px;
-    padding-inline-start: 12px;
   }
 
   .settings-browser-tab-title {
@@ -440,10 +386,7 @@
   }
 
   .settings-browser-tab-actions {
-    border-top: 1px solid var(--md-sys-color-outline-variant);
-    gap: 4px;
     justify-content: flex-start;
-    padding-top: 8px;
     width: 100%;
   }
 }
@@ -502,76 +445,16 @@
   min-width: 260px;
 }
 
-.popover-component.settings-tab-picker {
-  border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 20px;
-  background: var(--md-sys-color-surface-container-high);
-  box-shadow: var(--md-sys-elevation-level3);
-
-  .popover-content {
-    padding: 12px 8px 10px;
-    border-radius: inherit;
-  }
-}
-
-.settings-tab-picker-header {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  min-width: 0;
-  padding: 0 8px 10px;
-
-  h2 {
-    min-width: 0;
-    margin: 0;
-    font-size: 13.5px;
-    font-weight: var(--font-weight-semibold);
-    overflow-wrap: anywhere;
-  }
-}
-
-.settings-tab-picker-heading-icon {
-  display: grid;
-  width: 32px;
-  height: 32px;
-  flex: none;
-  place-items: center;
-  border-radius: 10px;
-  background: var(--md-sys-color-primary-container);
-  color: var(--md-sys-color-on-primary-container);
-
-  .octicon {
-    width: 16px;
-    height: 16px;
-  }
-}
-
 .settings-tab-picker-field {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-half);
-  margin: 0 4px 8px;
-  padding: 4px 6px 4px 12px;
-  border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 999px;
-  background: var(--md-sys-color-surface-container-lowest);
+  margin-bottom: var(--spacing-half);
 
   input[type='search'] {
     flex: 1 1 auto;
-    height: 30px;
     min-width: 140px;
-    border: 0;
-    background: transparent;
-
-    &:focus-visible {
-      outline: none;
-    }
-  }
-
-  &:focus-within {
-    border-color: var(--md-sys-color-primary);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-sys-color-primary) 32%, transparent);
   }
 }
 
@@ -600,7 +483,7 @@
   display: flex;
   font: inherit;
   gap: 10px;
-  min-height: 40px;
+  min-height: 36px;
   padding: 0 10px;
   text-align: left;
   width: 100%;
@@ -616,8 +499,7 @@
   }
 
   &.selected {
-    background: var(--md-sys-color-secondary-container);
-    color: var(--md-sys-color-on-secondary-container);
+    color: var(--md-sys-color-primary);
     font-weight: var(--font-weight-semibold);
   }
 

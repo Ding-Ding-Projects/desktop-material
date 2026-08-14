@@ -6,7 +6,6 @@ import { Branch } from '../../models/branch'
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { Ref } from '../lib/ref'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
-import { Md3DestructiveGateBody } from '../md3/md3-destructive-gate'
 
 interface IDeleteRemoteBranchProps {
   readonly dispatcher: Dispatcher
@@ -18,9 +17,6 @@ interface IDeleteRemoteBranchProps {
 }
 interface IDeleteRemoteBranchState {
   readonly isDeleting: boolean
-
-  /** Whether the shared destructive-action gate has been fully operated. */
-  readonly gateAuthorized: boolean
 }
 export class DeleteRemoteBranch extends React.Component<
   IDeleteRemoteBranchProps,
@@ -31,7 +27,6 @@ export class DeleteRemoteBranch extends React.Component<
 
     this.state = {
       isDeleting: false,
-      gateAuthorized: false,
     }
   }
 
@@ -60,42 +55,15 @@ export class DeleteRemoteBranch extends React.Component<
               collaborating on this branch.
             </p>
           </div>
-          <Md3DestructiveGateBody
-            actionId="delete-remote-branch"
-            summary={`This deletes ${this.props.branch.name} on the remote. It does not exist locally, so nothing is left behind in this checkout.`}
-            irreversible={`Anyone collaborating on ${this.props.branch.name} loses the branch on the remote, and this app cannot restore it.`}
-            targetKeyLabel={`${this.props.branch.name}, on the remote`}
-            effectKeyLabel="collaborators lose the remote branch and it cannot be restored from here"
-            disabled={this.state.isDeleting}
-            onAuthorizationChanged={this.onGateAuthorizationChanged}
-          />
         </DialogContent>
         <DialogFooter>
-          <OkCancelButtonGroup
-            destructive={true}
-            okButtonText="Delete"
-            okButtonDisabled={
-              this.state.isDeleting || !this.state.gateAuthorized
-            }
-            cancelButtonText="Emergency exit"
-          />
+          <OkCancelButtonGroup destructive={true} okButtonText="Delete" />
         </DialogFooter>
       </Dialog>
     )
   }
 
-  private onGateAuthorizationChanged = (gateAuthorized: boolean) => {
-    this.setState({ gateAuthorized })
-  }
-
   private deleteBranch = async () => {
-    // A destructive `Dialog` submits on Enter from anywhere inside the form,
-    // and the affirmative control is a plain button rather than the submit
-    // button, so a disabled button alone does not gate the keyboard path.
-    if (!this.state.gateAuthorized) {
-      return
-    }
-
     const { dispatcher, repository, branch } = this.props
 
     this.setState({ isDeleting: true })

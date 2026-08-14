@@ -8,7 +8,6 @@
 
 .banner {
   $banner-height: 48px;
-  box-sizing: border-box;
   height: $banner-height;
   position: relative;
   display: flex;
@@ -17,15 +16,7 @@
   align-content: center;
   align-items: center;
   justify-content: space-between;
-  width: calc(100% - 24px);
-  max-width: 920px;
-  min-height: $banner-height;
-  margin: 8px auto 0;
-  padding: 0 8px 0 16px;
-  border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 16px;
-  background: var(--md-sys-color-surface-container);
-  box-shadow: var(--md-sys-elevation-level1);
+  padding-left: var(--spacing-double);
 
   // Prevents the notification banner from decreasing its height
   // when a large diff is rendered.
@@ -37,7 +28,6 @@
     align-content: center;
     justify-content: left;
     align-items: center;
-    min-width: 0;
   }
   .close {
     display: flex;
@@ -67,11 +57,6 @@
 
       &:hover {
         background: color-mix(in srgb, currentColor 12%, transparent);
-      }
-
-      &:focus-visible {
-        outline: 2px solid currentColor;
-        outline-offset: 2px;
       }
     }
   }
@@ -104,24 +89,5 @@
     height: auto;
     padding-top: var(--spacing-half);
     padding-bottom: var(--spacing-half);
-  }
-
-  @media (max-width: 560px) {
-    width: calc(100% - 16px);
-    margin-top: 6px;
-    padding: 8px;
-
-    .contents {
-      align-items: flex-start;
-      flex: 1 1 auto;
-      flex-wrap: wrap;
-      min-width: 0;
-    }
-
-    .close {
-      align-self: flex-start;
-      margin-left: 4px;
-      margin-right: 0;
-    }
   }
 }

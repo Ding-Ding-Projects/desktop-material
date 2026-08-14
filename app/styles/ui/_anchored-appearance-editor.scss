@@ -14,8 +14,6 @@
   flex-direction: column;
   overflow: hidden;
   color: var(--md-sys-color-on-surface);
-  border-radius: 16px;
-  background: var(--md-sys-color-surface-container-high);
 }
 
 .anchored-appearance-editor:has(.element-appearance-editor-wide) {
@@ -28,8 +26,7 @@
   flex: none;
   align-items: center;
   gap: 10px;
-  padding: 8px 8px 10px;
-  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  padding: 2px 2px 12px;
 
   h2 {
     min-width: 0;
@@ -75,10 +72,10 @@
   flex: none;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px;
-  margin: 10px 8px 12px;
+  margin-bottom: 12px;
   padding: 4px;
   border-radius: 999px;
-  background: var(--md-sys-color-surface-container-highest);
+  background: var(--md-sys-color-surface-container-high);
 
   > button {
     display: inline-flex;
@@ -113,7 +110,6 @@
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0 8px 8px;
 }
 
 .anchored-appearance-editor-repository {
@@ -232,9 +228,8 @@
 
 .popover-component:has(.anchored-appearance-editor) {
   max-width: calc(100vw - 20px);
-  border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 20px;
-  background: var(--md-sys-color-surface-container-high);
+  border-radius: 24px;
+  background: var(--md-sys-color-surface-container-low);
   box-shadow: var(--md-sys-elevation-level3);
 
   .popover-content {
@@ -242,7 +237,7 @@
     max-height: var(--available-height, calc(100vh - 20px));
     padding: 16px;
     overflow: hidden;
-    border-radius: 20px;
+    border-radius: 24px;
   }
 }
 

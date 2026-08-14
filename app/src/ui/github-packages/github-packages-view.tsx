@@ -1453,10 +1453,7 @@ export class GitHubPackagesView extends React.Component<
       this.packageRowHeight
     )
     return (
-      <section
-        className="github-packages-list-panel"
-        aria-labelledby="github-packages-list-heading"
-      >
+      <section aria-labelledby="github-packages-list-heading">
         <div className="github-packages-heading">
           <div>
             <h2 id="github-packages-list-heading">Repository packages</h2>
@@ -1788,10 +1785,8 @@ export class GitHubPackagesView extends React.Component<
               </div>
             )}
             {this.renderUpload()}
-            <div className="github-packages-layout">
-              {this.renderPackageList()}
-              {this.renderPackageDetail()}
-            </div>
+            {this.renderPackageList()}
+            {this.renderPackageDetail()}
           </>
         )}
       </div>

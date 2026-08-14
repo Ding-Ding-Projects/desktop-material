@@ -109,11 +109,6 @@ export class BuildRunSettings extends React.Component<
   IBuildRunSettingsProps,
   IBuildRunSettingsState
 > {
-  /** Prevent a completed repository probe from updating a closed settings tab. */
-  private mounted = false
-  /** Invalidates a superseded probe when the repository or component changes. */
-  private profileRequest = 0
-
   public constructor(props: IBuildRunSettingsProps) {
     super(props)
     this.state = {
@@ -122,49 +117,14 @@ export class BuildRunSettings extends React.Component<
     }
   }
 
-  public componentDidMount() {
-    this.mounted = true
-    void this.refreshDetectedProfiles()
-  }
-
-  public componentDidUpdate(prevProps: IBuildRunSettingsProps) {
-    if (prevProps.repository.path !== this.props.repository.path) {
-      void this.refreshDetectedProfiles()
-    }
-  }
-
-  public componentWillUnmount() {
-    this.mounted = false
-    this.profileRequest++
-  }
-
-  private async refreshDetectedProfiles(): Promise<void> {
-    const request = ++this.profileRequest
-    const repositoryPath = this.props.repository.path
-    if (this.mounted) {
-      this.setState({ isDetecting: true })
-    }
+  public async componentDidMount() {
     try {
-      const probe = await probeRepository(repositoryPath)
+      const probe = await probeRepository(this.props.repository.path)
       const detectedProfiles = detectProfiles(probe)
-      if (
-        !this.mounted ||
-        request !== this.profileRequest ||
-        repositoryPath !== this.props.repository.path
-      ) {
-        return
-      }
       this.setState({ detectedProfiles, isDetecting: false })
     } catch (e) {
-      if (
-        !this.mounted ||
-        request !== this.profileRequest ||
-        repositoryPath !== this.props.repository.path
-      ) {
-        return
-      }
       log.warn(
-        `BuildRunSettings: unable to detect build profiles for ${repositoryPath}`,
+        `BuildRunSettings: unable to detect build profiles for ${this.props.repository.path}`,
         e
       )
       this.setState({ detectedProfiles: [], isDetecting: false })

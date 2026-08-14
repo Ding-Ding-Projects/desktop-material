@@ -697,7 +697,7 @@ export class SettingsTabStrip extends React.Component<
 
     return (
       <div
-        className="settings-tab-strip settings-tab-strip-browser settings-material-menu"
+        className="settings-tab-strip settings-tab-strip-browser"
         data-settings-tab-dock-position={this.dockPosition}
         data-settings-tab-dock-orientation={orientation}
       >

@@ -59,19 +59,3 @@ export type {
   IAnchoredAppearanceEditorProps,
   IAppearanceElementHistoryDialogProps,
 } from './anchored-appearance-editor'
-
-export {
-  AppearanceLockBlockedEvent,
-  AppearanceLockTargetAttribute,
-  appearanceLockTargetProps,
-  clearAppearanceUnlocks,
-  forgetAppearanceUnlock,
-  installAppearanceLockGate,
-  isAppearanceTargetBlocked,
-  recordAppearanceUnlock,
-  resolveAppearanceLockTarget,
-  uninstallAppearanceLockGate,
-} from './appearance-lock-gate'
-export type { IAppearanceLockBlockedDetail } from './appearance-lock-gate'
-
-export { AppearanceLockPromptHost } from './appearance-lock-prompt-host'

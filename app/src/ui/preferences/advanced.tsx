@@ -20,7 +20,6 @@ import {
   setLargeRepositorySettings,
 } from '../../lib/large-repository/large-repository-settings'
 import { clearLargeRepositoryEvaluations } from '../../lib/large-repository/large-repository-controller'
-import { AuthenticatorPreferences } from './authenticator-settings'
 import {
   BrowserPreferencesChangedEvent,
   BrowserOpenMode,
@@ -210,7 +209,6 @@ export class Advanced extends React.Component<
   public render() {
     return (
       <DialogContent>
-        <AuthenticatorPreferences languageMode={this.state.languageMode} />
         <div
           className="advanced-section"
           {...teleportAnchor('settings-auto-switch-account')}

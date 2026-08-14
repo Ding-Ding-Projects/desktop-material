@@ -888,40 +888,6 @@
   }
 }
 
-@media screen and (max-width: 420px) {
-  #welcome {
-    padding: 8px;
-
-    .welcome-left {
-      min-height: calc(100vh - 16px);
-      padding: 12px;
-    }
-
-    .welcome-product-lockup {
-      margin-bottom: 14px;
-    }
-
-    .welcome-step-card {
-      padding: 20px;
-      border-radius: 20px;
-    }
-
-    .welcome-title {
-      font-size: 30px;
-    }
-
-    .welcome-main-buttons .button-component {
-      min-height: 48px;
-      white-space: normal;
-    }
-
-    .welcome-local-note {
-      align-items: flex-start;
-      line-height: 1.4;
-    }
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   #welcome {
     .welcome-title,

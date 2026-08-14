@@ -3,34 +3,23 @@
 
   display: flex;
   justify-content: center;
-  align-items: flex-end;
+  align-items: center;
 
-  position: fixed;
+  position: absolute;
   width: 100%;
-  height: auto;
-  bottom: 18px;
+  height: 100%;
+  top: 0;
   left: 0;
-  box-sizing: border-box;
-  padding: 0 16px;
-  z-index: var(--popup-z-index);
 
   .toast-notification {
-    align-items: center;
-    box-sizing: border-box;
-    display: flex;
-    width: max-content;
-    max-width: min(520px, calc(100vw - 32px));
-    min-width: min(280px, calc(100vw - 32px));
-    min-height: 44px;
-    padding: 9px 16px;
-    background: var(--md-sys-color-inverse-surface);
-    color: var(--md-sys-color-inverse-on-surface);
-    text-align: left;
-    border-radius: 12px;
-    box-shadow: var(--md-sys-elevation-level3);
-    font-size: 12px;
+    padding: var(--spacing) var(--spacing-double);
+    min-width: 100px;
+    background: var(--toast-notification-background-color);
+    color: var(--toast-notification-color);
+    text-align: center;
+    border-radius: 100px;
+    font-size: var(--font-size-md);
     font-weight: var(--font-weight-semibold);
-    line-height: 1.4;
 
     // This is so sad but CodeMirror uses z-indexes like crazy
     // and we need to make sure we stay above all of that.
@@ -40,19 +29,6 @@
   kbd {
     padding: var(--spacing-half);
     border-color: var(--md-sys-color-outline-variant);
-  }
-}
-
-@media (max-width: 480px) {
-  .toast-notification-container {
-    bottom: 8px;
-    padding: 0 8px;
-
-    .toast-notification {
-      width: 100%;
-      max-width: none;
-      min-width: 0;
-    }
   }
 }
 

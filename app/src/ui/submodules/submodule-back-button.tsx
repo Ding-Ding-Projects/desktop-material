@@ -19,7 +19,6 @@ import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import {
   AnchoredAppearanceEditor,
-  appearanceLockTargetProps,
   openAppearanceEditorFromContextMenu,
   openAppearanceEditorFromKeyDown,
 } from '../appearance'
@@ -256,11 +255,6 @@ export class SubmoduleBackButton extends React.Component<
         data-customization-surface="submodule-back-button"
         data-customization-label="Submodule Back button"
         data-customization-scope="profile"
-        // A lock on this element's appearance also gates the Back button
-        // itself. The attribute is what joins the lock record to the rendered
-        // element; without it the lock exists and the button carries on
-        // working, which is a note rather than a lock.
-        {...appearanceLockTargetProps('submodule-back-button')}
       >
         <Button
           type="button"
@@ -313,8 +307,6 @@ export class SubmoduleBackButton extends React.Component<
     return (
       <AnchoredAppearanceEditor
         title="Submodule Back button appearance"
-        lockTargetId="submodule-back-button"
-        lockTargetLabel="Submodule Back button appearance"
         anchor={anchor}
         historySource={this.props.historySource}
         repositoryPath={this.props.repositoryPath}

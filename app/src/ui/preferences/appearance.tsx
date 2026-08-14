@@ -21,37 +21,14 @@ import {
   numberFormatToKey,
 } from '../../models/formatting-preferences'
 import { formatNumber } from '../../lib/format-number'
-import { PersonalVocabularyControl } from './personal-vocabulary-control'
 import { assertNever } from '../../lib/fatal-error'
 import { BranchSortOrder } from '../../models/branch-sort-order'
 import { ShowBranchNameInRepoListSetting } from '../../models/show-branch-name-in-repo-list'
 import { IAppearanceCustomization } from '../../models/appearance-customization'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
-import { translate, translatedVariable } from '../../lib/i18n'
-import {
-  IFunnyLevels,
-  translateWithFunnyLevel,
-} from '../../lib/funny-level-text'
-import {
-  DialogEmojiProvenance,
-  getShowDialogEmoji,
-  getShowDialogEmojiProvenance,
-  setShowDialogEmoji,
-} from '../../lib/dialog-emoji'
-import {
-  ClassicToolbarProvenance,
-  getShowClassicToolbar,
-  getShowClassicToolbarProvenance,
-  setShowClassicToolbar,
-} from '../../lib/classic-toolbar'
-import {
-  InterfaceModeProvenance,
-  getInterfaceMode,
-  getInterfaceModeProvenance,
-  isClassicMode,
-  setInterfaceMode,
-} from '../../lib/interface-mode'
+import { translate } from '../../lib/i18n'
+import { translateWithFunnyLevel } from '../../lib/funny-level-text'
 import {
   clampFunnyLevel,
   IAudioSystemSettings,
@@ -65,9 +42,6 @@ import {
   IScheduledSettingsProps,
   ScheduledSettings,
 } from './scheduled-settings'
-import { SchoolModePreferences } from './school-mode'
-import { SurfaceLocksPreferences } from './surface-locks'
-import { isSchoolModeEnabled } from '../../lib/school-mode'
 
 type AppearanceSelectKey = 'languageMode'
 
@@ -122,18 +96,6 @@ interface IAppearanceState {
   readonly selectedTabSize: number
   readonly funnyLevelEnglish: number
   readonly funnyLevelCantonese: number
-  /** Live value of "Show emojis in dialogs and message boxes". */
-  readonly showDialogEmoji: boolean
-  /** Whether that value was recorded here or is the shipped fallback. */
-  readonly showDialogEmojiProvenance: DialogEmojiProvenance
-  /** Live value of "Show the classic toolbar". */
-  readonly showClassicToolbar: boolean
-
-  readonly classicMode: boolean
-
-  readonly interfaceModeProvenance: InterfaceModeProvenance
-  /** Whether that value was recorded here or is the shipped fallback. */
-  readonly showClassicToolbarProvenance: ClassicToolbarProvenance
 }
 
 export class Appearance extends React.Component<
@@ -157,12 +119,6 @@ export class Appearance extends React.Component<
       selectedTabSize: props.selectedTabSize,
       funnyLevelEnglish: audioSettings.funnyLevelEnglish,
       funnyLevelCantonese: audioSettings.funnyLevelCantonese,
-      showDialogEmoji: getShowDialogEmoji(),
-      showDialogEmojiProvenance: getShowDialogEmojiProvenance(),
-      showClassicToolbar: getShowClassicToolbar(),
-      showClassicToolbarProvenance: getShowClassicToolbarProvenance(),
-      classicMode: isClassicMode(),
-      interfaceModeProvenance: getInterfaceModeProvenance(),
     }
 
     if (!usePropTheme) {
@@ -203,10 +159,6 @@ export class Appearance extends React.Component<
   }
 
   private renderLanguageAndNavigation() {
-    if (isSchoolModeEnabled()) {
-      return null
-    }
-
     const languageMode = this.props.appearanceCustomization.languageMode
     const localize = (key: Parameters<typeof translate>[0]) =>
       translate(key, languageMode)
@@ -262,268 +214,6 @@ export class Appearance extends React.Component<
         </div>
       </div>
     )
-  }
-
-  /**
-   * "Show emojis in dialogs and message boxes".
-   *
-   * The switch is not hidden by School mode: a decorative glyph beside a
-   * dialog title is not one of the presentation features that mode suppresses,
-   * and removing the control would leave a user unable to turn off something
-   * they can plainly see.
-   *
-   * The explanation sits behind progressive disclosure so the row stays a row,
-   * and the provenance line underneath states whether the live value was
-   * actually chosen on this computer or is the shipped fallback — naming the
-   * real value rather than the opaque word "default".
-   */
-  /**
-   * The personal-vocabulary upload.
-   *
-   * It lives in Appearance because that is where the rest of "how this app
-   * reads to me" lives, and it is present whether or not a file has ever been
-   * supplied — a control that only appears once it is in use is a control
-   * nobody finds.
-   */
-  private renderPersonalVocabulary() {
-    return (
-      <div
-        className="appearance-section appearance-customization-section"
-        {...teleportAnchor('settings-personal-vocabulary')}
-      >
-        <h2>Personal vocabulary</h2>
-        <PersonalVocabularyControl />
-      </div>
-    )
-  }
-
-  private renderDialogEmoji() {
-    const languageMode = this.props.appearanceCustomization.languageMode
-    const localize = (key: Parameters<typeof translate>[0]) =>
-      translate(key, languageMode)
-    const levels: IFunnyLevels = {
-      english: this.state.funnyLevelEnglish,
-      cantonese: this.state.funnyLevelCantonese,
-    }
-
-    const enabled = this.state.showDialogEmoji
-    const provenance = translate(
-      this.state.showDialogEmojiProvenance === 'stored'
-        ? 'dialogEmoji.provenanceStored'
-        : 'dialogEmoji.provenanceDefault',
-      languageMode,
-      {
-        value: translatedVariable(
-          enabled ? 'dialogEmoji.stateOn' : 'dialogEmoji.stateOff'
-        ),
-      }
-    )
-
-    return (
-      <div
-        className="appearance-section appearance-customization-section appearance-dialog-emoji"
-        {...teleportAnchor('settings-dialog-emoji')}
-      >
-        <h2>{localize('dialogEmoji.heading')}</h2>
-        <Checkbox
-          label={localize('dialogEmoji.toggleLabel')}
-          value={enabled ? CheckboxValue.On : CheckboxValue.Off}
-          onChange={this.onShowDialogEmojiChanged}
-          ariaDescribedBy="dialog-emoji-provenance"
-        />
-        <details className="appearance-dialog-emoji-explanation">
-          <summary>{localize('dialogEmoji.explanationSummary')}</summary>
-          <p className="appearance-customization-caption">
-            {translateWithFunnyLevel(
-              'dialogEmoji.explanation',
-              languageMode,
-              levels
-            )}
-          </p>
-          <p className="appearance-customization-caption">
-            {localize('dialogEmoji.boundaryNote')}
-          </p>
-        </details>
-        <p
-          id="dialog-emoji-provenance"
-          className="appearance-customization-caption appearance-dialog-emoji-provenance"
-        >
-          {provenance}
-        </p>
-      </div>
-    )
-  }
-
-  /**
-   * "Show the classic toolbar".
-   *
-   * The band the MD3 shell replaced is kept rather than retired, and this is
-   * the switch that governs it. It ships on: the user decided the classic
-   * chrome stays, and a setting that shipped off would be a removal wearing a
-   * checkbox.
-   *
-   * The explanation sits behind progressive disclosure so the row stays a row,
-   * and the provenance line states whether the live value was actually chosen
-   * on this computer or is the shipped fallback — naming the real value rather
-   * than the opaque word "default".
-   */
-  private renderClassicToolbar() {
-    const languageMode = this.props.appearanceCustomization.languageMode
-    const localize = (key: Parameters<typeof translate>[0]) =>
-      translate(key, languageMode)
-    const levels: IFunnyLevels = {
-      english: this.state.funnyLevelEnglish,
-      cantonese: this.state.funnyLevelCantonese,
-    }
-
-    const enabled = this.state.showClassicToolbar
-    const provenance = translate(
-      this.state.showClassicToolbarProvenance === 'stored'
-        ? 'classicToolbar.provenanceStored'
-        : 'classicToolbar.provenanceDefault',
-      languageMode,
-      {
-        value: translatedVariable(
-          enabled ? 'classicToolbar.stateOn' : 'classicToolbar.stateOff'
-        ),
-      }
-    )
-
-    return (
-      <div
-        className="appearance-section appearance-customization-section appearance-classic-toolbar"
-        {...teleportAnchor('settings-classic-toolbar')}
-      >
-        <h2>{localize('classicToolbar.heading')}</h2>
-        <Checkbox
-          label={localize('classicToolbar.toggleLabel')}
-          value={enabled ? CheckboxValue.On : CheckboxValue.Off}
-          onChange={this.onShowClassicToolbarChanged}
-          ariaDescribedBy="classic-toolbar-provenance"
-        />
-        <details className="appearance-classic-toolbar-explanation">
-          <summary>{localize('classicToolbar.explanationSummary')}</summary>
-          <p className="appearance-customization-caption">
-            {translateWithFunnyLevel(
-              'classicToolbar.explanation',
-              languageMode,
-              levels
-            )}
-          </p>
-          <p className="appearance-customization-caption">
-            {localize('classicToolbar.boundaryNote')}
-          </p>
-        </details>
-        <p
-          id="classic-toolbar-provenance"
-          className="appearance-customization-caption appearance-classic-toolbar-provenance"
-        >
-          {provenance}
-        </p>
-      </div>
-    )
-  }
-
-  /**
-   * "Use the classic experience" — the whole pre-rewrite interface.
-   *
-   * Same shape as the toolbar row above it: a checkbox, the explanation behind
-   * progressive disclosure, and a provenance line naming the real value rather
-   * than the word "default".
-   *
-   * The boundary note says plainly that the toolbar setting no longer applies
-   * while this is on. Two switches that appear to disagree is worse than one
-   * that explains itself, and in the classic layout the toolbar is the chrome
-   * rather than a band above it.
-   */
-  private renderClassicExperience() {
-    const languageMode = this.props.appearanceCustomization.languageMode
-    const localize = (key: Parameters<typeof translate>[0]) =>
-      translate(key, languageMode)
-    const levels: IFunnyLevels = {
-      english: this.state.funnyLevelEnglish,
-      cantonese: this.state.funnyLevelCantonese,
-    }
-
-    const enabled = this.state.classicMode
-    const provenance = translate(
-      this.state.interfaceModeProvenance === 'stored'
-        ? 'classicExperience.provenanceStored'
-        : 'classicExperience.provenanceDefault',
-      languageMode,
-      {
-        value: translatedVariable(
-          enabled ? 'classicExperience.stateOn' : 'classicExperience.stateOff'
-        ),
-      }
-    )
-
-    return (
-      <div
-        className="appearance-section appearance-customization-section appearance-classic-experience"
-        {...teleportAnchor('settings-classic-experience')}
-      >
-        <h2>{localize('classicExperience.heading')}</h2>
-        <Checkbox
-          label={localize('classicExperience.toggleLabel')}
-          value={enabled ? CheckboxValue.On : CheckboxValue.Off}
-          onChange={this.onUseClassicExperienceChanged}
-          ariaDescribedBy="classic-experience-provenance"
-        />
-        <details className="appearance-classic-experience-explanation">
-          <summary>{localize('classicExperience.explanationSummary')}</summary>
-          <p className="appearance-customization-caption">
-            {translateWithFunnyLevel(
-              'classicExperience.explanation',
-              languageMode,
-              levels
-            )}
-          </p>
-          <p className="appearance-customization-caption">
-            {localize('classicExperience.boundaryNote')}
-          </p>
-        </details>
-        <p
-          id="classic-experience-provenance"
-          className="appearance-customization-caption appearance-classic-experience-provenance"
-        >
-          {provenance}
-        </p>
-      </div>
-    )
-  }
-
-  private onUseClassicExperienceChanged = (
-    event: React.FormEvent<HTMLInputElement>
-  ) => {
-    const enabled = event.currentTarget.checked
-    setInterfaceMode(enabled ? 'classic' : 'material')
-    this.setState({
-      classicMode: getInterfaceMode() === 'classic',
-      interfaceModeProvenance: getInterfaceModeProvenance(),
-    })
-  }
-
-  private onShowClassicToolbarChanged = (
-    event: React.FormEvent<HTMLInputElement>
-  ) => {
-    const enabled = event.currentTarget.checked
-    setShowClassicToolbar(enabled)
-    this.setState({
-      showClassicToolbar: enabled,
-      showClassicToolbarProvenance: getShowClassicToolbarProvenance(),
-    })
-  }
-
-  private onShowDialogEmojiChanged = (
-    event: React.FormEvent<HTMLInputElement>
-  ) => {
-    const enabled = event.currentTarget.checked
-    setShowDialogEmoji(enabled)
-    this.setState({
-      showDialogEmoji: enabled,
-      showDialogEmojiProvenance: getShowDialogEmojiProvenance(),
-    })
   }
 
   private renderFunnyLevel(
@@ -1098,7 +788,6 @@ export class Appearance extends React.Component<
     return (
       <ScheduledSettings
         languageMode={this.props.appearanceCustomization.languageMode}
-        schoolModeEnabled={isSchoolModeEnabled()}
         scheduledSettings={this.props.scheduledSettings}
         onScheduledSettingsChanged={this.props.onScheduledSettingsChanged}
         onHomeAssistantTokenChanged={this.props.onHomeAssistantTokenChanged}
@@ -1112,16 +801,6 @@ export class Appearance extends React.Component<
       <DialogContent>
         {this.renderElementGestureNote()}
         {this.renderLanguageAndNavigation()}
-        {this.renderDialogEmoji()}
-        {this.renderPersonalVocabulary()}
-        {this.renderClassicExperience()}
-        {this.renderClassicToolbar()}
-        <SchoolModePreferences
-          languageMode={this.props.appearanceCustomization.languageMode}
-        />
-        <SurfaceLocksPreferences
-          languageMode={this.props.appearanceCustomization.languageMode}
-        />
         {this.renderScheduledSettings()}
         {this.renderScaling()}
         {this.renderSelectedTheme()}

@@ -300,7 +300,7 @@ export class InteractiveRebaseEditor extends React.Component<
       <section
         aria-describedby={this.descriptionId}
         aria-labelledby={this.titleId}
-        className="interactive-rebase-editor interactive-rebase-editor--tonal-plan"
+        className="interactive-rebase-editor"
       >
         <header className="interactive-rebase-editor__header">
           <h1 className="interactive-rebase-editor__title" id={this.titleId}>

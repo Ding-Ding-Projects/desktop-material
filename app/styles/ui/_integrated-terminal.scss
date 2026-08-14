@@ -9,12 +9,8 @@
   min-height: 0;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px;
   overflow: hidden;
-  border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 12px;
-  background: var(--md-sys-color-surface-container-lowest);
+  background: var(--md-sys-color-surface);
   color: var(--md-sys-color-on-surface);
 
   &__tab-strip {
@@ -24,10 +20,10 @@
     flex: 0 0 auto;
     align-items: stretch;
     gap: var(--spacing-half, 4px);
-    padding: 0 2px;
+    padding: 2px var(--spacing-half, 4px);
     overflow: hidden;
-    border-block-end: 0;
-    background: transparent;
+    border-block-end: 1px solid var(--md-sys-color-outline-variant);
+    background: var(--md-sys-color-surface-container-low);
   }
 
   &__tablist {
@@ -58,8 +54,8 @@
     padding: 0 var(--spacing, 8px);
     overflow: hidden;
     border: 1px solid transparent;
-    border-radius: 999px;
-    background: var(--md-sys-color-surface-container);
+    border-radius: var(--md-sys-shape-corner-medium, 12px);
+    background: transparent;
     color: var(--md-sys-color-on-surface-variant);
     font: inherit;
     text-align: start;
@@ -71,7 +67,7 @@
     }
 
     &[aria-selected='true'] {
-      border-color: transparent;
+      border-color: var(--md-sys-color-outline-variant);
       background: var(--md-sys-color-secondary-container);
       color: var(--md-sys-color-on-secondary-container);
       font-weight: var(--font-weight-semibold, 600);
@@ -182,9 +178,6 @@
     min-height: 0;
     flex: 1 1 auto;
     overflow: hidden;
-    border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 12px;
-    background: var(--md-sys-color-surface-container-lowest);
   }
 
   &__panel {
@@ -220,7 +213,6 @@
     overscroll-behavior: contain;
     scrollbar-gutter: stable;
     background: var(--md-sys-color-surface-container-lowest);
-    border-radius: 12px;
 
     &:focus-visible,
     &:focus-within {
@@ -247,8 +239,7 @@
     padding: var(--spacing-double, 16px);
     overflow: auto;
     overscroll-behavior: contain;
-    border: 0;
-    border-radius: 12px;
+    border: 1px solid var(--md-sys-color-outline-variant);
     background: var(--md-sys-color-surface-container);
     color: var(--md-sys-color-on-surface);
     text-align: center;
@@ -324,7 +315,6 @@
     overflow: auto;
     overscroll-behavior: contain;
     background: var(--md-sys-color-surface-container-lowest);
-    border-radius: 12px;
     color: var(--md-sys-color-on-surface-variant);
     text-align: center;
     overflow-wrap: anywhere;

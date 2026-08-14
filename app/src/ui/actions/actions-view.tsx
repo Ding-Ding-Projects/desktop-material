@@ -177,9 +177,9 @@ const InitialActionsState: IActionsState = {
 }
 
 /** Starting width of the run list column, matching the previous 55% split. */
-const DefaultActionsRunColumnWidth = 356
-const ActionsRunColumnMinWidth = 280
-const ActionsRunColumnMaxWidth = 720
+const DefaultActionsRunColumnWidth = 560
+const ActionsRunColumnMinWidth = 360
+const ActionsRunColumnMaxWidth = 1100
 
 /** Where this repository's run-column width is remembered. */
 const actionsRunColumnWidthKey = (repository: Repository) =>
@@ -208,7 +208,7 @@ const initialActionsViewState = (
     readCollapsibleState(
       ActionsFiltersElementId,
       collapsibleRepositoryKey(repository)
-    ) ?? false,
+    ) ?? true,
   loadingAllRuns: null,
   runColumnWidth:
     getNumber(
@@ -2013,281 +2013,6 @@ export class ActionsView extends React.Component<
     return this.getFilteredRunsWithError().runs
   }
 
-  private clearRunQuery = () => this.setState({ runQuery: '' })
-
-  private selectQuickRunStatus = (event: React.MouseEvent<HTMLButtonElement>) =>
-    this.setState({ status: event.currentTarget.dataset.status ?? 'all' })
-
-  private resetQuickRunFilters = () =>
-    this.setState({ status: 'all', branch: 'all' })
-
-  private toggleCurrentBranchFilter = () => {
-    const currentBranch = this.props.currentBranch
-    if (currentBranch === null || currentBranch === undefined) {
-      return
-    }
-    this.setState(state => ({
-      branch: state.branch === currentBranch ? 'all' : currentBranch,
-    }))
-  }
-
-  private renderRunTools(
-    actions: IActionsState,
-    filteredRuns: ReadonlyArray<IAPIWorkflowRun>,
-    runQueryError: string | null,
-    branches: ReadonlyArray<string>,
-    events: ReadonlyArray<string>,
-    allVisibleSelected: boolean,
-    selectedRunCount: number,
-    selectedCompletedCount: number,
-    selectedActiveCount: number
-  ) {
-    const currentBranch = this.props.currentBranch
-    return (
-      <div className="actions-run-tools">
-        <div className="actions-search-row">
-          <div
-            className={classNames('actions-search-pill', {
-              invalid: runQueryError !== null,
-            })}
-          >
-            <Octicon symbol={octicons.search} />
-            <input
-              data-search-surface-id="actions-runs"
-              value={this.state.runQuery}
-              onChange={this.onRunQueryChange}
-              placeholder="Filter runs"
-              spellCheck={false}
-              aria-label="Filter workflow runs"
-              aria-invalid={runQueryError !== null}
-              aria-describedby={
-                runQueryError === null ? undefined : 'actions-run-query-error'
-              }
-            />
-            {this.state.runQuery.length > 0 && (
-              <button
-                type="button"
-                className="actions-search-toggle"
-                aria-label="Clear workflow run filter"
-                onClick={this.clearRunQuery}
-              >
-                <Octicon symbol={octicons.x} />
-              </button>
-            )}
-            <FilterModeControl
-              searchSurfaceId="actions-runs"
-              mode={this.state.runQueryMode}
-              caseSensitive={this.state.runQueryCaseSensitive}
-              onModeChange={this.onRunQueryModeChange}
-              onCaseSensitiveChange={this.onRunQueryCaseSensitiveChange}
-              regexBuilderTarget="Workflow runs"
-              getSampleItems={this.getRunQuerySampleItems}
-              filterText={this.state.runQuery}
-              onRegexPatternApply={this.onRunQueryPatternApply}
-            />
-            <button
-              type="button"
-              className={classNames('actions-search-toggle', {
-                on: this.state.filtersOpen,
-              })}
-              aria-pressed={this.state.filtersOpen}
-              aria-expanded={this.state.filtersOpen}
-              aria-label="More workflow run filters"
-              onClick={this.toggleFilters}
-            >
-              <Octicon symbol={octicons.filter} />
-            </button>
-          </div>
-          {runQueryError === null ? null : (
-            <p
-              id="actions-run-query-error"
-              className="actions-run-query-error"
-              role="alert"
-            >
-              {runQueryError}
-            </p>
-          )}
-        </div>
-
-        <div
-          className="actions-filter-chips"
-          role="group"
-          aria-label="Quick workflow run filters"
-        >
-          <button
-            type="button"
-            className={classNames('actions-filter-chip', {
-              on: this.state.status === 'all' && this.state.branch === 'all',
-            })}
-            aria-pressed={
-              this.state.status === 'all' && this.state.branch === 'all'
-            }
-            onClick={this.resetQuickRunFilters}
-          >
-            All
-          </button>
-          {[
-            ['in_progress', 'Running'],
-            ['failure', 'Failed'],
-            ['success', 'Success'],
-          ].map(([status, label]) => (
-            <button
-              type="button"
-              key={status}
-              data-status={status}
-              className={classNames('actions-filter-chip', {
-                on: this.state.status === status,
-              })}
-              aria-pressed={this.state.status === status}
-              onClick={this.selectQuickRunStatus}
-            >
-              {label}
-            </button>
-          ))}
-          <button
-            type="button"
-            className={classNames('actions-filter-chip', {
-              on:
-                currentBranch !== null &&
-                currentBranch !== undefined &&
-                this.state.branch === currentBranch,
-            })}
-            aria-pressed={
-              currentBranch !== null &&
-              currentBranch !== undefined &&
-              this.state.branch === currentBranch
-            }
-            disabled={currentBranch === null || currentBranch === undefined}
-            onClick={this.toggleCurrentBranchFilter}
-          >
-            This branch
-          </button>
-          <button
-            type="button"
-            className="actions-icon-button actions-dispatch-compact"
-            onClick={this.openDispatch}
-            disabled={!actions.workflows.some(x => x.state === 'active')}
-            aria-label="Run workflow"
-            aria-haspopup="dialog"
-          >
-            <Octicon symbol={octicons.play} />
-          </button>
-        </div>
-
-        <section
-          className={classNames('actions-filters', {
-            collapsed: !this.state.filtersOpen,
-          })}
-          aria-label="Workflow run filters"
-          hidden={!this.state.filtersOpen}
-        >
-          <Select
-            name="workflow"
-            label="Workflow"
-            value={this.state.workflow}
-            onChange={this.onFilterChange}
-          >
-            <option value="all">All workflows</option>
-            {actions.workflows.map(workflow => (
-              <option key={workflow.id} value={workflow.id}>
-                {workflow.name}
-              </option>
-            ))}
-          </Select>
-          <Select
-            name="branch"
-            label="Branch"
-            value={this.state.branch}
-            onChange={this.onFilterChange}
-          >
-            <option value="all">All branches</option>
-            {branches.map(branch => (
-              <option key={branch} value={branch}>
-                {branch}
-              </option>
-            ))}
-          </Select>
-          <Select
-            name="event"
-            label="Event"
-            value={this.state.event}
-            onChange={this.onFilterChange}
-          >
-            <option value="all">All events</option>
-            {events.map(event => (
-              <option key={event} value={event}>
-                {event}
-              </option>
-            ))}
-          </Select>
-          <Select
-            name="status"
-            label="Status"
-            value={this.state.status}
-            onChange={this.onFilterChange}
-          >
-            <option value="all">Any status</option>
-            <option value="queued">Queued</option>
-            <option value="in_progress">In progress</option>
-            <option value="success">Success</option>
-            <option value="failure">Failure</option>
-          </Select>
-        </section>
-
-        <div
-          className="actions-run-bulk-toolbar"
-          role="group"
-          aria-label="Bulk workflow run actions"
-        >
-          <label>
-            <input
-              type="checkbox"
-              checked={allVisibleSelected}
-              disabled={
-                filteredRuns.length === 0 ||
-                this.state.bulkRunBusy ||
-                this.state.busyRunId !== null
-              }
-              onChange={this.toggleAllVisibleRuns}
-              aria-label="Select all visible workflow runs"
-            />
-            Select all visible
-          </label>
-          <span aria-live="polite">{selectedRunCount} selected</span>
-          <Button
-            size="small"
-            disabled={
-              selectedCompletedCount === 0 ||
-              this.state.bulkRunBusy ||
-              this.state.busyRunId !== null
-            }
-            onClick={this.requestBulkRerun}
-          >
-            Re-run completed ({selectedCompletedCount})
-          </Button>
-          <Button
-            size="small"
-            disabled={
-              selectedActiveCount === 0 ||
-              this.state.bulkRunBusy ||
-              this.state.busyRunId !== null
-            }
-            onClick={this.requestBulkCancel}
-          >
-            Cancel active ({selectedActiveCount})
-          </Button>
-          <Button
-            size="small"
-            disabled={selectedRunCount === 0 || this.state.bulkRunBusy}
-            onClick={this.clearRunSelection}
-          >
-            Clear selection
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
   private renderRateLimit() {
     const { rateLimitReset } = this.state.actions
     if (rateLimitReset === null) {
@@ -2419,6 +2144,170 @@ export class ActionsView extends React.Component<
         </div>
         {this.state.activeTab !== 'runs' ? null : (
           <>
+            <div className="actions-search-row">
+              <div
+                className={classNames('actions-search-pill', {
+                  invalid: runQueryError !== null,
+                })}
+              >
+                <Octicon symbol={octicons.search} />
+                <input
+                  data-search-surface-id="actions-runs"
+                  value={this.state.runQuery}
+                  onChange={this.onRunQueryChange}
+                  placeholder="Filter runs — try a branch, event, or actor…"
+                  spellCheck={false}
+                  aria-label="Filter workflow runs"
+                  aria-invalid={runQueryError !== null}
+                  aria-describedby={
+                    runQueryError === null
+                      ? undefined
+                      : 'actions-run-query-error'
+                  }
+                />
+                <FilterModeControl
+                  searchSurfaceId="actions-runs"
+                  mode={this.state.runQueryMode}
+                  caseSensitive={this.state.runQueryCaseSensitive}
+                  onModeChange={this.onRunQueryModeChange}
+                  onCaseSensitiveChange={this.onRunQueryCaseSensitiveChange}
+                  regexBuilderTarget="Workflow runs"
+                  getSampleItems={this.getRunQuerySampleItems}
+                  filterText={this.state.runQuery}
+                  onRegexPatternApply={this.onRunQueryPatternApply}
+                />
+                <button
+                  type="button"
+                  className={classNames('actions-search-toggle', {
+                    on: this.state.filtersOpen,
+                  })}
+                  aria-pressed={this.state.filtersOpen}
+                  aria-expanded={this.state.filtersOpen}
+                  aria-label="Search filters"
+                  onClick={this.toggleFilters}
+                >
+                  <Octicon symbol={octicons.filter} />
+                </button>
+              </div>
+              {runQueryError === null ? null : (
+                <p
+                  id="actions-run-query-error"
+                  className="actions-run-query-error"
+                  role="alert"
+                >
+                  {runQueryError}
+                </p>
+              )}
+            </div>
+            <section
+              className={classNames('actions-filters', {
+                collapsed: !this.state.filtersOpen,
+              })}
+              aria-label="Workflow run filters"
+              hidden={!this.state.filtersOpen}
+            >
+              <Select
+                name="workflow"
+                label="Workflow"
+                value={this.state.workflow}
+                onChange={this.onFilterChange}
+              >
+                <option value="all">All workflows</option>
+                {actions.workflows.map(workflow => (
+                  <option key={workflow.id} value={workflow.id}>
+                    {workflow.name}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                name="branch"
+                label="Branch"
+                value={this.state.branch}
+                onChange={this.onFilterChange}
+              >
+                <option value="all">All branches</option>
+                {branches.map(branch => (
+                  <option key={branch} value={branch}>
+                    {branch}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                name="event"
+                label="Event"
+                value={this.state.event}
+                onChange={this.onFilterChange}
+              >
+                <option value="all">All events</option>
+                {events.map(event => (
+                  <option key={event} value={event}>
+                    {event}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                name="status"
+                label="Status"
+                value={this.state.status}
+                onChange={this.onFilterChange}
+              >
+                <option value="all">Any status</option>
+                <option value="queued">Queued</option>
+                <option value="in_progress">In progress</option>
+                <option value="success">Success</option>
+                <option value="failure">Failure</option>
+              </Select>
+            </section>
+            <div
+              className="actions-run-bulk-toolbar"
+              role="group"
+              aria-label="Bulk workflow run actions"
+            >
+              <label>
+                <input
+                  type="checkbox"
+                  checked={allVisibleSelected}
+                  disabled={
+                    filteredRuns.length === 0 ||
+                    this.state.bulkRunBusy ||
+                    this.state.busyRunId !== null
+                  }
+                  onChange={this.toggleAllVisibleRuns}
+                  aria-label="Select all visible workflow runs"
+                />
+                Select all visible
+              </label>
+              <span aria-live="polite">{selectedRuns.length} selected</span>
+              <Button
+                size="small"
+                disabled={
+                  selectedCompletedCount === 0 ||
+                  this.state.bulkRunBusy ||
+                  this.state.busyRunId !== null
+                }
+                onClick={this.requestBulkRerun}
+              >
+                Re-run completed ({selectedCompletedCount})
+              </Button>
+              <Button
+                size="small"
+                disabled={
+                  selectedActiveCount === 0 ||
+                  this.state.bulkRunBusy ||
+                  this.state.busyRunId !== null
+                }
+                onClick={this.requestBulkCancel}
+              >
+                Cancel active ({selectedActiveCount})
+              </Button>
+              <Button
+                size="small"
+                disabled={selectedRuns.length === 0 || this.state.bulkRunBusy}
+                onClick={this.clearRunSelection}
+              >
+                Clear selection
+              </Button>
+            </div>
             {actions.loading && actions.runs.length === 0 && (
               <div className="actions-loading">Loading workflows…</div>
             )}
@@ -2434,24 +2323,12 @@ export class ActionsView extends React.Component<
                 width={this.state.runColumnWidth}
                 minimumWidth={ActionsRunColumnMinWidth}
                 maximumWidth={ActionsRunColumnMaxWidth}
-                fillAvailableWidth={selectedRun === null}
                 onResize={this.onRunColumnResize}
                 onReset={this.onRunColumnReset}
                 description="Workflow run list"
                 id="actions-run-column"
               >
                 <div className="actions-run-column">
-                  {this.renderRunTools(
-                    actions,
-                    filteredRuns,
-                    runQueryError,
-                    branches,
-                    events,
-                    allVisibleSelected,
-                    selectedRuns.length,
-                    selectedCompletedCount,
-                    selectedActiveCount
-                  )}
                   <RunList
                     runs={filteredRuns}
                     selectedRunId={selectedRun?.id ?? null}

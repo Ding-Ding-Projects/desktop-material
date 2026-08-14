@@ -1,7 +1,6 @@
 /* eslint-disable jsx-a11y/no-noninteractive-tabindex -- result logs need keyboard focus */
 import * as React from 'react'
 import * as Path from 'path'
-import { Md3ResizablePane } from '../md3/md3-resizable-pane'
 import classNames from 'classnames'
 import {
   CLIWorkbenchOperation,
@@ -2737,84 +2736,71 @@ export class RepositoryTools extends React.Component<
       ),
     ]
     return (
-      // The tool list was a fixed 356px, which truncates most tool names while
-      // leaving the detail column short on a wide window. Same shared pane the
-      // History and Changes lists use, so the keyboard path and the persisted
-      // width behave identically here.
-      <Md3ResizablePane
-        surface="repository-tools-sidebar"
-        label="the tool list"
-        defaultWidth={356}
-        minimumWidth={240}
-        maximumWidth={720}
-        className="repository-tools-sidebar-pane"
-      >
-        <aside className="repository-tools-sidebar">
-          <nav
-            className="repository-tools-functions repository-tools-list"
-            aria-label={translate(
-              'repositorySigning.shortcutLabel',
-              this.state.languageMode === 'bilingual'
-                ? 'english'
-                : this.state.languageMode
-            )}
-          >
-            {this.renderToolListItem(this.signingHubEntry)}
-          </nav>
-          <div className="repository-tools-search">
-            <Octicon symbol={octicons.search} />
-            <input
-              data-search-surface-id="repository-tools"
-              type="search"
-              className="repository-tools-search-input"
-              placeholder="Search tools"
-              aria-label="Search tools"
-              value={this.state.toolFilter}
-              onChange={this.onHubFilterChanged}
-            />
-            <FilterModeControl
-              searchSurfaceId="repository-tools"
-              mode={this.state.toolFilterMode}
-              caseSensitive={this.state.toolFilterCaseSensitive}
-              onModeChange={this.onHubFilterModeChanged}
-              onCaseSensitiveChange={this.onHubFilterCaseSensitiveChanged}
-              regexBuilderTarget="Repository tools"
-              getSampleItems={this.getHubFilterSampleItems}
-              filterText={this.state.toolFilter}
-              onRegexPatternApply={this.onHubRegexPatternApply}
-            />
-          </div>
-          <div
-            className="repository-tools-filter-chips"
-            role="group"
-            aria-label="Tool categories"
-          >
-            {categories.map(category => (
-              <button
-                type="button"
-                key={category}
-                className="repository-tools-filter-chip"
-                data-category={category}
-                aria-pressed={this.state.toolCategory === category}
-                onClick={this.onHubCategoryClicked}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
-          <nav
-            className="repository-tools-functions repository-tools-list"
-            aria-label="Repository tool list"
-          >
-            {entries.map(entry => this.renderToolListItem(entry))}
-            {entries.length === 0 && (
-              <span className="repository-tools-list-empty">
-                No other tools match this search.
-              </span>
-            )}
-          </nav>
-        </aside>
-      </Md3ResizablePane>
+      <aside className="repository-tools-sidebar">
+        <nav
+          className="repository-tools-functions repository-tools-list"
+          aria-label={translate(
+            'repositorySigning.shortcutLabel',
+            this.state.languageMode === 'bilingual'
+              ? 'english'
+              : this.state.languageMode
+          )}
+        >
+          {this.renderToolListItem(this.signingHubEntry)}
+        </nav>
+        <div className="repository-tools-search">
+          <Octicon symbol={octicons.search} />
+          <input
+            data-search-surface-id="repository-tools"
+            type="search"
+            className="repository-tools-search-input"
+            placeholder="Search tools"
+            aria-label="Search tools"
+            value={this.state.toolFilter}
+            onChange={this.onHubFilterChanged}
+          />
+          <FilterModeControl
+            searchSurfaceId="repository-tools"
+            mode={this.state.toolFilterMode}
+            caseSensitive={this.state.toolFilterCaseSensitive}
+            onModeChange={this.onHubFilterModeChanged}
+            onCaseSensitiveChange={this.onHubFilterCaseSensitiveChanged}
+            regexBuilderTarget="Repository tools"
+            getSampleItems={this.getHubFilterSampleItems}
+            filterText={this.state.toolFilter}
+            onRegexPatternApply={this.onHubRegexPatternApply}
+          />
+        </div>
+        <div
+          className="repository-tools-filter-chips"
+          role="group"
+          aria-label="Tool categories"
+        >
+          {categories.map(category => (
+            <button
+              type="button"
+              key={category}
+              className="repository-tools-filter-chip"
+              data-category={category}
+              aria-pressed={this.state.toolCategory === category}
+              onClick={this.onHubCategoryClicked}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+        <nav
+          className="repository-tools-functions repository-tools-list"
+          aria-label="Repository tool list"
+        >
+          {entries.map(entry => this.renderToolListItem(entry))}
+          {entries.length === 0 && (
+            <span className="repository-tools-list-empty">
+              No other tools match this search.
+            </span>
+          )}
+        </nav>
+      </aside>
     )
   }
 
@@ -2893,7 +2879,7 @@ export class RepositoryTools extends React.Component<
   public render() {
     return (
       <main
-        className="repository-tools repository-tools-hub repository-tools-tonal-workbench"
+        className="repository-tools repository-tools-hub"
         aria-label="Repository tools"
       >
         <div className="repository-tools-modal">

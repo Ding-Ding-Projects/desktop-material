@@ -129,13 +129,6 @@
     transform: scale(0.86);
   }
 
-  // Keyboard focus: outline on the pill, consistent with the hover tonal wash.
-  .tab-bar.vertical .tab-bar-item:focus-visible .rail-pill,
-  .rail-nav-button:focus-visible .rail-pill {
-    outline: 2px solid var(--md-sys-color-primary);
-    outline-offset: 2px;
-  }
-
   // Active section: filled secondary-container pill + bolder on-surface label.
   .tab-bar.vertical .tab-bar-item.selected .rail-pill {
     background: var(--md-sys-color-secondary-container);
@@ -221,11 +214,6 @@
     &:active {
       transform: rotate(60deg) scale(0.9);
     }
-
-    &:focus-visible {
-      outline: 2px solid var(--md-sys-color-primary);
-      outline-offset: 2px;
-    }
   }
 
   .rail-avatar {
@@ -246,11 +234,6 @@
 
     &:active {
       transform: scale(0.9);
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--md-sys-color-primary);
-      outline-offset: 2px;
     }
   }
 }

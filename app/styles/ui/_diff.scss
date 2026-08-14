@@ -10,7 +10,7 @@
 .diff-code-mirror .CodeMirror {
   height: 100%;
   color: var(--diff-text-color);
-  background: var(--diff-background-color);
+  background: var(--background-color);
   font-size: var(--font-size-sm);
   font-family: var(--font-family-monospace);
 
@@ -287,7 +287,7 @@
   }
 
   &.diff-context {
-    background: var(--diff-background-color);
+    background: var(--background-color);
   }
 
   &.diff-hunk {
@@ -1060,7 +1060,6 @@
   flex-grow: 1;
   min-width: 0;
   max-height: 100%;
-  background: var(--diff-background-color);
 
   // MD3 diff palette remap: retints every diff row / gutter / hunk / sign /
   // text through the theme-aware `--diff-*` / `--dm-*` token set defined in
@@ -1072,7 +1071,6 @@
   --diff-alt-text-color: var(--md-sys-color-on-surface-variant);
   --diff-border-color: var(--md-sys-color-outline-variant);
   --diff-gutter-color: var(--md-sys-color-outline-variant);
-  --diff-background-color: var(--md-sys-color-surface);
   --diff-gutter-background-color: transparent;
   --diff-line-number-color: var(--md-sys-color-on-surface-variant);
 
@@ -1292,87 +1290,6 @@
   .diff-container .header {
     gap: 4px;
     padding: 6px 8px;
-
-    .diff-line-stats {
-      display: none;
-    }
-  }
-}
-
-// Claude workbench toolbar actions. Both controls are ordinary buttons backed
-// by the existing commit-summary state and a shared persisted diff preference.
-.diff-container .header {
-  min-height: 42px;
-  padding: 4px 6px 4px 12px;
-  gap: 6px;
-
-  .diff-details-button,
-  .diff-wrap-button {
-    display: inline-flex;
-    height: 34px;
-    flex: 0 0 auto;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 0;
-    border: 0;
-    border-radius: 999px;
-    background: transparent;
-    color: var(--md-sys-color-on-surface-variant);
-    font: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 180ms var(--emph), color 180ms var(--emph), transform 180ms var(--spring-fast);
-
-    &:hover {
-      background: var(--md-sys-color-surface-container-high);
-      color: var(--md-sys-color-on-surface);
-    }
-
-    &:active {
-      transform: scale(0.92);
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--md-sys-color-primary);
-      outline-offset: 2px;
-    }
-  }
-
-  .diff-details-button {
-    padding: 0 12px;
-
-    &[aria-expanded='true'] {
-      background: var(--md-sys-color-secondary-container);
-      color: var(--md-sys-color-on-secondary-container);
-    }
-  }
-
-  .diff-wrap-button {
-    width: 34px;
-
-    &[aria-pressed='true'] {
-      background: var(--md-sys-color-secondary-container);
-      color: var(--md-sys-color-on-secondary-container);
-    }
-  }
-}
-
-@media (max-width: 760px), (min-resolution: 1.5dppx) and (max-width: 980px) {
-  .diff-container .header {
-    .diff-details-button {
-      width: 34px;
-      padding: 0;
-
-      > span:last-child {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip-path: inset(50%);
-      }
-    }
 
     .diff-line-stats {
       display: none;

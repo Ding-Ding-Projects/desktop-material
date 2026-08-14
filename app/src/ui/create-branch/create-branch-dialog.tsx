@@ -324,7 +324,6 @@ export class CreateBranch extends React.Component<
     return (
       <Dialog
         id="create-branch"
-        emojiDecoration="branch"
         title={this.getHeaderText()}
         onSubmit={this.createBranch}
         onDismissed={this.props.onDismissed}

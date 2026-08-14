@@ -23,19 +23,10 @@ $overlay-background-color: rgba(0, 0, 0, 0.4);
   --text-secondary-color-muted: #{lighten($gray-500, 30%)};
   --background-color: #{$white};
 
-  // Kept in step with `_material.scss`, which redeclares this on the same
-  // `:root` and is imported after this file — so the value here is a fallback
-  // that never wins, and a *disagreement* here is invisible until something
-  // stops importing the Material layer. It was 25px, left over from the
-  // pre-Material chrome, and a reader comparing the two files would reasonably
-  // have concluded the app shipped 25px buttons. `app/test/unit/button-token-test.ts`
-  // fails if the two files drift apart again.
-  --button-height: 40px;
+  --button-height: 25px;
 
   --button-background: #{$blue};
-  // Same arrangement, same reason. The Material layer uses `999px` for a fully
-  // rounded button; this fallback matches it rather than the old 6px.
-  --button-border-radius: 999px;
+  --button-border-radius: 6px;
   --button-hover-background: #{lighten($blue, 5%)};
   --button-text-color: #{$white};
   --button-focus-border-color: #{$blue-100};
@@ -78,15 +69,11 @@ $overlay-background-color: rgba(0, 0, 0, 0.4);
   $emoji_fallback_fonts: 'Apple Color Emoji', 'Segoe UI', 'Segoe UI Emoji', 'Segoe UI Symbol';
   --font-family-sans-serif: system-ui, sans-serif, #{$emoji_fallback_fonts};
   --font-family-monospace: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace, #{$emoji_fallback_fonts};
-  --font-family: var(--font-family-sans-serif);
-  --font-monospace: var(--font-family-monospace);
 
   /**
    * Font weight to use for semibold text
    */
   --font-weight-semibold: 600;
-  --font-weight-medium: 500;
-  --font-weight-bold: 700;
 
   /**
    * Font weight to use for light text
@@ -99,7 +86,6 @@ $overlay-background-color: rgba(0, 0, 0, 0.4);
   // Pixel value used to responsively scale all typography. Applied to the `<html>` element.
   // When adding a new font-size variable, please update the fix-emoji-spacing.ts file.
   --font-size: 12px;
-  --font-size-base: var(--font-size);
   --font-size-sm: 11px;
   --font-size-md: 14px;
   --font-size-lg: 28px;
@@ -233,7 +219,6 @@ $overlay-background-color: rgba(0, 0, 0, 0.4);
    */
   --co-author-tag-background-color: #{$blue-000};
   --co-author-tag-border-color: #{$blue-200};
-  --co-author-tag-selected-border-color: var(--box-selected-active-border-color);
 
   /**
    * Commit warning badge icon
@@ -243,11 +228,11 @@ $overlay-background-color: rgba(0, 0, 0, 0.4);
 
   /**
    * The height of the title bar area on Win32 platforms.
-   * The Material shell header is 56px; kept in sync with
+   * Design-spec-shell §2 sets this to 38px; kept in sync with
    * getTitleBarHeight() in 'app/src/ui/window/title-bar.tsx' (which also feeds
    * titleBarHeight in 'app/src/ui/dialog/dialog.tsx').
   */
-  --win32-title-bar-height: 56px;
+  --win32-title-bar-height: 38px;
   --win32-title-bar-background-color: #{$gray-900};
 
   /**
@@ -261,7 +246,6 @@ $overlay-background-color: rgba(0, 0, 0, 0.4);
   --spacing-triple: calc(var(--spacing) * 3);
   --spacing-quad: calc(var(--spacing) * 4);
   --spacing-quint: calc(var(--spacing) * 5);
-  --spacing-quarter: calc(var(--spacing) / 4);
   --spacing-half: calc(var(--spacing) / 2);
   --spacing-third: calc(var(--spacing) / 3);
 
@@ -276,7 +260,7 @@ $overlay-background-color: rgba(0, 0, 0, 0.4);
   --shadow-color: rgba(71, 83, 95, 0.19);
   --base-box-shadow: 0 2px 7px var(--shadow-color);
 
-  --toolbar-height: 48px;
+  --toolbar-height: 50px;
 
   --toolbar-background-color: #{$gray-900};
   --toolbar-border-color: #{$gray-900};
@@ -564,11 +548,6 @@ $overlay-background-color: rgba(0, 0, 0, 0.4);
 
   // PR review colors
   --pr-timeline-line-color: var(--box-border-color);
-  --diff-background-color: var(--background-color);
-
-  // Material aliases used by post-shell surfaces while older components still
-  // reference the historic semantic names.
-  --shadow-dialog: var(--md-sys-elevation-level3);
   --pr-changes-requested-icon-color: #{$white};
   --pr-changes-requested-icon-background-color: #cf222e;
   --pr-approved-icon-color: #{$white};

@@ -2,18 +2,12 @@
   display: flex;
   padding: calc(var(--spacing) * 6);
   align-items: center;
-  position: relative;
-  isolation: isolate;
-  overflow: auto;
-  background: var(--md-sys-color-surface-container-lowest);
 
   > section {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
     min-width: 0;
-    width: min(1180px, 100%);
-    margin: auto;
   }
 
   header {
@@ -43,7 +37,6 @@
     display: flex;
     flex-shrink: 0;
     flex-grow: 1;
-    gap: 16px;
 
     & > .content-pane {
       display: flex;
@@ -53,18 +46,13 @@
       max-width: 50%;
       width: 50%;
       flex-grow: 1;
-      min-width: 0;
-      padding: 16px;
-      border: 1px solid var(--md-sys-color-outline-variant);
-      border-radius: 24px;
-      background: var(--md-sys-color-surface-container-low);
 
       &:not(:last-child) {
-        padding-right: 16px;
+        padding-right: var(--spacing);
       }
 
       &:not(:first-child) {
-        padding-left: 16px;
+        padding-left: var(--spacing);
       }
     }
 
@@ -155,7 +143,6 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    margin-top: 12px;
 
     .octicon {
       margin-right: var(--spacing);
@@ -227,56 +214,6 @@
 
     header h1 {
       font-size: 2.4em;
-    }
-  }
-
-  @media screen and (max-width: 880px) {
-    align-items: flex-start;
-    padding: 24px;
-
-    header {
-      margin-bottom: 20px;
-    }
-
-    .content {
-      flex-direction: column;
-
-      > .content-pane {
-        width: 100%;
-        max-width: none;
-        padding: 16px;
-      }
-
-      > .content-pane.repository-list {
-        min-height: min(430px, 55vh);
-      }
-    }
-
-    .no-repositories-graphic-top,
-    .no-repositories-graphic-bottom {
-      display: none;
-    }
-  }
-
-  @media screen and (max-width: 480px) {
-    padding: 12px;
-
-    header h1 {
-      font-size: 24px;
-    }
-
-    .content {
-      gap: 10px;
-
-      > .content-pane {
-        padding: 12px;
-        border-radius: 18px;
-      }
-    }
-
-    .content .button-group span .button-component {
-      min-height: 48px;
-      padding: 10px 12px;
     }
   }
 }

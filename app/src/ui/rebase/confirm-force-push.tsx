@@ -6,7 +6,6 @@ import { Dispatcher } from '../dispatcher'
 import { DialogFooter, DialogContent, Dialog } from '../dialog'
 import { Ref } from '../lib/ref'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
-import { Md3DestructiveGateBody } from '../md3/md3-destructive-gate'
 import { observeUserInitiatedOperation } from '../lib/observed-operations'
 
 interface IConfirmForcePushProps {
@@ -20,9 +19,6 @@ interface IConfirmForcePushProps {
 interface IConfirmForcePushState {
   readonly isLoading: boolean
   readonly askForConfirmationOnForcePush: boolean
-
-  /** Whether the shared destructive-action gate has been fully operated. */
-  readonly gateAuthorized: boolean
 }
 
 export class ConfirmForcePush extends React.Component<
@@ -35,7 +31,6 @@ export class ConfirmForcePush extends React.Component<
     this.state = {
       isLoading: false,
       askForConfirmationOnForcePush: props.askForConfirmationOnForcePush,
-      gateAuthorized: false,
     }
   }
 
@@ -55,15 +50,6 @@ export class ConfirmForcePush extends React.Component<
             this branch will need to reset their own local branch to match the
             history of the remote.
           </p>
-          <Md3DestructiveGateBody
-            actionId="force-push"
-            summary={`This replaces the history currently published on ${this.props.upstreamBranch} with the history in this checkout.`}
-            irreversible={`Commits that exist only on ${this.props.upstreamBranch} stop being reachable there, and collaborators have to reset their own local branch to match.`}
-            targetKeyLabel={`the upstream branch ${this.props.upstreamBranch}`}
-            effectKeyLabel="the published history is rewritten and collaborators must reset to match"
-            disabled={this.state.isLoading}
-            onAuthorizationChanged={this.onGateAuthorizationChanged}
-          />
           <div>
             <Checkbox
               label="Do not show this message again"
@@ -77,21 +63,10 @@ export class ConfirmForcePush extends React.Component<
           </div>
         </DialogContent>
         <DialogFooter>
-          <OkCancelButtonGroup
-            destructive={true}
-            okButtonText="I'm sure"
-            okButtonDisabled={
-              this.state.isLoading || !this.state.gateAuthorized
-            }
-            cancelButtonText="Emergency exit"
-          />
+          <OkCancelButtonGroup destructive={true} okButtonText="I'm sure" />
         </DialogFooter>
       </Dialog>
     )
-  }
-
-  private onGateAuthorizationChanged = (gateAuthorized: boolean) => {
-    this.setState({ gateAuthorized })
   }
 
   private onAskForConfirmationOnForcePushChanged = (
@@ -103,13 +78,6 @@ export class ConfirmForcePush extends React.Component<
   }
 
   private onForcePush = () => {
-    // A destructive `Dialog` submits on Enter from anywhere inside the form,
-    // and the affirmative control is a plain button rather than the submit
-    // button, so a disabled button alone does not gate the keyboard path.
-    if (!this.state.gateAuthorized) {
-      return
-    }
-
     this.props.dispatcher.setConfirmForcePushSetting(
       this.state.askForConfirmationOnForcePush
     )
