@@ -240,18 +240,20 @@ interface IRepositoryViewProps {
    * its rail exactly as it always has, so every existing caller — Material
    * mode's classic-section fallback included — is unchanged.
    *
-   * True suppresses the section tabs (`renderTabs()`) and the Settings
-   * button, because the host's navigation dispatches the identical
-   * `PopupType.Preferences` popup for Settings and a real section change for
-   * every tab. It does not suppress Branches, the account avatar, or the
-   * contextual "Changed files"/"Commit list" buttons: none of those three
-   * has a working equivalent on the host's own navigation today (Branches
-   * opens a live foldout the host's "branches" destination does not yet
-   * trigger in Classic mode; the account avatar opens a quick inline
-   * account-switch popover the host's own avatar does not replace, since it
-   * only opens Preferences; the compact buttons have no host equivalent at
-   * all). Removing any of the three would drop a reachable control with
-   * nothing standing in for it.
+   * True suppresses the section tabs (`renderTabs()`), the Settings button
+   * and the account avatar, because the host's own navigation now reaches
+   * every one of them: the identical `PopupType.Preferences` popup for
+   * Settings, a real section change for every tab, and — since the shell's
+   * own avatars (the header's, and the rail's in Classic mode) open the very
+   * same floating `AccountSwitcher` this view's own avatar does, anchored to
+   * whichever one was actually clicked (`App`'s `renderMd3AccountSwitcher`)
+   * — a working switcher for the avatar too. It does not suppress Branches
+   * or the contextual "Changed files"/"Commit list" buttons: neither has a
+   * working equivalent on the host's own navigation today (Branches opens a
+   * live foldout the host's "branches" destination does not yet trigger in
+   * Classic mode; the compact buttons have no host equivalent at all).
+   * Removing either would drop a reachable control with nothing standing in
+   * for it.
    */
   readonly shellProvidesNavigation?: boolean
 }
@@ -838,11 +840,11 @@ export class RepositoryView extends React.Component<
       selectedSection === RepositorySectionTab.History &&
       this.props.state.commitSelection.shas.length > 0
 
-    // See `IRepositoryViewProps.shellProvidesNavigation`: the section tabs
-    // and Settings are the two controls the host's own navigation already
-    // provides, in Classic mode, so this rail stops drawing them there
-    // rather than drawing the same destinations twice with two contradictory
-    // active states.
+    // See `IRepositoryViewProps.shellProvidesNavigation`: the section tabs,
+    // Settings and the account avatar are the three controls the host's own
+    // navigation already provides, in Classic mode, so this rail stops
+    // drawing them there rather than drawing the same destinations (and the
+    // same floating switcher) twice with two contradictory active states.
     const shellProvidesNavigation = this.props.shellProvidesNavigation === true
 
     return (
@@ -900,17 +902,19 @@ export class RepositoryView extends React.Component<
             </span>
           </button>
         )}
-        <button
-          type="button"
-          className="rail-icon-button rail-avatar"
-          onClick={this.onToggleAccountSwitcher}
-          aria-label="Switch account"
-          aria-haspopup="dialog"
-          aria-expanded={this.state.isAccountSwitcherOpen}
-          ref={this.railAvatarButtonRef}
-        >
-          {this.renderAvatarContent()}
-        </button>
+        {!shellProvidesNavigation && (
+          <button
+            type="button"
+            className="rail-icon-button rail-avatar"
+            onClick={this.onToggleAccountSwitcher}
+            aria-label="Switch account"
+            aria-haspopup="dialog"
+            aria-expanded={this.state.isAccountSwitcherOpen}
+            ref={this.railAvatarButtonRef}
+          >
+            {this.renderAvatarContent()}
+          </button>
+        )}
       </nav>
     )
   }

@@ -1017,6 +1017,112 @@
       }
     }
 
+    // GitLab's sign-in form matches the design 1:1 (Desktop Material
+    // v2.dc.html lines 5174-5296): an unbordered flex column, not the
+    // bordered 3-column grid every other provider card still uses. Scoped to
+    // this modifier so Bitbucket/Jira/Trello keep their existing card shape
+    // — they still carry the plain .provider-sign-in-card class above.
+    .gitlab-sign-in-card {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+      max-width: 460px;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      animation: dmUp calc(460ms * var(--mdur, 1)) var(--spring) backwards;
+      animation-delay: 300ms;
+
+      .gitlab-mono-field {
+        gap: 6px;
+
+        > label {
+          margin-bottom: 0;
+          margin-left: 4px;
+          font-size: 12.5px;
+          font-weight: var(--font-weight-semibold);
+          color: var(--md-sys-color-on-surface-variant);
+        }
+
+        input {
+          height: 48px;
+          padding: 0 14px;
+          border: 2px solid var(--md-sys-color-outline-variant);
+          border-radius: 14px;
+          background: var(--md-sys-color-surface);
+          font-size: 13.5px;
+          font-family: var(--font-family-monospace);
+          transition: border-color 240ms var(--emph), background-color 480ms var(--emph);
+
+          // The shorthand padding above would otherwise reclaim the
+          // disabled-state look this repo requires (see textboxish-disabled-
+          // styles); restate it here so the field still mutes while signing in.
+          &:disabled {
+            background: var(--box-alt-background-color);
+            color: var(--text-secondary-color);
+          }
+
+          // The design is a static mock and has no focus state to copy; this
+          // repo requires a visible one regardless, so it's added here rather
+          // than inherited from the app's default subtle border/box-shadow
+          // treatment, which this rule's specificity would otherwise mask.
+          &:focus-visible {
+            outline: 2px solid var(--md-sys-color-primary);
+            outline-offset: 2px;
+          }
+        }
+      }
+
+      // The eye-toggle button (_password-text-box.scss) reserves its own
+      // right-hand gutter on the input; only restore that gutter here so the
+      // `padding: 0 14px` above doesn't reclaim the space the toggle sits in.
+      .password-text-box .gitlab-mono-field input {
+        padding-right: var(--spacing-triple);
+      }
+
+      .button-component {
+        align-self: flex-start;
+        height: 42px;
+        min-height: 42px;
+        padding: 0 18px;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--md-sys-color-primary);
+        font-size: 13px;
+        font-weight: var(--font-weight-bold);
+        box-shadow: inset 0 0 0 1.5px var(--md-sys-color-outline-variant);
+        transition: background-color 240ms var(--emph), transform 200ms var(--spring-fast);
+
+        &:hover:not([aria-disabled='true']) {
+          background: var(--md-sys-color-surface-container-high);
+        }
+
+        &:active:not([aria-disabled='true']) {
+          transform: scale(0.95);
+        }
+
+        &:focus-visible {
+          outline: 2px solid var(--md-sys-color-primary);
+          outline-offset: 2px;
+        }
+      }
+
+      // Explicit at the site of the animation, same as elsewhere in this
+      // file: the mock has no reduced-motion handling to copy, but this
+      // repo requires it regardless of what the design shows.
+      @media (prefers-reduced-motion: reduce) {
+        animation: none;
+
+        .gitlab-mono-field input,
+        .button-component {
+          transition: none;
+        }
+      }
+    }
+
     .provider-sign-in-error {
       margin: 0;
       color: var(--md-sys-color-error);

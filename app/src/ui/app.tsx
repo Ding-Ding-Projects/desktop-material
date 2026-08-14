@@ -141,6 +141,7 @@ import {
 } from '../lib/build-run/repair-prompts'
 import { OperationProgressRow } from './lib/operation-progress-row'
 import { RepositoryView } from './repository'
+import { AccountSwitcher } from './account-switcher/account-switcher'
 import { observeUserInitiatedOperation } from './lib/observed-operations'
 import { RenameBranch } from './rename-branch'
 import { DeleteBranch, DeleteRemoteBranch } from './delete-branch'
@@ -343,6 +344,7 @@ import type {
   IMd3SearchBinding,
   IMd3ShellState,
   IMd3ShellViews,
+  Md3AccountSwitcherAnchor,
   Md3SearchFieldKey,
   Md3ShellAction,
 } from './md3/md3-shell'
@@ -920,6 +922,27 @@ export class App extends React.Component<IAppProps, IAppState> {
    * truth for both halves rather than two copies that can drift.
    */
   private md3ShellState: IMd3ShellState = createMd3ShellState()
+
+  /**
+   * The shell's floating account switcher — the same `AccountSwitcher` the
+   * repository workspace's own rail avatar has always opened, now reachable
+   * from the shell's two avatars (the header's, and the rail's in Classic
+   * mode). `null` when it is closed; otherwise which avatar opened it, so
+   * `renderMd3AccountSwitcher` anchors to the one the user actually clicked
+   * rather than a fixed one of the two.
+   *
+   * This is a plain instance field with `forceUpdate`, exactly like
+   * `md3ShellState` above, rather than `this.state`: neither avatar's click
+   * is a shell action (the eleven search fields `md3ShellState` exists to
+   * hold are untouched by it), and `IAppState` is not a file this rewrite
+   * owns.
+   */
+  private md3AccountSwitcherAnchor: Md3AccountSwitcherAnchor | null = null
+
+  private readonly md3HeaderAccountButtonRef =
+    React.createRef<HTMLButtonElement>()
+  private readonly md3RailAccountButtonRef =
+    React.createRef<HTMLButtonElement>()
 
   /** The destination toggles the views own themselves. */
   private md3LocalViewState: IMd3LocalViewState = defaultMd3LocalViewState
@@ -9248,7 +9271,12 @@ export class App extends React.Component<IAppProps, IAppState> {
       onToggle: this.onMd3MenuToggle,
       onSwitchRepository: this.onMd3SwitchRepository,
       onSwitchBranch: this.onMd3SwitchBranch,
-      onSwitchAccount: this.onMd3OpenAccountSwitcher,
+      // `IMd3MenuHandlers.onSwitchAccount` names the account clicked in a
+      // menu row; this handler has never acted on that name (it only ever
+      // opened one shared surface), so it is preserved exactly, now against
+      // the header's own avatar since a menu row is not itself one of the
+      // shell's two avatars.
+      onSwitchAccount: () => this.onMd3OpenAccountSwitcher('header'),
       onOpenMenu: noopMd3OpenMenu,
       onOpenRegexBuilder: noopMd3OpenBuilder,
     }
@@ -9486,13 +9514,70 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   /**
-   * The floating account switcher is owned by the repository view's own state
-   * and cannot be opened from here, so the header's avatar opens the surface
-   * `App` does own: Preferences, whose Accounts tab is where accounts are
-   * actually added, removed and signed in.
+   * Opens the shell's own floating account switcher — the same
+   * `AccountSwitcher` the repository workspace's rail avatar has always
+   * used (`repository.tsx`'s `renderAccountSwitcher`), anchored to whichever
+   * avatar was actually clicked. Clicking the avatar that already has it
+   * open toggles it closed again, matching that same rail's own
+   * `onToggleAccountSwitcher`; clicking the *other* avatar re-anchors it
+   * there instead of stacking a second popover over the first.
    */
-  private onMd3OpenAccountSwitcher = () => {
-    void this.props.dispatcher.showPopup({ type: PopupType.Preferences })
+  private onMd3OpenAccountSwitcher = (anchor: Md3AccountSwitcherAnchor) => {
+    this.md3AccountSwitcherAnchor =
+      this.md3AccountSwitcherAnchor === anchor ? null : anchor
+    this.forceUpdate()
+  }
+
+  /** Closes the switcher and returns focus to whichever avatar opened it. */
+  private onMd3CloseAccountSwitcher = () => {
+    const anchor = this.md3AccountSwitcherAnchor
+    this.md3AccountSwitcherAnchor = null
+    this.forceUpdate()
+    const ref =
+      anchor === 'rail'
+        ? this.md3RailAccountButtonRef
+        : this.md3HeaderAccountButtonRef
+    ref.current?.focus()
+  }
+
+  /** Picking an account in the shell's switcher actually switches identity. */
+  private onMd3SwitchAccount = (account: Account) => {
+    this.props.dispatcher.promoteAccount(account)
+    this.onMd3CloseAccountSwitcher()
+  }
+
+  private onMd3AddAccount = () => {
+    this.props.dispatcher.showDotComSignInDialog()
+  }
+
+  /**
+   * The shell's own `AccountSwitcher`, rendered anchored to whichever avatar
+   * opened it — same props and handlers as the repository workspace's rail
+   * avatar renders for its identical popover (`repository.tsx`'s
+   * `renderAccountSwitcher`), just anchored to one of the shell's two
+   * avatars instead of that rail's own.
+   */
+  private renderMd3AccountSwitcher(): JSX.Element | null {
+    const anchor = this.md3AccountSwitcherAnchor
+    if (anchor === null) {
+      return null
+    }
+
+    const anchorRef =
+      anchor === 'rail'
+        ? this.md3RailAccountButtonRef
+        : this.md3HeaderAccountButtonRef
+
+    return (
+      <AccountSwitcher
+        accounts={this.state.accounts}
+        selectedAccount={this.state.accounts[0] ?? null}
+        anchorRef={anchorRef}
+        onClose={this.onMd3CloseAccountSwitcher}
+        onSelectAccount={this.onMd3SwitchAccount}
+        onAddAccount={this.onMd3AddAccount}
+      />
+    )
   }
 
   private onMd3CommitSummaryChanged = (summary: string) => {
@@ -10851,6 +10936,9 @@ export class App extends React.Component<IAppProps, IAppState> {
           onToggleTheme={this.onMd3ToggleTheme}
           onOpenSettings={this.onMd3OpenSettings}
           onOpenAccountSwitcher={this.onMd3OpenAccountSwitcher}
+          accountSwitcherAnchor={this.md3AccountSwitcherAnchor}
+          headerAccountButtonRef={this.md3HeaderAccountButtonRef}
+          railAccountButtonRef={this.md3RailAccountButtonRef}
           repositoryName={this.md3RepositoryName()}
           branchName={this.md3BranchName()}
           pushState={this.md3AheadCount() > 0 ? 'ahead' : 'clean'}
@@ -10925,6 +11013,7 @@ export class App extends React.Component<IAppProps, IAppState> {
           {this.renderPopups()}
           {this.renderDragElement()}
           {this.renderRepositoryDropOverlay()}
+          {this.renderMd3AccountSwitcher()}
         </Md3Shell>
       </div>
     )

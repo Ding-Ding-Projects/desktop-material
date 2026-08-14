@@ -177,6 +177,17 @@ export type Md3BuilderTarget =
   | { readonly kind: 'search'; readonly field: Md3SearchFieldKey }
   | { readonly kind: 'menu'; readonly menu: MenuKind }
 
+/**
+ * Which avatar opened the floating account switcher — the header's own,
+ * present in every navigation mode, or the rail's, present only in Classic
+ * mode (`navigation="rail"`). The switcher itself is not shell state (see
+ * `IMd3ShellProps.accountSwitcherAnchor`): it is owned and rendered by the
+ * host, exactly as the repository workspace's own rail avatar already owns
+ * its identical `AccountSwitcher`. This type exists only so the host and the
+ * shell agree on which of the two avatars a given open/close applies to.
+ */
+export type Md3AccountSwitcherAnchor = 'header' | 'rail'
+
 /** The single overlay the contract allows to be open at a time. */
 export type Md3ShellOverlay =
   | {
@@ -600,7 +611,33 @@ export interface IMd3ShellProps {
 
   readonly onOpenSettings: () => void
 
-  readonly onOpenAccountSwitcher: () => void
+  /**
+   * Opens the host's own floating account switcher, reporting which avatar
+   * was actually clicked — the header's or the rail's (Classic mode only).
+   * The shell owns neither the switcher's open state nor its rendering; the
+   * host does, the same way the repository workspace's own rail avatar
+   * already owns its identical `AccountSwitcher`. See
+   * `accountSwitcherAnchor` for how the host reports the result back.
+   */
+  readonly onOpenAccountSwitcher: (anchor: Md3AccountSwitcherAnchor) => void
+
+  /**
+   * Which avatar currently has the host's floating account switcher open —
+   * `null` (or omitted) when it is closed. Drives `aria-expanded` on both
+   * avatars: only the one named here reports itself expanded, so opening
+   * one never leaves the other stuck claiming a popover it does not own.
+   */
+  readonly accountSwitcherAnchor?: Md3AccountSwitcherAnchor | null
+
+  /**
+   * Exposes the header's account-avatar button, so the host can anchor the
+   * switcher's outside-click exclusion and focus-return to the exact element
+   * the user clicked.
+   */
+  readonly headerAccountButtonRef?: React.Ref<HTMLButtonElement>
+
+  /** Same, for the rail's account-avatar button (`navigation="rail"` only). */
+  readonly railAccountButtonRef?: React.Ref<HTMLButtonElement>
 
   /** Focus target for the global search input, for a palette or a shortcut. */
   readonly searchInputRef?: React.Ref<HTMLInputElement>
@@ -798,6 +835,7 @@ export function Md3Shell(props: IMd3ShellProps) {
     menuHandlers,
     menuExtensions,
     onSelectExtraDestination,
+    onOpenAccountSwitcher,
   } = props
 
   const [internalState, internalDispatch] = React.useReducer(
@@ -899,6 +937,20 @@ export function Md3Shell(props: IMd3ShellProps) {
   const onCloseOverlay = React.useCallback(
     () => dispatch({ type: 'close-overlay' }),
     [dispatch]
+  )
+
+  // The account switcher is not shell state — the host owns it — so these
+  // two tag every click with which avatar produced it rather than routing
+  // through `dispatch`. `Md3AppHeader` and `Md3NavigationRail` each still
+  // take a plain `() => void` for their own `onOpenAccountSwitcher`; the
+  // shell is what turns that back into an anchor the host can act on.
+  const onOpenAccountSwitcherFromHeader = React.useCallback(
+    () => onOpenAccountSwitcher('header'),
+    [onOpenAccountSwitcher]
+  )
+  const onOpenAccountSwitcherFromRail = React.useCallback(
+    () => onOpenAccountSwitcher('rail'),
+    [onOpenAccountSwitcher]
   )
 
   const openMenu = React.useCallback(
@@ -1202,7 +1254,9 @@ export function Md3Shell(props: IMd3ShellProps) {
         onOpenNotifications={props.onOpenNotifications}
         onToggleTheme={props.onToggleTheme}
         onOpenSettings={props.onOpenSettings}
-        onOpenAccountSwitcher={props.onOpenAccountSwitcher}
+        onOpenAccountSwitcher={onOpenAccountSwitcherFromHeader}
+        accountSwitcherOpen={props.accountSwitcherAnchor === 'header'}
+        accountButtonRef={props.headerAccountButtonRef}
       />
 
       {showTabStrip ? (
@@ -1219,7 +1273,9 @@ export function Md3Shell(props: IMd3ShellProps) {
             mainPaneId={Md3ShellPaneId}
             onSelectDestination={onSelectDestination}
             onOpenSettings={props.onOpenSettings}
-            onOpenAccountSwitcher={props.onOpenAccountSwitcher}
+            onOpenAccountSwitcher={onOpenAccountSwitcherFromRail}
+            accountSwitcherOpen={props.accountSwitcherAnchor === 'rail'}
+            accountButtonRef={props.railAccountButtonRef}
             onContextMenu={onOpenDrawerMenu}
           />
         ) : (
