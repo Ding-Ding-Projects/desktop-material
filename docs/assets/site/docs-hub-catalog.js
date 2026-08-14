@@ -280,11 +280,25 @@
       d: 'Wires the 244 pre-generated audio assets in app/static/audio/ into the optional audio runtime, so meaningful events can play a recorded human-style voice line and a composed…',
     },
     {
+      t: 'Narrator voice',
+      h: 'features/design-system/narrator-voice.html',
+      s: 'features/design-system/narrator-voice.md',
+      c: 'features',
+      d: 'Which voice reads app events aloud, chosen per language on Settings → Sound → Narrator. English and Cantonese pick separately, and either can be left to the app.',
+    },
+    {
       t: 'Offline documentation browser',
       h: 'features/design-system/offline-documentation-browser.html',
       s: 'features/design-system/offline-documentation-browser.md',
       c: 'features',
       d: 'Every feature article in docs/features ships inside the application. Help → Feature documentation (or the command palette) opens a browser that lists all of them, searches…',
+    },
+    {
+      t: 'Personal vocabulary',
+      h: 'features/design-system/personal-vocabulary.html',
+      s: 'features/design-system/personal-vocabulary.md',
+      c: 'features',
+      d: 'A local JSON file that renames the words this app shows you. Load it from Settings → Appearance → Personal vocabulary. Nothing ships with it, nothing is uploaded, and until you…',
     },
     {
       t: 'Design-system features / 設計系統功能',
@@ -1418,7 +1432,7 @@
       h: 'readme-tabs/roadmap-and-receipts.html',
       s: 'readme-tabs/roadmap-and-receipts.md',
       c: 'readme-tabs',
-      d: 'The numbered roadmap now extends through M27. M0–M21 and M23 have published receipts, M22 retains its separately tracked visual refresh, and the exact acceptance/publication…',
+      d: 'Snapshot recorded on August 13, 2026:',
     },
     {
       t: 'Screenshots / 截圖',

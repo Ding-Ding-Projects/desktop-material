@@ -1,16 +1,25 @@
 #!/usr/bin/env node
 //
-// Rewrites the article counts the site's Docs hub prints so they match what
-// `docs/` actually contains.
+// Rewrites the counts the site prints so they match what the repository
+// actually contains: the Docs hub's article counts, and the Screenshots
+// section's scene count.
 //
 //   node script/sync-site-doc-counts.mjs [--check]
 //
 // The hub advertises "36 articles" on the Repository management card and
-// "Open all 248 articles" above them. Those are claims about the published
+// "Open all 248 articles" above them, and the Screenshots section says the
+// refresh contract "targets 92 Windows scenes". Those are claims about the
 // tree, and a claim nobody recomputes is a claim that goes quietly wrong the
-// first time somebody adds a feature doc. This script recounts and rewrites
-// them; `script/site-dc-pages-test.mjs` runs the same comparison and fails the
-// Pages build when they have drifted, so the fix is always one command.
+// first time somebody adds a feature doc or a capture. This script recounts
+// and rewrites them; `script/site-dc-pages-test.mjs` runs the same comparison
+// and fails when they have drifted, so the fix is always one command.
+//
+// The scene count is here rather than only in the test for a reason: it
+// appears FOUR times in `site/index.html` — the section's prose, the "Browse
+// all N scenes" link, the search index entry and the command-palette entry —
+// and the test only ever checked the first two. Fixing the two it checks would
+// have left the other two quoting a stale number, visible to anyone who
+// searched instead of scrolled.
 //
 // `--check` reports without writing, which is what the test harness uses.
 
@@ -37,6 +46,22 @@ const listMarkdown = relative => {
   return walk(relative)
 }
 
+/**
+ * How many scenes the feature gallery documents.
+ *
+ * One row per capture in `docs/wiki/Feature-Gallery.md`. Exported so the Pages
+ * test can assert against the same number this script writes — two independent
+ * regexes over the same table is two chances for the check and the fix to
+ * disagree about what "a scene" is.
+ */
+export function countGalleryScenes() {
+  const gallery = readFileSync(
+    join(repositoryRoot, 'docs/wiki/Feature-Gallery.md'),
+    'utf8'
+  )
+  return [...gallery.matchAll(/^\| `([^`]+\.png)` \| ([^|]+?) \|$/gm)].length
+}
+
 /** The exact strings the hub should be printing, given what is on disk. */
 export function expectedCounts() {
   const counts = countDocs(listMarkdown)
@@ -45,7 +70,7 @@ export function expectedCounts() {
     const n = counts.perCategory[category.dir]
     cards[category.id] = `${n} article${n === 1 ? '' : 's'}`
   }
-  return { cards, total: counts.total }
+  return { cards, total: counts.total, scenes: countGalleryScenes() }
 }
 
 /** Applies the counts to the page source, returning the rewritten text. */
@@ -71,6 +96,22 @@ export function applyCounts(html, expected) {
       /docsOpenAll: '打開全部 \d+ 篇文'/,
       `docsOpenAll: '打開全部 ${expected.total} 篇文'`
     )
+
+  // All four places the scene count is quoted, not just the two the Pages test
+  // happens to assert: the section's prose and its link, plus the search-index
+  // entry and the command-palette entry, which a reader reaches by searching
+  // rather than scrolling and which would otherwise keep a stale number.
+  next = next
+    .replace(
+      /targets \d+ Windows scenes/g,
+      `targets ${expected.scenes} Windows scenes`
+    )
+    .replace(/Browse all \d+ scenes/g, `Browse all ${expected.scenes} scenes`)
+    .replace(
+      /\d+ Windows scenes under the current refresh contract/g,
+      `${expected.scenes} Windows scenes under the current refresh contract`
+    )
+
   return next
 }
 
@@ -88,19 +129,22 @@ if (
 
   if (before === after) {
     process.stdout.write(
-      `site/index.html already matches docs/: ${expected.total} articles ` +
-        `total, ${Object.values(expected.cards).join(', ')}.\n`
+      `site/index.html already matches the tree: ${expected.total} articles ` +
+        `total, ${expected.scenes} gallery scenes, ` +
+        `${Object.values(expected.cards).join(', ')}.\n`
     )
   } else if (checkOnly) {
     process.stderr.write(
-      'site/index.html advertises article counts that docs/ no longer ' +
-        'matches.\nRun: node script/sync-site-doc-counts.mjs\n'
+      'site/index.html advertises counts the tree no longer matches ' +
+        '(articles, gallery scenes, or both).\n' +
+        'Run: node script/sync-site-doc-counts.mjs\n'
     )
     process.exitCode = 1
   } else {
     writeFileSync(pagePath, after)
     process.stdout.write(
       `Updated site/index.html: ${expected.total} articles total, ` +
+        `${expected.scenes} gallery scenes, ` +
         `${Object.values(expected.cards).join(', ')}.\n`
     )
   }

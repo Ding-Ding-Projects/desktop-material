@@ -27,7 +27,11 @@ import {
   requiredCjkCharacters,
   requiredIconNames,
 } from './site-dc-assets.mjs'
-import { applyCounts, expectedCounts } from './sync-site-doc-counts.mjs'
+import {
+  applyCounts,
+  countGalleryScenes,
+  expectedCounts,
+} from './sync-site-doc-counts.mjs'
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const argv = process.argv.slice(2)
@@ -212,17 +216,16 @@ check(
     'renders as an empty box for every visitor'
 )
 // The count the Screenshots section quotes is the gallery manifest's, so it
-// cannot drift away from the gallery it points at.
-const galleryScenes = [
-  ...readFileSync(
-    join(repositoryRoot, 'docs/wiki/Feature-Gallery.md'),
-    'utf8'
-  ).matchAll(/^\| `([^`]+\.png)` \| ([^|]+?) \|$/gm),
-].length
+// cannot drift away from the gallery it points at. Counted by the same
+// function that writes it, imported rather than re-derived here: two regexes
+// over one table is two chances for the check and the repair to disagree about
+// what counts as a scene, and then neither number is trustworthy.
+const galleryScenes = countGalleryScenes()
 check(
   page.includes(`targets ${galleryScenes} Windows scenes`) &&
     page.includes(`Browse all ${galleryScenes} scenes`),
-  `the Screenshots section should quote the gallery's ${galleryScenes} scenes`
+  `the Screenshots section should quote the gallery's ${galleryScenes} ` +
+    `scenes. Run: node script/sync-site-doc-counts.mjs`
 )
 // The reverse: an asset nobody renders is bytes every visitor downloads the
 // directory listing of for nothing, and a sign a page was dropped by mistake.
@@ -293,7 +296,8 @@ check(
 )
 check(
   page.includes(`Open all ${expected.total} articles`),
-  `the Docs hub should offer all ${expected.total} rendered articles`
+  `the Docs hub should offer all ${expected.total} rendered articles. ` +
+    `Run: node script/sync-site-doc-counts.mjs`
 )
 
 // ------------------------------------------- the documentation it links to

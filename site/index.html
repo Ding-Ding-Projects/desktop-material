@@ -526,10 +526,10 @@ mark{background:var(--md-sys-color-tertiary-container);color:var(--md-sys-color-
             <span style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--md-sys-color-primary)">Take a look</span>
             <h2 style="margin:0;font-size:34px;line-height:1.15">Screenshots</h2>
             <p style="margin:0;max-width:80ch;font-size:16px;line-height:1.65;color:var(--md-sys-color-on-surface-variant);text-wrap:pretty">
-              Guided task forms wrap text and stack controls as space narrows, avoiding page-level sideways scrolling; spatial code, diff, and log content is the exception. The current refresh contract targets 92 Windows scenes. The current Launchpad repair and seven representative scenes are below; open one for the full-size capture.
+              Guided task forms wrap text and stack controls as space narrows, avoiding page-level sideways scrolling; spatial code, diff, and log content is the exception. The current refresh contract targets 95 Windows scenes. The current Launchpad repair and seven representative scenes are below; open one for the full-size capture.
             </p>
             <a href="./docs/screenshots/" style="align-self:flex-start;display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 20px;border-radius:999px;border:1px solid var(--md-sys-color-outline);color:var(--md-sys-color-primary);font-weight:500;text-decoration:none" style-hover="background:var(--md-sys-color-surface-container-high)">
-              <span style="font-family:'Material Symbols Outlined';font-size:20px" aria-hidden="true">explore</span>Browse all 92 scenes
+              <span style="font-family:'Material Symbols Outlined';font-size:20px" aria-hidden="true">explore</span>Browse all 95 scenes
             </a>
             <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
               <figure style="margin:0;display:flex;flex-direction:column;gap:8px">
@@ -1628,7 +1628,7 @@ class Component extends DCLogic {
     { page: 'landing', section: 'features', title: 'Language modes, playfulness, and schedules', text: 'English, playful Hong Kong-style Cantonese, or a compact bilingual view. Two independent 1-5 playfulness sliders, one per language, style the voice of every message. Local date/time windows, validated API values, and Home Assistant boolean gating can schedule language, theme, and appearance customizations. The level never changes the facts.' },
     { page: 'landing', section: 'features', title: 'Guarded tab control', text: 'Close tabs containing text and its inverse, close tabs not containing text, with counts, preview, pinning, keyboard movement, and persistent ordering. A named group holds pinned or unpinned tabs, never both.' },
     { page: 'landing', section: 'features', title: 'Notification centre', text: 'A Git-backed Local view plus an account-aware GitHub inbox with search, filters, select-visible bulk actions, and an explicit Local Clear all control.' },
-    { page: 'landing', section: 'screenshots', title: 'Screenshots', text: 'The current refresh contract targets 92 Windows scenes. Guided task forms wrap text and stack controls as space narrows.' },
+    { page: 'landing', section: 'screenshots', title: 'Screenshots', text: 'The current refresh contract targets 95 Windows scenes. Guided task forms wrap text and stack controls as space narrows.' },
     { page: 'docs', section: 'categories', title: 'Feature documentation index', text: 'Every feature has its own categorized Markdown file and every category has a README index: design system, repository management, review and diff, collaboration, integrations, agent API, quality and reliability, identity and workspace, including scheduled language and appearance settings.' },
     { page: 'docs', section: 'start', title: 'Start here', text: 'Installation, known issues, regex guide, wiki home, user guide, developer guide, automation, feature gallery, Agent API.' },
     { page: 'docs', section: 'coverage', title: 'Rule coverage on this site', text: 'Language modes, playfulness sliders, search with regex builder, four tab searches, close containing and not containing, per-element appearance editor, non-blocking notifications, export formats, and bulk actions all render on this documentation surface, not only in the app.' },
@@ -1666,13 +1666,13 @@ class Component extends DCLogic {
       brandSub: 'Material 3 Git client', search: 'Search this site', installCta: 'Install on Windows',
       sourceCta: 'Explore the source', tryItHere: 'Try the language modes', openBuilder: 'Open the regex builder',
       loading: 'Loading this page…', copy: 'Copy', copied: 'Copied!',
-      docsOpenAll: 'Open all 291 articles', docsSearchAll: 'Search every article'
+      docsOpenAll: 'Open all 293 articles', docsSearchAll: 'Search every article'
     },
     zh: {
       brandSub: 'Material 3 Git 客戶端', search: '搜成個網站', installCta: 'Windows 安裝',
       sourceCta: '睇源碼', tryItHere: '試下語言模式', openBuilder: '開 Regex 工具',
       loading: '載入緊…', copy: '複製', copied: '複製好！',
-      docsOpenAll: '打開全部 291 篇文', docsSearchAll: '搜晒所有文'
+      docsOpenAll: '打開全部 293 篇文', docsSearchAll: '搜晒所有文'
     }
   };
 
@@ -2458,7 +2458,7 @@ class Component extends DCLogic {
       // recounts both against docs/features/, so a card can never advertise a
       // number the published tree does not actually contain.
       docCategories: [
-        { id: 'dc1', icon: 'palette', name: 'Design system', href: './docs/features/design-system/', articles: '18 articles', count: 'M3 Expressive shell, tonal surfaces, adaptive toolbar, non-modal dialogs', items: 'Material foundation · first run · appearance scope · navigation rail' },
+        { id: 'dc1', icon: 'palette', name: 'Design system', href: './docs/features/design-system/', articles: '20 articles', count: 'M3 Expressive shell, tonal surfaces, adaptive toolbar, non-modal dialogs', items: 'Material foundation · first run · appearance scope · navigation rail' },
         { id: 'dc2', icon: 'folder_managed', name: 'Repository management', href: './docs/features/repository-management/', articles: '41 articles', count: 'Tabs, groups, multi-clone, submodules, releases', items: 'Browser-like tabs · guarded close · pinning · ordering · orgs' },
         { id: 'dc3', icon: 'difference', name: 'Review and diff', href: './docs/features/review-and-diff/', articles: '7 articles', count: 'History search, ancestry graph, code surfaces', items: 'Search by title, message, tag, or hash · spatial diff exception' },
         { id: 'dc4', icon: 'group', name: 'Collaboration', href: './docs/features/collaboration/', articles: '7 articles', count: 'Native pull requests, branch rules, reviewed rebase and pull', items: 'Effective branch rules · exact OID pull · current-branch rebase' },
@@ -2474,7 +2474,7 @@ class Component extends DCLogic {
         { id: 'ds4', label: 'User guide', note: 'Working surfaces: tabs, appearance scope, notifications, palette.', run: () => this.teleport('landing', 'features') },
         { id: 'ds5', label: 'Cheap LFS', note: 'Provider-first pointer commits and restore.', run: () => this.teleport('lfs', 'how') },
         { id: 'ds6', label: 'Comparison atlas', note: '72 sourced decisions across 12 categories.', run: () => this.teleport('atlas', 'matrix') },
-        { id: 'ds7', label: 'Feature gallery', note: '92 Windows scenes under the current refresh contract.', run: () => this.teleport('landing', 'screenshots') },
+        { id: 'ds7', label: 'Feature gallery', note: '95 Windows scenes under the current refresh contract.', run: () => this.teleport('landing', 'screenshots') },
         { id: 'ds8', label: 'Agent API', note: 'Bounded agent access and the CLI surface.', run: () => this.teleport('docs', 'categories') }
       ],
       coverageRules: [
