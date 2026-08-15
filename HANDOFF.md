@@ -1,5 +1,44 @@
 # Desktop Material — Active parity handoff
 
+## Material mode is retired, and the section below it is now historical — 2026-08-15
+
+**Read this before the 2026-08-14 entry, which it supersedes on one point.** The
+revert was carried through: `finish/ui-revert-to-2026-08-07` merged into `main`
+as `92b3ef9164`, removing 60,309 lines — the MD3 shell, its eight destination
+views, its controllers, adapters and its thirteen test files. **Material mode no
+longer exists as a setting.** The 2026-08-14 entry's heading "Nothing was
+deleted, and nothing needs re-adding" described `main` on that date and is no
+longer true of the tree; it is left in place as the record of what was decided
+then, with a correction note attached.
+
+What the retirement kept, deliberately: 46 md3 files remain, and they are
+dialogs rather than chrome — the destructive-action gate, the regex builder, the
+toasts, the menu overlay, the compose dialog, the authenticator and Support
+Tickets. That is the line the revert itself drew, and the four commits on the
+merged jer restore every setting the shell's removal had stranded
+(`lib/personal-vocabulary`, `lib/school-mode`, `lib/dialog-emoji`,
+`lib/md3-locks`, `lib/authenticator`) into the classic Settings surface.
+
+Two user-visible defects were fixed on the way, and both are worth knowing about
+because each had shipped: `--button-height` was declared 25px in
+`_variables.scss` and 40px in `_material.scss`, the Material layer is imported
+second and wins, so the 25px was dead *and* under the minimum touch target; and
+the revert had swapped the 158-glyph Material Symbols subset for a 98-glyph
+prototype while the code still asked for 158 names, so an interface shipped with
+English words rendered where icons belong.
+
+`wip/stopped-fleets-2026-08-14` merged as `fe1db0dbb5`, and only its GitLab
+design-conformance work survived — five of its seven files built on the shell
+that is now gone. That closes open item 3 below and leaves one open: **the
+header avatar's account switcher is still broken.** The reverted rail avatar
+works (`onToggleAccountSwitcher`, `railAvatarButtonRef`); the header's does not,
+and the fix that was in flight targeted files that no longer exist, so it must
+be rewritten against the reverted chrome rather than ported.
+
+Verified for this integration: `npx tsc --noEmit -p tsconfig.json` exit 0, zero
+errors, on the merged tree at `fe1db0dbb5`. The test suite, lint, captures,
+packaging and CI were **not** run in this lane and are not claimed.
+
 ## UI reverted to the pre-rewrite interface — 2026-08-14
 
 **Read this first if you are picking up UI work.** The default interface was
@@ -30,6 +69,14 @@ So the revert did not require removing the rewrite. Three changes were enough:
 
 ### Nothing was deleted, and nothing needs re-adding
 
+> **Superseded on 2026-08-15 — do not act on this subsection.** It was accurate
+> for `main` on 2026-08-14. The MD3 destinations, controllers, adapters and the
+> navigation rail have since been deleted by `92b3ef9164`, and Material mode is
+> no longer a setting. `navigation='rail'` has no caller and no shell to serve.
+> The claim that no features were lost still holds — every stranded setting was
+> restored into classic Settings — but it now holds for a different reason.
+> See the 2026-08-15 entry at the top of this file.
+
 The user asked to "use the git commits to add features back once reverted".
 **No features were lost, so there is nothing to add back.** Every MD3
 destination, controller, adapter, command-palette entry, localized string and
@@ -42,6 +89,11 @@ chrome, that is a real bug and should be fixed by making it reachable — not by
 switching the default back.
 
 ### Work stopped mid-flight, preserved not discarded
+
+> **Resolved on 2026-08-15.** That jer merged as `fe1db0dbb5` and was then
+> deleted. Only the GitLab work below survived; the account-switcher work built
+> on the deleted shell and did not. The header-avatar defect it describes is
+> still real and is now the one open item from this entry.
 
 Two multi-agent fleets were running when the revert was requested and were
 stopped so they could not write into a tree being rewound. Their unfinished
@@ -79,7 +131,11 @@ work is preserved on the jer **`wip/stopped-fleets-2026-08-14`**, commit
    `bounds only printenvz lock metadata and timestamp rounding for native
    freshness` and `passes the detected Visual Studio path only to the direct
    native rebuild`. Confirmed at pristine HEAD.
-3. **GitLab does not match the design** and the user has asked that it must:
+3. **GitLab does not match the design** — *fixed on 2026-08-15 by `fe1db0dbb5`;
+   all five strings and the endpoint default now match, with the design's masked
+   `glpat-` token placeholder. The structural note below (bordered three-column
+   grid vs unbordered 460px flex column) is the part that remains open.* The
+   original entry, for the record:
    description says "Connect GitLab.com … instance" where the design says "Sign
    in to gitlab.com … server"; URL label "GitLab server" vs "GitLab server URL";
    default endpoint `https://gitlab.com` vs `https://gitlab.example.com`; token
@@ -107,7 +163,7 @@ work is preserved on the jer **`wip/stopped-fleets-2026-08-14`**, commit
 - **Guards must be watched failing.** Two written this session passed after the
   thing they guarded was deleted.
 
-## Current repository snapshot — 2026-08-14
+## Repository snapshot as of 2026-08-14 (historical — see the 2026-08-15 entry above)
 
 Checked at `2026-08-14T16:23:33Z` against the fetched default branch and GitHub
 state.
