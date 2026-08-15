@@ -1678,6 +1678,8 @@ export class RepositoryTabStrip extends React.Component<
       return (
         <AnchoredAppearanceEditor
           title={`${this.labelForTab(tab)} tab title`}
+          lockTargetId={`repository-tab:${tab.id}`}
+          lockTargetLabel={`${this.labelForTab(tab)} tab title`}
           anchor={styleEditorAnchor}
           historySource={historySource}
           repositoryPath={repositoryPath}

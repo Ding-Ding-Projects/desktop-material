@@ -91,6 +91,12 @@ enum SignInType {
 
 export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
   public state: IAccountsState = {
+    // The design's static mock defaults this field to the example placeholder
+    // domain ('https://gitlab.example.com'), but here the value is a real,
+    // submitted endpoint rather than decorative example text: most GitLab
+    // users are signing in to gitlab.com itself, so pre-filling the actual
+    // host lets them paste a token and go, instead of hitting a bogus
+    // example.com host on the very first try.
     gitLabEndpoint: 'https://gitlab.com',
     gitLabToken: '',
     bitbucketUsername: '',
@@ -353,7 +359,7 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
           <div>
             <h2 id="gitlab-accounts">GitLab accounts</h2>
             <p>
-              Connect GitLab.com or any self-hosted GitLab instance with a
+              Sign in to gitlab.com or any self-hosted GitLab server with a
               personal access token.
             </p>
           </div>
@@ -366,17 +372,21 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
             })
           )}
         </div>
-        <div className="provider-sign-in-card">
+        <div className="provider-sign-in-card gitlab-sign-in-card">
           <TextBox
-            label="GitLab server"
+            className="gitlab-mono-field"
+            label="GitLab server URL"
             placeholder="https://gitlab.example.com"
             value={this.state.gitLabEndpoint}
             disabled={loading}
             onValueChanged={this.onGitLabEndpointChanged}
           />
           <PasswordTextBox
+            className="gitlab-mono-field"
             label="Personal access token"
-            placeholder="Token with api scope"
+            // Mirrors the design's masked token placeholder: a "glpat-"
+            // prefix followed by 16 bullet characters (U+2022).
+            placeholder={`glpat-${'•'.repeat(16)}`}
             value={this.state.gitLabToken}
             disabled={loading}
             onValueChanged={this.onGitLabTokenChanged}
@@ -389,7 +399,7 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
               this.state.gitLabToken.length === 0
             }
           >
-            {loading ? 'Connecting…' : 'Add GitLab account'}
+            {loading ? 'Connecting…' : 'Sign in to GitLab'}
           </Button>
         </div>
         {this.renderProviderError('gitlab')}

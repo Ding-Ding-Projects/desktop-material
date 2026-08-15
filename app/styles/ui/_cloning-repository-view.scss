@@ -6,7 +6,8 @@
   justify-content: center;
   // ... and horizontally centered
   align-self: center;
-  width: 600px;
+  width: min(600px, 100%);
+  min-width: 0;
 
   /* TODO: Revisit, this might not be the best way to do it.
    * We don't want the contents to sit smack on the vertical
@@ -106,5 +107,19 @@
     max-width: 100%;
     width: 100%;
     margin-bottom: var(--spacing);
+  }
+}
+
+// A negative vertical offset can put the title above the clipped app canvas on
+// short windows. Keep the whole progress surface reachable, and collapse the
+// decorative lower spacer when there is no vertical room to spare.
+@media (max-height: 520px) {
+  #cloning-repository-view {
+    margin-top: 0;
+    overflow-y: auto;
+
+    .details {
+      margin-bottom: 0;
+    }
   }
 }

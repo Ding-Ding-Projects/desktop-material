@@ -73,33 +73,6 @@ export class SelfHostedRunnerAccountCredentials {
     this.credentials = next
   }
 
-  /**
-   * The account key for `endpoint` when the caller named none.
-   *
-   * A request omits its account key when the interface that built it has no
-   * account picker. That is only answerable while exactly one signed-in
-   * account matches the endpoint: two matching accounts is a genuine
-   * ambiguity, and picking either one would sign a runner in as a user who
-   * never chose it, so this returns null and lets the caller refuse.
-   */
-  public onlyAccountKeyForEndpoint(endpoint: string): string | null {
-    const normalizedEndpoint = normalizeEndpoint(endpoint)
-    if (normalizedEndpoint === null) {
-      return null
-    }
-    let match: string | null = null
-    for (const [accountKey, credential] of this.credentials) {
-      if (credential.endpoint !== normalizedEndpoint) {
-        continue
-      }
-      if (match !== null) {
-        return null
-      }
-      match = accountKey
-    }
-    return match
-  }
-
   public resolve(accountKey: string, endpoint: string): string | null {
     const normalizedKey = normalizeSelfHostedRunnerAccountKey(accountKey)
     const normalizedEndpoint = normalizeEndpoint(endpoint)

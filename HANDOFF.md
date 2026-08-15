@@ -1,5 +1,60 @@
 # Desktop Material — Active parity handoff
 
+## August 7 chrome, every feature back on top of it — 2026-08-15
+
+**Read this first; it supersedes the two entries below it.** The requested end
+state is now live: the interface is the **August 7 chrome**, and **every feature
+is back**.
+
+Those are not in tension, and the proof is two diffs rather than an assurance:
+
+| Check | Result |
+| --- | --- |
+| `app/src/ui/repository.tsx` vs `02d627e662` | **byte-identical** — the workspace, rail, tabs and avatar *are* August 7 |
+| `app/src/ui/app.tsx` vs `02d627e662` | 81 insertions, **0 deletions** — purely feature wiring |
+
+Restored: Support Tickets, the authenticator (entries, TOTP, QR registration,
+secret vault), the regex builder, the destructive-action gate, the every-element
+appearance locks, the offline docs browser, agent sessions, the newer runner
+surface, and the personal-vocabulary, School-mode and dialog-emoji settings.
+Also back: diff line wrapping, hunk-expansion focus order, commit-drop insertion
+ordering, menu first-character navigation and the worktree list's merge-branch
+handling — the five post-August-7 fixes that were never MD3 and had been taken
+out indiscriminately.
+
+Material mode stays retired. This is the earlier M3 design with the features on
+it, not the MD3 shell returning; see the entry further down for why the app is
+still Material Design 3 throughout.
+
+### How this was done, and why not by hand
+
+`app/` was restored wholesale from `9c9755d844`, whose tree already *was*
+"August 7 chrome plus every feature" — the surgical route the revert jer had
+produced before the literal revert removed it. Rebuilding 42,638 lines by hand
+would have been slower and strictly worse: this way the result is verifiable by
+`git diff` rather than by review.
+
+### Verified, against a real baseline
+
+| Check | Result |
+| --- | --- |
+| `npx tsc --noEmit -p tsconfig.json` | **exit 0, zero errors** |
+| `app/` vs `9c9755d844` | **identical** (empty diff) |
+| The 50-file contract suite | **64 failing of 465** |
+| The 26 failures the literal revert introduced | **0 remain** |
+
+64 of 465 is **exactly the pre-revert baseline**, so the 21 reintroduced defects
+tracked on issue #196 are all resolved — the AI merge editor's security guards,
+the 158-glyph font contract, the accessibility and layout contracts, and the
+destructive-action honesty guards all pass again. The 5 obsolete guards in that
+issue are no longer obsolete, because the features they guard exist again.
+
+> [!NOTE]
+> The remaining **64** were already red before any of this and are unrelated to
+> the revert or the restore. They are the standing contract debt, not new.
+
+Lint, captures, packaging and a built-artifact run were **not** performed.
+
 ## The interface is now literally August 7, and the features went with it — 2026-08-15
 
 **Read this first.** `app/src/ui` and `app/styles` were hard-reverted to

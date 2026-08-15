@@ -67,15 +67,6 @@ import {
 } from '../../lib/self-hosted-runner/types'
 import { killTreeAndWait } from '../build-run/kill-tree'
 
-/**
- * A setup request after validation, where the optional account key has been
- * resolved to a concrete one. `validateSetupRequest` either produces this or
- * throws, so no step after it has to re-decide what an absent account meant.
- */
-type ValidatedSelfHostedRunnerSetupRequest = ISelfHostedRunnerSetupRequest & {
-  readonly accountKey: string
-}
-
 const ManagedRootName = 'self-hosted-runners'
 const StateFileName = 'runners.json'
 const RunnerUser = 'desktop-material-runner'
@@ -2291,7 +2282,7 @@ export class WindowsSelfHostedRunnerManager {
 
   private validateSetupRequest(
     request: ISelfHostedRunnerSetupRequest
-  ): ValidatedSelfHostedRunnerSetupRequest {
+  ): ISelfHostedRunnerSetupRequest {
     if (process.platform !== 'win32') {
       throw new SelfHostedRunnerManagerError(
         'unsupported-platform',
@@ -2311,33 +2302,12 @@ export class WindowsSelfHostedRunnerManager {
         'Choose Windows or Linux in WSL.'
       )
     }
-    // The request may omit its account key, because the interface that builds
-    // it has no account picker. Resolve it here so every step below has a
-    // concrete account rather than each having to re-decide what "no account"
-    // meant, and refuse when the endpoint carries more than one signed-in
-    // account: guessing would register a runner as a user who never chose it.
-    const normalizedEndpoint = normalizeGitHubAPIEndpoint(
-      request.githubApiEndpoint
-    )
-    const resolvedAccountKey =
-      request.accountKey ??
-      this.accountCredentials.onlyAccountKeyForEndpoint(normalizedEndpoint)
-    if (
-      resolvedAccountKey === null ||
-      resolvedAccountKey === undefined ||
-      resolvedAccountKey.length === 0
-    ) {
-      throw new SelfHostedRunnerManagerError(
-        'github-account-unavailable',
-        'Sign in to exactly one account for this GitHub endpoint, or name the account to use.'
-      )
-    }
-    const normalized: ValidatedSelfHostedRunnerSetupRequest = {
+    const normalized: ISelfHostedRunnerSetupRequest = {
       id: request.id,
-      accountKey: resolvedAccountKey,
+      accountKey: request.accountKey,
       owner: validateRepositoryPart(request.owner, 'owner'),
       repository: validateRepositoryPart(request.repository, 'repository'),
-      githubApiEndpoint: normalizedEndpoint,
+      githubApiEndpoint: normalizeGitHubAPIEndpoint(request.githubApiEndpoint),
       name: validateSafeIdentifier(request.name, 64, 'runner name'),
       labels: normalizeLabels(request.labels),
       platform,
@@ -3227,7 +3197,7 @@ export class WindowsSelfHostedRunnerManager {
           'Wait for the current runner operation to finish, then retry.',
       }
     }
-    let normalized: ValidatedSelfHostedRunnerSetupRequest
+    let normalized: ISelfHostedRunnerSetupRequest
     try {
       normalized = this.validateSetupRequest(request)
     } catch (error) {

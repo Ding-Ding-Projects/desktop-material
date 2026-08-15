@@ -45,6 +45,12 @@ interface IBranchListProps {
   readonly repository: Repository
 
   /**
+   * Persists this surface's search mode independently. Dialogs must not inherit
+   * a regex/fuzzy choice made in the branches side sheet.
+   */
+  readonly filterListId?: string
+
+  /**
    * Overrides the default 30px row height. The Branches side sheet passes its
    * own geometry (34px icon chips plus padding) so virtualized slots match
    * what its rows actually draw; dialog consumers keep the default.
@@ -312,7 +318,7 @@ export class BranchList extends React.Component<
         ref={this.onBranchesFilterListRef}
         className="branches-list"
         rowHeight={this.props.rowHeight ?? RowHeight}
-        filterListId="branches"
+        filterListId={this.props.filterListId ?? 'branches'}
         filterListLabel="Branches"
         filterText={this.props.filterText}
         onFilterTextChanged={this.props.onFilterTextChanged}
