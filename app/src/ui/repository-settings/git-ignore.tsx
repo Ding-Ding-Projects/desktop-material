@@ -179,11 +179,6 @@ export class GitIgnore extends React.Component<
   IGitIgnoreProps,
   IGitIgnoreState
 > {
-  /** Prevent a completed suggestion probe from updating a closed settings tab. */
-  private mounted = false
-  /** Invalidates a superseded suggestion probe on repository changes or unmount. */
-  private suggestionRequest = 0
-
   public constructor(props: IGitIgnoreProps) {
     super(props)
     this.state = {
@@ -198,45 +193,15 @@ export class GitIgnore extends React.Component<
     }
   }
 
-  public componentDidMount() {
-    this.mounted = true
-    void this.refreshSuggestions()
-  }
-
-  public componentDidUpdate(prevProps: IGitIgnoreProps) {
-    if (prevProps.repository.path !== this.props.repository.path) {
-      void this.refreshSuggestions()
-    }
-  }
-
-  public componentWillUnmount() {
-    this.mounted = false
-    this.suggestionRequest++
-  }
-
-  private async refreshSuggestions(): Promise<void> {
-    const request = ++this.suggestionRequest
-    const repositoryPath = this.props.repository.path
+  public async componentDidMount() {
     try {
-      const suggestions = await suggestGitIgnoreTemplates(repositoryPath)
-      if (
-        !this.mounted ||
-        request !== this.suggestionRequest ||
-        repositoryPath !== this.props.repository.path
-      ) {
-        return
-      }
+      const suggestions = await suggestGitIgnoreTemplates(
+        this.props.repository.path
+      )
       this.setState({ suggestions })
     } catch (e) {
-      if (
-        !this.mounted ||
-        request !== this.suggestionRequest ||
-        repositoryPath !== this.props.repository.path
-      ) {
-        return
-      }
       log.warn(
-        `GitIgnore: unable to compute suggestions for ${repositoryPath}`,
+        `GitIgnore: unable to compute suggestions for ${this.props.repository.path}`,
         e
       )
     }

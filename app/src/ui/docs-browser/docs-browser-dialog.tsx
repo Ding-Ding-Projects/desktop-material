@@ -32,17 +32,19 @@ import { MaterialSymbol } from '../lib/material-symbol'
 import { createUniqueId, releaseUniqueId } from '../lib/id-pool'
 import { SandboxedMarkdown } from '../lib/sandboxed-markdown'
 import {
-  IMd3RegexBuilderApplication,
   Md3Chip,
   Md3ChipRow,
   Md3EmptyState,
   Md3GhostButton,
   Md3IconButton,
-  Md3RegexBuilderDialog,
   Md3SearchField,
   Md3TonalButton,
-  notify,
-} from '../md3'
+} from '../md3/md3-primitives'
+import {
+  IMd3RegexBuilderApplication,
+  Md3RegexBuilderDialog,
+} from '../md3/md3-regex-builder-dialog'
+import { notify } from '../md3/md3-toast'
 
 /**
  * The in-app offline documentation browser.

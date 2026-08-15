@@ -7,7 +7,6 @@ import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { PathText } from '../lib/path-text'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
-import { Md3DestructiveGateBody } from '../md3/md3-destructive-gate'
 import { ITextDiff, DiffSelection } from '../../models/diff'
 
 interface IDiscardSelectionProps {
@@ -43,9 +42,6 @@ interface IDiscardSelectionState {
    * is checked.
    */
   readonly confirmDiscardSelection: boolean
-
-  /** Whether the shared destructive-action gate has been fully operated. */
-  readonly gateAuthorized: boolean
 }
 
 /** A component to confirm and then discard changes from a selection. */
@@ -59,7 +55,6 @@ export class DiscardSelection extends React.Component<
     this.state = {
       isDiscardingSelection: false,
       confirmDiscardSelection: true,
-      gateAuthorized: false,
     }
   }
 
@@ -92,16 +87,6 @@ export class DiscardSelection extends React.Component<
             </li>
           </ul>
 
-          <Md3DestructiveGateBody
-            actionId="discard-selection"
-            summary={`This discards the selected lines of the uncommitted diff in ${this.props.file.path}.`}
-            irreversible="The selected lines leave the working directory and are not recoverable from this app."
-            targetKeyLabel={`the selected changes in ${this.props.file.path}`}
-            effectKeyLabel="those lines are discarded and the rest of the file is left alone"
-            disabled={this.state.isDiscardingSelection}
-            onAuthorizationChanged={this.onGateAuthorizationChanged}
-          />
-
           <Checkbox
             label="Do not show this message again"
             value={
@@ -117,8 +102,7 @@ export class DiscardSelection extends React.Component<
           <OkCancelButtonGroup
             destructive={true}
             okButtonText={this.getOkButtonLabel()}
-            okButtonDisabled={isDiscardingChanges || !this.state.gateAuthorized}
-            cancelButtonText="Emergency exit"
+            okButtonDisabled={isDiscardingChanges}
             cancelButtonDisabled={isDiscardingChanges}
           />
         </DialogFooter>
@@ -126,18 +110,7 @@ export class DiscardSelection extends React.Component<
     )
   }
 
-  private onGateAuthorizationChanged = (gateAuthorized: boolean) => {
-    this.setState({ gateAuthorized })
-  }
-
   private discard = async () => {
-    // A destructive `Dialog` submits on Enter from anywhere inside the form,
-    // and the affirmative control is a plain button rather than the submit
-    // button, so a disabled button alone does not gate the keyboard path.
-    if (!this.state.gateAuthorized) {
-      return
-    }
-
     this.setState({ isDiscardingSelection: true })
 
     await this.props.dispatcher.discardChangesFromSelection(

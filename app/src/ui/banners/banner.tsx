@@ -23,14 +23,7 @@ export class Banner extends React.Component<IBannerProps, {}> {
   public render() {
     const cn = classNames('banner', this.props.className)
     return (
-      <div
-        id={this.props.id}
-        className={cn}
-        ref={this.banner}
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-      >
+      <div id={this.props.id} className={cn} ref={this.banner}>
         <div className="contents">{this.props.children}</div>
         {this.renderCloseButton()}
       </div>

@@ -50,13 +50,13 @@ dialog {
   --dialog-icon-stop: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M12 7a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0112 7zm0 10a1 1 0 100-2 1 1 0 000 2z"></path><path fill-rule="evenodd" d="M7.328 1.47a.75.75 0 01.53-.22h8.284a.75.75 0 01.53.22l5.858 5.858c.141.14.22.33.22.53v8.284a.75.75 0 01-.22.53l-5.858 5.858a.75.75 0 01-.53.22H7.858a.75.75 0 01-.53-.22L1.47 16.672a.75.75 0 01-.22-.53V7.858a.75.75 0 01.22-.53L7.328 1.47zm.84 1.28L2.75 8.169v7.662l5.419 5.419h7.662l5.419-5.418V8.168L15.832 2.75H8.168z"></path></svg>');
   --dialog-icon-size: 24px;
 
-  border: 1px solid var(--md-sys-color-outline-variant);
+  border: none;
   box-shadow: var(--md-sys-elevation-level3);
   padding: 0;
-  border-radius: 20px;
+  border-radius: var(--md-sys-shape-corner-extra-large);
 
-  color: var(--md-sys-color-on-surface);
-  background: var(--md-sys-color-surface-container-high);
+  color: var(--text-color);
+  background: var(--background-color);
 
   // MD3 de-stock: route the inline validation icon colors through Material
   // roles (error → error, warning → amber) instead of the raw stock red/yellow.
@@ -169,15 +169,13 @@ dialog {
   }
 
   .dialog-header {
-    box-sizing: border-box;
-    min-height: 48px;
-    border-bottom: 0;
+    min-height: 50px;
+    border-bottom: var(--base-border);
 
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 8px;
-    padding: 12px 8px 8px 16px;
+    padding: var(--spacing-double);
 
     svg.icon {
       flex-shrink: 0;
@@ -189,8 +187,8 @@ dialog {
     }
 
     h1 {
-      font-weight: 700;
-      font-size: 13.5px;
+      font-weight: var(--font-weight-semibold);
+      font-size: var(--font-size-md);
       margin: 0;
       padding: 0;
       width: 100%;
@@ -198,26 +196,6 @@ dialog {
       @include ellipsis;
     }
     @include close-button;
-
-    .close {
-      align-items: center;
-      border-radius: 999px;
-      display: inline-flex;
-      height: 36px;
-      justify-content: center;
-      margin: 0;
-      width: 36px;
-
-      &:hover {
-        background: var(--md-sys-color-surface-container-highest);
-        color: var(--md-sys-color-on-surface);
-      }
-
-      &:focus-visible {
-        outline: 2px solid var(--md-sys-color-primary);
-        outline-offset: 1px;
-      }
-    }
   }
 
   &.warning,
@@ -268,7 +246,7 @@ dialog {
   }
 
   .dialog-content {
-    padding: 12px 16px 16px;
+    padding: var(--spacing-double);
 
     // This allows for using <Rows> to structure content within dialog content.
     // All Rows that are direct descendants of dialog content except for the
@@ -325,8 +303,8 @@ dialog {
     display: flex;
     flex-direction: column;
 
-    border-top: 0;
-    padding: 8px 16px 16px;
+    border-top: var(--base-border);
+    padding: var(--spacing-double);
 
     .button-group {
       display: flex;
@@ -338,7 +316,6 @@ dialog {
       @include ellipsis;
       margin-right: var(--spacing-half);
       min-width: 120px;
-      min-height: 40px;
 
       &:last-child {
         margin-right: 0;
@@ -558,33 +535,6 @@ dialog {
     }
   }
 
-  @media (max-width: 420px) {
-    border-radius: 16px;
-
-    .dialog-header {
-      padding: 8px 8px 6px 12px;
-    }
-
-    .dialog-content {
-      padding: 8px 12px 12px;
-    }
-
-    .dialog-footer {
-      padding: 6px 12px 12px;
-
-      .button-group {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        width: 100%;
-
-        button {
-          width: 100%;
-          min-width: 0;
-        }
-      }
-    }
-  }
-
   &#preferences {
     width: 600px;
 
@@ -594,12 +544,7 @@ dialog {
 
       &.accounts-tab {
         max-height: $default-tab-height;
-        // Only the vertical axis scrolls. The `overflow: auto` shorthand also
-        // armed the horizontal axis, so the longest localized labels (or a
-        // provider card one pixel too wide) raised a stray horizontal
-        // scrollbar no other settings tab shows.
-        overflow-x: hidden;
-        overflow-y: auto;
+        overflow: auto;
       }
 
       &.copilot-tab {
@@ -608,8 +553,7 @@ dialog {
         .copilot-tab-content {
           padding: var(--spacing-double);
           max-height: $default-tab-height;
-          overflow-x: hidden;
-          overflow-y: auto;
+          overflow: auto;
         }
       }
     }

@@ -23,13 +23,6 @@ type FileHistoryView = 'history' | 'blame'
 interface IFileHistoryProps {
   readonly repository: Repository
   readonly path: string
-
-  /**
-   * Which tab the dialog opens on. Defaults to `history`, so a caller that
-   * says nothing gets exactly the dialog this always was.
-   */
-  readonly initialView?: FileHistoryView
-
   readonly onDismissed: () => void
   readonly onRefreshRepository: () => Promise<void>
 }
@@ -81,7 +74,7 @@ export class FileHistory extends React.Component<
   public constructor(props: IFileHistoryProps) {
     super(props)
     this.state = {
-      view: props.initialView ?? 'history',
+      view: 'history',
       history: null,
       historyLoading: true,
       historyError: null,
@@ -100,14 +93,7 @@ export class FileHistory extends React.Component<
   public componentDidMount() {
     this.mounted = true
     window.addEventListener('keydown', this.onWindowKeyDown)
-    // History is loaded either way — it is what the other tab shows and the
-    // dialog is one keystroke from it — but a dialog opened on blame must load
-    // blame too, or it renders an empty panel until the user clicks the tab it
-    // is already on.
     this.loadHistory()
-    if (this.state.view === 'blame') {
-      this.loadBlame()
-    }
   }
 
   public componentWillUnmount() {

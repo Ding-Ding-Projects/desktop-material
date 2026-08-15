@@ -1,6 +1,6 @@
 @import '../mixins';
 
-// The Ctrl+Shift+P master command palette, built as Material Design 3's full-screen
+// The Ctrl+Shift+F master command palette, built as Material Design 3's full-screen
 // search view: the palette covers the entire app rather than floating over a
 // corner of it, so the list has room to be a control surface — every row shows
 // where its feature lives, and a row that *is* a setting renders that setting's
@@ -31,12 +31,10 @@
     gap: 8px;
     margin: 0 auto 12px;
     padding: 10px 16px;
-    min-height: 44px;
-    box-sizing: border-box;
     width: 100%;
     max-width: var(--command-palette-content-width);
-    border-radius: 12px;
-    background: var(--md-sys-color-surface-container-lowest);
+    border-radius: var(--md-sys-shape-corner-full, 999px);
+    background: var(--md-sys-color-surface-container-highest);
     color: var(--md-sys-color-on-surface-variant);
 
     .octicon {
@@ -102,8 +100,6 @@
     gap: 12px;
     width: 100%;
     padding: 8px 12px;
-    min-height: 44px;
-    box-sizing: border-box;
     border: 0;
     border-radius: var(--md-sys-shape-corner-medium, 12px);
     background: transparent;
@@ -687,9 +683,7 @@
     left: 50%;
     margin: 0;
     transform: translateX(-50%);
-    border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 20px;
-    background: var(--md-sys-color-surface-container-high);
+    border-radius: var(--md-sys-shape-corner-extra-large, 28px);
     box-shadow: var(--md-sys-elevation-level3);
     overflow: hidden;
   }
@@ -732,73 +726,6 @@
     margin: 0;
     border-radius: 0;
     box-shadow: none;
-  }
-}
-
-@media (max-width: 560px) {
-  #dialog-layer dialog#command-palette.command-palette-surface[open] {
-    &.command-palette-size-medium,
-    &.command-palette-size-compact {
-      top: max(var(--command-palette-top), 48px);
-      right: 8px;
-      bottom: 8px;
-      left: 8px;
-      width: auto;
-      max-width: none;
-      height: auto;
-      max-height: calc(100vh - var(--command-palette-top) - 16px);
-      transform: none;
-    }
-
-    .dialog-header {
-      min-height: 44px;
-    }
-
-    .dialog-content {
-      padding: 8px;
-    }
-
-    .command-palette-search {
-      align-items: flex-start;
-      flex-wrap: wrap;
-      margin-bottom: 8px;
-      padding: 8px 10px;
-    }
-
-    .command-palette-search input {
-      min-height: 28px;
-    }
-
-    .command-palette-filter-modes {
-      flex-basis: 100%;
-      justify-content: flex-end;
-    }
-
-    .command-palette-row {
-      align-items: flex-start;
-      flex-wrap: wrap;
-      gap: 8px;
-      padding: 8px 10px;
-    }
-
-    .command-palette-row-actions {
-      flex-basis: 100%;
-      justify-content: flex-end;
-    }
-
-    .command-palette-box,
-    .command-palette-select {
-      width: min(100%, 220px);
-      max-width: 220px;
-    }
-
-    .command-palette-hints {
-      margin-top: 6px;
-    }
-
-    .command-palette-keys {
-      display: none;
-    }
   }
 }
 

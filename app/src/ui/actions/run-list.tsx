@@ -216,11 +216,7 @@ class RunListItem extends React.PureComponent<
             <span className="actions-run-summary">
               <strong>{title}</strong>
               <span className="actions-run-meta">
-                <span
-                  className={classNames('actions-status-chip', status.tone)}
-                >
-                  {status.label}
-                </span>
+                <span className="sr-only">{status.label}</span>
                 <span className="actions-run-number">
                   #{run.run_number ?? run.id}
                 </span>

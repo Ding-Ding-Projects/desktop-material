@@ -1,10 +1,6 @@
 import * as React from 'react'
 
-import {
-  advanceElapsedMilliseconds,
-  formatElapsedDuration,
-  Progress,
-} from '../../models/progress'
+import { Progress } from '../../models/progress'
 import { Repository } from '../../models/repository'
 import { IAheadBehind } from '../../models/branch'
 import { TipState } from '../../models/tip'
@@ -143,7 +139,6 @@ type SyncPillState =
 interface IPushPullButtonState {
   readonly screenReaderStateMessage: string | null
   readonly actionInProgress: ActionInProgress | null
-  readonly elapsedMilliseconds: number
 }
 
 export enum DropdownItemType {
@@ -248,25 +243,11 @@ export class PushPullButton extends React.Component<
   IPushPullButtonProps,
   IPushPullButtonState
 > {
-  private elapsedIntervalId: number | null = null
-
   public constructor(props: IPushPullButtonProps) {
     super(props)
     this.state = {
       screenReaderStateMessage: null,
       actionInProgress: null,
-      elapsedMilliseconds: 0,
-    }
-  }
-
-  public componentDidMount() {
-    this.syncElapsedTicker()
-  }
-
-  public componentWillUnmount() {
-    if (this.elapsedIntervalId !== null) {
-      window.clearInterval(this.elapsedIntervalId)
-      this.elapsedIntervalId = null
     }
   }
 
@@ -277,9 +258,6 @@ export class PushPullButton extends React.Component<
 
     const progressComplete =
       this.props.progress === null && prevProps.progress !== null
-    const operationRestarted =
-      this.props.progress !== null &&
-      this.props.progress.startedAt !== prevProps.progress?.startedAt
 
     if (progressChanged) {
       this.setScreenReaderLoadingStateMessage()
@@ -291,39 +269,8 @@ export class PushPullButton extends React.Component<
           this.state.actionInProgress ?? 'Pull, push, or fetch'
         } complete`,
         actionInProgress: null,
-        elapsedMilliseconds: 0,
       })
-    } else if (operationRestarted) {
-      this.setState({ elapsedMilliseconds: 0 })
     }
-
-    this.syncElapsedTicker()
-  }
-
-  private syncElapsedTicker() {
-    const needsTicker = this.props.progress !== null
-    if (needsTicker && this.elapsedIntervalId === null) {
-      this.elapsedIntervalId = window.setInterval(this.tickElapsed, 1_000)
-      this.tickElapsed()
-    } else if (!needsTicker && this.elapsedIntervalId !== null) {
-      window.clearInterval(this.elapsedIntervalId)
-      this.elapsedIntervalId = null
-    }
-  }
-
-  private tickElapsed = () => {
-    const startedAt = this.props.progress?.startedAt
-    const now = Date.now()
-    this.setState(state => {
-      const elapsedMilliseconds = advanceElapsedMilliseconds(
-        startedAt,
-        state.elapsedMilliseconds,
-        now
-      )
-      return elapsedMilliseconds === state.elapsedMilliseconds
-        ? null
-        : { elapsedMilliseconds }
-    })
   }
 
   private isPullPushFetchProgress(kind: string): kind is ActionInProgress {
@@ -659,21 +606,16 @@ export class PushPullButton extends React.Component<
   }
 
   private progressButton(progress: Progress, networkActionInProgress: boolean) {
-    const elapsed = formatElapsedDuration(this.state.elapsedMilliseconds)
-    const phase = progress.description || 'Hang on…'
-    const description = `${phase} · Elapsed ${elapsed}`
-    const title = progress.title ?? 'Git operation in progress'
     return (
       <ToolbarButton
         {...this.defaultButtonProps('progress')}
-        title={title}
-        description={description}
-        ariaLabel={`${title}. ${description}`}
+        title={progress.title}
+        description={progress.description || 'Hang on…'}
         progressValue={progress.value}
         materialSymbol="progress_activity"
         materialSymbolSize={22}
         iconClassName={networkActionInProgress ? 'spin' : ''}
-        tooltip={description}
+        tooltip={progress.description}
         disabled={true}
       />
     )

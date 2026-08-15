@@ -51,10 +51,7 @@ import {
   SimplifiedDiffRow,
   IDiffRowData,
   DiffColumn,
-  getHunkExpansionKeyIndex,
   getLineWidthFromDigitCount,
-  sortDiffLineNumbers,
-  sortHunkExpansionKeys,
   getNumberOfDigits,
   MaxIntraLineDiffStringLength,
   getFirstAndLastClassesSideBySide,
@@ -84,7 +81,6 @@ import {
   readDiffContextPreferences,
 } from './diff-context-preferences'
 import { roleAccelerator } from '../../lib/menu-accelerators'
-import { DiffLineWrapChangedEvent, readDiffLineWrap } from './diff-line-wrap'
 
 const DefaultRowHeight = 20
 
@@ -236,9 +232,6 @@ interface ISideBySideDiffState {
     hunkIndex: number
     expansionType: DiffHunkExpansionType
   } | null
-
-  /** Whether long diff lines wrap within the available viewport. */
-  readonly wrapLines: boolean
 }
 
 const listRowsHeightCache = new CellMeasurerCache({
@@ -296,7 +289,6 @@ export class SideBySideDiff extends React.Component<
       selectingTextInRow: 'before',
       lastExpandedHunk: null,
       ariaLiveMessage: '',
-      wrapLines: readDiffLineWrap(),
     }
   }
 
@@ -316,10 +308,6 @@ export class SideBySideDiff extends React.Component<
     document.addEventListener(
       DiffContextPreferencesChangedEvent,
       this.onDiffContextPreferencesChanged
-    )
-    document.addEventListener(
-      DiffLineWrapChangedEvent,
-      this.onDiffLineWrapChanged as EventListener
     )
 
     this.addContextMenuListenerToDiff()
@@ -462,10 +450,6 @@ export class SideBySideDiff extends React.Component<
       DiffContextPreferencesChangedEvent,
       this.onDiffContextPreferencesChanged
     )
-    document.removeEventListener(
-      DiffLineWrapChangedEvent,
-      this.onDiffLineWrapChanged as EventListener
-    )
     this.removeContextMenuListenerFromDiff()
   }
 
@@ -479,15 +463,6 @@ export class SideBySideDiff extends React.Component<
     if (!previous.alwaysExpand && next.alwaysExpand) {
       this.expandWholeFile(false, true)
     }
-  }
-
-  private onDiffLineWrapChanged = (event: CustomEvent<boolean>) => {
-    if (event.detail === this.state.wrapLines) {
-      return
-    }
-
-    this.clearListRowsHeightCache()
-    this.setState({ wrapLines: event.detail })
   }
 
   public componentDidUpdate(
@@ -579,9 +554,7 @@ export class SideBySideDiff extends React.Component<
       return
     }
 
-    const expansionHunkKeys = sortHunkExpansionKeys(
-      this.hunkExpansionRefs.keys()
-    )
+    const expansionHunkKeys = Array.from(this.hunkExpansionRefs.keys()).sort()
     const { hunkIndex, expansionType } = this.state.lastExpandedHunk
     const lastExpandedKey = `${hunkIndex}-${expansionType}`
 
@@ -593,9 +566,13 @@ export class SideBySideDiff extends React.Component<
       return
     }
 
+    function getHunkKeyIndex(key: string) {
+      return parseInt(key.split('-').at(0) || '', 10)
+    }
+
     // No?, Then try to focus the next closest hunk in tab order
     const closestInTabOrder = expansionHunkKeys.find(
-      key => getHunkExpansionKeyIndex(key) >= hunkIndex
+      key => getHunkKeyIndex(key) >= hunkIndex
     )
 
     if (closestInTabOrder) {
@@ -605,9 +582,9 @@ export class SideBySideDiff extends React.Component<
     }
 
     // No? Then try to focus the next closest hunk in reverse tab order
-    const closestInReverseTabOrder = [...expansionHunkKeys]
+    const closestInReverseTabOrder = expansionHunkKeys
       .reverse()
-      .find(key => getHunkExpansionKeyIndex(key) <= hunkIndex)
+      .find(key => getHunkKeyIndex(key) <= hunkIndex)
 
     if (closestInReverseTabOrder) {
       const closetHunkButton = this.hunkExpansionRefs.get(
@@ -675,8 +652,6 @@ export class SideBySideDiff extends React.Component<
     const rows = this.getCurrentDiffRows()
     const containerClassName = classNames('side-by-side-diff-container', {
       'unified-diff': !this.props.showSideBySideDiff,
-      'wrap-lines': this.state.wrapLines,
-      'nowrap-lines': !this.state.wrapLines,
       [`selecting-${this.state.selectingTextInRow}`]:
         this.props.showSideBySideDiff &&
         this.state.selectingTextInRow !== undefined,
@@ -741,7 +716,6 @@ export class SideBySideDiff extends React.Component<
                 // rows are memoized and include things like the
                 // noNewlineIndicator
                 rows={rows}
-                wrapLines={this.state.wrapLines}
               />
             )}
           </AutoSizer>
@@ -933,7 +907,7 @@ export class SideBySideDiff extends React.Component<
       diffRowStartIndex,
       diffRowStopIndex,
       diffType,
-      lineNumbers: sortDiffLineNumbers(lineNumbers),
+      lineNumbers: Array.from(lineNumbers).sort(),
       lineNumbersIdentifiers,
     }
 

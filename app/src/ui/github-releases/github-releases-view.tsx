@@ -3359,13 +3359,8 @@ export class GitHubReleasesView extends React.Component<
             </div>
           </dl>
         </CollapsibleSection>
-        <CollapsibleSection
-          elementId="releases-notes"
-          repositoryKey={this.collapseKey}
-          label="Release notes"
-          ariaLabel={`Release notes for ${release.name || release.tagName}`}
-          className="github-release-notes"
-        >
+        <div className="github-release-notes">
+          <h3>Release notes</h3>
           {/*
             Release notes are authored as markdown on the provider, so showing
             release.body raw rendered the literal syntax - headings as #, links
@@ -3380,14 +3375,12 @@ export class GitHubReleasesView extends React.Component<
               underlineLinks={this.props.underlineLinks === true}
               repository={this.props.repository.gitHubRepository ?? undefined}
               baseHref={release.htmlURL ?? undefined}
-              ariaLabel={`Rendered release notes for ${
-                release.name || release.tagName
-              }`}
+              ariaLabel={`Release notes for ${release.name || release.tagName}`}
             />
           ) : (
             <p>No release notes were provided.</p>
           )}
-        </CollapsibleSection>
+        </div>
         {this.renderAssets(release)}
       </section>
     )

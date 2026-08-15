@@ -42,13 +42,17 @@ describe('rewrite surface coverage', () => {
       'two surfaces share one id, so one of them is never really checked'
     )
 
+    // The eight drawer destinations went with the MD3 shell in the revert to
+    // the 2026-08-07 interface, so there are none left to hold. The features
+    // and settings rows below are the surfaces that survived it, and they are
+    // still enumerated by hand for the reason the registry exists.
     const destinations = RewriteSurfaces.filter(
       surface => surface.kind === 'destination'
     )
     assert.equal(
       destinations.length,
-      8,
-      'the shell has eight destinations; the registry must hold all eight'
+      0,
+      'the shell and its drawer destinations were reverted away; the registry must not resurrect them'
     )
 
     for (const id of [
@@ -56,7 +60,6 @@ describe('rewrite surface coverage', () => {
       'authenticator',
       'surface-locks',
       'support-tickets',
-      'setting-classic-toolbar',
       'setting-dialog-emoji',
     ]) {
       assert.ok(
@@ -145,7 +148,10 @@ describe('rewrite surface coverage', () => {
         'ui/preferences/school-mode.tsx',
         'ui/preferences/surface-locks.tsx',
         'ui/preferences/authenticator-settings.tsx',
-        'ui/md3/md3-navigation-drawer.tsx',
+        // The MD3 navigation drawer used to be read here for the destination
+        // anchors. It went with the shell in the revert to the 2026-08-07
+        // interface, and so did every `destination` surface that named one, so
+        // there is nothing left for it to answer.
       ].map(relative => readFile(Path.join(src, relative), 'utf8'))
     )
     const haystack = sources.join('\n')
@@ -248,15 +254,6 @@ describe('rewrite surface coverage', () => {
       readonly explanationKey: string
       readonly provenanceKeys: ReadonlyArray<string>
     }> = [
-      {
-        file: 'ui/preferences/appearance.tsx',
-        summaryKey: 'classicToolbar.explanationSummary',
-        explanationKey: 'classicToolbar.explanation',
-        provenanceKeys: [
-          'classicToolbar.provenanceStored',
-          'classicToolbar.provenanceDefault',
-        ],
-      },
       {
         file: 'ui/preferences/appearance.tsx',
         summaryKey: 'dialogEmoji.explanationSummary',

@@ -4,40 +4,6 @@
   min-height: 0;
 }
 
-// Claude workbench density for the fixed 356px master pane. The title/count,
-// search, inclusion control, filter chips and virtualized rows stay the same
-// functional components; this only brings their geometry into the reference.
-#repository.repository-workbench-changes {
-  .filtered-changes-list .changes-panel-header {
-    min-height: 38px;
-    padding: 8px 12px 4px;
-
-    .changes-panel-title {
-      font-size: 16px;
-    }
-
-    .changes-panel-count {
-      height: 22px;
-      padding-inline: 8px;
-      font-size: 11.5px;
-    }
-  }
-
-  .filtered-changes-list .header {
-    padding-inline: 10px;
-  }
-
-  .filtered-changes-list .header .filter-box-container .filter-list-filter-field input {
-    height: 38px;
-    min-height: 38px;
-  }
-
-  #changes-list .list-item {
-    margin-inline: 6px;
-    border-radius: 10px;
-  }
-}
-
 /** A React component holding the currently selected repository's changes */
 .changes-list-container {
   display: flex;

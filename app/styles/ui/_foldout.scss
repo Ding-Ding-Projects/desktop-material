@@ -119,11 +119,6 @@
           transform: scale(0.86) rotate(90deg);
         }
 
-        &:focus-visible {
-          outline: 2px solid var(--md-sys-color-primary);
-          outline-offset: 2px;
-        }
-
         .octicon {
           width: 16px;
           height: 16px;
@@ -200,11 +195,6 @@
 
         &:hover {
           background: var(--md-sys-color-surface-container-highest);
-        }
-
-        &:focus-visible {
-          outline: 2px solid var(--md-sys-color-primary);
-          outline-offset: 1px;
         }
       }
     }

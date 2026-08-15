@@ -237,7 +237,7 @@ export class ExpandableCommitSummary extends React.Component<
         ariaControls="expandable-commit-summary"
       >
         <MaterialSymbol
-          name={isExpanded ? 'close' : 'expand_more'}
+          name="expand_more"
           size={16}
           className={classNames('ecs-expander-glyph', { expanded: isExpanded })}
         />

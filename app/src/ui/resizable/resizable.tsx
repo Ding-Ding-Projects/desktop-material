@@ -187,18 +187,11 @@ export class Resizable extends React.Component<
   }
 
   public render() {
-    const style: React.CSSProperties = this.props.fillAvailableWidth
-      ? {
-          width: 'auto',
-          maxWidth: 'none',
-          minWidth: 0,
-          flex: '1 1 auto',
-        }
-      : {
-          width: this.getCurrentWidth(),
-          maxWidth: this.props.maximumWidth,
-          minWidth: this.props.minimumWidth,
-        }
+    const style: React.CSSProperties = {
+      width: this.getCurrentWidth(),
+      maxWidth: this.props.maximumWidth,
+      minWidth: this.props.minimumWidth,
+    }
 
     return (
       <div
@@ -244,9 +237,6 @@ export interface IResizableProps {
 
   /** The optional ID for the root element. */
   readonly id?: string
-
-  /** Let the panel occupy the whole row while its sibling detail pane is closed. */
-  readonly fillAvailableWidth?: boolean
 
   /** Used to describe which resizable was updated to screen reader users */
   readonly description: string

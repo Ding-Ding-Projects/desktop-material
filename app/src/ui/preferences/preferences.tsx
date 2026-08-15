@@ -108,8 +108,8 @@ import { LocalizedText } from '../lib/localized-text'
 import { SettingsSearch, SettingsSearchSurfaceId } from './settings-search'
 import {
   filterSettingsEntries,
-  settingsTabsWithMatches,
   settingsSearchEntry,
+  settingsTabsWithMatches,
   ISettingsSearchEntry,
 } from '../../lib/settings-search/settings-search-catalog'
 import { FilterMode, IMatch } from '../../lib/fuzzy-find'
@@ -857,26 +857,21 @@ export class Preferences extends React.Component<
       >
         {this.renderDisallowedCharactersError()}
         <div
-          className="preferences-container settings-workbench settings-workbench-global"
+          className="preferences-container"
           data-settings-tab-dock-position={this.state.tabDockPosition}
         >
-          <div className="preferences-rail settings-workbench-navigation">
-            <div className="preferences-rail-header settings-workbench-heading">
-              <div className="preferences-title-group">
-                <span className="preferences-title-icon" aria-hidden={true}>
-                  <Octicon symbol={octicons.gear} />
-                </span>
-                <h2 id={PreferencesTitleId} className="preferences-title">
-                  <LocalizedText translationKey="settings.dialogTitle" />
-                </h2>
-              </div>
+          <div className="preferences-rail">
+            <div className="preferences-rail-header">
+              <h2 id={PreferencesTitleId} className="preferences-title">
+                <LocalizedText translationKey="settings.dialogTitle" />
+              </h2>
               <SettingsTabDockControl
                 strip="preferences"
                 position={this.state.tabDockPosition}
                 onChange={this.onTabDockPositionChanged}
               />
             </div>
-            <div className="preferences-browser-search settings-workbench-search">
+            <div className="preferences-browser-search">
               {this.renderSettingsSearch()}
             </div>
             <SettingsTabStrip
@@ -892,8 +887,8 @@ export class Preferences extends React.Component<
               accessibleLabels={this.getSettingsBrowserTabLabels()}
             />
           </div>
-          <div className="preferences-content-pane settings-workbench-content">
-            <div className="preferences-pane-header settings-workbench-content-header">
+          <div className="preferences-content-pane">
+            <div className="preferences-pane-header">
               <button
                 type="button"
                 className="preferences-close-button"

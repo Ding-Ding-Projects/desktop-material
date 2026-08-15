@@ -44,7 +44,6 @@ import { BulkBranchDelete } from './bulk-branch-delete'
 import { ForkBranchCheckout } from './fork-branch-checkout'
 import { WorktreeEntry } from '../../models/worktree'
 import { findLinkedWorktreeForBranch } from './branch-worktree'
-import { IListFilter } from '../lib/filter-list-mode'
 
 /**
  * Virtualized row height for branch rows inside the branch side sheet.
@@ -103,20 +102,6 @@ interface IBranchesContainerState {
 
 /** Group headers use their own compact slot inside the virtualized sheet. */
 const SheetGroupHeaderRowHeight = 36
-
-/** Compact branch predicates shown as the Claude destination's tonal chips. */
-const BranchTypeFilters: ReadonlyArray<IListFilter<IBranchListItem>> = [
-  {
-    id: 'local',
-    label: 'Local',
-    predicate: item => item.branch.type === BranchType.Local,
-  },
-  {
-    id: 'remote',
-    label: 'Remote',
-    predicate: item => item.branch.type === BranchType.Remote,
-  },
-]
 
 /** The unified Branches and Pull Requests component. */
 export class BranchesContainer extends React.Component<
@@ -372,7 +357,6 @@ export class BranchesContainer extends React.Component<
             allBranches={this.props.allBranches}
             recentBranches={this.props.recentBranches}
             branchSortOrder={this.props.branchSortOrder}
-            customFilters={BranchTypeFilters}
             rowHeight={this.getSheetRowHeight}
             onItemClick={this.onBranchItemClick}
             filterText={this.state.branchFilterText}

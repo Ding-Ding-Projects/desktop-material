@@ -130,23 +130,10 @@ export function groupBranches(
       branch: b,
       isPinned: false,
     }))
-  // Guarded like every other group above it, which this one alone was not.
-  //
-  // A repository whose only branch is the default — a fresh clone, a new
-  // repository, one where every other branch has been hidden — has nothing
-  // remaining, and pushing the group anyway rendered an "Other branches"
-  // header with nothing beneath it. That reads as a list that failed to load
-  // rather than as a list with nothing in it, which is why it was reported as
-  // "the branch list is empty": a heading promising rows, and no rows.
-  //
-  // With the group omitted the filter list reaches its own empty state, which
-  // says so in words.
-  if (remainingItems.length > 0) {
-    groups.push({
-      identifier: 'other',
-      items: remainingItems,
-    })
-  }
+  groups.push({
+    identifier: 'other',
+    items: remainingItems,
+  })
 
   return groups
 }

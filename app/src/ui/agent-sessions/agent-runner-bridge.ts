@@ -11,16 +11,9 @@ import {
   cancelOpencode,
   detectCodex,
   detectOpencode,
-  onCodexLog,
-  onOpencodeLog,
   runCodexPrompt,
   runOpencodePrompt,
 } from '../main-process-proxy'
-import {
-  appendAgentSessionConversationLog,
-  beginAgentSessionConversation,
-  finishAgentSessionConversation,
-} from './agent-session-conversation'
 
 /**
  * The only module in the Agents panel that talks to the main process. It is
@@ -81,18 +74,6 @@ export async function startAgentSessionRun(
     return { status: 'skipped' }
   }
 
-  beginAgentSessionConversation({
-    operationId: options.operationId,
-    worktreePath: options.worktreePath,
-    agent: options.agent,
-    prompt: options.prompt,
-  })
-
-  const disposeLog =
-    runner === 'codex'
-      ? onCodexLog((_event, log) => appendAgentSessionConversationLog(log))
-      : onOpencodeLog((_event, log) => appendAgentSessionConversationLog(log))
-
   const request = {
     operationId: options.operationId,
     repoPath: options.worktreePath,
@@ -101,20 +82,12 @@ export async function startAgentSessionRun(
     prompt: options.prompt,
   }
 
-  try {
-    const result =
-      runner === 'codex'
-        ? await runCodexPrompt(request)
-        : await runOpencodePrompt(request)
-    const classified = classifyAgentSessionRunnerExit(result)
-    finishAgentSessionConversation(options.operationId, classified.status)
-    return classified
-  } catch (error) {
-    finishAgentSessionConversation(options.operationId, 'failed')
-    throw error
-  } finally {
-    disposeLog()
-  }
+  const result =
+    runner === 'codex'
+      ? await runCodexPrompt(request)
+      : await runOpencodePrompt(request)
+
+  return classifyAgentSessionRunnerExit(result)
 }
 
 /** Ask a running agent session to stop. */

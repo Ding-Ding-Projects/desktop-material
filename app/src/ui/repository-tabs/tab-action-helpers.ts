@@ -29,7 +29,7 @@ export function readTabFunnyLevels(): ITabFunnyLevels {
   return readFunnyLevels()
 }
 
-/** 1-2 reads plain, 3 light, 4 playful, and 5 the maximum band. */
+/** 1-2 reads plain, 3 reads lightly playful, 4-5 reads maximally playful. */
 export function tabFunnyBand(level: number): TabFunnyBand {
   return funnyBand(level)
 }

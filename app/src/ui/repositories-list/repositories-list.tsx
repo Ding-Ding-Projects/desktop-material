@@ -1395,50 +1395,8 @@ export class RepositoriesList extends React.Component<
           getItemAriaLabel={this.getItemAriaLabel}
           onSelectionChanged={this.onSelectionChanged}
         />
-        {this.renderActiveRepositoryFooter()}
       </div>
     )
-  }
-
-  private renderActiveRepositoryFooter() {
-    const repository = this.props.selectedRepository
-    if (repository === null) {
-      return null
-    }
-
-    const name =
-      repository instanceof Repository && repository.alias !== null
-        ? repository.alias
-        : repository.name
-
-    return (
-      <footer className="active-repository-footer">
-        <button
-          type="button"
-          className="active-repository-footer-button"
-          aria-label={`Open current repository, ${name}`}
-          onClick={this.onActiveRepositoryClick}
-        >
-          <span className="active-repository-footer-icon" aria-hidden={true}>
-            <MaterialSymbol name="book_2" size={20} />
-          </span>
-          <span className="active-repository-footer-copy">
-            <span className="active-repository-footer-label">
-              Current repository
-            </span>
-            <span className="active-repository-footer-name">{name}</span>
-          </span>
-          <MaterialSymbol name="repeat" size={20} />
-        </button>
-      </footer>
-    )
-  }
-
-  private onActiveRepositoryClick = () => {
-    const repository = this.props.selectedRepository
-    if (repository !== null) {
-      this.props.onSelectionChanged(repository)
-    }
   }
 
   private onSelectionChanged = (selectedItem: IRepositoryListItem | null) => {

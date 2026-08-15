@@ -612,11 +612,6 @@ export class RepositoryListItem extends React.Component<
       return
     }
 
-    // Unmounting bumps this, and a repository row unmounts whenever the list is
-    // filtered or the side sheet closes. Without it the path check below still
-    // passes — the row's own repository has not changed, the row is simply gone
-    // — and the state update lands on an unmounted component.
-    const requestId = this.appearanceEditorRequestId
     const elements = await dispatcher.getRepositoryAppearanceElements(
       repository
     )
@@ -626,10 +621,7 @@ export class RepositoryListItem extends React.Component<
     const profileLogoDesign = dispatcher.getProfileAppearanceElement(
       ProfileAppearanceElementId.DefaultRepositoryLogo
     )
-    if (
-      requestId !== this.appearanceEditorRequestId ||
-      this.getLogoPath(this.props.repository) !== repository.path
-    ) {
+    if (this.getLogoPath(this.props.repository) !== repository.path) {
       return
     }
     this.setState({
@@ -739,9 +731,6 @@ export class RepositoryListItem extends React.Component<
       alias: alias !== null,
     })
 
-    // The row's list-name appearance lock. The logo and profile-logo editors
-    // on this row mint their own target ids; this is the one whose anchor is
-    // the row itself, so it is the one the row can advertise.
     // `alias` only exists on a real Repository; a clone in progress has a name
     // and nothing else. Narrowing rather than casting, so a row that is still
     // cloning gets a stable id rather than `undefined` in the middle of one.

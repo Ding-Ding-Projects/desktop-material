@@ -67,13 +67,7 @@ export class UpdateComingSoon extends React.Component<
       >
         <Octicon className="coming-soon-icon" symbol={octicons.clock} />
         <div className="update-coming-soon-body">
-          {/*
-           * No live region of its own: `Banner` is already a polite,
-           * atomic `role="status"`, so a nested one here would make a
-           * screen reader announce the summary twice — once for the inner
-           * region and again for the atomic banner around it.
-           */}
-          <span className="update-coming-soon-summary">
+          <span role="status" className="update-coming-soon-summary">
             <span className="update-coming-soon-headline">
               {t('update.comingSoon')}
             </span>

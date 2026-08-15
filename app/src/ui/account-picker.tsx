@@ -23,8 +23,6 @@ interface IAccountPickerProps {
   readonly accounts: ReadonlyArray<Account>
   readonly selectedAccount: Account
   readonly onSelectedAccountChanged: (account: Account) => void
-  readonly disabled?: boolean
-  readonly buttonAriaLabel?: string
 
   /**
    * The class name to apply to the open button. This is useful for
@@ -157,7 +155,6 @@ export class AccountPicker extends React.Component<
     return (
       <PopoverDropdown
         className="account-picker"
-        disabled={this.props.disabled}
         contentTitle={t('accounts.picker.choose')}
         buttonContent={
           <div className="account">
@@ -168,7 +165,6 @@ export class AccountPicker extends React.Component<
           </div>
         }
         label={t('accounts.picker.label')}
-        buttonAriaLabel={this.props.buttonAriaLabel}
         closeButtonAriaLabel={t('accounts.picker.close')}
         ref={this.popoverRef}
         openButtonClassName={this.props.openButtonClassName}

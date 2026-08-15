@@ -2,7 +2,6 @@ import React from 'react'
 import { getAheadBehind, revSymmetricDifference } from '../../../lib/git'
 import { determineMergeability } from '../../../lib/git/merge-tree'
 import { getBranchesNotUpdatedWithDefault } from '../../../lib/git/not-updated-with-default'
-
 import { Branch, BranchType } from '../../../models/branch'
 import { ComputedAction } from '../../../models/computed-action'
 import { MergeTreeResult } from '../../../models/merge'
@@ -351,7 +350,6 @@ export class MergeChooseBranchDialog extends React.Component<
   private canDeleteSelectedBranch = (): boolean => {
     const { selectedBranch, commitCount, mergeStatus, mergeStatusKnown } =
       this.state
-
     const { currentBranch, defaultBranch } = this.props
 
     if (
@@ -400,7 +398,6 @@ export class MergeChooseBranchDialog extends React.Component<
       repository,
       branch: selectedBranch,
       expectedSha: selectedBranch.tip.sha,
-
       existsOnRemote:
         selectedBranch.upstreamRemoteName !== null &&
         selectedBranch.isGone !== true,

@@ -177,7 +177,6 @@ export class ReleaseNotes extends React.Component<IReleaseNotesProps, {}> {
     return (
       <Dialog
         id="release-notes"
-        emojiDecoration="update"
         onDismissed={this.props.onDismissed}
         onSubmit={this.updateNow}
         title={dialogHeader}

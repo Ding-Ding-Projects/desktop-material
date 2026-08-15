@@ -2,7 +2,7 @@
   container-name: element-appearance-editor;
   container-type: inline-size;
   display: grid;
-  gap: 12px;
+  gap: 14px;
   box-sizing: border-box;
   width: min(390px, calc(var(--available-width, 100vw) - 32px));
   min-width: 0;
@@ -24,10 +24,6 @@
     justify-content: space-between;
     gap: 14px;
     min-width: 0;
-    padding: 10px 12px;
-    border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 16px;
-    background: var(--md-sys-color-surface-container-high);
 
     > div {
       min-width: 0;
@@ -58,10 +54,6 @@
     flex: 0 0 auto;
     gap: 6px;
     min-width: 0;
-    border-color: transparent;
-    border-radius: 999px;
-    background: var(--md-sys-color-secondary-container);
-    color: var(--md-sys-color-on-secondary-container);
   }
 
   .element-appearance-editor-content,
@@ -91,25 +83,6 @@
   .appearance-section,
   .repository-logo-studio {
     margin: 0;
-  }
-
-  .appearance-section {
-    padding: 14px;
-    border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 16px;
-    background: var(--md-sys-color-surface-container-low);
-  }
-
-  .text-box-component input,
-  .select-component select,
-  input[type='text'],
-  input[type='number'],
-  input[type='url'],
-  textarea {
-    min-height: 38px;
-    border-color: var(--md-sys-color-outline-variant);
-    border-radius: 10px;
-    background: var(--md-sys-color-surface-container-high);
   }
 }
 
@@ -378,17 +351,15 @@
 
 .popover-component:has(.element-appearance-editor) {
   max-width: calc(100vw - 20px);
-  border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 20px;
-  background: var(--md-sys-color-surface-container-high);
-  box-shadow: var(--md-sys-elevation-level3);
+  border-radius: 22px;
+  background: var(--md-sys-color-surface-container-low);
 
   .popover-content {
     max-width: calc(100vw - 20px);
     max-height: var(--available-height, calc(100vh - 20px));
     padding: 16px;
     overflow: hidden;
-    border-radius: 20px;
+    border-radius: 22px;
   }
 }
 

@@ -50,8 +50,6 @@ export class TutorialPanel extends React.Component<
   ITutorialPanelProps,
   ITutorialPanelState
 > {
-  private openPullRequestTimer: number | null = null
-
   public constructor(props: ITutorialPanelProps) {
     super(props)
     this.state = { currentlyOpenSectionId: this.props.currentTutorialStep }
@@ -74,20 +72,9 @@ export class TutorialPanel extends React.Component<
 
     // wait for the tutorial step to close before opening the PR, so that the
     // focusing of the "You're Done!" header is not interupted.
-    if (this.openPullRequestTimer !== null) {
-      window.clearTimeout(this.openPullRequestTimer)
-    }
-    this.openPullRequestTimer = window.setTimeout(() => {
-      this.openPullRequestTimer = null
+    setTimeout(() => {
       this.props.dispatcher.createPullRequest(this.props.repository)
     }, 500)
-  }
-
-  public componentWillUnmount() {
-    if (this.openPullRequestTimer !== null) {
-      window.clearTimeout(this.openPullRequestTimer)
-      this.openPullRequestTimer = null
-    }
   }
 
   private skipEditorInstall = () => {
