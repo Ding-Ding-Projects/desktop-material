@@ -1,0 +1,61 @@
+// The shared bulk-action bar (`Md3BulkBar`).
+//
+// One bar, worn by every MD3 list. It sits under the list's filters and above
+// its rows, wraps rather than clipping — a list with six verbs in bilingual
+// mode is the width case, and a row of buttons that overflows horizontally
+// hides exactly the destructive one that sits last.
+
+.md3-bulk-bar {
+  align-items: center;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 10px 8px 12px;
+}
+
+.md3-bulk-bar__select-all {
+  align-items: center;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  display: flex;
+  font-size: 11.5px;
+  gap: 6px;
+  // The label carries a count and, in bilingual mode, two languages of it.
+  // Allowing it to shrink past its content is what lets the buttons beside it
+  // keep their own width instead of being pushed out of the bar.
+  min-width: 0;
+  min-height: 28px;
+}
+
+.md3-bulk-bar__select-all > span {
+  overflow-wrap: anywhere;
+}
+
+.md3-bulk-bar__count {
+  color: var(--md-sys-color-on-surface-variant);
+  flex: none;
+  font-size: 11px;
+  margin-right: 4px;
+}
+
+// A destructive ghost button keeps the ghost shape and takes the error role,
+// so severity is carried by the label and the colour together.
+.md3-ghost-button.md3-bulk-bar__danger {
+  color: var(--md-sys-color-error);
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--md-sys-color-error-container) 60%, transparent);
+  }
+}
+
+// An MD3 square rather than the platform control, with a hit target that stays
+// comfortable at 100/125/150/200% display scale.
+.md3-bulk-bar__checkbox {
+  accent-color: var(--md-sys-color-primary);
+  block-size: 15px;
+  flex: none;
+  inline-size: 15px;
+  margin: 0;
+}

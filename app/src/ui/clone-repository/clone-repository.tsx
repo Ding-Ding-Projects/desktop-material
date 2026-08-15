@@ -58,7 +58,12 @@ import {
 import { PopupType } from '../../models/popup'
 import { PreferencesTab } from '../../models/preferences'
 import { getPreferredGenericCloneAccountKey } from '../../lib/automation/clone-account-fallback'
-import { normalizeCloneDepth } from '../../models/clone-options'
+import {
+  normalizeCloneDepth,
+  PostCloneRunnerProvisioning,
+} from '../../models/clone-options'
+import type { SelfHostedRunnerPlatform } from '../../lib/self-hosted-runner/types'
+import * as ipcRenderer from '../../lib/ipc-renderer'
 import { getAutoClonePolicy } from '../../lib/stores/auto-clone-store'
 import { Repository } from '../../models/repository'
 import { CloningRepository } from '../../models/cloning-repository'
@@ -256,6 +261,18 @@ interface ICloneRepositoryState {
   /** Whether newly discovered repositories should be cloned automatically. */
   readonly autoCloneNewRepositories: boolean
 
+  /** Explicit, one-shot post-clone runner target. Never enabled by default. */
+  readonly postCloneRunnerPlatform: SelfHostedRunnerPlatform | null
+
+  /** A second acknowledgement for private-repository workflow execution. */
+  readonly postCloneRunnerTrustConfirmed: boolean
+
+  /** Existing WSL distro used as the source for a dedicated runner distro. */
+  readonly postCloneRunnerWslBaseDistribution: string | null
+
+  /** Prevent duplicate status reads while the Linux option is selected. */
+  readonly postCloneRunnerWslLoading: boolean
+
   /** Bumped when a `.gitmodules` probe lands so visible rows re-render. */
   readonly submoduleBadgeVersion: number
 
@@ -421,6 +438,10 @@ export class CloneRepository extends React.Component<
       shallowClone: false,
       cloneDepth: '1',
       autoCloneNewRepositories: false,
+      postCloneRunnerPlatform: null,
+      postCloneRunnerTrustConfirmed: false,
+      postCloneRunnerWslBaseDistribution: null,
+      postCloneRunnerWslLoading: false,
       submoduleBadgeVersion: 0,
       cheapLfsBadgeVersion: 0,
       pendingSubmoduleCloneUrl: null,
@@ -784,7 +805,8 @@ export class CloneRepository extends React.Component<
       path.length === 0 ||
       loading ||
       error !== null ||
-      this.getCloneDepthError() !== null
+      this.getCloneDepthError() !== null ||
+      this.getPostCloneRunnerError() !== null
 
     return disabled
   }
@@ -858,6 +880,7 @@ export class CloneRepository extends React.Component<
             </small>
           </div>
         </CollapsibleSection>
+        {this.renderPostCloneRunnerProvisioning()}
         <OkCancelButtonGroup okButtonText="Clone" okButtonDisabled={disabled} />
       </DialogFooter>
     )
@@ -882,7 +905,260 @@ export class CloneRepository extends React.Component<
     }
   }
 
+  private getSelectedGitHubRepositoryForRunner(): IAPIRepository | null {
+    const tab = this.props.selectedTab
+    if (
+      tab !== CloneRepositoryTab.DotCom &&
+      tab !== CloneRepositoryTab.Enterprise
+    ) {
+      return null
+    }
+    return this.getGitHubTabState(tab).selectedItem
+  }
+
+  private getPostCloneRunnerError(): string | null {
+    const platform = this.state.postCloneRunnerPlatform
+    if (platform === null) {
+      return null
+    }
+    const repository = this.getSelectedGitHubRepositoryForRunner()
+    if (repository === null) {
+      return 'Choose one private GitHub repository before provisioning a runner.'
+    }
+    if (!repository.private) {
+      return 'Self-hosted runners are blocked for public repositories because untrusted pull requests can run code on this computer.'
+    }
+    if (!this.state.postCloneRunnerTrustConfirmed) {
+      return 'Confirm that this private repository’s workflow authors are trusted.'
+    }
+    if (
+      platform === 'linux-wsl' &&
+      this.state.postCloneRunnerWslBaseDistribution === null
+    ) {
+      return this.state.postCloneRunnerWslLoading
+        ? 'Checking installed WSL distributions…'
+        : 'Install a WSL distribution before choosing Linux via WSL.'
+    }
+    return null
+  }
+
+  private renderPostCloneRunnerProvisioning() {
+    const repository = this.getSelectedGitHubRepositoryForRunner()
+    if (repository === null) {
+      return null
+    }
+
+    if (!repository.private) {
+      return (
+        <small className="post-clone-runner-guidance" role="status">
+          Runner provisioning is available only for private repositories. Public
+          repositories can accept untrusted pull-request workflow code.
+        </small>
+      )
+    }
+
+    const platform = this.state.postCloneRunnerPlatform
+    const enabled = platform !== null
+    return (
+      <CollapsibleSection
+        elementId="post-clone-runner-provisioning"
+        repositoryKey={undefined}
+        label="Runner provisioning"
+        ariaLabel="Post-clone runner provisioning"
+        defaultExpanded={false}
+        summary={
+          enabled
+            ? `Opted in · ${
+                platform === 'windows' ? 'Windows' : 'Linux via WSL'
+              }`
+            : 'Off'
+        }
+      >
+        <div className="post-clone-runner-provisioning">
+          <label
+            className="clone-shallow-toggle"
+            aria-label="Provision a runner after this clone"
+          >
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={this.onPostCloneRunnerEnabledChanged}
+            />
+            <span>
+              <strong>Provision a runner after this clone</strong>
+              <small>
+                Creates a persistent repository-scoped Actions runner for this
+                private repository only.
+              </small>
+            </span>
+          </label>
+          {enabled && (
+            <fieldset className="post-clone-runner-target">
+              <legend>Runner target</legend>
+              <label aria-label="Windows runner target">
+                <input
+                  type="radio"
+                  name="post-clone-runner-platform"
+                  checked={platform === 'windows'}
+                  onChange={this.onPostCloneRunnerWindowsChanged}
+                />
+                Windows
+              </label>
+              <label aria-label="Linux via WSL runner target">
+                <input
+                  type="radio"
+                  name="post-clone-runner-platform"
+                  checked={platform === 'linux-wsl'}
+                  onChange={this.onPostCloneRunnerLinuxWslChanged}
+                />
+                Linux via WSL
+              </label>
+              {platform === 'linux-wsl' &&
+                this.state.postCloneRunnerWslBaseDistribution !== null && (
+                  <small role="status">
+                    A dedicated runner distro will be created from{' '}
+                    {this.state.postCloneRunnerWslBaseDistribution}.
+                  </small>
+                )}
+              <label
+                className="clone-shallow-toggle"
+                aria-label="I trust this repository's workflow authors"
+              >
+                <input
+                  type="checkbox"
+                  checked={this.state.postCloneRunnerTrustConfirmed}
+                  onChange={this.onPostCloneRunnerTrustChanged}
+                />
+                <span>
+                  <strong>I trust this repository’s workflow authors</strong>
+                  <small>
+                    A self-hosted runner executes workflow code as this Windows
+                    user. It starts without elevation and can be removed from
+                    the repository’s Actions tab.
+                  </small>
+                </span>
+              </label>
+            </fieldset>
+          )}
+          <small role="status">
+            {this.getPostCloneRunnerError() ??
+              'The runner is created only after this clone succeeds. Registration credentials stay in the main process.'}
+          </small>
+        </div>
+      </CollapsibleSection>
+    )
+  }
+
+  private onPostCloneRunnerEnabledChanged = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const enabled = event.currentTarget.checked
+    this.setState(
+      {
+        postCloneRunnerPlatform: enabled ? 'windows' : null,
+        postCloneRunnerTrustConfirmed: false,
+        postCloneRunnerWslBaseDistribution: null,
+        postCloneRunnerWslLoading: false,
+      },
+      () => {
+        if (enabled) {
+          this.validatePath()
+        }
+      }
+    )
+  }
+
+  private onPostCloneRunnerTrustChanged = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) =>
+    this.setState({
+      postCloneRunnerTrustConfirmed: event.currentTarget.checked,
+    })
+
+  private onPostCloneRunnerPlatformChanged = (
+    platform: SelfHostedRunnerPlatform
+  ) => {
+    this.setState(
+      {
+        postCloneRunnerPlatform: platform,
+        postCloneRunnerWslBaseDistribution: null,
+        postCloneRunnerWslLoading: platform === 'linux-wsl',
+      },
+      () => {
+        if (platform === 'linux-wsl') {
+          void this.loadPostCloneRunnerWslDistribution()
+        }
+      }
+    )
+  }
+
+  private onPostCloneRunnerWindowsChanged = () =>
+    this.onPostCloneRunnerPlatformChanged('windows')
+
+  private onPostCloneRunnerLinuxWslChanged = () =>
+    this.onPostCloneRunnerPlatformChanged('linux-wsl')
+
+  private loadPostCloneRunnerWslDistribution = async () => {
+    const repository = this.getSelectedGitHubRepositoryForRunner()
+    if (repository === null) {
+      this.setState({ postCloneRunnerWslLoading: false })
+      return
+    }
+    try {
+      const status = await ipcRenderer.invoke('get-self-hosted-runner-status', {
+        owner: repository.owner.login,
+        repository: repository.name,
+      })
+      if (this.state.postCloneRunnerPlatform !== 'linux-wsl') {
+        return
+      }
+      this.setState({
+        postCloneRunnerWslBaseDistribution: status.distributions.at(0) ?? null,
+        postCloneRunnerWslLoading: false,
+      })
+    } catch {
+      this.setState({
+        postCloneRunnerWslBaseDistribution: null,
+        postCloneRunnerWslLoading: false,
+      })
+    }
+  }
+
+  private getPostCloneRunnerProvisioning():
+    | PostCloneRunnerProvisioning
+    | undefined {
+    const platform = this.state.postCloneRunnerPlatform
+    const repository = this.getSelectedGitHubRepositoryForRunner()
+    const account = this.getAccountForTab(this.props.selectedTab)
+    if (
+      platform === null ||
+      repository === null ||
+      account === null ||
+      this.getPostCloneRunnerError() !== null
+    ) {
+      return undefined
+    }
+    return {
+      accountKey: getAccountKey(account),
+      githubApiEndpoint: account.endpoint,
+      owner: repository.owner.login,
+      repository: repository.name,
+      platform,
+      ...(platform === 'linux-wsl'
+        ? {
+            wslBaseDistribution: this.state.postCloneRunnerWslBaseDistribution!,
+          }
+        : {}),
+    }
+  }
+
   private onTabClicked = (tab: CloneRepositoryTab) => {
+    this.setState({
+      postCloneRunnerPlatform: null,
+      postCloneRunnerTrustConfirmed: false,
+      postCloneRunnerWslBaseDistribution: null,
+      postCloneRunnerWslLoading: false,
+    })
     this.props.onTabSelected(tab)
   }
 
@@ -1607,6 +1883,12 @@ export class CloneRepository extends React.Component<
 
   private onSelectionChanged = (selectedItem: IAPIRepository | null) => {
     if (this.props.selectedTab !== CloneRepositoryTab.Generic) {
+      this.setState({
+        postCloneRunnerPlatform: null,
+        postCloneRunnerTrustConfirmed: false,
+        postCloneRunnerWslBaseDistribution: null,
+        postCloneRunnerWslLoading: false,
+      })
       this.setGitHubTabState({ selectedItem }, this.props.selectedTab)
       this.updateUrl(selectedItem === null ? '' : selectedItem.clone_url)
     }
@@ -2143,6 +2425,7 @@ export class CloneRepository extends React.Component<
     const depth = this.state.shallowClone
       ? normalizeCloneDepth(this.state.cloneDepth)
       : undefined
+    const postCloneRunnerProvisioning = this.getPostCloneRunnerProvisioning()
     this.props.dispatcher.clone(url, path, {
       defaultBranch,
       ...(accountKey !== undefined ? { accountKey } : {}),
@@ -2150,6 +2433,11 @@ export class CloneRepository extends React.Component<
       singleBranch: depth !== undefined,
       shallowSubmodules: depth !== undefined,
       ...(cheapLfsSelection === undefined ? {} : { cheapLfsSelection }),
+      ...(postCloneRunnerProvisioning === undefined
+        ? {}
+        : {
+            postCloneRunnerProvisioning,
+          }),
     })
     this.props.onDismissed()
 

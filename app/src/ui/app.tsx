@@ -227,6 +227,7 @@ import {
 } from '../models/dim-sum'
 import { isWithinQuietHours } from '../lib/audio/audio-throttle'
 import { readFunnyLevels } from '../lib/funny-level-text'
+import { isSchoolModeEnabled } from '../lib/school-mode'
 import { CrashProofBoundary } from './crash-proof-boundary'
 import { Button } from './lib/button'
 import { Loading } from './lib/loading'
@@ -267,6 +268,7 @@ import {
   IFeatureHighlightingAppearance,
   IRepositoryTabsAppearance,
   AppIdentityAppearanceEditor,
+  AppearanceLockPromptHost,
   AppWorkspaceAppearanceEditor,
   CodeDiffAppearanceEditor,
   DefaultRepositoryLogoAppearanceEditor,
@@ -313,6 +315,8 @@ import { InitializeLFS, AttributeMismatch } from './lfs'
 import { UpstreamAlreadyExists } from './upstream-already-exists'
 import { ReleaseNotes } from './release-notes'
 import { ChangelogDialog } from './changelog/changelog-dialog'
+import { DocsBrowserDialog } from './docs-browser/docs-browser-dialog'
+import { parseDocsArticlePaletteEvent } from '../lib/docs-browser/docs-browser-palette'
 import { writeFile } from 'fs/promises'
 import { DeletePullRequest } from './delete-branch/delete-pull-request-dialog'
 import { CommitConflictsWarning } from './merge-conflicts'
@@ -1106,6 +1110,11 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
 
+    if (isSchoolModeEnabled()) {
+      this.dimSumDrawn = true
+      return
+    }
+
     try {
       // There is no off switch, so a refusal stored by an older profile is
       // deleted rather than read: that profile simply rejoins the draw.
@@ -1166,6 +1175,9 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private renderDimSumSurprise() {
+    if (isSchoolModeEnabled()) {
+      return null
+    }
     const dish = this.dimSumDish
     if (dish === null) {
       return null
@@ -1355,6 +1367,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showAbout()
       case 'show-changelog':
         return this.showChangelog()
+      case 'show-docs-browser':
+        return this.showDocsBrowser()
       case 'go-to-commit-message':
         return this.goToCommitMessage()
       case 'open-pull-request':
@@ -1862,6 +1876,14 @@ export class App extends React.Component<IAppProps, IAppState> {
         // destination — running it is not a thing that exists — so it goes
         // where the setting lives instead of being cast to a MenuEvent the
         // menu has never heard of.
+        // A documentation row names its article in the event itself, so it
+        // opens that article rather than the browser's front page. This has to
+        // run before the generic `palette:` fallback below, or every
+        // documentation row would teleport to the catalog row instead.
+        const articleId = parseDocsArticlePaletteEvent(event)
+        if (articleId !== null) {
+          return this.showDocsBrowser(articleId)
+        }
         if (event.startsWith('palette:')) {
           const command = CommandPaletteCatalog.find(c => c.event === event)
           if (command !== undefined) {
@@ -3172,6 +3194,38 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   private showChangelog = () => {
     this.props.dispatcher.showPopup({ type: PopupType.Changelog })
+  }
+
+  /**
+   * Open the offline documentation browser, optionally on one article.
+   *
+   * The command palette passes an article id so a documentation row lands on
+   * the page the reader picked rather than on the browser's front door.
+   */
+  private showDocsBrowser = (articleId?: string) => {
+    this.props.dispatcher.showPopup({ type: PopupType.DocsBrowser, articleId })
+  }
+
+  /** Writes a documentation export to wherever the user picks, or null. */
+  private onExportDocsArticles = async (contents: string, fileName: string) => {
+    const destination = await showSaveDialog({
+      title: 'Export feature documentation',
+      defaultPath: fileName,
+      filters: fileName.endsWith('.json')
+        ? [{ name: 'JSON', extensions: ['json'] }]
+        : fileName.endsWith('.md')
+        ? [{ name: 'Markdown', extensions: ['md'] }]
+        : [{ name: 'Plain text', extensions: ['txt'] }],
+    })
+    if (destination === null) {
+      return null
+    }
+    await writeFile(destination, contents, 'utf8')
+    return destination
+  }
+
+  private onOpenDocsExternalLink = (url: string) => {
+    this.props.dispatcher.openInBrowser(url)
   }
 
   /**
@@ -5591,6 +5645,18 @@ export class App extends React.Component<IAppProps, IAppState> {
             underlineLinks={this.state.underlineLinks}
           />
         )
+      case PopupType.DocsBrowser:
+        return (
+          <DocsBrowserDialog
+            key="docs-browser"
+            initialArticleId={popup.articleId}
+            emoji={this.state.emoji}
+            underlineLinks={this.state.underlineLinks}
+            onDismissed={onPopupDismissedFn}
+            onExport={this.onExportDocsArticles}
+            onOpenExternalLink={this.onOpenDocsExternalLink}
+          />
+        )
       case PopupType.Changelog:
         return (
           <ChangelogDialog
@@ -7700,6 +7766,8 @@ export class App extends React.Component<IAppProps, IAppState> {
           anchor={target.anchor}
           historySource={historySource}
           repositoryPath={repositoryPath}
+          lockTargetId={`feature:${target.featureId}`}
+          lockTargetLabel={target.label}
           onClose={this.closeAppearanceEditor}
           onMutation={this.refreshFeatureAppearanceTarget}
           contentOwnsHeader={true}
@@ -7723,6 +7791,8 @@ export class App extends React.Component<IAppProps, IAppState> {
           anchor={target.anchor}
           historySource={target.historySource}
           repositoryPath={target.repositoryPath}
+          lockTargetId={`repository:${target.repository.id}:${target.elementId}`}
+          lockTargetLabel={title}
           onClose={this.closeAppearanceEditor}
           onMutation={this.refreshRepositoryAppearanceTarget}
           contentOwnsHeader={true}
@@ -7751,6 +7821,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         anchor={target.anchor}
         historySource={historySource}
         repositoryPath={repositoryPath}
+        lockTargetId={`profile:${target.elementId}`}
+        lockTargetLabel={this.profileAppearanceTitle(target.elementId)}
         onClose={this.closeAppearanceEditor}
         contentOwnsHeader={true}
         anchorPosition={this.getAppearanceEditorAnchorPosition(target)}
@@ -9649,6 +9721,15 @@ export class App extends React.Component<IAppProps, IAppState> {
             {this.renderDimSumSurprise()}
             {this.renderZoomInfo()}
             {this.renderFullScreenInfo()}
+            {/*
+              The prompt a locked element opens. Mounted at the shell rather
+              than beside each lockable control, because the gate that blocks
+              the activation is also one listener at the document — a prompt
+              per control would be several hundred of them, and the ones
+              nobody remembered would leave a button that silently refuses to
+              work with nothing on screen to explain it.
+            */}
+            <AppearanceLockPromptHost />
           </>
         )}
       </div>

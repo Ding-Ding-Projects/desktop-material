@@ -138,6 +138,7 @@ export enum PopupType {
   UpstreamAlreadyExists = 'UpstreamAlreadyExists',
   ReleaseNotes = 'ReleaseNotes',
   Changelog = 'Changelog',
+  DocsBrowser = 'DocsBrowser',
   DeletePullRequest = 'DeletePullRequest',
   OversizedFiles = 'OversizedFiles',
   CommitConflictsWarning = 'CommitConflictsWarning',
@@ -493,6 +494,13 @@ export type PopupDetail =
       // The whole recorded release history, as opposed to ReleaseNotes above,
       // which shows only what a pending update would install.
       type: PopupType.Changelog
+    }
+  | {
+      // The offline documentation browser: every feature article, bundled
+      // into the build. `articleId` opens one article directly, which is how
+      // the command palette teleports to a page rather than a front door.
+      type: PopupType.DocsBrowser
+      articleId?: string
     }
   | {
       type: PopupType.DeletePullRequest
