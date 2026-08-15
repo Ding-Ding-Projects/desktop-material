@@ -1,15 +1,42 @@
 # Desktop Material — Active parity handoff
 
-## Material mode is retired, and the section below it is now historical — 2026-08-15
+## One of the two MD3 designs was retired — the app is still Material Design 3 — 2026-08-15
+
+> [!IMPORTANT]
+> **The app did not stop being Material Design 3.** It has had *two* M3 designs.
+> The second one — the MD3 shell with its eight destination views — is the one
+> that was retired. The first one is what renders now, and it is M3 throughout.
+> Do not read the rest of this entry, or the phrase "Material mode", as saying
+> Material Design left the product. It did not, and nothing here is a licence to
+> "restore M3" against the design system that is already live.
 
 **Read this before the 2026-08-14 entry, which it supersedes on one point.** The
 revert was carried through: `finish/ui-revert-to-2026-08-07` merged into `main`
-as `92b3ef9164`, removing 60,309 lines — the MD3 shell, its eight destination
-views, its controllers, adapters and its thirteen test files. **Material mode no
-longer exists as a setting.** The 2026-08-14 entry's heading "Nothing was
+as `92b3ef9164`, removing 60,309 lines — the second design's shell, its eight
+destination views, its controllers, adapters and its thirteen test files. **The
+`Material mode` *setting* no longer exists**, because the alternate shell it
+switched to no longer exists. The 2026-08-14 entry's heading "Nothing was
 deleted, and nothing needs re-adding" described `main` on that date and is no
 longer true of the tree; it is left in place as the record of what was decided
 then, with a correction note attached.
+
+### The design system that is live right now
+
+The chrome the revert restored is the earlier M3 design, and it consumes the
+same M3 foundations the second design did:
+
+| Evidence | Where |
+| --- | --- |
+| `--md-sys-color-*` system tokens declared on `:root` | `app/styles/_material.scss` — its own first line reads "Material Design 3 foundations for Desktop Material" |
+| M3 motion tokens | `app/styles/material/_motion.scss` |
+| Material Symbols icon font, 158-glyph subset | `app/styles/fonts/material-symbols-rounded-subset-158.woff2` |
+| M3 components in the shared UI library | `app/src/ui/lib/material-symbol.tsx`, `material-switch.tsx`, `material-context-menu.tsx` |
+| M3 surface partials | `app/styles/_material-controls.scss`, `_material-shell.scss`, `app/styles/ui/_material-rail.scss`, `_material-cards.scss`, `_material-switch.scss`, `_material-symbol.scss` |
+| `MaterialSymbol` call sites | 69 files under `app/src` |
+
+The `--button-height` fix recorded below is itself proof of this: the value that
+*won* came from `_material.scss`, because the M3 layer is imported second and is
+the live one.
 
 What the retirement kept, deliberately: 46 md3 files remain, and they are
 dialogs rather than chrome — the destructive-action gate, the regex builder, the
@@ -70,9 +97,12 @@ So the revert did not require removing the rewrite. Three changes were enough:
 ### Nothing was deleted, and nothing needs re-adding
 
 > **Superseded on 2026-08-15 — do not act on this subsection.** It was accurate
-> for `main` on 2026-08-14. The MD3 destinations, controllers, adapters and the
-> navigation rail have since been deleted by `92b3ef9164`, and Material mode is
-> no longer a setting. `navigation='rail'` has no caller and no shell to serve.
+> for `main` on 2026-08-14. The second MD3 design's destinations, controllers,
+> adapters and navigation rail have since been deleted by `92b3ef9164`, and the
+> `Material mode` setting went with the shell it switched to.
+> `navigation='rail'` has no caller and no shell to serve. **The app is still
+> Material Design 3** — the restored chrome is the earlier M3 design, on the same
+> `--md-sys-color-*` foundations; see the 2026-08-15 entry for the evidence.
 > The claim that no features were lost still holds — every stranded setting was
 > restored into classic Settings — but it now holds for a different reason.
 > See the 2026-08-15 entry at the top of this file.
