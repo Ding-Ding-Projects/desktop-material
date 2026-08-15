@@ -79,24 +79,48 @@ is real remaining work.
 | `node script/test.mjs` | **8,564 tests, 89 failing across 50 files** |
 | Lint, captures, packaging, built-artifact run | **not performed, not claimed** |
 
-The 89 are guards written *after* August 7 against surfaces this revert
-deleted, so they cannot pass against an August 7 tree. Two of them are not
-merely stale — they are the revert reintroducing defects that had been fixed,
-and they are the ones to read first:
+**A baseline was taken**, by running the same 50 files at `9c9755d844` (the
+commit immediately before the revert) in the same checkout:
 
-- **`bundled-fonts-test`** — "pins the exact 158-name official Material Symbols
-  request and axes" and "pins every official WOFF2 byte-for-byte". August 7
-  carries the 98-glyph prototype. See the icon-font section above.
-- **`button-token-test`** — "declares the same `--button-height` in both files".
-  August 7 has 25px in `_variables.scss` against 40px in `_material.scss`. The
-  Material layer wins, so 25px is dead — but the two disagreeing is exactly the
-  trap that hid a sub-minimum touch target once already.
+| | Failing leaf tests |
+| --- | --- |
+| Before the revert (`9c9755d844`) | **64** |
+| After the revert | **89** |
+| **New, caused by the revert** | **26** |
+| Fixed by the revert | 1 |
 
-> [!NOTE]
-> A pre-revert baseline suite run was **not** taken, so these 89 are attributed
-> to the revert by mechanism (each names a surface the revert deleted) rather
-> than by comparison. The handoff's earlier entry records two pre-existing
-> failures in the Windows build contract that are unrelated to this.
+So 64 of the 89 were **already red** and are not this revert's doing. The 26 new
+ones split two ways, and the split is the important part:
+
+#### Five are obsolete guards — they guard deleted features and can never pass
+
+`feature-ledger-test.ts` (3: "still declares every dialog the app could open",
+"still has a live route to every dialog it declares", "still ships every UI
+feature area"), `collection-surface-registry-test.ts` (1),
+`support-ticket-recovery-test.ts` (1).
+
+#### Twenty-one are the revert reintroducing real defects
+
+> [!WARNING]
+> These are not stale guards. **Do not delete them to make the suite green** —
+> each is catching something the August 7 tree genuinely does wrong, which is
+> why it was written in the first place.
+
+| Area | Tests | What it means |
+| --- | --- | --- |
+| `ai-merge-editor-test.tsx` | 6 | Includes **"renders hostile HTML-looking content only as plain text"** — a security guard — plus "does not reintroduce CodeMirror hidden input buffers" and "refuses an over-limit result instead of emitting silently truncated code" |
+| `bundled-fonts-test.ts`, `material-symbol-test.tsx` | 4 | The 98-glyph prototype font is back; see the icon-font section above |
+| `button-token-test.ts` | 2 | `--button-height` 25px vs 40px again — the trap that hid a sub-minimum touch target once already |
+| `responsive-repository-surfaces-style-test.ts` | 3 | Narrow-width and short-height layout: missing-repository actions no longer stack, sheets escape their viewport insets |
+| `popover-clipping-contract-test.ts`, `post-shell-style-test.ts` | 2 | Popovers unbounded; the floating-popover available-height token is gone |
+| `command-palette-size-contract-test.ts` | 1 | Palette results unusable at 200% zoom in a short viewport |
+| `self-hosted-runner-removal-dialog-test.tsx` | 1 | An irreversible removal hides itself while running |
+| `shallow-clone-ui-test.ts` | 1 | Post-clone runner provisioning no longer explicit, no longer blocks public repositories |
+| `issue-134-workflow-paths-test.ts` | 1 | The editable conflict result is off the native full-value control |
+
+Accepting the August 7 interface means accepting these until each is fixed
+against August 7's chrome. They are tracked on the issue linked from the
+changelog entry for this revert.
 
 ## One of the two MD3 designs was retired — the app is still Material Design 3 — 2026-08-15
 
