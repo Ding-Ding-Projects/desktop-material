@@ -5,6 +5,10 @@
     {
       "id": "logMatchNavigation",
       "reason": "Previous/next match stepping in the Actions job log is superseded by the MD3 log search, which filters the log rather than dimming it: every match is on screen at once, so there is nothing left to step between. Log group collapse is a separate capability and was kept."
+    },
+    {
+      "id": "ActionsRunArtifacts",
+      "reason": "The artifact list is a surface the classic run-details pane renders inline (app/src/ui/actions/run-details.tsx renders <RunArtifacts>). The dialog existed only because the MD3 shell had no pane for it, as its own comment said. Reverting to the 2026-08-07 interface brings the inline pane back, so the dialog is duplicate chrome rather than a lost feature."
     }
   ],
   "orphanedPopupTypes": [],
@@ -12,7 +16,6 @@
     "About",
     "Acknowledgements",
     "ActionsLocalRun",
-    "ActionsRunArtifacts",
     "AddRepository",
     "AddSSHHost",
     "AddSubmodule",

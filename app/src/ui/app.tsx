@@ -317,7 +317,6 @@ import { ReleaseNotes } from './release-notes'
 import { ChangelogDialog } from './changelog/changelog-dialog'
 import { DocsBrowserDialog } from './docs-browser/docs-browser-dialog'
 import { parseDocsArticlePaletteEvent } from '../lib/docs-browser/docs-browser-palette'
-import { ActionsRunArtifactsDialog } from './actions/actions-run-artifacts-dialog'
 import { writeFile } from 'fs/promises'
 import { DeletePullRequest } from './delete-branch/delete-pull-request-dialog'
 import { CommitConflictsWarning } from './merge-conflicts'
@@ -4892,16 +4891,6 @@ export class App extends React.Component<IAppProps, IAppState> {
           <ActionsLocalRunDialog
             key={`actions-local-run-${popup.repository.id}`}
             repository={popup.repository}
-            onDismissed={onPopupDismissedFn}
-          />
-        )
-      case PopupType.ActionsRunArtifacts:
-        return (
-          <ActionsRunArtifactsDialog
-            key={`actions-run-artifacts-${popup.runId}`}
-            repository={popup.repository}
-            runId={popup.runId}
-            actionsStore={this.props.actionsStore}
             onDismissed={onPopupDismissedFn}
           />
         )
