@@ -186,16 +186,20 @@ function drawToCanvas(
 }
 
 export function convertDDSImage(contents: ArrayBufferLike) {
-  const ddsBuffer =
-    contents instanceof ArrayBuffer
-      ? contents
-      : new Uint8Array(contents).slice().buffer
-  const ddsData = parseDDS(ddsBuffer)
+  const ddsData = parseDDS(contents as ArrayBuffer)
 
   // Get the first mipmap texture.
   const [image] = ddsData.images
   const [imageWidth, imageHeight] = image.shape
-  const imageData = new Uint8Array(ddsBuffer, image.offset, image.length)
+  // TypeScript 6 models ArrayBufferLike as possibly SharedArrayBuffer, while
+  // the DOM constructor overload still asks for ArrayBuffer. The runtime
+  // accepts both; keep the parser's existing zero-copy view and make that
+  // contract explicit at this boundary.
+  const imageData = new Uint8Array(
+    contents as ArrayBuffer,
+    image.offset,
+    image.length
+  )
 
   // Draw the DXT texture to the canvas using WebGL2.
   const canvas = document.createElement('canvas')

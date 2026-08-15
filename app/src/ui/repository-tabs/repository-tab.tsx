@@ -26,10 +26,7 @@ import {
 } from '../repository-logo/repository-logo-loader'
 import { Dispatcher } from '../dispatcher'
 import { translateForAccessibleName } from '../../lib/i18n'
-import {
-  appearanceLockTargetProps,
-  openAppearanceEditorFromContextMenu,
-} from '../appearance'
+import { openAppearanceEditorFromContextMenu } from '../appearance'
 
 interface IRepositoryTabProps {
   readonly tab: IRepositoryTab
@@ -379,7 +376,6 @@ export class RepositoryTab extends React.Component<
         style={frameStyle}
         data-tab-id={tab.id}
         data-context-menu-owner="repository-tab-commands"
-        {...appearanceLockTargetProps(`repository-tab:${tab.id}`)}
         role="tab"
         aria-selected={isActive}
         aria-label={`${accessibleLabel}${

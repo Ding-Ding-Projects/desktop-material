@@ -13,7 +13,6 @@ import {
 } from '../lib/popover'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
-import { AppearanceLockControl } from './appearance-lock-control'
 import {
   IVersionedStoreHistorySource,
   VersionedStoreHistory,
@@ -52,20 +51,6 @@ export interface IAnchoredAppearanceEditorProps {
    * affordance and the local-repository footer, avoiding a duplicate header.
    */
   readonly contentOwnsHeader?: boolean
-
-  /**
-   * Stable identity of the element being styled, for its toy lock.
-   *
-   * Required, not optional. Every appearance value is lockable, so every
-   * editor must offer a lock — and the reliable way to guarantee "every one"
-   * is to make an editor without a lock target fail to compile rather than to
-   * trust each new call site to remember. An optional prop here would be the
-   * same silent gap that left seven export pickers unreachable.
-   */
-  readonly lockTargetId: string
-
-  /** The element's visible name, shown in the lock manager. */
-  readonly lockTargetLabel: string
 }
 
 export interface IAppearanceElementHistoryDialogProps {
@@ -540,10 +525,6 @@ export class AnchoredAppearanceEditor extends React.Component<
             >
               {this.renderChildren()}
             </div>
-            <AppearanceLockControl
-              targetId={this.props.lockTargetId}
-              targetLabel={this.props.lockTargetLabel}
-            />
             {this.renderRepositoryFooter()}
           </section>
         </Popover>

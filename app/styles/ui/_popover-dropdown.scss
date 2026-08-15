@@ -31,10 +31,7 @@
   }
 
   .popover-dropdown-popover {
-    // The requested desktop height must yield to the viewport. The available
-    // value is set on the positioned Popover container, so this minimum cannot
-    // overrule its max-height at short windows or 200% renderer zoom.
-    min-height: min(200px, var(--available-height, 200px));
+    min-height: 200px;
     width: 365px;
 
     .popover-content {

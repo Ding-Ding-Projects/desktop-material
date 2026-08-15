@@ -430,28 +430,6 @@ dialog.clone-repository {
     }
   }
 
-  .post-clone-runner-provisioning {
-    display: grid;
-    gap: var(--spacing-half);
-    min-width: 0;
-
-    small {
-      overflow-wrap: anywhere;
-    }
-  }
-
-  .post-clone-runner-target {
-    display: grid;
-    gap: var(--spacing-half);
-    min-width: 0;
-  }
-
-  .post-clone-runner-guidance {
-    display: block;
-    margin-top: var(--spacing-half);
-    overflow-wrap: anywhere;
-  }
-
   .clone-shallow-toggle,
   .clone-depth-field {
     display: flex;

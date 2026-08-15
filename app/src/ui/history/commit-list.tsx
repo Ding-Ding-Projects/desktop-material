@@ -720,16 +720,41 @@ export class CommitList extends React.Component<
     const baseCommit =
       baseCommitSHA !== null ? this.props.commitLookup.get(baseCommitSHA) : null
 
-    // Ascending by row, which both the contiguity check and the first-dropped
-    // index below depend on.
-    const commitIndexes = sortCommitRowIndexes(
-      data.commits
-        .filter((v): v is Commit => v !== null && v !== undefined)
-        .map(v => this.props.commitSHAs.findIndex(sha => sha === v.sha))
-    )
+    const commitIndexes = data.commits
+      .filter((v): v is Commit => v !== null && v !== undefined)
+      .map(v => this.props.commitSHAs.findIndex(sha => sha === v.sha))
+      .sort() // Required to check if they're contiguous
 
-    if (isRedundantCommitDrop(commitIndexes, baseCommitIndex)) {
-      return
+    // Check if values in commit indexes are contiguous
+    const commitsAreContiguous = commitIndexes.every((value, i, array) => {
+      return i === array.length - 1 || value === array[i + 1] - 1
+    })
+
+    // If commits are contiguous and they are dropped in a position contained
+    // among those indexes, ignore the drop.
+    if (commitsAreContiguous) {
+      const firstDroppedCommitIndex = commitIndexes[0]
+
+      // Commits are dropped right above themselves if
+      // 1. The base commit index is null (meaning, it was dropped at the top
+      //    of the commit list) and the index of the first dropped commit is 0.
+      // 2. The base commit index is the index right above the first dropped.
+      const commitsDroppedRightAboveThemselves =
+        (baseCommitIndex === null && firstDroppedCommitIndex === 0) ||
+        baseCommitIndex === firstDroppedCommitIndex - 1
+
+      // Commits are dropped within themselves if there is a base commit index
+      // and it's in the list of commit indexes.
+      const commitsDroppedWithinThemselves =
+        baseCommitIndex !== null &&
+        commitIndexes.indexOf(baseCommitIndex) !== -1
+
+      if (
+        commitsDroppedRightAboveThemselves ||
+        commitsDroppedWithinThemselves
+      ) {
+        return
+      }
     }
 
     const allIndexes = commitIndexes.concat(
@@ -742,58 +767,6 @@ export class CommitList extends React.Component<
       this.getLastRetainedCommitRef(allIndexes)
     )
   }
-}
-
-/**
- * Commit row indexes in ascending order.
- *
- * `Array.prototype.sort` compares as text unless it is given a comparer, so a
- * bare sort put row 10 before row 2 and made a contiguous multi-commit
- * selection spanning row ten look non-contiguous.
- */
-export function sortCommitRowIndexes(
-  indexes: ReadonlyArray<number>
-): ReadonlyArray<number> {
-  return [...indexes].sort((left, right) => left - right)
-}
-
-/**
- * Whether dropping these commits at `baseCommitIndex` would leave the list
- * exactly as it is, and can therefore be ignored.
- *
- * Getting this wrong is not cosmetic: a drop that is not recognized as
- * redundant is carried out, and carrying it out rewrites history.
- *
- * `commitIndexes` must be ascending.
- */
-export function isRedundantCommitDrop(
-  commitIndexes: ReadonlyArray<number>,
-  baseCommitIndex: number | null
-): boolean {
-  const commitsAreContiguous = commitIndexes.every(
-    (value, i, array) => i === array.length - 1 || value === array[i + 1] - 1
-  )
-
-  if (!commitsAreContiguous) {
-    return false
-  }
-
-  const firstDroppedCommitIndex = commitIndexes[0]
-
-  // Commits are dropped right above themselves if
-  // 1. The base commit index is null (meaning, it was dropped at the top
-  //    of the commit list) and the index of the first dropped commit is 0.
-  // 2. The base commit index is the index right above the first dropped.
-  const commitsDroppedRightAboveThemselves =
-    (baseCommitIndex === null && firstDroppedCommitIndex === 0) ||
-    baseCommitIndex === firstDroppedCommitIndex - 1
-
-  // Commits are dropped within themselves if there is a base commit index
-  // and it's in the list of commit indexes.
-  const commitsDroppedWithinThemselves =
-    baseCommitIndex !== null && commitIndexes.indexOf(baseCommitIndex) !== -1
-
-  return commitsDroppedRightAboveThemselves || commitsDroppedWithinThemselves
 }
 
 /**

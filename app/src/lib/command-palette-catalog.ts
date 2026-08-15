@@ -9,8 +9,6 @@ import type { MaterialSymbolName } from '../ui/lib/material-symbol'
 import type { TeleportTargetId } from './teleport-targets'
 import { PreferencesTab } from '../models/preferences'
 import { RepositorySettingsTab } from '../models/repository-settings'
-import { isSchoolModeEnabled } from './school-mode'
-import { DocsArticlePaletteCommands } from './docs-browser/docs-browser-palette'
 
 /**
  * The application-selection snapshot an availability predicate inspects to
@@ -337,8 +335,6 @@ export interface IPaletteCommand {
    * it is never dispatched (e.g. push with no repository) from the palette.
    */
   readonly isAvailable?: PaletteAvailability
-  /** Language and playfulness controls are not installed in School mode. */
-  readonly hiddenInSchoolMode?: boolean
 }
 
 export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
@@ -578,7 +574,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     title: 'Fix CI with Codex/OpenCode',
     titleKey: 'palette.fixCiAgent',
     group: 'Repository',
-    materialSymbol: 'construction',
+    materialSymbol: 'build',
     keywords: 'github actions cloud workflow failure codex opencode agent',
     isAvailable: whenRepository,
   },
@@ -880,7 +876,6 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     materialSymbol: 'text_format',
     keywords: 'language english cantonese bilingual 語言 廣東話 雙語',
     descriptionKey: 'palette.languageModeDescription',
-    hiddenInSchoolMode: true,
     control: {
       kind: 'choice',
       options: [
@@ -903,7 +898,6 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     materialSymbol: 'waving_hand',
     keywords: 'funny level playfulness humour humor english tone voice',
     descriptionKey: 'palette.funnyLevelDescription',
-    hiddenInSchoolMode: true,
     control: { kind: 'number', min: 1, max: 5, step: 1 },
     home: {
       kind: 'preferences',
@@ -919,7 +913,6 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     materialSymbol: 'waving_hand',
     keywords: 'funny level playfulness humour humor cantonese tone voice 幽默',
     descriptionKey: 'palette.funnyLevelDescription',
-    hiddenInSchoolMode: true,
     control: { kind: 'number', min: 1, max: 5, step: 1 },
     home: {
       kind: 'preferences',
@@ -1047,21 +1040,6 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     },
   },
   {
-    event: 'palette:set-dialog-emoji',
-    title: 'Show emojis in dialogs and message boxes',
-    titleKey: 'palette.showDialogEmoji',
-    group: 'App',
-    materialSymbol: 'palette',
-    keywords: 'emoji emojis dialog dialogs message box decoration',
-    descriptionKey: 'palette.showDialogEmojiDescription',
-    control: { kind: 'toggle' },
-    home: {
-      kind: 'preferences',
-      tab: PreferencesTab.Appearance,
-      targetId: 'settingsDialogEmoji',
-    },
-  },
-  {
     event: 'palette:set-external-credential-helper',
     title: 'Use the external credential helper',
     titleKey: 'palette.externalCredentialHelper',
@@ -1186,19 +1164,6 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     group: 'App',
     keywords: 'settings theme language font look',
     home: { kind: 'preferences', tab: PreferencesTab.Appearance },
-  },
-  {
-    event: 'palette:school-mode',
-    title: 'School mode',
-    titleKey: 'appearance.schoolModeHeading',
-    descriptionKey: 'appearance.schoolModeDescription',
-    group: 'App',
-    keywords: 'settings classroom english lock mode school 學校模式',
-    home: {
-      kind: 'preferences',
-      tab: PreferencesTab.Appearance,
-      targetId: 'settingsSchoolMode',
-    },
   },
   {
     event: 'palette:preferences-integrations',
@@ -2385,30 +2350,6 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     },
   },
   {
-    event: 'palette:set-sound-narrator-voice',
-    title: 'Narrator voice',
-    titleKey: 'palette.setSoundNarratorVoice',
-    group: 'App',
-    keywords: 'narrator voice speech english cantonese tts',
-    home: {
-      kind: 'preferences',
-      tab: PreferencesTab.Sound,
-      targetId: 'settingsSoundNarratorVoice',
-    },
-  },
-  {
-    event: 'palette:set-personal-vocabulary',
-    title: 'Personal vocabulary file',
-    titleKey: 'palette.setPersonalVocabulary',
-    group: 'App',
-    keywords: 'vocabulary personal words upload json wording rename',
-    home: {
-      kind: 'preferences',
-      tab: PreferencesTab.Appearance,
-      targetId: 'settingsPersonalVocabulary',
-    },
-  },
-  {
     event: 'palette:set-sound-narrator-cooldown',
     title: 'Minimum gap between narrated lines',
     titleKey: 'palette.setSoundNarratorCooldown',
@@ -3326,450 +3267,6 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     group: 'App',
     keywords: 'account enterprise github in login sign',
   },
-  // The offline documentation browser itself. The per-article rows below open
-  // one article directly; this one opens the browser on whatever it opened
-  // last, for a reader who does not yet know which article they want.
-  {
-    event: 'show-docs-browser',
-    title: 'Browse feature documentation',
-    titleKey: 'palette.docsBrowser',
-    group: 'Documentation',
-    materialSymbol: 'menu_book',
-    descriptionKey: 'palette.docsBrowserDescription',
-    keywords: 'article docs documentation guide help manual offline reference',
-  },
-  ...DocsArticlePaletteCommands,
-
-  // The three managers the rewrite added that are not drawer destinations.
-  //
-  // Each lives as a row in Settings — the manager itself is an overlay that
-  // row owns — so each teleports to that exact row rather than to the Settings
-  // dialog's front door. `app/src/lib/rewrite-surface-registry.ts` holds the
-  // hand-written list these three are checked against.
-  {
-    event: 'palette:authenticator',
-    title: 'Open the authenticator',
-    titleKey: 'palette.authenticator',
-    group: 'App',
-    materialSymbol: 'key',
-    descriptionKey: 'palette.authenticatorDescription',
-    keywords:
-      'authenticator totp otp one-time password code two factor 2fa mfa qr',
-    home: {
-      kind: 'preferences',
-      tab: PreferencesTab.Advanced,
-      targetId: 'settingsAuthenticator',
-    },
-  },
-  {
-    event: 'palette:surface-locks',
-    title: 'Manage surface locks',
-    titleKey: 'palette.surfaceLocks',
-    group: 'App',
-    materialSymbol: 'lock',
-    descriptionKey: 'palette.surfaceLocksDescription',
-    keywords:
-      'lock locks locked tab group appearance password otp manager unlock',
-    home: {
-      kind: 'preferences',
-      tab: PreferencesTab.Appearance,
-      targetId: 'settingsSurfaceLocks',
-    },
-  },
-  {
-    event: 'palette:support-tickets',
-    title: 'Open Support Tickets',
-    titleKey: 'palette.supportTickets',
-    group: 'Help',
-    materialSymbol: 'live_help',
-    descriptionKey: 'palette.supportTicketsDescription',
-    keywords:
-      'support ticket tickets desk forgotten password recovery application data folder',
-    home: {
-      kind: 'preferences',
-      tab: PreferencesTab.Appearance,
-      targetId: 'settingsSupportTickets',
-    },
-  },
-
-  // ---------------------------------------------------------------------
-  // The MD3 shell.
-  //
-  // Everything the new chrome introduced and nothing it inherited: the eight
-  // destinations, the header and pane controls that own an action, the menus
-  // the shell opens from its own chrome, and the six presentation settings the
-  // contract's menus flip. Commands the shell merely re-exposes (fetch, push,
-  // theme, settings) are already in this catalog under their own names and are
-  // deliberately not listed twice — two rows for one capability is how a
-  // palette starts disagreeing with itself.
-  //
-  // Each destination teleports to its own drawer tab rather than to the drawer:
-  // landing on a rail and leaving the reader to find the row is precisely the
-  // "general page" outcome a teleport exists to avoid.
-  // ---------------------------------------------------------------------
-  {
-    event: 'palette:md3-changes',
-    title: 'Go to Changes',
-    titleKey: 'palette.md3.changes',
-    group: 'Navigate',
-    materialSymbol: 'edit_note',
-    keywords: 'md3 shell destination drawer working directory files',
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3Drawer',
-      openEvent: 'self',
-      targetId: 'md3DestinationChanges',
-    },
-  },
-  {
-    event: 'palette:md3-history',
-    title: 'Go to History',
-    titleKey: 'palette.md3.history',
-    group: 'Navigate',
-    materialSymbol: 'history',
-    keywords: 'md3 shell destination drawer commits log',
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3Drawer',
-      openEvent: 'self',
-      targetId: 'md3DestinationHistory',
-    },
-  },
-  {
-    event: 'palette:md3-branches',
-    title: 'Go to Branches',
-    titleKey: 'palette.md3.branches',
-    group: 'Navigate',
-    materialSymbol: 'merge_type',
-    keywords: 'md3 shell destination drawer branch list',
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3Drawer',
-      openEvent: 'self',
-      targetId: 'md3DestinationBranches',
-    },
-  },
-  {
-    event: 'palette:md3-actions',
-    title: 'Go to Actions',
-    titleKey: 'palette.md3.actions',
-    group: 'Navigate',
-    materialSymbol: 'play_circle',
-    keywords: 'md3 shell destination drawer workflow runs ci',
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3Drawer',
-      openEvent: 'self',
-      targetId: 'md3DestinationActions',
-    },
-  },
-  {
-    event: 'palette:md3-inbox',
-    title: 'Go to Inbox',
-    titleKey: 'palette.md3.inbox',
-    group: 'Navigate',
-    materialSymbol: 'inbox',
-    keywords: 'md3 shell destination drawer notifications',
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3Drawer',
-      openEvent: 'self',
-      targetId: 'md3DestinationInbox',
-    },
-  },
-  {
-    event: 'palette:md3-terminal',
-    title: 'Go to Terminal',
-    titleKey: 'palette.md3.terminal',
-    group: 'Navigate',
-    materialSymbol: 'terminal',
-    keywords: 'md3 shell destination drawer shell console',
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3Drawer',
-      openEvent: 'self',
-      targetId: 'md3DestinationTerminal',
-    },
-  },
-  {
-    event: 'palette:md3-agents',
-    title: 'Go to Agents',
-    titleKey: 'palette.md3.agents',
-    group: 'Navigate',
-    materialSymbol: 'smart_toy',
-    keywords: 'md3 shell destination drawer agent sessions',
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3Drawer',
-      openEvent: 'self',
-      targetId: 'md3DestinationAgents',
-    },
-  },
-  {
-    event: 'palette:md3-repositories',
-    title: 'Go to Repositories',
-    titleKey: 'palette.md3.repositories',
-    group: 'Navigate',
-    materialSymbol: 'book_2',
-    keywords: 'md3 shell destination drawer repository list',
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3Drawer',
-      openEvent: 'self',
-      targetId: 'md3DestinationRepositories',
-    },
-  },
-  {
-    event: 'palette:md3-focus-search',
-    title: 'Focus the global search',
-    titleKey: 'palette.md3.focusSearch',
-    group: 'Navigate',
-    materialSymbol: 'search',
-    keywords: 'md3 shell header global search find filter',
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3Header',
-      targetId: 'md3GlobalSearch',
-    },
-  },
-  {
-    event: 'palette:md3-search-regex',
-    title: 'Read the global search as a regular expression',
-    titleKey: 'palette.md3.searchRegex',
-    group: 'App',
-    materialSymbol: 'code',
-    keywords: 'md3 shell header search regex regular expression pattern mode',
-    descriptionKey: 'palette.md3.searchRegexDescription',
-    control: { kind: 'toggle' },
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3Header',
-      targetId: 'md3GlobalSearch',
-    },
-  },
-  {
-    event: 'palette:md3-search-builder',
-    title: 'Build a pattern for the global search',
-    titleKey: 'palette.md3.searchBuilder',
-    group: 'App',
-    materialSymbol: 'construction',
-    keywords: 'md3 shell regex builder pattern global search anchored',
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3Header',
-      openEvent: 'self',
-      targetId: 'md3GlobalSearch',
-    },
-  },
-  {
-    event: 'palette:md3-search-menu',
-    title: 'Open the search menu',
-    titleKey: 'palette.md3.searchMenu',
-    group: 'App',
-    materialSymbol: 'more_vert',
-    keywords: 'md3 shell search context menu filter regex guide',
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3Header',
-      openEvent: 'self',
-      targetId: 'md3GlobalSearch',
-    },
-  },
-  {
-    event: 'palette:md3-regex-guide',
-    title: 'Open the regular expression guide',
-    titleKey: 'palette.md3.regexGuide',
-    group: 'Documentation',
-    materialSymbol: 'help',
-    keywords: 'md3 shell regex guide reference tokens syntax cheatsheet',
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3Header',
-      openEvent: 'self',
-      targetId: 'md3GlobalSearch',
-    },
-  },
-  {
-    event: 'palette:md3-compose',
-    title: 'Open the commit composer',
-    titleKey: 'palette.md3.compose',
-    group: 'Changes',
-    materialSymbol: 'edit',
-    keywords: 'md3 shell compose commit message dialog drawer',
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3Drawer',
-      openEvent: 'self',
-      targetId: 'md3Compose',
-    },
-  },
-  {
-    event: 'palette:md3-drawer',
-    title: 'Expand the navigation drawer',
-    titleKey: 'palette.md3.drawer',
-    group: 'App',
-    materialSymbol: 'menu',
-    keywords: 'md3 shell drawer navigation rail expand collapse',
-    descriptionKey: 'palette.md3.drawerDescription',
-    control: { kind: 'toggle' },
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3Header',
-      targetId: 'md3DrawerToggle',
-    },
-  },
-  {
-    event: 'palette:md3-drawer-menu',
-    title: 'Open the navigation drawer menu',
-    titleKey: 'palette.md3.drawerMenu',
-    group: 'App',
-    materialSymbol: 'more_vert',
-    keywords: 'md3 shell drawer context menu destinations',
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3Drawer',
-      openEvent: 'self',
-      targetId: 'md3Drawer',
-    },
-  },
-  {
-    event: 'palette:md3-repository-menu',
-    title: 'Open the repository menu',
-    titleKey: 'palette.md3.repositoryMenu',
-    group: 'Repository',
-    materialSymbol: 'book_2',
-    keywords: 'md3 shell pane header repository switcher breadcrumb',
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3PaneHeader',
-      openEvent: 'self',
-      targetId: 'md3PaneRepositoryMenu',
-    },
-  },
-  {
-    event: 'palette:md3-branch-menu',
-    title: 'Open the branch menu',
-    titleKey: 'palette.md3.branchMenu',
-    group: 'Branch',
-    materialSymbol: 'merge_type',
-    keywords: 'md3 shell pane header branch switcher breadcrumb',
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3PaneHeader',
-      openEvent: 'self',
-      targetId: 'md3PaneBranchMenu',
-    },
-  },
-  {
-    event: 'palette:md3-pane-menu',
-    title: 'Open the pane menu',
-    titleKey: 'palette.md3.paneMenu',
-    group: 'App',
-    materialSymbol: 'more_vert',
-    keywords: 'md3 shell pane header more actions overflow menu',
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3PaneHeader',
-      openEvent: 'self',
-      targetId: 'md3PaneMenu',
-    },
-  },
-  {
-    event: 'palette:md3-commit-sort',
-    title: 'Commit order',
-    titleKey: 'palette.md3.commitSort',
-    group: 'App',
-    materialSymbol: 'sort',
-    keywords: 'md3 shell history commits sort order newest oldest',
-    descriptionKey: 'palette.md3.commitSortDescription',
-    control: {
-      kind: 'choice',
-      options: [
-        { value: 'newest', labelKey: 'palette.md3.commitSortNewest' },
-        { value: 'oldest', labelKey: 'palette.md3.commitSortOldest' },
-      ],
-    },
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3PaneHeader',
-      targetId: 'md3PaneMenu',
-    },
-  },
-  {
-    event: 'palette:md3-group-commits-by-day',
-    title: 'Group commits by day',
-    titleKey: 'palette.md3.groupCommitsByDay',
-    group: 'App',
-    materialSymbol: 'calendar_month',
-    keywords: 'md3 shell history commits group day date heading',
-    descriptionKey: 'palette.md3.groupCommitsByDayDescription',
-    control: { kind: 'toggle' },
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3PaneHeader',
-      targetId: 'md3PaneMenu',
-    },
-  },
-  {
-    event: 'palette:md3-commit-graph',
-    title: 'Show the commit graph',
-    titleKey: 'palette.md3.commitGraph',
-    group: 'App',
-    materialSymbol: 'account_tree',
-    keywords: 'md3 shell history commit graph ancestry column lines',
-    descriptionKey: 'palette.md3.commitGraphDescription',
-    control: { kind: 'toggle' },
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3PaneHeader',
-      targetId: 'md3PaneMenu',
-    },
-  },
-  {
-    event: 'palette:md3-wrap-long-lines',
-    title: 'Wrap long diff lines',
-    titleKey: 'palette.md3.wrapLongLines',
-    group: 'App',
-    materialSymbol: 'wrap_text',
-    keywords: 'md3 shell diff wrap long lines soft wrap horizontal scroll',
-    descriptionKey: 'palette.md3.wrapLongLinesDescription',
-    control: { kind: 'toggle' },
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3PaneHeader',
-      targetId: 'md3PaneMenu',
-    },
-  },
-  {
-    event: 'palette:md3-diff-context-lines',
-    title: 'Diff context lines',
-    titleKey: 'palette.md3.diffContextLines',
-    group: 'App',
-    materialSymbol: 'unfold_more',
-    keywords: 'md3 shell diff context lines unchanged surrounding',
-    descriptionKey: 'palette.md3.diffContextLinesDescription',
-    control: { kind: 'number', min: 1, max: 20 },
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3PaneHeader',
-      targetId: 'md3PaneMenu',
-    },
-  },
-  {
-    event: 'palette:md3-group-changes-by-folder',
-    title: 'Group changes by folder',
-    titleKey: 'palette.md3.groupChangesByFolder',
-    group: 'App',
-    materialSymbol: 'folder',
-    keywords: 'md3 shell changes list group folder directory tree',
-    descriptionKey: 'palette.md3.groupChangesByFolderDescription',
-    control: { kind: 'toggle' },
-    home: {
-      kind: 'surface',
-      labelKey: 'commandPalette.homeMd3PaneHeader',
-      targetId: 'md3PaneMenu',
-    },
-  },
 ]
 
 /**
@@ -3785,12 +3282,10 @@ export function filterPaletteCommands(
   commands: ReadonlyArray<IPaletteCommand>,
   query: string,
   platform?: string,
-  context?: IPaletteCommandContext,
-  schoolModeEnabled = isSchoolModeEnabled()
+  context?: IPaletteCommandContext
 ): ReadonlyArray<IPaletteCommand> {
   const platformEligible = commands.filter(
     command =>
-      (!schoolModeEnabled || command.hiddenInSchoolMode !== true) &&
       (command.platform === undefined ||
         platform === undefined ||
         command.platform === platform) &&

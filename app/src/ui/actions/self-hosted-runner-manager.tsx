@@ -28,12 +28,6 @@ interface ISelfHostedRunnerManagerProps {
 interface ISelfHostedRunnerManagerState {
   readonly status: ISelfHostedRunnerStatus | null
   readonly remoteRunners: ReadonlyArray<IAPISelfHostedRunner>
-  readonly remoteRunnersError: string | null
-  readonly setupPreflightStatus: 'checking' | 'safe' | 'unsafe' | 'unavailable'
-  readonly setupPreflightDetail: string
-  readonly setupPreflightScopeKey: string | null
-  readonly workflowTrustAcknowledged: boolean
-  readonly hostAccessAcknowledged: boolean
   readonly selectedAccountKey: string
   readonly platform: SelfHostedRunnerPlatform
   readonly runnerName: string
@@ -43,10 +37,6 @@ interface ISelfHostedRunnerManagerState {
   readonly baseDistribution: string
   readonly dedicatedDistribution: string
   readonly busy: boolean
-  readonly activeOperationRunnerId: string | null
-  readonly activeOperationKind: 'setup' | 'start' | 'remove' | null
-  readonly activeOperationRunnerName: string
-  readonly cancellationRequested: boolean
   readonly error: string | null
   readonly message: string | null
   readonly progress: ISelfHostedRunnerProgress | null
@@ -62,34 +52,10 @@ function repositoryKey(repository: Repository): string {
     : `${remote.endpoint}/${remote.owner.login}/${remote.name}`
 }
 
-export function defaultSelfHostedRunnerLabel(
-  repository: string,
-  platform: SelfHostedRunnerPlatform
-): string {
-  const suffix = platform === 'windows' ? '-windows-local' : '-wsl-local'
-  const repositoryPrefix = repository
-    .toLocaleLowerCase()
-    .slice(0, 64 - suffix.length)
-  return `${repositoryPrefix}${suffix}`
-}
-
-function labelsForPlatform(
-  value: string,
-  repository: string,
-  platform: SelfHostedRunnerPlatform
-): string {
-  const projectLabels = new Set([
-    defaultSelfHostedRunnerLabel(repository, 'windows'),
-    defaultSelfHostedRunnerLabel(repository, 'linux-wsl'),
-  ])
-  const labels = value
-    .split(',')
-    .map(label => label.trim())
-    .filter(
-      label => label.length > 0 && !projectLabels.has(label.toLowerCase())
-    )
-  labels.push(defaultSelfHostedRunnerLabel(repository, platform))
-  return [...new Set(labels)].join(',')
+function defaultLabels(platform: SelfHostedRunnerPlatform): string {
+  return `self-hosted,desktop-material,${
+    platform === 'windows' ? 'windows' : 'linux-wsl'
+  }`
 }
 
 function errorText(error: unknown, fallback: string): string {
@@ -103,9 +69,6 @@ export class SelfHostedRunnerManager extends React.Component<
   ISelfHostedRunnerManagerState
 > {
   private lastRepositoryKey: string
-  private refreshGeneration = 0
-  private labelAuditTimeout: ReturnType<typeof setTimeout> | null = null
-  private activeRemovalRunnerId: string | null = null
 
   public constructor(props: ISelfHostedRunnerManagerProps) {
     super(props)
@@ -121,32 +84,18 @@ export class SelfHostedRunnerManager extends React.Component<
     return {
       status: null,
       remoteRunners: [],
-      remoteRunnersError: null,
-      setupPreflightStatus: 'checking',
-      setupPreflightDetail:
-        "Waiting to check the current setup form's account and proposed labels.",
-      setupPreflightScopeKey: null,
-      workflowTrustAcknowledged: false,
-      hostAccessAcknowledged: false,
       selectedAccountKey: account === undefined ? '' : getAccountKey(account),
       platform: 'windows',
       runnerName: `desktop-material-${
         process.arch === 'arm64' ? 'arm64' : 'x64'
       }`,
-      labels: defaultSelfHostedRunnerLabel(
-        remote?.name ?? 'repository',
-        'windows'
-      ),
+      labels: defaultLabels('windows'),
       selectedDistribution: '',
       createDedicatedWsl: false,
       baseDistribution: '',
       dedicatedDistribution:
         remote === null ? 'desktop-material-runner' : `${remote.name}-runner`,
       busy: false,
-      activeOperationRunnerId: null,
-      activeOperationKind: null,
-      activeOperationRunnerName: '',
-      cancellationRequested: false,
       error: null,
       message: null,
       progress: null,
@@ -203,329 +152,77 @@ export class SelfHostedRunnerManager extends React.Component<
   public componentDidUpdate() {
     const nextKey = repositoryKey(this.props.repository)
     if (nextKey !== this.lastRepositoryKey) {
-      this.refreshGeneration++
       this.lastRepositoryKey = nextKey
       this.setState(this.initialState(this.props), () => void this.refresh())
     }
   }
 
   public componentWillUnmount() {
-    this.refreshGeneration++
-    if (this.labelAuditTimeout !== null) {
-      clearTimeout(this.labelAuditTimeout)
-      this.labelAuditTimeout = null
-    }
     ipcRenderer.removeListener('self-hosted-runner-progress', this.onProgress)
-  }
-
-  private setupPreflightLabels(): ReadonlyArray<string> {
-    return [
-      'self-hosted',
-      ...this.state.labels
-        .split(',')
-        .map(label => label.trim())
-        .filter(label => label.length > 0),
-      this.state.platform === 'windows' ? 'Windows' : 'Linux',
-      process.arch === 'arm64' ? 'ARM64' : 'X64',
-    ]
-  }
-
-  private currentSetupPreflightScopeKey(
-    account: Account | null = this.selectedAccount(),
-    labels: ReadonlyArray<string> = this.setupPreflightLabels()
-  ): string | null {
-    const remote = this.props.repository.gitHubRepository
-    return remote === null || account === null
-      ? null
-      : JSON.stringify([
-          repositoryKey(this.props.repository),
-          getAccountKey(account),
-          labels,
-        ])
-  }
-
-  private invalidateSetupPreflight = () => {
-    this.refreshGeneration++
-    this.setState({
-      setupPreflightStatus: 'checking',
-      setupPreflightDetail:
-        "Waiting to check the current setup form's account and proposed labels.",
-      setupPreflightScopeKey: null,
-    })
-  }
-
-  private onLabelsChanged = (labels: string) => {
-    this.invalidateSetupPreflight()
-    this.setState({ labels }, this.scheduleWorkflowAuditRefresh)
-  }
-
-  private scheduleWorkflowAuditRefresh = () => {
-    if (this.labelAuditTimeout !== null) {
-      clearTimeout(this.labelAuditTimeout)
-    }
-    this.labelAuditTimeout = setTimeout(() => {
-      this.labelAuditTimeout = null
-      void this.refresh()
-    }, 400)
   }
 
   private onProgress = (
     _event: Electron.IpcRendererEvent,
     progress: ISelfHostedRunnerProgress
   ) => {
-    if (
-      (this.state.busy &&
-        progress.runnerId === this.state.activeOperationRunnerId) ||
-      (this.state.removeSubmitting &&
-        progress.runnerId === this.activeRemovalRunnerId)
-    ) {
-      this.setState({ progress })
-      return
-    }
-    this.setState({
-      error: progress.detail,
-      progress: null,
-    })
-    void this.refresh()
+    this.setState({ progress })
   }
 
   private refresh = async () => {
-    const generation = ++this.refreshGeneration
-    const selectedRepositoryKey = repositoryKey(this.props.repository)
-    const isCurrent = () =>
-      generation === this.refreshGeneration &&
-      selectedRepositoryKey === repositoryKey(this.props.repository)
     try {
       const remote = this.props.repository.gitHubRepository
       if (remote === null) {
-        if (isCurrent()) {
-          this.setState({
-            status: null,
-            remoteRunners: [],
-            remoteRunnersError: null,
-            setupPreflightStatus: 'unavailable',
-            setupPreflightDetail:
-              'Connect the repository before workflow safety can be checked.',
-            setupPreflightScopeKey: null,
-          })
-        }
+        this.setState({ status: null, remoteRunners: [] })
         return
       }
       const status = await ipcRenderer.invoke('get-self-hosted-runner-status', {
         owner: remote.owner.login,
         repository: remote.name,
       })
-      if (!isCurrent()) {
-        return
-      }
       this.setDefaultDistro(status)
       const account = this.selectedAccount()
       if (account !== null) {
-        const api = API.fromAccount(account)
         try {
-          const runners = await api.fetchSelfHostedRunners(
+          const runners = await API.fromAccount(account).fetchSelfHostedRunners(
             remote.owner.login,
             remote.name
           )
-          if (isCurrent()) {
-            this.setState({
-              remoteRunners: runners.runners,
-              remoteRunnersError: null,
-            })
-          }
-        } catch (error) {
-          if (isCurrent()) {
-            this.setState({
-              remoteRunners: [],
-              remoteRunnersError: errorText(
-                error,
-                'GitHub runner inventory is unavailable. Setup will fail safely instead of replacing an existing runner.'
-              ),
-            })
-          }
+          this.setState({ remoteRunners: runners.runners })
+        } catch {
+          this.setState({ remoteRunners: [] })
         }
-        if (remote.isPrivate !== true) {
-          if (isCurrent()) {
-            this.setState({
-              setupPreflightStatus: 'unavailable',
-              setupPreflightDetail:
-                'Repository-scoped self-hosted runners are unavailable for public or unknown-visibility repositories on a personal workstation. Use an isolated disposable host or a restricted organization runner group.',
-              setupPreflightScopeKey: null,
-            })
-          }
-          return
-        }
-        if (isCurrent()) {
-          this.setState({
-            setupPreflightStatus: 'checking',
-            setupPreflightDetail:
-              "The main process is checking the current setup form's account and proposed labels against private-fork policy, one immutable workflow commit, and pending runner jobs.",
-            setupPreflightScopeKey: null,
-          })
-        }
-        try {
-          const runnerLabels = this.setupPreflightLabels()
-          const preflightScopeKey = this.currentSetupPreflightScopeKey(
-            account,
-            runnerLabels
-          )
-          if (preflightScopeKey === null) {
-            return
-          }
-          const audit = await ipcRenderer.invoke(
-            'preflight-self-hosted-runner',
-            {
-              accountKey: getAccountKey(account),
-              owner: remote.owner.login,
-              repository: remote.name,
-              githubApiEndpoint: account.endpoint,
-              labels: runnerLabels,
-            }
-          )
-          if (
-            isCurrent() &&
-            preflightScopeKey === this.currentSetupPreflightScopeKey()
-          ) {
-            this.setState(
-              audit.ok
-                ? {
-                    setupPreflightStatus: 'safe',
-                    setupPreflightDetail: `The main process proved private-fork pull-request workflows disabled for the selected account and proposed labels ${runnerLabels.join(
-                      ', '
-                    )}, audited ${
-                      audit.result.workflowCount
-                    } workflow files at immutable commit ${audit.result.commitSHA.slice(
-                      0,
-                      12
-                    )}, and found two stable queue snapshots with no pending job that can claim these labels.`,
-                    setupPreflightScopeKey: preflightScopeKey,
-                  }
-                : {
-                    setupPreflightStatus:
-                      audit.code === 'workflow-trust-unsafe' ||
-                      audit.code === 'runner-queued-job-blocked'
-                        ? 'unsafe'
-                        : 'unavailable',
-                    setupPreflightDetail: audit.recovery,
-                    setupPreflightScopeKey: null,
-                  }
-            )
-          }
-        } catch (error) {
-          if (isCurrent()) {
-            this.setState({
-              setupPreflightStatus: 'unavailable',
-              setupPreflightDetail: errorText(
-                error,
-                'The complete workflow inventory could not be read and parsed, so setup remains blocked.'
-              ),
-              setupPreflightScopeKey: null,
-            })
-          }
-        }
-      } else if (isCurrent()) {
-        this.setState({
-          remoteRunners: [],
-          remoteRunnersError: null,
-          setupPreflightStatus: 'unavailable',
-          setupPreflightDetail:
-            'Select a signed-in GitHub account before workflow safety can be checked.',
-          setupPreflightScopeKey: null,
-        })
+      } else {
+        this.setState({ remoteRunners: [] })
       }
     } catch (error) {
-      if (isCurrent()) {
-        this.setState({
-          error: errorText(
-            error,
-            'The runner manager could not load its status.'
-          ),
-        })
-      }
+      this.setState({
+        error: errorText(
+          error,
+          'The runner manager could not load its status.'
+        ),
+      })
     }
   }
 
   private onPlatformChanged = (event: React.FormEvent<HTMLSelectElement>) => {
     const platform = event.currentTarget.value as SelfHostedRunnerPlatform
-    const repository =
-      this.props.repository.gitHubRepository?.name ?? 'repository'
-    this.invalidateSetupPreflight()
-    this.setState(
-      state => ({
-        platform,
-        labels: labelsForPlatform(state.labels, repository, platform),
-      }),
-      this.scheduleWorkflowAuditRefresh
-    )
-  }
-
-  private setupBlockReason(): string | null {
-    const remote = this.props.repository.gitHubRepository
-    if (this.state.busy || this.state.removeSubmitting) {
-      return 'Wait for the current runner operation to finish.'
-    }
-    if (remote === null || this.githubAccounts().length === 0) {
-      return 'Connect the repository and select a signed-in GitHub account.'
-    }
-    if (remote.isPrivate !== true) {
-      return 'Repository-scoped self-hosted runners are unavailable for public or unknown-visibility repositories on a personal workstation.'
-    }
-    if (this.state.status?.supported !== true) {
-      return 'Runner setup is available only in the Windows desktop app.'
-    }
-    if (
-      this.state.setupPreflightStatus !== 'safe' ||
-      this.state.setupPreflightScopeKey === null ||
-      this.state.setupPreflightScopeKey !== this.currentSetupPreflightScopeKey()
-    ) {
-      return 'Wait for a complete safe setup-form preflight for the current account and proposed labels.'
-    }
-    if (
-      !this.state.workflowTrustAcknowledged ||
-      !this.state.hostAccessAcknowledged
-    ) {
-      return 'Acknowledge both self-hosted runner security boundaries before setup.'
-    }
-    if (
-      this.state.runnerName.trim().length === 0 ||
-      this.state.labels.trim().length === 0
-    ) {
-      return 'Enter a runner name and at least one label.'
-    }
-    if (
-      this.state.remoteRunners.some(
-        runner =>
-          runner.name.toLocaleLowerCase() ===
-          this.state.runnerName.trim().toLocaleLowerCase()
-      )
-    ) {
-      return 'Choose a unique runner name; this app never replaces an existing runner.'
-    }
-    return null
-  }
-
-  private runnerStartBlockReason(): string | null {
-    const remote = this.props.repository.gitHubRepository
-    if (remote?.isPrivate !== true) {
-      return 'Starting a repository-scoped runner requires a verified private repository.'
-    }
-    if (
-      !this.state.workflowTrustAcknowledged ||
-      !this.state.hostAccessAcknowledged
-    ) {
-      return 'Acknowledge both self-hosted runner security boundaries before starting a runner.'
-    }
-    return null
+    this.setState(state => ({
+      platform,
+      labels: state.labels
+        .split(',')
+        .map(label => label.trim())
+        .filter(
+          label => label !== '' && label !== 'windows' && label !== 'linux-wsl'
+        )
+        .concat(platform === 'windows' ? 'windows' : 'linux-wsl')
+        .join(','),
+    }))
   }
 
   private onSetup = async () => {
     const remote = this.props.repository.gitHubRepository
     const account = this.selectedAccount()
-    const blockReason = this.setupBlockReason()
-    if (remote === null || account === null || blockReason !== null) {
-      if (blockReason !== null && !this.state.busy) {
-        this.setState({ error: blockReason })
-      }
+    if (remote === null || account === null || this.state.busy) {
       return
     }
     const labels = this.state.labels
@@ -558,21 +255,10 @@ export class SelfHostedRunnerManager extends React.Component<
       return
     }
 
-    const runnerId = crypto.randomUUID()
-    this.setState({
-      busy: true,
-      activeOperationRunnerId: runnerId,
-      activeOperationKind: 'setup',
-      activeOperationRunnerName: this.state.runnerName,
-      cancellationRequested: false,
-      error: null,
-      message: null,
-      progress: null,
-    })
+    this.setState({ busy: true, error: null, message: null, progress: null })
     try {
       const reply = await ipcRenderer.invoke('setup-self-hosted-runner', {
-        id: runnerId,
-        accountKey: getAccountKey(account),
+        id: crypto.randomUUID(),
         owner: remote.owner.login,
         repository: remote.name,
         githubApiEndpoint: account.endpoint,
@@ -596,7 +282,7 @@ export class SelfHostedRunnerManager extends React.Component<
       }
       this.setState({
         message:
-          'Runner setup is complete. GitHub reports the exact runner online with the expected labels.',
+          'Runner setup is complete. GitHub may take a few seconds to show it as online.',
       })
       await this.refresh()
     } catch (error) {
@@ -606,67 +292,17 @@ export class SelfHostedRunnerManager extends React.Component<
           'Runner setup failed. Request a new token and retry.'
         ),
       })
-      await this.refresh()
     } finally {
-      this.setState({
-        busy: false,
-        activeOperationRunnerId: null,
-        activeOperationKind: null,
-        activeOperationRunnerName: '',
-        cancellationRequested: false,
-      })
-    }
-  }
-
-  private cancelOperation = async () => {
-    const runnerId = this.state.activeOperationRunnerId
-    if (runnerId === null || this.state.cancellationRequested) {
-      return
-    }
-    this.setState({ cancellationRequested: true })
-    try {
-      const accepted = await ipcRenderer.invoke(
-        'cancel-self-hosted-runner-operation',
-        runnerId
-      )
-      if (!accepted) {
-        this.setState({
-          error:
-            'The runner operation already finished before cancellation reached it. Refreshing runner status.',
-        })
-      }
-    } catch (error) {
-      this.setState({
-        cancellationRequested: false,
-        error: errorText(
-          error,
-          'Cancellation could not be requested. Wait for the bounded runner operation to finish.'
-        ),
-      })
+      this.setState({ busy: false })
     }
   }
 
   private invokeControl = async (id: string, action: 'start' | 'stop') => {
     const remote = this.props.repository.gitHubRepository
-    const startBlockReason =
-      action === 'start' ? this.runnerStartBlockReason() : null
-    if (this.state.busy || remote === null || startBlockReason !== null) {
-      if (startBlockReason !== null && !this.state.busy) {
-        this.setState({ error: startBlockReason })
-      }
+    if (this.state.busy || remote === null) {
       return
     }
-    const runnerName =
-      this.state.status?.runners.find(runner => runner.id === id)?.name ?? id
-    this.setState({
-      busy: true,
-      activeOperationRunnerId: action === 'start' ? id : null,
-      activeOperationKind: action === 'start' ? 'start' : null,
-      activeOperationRunnerName: action === 'start' ? runnerName : '',
-      cancellationRequested: false,
-      error: null,
-      message: null,
-    })
+    this.setState({ busy: true, error: null, message: null })
     try {
       const reply = await ipcRenderer.invoke(
         action === 'start'
@@ -684,13 +320,7 @@ export class SelfHostedRunnerManager extends React.Component<
     } catch (error) {
       this.setState({ error: errorText(error, `Runner ${action} failed.`) })
     } finally {
-      this.setState({
-        busy: false,
-        activeOperationRunnerId: null,
-        activeOperationKind: null,
-        activeOperationRunnerName: '',
-        cancellationRequested: false,
-      })
+      this.setState({ busy: false })
     }
   }
 
@@ -698,11 +328,11 @@ export class SelfHostedRunnerManager extends React.Component<
     if (this.state.removeSubmitting) {
       return
     }
-    this.setState({ removeTarget: runner, removeError: null, progress: null })
+    this.setState({ removeTarget: runner, removeError: null })
   }
 
   private dismissRemove = () => {
-    this.setState({ removeTarget: null, removeError: null, progress: null })
+    this.setState({ removeTarget: null, removeError: null })
   }
 
   private confirmRemove = async () => {
@@ -712,24 +342,10 @@ export class SelfHostedRunnerManager extends React.Component<
     if (remote === null || account === null || target === null) {
       return
     }
-    this.activeRemovalRunnerId = target.id
-    this.setState({
-      removeSubmitting: true,
-      removeError: null,
-      activeOperationRunnerId: target.id,
-      activeOperationKind: 'remove',
-      activeOperationRunnerName: target.name,
-      cancellationRequested: false,
-      progress: {
-        runnerId: target.id,
-        phase: 'removing-runner',
-        detail: 'Requesting a removal token and unregistering the runner…',
-      },
-    })
+    this.setState({ removeSubmitting: true, removeError: null })
     try {
       const reply = await ipcRenderer.invoke('remove-self-hosted-runner', {
         id: target.id,
-        accountKey: target.accountKey ?? getAccountKey(account),
         owner: remote.owner.login,
         repository: remote.name,
         githubApiEndpoint: account.endpoint,
@@ -759,24 +375,12 @@ export class SelfHostedRunnerManager extends React.Component<
         this.setState({ removeError: new Error(message) })
       }
     } finally {
-      this.activeRemovalRunnerId = null
-      this.setState({
-        removeSubmitting: false,
-        activeOperationRunnerId: null,
-        activeOperationKind: null,
-        activeOperationRunnerName: '',
-        cancellationRequested: false,
-        progress: null,
-      })
+      this.setState({ removeSubmitting: false })
     }
   }
 
   private renderRunner(runner: ISelfHostedRunner) {
     const running = runner.status === 'running'
-    const managementAvailable = runner.platform === 'windows'
-    const startBlockReason = running ? null : this.runnerStartBlockReason()
-    const startAuditNoteId = `runner-${runner.id}-start-audit-note`
-    const startBlockReasonId = `runner-${runner.id}-start-block-reason`
     return (
       <article className="actions-runner-card" key={runner.id}>
         <div className="actions-runner-card-heading">
@@ -793,7 +397,6 @@ export class SelfHostedRunnerManager extends React.Component<
           <span
             className={`actions-runner-status ${runner.status}`}
             role="status"
-            aria-label={`${runner.name} status: ${runner.status}`}
           >
             {runner.status}
           </span>
@@ -806,49 +409,13 @@ export class SelfHostedRunnerManager extends React.Component<
         <p className="actions-runner-labels">
           Labels: {runner.labels.join(', ')}
         </p>
-        {!managementAvailable && (
-          <p className="actions-banner warning" role="status">
-            WSL process-group control is not yet provable. Start, stop, and
-            remove this runner directly inside its distro and on GitHub.
-          </p>
-        )}
-        {managementAvailable && !running && (
-          <p id={startAuditNoteId} className="actions-runner-help" role="note">
-            Starting {runner.name} runs a fresh main-process audit using that
-            runner&apos;s exact live labels, private-fork policy, immutable
-            default-branch workflows, and pending jobs. The setup-form preflight
-            is not reused.
-          </p>
-        )}
-        {managementAvailable && startBlockReason !== null && (
-          <p
-            id={startBlockReasonId}
-            className="actions-banner warning"
-            role="status"
-          >
-            {startBlockReason}
-          </p>
-        )}
         <div className="actions-runner-card-actions">
           <Button
             size="small"
-            ariaLabel={`${running ? 'Stop' : 'Start'} ${runner.name}`}
-            ariaDescribedBy={
-              managementAvailable && !running
-                ? `${startAuditNoteId}${
-                    startBlockReason === null ? '' : ` ${startBlockReasonId}`
-                  }`
-                : undefined
-            }
             dataVerification={`runner-${runner.id}-${
               running ? 'stop' : 'start'
             }`}
-            disabled={
-              !managementAvailable ||
-              startBlockReason !== null ||
-              this.state.busy ||
-              this.state.removeSubmitting
-            }
+            disabled={this.state.busy || this.state.removeSubmitting}
             onClick={() =>
               void this.invokeControl(runner.id, running ? 'stop' : 'start')
             }
@@ -858,13 +425,8 @@ export class SelfHostedRunnerManager extends React.Component<
           <Button
             size="small"
             className="destructive"
-            ariaLabel={`Remove ${runner.name}`}
             dataVerification={`runner-${runner.id}-remove`}
-            disabled={
-              !managementAvailable ||
-              this.state.busy ||
-              this.state.removeSubmitting
-            }
+            disabled={this.state.busy || this.state.removeSubmitting}
             onClick={() => this.requestRemove(runner)}
           >
             Remove
@@ -893,9 +455,6 @@ export class SelfHostedRunnerManager extends React.Component<
             <li key={runner.id}>
               <strong>{runner.name}</strong> · {runner.os} ·{' '}
               {runner.busy ? 'busy' : runner.status}
-              {runner.labels.length === 0
-                ? ''
-                : ` · ${runner.labels.map(label => label.name).join(', ')}`}
             </li>
           ))}
         </ul>
@@ -907,13 +466,12 @@ export class SelfHostedRunnerManager extends React.Component<
     const remote = this.props.repository.gitHubRepository
     const githubAccounts = this.githubAccounts()
     const status = this.state.status
-    const runnerNameCollision = this.state.remoteRunners.some(
-      runner =>
-        runner.name.toLocaleLowerCase() ===
-        this.state.runnerName.trim().toLocaleLowerCase()
-    )
-    const setupBlockReason = this.setupBlockReason()
-    const canSetup = setupBlockReason === null
+    const canSetup =
+      status?.supported === true &&
+      remote !== null &&
+      githubAccounts.length > 0 &&
+      !this.state.busy &&
+      !this.state.removeSubmitting
     return (
       <section
         className="actions-runner-manager"
@@ -926,9 +484,8 @@ export class SelfHostedRunnerManager extends React.Component<
             </h2>
             <p>
               Set up repository-scoped GitHub Actions runners on this Windows
-              machine. Native Windows setup is available after the workflow
-              trust check; WSL management is fail-closed until in-distro
-              process-group cancellation can be proven.
+              machine. Linux runners run inside an existing or dedicated WSL 2
+              distro.
             </p>
           </div>
           <Button
@@ -944,18 +501,6 @@ export class SelfHostedRunnerManager extends React.Component<
           Registration and removal tokens stay in memory only. The manager
           downloads the official Actions runner package, verifies its SHA-256
           digest, and installs the required Git/WSL dependencies automatically.
-        </div>
-
-        <div className="actions-banner warning" role="alert">
-          Self-hosted workflow code runs with this Windows user&apos;s access to
-          files and network services. WSL—including a dedicated distro—can reach
-          mounted Windows drives and is not a security boundary. Anyone who can
-          make a workflow target these labels can execute code with that access.
-          {remote?.isPrivate === true
-            ? ' This repository is private.'
-            : remote?.isPrivate === false
-            ? ' This repository is public, so setup is unavailable on this personal workstation. Use an isolated disposable host or a restricted organization runner group.'
-            : ' Repository visibility is unknown, so setup is unavailable until a private repository can be proven.'}
         </div>
 
         {this.state.error !== null && (
@@ -981,25 +526,6 @@ export class SelfHostedRunnerManager extends React.Component<
             {this.state.progress.detail}
           </div>
         )}
-        {this.state.busy &&
-          this.state.activeOperationRunnerId !== null &&
-          this.state.activeOperationKind !== null && (
-            <Button
-              size="small"
-              ariaLabel={`Cancel ${this.state.activeOperationKind} for ${this.state.activeOperationRunnerName}`}
-              disabled={this.state.cancellationRequested}
-              onClick={() => void this.cancelOperation()}
-            >
-              {this.state.cancellationRequested
-                ? 'Cancellation requested'
-                : `Cancel ${this.state.activeOperationKind}`}
-            </Button>
-          )}
-        {this.state.remoteRunnersError !== null && (
-          <div className="actions-banner warning" role="status">
-            {this.state.remoteRunnersError}
-          </div>
-        )}
 
         {remote === null ? (
           <p className="actions-banner warning" role="alert">
@@ -1023,17 +549,12 @@ export class SelfHostedRunnerManager extends React.Component<
                 label="GitHub account"
                 value={this.state.selectedAccountKey}
                 disabled={this.state.busy || this.state.removeSubmitting}
-                onChange={event => {
-                  if (this.labelAuditTimeout !== null) {
-                    clearTimeout(this.labelAuditTimeout)
-                    this.labelAuditTimeout = null
-                  }
-                  this.invalidateSetupPreflight()
+                onChange={event =>
                   this.setState(
                     { selectedAccountKey: event.currentTarget.value },
                     () => void this.refresh()
                   )
-                }}
+                }
               >
                 {githubAccounts.map(account => (
                   <option
@@ -1050,13 +571,6 @@ export class SelfHostedRunnerManager extends React.Component<
                 disabled={this.state.busy || this.state.removeSubmitting}
                 onValueChanged={runnerName => this.setState({ runnerName })}
               />
-              {runnerNameCollision && (
-                <p className="actions-inline-error" role="alert">
-                  GitHub already has a runner named {this.state.runnerName}.
-                  Choose a unique name; this app never replaces an existing
-                  runner.
-                </p>
-              )}
               <Select
                 label="Runner platform"
                 value={this.state.platform}
@@ -1064,70 +578,13 @@ export class SelfHostedRunnerManager extends React.Component<
                 onChange={this.onPlatformChanged}
               >
                 <option value="windows">Windows</option>
-                <option value="linux-wsl" disabled={true}>
-                  Linux in WSL 2 (temporarily unavailable)
-                </option>
+                <option value="linux-wsl">Linux in WSL 2</option>
               </Select>
               <TextBox
                 label="Labels (comma-separated)"
                 value={this.state.labels}
                 disabled={this.state.busy || this.state.removeSubmitting}
-                onValueChanged={this.onLabelsChanged}
-              />
-              <p className="actions-runner-help">
-                GitHub adds the built-in self-hosted, operating-system, and
-                architecture labels. The suggested project label matches this
-                repository&apos;s dedicated-runner workflow convention.
-              </p>
-
-              <div
-                className={`actions-banner ${
-                  this.state.setupPreflightStatus === 'safe'
-                    ? 'success'
-                    : this.state.setupPreflightStatus === 'unsafe'
-                    ? 'error'
-                    : 'warning'
-                }`}
-                role={
-                  this.state.setupPreflightStatus === 'unsafe'
-                    ? 'alert'
-                    : 'status'
-                }
-              >
-                Setup-form safety preflight: {this.state.setupPreflightDetail}
-              </div>
-              <p className="actions-runner-help">
-                This result applies only to the selected account and proposed
-                labels currently shown in the setup form. Existing-runner Start
-                does not reuse it.
-              </p>
-              <Checkbox
-                value={
-                  this.state.workflowTrustAcknowledged
-                    ? CheckboxValue.On
-                    : CheckboxValue.Off
-                }
-                disabled={this.state.busy || this.state.removeSubmitting}
-                label="I trust everyone allowed to run repository workflows that can target a managed runner on this machine"
-                onChange={event =>
-                  this.setState({
-                    workflowTrustAcknowledged: event.currentTarget.checked,
-                  })
-                }
-              />
-              <Checkbox
-                value={
-                  this.state.hostAccessAcknowledged
-                    ? CheckboxValue.On
-                    : CheckboxValue.Off
-                }
-                disabled={this.state.busy || this.state.removeSubmitting}
-                label="I understand jobs run as my Windows user and WSL does not isolate Windows files or network access"
-                onChange={event =>
-                  this.setState({
-                    hostAccessAcknowledged: event.currentTarget.checked,
-                  })
-                }
+                onValueChanged={labels => this.setState({ labels })}
               />
 
               {this.state.platform === 'linux-wsl' && (
@@ -1210,25 +667,10 @@ export class SelfHostedRunnerManager extends React.Component<
               <Button
                 dataVerification="self-hosted-runner-setup"
                 disabled={!canSetup}
-                ariaDescribedBy={
-                  setupBlockReason === null
-                    ? undefined
-                    : 'self-hosted-runner-setup-block-reason'
-                }
-                tooltip={setupBlockReason ?? undefined}
                 onClick={() => void this.onSetup()}
               >
                 Set up runner
               </Button>
-              {setupBlockReason !== null && (
-                <p
-                  id="self-hosted-runner-setup-block-reason"
-                  className="actions-runner-help"
-                  role="status"
-                >
-                  {setupBlockReason}
-                </p>
-              )}
             </div>
           </>
         )}
@@ -1257,9 +699,7 @@ export class SelfHostedRunnerManager extends React.Component<
             error={this.state.removeError}
             progressMessage={
               this.state.removeSubmitting
-                ? this.state.progress?.runnerId === this.state.removeTarget.id
-                  ? this.state.progress.detail
-                  : 'Requesting a removal token and unregistering the runner…'
+                ? 'Requesting a removal token and unregistering the runner…'
                 : null
             }
             onConfirm={() => void this.confirmRemove()}

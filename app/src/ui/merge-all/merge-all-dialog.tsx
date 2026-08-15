@@ -15,51 +15,17 @@ interface IMergeAllDialogProps {
   readonly onDismissed: () => void
 }
 
-interface IMergeAllDialogState {
-  readonly started: boolean
-  readonly checkpointDirtyWorktrees: boolean
-}
-
-export class MergeAllDialog extends React.Component<
-  IMergeAllDialogProps,
-  IMergeAllDialogState
-> {
-  public constructor(props: IMergeAllDialogProps) {
-    super(props)
-    this.state = {
-      started: false,
-      checkpointDirtyWorktrees: false,
-    }
+export class MergeAllDialog extends React.Component<IMergeAllDialogProps> {
+  public componentDidMount(): void {
+    this.props.dispatcher.mergeAllIntoDefaultBranch(
+      this.props.repository,
+      this.props.mode
+    )
   }
 
   private isRunning(): boolean {
-    if (!this.state.started) {
-      return false
-    }
     const phase = this.props.state?.phase
-    return (
-      phase === undefined || (phase !== 'complete' && phase !== 'cancelled')
-    )
-  }
-
-  private onStart = () => {
-    if (this.state.started) {
-      return
-    }
-    this.setState({ started: true })
-    void this.props.dispatcher.mergeAllIntoDefaultBranch(
-      this.props.repository,
-      this.props.mode,
-      {
-        checkpointDirtyWorktrees: this.state.checkpointDirtyWorktrees,
-      }
-    )
-  }
-
-  private onCheckpointDirtyWorktreesChanged = (
-    event: React.FormEvent<HTMLInputElement>
-  ) => {
-    this.setState({ checkpointDirtyWorktrees: event.currentTarget.checked })
+    return phase !== undefined && phase !== 'complete' && phase !== 'cancelled'
   }
 
   private onCancel = () => {
@@ -88,16 +54,6 @@ export class MergeAllDialog extends React.Component<
             already up to date. Copilot resolves conflicts when possible;
             failures stay available.
           </p>
-          {!this.state.started && this.props.mode === 'worktrees' && (
-            <label className="merge-all-checkpoint-option">
-              <input
-                type="checkbox"
-                checked={this.state.checkpointDirtyWorktrees}
-                onChange={this.onCheckpointDirtyWorktreesChanged}
-              />
-              Commit, synchronize, and push dirty worktrees before merging
-            </label>
-          )}
           {state?.currentBranch && (
             <div className="merge-all-current" role="status">
               <Octicon symbol={octicons.sync} />
@@ -159,8 +115,6 @@ export class MergeAllDialog extends React.Component<
         <DialogFooter>
           {this.isRunning() ? (
             <Button onClick={this.onCancel}>Cancel</Button>
-          ) : !this.state.started ? (
-            <Button onClick={this.onStart}>Start merge all</Button>
           ) : (
             <Button onClick={this.onDismissed}>Done</Button>
           )}

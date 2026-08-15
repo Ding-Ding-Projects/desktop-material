@@ -48,7 +48,6 @@ export type MenuEvent =
   | 'import-tab-session'
   | 'show-about'
   | 'show-changelog'
-  | 'show-docs-browser'
   | 'go-to-commit-message'
   | 'open-pull-request'
   | 'install-darwin-cli'

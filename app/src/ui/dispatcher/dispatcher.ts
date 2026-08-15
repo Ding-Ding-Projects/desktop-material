@@ -136,10 +136,7 @@ import type {
   IAutomationSettingsOverrides,
   IAutomationSettingsState,
 } from '../../lib/automation/automation-settings'
-import type {
-  IMergeAllOptions,
-  MergeAllMode,
-} from '../../lib/automation/merge-all'
+import type { MergeAllMode } from '../../lib/automation/merge-all'
 import type {
   IPullAllCandidate,
   PullAllProgressListener,
@@ -191,8 +188,6 @@ import {
   getSubmoduleSourceError,
 } from '../../models/submodule-add'
 import type { CloneOptions } from '../../models/clone-options'
-import * as ipcRenderer from '../../lib/ipc-renderer'
-import type { ISelfHostedRunnerSetupRequest } from '../../lib/self-hosted-runner/types'
 import { BatchCloneMode, IBatchCloneItem } from '../../models/batch-clone'
 import { CloningRepository } from '../../models/cloning-repository'
 import { Commit, ICommitContext, CommitOneLine } from '../../models/commit'
@@ -864,10 +859,9 @@ export class Dispatcher {
 
   public mergeAllIntoDefaultBranch(
     repository: Repository,
-    mode: MergeAllMode,
-    options?: IMergeAllOptions
+    mode: MergeAllMode
   ): Promise<void> {
-    return this.appStore._mergeAllIntoDefaultBranch(repository, mode, options)
+    return this.appStore._mergeAllIntoDefaultBranch(repository, mode)
   }
 
   public cancelMergeAll(repository: Repository): void {
@@ -2321,11 +2315,6 @@ export class Dispatcher {
           : { expectedDefaultBranch: expectedCloneBranch }),
       })
 
-      await this.provisionPostCloneRunner(
-        addedRepository,
-        options?.postCloneRunnerProvisioning
-      )
-
       if (isRepositoryWithForkedGitHubRepository(addedRepository)) {
         this.showPopup({
           type: PopupType.ChooseForkSettings,
@@ -2335,76 +2324,6 @@ export class Dispatcher {
 
       return addedRepository
     })
-  }
-
-  /**
-   * Provision only after Git completed, the repository is registered, and its
-   * canonical remote has been selected. A failed runner setup never rolls back
-   * a successful clone; it remains recoverable from the Actions tab.
-   */
-  private async provisionPostCloneRunner(
-    repository: Repository,
-    provisioning: CloneOptions['postCloneRunnerProvisioning']
-  ): Promise<void> {
-    if (provisioning === undefined) {
-      return
-    }
-    const remote = repository.gitHubRepository
-    if (
-      remote === null ||
-      remote.endpoint !== provisioning.githubApiEndpoint ||
-      remote.owner.login !== provisioning.owner ||
-      remote.name !== provisioning.repository
-    ) {
-      await this.presentError(
-        new Error(
-          'The repository cloned successfully, but runner provisioning was skipped because the selected GitHub repository no longer matches the cloned remote.'
-        )
-      )
-      return
-    }
-    const request: ISelfHostedRunnerSetupRequest = {
-      id: crypto.randomUUID(),
-      accountKey: provisioning.accountKey,
-      owner: provisioning.owner,
-      repository: provisioning.repository,
-      githubApiEndpoint: provisioning.githubApiEndpoint,
-      name: `desktop-material-${
-        provisioning.platform === 'windows' ? 'windows' : 'linux-wsl'
-      }-${crypto.randomUUID().slice(0, 8)}`,
-      labels: [
-        'self-hosted',
-        'desktop-material',
-        provisioning.platform === 'windows' ? 'windows' : 'linux-wsl',
-      ],
-      platform: provisioning.platform,
-      createDedicatedWsl: provisioning.platform === 'linux-wsl',
-      ...(provisioning.platform === 'linux-wsl'
-        ? {
-            wslBaseDistribution: provisioning.wslBaseDistribution,
-            dedicatedWslDistribution: `desktop-material-runner-${crypto
-              .randomUUID()
-              .slice(0, 8)}`,
-          }
-        : {}),
-      autoInstallDependencies: true,
-    }
-    try {
-      const reply = await ipcRenderer.invoke(
-        'setup-self-hosted-runner',
-        request
-      )
-      if (!reply.ok) {
-        throw new Error(reply.recovery)
-      }
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error)
-      await this.presentError(
-        new Error(
-          `The repository cloned successfully, but its runner could not be provisioned. Open the Actions tab to retry. ${detail}`
-        )
-      )
-    }
   }
 
   /**

@@ -109,20 +109,7 @@
 @import 'ui/checkbox';
 @import 'ui/errors';
 @import 'ui/dialog';
-@import 'ui/dialog-emoji';
 @import 'ui/dialog-layer';
-@import 'ui/docs-browser';
-// The MD3 dialog family the 2026-08-07 revert kept but whose styling it
-// dropped. These are dialogs, not app chrome, so they ship with the rest of
-// the reverted interface rather than with the shell that was removed.
-@import 'ui/md3-toast';
-@import 'ui/md3-menu-overlay';
-@import 'ui/md3-compose-dialog';
-@import 'ui/md3-regex-builder';
-@import 'ui/md3-destructive-gate';
-@import 'ui/md3-locks';
-@import 'ui/md3-authenticator';
-@import 'ui/md3-support-tickets';
 @import 'ui/banners';
 @import 'ui/add-repository';
 @import 'ui/add-submodule';
