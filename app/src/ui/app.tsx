@@ -314,6 +314,8 @@ import { InitializeLFS, AttributeMismatch } from './lfs'
 import { UpstreamAlreadyExists } from './upstream-already-exists'
 import { ReleaseNotes } from './release-notes'
 import { ChangelogDialog } from './changelog/changelog-dialog'
+import { DocsBrowserDialog } from './docs-browser/docs-browser-dialog'
+import { ActionsRunArtifactsDialog } from './actions/actions-run-artifacts-dialog'
 import { writeFile } from 'fs/promises'
 import { DeletePullRequest } from './delete-branch/delete-pull-request-dialog'
 import { CommitConflictsWarning } from './merge-conflicts'
@@ -1364,6 +1366,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showAbout()
       case 'show-changelog':
         return this.showChangelog()
+      case 'show-docs-browser':
+        return this.showDocsBrowser()
       case 'go-to-commit-message':
         return this.goToCommitMessage()
       case 'open-pull-request':
@@ -3184,6 +3188,38 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   /**
+   * Open the offline documentation browser, optionally on one article.
+   *
+   * The command palette passes an article id so a documentation row lands on
+   * the page the reader picked rather than on the browser's front door.
+   */
+  private showDocsBrowser = (articleId?: string) => {
+    this.props.dispatcher.showPopup({ type: PopupType.DocsBrowser, articleId })
+  }
+
+  /** Writes a documentation export to wherever the user picks, or null. */
+  private onExportDocsArticles = async (contents: string, fileName: string) => {
+    const destination = await showSaveDialog({
+      title: 'Export feature documentation',
+      defaultPath: fileName,
+      filters: fileName.endsWith('.json')
+        ? [{ name: 'JSON', extensions: ['json'] }]
+        : fileName.endsWith('.md')
+        ? [{ name: 'Markdown', extensions: ['md'] }]
+        : [{ name: 'Plain text', extensions: ['txt'] }],
+    })
+    if (destination === null) {
+      return null
+    }
+    await writeFile(destination, contents, 'utf8')
+    return destination
+  }
+
+  private onOpenDocsExternalLink = (url: string) => {
+    this.props.dispatcher.openInBrowser(url)
+  }
+
+  /**
    * Writes an export to wherever the user picks, returning the path, or null
    * when they cancel. The dialog stays out of the file system itself so its
    * export path is testable without one.
@@ -4849,6 +4885,16 @@ export class App extends React.Component<IAppProps, IAppState> {
             onDismissed={onPopupDismissedFn}
           />
         )
+      case PopupType.ActionsRunArtifacts:
+        return (
+          <ActionsRunArtifactsDialog
+            key={`actions-run-artifacts-${popup.runId}`}
+            repository={popup.repository}
+            runId={popup.runId}
+            actionsStore={this.props.actionsStore}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
       case PopupType.CreateGitHubPullRequest: {
         const selection = this.state.selectedState
         const repositoryContextCurrent =
@@ -5598,6 +5644,18 @@ export class App extends React.Component<IAppProps, IAppState> {
             newReleases={popup.newReleases}
             onDismissed={onPopupDismissedFn}
             underlineLinks={this.state.underlineLinks}
+          />
+        )
+      case PopupType.DocsBrowser:
+        return (
+          <DocsBrowserDialog
+            key="docs-browser"
+            initialArticleId={popup.articleId}
+            emoji={this.state.emoji}
+            underlineLinks={this.state.underlineLinks}
+            onDismissed={onPopupDismissedFn}
+            onExport={this.onExportDocsArticles}
+            onOpenExternalLink={this.onOpenDocsExternalLink}
           />
         )
       case PopupType.Changelog:
@@ -7709,6 +7767,8 @@ export class App extends React.Component<IAppProps, IAppState> {
           anchor={target.anchor}
           historySource={historySource}
           repositoryPath={repositoryPath}
+          lockTargetId={`feature:${target.featureId}`}
+          lockTargetLabel={target.label}
           onClose={this.closeAppearanceEditor}
           onMutation={this.refreshFeatureAppearanceTarget}
           contentOwnsHeader={true}
@@ -7732,6 +7792,8 @@ export class App extends React.Component<IAppProps, IAppState> {
           anchor={target.anchor}
           historySource={target.historySource}
           repositoryPath={target.repositoryPath}
+          lockTargetId={`repository:${target.repository.id}:${target.elementId}`}
+          lockTargetLabel={title}
           onClose={this.closeAppearanceEditor}
           onMutation={this.refreshRepositoryAppearanceTarget}
           contentOwnsHeader={true}
@@ -7760,6 +7822,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         anchor={target.anchor}
         historySource={historySource}
         repositoryPath={repositoryPath}
+        lockTargetId={`profile:${target.elementId}`}
+        lockTargetLabel={this.profileAppearanceTitle(target.elementId)}
         onClose={this.closeAppearanceEditor}
         contentOwnsHeader={true}
         anchorPosition={this.getAppearanceEditorAnchorPosition(target)}

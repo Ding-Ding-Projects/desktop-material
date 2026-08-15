@@ -673,6 +673,12 @@ export class RepositoryListItem extends React.Component<
             ? `${repositoryName} repository logo`
             : `${repositoryName} list-name appearance`
         }
+        lockTargetId={`repository-list-item:${
+          isProfileLogo ? 'profile-logo' : isLogo ? 'logo' : 'name'
+        }:${repositoryName}`}
+        lockTargetLabel={`${repositoryName} ${
+          isLogo ? 'logo' : 'list name'
+        } appearance`}
         anchor={appearanceEditorAnchor}
         historySource={appearanceEditorHistory}
         repositoryPath={appearanceEditorRepositoryPath}

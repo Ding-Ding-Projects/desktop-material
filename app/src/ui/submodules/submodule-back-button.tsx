@@ -307,6 +307,8 @@ export class SubmoduleBackButton extends React.Component<
     return (
       <AnchoredAppearanceEditor
         title="Submodule Back button appearance"
+        lockTargetId="submodule-back-button"
+        lockTargetLabel="Submodule Back button appearance"
         anchor={anchor}
         historySource={this.props.historySource}
         repositoryPath={this.props.repositoryPath}
