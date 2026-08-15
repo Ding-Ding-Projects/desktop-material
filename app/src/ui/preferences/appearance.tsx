@@ -27,8 +27,11 @@ import { ShowBranchNameInRepoListSetting } from '../../models/show-branch-name-i
 import { IAppearanceCustomization } from '../../models/appearance-customization'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
-import { translate } from '../../lib/i18n'
-import { translateWithFunnyLevel } from '../../lib/funny-level-text'
+import { translate, translatedVariable } from '../../lib/i18n'
+import {
+  IFunnyLevels,
+  translateWithFunnyLevel,
+} from '../../lib/funny-level-text'
 import {
   clampFunnyLevel,
   IAudioSystemSettings,
@@ -38,6 +41,15 @@ import {
   getAudioCueStore,
 } from '../../lib/audio/audio-cue-store'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import { PersonalVocabularyControl } from './personal-vocabulary-control'
+import { SchoolModePreferences } from './school-mode'
+import { SurfaceLocksPreferences } from './surface-locks'
+import {
+  DialogEmojiProvenance,
+  getShowDialogEmoji,
+  getShowDialogEmojiProvenance,
+  setShowDialogEmoji,
+} from '../../lib/dialog-emoji'
 import {
   IScheduledSettingsProps,
   ScheduledSettings,
@@ -96,6 +108,10 @@ interface IAppearanceState {
   readonly selectedTabSize: number
   readonly funnyLevelEnglish: number
   readonly funnyLevelCantonese: number
+  /** Live value of "Show emojis in dialogs and message boxes". */
+  readonly showDialogEmoji: boolean
+  /** Whether that value was chosen here or is the shipped fallback. */
+  readonly showDialogEmojiProvenance: DialogEmojiProvenance
 }
 
 export class Appearance extends React.Component<
@@ -119,11 +135,114 @@ export class Appearance extends React.Component<
       selectedTabSize: props.selectedTabSize,
       funnyLevelEnglish: audioSettings.funnyLevelEnglish,
       funnyLevelCantonese: audioSettings.funnyLevelCantonese,
+      showDialogEmoji: getShowDialogEmoji(),
+      showDialogEmojiProvenance: getShowDialogEmojiProvenance(),
     }
 
     if (!usePropTheme) {
       this.initializeSelectedTheme()
     }
+  }
+
+  /**
+   * The personal-vocabulary upload.
+   *
+   * It lives in Appearance because that is where the rest of "how this app
+   * reads to me" lives, and it is present whether or not a file has ever been
+   * supplied — a control that only appears once it is in use is a control
+   * nobody finds.
+   */
+  private renderPersonalVocabulary() {
+    return (
+      <div
+        className="appearance-section appearance-customization-section"
+        {...teleportAnchor('settings-personal-vocabulary')}
+      >
+        <h2>Personal vocabulary</h2>
+        <PersonalVocabularyControl />
+      </div>
+    )
+  }
+
+  /**
+   * "Show emojis in dialogs and message boxes".
+   *
+   * The switch is not hidden by School mode: a decorative glyph beside a
+   * dialog title is not one of the presentation features that mode suppresses,
+   * and removing the control would leave a user unable to turn off something
+   * they can plainly see.
+   *
+   * The explanation sits behind progressive disclosure so the row stays a row,
+   * and the provenance line underneath states whether the live value was
+   * actually chosen on this computer or is the shipped fallback — naming the
+   * real value rather than the opaque word "default".
+   */
+  private renderDialogEmoji() {
+    const languageMode = this.props.appearanceCustomization.languageMode
+    const localize = (key: Parameters<typeof translate>[0]) =>
+      translate(key, languageMode)
+    const levels: IFunnyLevels = {
+      english: this.state.funnyLevelEnglish,
+      cantonese: this.state.funnyLevelCantonese,
+    }
+
+    const enabled = this.state.showDialogEmoji
+    const provenance = translate(
+      this.state.showDialogEmojiProvenance === 'stored'
+        ? 'dialogEmoji.provenanceStored'
+        : 'dialogEmoji.provenanceDefault',
+      languageMode,
+      {
+        value: translatedVariable(
+          enabled ? 'dialogEmoji.stateOn' : 'dialogEmoji.stateOff'
+        ),
+      }
+    )
+
+    return (
+      <div
+        className="appearance-section appearance-customization-section appearance-dialog-emoji"
+        {...teleportAnchor('settings-dialog-emoji')}
+      >
+        <h2>{localize('dialogEmoji.heading')}</h2>
+        <Checkbox
+          label={localize('dialogEmoji.toggleLabel')}
+          value={enabled ? CheckboxValue.On : CheckboxValue.Off}
+          onChange={this.onShowDialogEmojiChanged}
+          ariaDescribedBy="dialog-emoji-provenance"
+        />
+        <details className="appearance-dialog-emoji-explanation">
+          <summary>{localize('dialogEmoji.explanationSummary')}</summary>
+          <p className="appearance-customization-caption">
+            {translateWithFunnyLevel(
+              'dialogEmoji.explanation',
+              languageMode,
+              levels
+            )}
+          </p>
+          <p className="appearance-customization-caption">
+            {localize('dialogEmoji.boundaryNote')}
+          </p>
+        </details>
+        <p
+          id="dialog-emoji-provenance"
+          className="appearance-customization-caption appearance-dialog-emoji-provenance"
+        >
+          {provenance}
+        </p>
+      </div>
+    )
+  }
+
+  private onShowDialogEmojiChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    const enabled = event.currentTarget.checked
+    setShowDialogEmoji(enabled)
+    this.setState({
+      showDialogEmoji: enabled,
+      showDialogEmojiProvenance: getShowDialogEmojiProvenance(),
+    })
   }
 
   private onCustomizationChanged = (
@@ -801,6 +920,14 @@ export class Appearance extends React.Component<
       <DialogContent>
         {this.renderElementGestureNote()}
         {this.renderLanguageAndNavigation()}
+        {this.renderDialogEmoji()}
+        {this.renderPersonalVocabulary()}
+        <SchoolModePreferences
+          languageMode={this.props.appearanceCustomization.languageMode}
+        />
+        <SurfaceLocksPreferences
+          languageMode={this.props.appearanceCustomization.languageMode}
+        />
         {this.renderScheduledSettings()}
         {this.renderScaling()}
         {this.renderSelectedTheme()}

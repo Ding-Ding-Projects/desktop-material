@@ -268,6 +268,7 @@ import {
   IFeatureHighlightingAppearance,
   IRepositoryTabsAppearance,
   AppIdentityAppearanceEditor,
+  AppearanceLockPromptHost,
   AppWorkspaceAppearanceEditor,
   CodeDiffAppearanceEditor,
   DefaultRepositoryLogoAppearanceEditor,
@@ -315,6 +316,7 @@ import { UpstreamAlreadyExists } from './upstream-already-exists'
 import { ReleaseNotes } from './release-notes'
 import { ChangelogDialog } from './changelog/changelog-dialog'
 import { DocsBrowserDialog } from './docs-browser/docs-browser-dialog'
+import { parseDocsArticlePaletteEvent } from '../lib/docs-browser/docs-browser-palette'
 import { ActionsRunArtifactsDialog } from './actions/actions-run-artifacts-dialog'
 import { writeFile } from 'fs/promises'
 import { DeletePullRequest } from './delete-branch/delete-pull-request-dialog'
@@ -1875,6 +1877,14 @@ export class App extends React.Component<IAppProps, IAppState> {
         // destination — running it is not a thing that exists — so it goes
         // where the setting lives instead of being cast to a MenuEvent the
         // menu has never heard of.
+        // A documentation row names its article in the event itself, so it
+        // opens that article rather than the browser's front page. This has to
+        // run before the generic `palette:` fallback below, or every
+        // documentation row would teleport to the catalog row instead.
+        const articleId = parseDocsArticlePaletteEvent(event)
+        if (articleId !== null) {
+          return this.showDocsBrowser(articleId)
+        }
         if (event.startsWith('palette:')) {
           const command = CommandPaletteCatalog.find(c => c.event === event)
           if (command !== undefined) {
@@ -9722,6 +9732,15 @@ export class App extends React.Component<IAppProps, IAppState> {
             {this.renderDimSumSurprise()}
             {this.renderZoomInfo()}
             {this.renderFullScreenInfo()}
+            {/*
+              The prompt a locked element opens. Mounted at the shell rather
+              than beside each lockable control, because the gate that blocks
+              the activation is also one listener at the document — a prompt
+              per control would be several hundred of them, and the ones
+              nobody remembered would leave a button that silently refuses to
+              work with nothing on screen to explain it.
+            */}
+            <AppearanceLockPromptHost />
           </>
         )}
       </div>

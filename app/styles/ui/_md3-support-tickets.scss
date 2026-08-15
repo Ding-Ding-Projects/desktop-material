@@ -1,0 +1,661 @@
+// The Support Tickets desk — the joke recovery route.
+//
+// Shared classes come from `_md3-shell.scss` (`.md3-row`, `.md3-row__detail`,
+// `.md3-empty-state`, `.md3-search-row`, `.md3-chip-row`, the `.md3-anim-*`
+// motion classes); nothing they already declare is restated here.
+//
+// Theme selectors are `:root` for light and `body.theme-dark` for dark, which
+// is what the rest of this stylesheet tree uses. Every colour below resolves
+// through an `--md-sys-color-*` role, so both themes are covered without a
+// second block.
+
+// ---------------------------------------------------------------------------
+// The entry link — the three routes into the desk
+// ---------------------------------------------------------------------------
+
+.support-tickets-entry {
+  align-items: center;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--md-sys-color-primary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: 6px;
+  // A 44px row keeps the target comfortable at every display scale without
+  // making an inline link look like a button.
+  min-height: 44px;
+  padding: 4px 6px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover {
+    background: var(--dm-state);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The desk overlay
+// ---------------------------------------------------------------------------
+
+.md3-support-tickets {
+  align-items: center;
+  background: var(--dm-scrim);
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  padding: 24px;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 20;
+}
+
+.md3-support-tickets__panel {
+  background: var(--md-sys-color-surface-container-high);
+  border-radius: 20px;
+  box-shadow: var(--dm-elev3);
+  color: var(--md-sys-color-on-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  // Bounded by the viewport and scrolling inside that bound: capping the
+  // height and hiding the overflow would silently delete whatever fell past
+  // the cap, with no scrollbar to say anything was missing.
+  max-height: calc(100vh - 48px);
+  max-width: 780px;
+  overflow-y: auto;
+  padding: 20px;
+  width: 100%;
+}
+
+.md3-support-tickets__header {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+}
+
+.md3-support-tickets__header-icon {
+  color: var(--md-sys-color-primary);
+  flex: none;
+  margin-top: 2px;
+}
+
+.md3-support-tickets__heading {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.md3-support-tickets__title {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.md3-support-tickets__subtitle {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12px;
+  margin: 0;
+}
+
+// The one line that is never styled by the funny level. It takes the error
+// container's contrast rather than the muted detail colour, because a user who
+// skims past it is a user waiting for a reply that was never coming.
+.md3-support-tickets__disclosure {
+  align-items: flex-start;
+  background: var(--md-sys-color-secondary-container);
+  border-radius: 12px;
+  color: var(--md-sys-color-on-secondary-container);
+  display: flex;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 8px;
+  line-height: 1.45;
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.md3-support-tickets__disclosure-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.md3-support-tickets__origin {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11.5px;
+  margin: 0;
+}
+
+.md3-support-tickets__lead {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.md3-support-tickets__explain {
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 12px;
+  font-size: 12px;
+  padding: 8px 12px;
+
+  summary {
+    cursor: pointer;
+    font-weight: 600;
+    // A 44px row keeps the disclosure comfortable to tap.
+    min-height: 28px;
+    padding: 6px 0;
+  }
+
+  summary:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+
+  p {
+    line-height: 1.5;
+    margin: 0 0 8px 0;
+  }
+}
+
+.md3-support-tickets__provenance {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11.5px;
+  margin: 0;
+}
+
+// ---------------------------------------------------------------------------
+// The ticket form
+// ---------------------------------------------------------------------------
+
+.md3-support-tickets__form {
+  display: flex;
+  flex-direction: column;
+}
+
+.md3-support-tickets__fieldset,
+.md3-support-tickets__options {
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px 12px 12px;
+
+  legend {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 0 4px;
+  }
+}
+
+.md3-support-tickets__options {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.md3-support-tickets__option {
+  align-items: center;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  gap: 6px;
+  // Comfortable at 200% display scale, where a 24px chip becomes unusable.
+  min-height: 34px;
+  padding: 4px 12px;
+
+  &:hover {
+    background: var(--dm-state);
+  }
+
+  &:focus-within {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+
+  input {
+    accent-color: var(--md-sys-color-primary);
+    margin: 0;
+  }
+
+  input:checked + span {
+    font-weight: 600;
+  }
+}
+
+.md3-support-tickets__hint {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11.5px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.md3-support-tickets__description-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.md3-support-tickets__textarea {
+  background: var(--md-sys-color-surface);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 10px;
+  color: var(--md-sys-color-on-surface);
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+  resize: vertical;
+  width: 100%;
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
+  }
+
+  &[aria-invalid='true'] {
+    border-color: var(--md-sys-color-error);
+  }
+}
+
+.md3-support-tickets__error {
+  color: var(--md-sys-color-error);
+  font-size: 12px;
+  margin: 0;
+}
+
+.md3-support-tickets__form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+// ---------------------------------------------------------------------------
+// The ticket list
+// ---------------------------------------------------------------------------
+
+.md3-support-tickets__list-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.md3-support-tickets__note {
+  color: var(--md-sys-color-error);
+  font-size: 12px;
+  margin: 0;
+}
+
+.md3-support-tickets__bulk {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.md3-support-tickets__select-all {
+  align-items: center;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  gap: 6px;
+  min-height: 34px;
+}
+
+.md3-support-tickets__selection-count {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11.5px;
+}
+
+.md3-support-checkbox {
+  accent-color: var(--md-sys-color-primary);
+  // 18px keeps the box itself legible; the surrounding label supplies the
+  // rest of the target.
+  height: 18px;
+  margin: 0;
+  width: 18px;
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.md3-support-tickets__danger {
+  color: var(--md-sys-color-error);
+}
+
+.md3-support-tickets__list {
+  display: flex;
+  flex-direction: column;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.md3-support-tickets__row {
+  align-items: flex-start;
+  display: flex;
+  gap: 8px;
+  outline-offset: -2px;
+  padding: 8px 6px;
+}
+
+.md3-support-tickets__row--selected {
+  background: var(--md-sys-color-secondary-container);
+}
+
+.md3-support-tickets__row--resolved {
+  opacity: 0.72;
+}
+
+.md3-support-tickets__cell {
+  align-items: center;
+  display: flex;
+  flex: none;
+}
+
+.md3-support-tickets__cell--select,
+.md3-support-tickets__cell--status {
+  padding-top: 2px;
+}
+
+.md3-support-tickets__status-icon {
+  color: var(--md-sys-color-primary);
+}
+
+.md3-support-tickets__text {
+  align-items: flex-start;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.md3-support-tickets__number {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.md3-support-tickets__description {
+  font-size: 12px;
+  // Ticket text is user-written and can be long; it wraps rather than being
+  // clipped, and long unbroken input breaks instead of widening the panel.
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.md3-support-tickets__responses {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  margin: 6px 0 0 0;
+  padding: 0;
+
+  li {
+    border-left: 2px solid var(--md-sys-color-outline-variant);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-left: 8px;
+  }
+}
+
+.md3-support-tickets__response-body {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.md3-support-tickets__response-time {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11px;
+}
+
+// ---------------------------------------------------------------------------
+// The resolution
+// ---------------------------------------------------------------------------
+
+.md3-support-tickets__resolution {
+  background: var(--md-sys-color-surface-container);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+.md3-support-tickets__resolution-heading {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.md3-support-tickets__path-label {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11.5px;
+  margin: 0;
+}
+
+.md3-support-tickets__path {
+  margin: 0;
+
+  code {
+    // The path is the thing the user has to read and may want to select, so
+    // it wraps instead of being clipped and never scrolls the page sideways.
+    display: block;
+    font-family: var(--font-family-monospace);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+    user-select: text;
+  }
+}
+
+.md3-support-tickets__path-missing {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12px;
+  margin: 0;
+}
+
+.md3-support-tickets__resolution-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.md3-support-tickets__never-deletes {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.md3-support-tickets__outcome {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+// ---------------------------------------------------------------------------
+// The delete gate
+// ---------------------------------------------------------------------------
+
+.md3-support-gate {
+  align-items: center;
+  background: var(--dm-scrim);
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  padding: 24px;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 30;
+}
+
+.md3-support-gate__panel {
+  background: var(--md-sys-color-surface-container-high);
+  border-radius: 18px;
+  box-shadow: var(--dm-elev3);
+  color: var(--md-sys-color-on-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: calc(100vh - 48px);
+  max-width: 460px;
+  overflow-y: auto;
+  padding: 18px;
+  width: 100%;
+}
+
+.md3-support-gate__header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.md3-support-gate__header-icon {
+  color: var(--md-sys-color-error);
+}
+
+.md3-support-gate__eyebrow {
+  color: var(--md-sys-color-error);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.md3-support-gate__title {
+  flex: 1 1 100%;
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.md3-support-gate__description {
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.md3-support-gate__keys {
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 12px 10px 12px;
+
+  legend {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 0 4px;
+  }
+}
+
+.md3-support-gate__key {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  font-size: 12px;
+  gap: 8px;
+  min-height: 34px;
+}
+
+.md3-support-gate__slider {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  gap: 6px;
+
+  input {
+    accent-color: var(--md-sys-color-error);
+    width: 100%;
+  }
+
+  input:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.md3-support-gate__progress {
+  background: var(--md-sys-color-surface-container);
+  border-radius: 999px;
+  height: 6px;
+  overflow: hidden;
+}
+
+.md3-support-gate__progress-fill {
+  background: var(--md-sys-color-error);
+  display: block;
+  height: 100%;
+  // A width change is the whole animation, and it is honest about progress
+  // rather than a spinner pretending to be one.
+  transition: width 120ms linear;
+}
+
+.md3-support-gate__progress--complete .md3-support-gate__progress-fill {
+  background: var(--dm-green, var(--md-sys-color-primary));
+}
+
+.md3-support-gate__status {
+  font-size: 12px;
+  margin: 0;
+}
+
+.md3-support-gate__footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.md3-support-gate__confirm {
+  color: var(--md-sys-color-error);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md3-support-gate__progress-fill {
+    transition: none;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Narrow layouts
+// ---------------------------------------------------------------------------
+//
+// Below roughly a half-window the bulk row and the resolution actions cannot
+// hold one line at the longest bilingual labels. Nothing is hidden; the rows
+// wrap and the panel keeps its own scroll.
+@media (max-width: 620px) {
+  .md3-support-tickets {
+    padding: 8px;
+  }
+
+  .md3-support-tickets__panel {
+    max-height: calc(100vh - 16px);
+    padding: 14px;
+  }
+
+  .md3-support-tickets__row {
+    flex-wrap: wrap;
+  }
+
+  .md3-support-tickets__list {
+    max-height: none;
+  }
+}

@@ -34,6 +34,7 @@ import { LocalizedText } from '../lib/localized-text'
 import { Dispatcher } from '../dispatcher'
 import {
   AnchoredAppearanceEditor,
+  appearanceLockTargetProps,
   openAppearanceEditorFromContextMenu,
   openAppearanceEditorFromKeyDown,
   ProfileDefaultRepositoryLogoAppearanceEditor,
@@ -730,8 +731,17 @@ export class RepositoryListItem extends React.Component<
       alias: alias !== null,
     })
 
+    // `alias` only exists on a real Repository; a clone in progress has a name
+    // and nothing else. Narrowing rather than casting, so a row that is still
+    // cloning gets a stable id rather than `undefined` in the middle of one.
+    const lockTargetId = `repository-list-item:name:${alias ?? repository.name}`
+
     return (
-      <div className="repository-list-item" ref={this.listItemRef}>
+      <div
+        className="repository-list-item"
+        ref={this.listItemRef}
+        {...appearanceLockTargetProps(lockTargetId)}
+      >
         <Tooltip
           target={this.listItemRef}
           disabled={enableAccessibleListToolTips()}
