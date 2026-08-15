@@ -1,6 +1,5 @@
 import * as React from 'react'
 import * as Path from 'path'
-import { Branch, BranchType } from '../../models/branch'
 import { WorktreeEntry } from '../../models/worktree'
 import { IFilterListGroup, IFilterListItem } from '../lib/filter-list'
 import { SectionFilterList } from '../lib/section-filter-list'
@@ -9,7 +8,6 @@ import { Button } from '../lib/button'
 import { IMatches } from '../../lib/fuzzy-find'
 import { ClickSource } from '../lib/list'
 import memoizeOne from 'memoize-one'
-import { IListFilter } from '../lib/filter-list-mode'
 
 const RowHeight = 30
 
@@ -31,7 +29,6 @@ interface IWorktreeListProps {
   readonly filterText: string
   readonly canCreateNewWorktree: boolean
   readonly onCreateNewWorktree?: () => void
-  readonly onMergeWorktree?: (branch: Branch) => void
   readonly onMergeAllWorktrees?: () => void
   readonly renderAdministration?: () => React.ReactNode
   readonly onWorktreeContextMenu?: (
@@ -41,19 +38,6 @@ interface IWorktreeListProps {
 }
 
 type WorktreeGroupIdentifier = 'main' | 'linked'
-
-const WorktreeTypeFilters: ReadonlyArray<IListFilter<IWorktreeListItem>> = [
-  {
-    id: 'main',
-    label: 'Main',
-    predicate: item => item.worktree.type === 'main',
-  },
-  {
-    id: 'linked',
-    label: 'Linked',
-    predicate: item => item.worktree.type === 'linked',
-  },
-]
 
 export class WorktreeList extends React.Component<IWorktreeListProps> {
   private getGroups = memoizeOne((worktrees: ReadonlyArray<WorktreeEntry>) => {
@@ -69,7 +53,7 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
         identifier: 'main',
         items: [
           {
-            text: worktreeFilterText(mainWorktree),
+            text: [Path.basename(mainWorktree.path)],
             id: mainWorktree.path,
             worktree: mainWorktree,
           },
@@ -81,7 +65,7 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
       groups.push({
         identifier: 'linked',
         items: linkedWorktrees.map(w => ({
-          text: worktreeFilterText(w),
+          text: [Path.basename(w.path)],
           id: w.path,
           worktree: w,
         })),
@@ -92,27 +76,22 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
   })
 
   private renderItem = (item: IWorktreeListItem, matches: IMatches) => {
-    const isCurrentWorktree =
-      this.props.currentWorktree !== null &&
-      this.props.currentWorktree.path === item.worktree.path
-    const mergeBranch =
-      this.props.onMergeWorktree === undefined
-        ? undefined
-        : getMergeBranchForWorktree(item.worktree, isCurrentWorktree)
-
     return (
       <WorktreeListItem
         worktree={item.worktree}
-        isCurrentWorktree={isCurrentWorktree}
+        isCurrentWorktree={
+          this.props.currentWorktree !== null &&
+          this.props.currentWorktree.path === item.worktree.path
+        }
         matches={matches}
-        mergeBranch={mergeBranch}
-        onMergeWorktree={this.props.onMergeWorktree}
       />
     )
   }
 
   private renderGroupHeader = (identifier: WorktreeGroupIdentifier) => {
-    const label = identifier === 'main' ? 'Main worktree' : 'Linked worktrees'
+    const worktree = __DARWIN__ ? 'Worktree' : 'worktree'
+    const label =
+      identifier === 'main' ? `Main ${worktree}` : `Linked ${worktree}s`
     return <div className="filter-list-group-header">{label}</div>
   }
 
@@ -190,50 +169,7 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
         renderPostFilter={this.onRenderNewButton}
         renderNoItems={this.onRenderNoItems}
         onItemContextMenu={this.onItemContextMenu}
-        customFilters={WorktreeTypeFilters}
       />
     )
   }
-}
-
-export function getMergeBranchForWorktree(
-  worktree: WorktreeEntry,
-  isCurrentWorktree: boolean
-): Branch | undefined {
-  if (
-    worktree.type !== 'linked' ||
-    worktree.branch === null ||
-    worktree.isDetached ||
-    isCurrentWorktree ||
-    worktree.dirtyFileCount === null ||
-    worktree.isLocked ||
-    worktree.isPrunable
-  ) {
-    return undefined
-  }
-
-  const branchName = worktree.branch.replace(/^refs\/heads\//, '')
-  if (branchName === worktree.branch) {
-    return undefined
-  }
-
-  return new Branch(
-    branchName,
-    null,
-    { sha: worktree.head },
-    BranchType.Local,
-    worktree.branch
-  )
-}
-
-function worktreeFilterText(worktree: WorktreeEntry): ReadonlyArray<string> {
-  const branch = worktree.branch?.replace(/^refs\/heads\//, '') ?? 'detached'
-  const state = [
-    worktree.dirtyFileCount && worktree.dirtyFileCount > 0
-      ? `uncommitted ${worktree.dirtyFileCount}`
-      : 'clean',
-    worktree.isLocked ? 'locked' : '',
-    worktree.isPrunable ? 'missing' : '',
-  ]
-  return [Path.basename(worktree.path), worktree.path, branch, ...state]
 }

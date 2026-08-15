@@ -72,7 +72,12 @@ export interface ISelfHostedRunnerPreflightResult {
 /** The main process resolves the account credential and mints the one-time token. */
 export interface ISelfHostedRunnerSetupRequest {
   readonly id: string
-  readonly accountKey: string
+  /**
+   * Which signed-in account's credentials to use. Optional because the
+   * interface that constructs this request has no account picker — omitted,
+   * the active account is used, which is the single-account behaviour.
+   */
+  readonly accountKey?: string
   readonly owner: string
   readonly repository: string
   readonly githubApiEndpoint: string
@@ -93,7 +98,8 @@ export interface ISelfHostedRunnerControlRequest
 
 export interface ISelfHostedRunnerRemoveRequest
   extends ISelfHostedRunnerControlRequest {
-  readonly accountKey: string
+  /** See `ISelfHostedRunnerSetupRequest.accountKey`. */
+  readonly accountKey?: string
   readonly githubApiEndpoint: string
 }
 

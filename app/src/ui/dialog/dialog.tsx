@@ -8,7 +8,6 @@ import { isMacOSSonomaOrLater, isMacOSVentura } from '../../lib/get-os'
 import { sendDialogDidOpen } from '../main-process-proxy'
 import { clampDialogOffset } from './dialog-geometry'
 import { routeDialogWheel } from './wheel-scroll'
-import { DialogDecorationKind } from '../../lib/dialog-emoji'
 
 /**
  * Class name used for elements that should be focused initially when a dialog
@@ -146,20 +145,6 @@ interface IDialogProps {
    * Defaults to 'normal' if omitted
    */
   readonly type?: 'normal' | 'warning' | 'error'
-
-  /**
-   * The situation this dialog represents, used to pick a decorative emoji when
-   * the user has "Show emojis in dialogs and message boxes" turned on.
-   *
-   * Omit it and the decoration is derived from `type`, so every dialog in the
-   * app is decorated without each one having to say so. Name it where a more
-   * relevant decoration exists — a delete confirmation is `'destructive'`
-   * rather than the plain warning its `type` makes it.
-   *
-   * The decoration never reaches the accessible name, a button, or a label:
-   * see `app/src/lib/dialog-emoji.ts`.
-   */
-  readonly emojiDecoration?: DialogDecorationKind
 
   /**
    * An event triggered when the dialog form is submitted. All dialogs contain
@@ -1005,24 +990,6 @@ export class Dialog extends React.Component<DialogProps, IDialogState> {
     }
   }
 
-  /**
-   * The decorative emoji kind this dialog carries.
-   *
-   * An explicit `emojiDecoration` always wins. Otherwise the dialog's own
-   * `type` decides, so a warning reads as a warning and everything else gets
-   * the neutral conversational decoration rather than none at all — the
-   * contract asks every dialog to carry one, not a hand-picked few.
-   */
-  private get emojiDecoration(): DialogDecorationKind {
-    if (this.props.emojiDecoration !== undefined) {
-      return this.props.emojiDecoration
-    }
-    if (this.props.type === 'error') {
-      return 'error'
-    }
-    return this.props.type === 'warning' ? 'warning' : 'information'
-  }
-
   private renderHeader() {
     if (!this.props.title) {
       return null
@@ -1036,7 +1003,6 @@ export class Dialog extends React.Component<DialogProps, IDialogState> {
         onCloseButtonClick={this.onDismiss}
         renderAccessory={this.props.renderHeaderAccessory}
         loading={this.props.loading}
-        emojiDecoration={this.emojiDecoration}
       />
     )
   }

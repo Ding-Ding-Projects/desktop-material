@@ -1,5 +1,103 @@
 # Desktop Material — Active parity handoff
 
+## The interface is now literally August 7, and the features went with it — 2026-08-15
+
+**Read this first.** `app/src/ui` and `app/styles` were hard-reverted to
+`02d627e662` (2026-08-07 21:10). This was requested explicitly and confirmed
+after the cost below was put in writing, so it is a decision, not an accident.
+146 files changed: **361 insertions, 42,638 deletions, 95 files deleted.**
+
+### What this deleted, deliberately
+
+Support Tickets, the authenticator (entries, TOTP, QR registration, secret
+vault), the regex builder, the destructive-action gate, the every-element
+appearance locks, the offline docs browser, the self-hosted runner manager's
+newer surface, and agent sessions. Their `app/src/lib` modules
+(`docs-browser/`, `md3-locks/`, `authenticator/`, `md3-view-preferences.ts`,
+`stores/authenticator-store.ts`, `rewrite-surface-registry.ts`) and 22 test
+files went with them.
+
+> [!WARNING]
+> Several of these are contracts the shared agent instructions require of every
+> user-facing app. This tree no longer satisfies them. That is a known,
+> requested state — do not "fix" it by restoring them without asking.
+
+### It also took post-August-7 work that was never MD3
+
+Reverting the whole of `app/src/ui` is indiscriminate, and these went too:
+diff line wrapping, hunk-expansion focus order, commit-drop insertion ordering,
+menu first-character navigation, and the worktree list's merge-branch handling.
+Each was an accessibility or behaviour fix, not chrome. They are recoverable
+from history if wanted; they are named here so nobody has to rediscover the
+loss.
+
+### The 98-glyph icon font is back, and that has teeth
+
+August 7 ships `material-symbols-rounded-prototype-98.woff2`, not the 158-glyph
+official subset. `MaterialSymbolNames` in `app/src/ui/lib/material-symbol.tsx`
+documents itself as "the exact ligatures bundled" in that prototype, and a unit
+contract compares it to `font-assets-manifest.json`.
+
+**A ligature name the font does not carry renders as its literal English word.**
+So do not widen that union to satisfy a call site — 14 names
+(`calendar_month`, `construction`, `description`, `edit_note`, `folder`,
+`help`, `inbox`, `menu`, `merge_type`, `more_vert`, `play_circle`, `smart_toy`,
+`sort`, `wrap_text`) were referenced by the newer palette catalog and are *not*
+in the 98-glyph set. That catalog was reverted to August 7 rather than the union
+widened, which is why the tree compiles. Subset the real font first if a new
+icon is ever needed.
+
+### One deliberate non-revert, and why
+
+`ISelfHostedRunnerSetupRequest.accountKey` and
+`ISelfHostedRunnerRemoveRequest.accountKey` are now **optional**. The August 7
+runner UI has no account picker, but multi-account infrastructure elsewhere in
+`app/src/lib` survives and is used widely, so reverting the types was not an
+option. `validateSetupRequest` resolves the key through
+`SelfHostedRunnerAccountCredentials.onlyAccountKeyForEndpoint` and returns
+`ValidatedSelfHostedRunnerSetupRequest`, so every later step still has a
+concrete account. **It refuses when two signed-in accounts share an endpoint**
+rather than guessing — guessing would register a runner as a user who never
+chose it.
+
+### Known incoherence left in place
+
+`app/src/lib/settings-search/settings-search-catalog.ts` and
+`app/src/lib/collection-surface-registry.ts` still list rows for surfaces the
+August 7 Settings does not render, and `lib/personal-vocabulary.ts`,
+`lib/school-mode.ts`, `lib/dialog-emoji.ts` and `lib/support-tickets.ts` are
+still imported by `i18n.ts` and that catalog. They were **not** deleted, because
+deleting them breaks `i18n`. Auditing that catalog against the August 7 Settings
+is real remaining work.
+
+### Verified for this revert — including what is red
+
+| Check | Result |
+| --- | --- |
+| `npx tsc --noEmit -p tsconfig.json` | **exit 0, zero errors** |
+| Prettier on all 44 changed source files | clean |
+| `node script/test.mjs` | **8,564 tests, 89 failing across 50 files** |
+| Lint, captures, packaging, built-artifact run | **not performed, not claimed** |
+
+The 89 are guards written *after* August 7 against surfaces this revert
+deleted, so they cannot pass against an August 7 tree. Two of them are not
+merely stale — they are the revert reintroducing defects that had been fixed,
+and they are the ones to read first:
+
+- **`bundled-fonts-test`** — "pins the exact 158-name official Material Symbols
+  request and axes" and "pins every official WOFF2 byte-for-byte". August 7
+  carries the 98-glyph prototype. See the icon-font section above.
+- **`button-token-test`** — "declares the same `--button-height` in both files".
+  August 7 has 25px in `_variables.scss` against 40px in `_material.scss`. The
+  Material layer wins, so 25px is dead — but the two disagreeing is exactly the
+  trap that hid a sub-minimum touch target once already.
+
+> [!NOTE]
+> A pre-revert baseline suite run was **not** taken, so these 89 are attributed
+> to the revert by mechanism (each names a surface the revert deleted) rather
+> than by comparison. The handoff's earlier entry records two pre-existing
+> failures in the Windows build contract that are unrelated to this.
+
 ## One of the two MD3 designs was retired — the app is still Material Design 3 — 2026-08-15
 
 > [!IMPORTANT]

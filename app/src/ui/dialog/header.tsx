@@ -1,7 +1,5 @@
 import * as React from 'react'
 import { MaterialSymbol } from '../lib/material-symbol'
-import { DialogDecorationKind } from '../../lib/dialog-emoji'
-import { DialogEmoji } from '../lib/dialog-emoji'
 
 interface IDialogHeaderProps {
   /**
@@ -40,16 +38,6 @@ interface IDialogHeaderProps {
    * (if present) for the duration of the loading operation.
    */
   readonly loading?: boolean
-
-  /**
-   * The situation this dialog represents, used to pick a decorative emoji
-   * when the user has "Show emojis in dialogs and message boxes" turned on.
-   *
-   * The decoration is rendered as an `aria-hidden` sibling of the title, never
-   * inside it: the `h1` is what `aria-labelledby` points at, so a glyph placed
-   * within it would become part of the dialog's accessible name.
-   */
-  readonly emojiDecoration?: DialogDecorationKind
 }
 
 /**
@@ -97,7 +85,6 @@ export class DialogHeader extends React.Component<IDialogHeaderProps, {}> {
 
     return (
       <div className="dialog-header">
-        <DialogEmoji kind={this.props.emojiDecoration} />
         <h1 id={this.props.titleId}>{this.props.title}</h1>
         {this.props.renderAccessory?.()}
         {spinner}

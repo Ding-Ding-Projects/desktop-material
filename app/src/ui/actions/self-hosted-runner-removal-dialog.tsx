@@ -74,7 +74,7 @@ export class SelfHostedRunnerRemovalDialog extends React.Component<
   private onKeyDown = (event: React.KeyboardEvent<HTMLFormElement>) => {
     event.stopPropagation()
     trapActionsDialogFocus(event, event.currentTarget)
-    if (event.key === 'Escape' && !this.props.submitting) {
+    if (event.key === 'Escape') {
       event.preventDefault()
       this.props.onDismissed()
     }
@@ -204,8 +204,7 @@ export class SelfHostedRunnerRemovalDialog extends React.Component<
               aria-atomic="true"
             >
               {submitting
-                ? progressMessage ??
-                  'Removal is in progress and cannot be dismissed until the exact result is known.'
+                ? progressMessage ?? 'Removal is in progress…'
                 : authorized
                 ? 'Authorization complete. Submit to remove this runner.'
                 : 'Both confirmations are required before the slider can move.'}
@@ -224,10 +223,10 @@ export class SelfHostedRunnerRemovalDialog extends React.Component<
             <Button
               onButtonRef={this.setDismissButtonRef}
               onClick={onDismissed}
-              disabled={submitting}
+              disabled={false}
               ariaDescribedBy={this.descriptionId}
             >
-              {submitting ? 'Wait for removal result' : 'Keep runner'}
+              {submitting ? 'Emergency exit' : 'Keep runner'}
             </Button>
             <Button
               type="submit"
