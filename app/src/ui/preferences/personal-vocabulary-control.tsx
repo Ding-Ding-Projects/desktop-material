@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { basename } from 'node:path'
 import { readFile, stat } from 'fs/promises'
 
 import { Button } from '../lib/button'
@@ -44,7 +43,6 @@ type VocabularyState =
   | {
       readonly kind: 'loaded'
       readonly vocabulary: IPersonalVocabulary
-      readonly sourceLabel: string
     }
   | { readonly kind: 'rejected'; readonly reason: string }
   | { readonly kind: 'unreadable'; readonly reason: string }
@@ -74,7 +72,6 @@ export class PersonalVocabularyControl extends React.Component<
           : {
               kind: 'loaded',
               vocabulary: cached,
-              sourceLabel: 'Cached vocabulary',
             },
     }
   }
@@ -152,7 +149,6 @@ export class PersonalVocabularyControl extends React.Component<
       status: {
         kind: 'loaded',
         vocabulary: result.vocabulary,
-        sourceLabel: basename(chosenPath),
       },
     })
     this.props.onChanged?.(result.vocabulary)
@@ -202,7 +198,7 @@ export class PersonalVocabularyControl extends React.Component<
     const loaded = this.state.status.kind === 'loaded'
     const fileSummary =
       this.state.status.kind === 'loaded'
-        ? this.state.status.sourceLabel
+        ? 'Local vocabulary file'
         : 'No file selected'
     return (
       <div className="personal-vocabulary-control">
