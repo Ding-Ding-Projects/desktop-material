@@ -32,6 +32,10 @@ picker, always an honest statement of what is currently in effect, and — befor
 any file exists — an explicit *no vocabulary file is loaded, every surface is
 rendering its original wording*.
 
+The surface now uses the app's standard Material Design 3 text field and
+buttons. The field shows the selected file name or a cache note, the chooser
+opens the local file dialog, and clear returns the app to its original wording.
+
 | State | What the control says |
 | --- | --- |
 | No file | No vocabulary file is loaded, and every surface is rendering its original wording |
@@ -52,10 +56,9 @@ present, discoverable, and saying plainly that nothing has been changed.
 
 ```json
 {
-  "version": 1,
+  "schemaVersion": 1,
   "terms": {
-    "Fetch origin": "Check for changes",
-    "Stash": "Set aside"
+    "<source term>": "<replacement term>"
   }
 }
 ```
@@ -67,7 +70,11 @@ present, discoverable, and saying plainly that nothing has been changed.
 | Entries | 2000 |
 | Term length | 1–200 characters |
 | Replacement length | 0–500 characters |
-| Top-level fields | `version` and `terms`, and nothing else |
+| Top-level fields | `schemaVersion` and `terms`, and nothing else |
+
+Older cached data that still uses `version` is tolerated on read so existing
+installs keep their loaded vocabulary. New files use `schemaVersion`, and that
+is the only accepted user-facing file shape.
 
 ## Validation
 
@@ -85,7 +92,7 @@ vocabulary you already had carries on working.
 | Over 1 MB | Checked against what was read from disk, before parsing |
 | Not valid UTF-8 | Decoded with `fatal: true`, so a mangled byte is an error rather than a silent `U+FFFD` substitution that parses as something you never wrote |
 | Not JSON, or not an object | A JSON array or string is not a vocabulary |
-| Wrong or missing `version` | Version is declared, not inferred |
+| Wrong or missing `schemaVersion` | Version is declared, not inferred |
 | No `terms` object | — |
 | A field this build does not recognise | An unexpected field is a rejection, not a warning: it usually means the file was written for something else |
 | A reserved object key (`__proto__`, `constructor`, `prototype`) | `JSON.parse` does not follow these, but `Object.keys` still reports them, and a validator copying blindly into a plain object is one assignment from a prototype write |
@@ -125,6 +132,10 @@ name, a file path — is reachable too.
 - The cache is **revalidated on every read**, through the same validator as a
   freshly chosen file, because it outlives the release that wrote it. It fails
   closed to the original wording.
+
+Legacy cache entries using `version` still load while they exist, but the cache
+writer now stores `schemaVersion` so new local data matches the current
+contract.
 
 ## School mode
 

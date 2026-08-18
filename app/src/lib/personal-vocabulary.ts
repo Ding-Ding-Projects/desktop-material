@@ -43,7 +43,7 @@ export const MaxVocabularyValueLength = 500
 const unsafeKeys = new Set(['__proto__', 'constructor', 'prototype'])
 
 export interface IPersonalVocabulary {
-  readonly version: number
+  readonly schemaVersion: number
   /** Original wording → the user's wording. Frozen and prototype-less. */
   readonly terms: ReadonlyMap<string, string>
 }
@@ -53,7 +53,7 @@ export type VocabularyRejection =
   | { readonly kind: 'too-large'; readonly bytes: number }
   | { readonly kind: 'not-json' }
   | { readonly kind: 'not-an-object' }
-  | { readonly kind: 'unsupported-version'; readonly version: unknown }
+  | { readonly kind: 'unsupported-version'; readonly schemaVersion: unknown }
   | { readonly kind: 'missing-terms' }
   | { readonly kind: 'too-many-entries'; readonly count: number }
   | { readonly kind: 'unsafe-key' }
@@ -66,8 +66,11 @@ export type VocabularyResult =
   | { readonly ok: true; readonly vocabulary: IPersonalVocabulary }
   | { readonly ok: false; readonly rejection: VocabularyRejection }
 
-/** The permitted top-level fields. Anything else is a rejection, not a warning. */
-const allowedFields = new Set(['version', 'terms'])
+/** The permitted top-level fields for the current user-facing file contract. */
+const currentAllowedFields = new Set(['schemaVersion', 'terms'])
+
+/** The permitted top-level fields for legacy cached data only. */
+const legacyAllowedFields = new Set(['version', 'terms'])
 
 /**
  * Validate a complete file payload.
@@ -100,16 +103,25 @@ export function parsePersonalVocabulary(bytes: Uint8Array): VocabularyResult {
 
   const raw = parsed as Record<string, unknown>
 
+  return parseVocabularyRecord(raw, currentAllowedFields, 'schemaVersion')
+}
+
+function parseVocabularyRecord(
+  raw: Record<string, unknown>,
+  allowedFields: ReadonlySet<string>,
+  schemaField: 'schemaVersion' | 'version'
+): VocabularyResult {
   for (const field of Object.keys(raw)) {
     if (!allowedFields.has(field)) {
       return { ok: false, rejection: { kind: 'unexpected-field', field } }
     }
   }
 
-  if (raw.version !== PersonalVocabularySchemaVersion) {
+  const schemaVersion = raw[schemaField]
+  if (schemaVersion !== PersonalVocabularySchemaVersion) {
     return {
       ok: false,
-      rejection: { kind: 'unsupported-version', version: raw.version },
+      rejection: { kind: 'unsupported-version', schemaVersion },
     }
   }
 
@@ -148,7 +160,7 @@ export function parsePersonalVocabulary(bytes: Uint8Array): VocabularyResult {
 
   return {
     ok: true,
-    vocabulary: { version: PersonalVocabularySchemaVersion, terms: map },
+    vocabulary: { schemaVersion: PersonalVocabularySchemaVersion, terms: map },
   }
 }
 
@@ -176,7 +188,7 @@ export function describeVocabularyRejection(
     case 'not-an-object':
       return 'A vocabulary file must be a JSON object. Nothing has been changed.'
     case 'unsupported-version':
-      return `This build understands version ${PersonalVocabularySchemaVersion} of the vocabulary format, and that file does not declare it. Nothing has been changed.`
+      return `This build understands schema version ${PersonalVocabularySchemaVersion} of the vocabulary format, and that file does not declare it. Nothing has been changed.`
     case 'missing-terms':
       return 'That file has no "terms" object. Nothing has been changed.'
     case 'too-many-entries':
@@ -203,7 +215,7 @@ export function cachePersonalVocabulary(vocabulary: IPersonalVocabulary): void {
     localStorage.setItem(
       PersonalVocabularyStorageKey,
       JSON.stringify({
-        version: vocabulary.version,
+        schemaVersion: vocabulary.schemaVersion,
         terms: Object.fromEntries(vocabulary.terms),
       })
     )
@@ -227,10 +239,48 @@ export function readCachedPersonalVocabulary(): IPersonalVocabulary | null {
       return null
     }
     const result = parsePersonalVocabulary(new TextEncoder().encode(raw))
-    return result.ok ? result.vocabulary : null
+    if (result.ok) {
+      return result.vocabulary
+    }
+
+    const legacyResult = parseLegacyCachedPersonalVocabulary(
+      new TextEncoder().encode(raw)
+    )
+    return legacyResult.ok ? legacyResult.vocabulary : null
   } catch {
     return null
   }
+}
+
+function parseLegacyCachedPersonalVocabulary(
+  bytes: Uint8Array
+): VocabularyResult {
+  if (bytes.length === 0) {
+    return { ok: false, rejection: { kind: 'empty' } }
+  }
+  if (bytes.length > MaxVocabularyBytes) {
+    return {
+      ok: false,
+      rejection: { kind: 'too-large', bytes: bytes.length },
+    }
+  }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes))
+  } catch {
+    return { ok: false, rejection: { kind: 'not-json' } }
+  }
+
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    return { ok: false, rejection: { kind: 'not-an-object' } }
+  }
+
+  return parseVocabularyRecord(
+    parsed as Record<string, unknown>,
+    legacyAllowedFields,
+    'version'
+  )
 }
 
 export function clearPersonalVocabulary(): void {

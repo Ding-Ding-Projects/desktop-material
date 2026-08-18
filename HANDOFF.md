@@ -10225,3 +10225,40 @@ somewhere new undeclared imports are parked.
 already installed (`winston-transport@4.5.0`, `@floating-ui/core@1.8.0`,
 `focus-trap@6.1.0`). That is a manifest and lockfile change and had no business
 riding along in a commit whose job was turning a red build green.
+
+
+## 2026-08-18 personal vocabulary schemaVersion and Material control
+
+### What changed
+
+The personal vocabulary contract now treats `schemaVersion` as the canonical
+top-level field for user-supplied files. Existing local cache/data that still
+uses `version` is kept compatible on read so older installs continue to load,
+but new cached data is written with `schemaVersion` and new files are validated
+against that shape only.
+
+The settings surface was moved onto the app's existing Material Design 3
+primitives instead of the raw file input: a read-only summary field, a choose
+button that opens the local file dialog, and a clear button that restores the
+original wording. The change stays inside the existing preference surface and
+keeps the fail-closed behavior intact.
+
+### Files changed
+
+- `app/src/lib/personal-vocabulary.ts`
+- `app/src/ui/preferences/personal-vocabulary-control.tsx`
+- `app/test/unit/personal-vocabulary-test.ts`
+- `docs/features/design-system/personal-vocabulary.md`
+- `HANDOFF.md`
+
+### Verification
+
+No tests or captures were run in this lane, per the Yum Leung Cha boundary for
+this task.
+
+### Notes for the next person
+
+The compatibility policy is deliberate: user-facing files must use
+`schemaVersion`, while legacy cache entries using `version` are still read so
+existing data does not disappear. The UI change uses only the repository's
+existing Material primitives and does not introduce a new style file.
