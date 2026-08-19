@@ -46,7 +46,7 @@ describe('ignore files containing wildcard builder', () => {
     const pattern = screen.getByLabelText('Wildcard pattern')
     fireEvent.change(pattern, { target: { value: '*keep*' } })
     assert.match(screen.getByText(/1 matching file/).textContent ?? '', /1/)
-    fireEvent.click(screen.getByRole('button', { name: 'Add to .gitignore' }))
+    fireEvent.click(screen.getByText('Add to .gitignore'))
     await new Promise(resolve => setImmediate(resolve))
     assert.deepStrictEqual(appended, ['*keep*'])
   })
