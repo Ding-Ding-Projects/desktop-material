@@ -193,3 +193,8 @@ progress {
   min-height: 32px;
   padding: 0 var(--spacing-double);
 }
+
+// The shared MD3 primitives are the specialized final sublayer. Loading them
+// here preserves `material-controls` as the last desktop entrypoint while
+// letting exact field/search anatomy win over the generic native defaults.
+@import 'ui/md3-primitives';

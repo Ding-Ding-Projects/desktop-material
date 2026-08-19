@@ -4,6 +4,7 @@ import classNames from 'classnames'
 import { FilterMode } from '../../lib/fuzzy-find'
 import { filterByMode } from './filter-string-list'
 import { FilterModeControl } from './filter-mode-control'
+import { attachRipple } from './ripple'
 
 /** Distinguishes one instance's listbox id from another's within a document. */
 let instanceCount = 0
@@ -14,7 +15,7 @@ export interface ISearchableSelectOption {
   readonly label: string
 }
 
-interface ISearchableSelectProps {
+export interface ISearchableSelectProps {
   readonly label: string
   readonly value: string
   readonly options: ReadonlyArray<ISearchableSelectOption>
@@ -29,6 +30,17 @@ interface ISearchableSelectProps {
   readonly regexBuilderTarget: string
   readonly placeholder?: string
   readonly disabled?: boolean
+  readonly className?: string
+  /** Localized search-field copy. Falls back for existing call sites. */
+  readonly searchPlaceholder?: string
+  /** Localized empty-result copy. Falls back for existing call sites. */
+  readonly emptyMessage?: string
+  readonly supportingText?: string
+  readonly error?: string
+  /** Optional visual affordance rendered after the selected label. */
+  readonly indicator?: React.ReactNode
+  /** Enables the shared Material ripple when the host supplies clip geometry. */
+  readonly ripple?: boolean
 }
 
 interface ISearchableSelectState {
@@ -57,12 +69,31 @@ export class SearchableSelect extends React.Component<
   ISearchableSelectProps,
   ISearchableSelectState
 > {
+  private rootRef = React.createRef<HTMLDivElement>()
   private buttonRef = React.createRef<HTMLButtonElement>()
   private searchRef = React.createRef<HTMLInputElement>()
   // A counter rather than a random suffix: this only has to be unique within
   // the document so `aria-controls` points at one listbox, and a predictable
   // id also keeps snapshots and test selectors stable.
   private listboxId = `searchable-select-${++instanceCount}`
+
+  private get supportId(): string {
+    return `${this.listboxId}-support`
+  }
+
+  private get regexErrorId(): string {
+    return `${this.listboxId}-regex-error`
+  }
+
+  private get error(): string | undefined {
+    return this.props.error === undefined || this.props.error.length === 0
+      ? undefined
+      : this.props.error
+  }
+
+  private get supportMessage(): string | undefined {
+    return this.error ?? this.props.supportingText
+  }
 
   public constructor(props: ISearchableSelectProps) {
     super(props)
@@ -75,14 +106,18 @@ export class SearchableSelect extends React.Component<
     }
   }
 
-  private get filtered(): ReadonlyArray<ISearchableSelectOption> {
+  private get filterResult() {
     return filterByMode(
       this.props.options,
       option => [option.label, option.value],
       this.state.query,
       this.state.mode,
       this.state.caseSensitive
-    ).items
+    )
+  }
+
+  private get filtered(): ReadonlyArray<ISearchableSelectOption> {
+    return this.filterResult.items
   }
 
   private get selectedLabel(): string {
@@ -115,6 +150,57 @@ export class SearchableSelect extends React.Component<
     })
   }
 
+  public componentDidUpdate(
+    prevProps: ISearchableSelectProps,
+    prevState: ISearchableSelectState
+  ) {
+    if (!prevState.open && this.state.open) {
+      document.addEventListener('mousedown', this.onDocumentInteraction)
+      document.addEventListener('focusin', this.onDocumentInteraction)
+    } else if (prevState.open && !this.state.open) {
+      this.removeDocumentListeners()
+    }
+
+    if (
+      prevProps.disabled !== this.props.disabled &&
+      this.props.disabled === true &&
+      this.state.open
+    ) {
+      this.close(false)
+      return
+    }
+
+    const maximum = Math.max(0, this.filtered.length - 1)
+    if (this.state.activeIndex > maximum) {
+      this.setState({ activeIndex: maximum })
+    }
+  }
+
+  public componentWillUnmount() {
+    this.removeDocumentListeners()
+  }
+
+  private removeDocumentListeners = () => {
+    document.removeEventListener('mousedown', this.onDocumentInteraction)
+    document.removeEventListener('focusin', this.onDocumentInteraction)
+  }
+
+  /** Keep the owning portalled regex builder alive while dismissing outside. */
+  private onDocumentInteraction = (event: Event) => {
+    const target = event.target
+    if (!(target instanceof Node)) {
+      return
+    }
+    const builder = document.getElementById('regex-builder-layer')
+    if (
+      this.rootRef.current?.contains(target) === true ||
+      builder?.contains(target) === true
+    ) {
+      return
+    }
+    this.close(false)
+  }
+
   private choose = (value: string) => {
     this.props.onChange(value)
     this.close()
@@ -142,7 +228,10 @@ export class SearchableSelect extends React.Component<
       case 'ArrowDown':
         event.preventDefault()
         this.setState({
-          activeIndex: Math.min(this.state.activeIndex + 1, options.length - 1),
+          activeIndex: Math.max(
+            0,
+            Math.min(this.state.activeIndex + 1, options.length - 1)
+          ),
         })
         break
       case 'ArrowUp':
@@ -181,6 +270,24 @@ export class SearchableSelect extends React.Component<
     }
   }
 
+  private onOptionMouseDown = (event: React.MouseEvent<HTMLUListElement>) => {
+    if (this.props.ripple !== true) {
+      return
+    }
+    const option = (event.target as HTMLElement).closest<HTMLElement>(
+      '[role="option"]'
+    )
+    if (option !== null && event.currentTarget.contains(option)) {
+      attachRipple(option, event)
+    }
+  }
+
+  private onButtonMouseDown = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (this.props.ripple === true) {
+      attachRipple(event.currentTarget, event)
+    }
+  }
+
   private onModeChange = (mode: FilterMode) => this.setState({ mode })
 
   private onCaseSensitiveChange = (caseSensitive: boolean) =>
@@ -201,7 +308,11 @@ export class SearchableSelect extends React.Component<
     const { label, disabled, searchSurfaceId } = this.props
 
     return (
-      <div className="searchable-select">
+      <div
+        ref={this.rootRef}
+        className={classNames('searchable-select', this.props.className)}
+        data-invalid={this.error === undefined ? undefined : true}
+      >
         <label htmlFor={`${searchSurfaceId}-button`}>{label}</label>
         <button
           id={`${searchSurfaceId}-button`}
@@ -212,20 +323,47 @@ export class SearchableSelect extends React.Component<
           aria-expanded={this.state.open}
           aria-controls={this.listboxId}
           aria-haspopup="listbox"
+          aria-invalid={this.error === undefined ? undefined : true}
+          aria-describedby={
+            this.supportMessage === undefined ? undefined : this.supportId
+          }
           disabled={disabled}
+          onMouseDown={this.onButtonMouseDown}
           onClick={this.onToggle}
           onKeyDown={this.onButtonKeyDown}
         >
-          {this.selectedLabel}
+          <span className="searchable-select-value">{this.selectedLabel}</span>
+          {this.props.indicator}
         </button>
         {this.state.open && this.renderListbox()}
+        {this.supportMessage === undefined ? null : (
+          <p
+            id={this.supportId}
+            className="searchable-select-support"
+            role="status"
+          >
+            {this.supportMessage}
+          </p>
+        )}
       </div>
     )
   }
 
   private renderListbox() {
-    const options = this.filtered
+    const result = this.filterResult
+    const options = result.items
     const { searchSurfaceId, regexBuilderTarget } = this.props
+    const activeOption = options[this.state.activeIndex]
+    const activeDescendant =
+      activeOption === undefined
+        ? undefined
+        : `${this.listboxId}-option-${this.state.activeIndex}`
+    const describedBy = [
+      this.supportMessage === undefined ? undefined : this.supportId,
+      result.regexError === null ? undefined : this.regexErrorId,
+    ]
+      .filter((value): value is string => value !== undefined)
+      .join(' ')
 
     return (
       <div className="searchable-select-popover">
@@ -235,9 +373,18 @@ export class SearchableSelect extends React.Component<
             data-search-surface-id={searchSurfaceId}
             type="search"
             value={this.state.query}
-            placeholder={this.props.placeholder}
-            aria-label={`Search ${regexBuilderTarget}`}
+            placeholder={
+              this.props.searchPlaceholder ?? `Search ${regexBuilderTarget}`
+            }
+            aria-label={
+              this.props.searchPlaceholder ?? `Search ${regexBuilderTarget}`
+            }
             aria-controls={this.listboxId}
+            aria-activedescendant={activeDescendant}
+            aria-invalid={result.regexError === null ? undefined : true}
+            aria-describedby={
+              describedBy.length === 0 ? undefined : describedBy
+            }
             onChange={this.onQueryChanged}
             onKeyDown={this.onSearchKeyDown}
           />
@@ -253,6 +400,15 @@ export class SearchableSelect extends React.Component<
             onRegexPatternApply={this.onRegexPatternApply}
           />
         </div>
+        {result.regexError === null ? null : (
+          <p
+            id={this.regexErrorId}
+            className="searchable-select-regex-error"
+            role="status"
+          >
+            {result.regexError}
+          </p>
+        )}
         {/*
           The click is delegated to the list rather than bound per option, so
           the handler count does not grow with the option count and every
@@ -267,15 +423,17 @@ export class SearchableSelect extends React.Component<
           className="searchable-select-listbox"
           role="listbox"
           aria-label={regexBuilderTarget}
+          onMouseDown={this.onOptionMouseDown}
           onClick={this.onOptionClick}
         >
           {options.length === 0 && (
             <li className="searchable-select-empty" role="presentation">
-              No match
+              {this.props.emptyMessage ?? 'No match'}
             </li>
           )}
           {options.map((option, index) => (
             <li
+              id={`${this.listboxId}-option-${index}`}
               key={option.value}
               role="option"
               data-value={option.value}
