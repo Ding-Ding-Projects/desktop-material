@@ -186,6 +186,6 @@
     "reserved-words": "^0.1.2",
     "tsconfig-paths": "^3.9.0",
     "tsx": "4.23.12",
-    "webpack-cli": "^6.0.1"
+    "webpack-cli": "^7.2.2"
   }
 }
