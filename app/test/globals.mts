@@ -1,6 +1,38 @@
 import 'fake-indexeddb/auto'
 import 'global-jsdom/register'
 import { mock } from 'node:test'
+import { createRequire } from 'node:module'
+import Module from 'node:module'
+
+// The runner passes `--conditions=import` so CJS resolution can reach ESM-only
+// packages that declare no "require" fallback. tslib pays for that: its
+// "import" condition points at `modules/index.js`, an ESM wrapper that does
+// `import tslib from '../tslib.js'` and then destructures `tslib.default`.
+// Loaded as CJS through tsx that default is undefined, so the very first
+// destructure throws `Cannot destructure property '__extends'` and takes the
+// whole test file with it — which is why every UI test that pulls in a
+// helper-emitting module has been failing since tslib 2.8.1 arrived.
+//
+// Resolve the bare specifier to tslib's CJS build instead. This touches tslib
+// alone; every other package keeps the `import` condition it needs.
+const requireFromHere = createRequire(import.meta.url)
+const tslibCjs = (() => {
+  try {
+    return requireFromHere.resolve('tslib/tslib.js')
+  } catch {
+    return null
+  }
+})()
+
+if (tslibCjs !== null) {
+  const resolveFilename = Module._resolveFilename
+  Module._resolveFilename = function (request, ...rest) {
+    if (request === 'tslib') {
+      return tslibCjs
+    }
+    return resolveFilename.call(this, request, ...rest)
+  }
+}
 
 // Node 26 no longer mirrors jsdom's Storage globals onto globalThis. Several
 // application modules read localStorage during evaluation, so expose the jsdom
