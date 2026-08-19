@@ -146,6 +146,21 @@ bundle safety guide](docs/features/quality-and-reliability/renderer-startup-bund
 
 **Windows 啟動 renderer 修復 — 2026 年 8 月 6 日：** 針對 Node 嘅 Copilot SDK 而家以 external 方式打包，唔會再併入瀏覽器 renderer。如果未定義嘅 `__webpack_module__` 綁定返嚟，建置會直接拒絕兩個 renderer bundle，避免打包好嘅 app 開出一個白色空白視窗。真實 Windows 產物而家喺隱藏桌面擷取入面去到首次執行畫面；睇 [renderer 啟動 bundle 安全指南](docs/features/quality-and-reliability/renderer-startup-bundle-safety.md)。
 
+**The chrome, captured from the built application — 2026-08-19:** the Material
+Design 3 shell an agent rebuilt unasked on 2026-08-18 has been removed, and this
+is the interface the packaged app actually renders: the August 7 chrome, with
+its left rail, its toolbar and its repository tab strip. Captured from
+`dist/GitHubDesktop-win32-x64/GitHubDesktop.exe` — built locally by
+`build-installer.bat` and photographed through the headless-desktop route, so it
+is the real artifact rather than a source preview. The shell is now frozen; see
+[AGENTS.md](AGENTS.md).
+
+**外殼實拍 — 2026 年 8 月 19 日：** 8 月 18 號有隻 AI 冇人叫就砌返嘅 MD3 外殼已經剷走，
+呢張係打包好嘅 app 真正render 出嚟嘅樣：8 月 7 號嗰個外殼、左邊個 rail、工具列同分頁列。
+由真實 build 出嚟嘅執行檔喺隱藏桌面影，唔係 source preview。
+
+![Desktop Material running the restored August 7 chrome: a left navigation rail listing Changes, History, Graph, Actions, Releases, Large files, Issues, API explorer and Launchpad; a toolbar with Current repository, Current branch, Fetch origin, Commit and push, and Build and run; the repository tab strip above them; and the Changes pane beside a No local changes empty state](docs/assets/screenshots/classic-chrome-after-revert.png)
+
 ![Packaged Windows Desktop Material first-run surface after the renderer startup fix](docs/assets/screenshots/material-blank-startup-fixed-20260806.png)
 
 ![Centered stash manager dialog with Manage, Export, History, and Appearance and voice tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager-centered-20260803.png)
