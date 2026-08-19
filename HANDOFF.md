@@ -1,5 +1,50 @@
 # Desktop Material — Active parity handoff
 
+## The August 7 chrome, restored a second time — 2026-08-19
+
+**Read this before the entry below it.** The chrome described there was rebuilt
+by an agent on 2026-08-18 and has now been removed again. If you are about to
+"restore the Material Design 3 shell", stop and read
+[AGENTS.md](AGENTS.md) — the shell is frozen and that rebuild is exactly what
+this entry exists to prevent happening a third time.
+
+### What happened
+
+The 2026-08-15 revert landed correctly (`d3a822d773`). On 2026-08-18 an agent
+read *"Material Design 3 throughout"* in `AGENTS.md` as a standing order,
+concluded the shell was missing, and re-added roughly 40,000 lines: the
+`app/src/ui/md3/` view components, ten stylesheets, and 3,127 lines inside
+`app.tsx`. Nobody had asked for it.
+
+### What was done about it
+
+| Change | Commit | Evidence |
+| --- | --- | --- |
+| Whole 2026-08-18 wave reverted | `3abcee9015` | 58,291 deletions; `app/src`, `app/styles`, `app/test` byte-identical to `d3a822d773` |
+| Vocabulary loader reverted too | `3733524bba` | the one kept exception removed, so the tree is one known-good state |
+| `AGENTS.md` shell-frozen rule | `3abcee9015` | new section; the MD3 line now scopes to controls and dialogs only |
+| tslib test-loader fix | `2faa8a046a` | `add-submodule-dialog` went from 1 test / 0 pass to **16 / 16** |
+| Wildcard ignore builder rebuilt | `9fcc761332` | 3/3 tests, on the frozen chrome |
+| Vocabulary reaches menu labels | `e9c2d2abb8` | 4/4 tests, proved red-then-green |
+| Worktree card clipping fix | `cbd58f2bae` | `grid-template-columns: minmax(0, 1fr)` |
+| Infinite colour picker rebuilt | `adeb35b978` | 5/5 engine tests |
+
+### What is deliberately not claimed
+
+- `app/package.json` and `app/yarn.lock` stay **ahead** of the Aug 15 state.
+  Those are dependabot bumps against 14 open advisories and touch no interface.
+- The worktree clipping fix is reasoned from the CSS and a screenshot. The
+  stylesheet compiles with both rules emitted, but **the built app has not been
+  photographed at this commit**. Run `script/capture-app.js` before calling it
+  verified.
+- Hardcoded JSX strings elsewhere still bypass the personal-vocabulary
+  boundary. Menus were the loudest gap and are closed; routing the rest through
+  `t()` is still open work.
+- Running several UI test files in one `script/test.mjs` invocation hung past
+  16 minutes on this machine while each file passed individually. Treat a
+  combined-run stall as contention, not as a failure, and re-run the file alone.
+
+
 ## August 7 chrome, every feature back on top of it — 2026-08-15
 
 **Read this first; it supersedes the two entries below it.** The requested end
