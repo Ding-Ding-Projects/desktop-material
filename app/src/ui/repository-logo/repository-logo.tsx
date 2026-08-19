@@ -8,6 +8,10 @@ import {
   repositoryLogoText,
   RepositoryLogoShape,
 } from '../../models/repository-logo'
+import {
+  isAnimatedRainbowColor,
+  RainbowCssColor,
+} from '../../models/color-value'
 
 interface IRepositoryLogoProps {
   readonly design: IRepositoryLogoDesign
@@ -18,6 +22,10 @@ interface IRepositoryLogoProps {
 }
 
 let nextRepositoryLogoId = 0
+
+function visibleColor(value: string): string {
+  return isAnimatedRainbowColor(value) ? RainbowCssColor : value
+}
 
 function shapeElement(shape: RepositoryLogoShape, props: object) {
   switch (shape) {
@@ -112,7 +120,10 @@ export class RepositoryLogo extends React.PureComponent<IRepositoryLogoProps> {
     layer: IRepositoryLogoMarkLayer | IRepositoryLogoTextLayer
   ) {
     const transform = `translate(${layer.x} ${layer.y}) rotate(${layer.rotation}) scale(${layer.scale})`
-    const style = { color: layer.color, opacity: layer.opacity }
+    const style = {
+      color: visibleColor(layer.color),
+      opacity: layer.opacity,
+    }
     if (layer.type === 'mark') {
       return (
         <g key={layer.id} transform={transform} style={style}>
@@ -127,7 +138,7 @@ export class RepositoryLogo extends React.PureComponent<IRepositoryLogoProps> {
         transform={transform}
         textAnchor="middle"
         dominantBaseline="central"
-        fill={layer.color}
+        fill={visibleColor(layer.color)}
         opacity={layer.opacity}
         fontFamily={fontStack(layer)}
         fontSize={18}
@@ -148,7 +159,7 @@ export class RepositoryLogo extends React.PureComponent<IRepositoryLogoProps> {
     const fill =
       background.fill === 'gradient'
         ? `url(#${this.documentId}-gradient)`
-        : background.primaryColor
+        : visibleColor(background.primaryColor)
     const filter =
       background.shadow === 'none'
         ? undefined
@@ -176,8 +187,14 @@ export class RepositoryLogo extends React.PureComponent<IRepositoryLogoProps> {
             y2={50 + y}
             gradientUnits="userSpaceOnUse"
           >
-            <stop offset="0" stopColor={background.primaryColor} />
-            <stop offset="1" stopColor={background.secondaryColor} />
+            <stop
+              offset="0"
+              stopColor={visibleColor(background.primaryColor)}
+            />
+            <stop
+              offset="1"
+              stopColor={visibleColor(background.secondaryColor)}
+            />
           </linearGradient>
           <filter
             id={`${this.documentId}-soft-shadow`}
@@ -204,7 +221,7 @@ export class RepositoryLogo extends React.PureComponent<IRepositoryLogoProps> {
         <g filter={filter}>
           {shapeElement(background.shape, {
             fill,
-            stroke: background.borderColor,
+            stroke: visibleColor(background.borderColor),
             strokeWidth: background.borderWidth,
             vectorEffect: 'non-scaling-stroke',
           })}
