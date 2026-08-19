@@ -173,6 +173,7 @@ import {
   runAgentSetupCommands,
 } from './main-process-proxy'
 import { DiscardChanges } from './discard-changes'
+import { IgnoreFilesContainingDialog } from './changes/ignore-files-containing-dialog'
 import { Welcome } from './welcome'
 import { FirstRunChecklist } from './welcome/first-run-checklist'
 import { AppMenuBar } from './app-menu'
@@ -1437,8 +1438,7 @@ export class App extends React.Component<IAppProps, IAppState> {
    */
   private resizeActiveResizable(
     menuId:
-      | 'increase-active-resizable-width'
-      | 'decrease-active-resizable-width'
+      'increase-active-resizable-width' | 'decrease-active-resizable-width'
   ) {
     document.activeElement?.dispatchEvent(
       new CustomEvent(menuId, {
@@ -2188,7 +2188,9 @@ export class App extends React.Component<IAppProps, IAppState> {
     values.set('palette:set-git-hook-env-cache', getCacheHooksEnv())
     values.set(
       'palette:set-external-editor',
-      this.state.useCustomEditor ? '' : this.state.selectedExternalEditor ?? ''
+      this.state.useCustomEditor
+        ? ''
+        : (this.state.selectedExternalEditor ?? '')
     )
     values.set(
       'palette:set-shell',
@@ -2978,10 +2980,10 @@ export class App extends React.Component<IAppProps, IAppState> {
       home.kind === 'preferences'
         ? preferencesPaletteEvent(home.tab)
         : home.kind === 'repositorySettings'
-        ? repositorySettingsPaletteEvent(home.tab)
-        : home.openEvent === 'self'
-        ? command.event
-        : home.openEvent
+          ? repositorySettingsPaletteEvent(home.tab)
+          : home.openEvent === 'self'
+            ? command.event
+            : home.openEvent
 
     if (openEvent !== undefined) {
       this.onPaletteCommand(openEvent)
@@ -3214,8 +3216,8 @@ export class App extends React.Component<IAppProps, IAppState> {
       filters: fileName.endsWith('.json')
         ? [{ name: 'JSON', extensions: ['json'] }]
         : fileName.endsWith('.md')
-        ? [{ name: 'Markdown', extensions: ['md'] }]
-        : [{ name: 'Plain text', extensions: ['txt'] }],
+          ? [{ name: 'Markdown', extensions: ['md'] }]
+          : [{ name: 'Plain text', extensions: ['txt'] }],
     })
     if (destination === null) {
       return null
@@ -3948,7 +3950,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     const appName = state.appearanceCustomization.appIdentity.displayName
     const repositoryTitle =
       repository instanceof Repository
-        ? repository.alias ?? repository.name
+        ? (repository.alias ?? repository.name)
         : repository?.name
     return repositoryTitle ? `${repositoryTitle} - ${appName}` : appName
   }
@@ -4484,7 +4486,7 @@ export class App extends React.Component<IAppProps, IAppState> {
   private get externalEditorLabel() {
     return this.state.useCustomEditor
       ? undefined
-      : this.state.selectedExternalEditor ?? undefined
+      : (this.state.selectedExternalEditor ?? undefined)
   }
 
   private getExternalEditorLabel(repository: Repository | CloningRepository) {
@@ -4724,6 +4726,17 @@ export class App extends React.Component<IAppProps, IAppState> {
             permanentlyDelete={permanentlyDelete}
             onDismissed={onPopupDismissedFn}
             onConfirmDiscardChangesChanged={this.onConfirmDiscardChangesChanged}
+          />
+        )
+      case PopupType.IgnoreFilesContaining:
+        return (
+          <IgnoreFilesContainingDialog
+            key="ignore-files-containing"
+            repository={popup.repository}
+            filename={popup.filename}
+            paths={popup.paths}
+            dispatcher={this.props.dispatcher}
+            onDismissed={onPopupDismissedFn}
           />
         )
       case PopupType.ConfirmDiscardSelection:
@@ -7480,9 +7493,8 @@ export class App extends React.Component<IAppProps, IAppState> {
   private async mirrorRepositoryAppearance(
     repository: Repository
   ): Promise<IRepositoryAppearanceElementSettings> {
-    const values = await this.props.dispatcher.getRepositoryAppearanceElements(
-      repository
-    )
+    const values =
+      await this.props.dispatcher.getRepositoryAppearanceElements(repository)
     await this.props.dispatcher.setRepositoryAppearanceOverrides(
       repository,
       this.repositoryElementsAsLegacyOverrides(values)
@@ -7491,7 +7503,7 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private setRepositoryAppearanceElement<
-    K extends RepositoryAppearanceElementId
+    K extends RepositoryAppearanceElementId,
   >(
     target: RepositoryAppearanceEditorTarget,
     id: K,
@@ -7523,8 +7535,8 @@ export class App extends React.Component<IAppProps, IAppState> {
       target.elementId === RepositoryAppearanceElementId.Workspace
         ? ProfileAppearanceElementId.AppWorkspace
         : target.elementId === RepositoryAppearanceElementId.Toolbar
-        ? ProfileAppearanceElementId.Toolbar
-        : ProfileAppearanceElementId.RepositoryTabs
+          ? ProfileAppearanceElementId.Toolbar
+          : ProfileAppearanceElementId.RepositoryTabs
     this.appearanceEditorTarget = {
       kind: 'profile',
       elementId,
@@ -7783,8 +7795,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         target.elementId === RepositoryAppearanceElementId.Workspace
           ? 'Repository workspace appearance'
           : target.elementId === RepositoryAppearanceElementId.Toolbar
-          ? 'Repository toolbar appearance'
-          : 'Repository tabs appearance'
+            ? 'Repository toolbar appearance'
+            : 'Repository tabs appearance'
       return (
         <AnchoredAppearanceEditor
           title={title}
@@ -8213,7 +8225,7 @@ export class App extends React.Component<IAppProps, IAppState> {
 
       const expectedWorktree = isRetry
         ? retryCandidate
-        : this.pendingAgentSetupWorktrees.get(retryKey) ?? null
+        : (this.pendingAgentSetupWorktrees.get(retryKey) ?? null)
       const created =
         expectedWorktree === null
           ? undefined
@@ -8325,8 +8337,8 @@ export class App extends React.Component<IAppProps, IAppState> {
               nextSetupCommandIndex:
                 setupResult.status === 'succeeded'
                   ? reviewedSetupCommands.length
-                  : setupResult.commandIndex ??
-                    pendingSetup.nextSetupCommandIndex,
+                  : (setupResult.commandIndex ??
+                    pendingSetup.nextSetupCommandIndex),
             })
           }
           this.props.dispatcher.postNotification({
