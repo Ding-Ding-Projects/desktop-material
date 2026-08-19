@@ -976,11 +976,10 @@ try {
         -NodePath $node `
         -RecoverySnapshot $windowsArgvParserRecoverySnapshot
     }
+    Ensure-PrintenvzExecutable -NodePath $node -VisualStudioInstallationPath $vsInstallationPath
     if (-not (Test-WarmNativeDependencyCache -NodePath $node)) {
       throw 'The frozen dependency tree is missing a current, nonempty local native output or the windows-argv-parser runtime probe failed.'
     }
-
-    Ensure-PrintenvzExecutable -NodePath $node -VisualStudioInstallationPath $vsInstallationPath
     $env:NODE_ENV = 'production'
     $env:WINDOWS_SIGNING_ENABLED = 'false'
     $env:CSC_IDENTITY_AUTO_DISCOVERY = 'false'

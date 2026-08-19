@@ -36,7 +36,9 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const contractPath = join(root, 'design', 'History MD3.dc.html')
 const fixturePath = join(root, 'app', 'test', 'fixtures', 'md3-contract.json')
 
-const source = readFileSync(contractPath, 'utf8')
+const normalizeLineEndings = value => value.replace(/\r\n?/g, '\n')
+
+const source = normalizeLineEndings(readFileSync(contractPath, 'utf8'))
 
 const markup = /<x-dc>([\s\S]*?)<\/x-dc>/.exec(source)?.[1] ?? ''
 const logic =
@@ -217,7 +219,7 @@ const contract = {
 const serialized = JSON.stringify(contract, null, 2) + '\n'
 
 if (process.argv.includes('--check')) {
-  const existing = readFileSync(fixturePath, 'utf8')
+  const existing = normalizeLineEndings(readFileSync(fixturePath, 'utf8'))
   if (existing !== serialized) {
     process.stderr.write(
       'app/test/fixtures/md3-contract.json is stale; re-run ' +

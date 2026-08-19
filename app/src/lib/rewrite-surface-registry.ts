@@ -74,6 +74,54 @@ export interface IRewriteSurface {
  */
 export const RewriteSurfaces: ReadonlyArray<IRewriteSurface> = Object.freeze([
   {
+    id: 'destination-changes',
+    kind: 'destination',
+    paletteEvent: 'palette:md3-changes',
+    teleportTargetId: 'md3DestinationChanges',
+  },
+  {
+    id: 'destination-history',
+    kind: 'destination',
+    paletteEvent: 'palette:md3-history',
+    teleportTargetId: 'md3DestinationHistory',
+  },
+  {
+    id: 'destination-branches',
+    kind: 'destination',
+    paletteEvent: 'palette:md3-branches',
+    teleportTargetId: 'md3DestinationBranches',
+  },
+  {
+    id: 'destination-actions',
+    kind: 'destination',
+    paletteEvent: 'palette:md3-actions',
+    teleportTargetId: 'md3DestinationActions',
+  },
+  {
+    id: 'destination-inbox',
+    kind: 'destination',
+    paletteEvent: 'palette:md3-inbox',
+    teleportTargetId: 'md3DestinationInbox',
+  },
+  {
+    id: 'destination-terminal',
+    kind: 'destination',
+    paletteEvent: 'palette:md3-terminal',
+    teleportTargetId: 'md3DestinationTerminal',
+  },
+  {
+    id: 'destination-agents',
+    kind: 'destination',
+    paletteEvent: 'palette:md3-agents',
+    teleportTargetId: 'md3DestinationAgents',
+  },
+  {
+    id: 'destination-repositories',
+    kind: 'destination',
+    paletteEvent: 'palette:md3-repositories',
+    teleportTargetId: 'md3DestinationRepositories',
+  },
+  {
     id: 'docs-browser',
     kind: 'feature',
     paletteEvent: 'show-docs-browser',
@@ -106,5 +154,12 @@ export const RewriteSurfaces: ReadonlyArray<IRewriteSurface> = Object.freeze([
     paletteEvent: 'palette:set-dialog-emoji',
     teleportTargetId: 'settingsDialogEmoji',
     settingsSearchEntryId: 'appearance-dialog-emoji',
+  },
+  {
+    id: 'setting-classic-toolbar',
+    kind: 'setting',
+    paletteEvent: 'palette:set-classic-toolbar',
+    teleportTargetId: 'settingsClassicToolbar',
+    settingsSearchEntryId: 'appearance-classic-toolbar',
   },
 ])

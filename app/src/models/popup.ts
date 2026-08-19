@@ -78,11 +78,7 @@ export interface IOpencodeSendContext {
 
 /** The operation requesting a Cheap LFS payload password. */
 export type CheapLfsPayloadPasswordPurpose =
-  | 'encrypt'
-  | 'decrypt'
-  | 'change'
-  | 'forget'
-  | 'forget-stale'
+  'encrypt' | 'decrypt' | 'change' | 'forget' | 'forget-stale'
 
 /** Why an encryption prompt is blocking the current operation. */
 export type CheapLfsPayloadPasswordContext = 'commit-auto-pin'
@@ -92,6 +88,7 @@ export enum PopupType {
   DeleteBranch = 'DeleteBranch',
   DeleteRemoteBranch = 'DeleteRemoteBranch',
   ConfirmDiscardChanges = 'ConfirmDiscardChanges',
+  IgnoreFilesContaining = 'IgnoreFilesContaining',
   Preferences = 'Preferences',
   SettingsHistory = 'SettingsHistory',
   NotificationHistory = 'NotificationHistory',
@@ -106,6 +103,7 @@ export enum PopupType {
   BranchRules = 'BranchRules',
   SparseCheckout = 'SparseCheckout',
   ActionsLocalRun = 'ActionsLocalRun',
+  ActionsRunArtifacts = 'ActionsRunArtifacts',
   RepositorySettings = 'RepositorySettings',
   AddSubmodule = 'AddSubmodule',
   IgnoredSubmodule = 'IgnoredSubmodule',
@@ -287,6 +285,12 @@ export type PopupDetail =
       permanentlyDelete?: boolean
     }
   | {
+      type: PopupType.IgnoreFilesContaining
+      repository: Repository
+      filename: string
+      paths: ReadonlyArray<string>
+    }
+  | {
       type: PopupType.ConfirmDiscardSelection
       repository: Repository
       file: WorkingDirectoryFileChange
@@ -318,6 +322,11 @@ export type PopupDetail =
     }
   | { type: PopupType.CreateGitHubIssue; repository: Repository }
   | { type: PopupType.ActionsLocalRun; repository: Repository }
+  | {
+      type: PopupType.ActionsRunArtifacts
+      repository: Repository
+      runId: number
+    }
   | {
       type: PopupType.CreateGitHubPullRequest
       repository: RepositoryWithGitHubRepository

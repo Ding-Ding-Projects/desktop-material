@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' file: data: blob:; script-src 'self' file: 'unsafe-inline' 'unsafe-eval'; style-src 'self' file: 'unsafe-inline'; font-src 'self' file: data:; img-src 'self' file: data: blob:; connect-src 'none'; frame-src 'self' file: data: blob:"
+    />
+    <title>Design reference capture</title>
+    <style>
+      html,
+      body,
+      iframe {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+      }
+      iframe {
+        display: block;
+        border: 0;
+        background: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <iframe id="capture-frame" title="Design reference capture"></iframe>
+    <script src="./runtime.js"></script>
+    <script src="./capture.js"></script>
+  </body>
+</html>

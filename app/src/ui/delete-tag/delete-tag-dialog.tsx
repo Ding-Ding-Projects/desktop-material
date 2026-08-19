@@ -5,6 +5,7 @@ import { Repository } from '../../models/repository'
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { Ref } from '../lib/ref'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
+import { Md3DestructiveGateBody } from '../md3/md3-destructive-gate'
 
 interface IDeleteTagProps {
   readonly dispatcher: Dispatcher
@@ -15,6 +16,7 @@ interface IDeleteTagProps {
 
 interface IDeleteTagState {
   readonly isDeleting: boolean
+  readonly gateAuthorized: boolean
 }
 
 export class DeleteTag extends React.Component<
@@ -26,6 +28,7 @@ export class DeleteTag extends React.Component<
 
     this.state = {
       isDeleting: false,
+      gateAuthorized: false,
     }
   }
 
@@ -47,15 +50,37 @@ export class DeleteTag extends React.Component<
             Are you sure you want to delete the tag{' '}
             <Ref>{this.props.tagName}</Ref>?
           </p>
+          <Md3DestructiveGateBody
+            actionId="delete-tag"
+            summary={`Delete tag ${this.props.tagName}.`}
+            irreversible="The tag cannot be restored by this action."
+            targetKeyLabel={`tag ${this.props.tagName}`}
+            effectKeyLabel="deleting the tag"
+            onAuthorizationChanged={gateAuthorized =>
+              this.setState({ gateAuthorized })
+            }
+            disabled={this.state.isDeleting}
+          />
         </DialogContent>
         <DialogFooter>
-          <OkCancelButtonGroup destructive={true} okButtonText="Delete" />
+          <OkCancelButtonGroup
+            destructive={true}
+            okButtonText="Delete"
+            okButtonDisabled={
+              this.state.isDeleting || !this.state.gateAuthorized
+            }
+            cancelButtonDisabled={this.state.isDeleting}
+          />
+          <p>Emergency exit: Cancel leaves the tag unchanged.</p>
         </DialogFooter>
       </Dialog>
     )
   }
 
   private DeleteTag = async () => {
+    if (!this.state.gateAuthorized) {
+      return
+    }
     const { dispatcher, repository, tagName } = this.props
 
     this.setState({ isDeleting: true })

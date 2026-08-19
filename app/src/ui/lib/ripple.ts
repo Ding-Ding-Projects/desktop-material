@@ -80,9 +80,14 @@ export function attachRipple(
     return null
   }
 
-  // Native disabled controls should never ripple. Components that model
-  // disabled state via `aria-disabled` should also guard at their call site.
-  if (host instanceof HTMLButtonElement && host.disabled) {
+  // Native disabled controls and composite controls which expose their state
+  // through `aria-disabled` should never ripple. Keeping both checks here
+  // prevents each primitive family from inventing its own incomplete guard.
+  const nativelyDisabled =
+    'disabled' in host &&
+    typeof (host as HTMLButtonElement).disabled === 'boolean' &&
+    (host as HTMLButtonElement).disabled
+  if (nativelyDisabled || host.getAttribute('aria-disabled') === 'true') {
     return null
   }
 
@@ -92,6 +97,15 @@ export function attachRipple(
 
   const rect = host.getBoundingClientRect()
   const size = Math.max(rect.width, rect.height)
+
+  // One state layer per host is enough. A rapid double press replaces the
+  // prior transient span instead of stacking animations until their fallback
+  // timers expire.
+  for (const child of Array.from(host.children)) {
+    if (child.classList.contains(RippleClassName)) {
+      child.remove()
+    }
+  }
 
   const span = document.createElement('span')
   span.className = RippleClassName

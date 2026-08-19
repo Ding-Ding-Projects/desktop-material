@@ -124,6 +124,7 @@ describe('Cheap LFS Changes filter lifecycle', () => {
         autocompletionProviders={[]}
         onIgnoreFile={() => {}}
         onIgnorePattern={() => {}}
+        onIgnoreFilesContaining={() => {}}
         showCoAuthoredBy={false}
         coAuthors={[]}
         allStashEntries={[]}

@@ -1,0 +1,370 @@
+// Extensions to the restored shared MD3 shell primitives.
+//
+// `_md3-shell.scss` remains the single owner of the existing motion, tokens,
+// buttons, search row, chips, rows, group headers, empty state, and tones. This
+// later partial adds only the reusable field, searchable-select, disclosure,
+// file-action anatomy, plus the positioning context needed by shared ripples.
+
+.md3-icon-button,
+.md3-tonal-button,
+.md3-ghost-button,
+.md3-reset-button,
+.md3-chip,
+.md3-search-row__clear,
+.md3-search-row__regex,
+.md3-searchable-select .searchable-select-button,
+.md3-searchable-select .searchable-select-option,
+.md3-disclosure__summary {
+  overflow: hidden;
+  position: relative;
+}
+
+.md3-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+
+  &[data-disabled='true'] {
+    opacity: 0.38;
+  }
+
+  &[data-invalid='true'] {
+    .md3-field__container {
+      border-color: var(--md-sys-color-error);
+    }
+
+    .md3-field__label,
+    .md3-field__support {
+      color: var(--md-sys-color-error);
+    }
+  }
+}
+
+.md3-field__label,
+.md3-searchable-select > label {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 16px;
+  margin-left: 4px;
+}
+
+.md3-field__container {
+  align-items: center;
+  background: var(--md-sys-color-surface);
+  border: 2px solid var(--md-sys-color-outline-variant);
+  border-radius: 14px;
+  box-sizing: border-box;
+  display: flex;
+  gap: 10px;
+  min-height: 48px;
+  min-width: 0;
+  padding: 0 14px;
+  transition: border-color 240ms var(--emph), background-color 480ms var(--emph);
+
+  &:focus-within {
+    border-color: var(--md-sys-color-primary);
+  }
+}
+
+.md3-field__control {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+// This specificity deliberately wins over the generic native-control selector
+// loaded immediately before this partial in `_material-controls.scss`.
+.md3-field .md3-field__control input.md3-field__native,
+.md3-field .md3-field__control textarea.md3-field__native {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--md-sys-color-on-surface);
+  font: inherit;
+  font-size: 13.5px;
+  line-height: 20px;
+  min-height: 24px;
+  min-width: 0;
+  outline: none;
+  padding: 0;
+  width: 100%;
+
+  &::placeholder {
+    color: var(--md-sys-color-on-surface-variant);
+    opacity: 1;
+  }
+
+  &:hover:not(:disabled):not(:read-only),
+  &:focus {
+    border: 0;
+    box-shadow: none;
+  }
+}
+
+.md3-field .md3-field__control textarea.md3-field__native {
+  min-height: 88px;
+  resize: vertical;
+}
+
+// `_md3-shell.scss` owns the 34px search-row geometry. Reassert only the
+// borderless native input after the generic control layer so that geometry is
+// not silently replaced by a nested 40px browser field.
+.md3-search-row input.md3-search-row__input {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  min-height: 0;
+  outline: none;
+  padding: 0;
+
+  &:hover:not(:disabled):not(:read-only),
+  &:focus {
+    border: 0;
+    box-shadow: none;
+  }
+}
+
+.md3-field--multiline .md3-field__container {
+  align-items: flex-start;
+  padding-bottom: 12px;
+  padding-top: 12px;
+}
+
+.md3-field__leading-icon,
+.md3-field__trailing {
+  color: var(--md-sys-color-on-surface-variant);
+  flex: none;
+}
+
+.md3-field__support,
+.md3-searchable-select .searchable-select-support,
+.md3-searchable-select .searchable-select-regex-error {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11px;
+  line-height: 16px;
+  margin: 0;
+  padding: 0 14px;
+}
+
+.md3-searchable-select {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  position: relative;
+
+  &[data-invalid='true'] {
+    .searchable-select-button {
+      border-color: var(--md-sys-color-error);
+    }
+
+    > label,
+    .searchable-select-support,
+    .searchable-select-regex-error {
+      color: var(--md-sys-color-error);
+    }
+  }
+}
+
+.md3-searchable-select .searchable-select-button {
+  align-items: center;
+  background: var(--md-sys-color-surface);
+  border: 2px solid var(--md-sys-color-outline-variant);
+  border-radius: 14px;
+  color: var(--md-sys-color-on-surface);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 13.5px;
+  gap: 10px;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 0 14px;
+  text-align: start;
+  transition: border-color 240ms var(--emph), background-color 480ms var(--emph);
+  width: 100%;
+
+  &:hover:not(:disabled) {
+    border-color: var(--md-sys-color-on-surface);
+  }
+
+  &:focus-visible,
+  &[aria-expanded='true'] {
+    border-color: var(--md-sys-color-primary);
+    outline: none;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.38;
+  }
+}
+
+.md3-searchable-select__expand {
+  color: var(--md-sys-color-on-surface-variant);
+  flex: none;
+  transition: transform 180ms var(--emph);
+}
+
+.md3-searchable-select .searchable-select-button[aria-expanded='true'] .md3-searchable-select__expand {
+  transform: rotate(180deg);
+}
+
+.md3-searchable-select .searchable-select-popover {
+  background: var(--md-sys-color-surface-container-high);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-medium);
+  box-shadow: var(--dm-elev3);
+  display: flex;
+  flex-direction: column;
+  left: 0;
+  max-height: min(320px, 60vh);
+  overflow: hidden;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 10;
+}
+
+.md3-searchable-select .searchable-select-search {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: 6px;
+  padding: 8px;
+
+  input[type='search'] {
+    background: var(--md-sys-color-surface-container-highest);
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: var(--md-sys-shape-corner-full);
+    color: var(--md-sys-color-on-surface);
+    flex: 1 1 auto;
+    min-height: 40px;
+    min-width: 0;
+    padding: 0 14px;
+
+    &:focus-visible {
+      border-color: var(--md-sys-color-primary);
+      box-shadow: inset 0 0 0 1px var(--md-sys-color-primary);
+      outline: none;
+    }
+  }
+}
+
+.md3-searchable-select .searchable-select-listbox {
+  flex: 1 1 auto;
+  list-style: none;
+  margin: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 0 8px;
+}
+
+.md3-searchable-select .searchable-select-option,
+.md3-searchable-select .searchable-select-empty {
+  min-height: 40px;
+  overflow-wrap: anywhere;
+  padding: 10px 16px;
+}
+
+.md3-searchable-select .searchable-select-option {
+  color: var(--md-sys-color-on-surface);
+  cursor: pointer;
+
+  &:hover,
+  &.active {
+    background: var(--dm-state);
+  }
+
+  &[aria-selected='true'] {
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    font-weight: 600;
+  }
+}
+
+.md3-searchable-select .searchable-select-empty {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.md3-searchable-select .searchable-select-regex-error {
+  color: var(--md-sys-color-error);
+  margin: 0;
+  padding: 0 14px 8px;
+}
+
+.md3-disclosure {
+  background: var(--md-sys-color-surface-container-low);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-medium);
+  color: var(--md-sys-color-on-surface);
+  overflow: hidden;
+}
+
+.md3-disclosure__summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  font-size: 14px;
+  font-weight: 600;
+  gap: 12px;
+  justify-content: space-between;
+  list-style: none;
+  min-height: 48px;
+  padding: 0 16px;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  &:hover {
+    background: var(--dm-state);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: -2px;
+  }
+}
+
+.md3-disclosure__icon {
+  color: var(--md-sys-color-on-surface-variant);
+  transition: transform 180ms var(--emph);
+}
+
+.md3-disclosure[open] .md3-disclosure__icon {
+  transform: rotate(180deg);
+}
+
+.md3-disclosure__content {
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+  padding: 16px;
+}
+
+.md3-file-action {
+  display: inline-flex;
+  position: relative;
+}
+
+.md3-file-action__input {
+  block-size: 1px;
+  clip-path: inset(50%);
+  inline-size: 1px;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md3-field__container,
+  .md3-searchable-select .searchable-select-button,
+  .md3-searchable-select__expand,
+  .md3-disclosure__icon {
+    transition: none;
+  }
+}

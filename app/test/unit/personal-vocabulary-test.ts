@@ -25,20 +25,20 @@ import {
 
 const encode = (value: string) => new TextEncoder().encode(value)
 
-const valid = (terms: Record<string, string>) =>
+const valid = (entries: Record<string, string>) =>
   encode(
-    JSON.stringify({ schemaVersion: PersonalVocabularySchemaVersion, terms })
+    JSON.stringify({ schemaVersion: PersonalVocabularySchemaVersion, entries })
   )
 
 describe('a valid vocabulary file', () => {
-  it('is accepted and keeps every term', () => {
+  it('accepts the canonical entries field and keeps every entry', () => {
     const result = parsePersonalVocabulary(valid({ push: 'dew', bug: 'poke' }))
     assert.ok(result.ok)
     assert.strictEqual(result.vocabulary.terms.size, 2)
     assert.strictEqual(result.vocabulary.terms.get('push'), 'dew')
   })
 
-  it('accepts an empty terms object', () => {
+  it('accepts an empty entries object', () => {
     // A file that maps nothing is a legitimate thing to load — it is how a
     // user empties their vocabulary without deleting the file.
     const result = parsePersonalVocabulary(valid({}))
@@ -78,16 +78,16 @@ describe('a vocabulary file is refused whole or not at all', () => {
     },
     {
       name: 'a version this build does not understand',
-      bytes: encode(JSON.stringify({ schemaVersion: 99, terms: {} })),
+      bytes: encode(JSON.stringify({ schemaVersion: 99, entries: {} })),
       kind: 'unsupported-version',
     },
     {
       name: 'no schemaVersion at all',
-      bytes: encode(JSON.stringify({ terms: {} })),
+      bytes: encode(JSON.stringify({ entries: {} })),
       kind: 'unsupported-version',
     },
     {
-      name: 'no terms object',
+      name: 'no entries object',
       bytes: encode(
         JSON.stringify({ schemaVersion: PersonalVocabularySchemaVersion })
       ),
@@ -98,7 +98,7 @@ describe('a vocabulary file is refused whole or not at all', () => {
       bytes: encode(
         JSON.stringify({
           schemaVersion: PersonalVocabularySchemaVersion,
-          terms: {},
+          entries: {},
           upload: 'https://example.invalid',
         })
       ),
@@ -109,7 +109,7 @@ describe('a vocabulary file is refused whole or not at all', () => {
       bytes: encode(
         JSON.stringify({
           schemaVersion: PersonalVocabularySchemaVersion,
-          terms: { push: 42 },
+          entries: { push: 42 },
         })
       ),
       kind: 'value-not-a-string',
@@ -164,7 +164,7 @@ describe('a vocabulary file is refused whole or not at all', () => {
     // would be one assignment away from a prototype write.
     const result = parsePersonalVocabulary(
       encode(
-        `{"schemaVersion":${PersonalVocabularySchemaVersion},"terms":{"__proto__":"x"}}`
+        `{"schemaVersion":${PersonalVocabularySchemaVersion},"entries":{"__proto__":"x"}}`
       )
     )
     assert.ok(!result.ok)
@@ -222,7 +222,7 @@ describe('the refusal message', () => {
 
   it('names schemaVersion in the current contract message', () => {
     const result = parsePersonalVocabulary(
-      encode(JSON.stringify({ schemaVersion: 99, terms: {} }))
+      encode(JSON.stringify({ schemaVersion: 99, entries: {} }))
     )
     assert.ok(!result.ok)
     assert.match(
@@ -233,6 +233,21 @@ describe('the refusal message', () => {
 })
 
 describe('the cache compatibility policy', () => {
+  it('still reads cache data from the previous build that used schemaVersion and terms', () => {
+    localStorage.setItem(
+      'desktop-material-vocabulary-v1',
+      JSON.stringify({
+        schemaVersion: PersonalVocabularySchemaVersion,
+        terms: { push: 'dew' },
+      })
+    )
+
+    const cached = readCachedPersonalVocabulary()
+    assert.ok(cached)
+    assert.equal(cached.schemaVersion, PersonalVocabularySchemaVersion)
+    assert.equal(cached.terms.get('push'), 'dew')
+  })
+
   it('still reads an older cache entry that used version', () => {
     localStorage.setItem(
       'desktop-material-vocabulary-v1',
