@@ -1,6 +1,7 @@
 {
   "releases": {
     "4.0.0": [
+      "[Fixed] The MD3 application-header account avatar now has focused regression coverage for shared account-switcher routing, separate header and rail expanded state, and focus-return anchoring - #195",
       "[Added] Desktop Material leaves beta. Releases are plain numbered versions on the production channel, starting at 4.0.0, with no -beta or -material suffix",
       "[Fixed] History no longer keeps every commit it has ever loaded in memory. The commit cache holds twenty pages, evicts the least recently used entries, and reloads an evicted commit on demand - 20ba942e79c9b84f8e87b5629cda7ce21a11583c",
       "[Fixed] A failed or interrupted history load no longer leaves that view permanently stuck. Every history request releases its guard even when Git fails or throws - 20ba942e79c9b84f8e87b5629cda7ce21a11583c",
