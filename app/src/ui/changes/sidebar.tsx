@@ -261,8 +261,7 @@ export class ChangesSidebar extends React.Component<IChangesSidebarProps, {}> {
 
   private onIncludeChanged = (
     file:
-      | WorkingDirectoryFileChange
-      | ReadonlyArray<WorkingDirectoryFileChange>,
+      WorkingDirectoryFileChange | ReadonlyArray<WorkingDirectoryFileChange>,
     include: boolean
   ) => {
     this.props.dispatcher.changeFileIncluded(
@@ -309,6 +308,15 @@ export class ChangesSidebar extends React.Component<IChangesSidebarProps, {}> {
 
   private onIgnorePattern = (pattern: string | string[]) => {
     this.props.dispatcher.appendIgnoreRule(this.props.repository, pattern)
+  }
+
+  private onIgnoreFilesContaining = (filename: string) => {
+    this.props.dispatcher.showPopup({
+      type: PopupType.IgnoreFilesContaining,
+      repository: this.props.repository,
+      filename,
+      paths: this.props.changes.workingDirectory.files.map(file => file.path),
+    })
   }
 
   /**
@@ -491,6 +499,7 @@ export class ChangesSidebar extends React.Component<IChangesSidebarProps, {}> {
           availableWidth={this.props.availableWidth}
           onIgnoreFile={this.onIgnoreFile}
           onIgnorePattern={this.onIgnorePattern}
+          onIgnoreFilesContaining={this.onIgnoreFilesContaining}
           isCommitting={this.props.isCommitting}
           commitOperationPhase={this.props.commitOperationPhase}
           hookProgress={this.props.hookProgress}
