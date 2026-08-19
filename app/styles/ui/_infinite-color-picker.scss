@@ -37,6 +37,27 @@
   }
 }
 
+.infinite-color-picker-inline-input {
+  width: 96px;
+  min-height: 40px;
+  margin-inline-start: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--md-sys-color-outline-variant, #79747e);
+  border-radius: 12px;
+  background: var(--md-sys-color-surface, #fffbfe);
+  color: var(--md-sys-color-on-surface, #1d1b20);
+  font: inherit;
+
+  &:focus-visible {
+    outline: 3px solid var(--md-sys-color-primary, #6750a4);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
 .infinite-color-picker-trigger-swatch,
 .infinite-color-picker-preview,
 .infinite-color-picker-swatch,

@@ -42,6 +42,35 @@ function controls(
  * fails closed, while adding a file on disk fails until it is reviewed here.
  */
 const RawControlInventory: Readonly<Record<string, IRawControlBoundary>> = {
+  'app/src/ui/md3/index.ts': { expected: controls(), status: 'clean' },
+  'app/src/ui/md3/md3-actions-controller.ts': {
+    expected: controls(),
+    status: 'clean',
+  },
+  'app/src/ui/md3/md3-actions-view-fixtures.ts': {
+    expected: controls(),
+    status: 'clean',
+  },
+  'app/src/ui/md3/md3-actions-view.tsx': {
+    expected: controls({ button: 2, input: 1, select: 2 }),
+    status: 'migration-required',
+  },
+  'app/src/ui/md3/md3-agents-controller.ts': {
+    expected: controls(),
+    status: 'clean',
+  },
+  'app/src/ui/md3/md3-agents-view-fixtures.ts': {
+    expected: controls(),
+    status: 'clean',
+  },
+  'app/src/ui/md3/md3-agents-view.tsx': {
+    expected: controls({ input: 2 }),
+    status: 'migration-required',
+  },
+  'app/src/ui/md3/md3-app-header.tsx': {
+    expected: controls({ button: 4 }),
+    status: 'migration-required',
+  },
   'app/src/ui/lib/searchable-select.tsx': {
     expected: controls({ button: 1, input: 1 }),
     status: 'primitive-boundary',
@@ -70,13 +99,33 @@ const RawControlInventory: Readonly<Record<string, IRawControlBoundary>> = {
     expected: controls({ button: 1, input: 3 }),
     status: 'migration-required',
   },
+  'app/src/ui/md3/md3-branches-view-fixtures.ts': {
+    expected: controls(),
+    status: 'clean',
+  },
+  'app/src/ui/md3/md3-branches-view.tsx': {
+    expected: controls({ button: 1, input: 1 }),
+    status: 'migration-required',
+  },
   'app/src/ui/md3/md3-bulk-bar.tsx': {
     expected: controls({ input: 1 }),
+    status: 'migration-required',
+  },
+  'app/src/ui/md3/md3-changes-view-fixtures.ts': {
+    expected: controls(),
+    status: 'clean',
+  },
+  'app/src/ui/md3/md3-changes-view.tsx': {
+    expected: controls({ button: 4, input: 2, textarea: 1 }),
     status: 'migration-required',
   },
   'app/src/ui/md3/md3-compose-dialog.tsx': {
     expected: controls({ button: 2, input: 1, textarea: 1 }),
     status: 'migration-required',
+  },
+  'app/src/ui/md3/md3-destination-adapters.ts': {
+    expected: controls(),
+    status: 'clean',
   },
   'app/src/ui/md3/md3-destructive-actions.ts': {
     expected: controls(),
@@ -86,6 +135,10 @@ const RawControlInventory: Readonly<Record<string, IRawControlBoundary>> = {
     expected: controls({ input: 3 }),
     status: 'migration-required',
   },
+  'app/src/ui/md3/md3-diff-pane.tsx': {
+    expected: controls({ button: 3 }),
+    status: 'migration-required',
+  },
   'app/src/ui/md3/md3-list-export.ts': {
     expected: controls(),
     status: 'clean',
@@ -93,6 +146,30 @@ const RawControlInventory: Readonly<Record<string, IRawControlBoundary>> = {
   'app/src/ui/md3/md3-list-selection.ts': {
     expected: controls(),
     status: 'clean',
+  },
+  'app/src/ui/md3/md3-history-view-fixtures.ts': {
+    expected: controls(),
+    status: 'clean',
+  },
+  'app/src/ui/md3/md3-history-view.tsx': {
+    expected: controls({ button: 5, input: 1 }),
+    status: 'migration-required',
+  },
+  'app/src/ui/md3/md3-inbox-controller.ts': {
+    expected: controls(),
+    status: 'clean',
+  },
+  'app/src/ui/md3/md3-inbox-export.ts': {
+    expected: controls(),
+    status: 'clean',
+  },
+  'app/src/ui/md3/md3-inbox-fixtures.ts': {
+    expected: controls(),
+    status: 'clean',
+  },
+  'app/src/ui/md3/md3-inbox-view.tsx': {
+    expected: controls({ input: 1 }),
+    status: 'migration-required',
   },
   'app/src/ui/md3/md3-lock-menu-items.ts': {
     expected: controls(),
@@ -118,9 +195,25 @@ const RawControlInventory: Readonly<Record<string, IRawControlBoundary>> = {
     expected: controls({ button: 1 }),
     status: 'migration-required',
   },
+  'app/src/ui/md3/md3-menu-bindings.ts': {
+    expected: controls(),
+    status: 'clean',
+  },
   'app/src/ui/md3/md3-menu-specs.ts': {
     expected: controls(),
     status: 'clean',
+  },
+  'app/src/ui/md3/md3-navigation-drawer.tsx': {
+    expected: controls({ button: 3 }),
+    status: 'migration-required',
+  },
+  'app/src/ui/md3/md3-navigation-rail.tsx': {
+    expected: controls({ button: 3 }),
+    status: 'migration-required',
+  },
+  'app/src/ui/md3/md3-pane-header.tsx': {
+    expected: controls({ button: 3 }),
+    status: 'migration-required',
   },
   'app/src/ui/md3/md3-primitives.tsx': {
     expected: controls({
@@ -136,6 +229,27 @@ const RawControlInventory: Readonly<Record<string, IRawControlBoundary>> = {
     expected: controls({ button: 3, input: 2 }),
     status: 'migration-required',
   },
+  'app/src/ui/md3/md3-repositories-controller.ts': {
+    expected: controls(),
+    status: 'clean',
+  },
+  'app/src/ui/md3/md3-repositories-view-fixtures.ts': {
+    expected: controls(),
+    status: 'clean',
+  },
+  'app/src/ui/md3/md3-repositories-view.tsx': {
+    expected: controls({ button: 3, input: 5 }),
+    status: 'migration-required',
+  },
+  'app/src/ui/md3/md3-resizable-pane.tsx': {
+    expected: controls(),
+    status: 'clean',
+  },
+  'app/src/ui/md3/md3-shell-carryover.ts': {
+    expected: controls(),
+    status: 'clean',
+  },
+  'app/src/ui/md3/md3-shell.tsx': { expected: controls(), status: 'clean' },
   'app/src/ui/md3/md3-style-contract.ts': {
     expected: controls(),
     status: 'clean',
@@ -160,6 +274,23 @@ const RawControlInventory: Readonly<Record<string, IRawControlBoundary>> = {
   'app/src/ui/md3/md3-toast.tsx': {
     expected: controls({ button: 2 }),
     status: 'migration-required',
+  },
+  'app/src/ui/md3/md3-terminal-controller.ts': {
+    expected: controls(),
+    status: 'clean',
+  },
+  'app/src/ui/md3/md3-terminal-view-fixtures.ts': {
+    expected: controls(),
+    status: 'clean',
+  },
+  'app/src/ui/md3/md3-terminal-view.tsx': {
+    expected: controls({ button: 1, input: 1 }),
+    status: 'migration-required',
+  },
+  'app/src/ui/md3/md3-view-props.ts': { expected: controls(), status: 'clean' },
+  'app/src/ui/md3/md3-virtual-window.ts': {
+    expected: controls(),
+    status: 'clean',
   },
   'app/src/ui/preferences/authenticator-settings.tsx': {
     expected: controls({ button: 2, details: 1, summary: 1 }),

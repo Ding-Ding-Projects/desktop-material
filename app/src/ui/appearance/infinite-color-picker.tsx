@@ -254,7 +254,13 @@ export class InfiniteColorPicker extends React.Component<
   }
 
   private onEntryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({ entry: event.currentTarget.value })
+    const entry = event.currentTarget.value
+    const color = ColorEngine.parse(entry)
+    if (color === null) {
+      this.setState({ entry })
+      return
+    }
+    this.setColor(color, true)
   }
 
   private commitText(text: string) {
@@ -668,7 +674,7 @@ export class InfiniteColorPicker extends React.Component<
           )}
 
           <label className="infinite-color-picker-entry">
-            <span>Enter any supported color</span>
+            <span>{this.props.label}</span>
             <input
               type="text"
               value={this.state.entry}
@@ -773,7 +779,7 @@ export class InfiniteColorPicker extends React.Component<
           disabled={this.props.disabled}
           aria-haspopup="dialog"
           aria-expanded={this.state.open}
-          aria-label={this.props.label}
+          aria-label={`${this.props.label} picker`}
           ref={this.triggerRef}
           onClick={this.toggle}
         >
@@ -790,6 +796,16 @@ export class InfiniteColorPicker extends React.Component<
           />
           <span>{this.state.rainbow ? 'Rainbow' : serialized}</span>
         </button>
+        <input
+          className="infinite-color-picker-inline-input"
+          type="text"
+          value={this.state.entry}
+          aria-label={this.props.label}
+          onChange={this.onEntryChange}
+          onBlur={this.onEntryBlur}
+          disabled={this.props.disabled}
+          spellCheck={false}
+        />
         {this.state.open && this.renderPopover()}
       </span>
     )
