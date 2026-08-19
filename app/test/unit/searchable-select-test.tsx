@@ -111,4 +111,100 @@ describe('SearchableSelect', () => {
       'a pattern built here must not apply to another dropdown'
     )
   })
+
+  it('uses caller-localized search and empty-result copy', () => {
+    const view = renderSelect({
+      searchPlaceholder: '搵演算法',
+      emptyMessage: '冇相符項目',
+    })
+    fireEvent.click(view.getByRole('combobox', { name: 'Workflow' }))
+    const search = view.getByLabelText('搵演算法')
+
+    fireEvent.change(search, { target: { value: 'missing' } })
+
+    assert.ok(view.getByText('冇相符項目'))
+  })
+
+  it('links keyboard focus to the active option by exact id', () => {
+    const view = renderSelect()
+    fireEvent.click(view.getByRole('combobox', { name: 'Workflow' }))
+    const search = view.getByLabelText('Search workflows')
+    const initialId = search.getAttribute('aria-activedescendant')
+
+    assert.ok(initialId !== null)
+    assert.equal(
+      document.getElementById(initialId)?.getAttribute('role'),
+      'option'
+    )
+    fireEvent.keyDown(search, { key: 'ArrowDown' })
+    assert.notEqual(search.getAttribute('aria-activedescendant'), initialId)
+  })
+
+  it('connects supporting and validation copy without an empty error state', () => {
+    const view = renderSelect({ supportingText: 'Choose one workflow' })
+    const button = view.getByRole('combobox', { name: 'Workflow' })
+    const support = view.getByText('Choose one workflow')
+
+    assert.equal(button.getAttribute('aria-describedby'), support.id)
+    assert.equal(button.getAttribute('aria-invalid'), null)
+
+    view.rerender(
+      <SearchableSelect
+        label="Workflow"
+        value="ci.yml"
+        options={options}
+        onChange={() => undefined}
+        searchSurfaceId="test-workflow"
+        regexBuilderTarget="workflows"
+        error=""
+      />
+    )
+    assert.equal(
+      view
+        .getByRole('combobox', { name: 'Workflow' })
+        .getAttribute('aria-invalid'),
+      null
+    )
+    assert.equal(view.queryByRole('status'), null)
+  })
+
+  it('reports an invalid regex politely while keeping every option', () => {
+    const view = renderSelect()
+    fireEvent.click(view.getByRole('combobox', { name: 'Workflow' }))
+    const search = view.getByLabelText('Search workflows')
+    const mode = view.container.querySelector<HTMLButtonElement>(
+      '.filter-mode-button'
+    )
+    assert.ok(mode !== null)
+
+    // Substring is the default; one cycle selects Regex.
+    fireEvent.click(mode)
+    fireEvent.change(search, { target: { value: '(' } })
+
+    assert.equal(search.getAttribute('aria-invalid'), 'true')
+    assert.equal(
+      within(view.getByRole('listbox')).getAllByRole('option').length,
+      3
+    )
+    assert.ok(view.getByRole('status').textContent?.includes('('))
+  })
+
+  it('dismisses on an outside interaction but not inside its regex-builder portal', () => {
+    const view = renderSelect()
+    const button = view.getByRole('combobox', { name: 'Workflow' })
+    fireEvent.click(button)
+
+    const portal = document.createElement('div')
+    portal.id = 'regex-builder-layer'
+    document.body.appendChild(portal)
+    try {
+      fireEvent.mouseDown(portal)
+      assert.ok(view.getByRole('listbox'))
+
+      fireEvent.mouseDown(document.body)
+      assert.equal(view.queryByRole('listbox'), null)
+    } finally {
+      portal.remove()
+    }
+  })
 })
