@@ -67,9 +67,10 @@ export type VocabularyResult =
   | { readonly ok: false; readonly rejection: VocabularyRejection }
 
 /** The permitted top-level fields for the current user-facing file contract. */
-const currentAllowedFields = new Set(['schemaVersion', 'terms'])
+const currentAllowedFields = new Set(['schemaVersion', 'entries'])
 
-/** The permitted top-level fields for legacy cached data only. */
+/** The two private cache shapes written by earlier builds. */
+const previousCacheAllowedFields = new Set(['schemaVersion', 'terms'])
 const legacyAllowedFields = new Set(['version', 'terms'])
 
 /**
@@ -103,13 +104,19 @@ export function parsePersonalVocabulary(bytes: Uint8Array): VocabularyResult {
 
   const raw = parsed as Record<string, unknown>
 
-  return parseVocabularyRecord(raw, currentAllowedFields, 'schemaVersion')
+  return parseVocabularyRecord(
+    raw,
+    currentAllowedFields,
+    'schemaVersion',
+    'entries'
+  )
 }
 
 function parseVocabularyRecord(
   raw: Record<string, unknown>,
   allowedFields: ReadonlySet<string>,
-  schemaField: 'schemaVersion' | 'version'
+  schemaField: 'schemaVersion' | 'version',
+  termsField: 'entries' | 'terms'
 ): VocabularyResult {
   for (const field of Object.keys(raw)) {
     if (!allowedFields.has(field)) {
@@ -125,7 +132,7 @@ function parseVocabularyRecord(
     }
   }
 
-  const terms = raw.terms
+  const terms = raw[termsField]
   if (typeof terms !== 'object' || terms === null || Array.isArray(terms)) {
     return { ok: false, rejection: { kind: 'missing-terms' } }
   }
@@ -190,7 +197,7 @@ export function describeVocabularyRejection(
     case 'unsupported-version':
       return `This build understands schema version ${PersonalVocabularySchemaVersion} of the vocabulary format, and that file does not declare it. Nothing has been changed.`
     case 'missing-terms':
-      return 'That file has no "terms" object. Nothing has been changed.'
+      return 'That file has no "entries" object. Nothing has been changed.'
     case 'too-many-entries':
       return `That file has ${rejection.count} entries, and the limit is ${MaxVocabularyEntries}. Nothing has been changed.`
     case 'unsafe-key':
@@ -276,11 +283,16 @@ function parseLegacyCachedPersonalVocabulary(
     return { ok: false, rejection: { kind: 'not-an-object' } }
   }
 
-  return parseVocabularyRecord(
-    parsed as Record<string, unknown>,
-    legacyAllowedFields,
-    'version'
+  const raw = parsed as Record<string, unknown>
+  const previousCache = parseVocabularyRecord(
+    raw,
+    previousCacheAllowedFields,
+    'schemaVersion',
+    'terms'
   )
+  return previousCache.ok
+    ? previousCache
+    : parseVocabularyRecord(raw, legacyAllowedFields, 'version', 'terms')
 }
 
 export function clearPersonalVocabulary(): void {

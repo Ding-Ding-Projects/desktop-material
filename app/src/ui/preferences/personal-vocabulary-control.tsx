@@ -87,9 +87,12 @@ export class PersonalVocabularyControl extends React.Component<
       return
     }
 
-    const fileSize = await stat(chosenPath).then(result => result.size, () => {
-      return null
-    })
+    const fileSize = await stat(chosenPath).then(
+      result => result.size,
+      () => {
+        return null
+      }
+    )
     if (fileSize === null) {
       this.setState({
         status: {
@@ -174,10 +177,10 @@ export class PersonalVocabularyControl extends React.Component<
       case 'loaded':
         return (
           <p className="settings-description" id={this.statusId}>
-            {/* The count, never the terms. The terms are the private part. */}
+            {/* The count, never the entries. The entries are the private part. */}
             A vocabulary file is loaded with {status.vocabulary.terms.size}{' '}
-            {status.vocabulary.terms.size === 1 ? 'term' : 'terms'}. It is held
-            on this computer only.
+            {status.vocabulary.terms.size === 1 ? 'entry' : 'entries'}. It is
+            held on this computer only.
           </p>
         )
       case 'rejected':
@@ -228,12 +231,13 @@ export class PersonalVocabularyControl extends React.Component<
           <p className="settings-description">
             A JSON object declaring{' '}
             <code>"schemaVersion": {PersonalVocabularySchemaVersion}</code> and
-            a <code>terms</code> object mapping the word the app renders to the
-            word you would rather read. At most {MaxVocabularyEntries} terms and{' '}
-            {Math.round(MaxVocabularyBytes / 1024)} KB. The current cache still
-            tolerates older local data that used <code>"version"</code>, but new
-            files use <code>"schemaVersion"</code>. It is read on this computer,
-            never uploaded, and never included in an export, a screenshot, a
+            an <code>entries</code> object mapping the word the app renders to
+            the word you would rather read. At most {MaxVocabularyEntries}{' '}
+            entries and {Math.round(MaxVocabularyBytes / 1024)} KB. The current
+            cache still tolerates older local data that used{' '}
+            <code>"version"</code>, but new files use{' '}
+            <code>"schemaVersion"</code>. It is read on this computer, never
+            uploaded, and never included in an export, a screenshot, a
             diagnostic report or this app's history.
           </p>
         </details>

@@ -57,7 +57,7 @@ present, discoverable, and saying plainly that nothing has been changed.
 ```json
 {
   "schemaVersion": 1,
-  "terms": {
+  "entries": {
     "<source term>": "<replacement term>"
   }
 }
@@ -70,11 +70,12 @@ present, discoverable, and saying plainly that nothing has been changed.
 | Entries | 2000 |
 | Term length | 1–200 characters |
 | Replacement length | 0–500 characters |
-| Top-level fields | `schemaVersion` and `terms`, and nothing else |
+| Top-level fields | `schemaVersion` and `entries`, and nothing else |
 
-Older cached data that still uses `version` is tolerated on read so existing
-installs keep their loaded vocabulary. New files use `schemaVersion`, and that
-is the only accepted user-facing file shape.
+Older cached data that uses `schemaVersion` plus `terms`, or the earlier
+`version` plus `terms`, is tolerated on read so existing installs keep their
+loaded vocabulary. New user-selected files use `schemaVersion` plus `entries`,
+and that is the only accepted user-facing file shape.
 
 ## Validation
 
@@ -93,7 +94,7 @@ vocabulary you already had carries on working.
 | Not valid UTF-8 | Decoded with `fatal: true`, so a mangled byte is an error rather than a silent `U+FFFD` substitution that parses as something you never wrote |
 | Not JSON, or not an object | A JSON array or string is not a vocabulary |
 | Wrong or missing `schemaVersion` | Version is declared, not inferred |
-| No `terms` object | — |
+| No `entries` object | — |
 | A field this build does not recognise | An unexpected field is a rejection, not a warning: it usually means the file was written for something else |
 | A reserved object key (`__proto__`, `constructor`, `prototype`) | `JSON.parse` does not follow these, but `Object.keys` still reports them, and a validator copying blindly into a plain object is one assignment from a prototype write |
 | Any bound exceeded | Rejection, never truncation |
@@ -133,9 +134,9 @@ name, a file path — is reachable too.
   freshly chosen file, because it outlives the release that wrote it. It fails
   closed to the original wording.
 
-Legacy cache entries using `version` still load while they exist, but the cache
-writer now stores `schemaVersion` so new local data matches the current
-contract.
+Cache entries from earlier builds still load whether they use `schemaVersion`
+or `version`; that compatibility is private cache migration only and does not
+make `terms` a valid field in a newly selected file.
 
 ## School mode
 
@@ -158,7 +159,7 @@ returns the text untouched and no replacement occurs anywhere.
 node script/test.mjs app/test/unit/personal-vocabulary-test.ts
 ```
 
-27 tests. Three guards were verified by breaking the thing they guard and
+32 tests. Three guards were verified by breaking the thing they guard and
 watching them go red:
 
 | Guard | Broken by | Result |
