@@ -61,6 +61,20 @@ function resolvePaletteAccelerator(): string {
 /** The badge caps at this count and renders `99+` beyond it. */
 const MaxRenderedUnreadCount = 99
 
+function setExternalRef<T>(
+  ref: React.Ref<T> | undefined,
+  instance: T | null
+): void {
+  if (ref == null) {
+    return
+  }
+  if (typeof ref === 'function') {
+    ref(instance)
+  } else {
+    ;(ref as React.MutableRefObject<T | null>).current = instance
+  }
+}
+
 export interface IMd3AppHeaderProps {
   /**
    * The profile's app identity. Only `displayName` is read: the brand mark is
@@ -121,6 +135,12 @@ export interface IMd3AppHeaderProps {
 
   readonly onOpenAccountSwitcher: () => void
 
+  /** Whether this avatar owns the open account switcher. */
+  readonly accountSwitcherOpen?: boolean
+
+  /** The host anchor for the floating account switcher and focus return. */
+  readonly accountButtonRef?: React.Ref<HTMLButtonElement>
+
   /** Focus target for the global search input. */
   readonly searchInputRef?: React.Ref<HTMLInputElement>
 
@@ -168,6 +188,14 @@ export function Md3AppHeader(props: IMd3AppHeaderProps) {
   const accountRef = React.useMemo(
     () => createObservableRef<HTMLButtonElement>(),
     []
+  )
+  const { accountButtonRef } = props
+  const setAccountRef = React.useCallback(
+    (instance: HTMLButtonElement | null) => {
+      accountRef(instance)
+      setExternalRef(accountButtonRef, instance)
+    },
+    [accountRef, accountButtonRef]
   )
 
   const commitLabel = t('md3.appHeader.commitAndPush')
@@ -300,11 +328,12 @@ export function Md3AppHeader(props: IMd3AppHeaderProps) {
           onClick={props.onOpenSettings}
         />
         <button
-          ref={accountRef}
+          ref={setAccountRef}
           type="button"
           className="md3-app-header__account"
           aria-label={accountLabel}
           aria-haspopup="dialog"
+          aria-expanded={props.accountSwitcherOpen ?? false}
           onClick={props.onOpenAccountSwitcher}
         >
           <Tooltip target={accountRef} applyAriaDescribedBy={false}>

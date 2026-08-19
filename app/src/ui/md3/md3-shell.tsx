@@ -177,6 +177,9 @@ export type Md3BuilderTarget =
   | { readonly kind: 'search'; readonly field: Md3SearchFieldKey }
   | { readonly kind: 'menu'; readonly menu: MenuKind }
 
+/** The shell avatar that owns the floating account switcher. */
+export type Md3AccountSwitcherAnchor = 'header' | 'rail'
+
 /** The single overlay the contract allows to be open at a time. */
 export type Md3ShellOverlay =
   | {
@@ -600,7 +603,14 @@ export interface IMd3ShellProps {
 
   readonly onOpenSettings: () => void
 
-  readonly onOpenAccountSwitcher: () => void
+  readonly onOpenAccountSwitcher: (anchor: Md3AccountSwitcherAnchor) => void
+
+  /** The avatar currently reporting the host-owned switcher as expanded. */
+  readonly accountSwitcherAnchor?: Md3AccountSwitcherAnchor | null
+
+  readonly headerAccountButtonRef?: React.Ref<HTMLButtonElement>
+
+  readonly railAccountButtonRef?: React.Ref<HTMLButtonElement>
 
   /** Focus target for the global search input, for a palette or a shortcut. */
   readonly searchInputRef?: React.Ref<HTMLInputElement>
@@ -798,6 +808,7 @@ export function Md3Shell(props: IMd3ShellProps) {
     menuHandlers,
     menuExtensions,
     onSelectExtraDestination,
+    onOpenAccountSwitcher,
   } = props
 
   const [internalState, internalDispatch] = React.useReducer(
@@ -899,6 +910,15 @@ export function Md3Shell(props: IMd3ShellProps) {
   const onCloseOverlay = React.useCallback(
     () => dispatch({ type: 'close-overlay' }),
     [dispatch]
+  )
+
+  const onOpenAccountSwitcherFromHeader = React.useCallback(
+    () => onOpenAccountSwitcher('header'),
+    [onOpenAccountSwitcher]
+  )
+  const onOpenAccountSwitcherFromRail = React.useCallback(
+    () => onOpenAccountSwitcher('rail'),
+    [onOpenAccountSwitcher]
   )
 
   const openMenu = React.useCallback(
@@ -1202,7 +1222,9 @@ export function Md3Shell(props: IMd3ShellProps) {
         onOpenNotifications={props.onOpenNotifications}
         onToggleTheme={props.onToggleTheme}
         onOpenSettings={props.onOpenSettings}
-        onOpenAccountSwitcher={props.onOpenAccountSwitcher}
+        onOpenAccountSwitcher={onOpenAccountSwitcherFromHeader}
+        accountSwitcherOpen={props.accountSwitcherAnchor === 'header'}
+        accountButtonRef={props.headerAccountButtonRef}
       />
 
       {showTabStrip ? (
@@ -1219,7 +1241,9 @@ export function Md3Shell(props: IMd3ShellProps) {
             mainPaneId={Md3ShellPaneId}
             onSelectDestination={onSelectDestination}
             onOpenSettings={props.onOpenSettings}
-            onOpenAccountSwitcher={props.onOpenAccountSwitcher}
+            onOpenAccountSwitcher={onOpenAccountSwitcherFromRail}
+            accountSwitcherOpen={props.accountSwitcherAnchor === 'rail'}
+            accountButtonRef={props.railAccountButtonRef}
             onContextMenu={onOpenDrawerMenu}
           />
         ) : (
