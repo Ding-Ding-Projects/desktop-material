@@ -10,6 +10,12 @@
   .worktree-list-post-filter {
     border-top: 1px solid var(--md-sys-color-outline-variant);
     display: grid;
+    // An `auto` grid column is sized from its content, so one wide child grows
+    // the column past the foldout and every sibling inherits that width — the
+    // prose then lays out on one long line and `overflow-x: hidden` cuts it
+    // mid-word instead of wrapping. `minmax(0, 1fr)` lets the column shrink to
+    // the panel, which is what makes the wrapping below actually take effect.
+    grid-template-columns: minmax(0, 1fr);
     flex-shrink: 0;
     gap: var(--spacing);
     max-height: min(340px, 48vh);
@@ -22,6 +28,9 @@
   .worktree-administration,
   .worktree-maintenance-review {
     display: grid;
+    // Same reason as the panel above: without this the card's own column is
+    // content-sized and its paragraphs never wrap.
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--spacing-half);
     min-width: 0;
 
