@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://desktop-material.invalid/schemas/design-parity-receipt-v1.json",
+  "title": "Desktop Material deterministic visual-diff receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "tool", "tuple", "inputs", "comparison", "diff", "immutableInputsVerified"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "const": "desktop-material-design-parity-compare" },
+        "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" }
+      }
+    },
+    "tuple": { "$ref": "#/$defs/captureTuple" },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reference", "production"],
+      "properties": {
+        "reference": { "$ref": "#/$defs/input" },
+        "production": { "$ref": "#/$defs/input" }
+      }
+    },
+    "comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "bytes", "sha256", "width", "height", "layout"],
+      "properties": {
+        "path": { "$ref": "#/$defs/path" },
+        "bytes": { "type": "integer", "minimum": 1, "maximum": 134217728 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "width": { "type": "integer", "minimum": 1, "maximum": 17000 },
+        "height": { "type": "integer", "minimum": 1, "maximum": 17000 },
+        "layout": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["labels", "padding", "gap", "headerHeight", "headerToImageGap"],
+          "properties": {
+            "labels": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["reference", "production"],
+              "properties": {
+                "reference": { "const": "REFERENCE" },
+                "production": { "const": "PRODUCTION" }
+              }
+            },
+            "padding": { "type": "integer", "minimum": 0, "maximum": 512 },
+            "gap": { "type": "integer", "minimum": 0, "maximum": 512 },
+            "headerHeight": { "type": "integer", "minimum": 0, "maximum": 512 },
+            "headerToImageGap": { "type": "integer", "minimum": 0, "maximum": 512 }
+          }
+        }
+      }
+    },
+    "diff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["comparedPixelCount", "differentPixelCount", "differentPixelFraction", "differentPixelRatio", "changedBounds", "totalAbsoluteChannelDelta", "maximumChannelDelta"],
+      "properties": {
+        "comparedPixelCount": { "type": "integer", "minimum": 1 },
+        "differentPixelCount": { "type": "integer", "minimum": 0 },
+        "differentPixelFraction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["numerator", "denominator"],
+          "properties": {
+            "numerator": { "type": "integer", "minimum": 0 },
+            "denominator": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "differentPixelRatio": { "type": "number", "minimum": 0, "maximum": 1 },
+        "changedBounds": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["left", "top", "right", "bottom", "width", "height"],
+              "properties": {
+                "left": { "type": "integer", "minimum": 0 },
+                "top": { "type": "integer", "minimum": 0 },
+                "right": { "type": "integer", "minimum": 0 },
+                "bottom": { "type": "integer", "minimum": 0 },
+                "width": { "type": "integer", "minimum": 1 },
+                "height": { "type": "integer", "minimum": 1 }
+              }
+            }
+          ]
+        },
+        "totalAbsoluteChannelDelta": { "type": "integer", "minimum": 0 },
+        "maximumChannelDelta": { "type": "integer", "minimum": 0, "maximum": 255 }
+      }
+    },
+    "immutableInputsVerified": { "const": true }
+  },
+  "$defs": {
+    "captureTuple": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["referenceFile", "referenceRoute", "productionRoute", "state", "theme", "viewportWidth", "viewportHeight", "scale"],
+      "properties": {
+        "referenceFile": { "$ref": "#/$defs/relativePath" },
+        "referenceRoute": { "$ref": "#/$defs/id" },
+        "productionRoute": { "$ref": "#/$defs/id" },
+        "state": { "$ref": "#/$defs/id" },
+        "theme": { "enum": ["light", "dark"] },
+        "viewportWidth": { "type": "integer", "minimum": 160, "maximum": 8192 },
+        "viewportHeight": { "type": "integer", "minimum": 160, "maximum": 8192 },
+        "scale": { "type": "number", "minimum": 0.5, "maximum": 4 }
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "bytes", "sha256", "width", "height", "bitDepth", "colorType"],
+      "properties": {
+        "path": { "$ref": "#/$defs/path" },
+        "bytes": { "type": "integer", "minimum": 1, "maximum": 67108864 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "width": { "type": "integer", "minimum": 1, "maximum": 8192 },
+        "height": { "type": "integer", "minimum": 1, "maximum": 8192 },
+        "bitDepth": { "const": 8 },
+        "colorType": { "enum": [2, 6] }
+      }
+    },
+    "id": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$" },
+    "path": { "type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^[^\\u0000-\\u001f\\u007f]+$" },
+    "relativePath": { "type": "string", "minLength": 1, "maxLength": 1024, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[^\\u0000-\\u001f\\u007f]+$" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}
