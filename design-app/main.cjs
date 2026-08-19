@@ -106,7 +106,13 @@ async function waitForCaptureReceipt(window) {
     }
     await new Promise(resolve => setTimeout(resolve, 50))
   }
-  throw new Error('The design reference did not reach a capture-ready state.')
+  const stage = await window.webContents.executeJavaScript(
+    'window.__designCaptureStage || "not started"',
+    true
+  )
+  throw new Error(
+    `The design reference did not reach a capture-ready state; last stage: ${stage}.`
+  )
 }
 
 async function runCapture() {
@@ -184,14 +190,15 @@ async function openViewer() {
 app.whenReady().then(async () => {
   registerIpc()
   configureSession()
+  let exitCode = 0
   try {
     if (launchConfiguration.capture) await runCapture()
     else await openViewer()
   } catch (error) {
     process.stderr.write(`${error.message}\n`)
-    process.exitCode = 1
+    exitCode = 1
   } finally {
-    if (launchConfiguration.capture) app.quit()
+    if (launchConfiguration.capture) app.exit(exitCode)
   }
 })
 

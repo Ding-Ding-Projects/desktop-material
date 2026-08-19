@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url'
 
 const require = createRequire(import.meta.url)
 const { catalogReceipt, parseArguments } = require('./catalog.cjs')
+const { assertLaunchResult } = require('./launch-result.cjs')
 const here = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(here, '..')
 
@@ -89,8 +90,11 @@ const result = spawnSync(
     windowsHide: Boolean(options.capture),
   }
 )
-if (result.error) {
-  process.stderr.write(`${result.error.message}\n`)
+let exitCode
+try {
+  exitCode = assertLaunchResult(options, result)
+} catch (error) {
+  process.stderr.write(`${error.message}\n`)
   process.exit(1)
 }
-process.exit(result.status ?? 1)
+process.exit(exitCode)

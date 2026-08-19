@@ -6,6 +6,7 @@ const os = require('node:os')
 const path = require('node:path')
 const test = require('node:test')
 const catalog = require('../catalog.cjs')
+const { PngSignature, assertLaunchResult } = require('../launch-result.cjs')
 
 const ExpectedRoutes = [
   'workspace-changes-light',
@@ -126,6 +127,8 @@ test('runtime load replaces remote runtime resources in memory and never changes
   assert.doesNotMatch(rendered.html, /<link\b[^>]*fonts\.googleapis\.com/i)
   assert.doesNotMatch(rendered.html, /<link\b[^>]*fonts\.gstatic\.com/i)
   assert.match(rendered.html, /data-design-reference-resources/)
+  assert.match(rendered.html, /designReferenceSeed=0x5eed2026/)
+  assert.match(rendered.html, /Math\.imul\(designReferenceSeed,1664525\)/)
   assert.match(rendered.html, /react\.production\.min\.js/)
   assert.match(rendered.html, /data-design-reference-fonts/)
 })
@@ -207,8 +210,40 @@ test('capture output must be absolute, new, and PNG', () => {
   }
 })
 
+test('launcher rejects the prior false-success shape and verifies real PNG output', () => {
+  const output = path.join(
+    os.tmpdir(),
+    `design-reference-launch-result-${process.pid}.png`
+  )
+  fs.rmSync(output, { force: true })
+  const options = { capture: output }
+  assert.throws(
+    () => assertLaunchResult(options, { status: 0, error: null }),
+    /exited successfully without producing/
+  )
+  assert.equal(assertLaunchResult(options, { status: 5, error: null }), 5)
+  fs.writeFileSync(
+    output,
+    Buffer.concat([PngSignature, Buffer.from('fixture')])
+  )
+  try {
+    assert.equal(assertLaunchResult(options, { status: 0, error: null }), 0)
+    fs.writeFileSync(output, 'not a png')
+    assert.throws(
+      () => assertLaunchResult(options, { status: 0, error: null }),
+      /not a PNG/
+    )
+  } finally {
+    fs.rmSync(output, { force: true })
+  }
+})
+
 test('Electron boundary stays sandboxed, offline, and overwrite-safe', () => {
   const main = fs.readFileSync(path.join(__dirname, '..', 'main.cjs'), 'utf8')
+  const runtime = fs.readFileSync(
+    path.join(__dirname, '..', 'runtime.js'),
+    'utf8'
+  )
   for (const contract of [
     'nodeIntegration: false',
     'contextIsolation: true',
@@ -220,5 +255,17 @@ test('Electron boundary stays sandboxed, offline, and overwrite-safe', () => {
     "app.commandLine.appendSwitch('force-device-scale-factor', '1')",
   ]) {
     assert.ok(main.includes(contract), `missing Electron contract: ${contract}`)
+  }
+  for (const contract of [
+    'function exactTextButtons(scope, text)',
+    'node.nodeType === Node.TEXT_NODE',
+    'const actionTimeoutMs = 5000',
+    'await waitFor(',
+    "visible(element) && element.getAttribute('title') === action.name",
+  ]) {
+    assert.ok(
+      runtime.includes(contract),
+      `missing deterministic action-wait contract: ${contract}`
+    )
   }
 })

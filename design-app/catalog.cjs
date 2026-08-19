@@ -297,9 +297,14 @@ function runtimeHtml(referenceId) {
     'https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js':
       reactDomUrl,
   }).replaceAll('</script', '<\\/script')
+  const deterministicBootstrap = [
+    'let designReferenceSeed=0x5eed2026;',
+    'Math.random=()=>{designReferenceSeed=(Math.imul(designReferenceSeed,1664525)+1013904223)>>>0;return designReferenceSeed/0x100000000;};',
+    `window.__resources=Object.assign(window.__resources||{},${resourceMap});`,
+  ].join('')
   const injection = [
     `<base href="${escapeAttribute(baseUrl)}">`,
-    `<script data-design-reference-resources>window.__resources=Object.assign(window.__resources||{},${resourceMap})</script>`,
+    `<script data-design-reference-resources>${deterministicBootstrap}</script>`,
     `<link data-design-reference-fonts rel="stylesheet" href="${escapeAttribute(
       fontCssUrl
     )}">`,

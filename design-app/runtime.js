@@ -27,6 +27,17 @@
     })
   }
 
+  function exactTextButtons(scope, text) {
+    return [...scope.querySelectorAll('button')].filter(button => {
+      if (!visible(button)) return false
+      const directText = [...button.childNodes].some(
+        node =>
+          node.nodeType === Node.TEXT_NODE && normalize(node.nodeValue) === text
+      )
+      return directText || exactLeafText(button, text).length > 0
+    })
+  }
+
   function exactlyOne(items, description) {
     const unique = [...new Set(items)]
     if (unique.length !== 1) {
@@ -60,29 +71,65 @@
   }
 
   async function performAction(document, action) {
+    const actionTimeoutMs = 5000
     let target
     if (action.kind === 'click-title') {
       const scope = action.scopeLabel
         ? screenScope(document, action.scopeLabel)
         : document
+      await waitFor(
+        document,
+        () =>
+          [...scope.querySelectorAll('[title]')].filter(
+            element =>
+              visible(element) && element.getAttribute('title') === action.name
+          ).length === 1,
+        action.name,
+        actionTimeoutMs
+      )
+      const visibleTitles = [...scope.querySelectorAll('[title]')]
+        .filter(visible)
+        .map(element => element.getAttribute('title'))
       target = exactlyOne(
-        [...scope.querySelectorAll('[title]')].filter(
-          element =>
-            visible(element) && element.getAttribute('title') === action.name
+        [...scope.querySelectorAll('[title]')].filter(element =>
+          visible(element)
+            ? element.getAttribute('title') === action.name
+            : false
         ),
-        action.name
+        `${action.name} (visible titles: ${visibleTitles.join(', ') || 'none'})`
       )
     } else if (action.kind === 'click-text-button') {
       const scope = action.scopeLabel
         ? screenScope(document, action.scopeLabel)
         : document
-      target = exactlyOne(
-        exactLeafText(scope, action.name)
-          .map(element => element.closest('button'))
-          .filter(Boolean),
-        action.name
-      )
+      try {
+        await waitFor(
+          document,
+          () => new Set(exactTextButtons(scope, action.name)).size === 1,
+          action.name,
+          actionTimeoutMs
+        )
+      } catch (error) {
+        const visibleButtons = [...scope.querySelectorAll('button')]
+          .filter(visible)
+          .map(element => normalize(element.textContent))
+          .filter(Boolean)
+        throw new Error(
+          `${error.message} Visible button text: ${
+            visibleButtons.join(' | ') || 'none'
+          }.`
+        )
+      }
+      target = exactlyOne(exactTextButtons(scope, action.name), action.name)
     } else if (action.kind === 'click-indexed-css') {
+      await waitFor(
+        document,
+        () =>
+          [...document.querySelectorAll(action.selector)].filter(visible)
+            .length > action.index,
+        action.description,
+        actionTimeoutMs
+      )
       const matches = [...document.querySelectorAll(action.selector)].filter(
         visible
       )
@@ -93,6 +140,17 @@
       }
       target = matches[action.index]
     } else if (action.kind === 'click-near-placeholder-title') {
+      await waitFor(
+        document,
+        () =>
+          [...document.querySelectorAll('input,textarea')].filter(
+            element =>
+              visible(element) &&
+              element.getAttribute('placeholder') === action.placeholder
+          ).length === 1,
+        action.placeholder,
+        actionTimeoutMs
+      )
       const input = exactlyOne(
         [...document.querySelectorAll('input,textarea')].filter(
           element =>
@@ -110,6 +168,17 @@
         `${action.title} beside ${action.placeholder}`
       )
     } else if (action.kind === 'fill-placeholder') {
+      await waitFor(
+        document,
+        () =>
+          [...document.querySelectorAll('input,textarea')].filter(
+            element =>
+              visible(element) &&
+              element.getAttribute('placeholder') === action.placeholder
+          ).length === 1,
+        action.placeholder,
+        actionTimeoutMs
+      )
       target = exactlyOne(
         [...document.querySelectorAll('input,textarea')].filter(
           element =>
@@ -135,6 +204,14 @@
       await nextFrames(document.defaultView)
       return { ...action, status: 'performed' }
     } else if (action.kind === 'context-menu-selector') {
+      await waitFor(
+        document,
+        () =>
+          [...document.querySelectorAll(action.selector)].filter(visible)
+            .length > action.index,
+        action.description,
+        actionTimeoutMs
+      )
       const matches = [...document.querySelectorAll(action.selector)].filter(
         visible
       )
@@ -154,6 +231,12 @@
       await nextFrames(document.defaultView)
       return { ...action, status: 'performed' }
     } else if (action.kind === 'context-menu-text') {
+      await waitFor(
+        document,
+        () => exactLeafText(document, action.text).length === 1,
+        action.text,
+        actionTimeoutMs
+      )
       target = exactlyOne(exactLeafText(document, action.text), action.text)
       target.dispatchEvent(
         new document.defaultView.MouseEvent('contextmenu', {
@@ -311,6 +394,10 @@
     autoFit,
     disableMotion,
   }) {
+    const stage = value => {
+      frame.ownerDocument.defaultView.__designCaptureStage = value
+    }
+    stage('loading document')
     await new Promise((resolve, reject) => {
       frame.addEventListener('load', resolve, { once: true })
       setTimeout(
@@ -319,14 +406,23 @@
       )
       frame.srcdoc = reference.html
     })
+    stage('waiting for design runtime')
     await waitForRuntime(frame)
+    stage('preparing state')
     const document = frame.contentDocument
     const performedActions = []
     if (reference.identity.canonical) {
       performedActions.push(...(await setAutoFit(document, autoFit)))
     }
+    stage('applying theme')
     await setTheme(document, theme)
+    stage('performing route actions')
     for (const action of route?.actions ?? []) {
+      stage(
+        `performing ${
+          action.name ?? action.description ?? action.placeholder ?? action.kind
+        }`
+      )
       performedActions.push(await performAction(document, action))
     }
     if (route?.expectedLabels?.length) {
@@ -341,7 +437,9 @@
         route.expectedLabels.at(-1)
       )
     }
+    stage('waiting for fonts')
     await document.fonts.ready
+    stage('settling state')
     await new Promise(resolve => setTimeout(resolve, route?.settleMs ?? 1100))
     if (disableMotion) {
       const style = document.createElement('style')
@@ -398,6 +496,7 @@
     if (observed.theme !== theme) {
       throw new Error(`Observed ${observed.theme}; expected ${theme}.`)
     }
+    stage('ready')
     return { performedActions, observed }
   }
 
