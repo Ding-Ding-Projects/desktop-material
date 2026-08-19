@@ -153,6 +153,10 @@ export function translate(
  * though the vocabulary feature were not installed at all rather than merely
  * disabled.
  */
+export function personalizeText(text: string): string {
+  return personalize(text)
+}
+
 function personalize(text: string): string {
   if (isSchoolModeEnabled()) {
     return text
