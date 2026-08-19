@@ -298,6 +298,7 @@ const Md3ComponentFiles: ReadonlyArray<string> = [
   'md3-locks-view.tsx',
   'md3-menu-overlay.tsx',
   'md3-navigation-drawer.tsx',
+  'md3-navigation-rail.tsx',
   'md3-pane-header.tsx',
   'md3-primitives.tsx',
   'md3-regex-builder-dialog.tsx',

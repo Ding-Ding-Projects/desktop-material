@@ -7,6 +7,7 @@ import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { Ref } from '../lib/ref'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
+import { Md3DestructiveGateBody } from '../md3/md3-destructive-gate'
 
 interface IDeleteBranchProps {
   readonly dispatcher: Dispatcher
@@ -21,6 +22,7 @@ interface IDeleteBranchProps {
 interface IDeleteBranchState {
   readonly includeRemoteBranch: boolean
   readonly isDeleting: boolean
+  readonly gateAuthorized: boolean
 }
 
 export class DeleteBranch extends React.Component<
@@ -33,6 +35,7 @@ export class DeleteBranch extends React.Component<
     this.state = {
       includeRemoteBranch: false,
       isDeleting: false,
+      gateAuthorized: false,
     }
   }
 
@@ -57,10 +60,29 @@ export class DeleteBranch extends React.Component<
             <p>This action cannot be undone.</p>
 
             {this.renderDeleteOnRemote()}
+            <Md3DestructiveGateBody
+              actionId="delete-branch"
+              summary={`Delete branch ${this.props.branch.name}.`}
+              irreversible="The branch and any selected remote copy cannot be restored by this action."
+              targetKeyLabel={`branch ${this.props.branch.name}`}
+              effectKeyLabel="deleting the branch"
+              onAuthorizationChanged={gateAuthorized =>
+                this.setState({ gateAuthorized })
+              }
+              disabled={this.state.isDeleting}
+            />
           </div>
         </DialogContent>
         <DialogFooter>
-          <OkCancelButtonGroup destructive={true} okButtonText="Delete" />
+          <OkCancelButtonGroup
+            destructive={true}
+            okButtonText="Delete"
+            okButtonDisabled={
+              this.state.isDeleting || !this.state.gateAuthorized
+            }
+            cancelButtonDisabled={this.state.isDeleting}
+          />
+          <p>Emergency exit: Cancel leaves the branch unchanged.</p>
         </DialogFooter>
       </Dialog>
     )
@@ -101,6 +123,9 @@ export class DeleteBranch extends React.Component<
   }
 
   private deleteBranch = async () => {
+    if (!this.state.gateAuthorized) {
+      return
+    }
     const { dispatcher, repository, branch } = this.props
 
     this.setState({ isDeleting: true })
