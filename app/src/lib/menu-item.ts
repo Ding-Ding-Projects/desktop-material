@@ -4,6 +4,8 @@ import { invokeContextualMenu } from '../ui/main-process-proxy'
 import './context-menu-pointer'
 
 /** An octicon-style symbol descriptor rendered before a menu item's label. */
+import { personalizeText } from './i18n'
+
 export interface IMenuItemIcon {
   readonly p: string[]
   readonly w: number
@@ -112,10 +114,42 @@ export function getPlatformSpecificNameOrSymbolForModifier(
  * suggestions (addSpellCheckMenu) keep the native popup, which also serves
  * as the fallback if the in-app menu cannot render.
  */
+/**
+ * Run every user-facing label in a menu tree through the personal-vocabulary
+ * boundary.
+ *
+ * Menu labels are written as literals at hundreds of call sites rather than
+ * routed through `t()`, so the vocabulary that reaches every translated string
+ * never reached a single context menu — the one surface where the app names
+ * its own concepts most often. Personalizing here, at the single choke point
+ * every context menu already passes through, fixes all of them at once and
+ * keeps the replacement at a user-facing text boundary exactly as the
+ * translated path does.
+ *
+ * Only `label` is touched: it is what the user reads. Actions, roles,
+ * accelerators, icons, checked state, and every other field are structural and
+ * pass through untouched, because renaming one would break the menu rather
+ * than translate it.
+ */
+export function personalizeMenuItems<T extends IMenuItem>(
+  items: ReadonlyArray<T>
+): ReadonlyArray<T> {
+  return items.map(item => ({
+    ...item,
+    label: item.label === undefined ? undefined : personalizeText(item.label),
+    submenu:
+      item.submenu === undefined
+        ? undefined
+        : personalizeMenuItems(item.submenu),
+  })) as ReadonlyArray<T>
+}
+
 export async function showContextualMenu(
-  items: ReadonlyArray<IMenuItem>,
+  rawItems: ReadonlyArray<IMenuItem>,
   addSpellCheckMenu = false
 ) {
+  const items = personalizeMenuItems(rawItems)
+
   if (!addSpellCheckMenu) {
     try {
       // Imported lazily so this lib module has no static ui dependency.
