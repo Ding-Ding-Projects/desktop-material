@@ -51,12 +51,6 @@ import {
   setShowDialogEmoji,
 } from '../../lib/dialog-emoji'
 import {
-  ClassicToolbarProvenance,
-  getShowClassicToolbar,
-  getShowClassicToolbarProvenance,
-  setShowClassicToolbar,
-} from '../../lib/classic-toolbar'
-import {
   IScheduledSettingsProps,
   ScheduledSettings,
 } from './scheduled-settings'
@@ -118,10 +112,6 @@ interface IAppearanceState {
   readonly showDialogEmoji: boolean
   /** Whether that value was chosen here or is the shipped fallback. */
   readonly showDialogEmojiProvenance: DialogEmojiProvenance
-  /** Live value of the compatibility toolbar setting. */
-  readonly showClassicToolbar: boolean
-  /** Whether the toolbar value was recorded or is the shipped fallback. */
-  readonly showClassicToolbarProvenance: ClassicToolbarProvenance
 }
 
 export class Appearance extends React.Component<
@@ -147,8 +137,6 @@ export class Appearance extends React.Component<
       funnyLevelCantonese: audioSettings.funnyLevelCantonese,
       showDialogEmoji: getShowDialogEmoji(),
       showDialogEmojiProvenance: getShowDialogEmojiProvenance(),
-      showClassicToolbar: getShowClassicToolbar(),
-      showClassicToolbarProvenance: getShowClassicToolbarProvenance(),
     }
 
     if (!usePropTheme) {
@@ -246,63 +234,6 @@ export class Appearance extends React.Component<
     )
   }
 
-  /** The optional compatibility toolbar rendered inside the Material shell. */
-  private renderClassicToolbar() {
-    const languageMode = this.props.appearanceCustomization.languageMode
-    const localize = (key: Parameters<typeof translate>[0]) =>
-      translate(key, languageMode)
-    const levels: IFunnyLevels = {
-      english: this.state.funnyLevelEnglish,
-      cantonese: this.state.funnyLevelCantonese,
-    }
-    const enabled = this.state.showClassicToolbar
-    const provenance = translate(
-      this.state.showClassicToolbarProvenance === 'stored'
-        ? 'classicToolbar.provenanceStored'
-        : 'classicToolbar.provenanceDefault',
-      languageMode,
-      {
-        value: translatedVariable(
-          enabled ? 'classicToolbar.stateOn' : 'classicToolbar.stateOff'
-        ),
-      }
-    )
-
-    return (
-      <div
-        className="appearance-section appearance-customization-section appearance-classic-toolbar"
-        {...teleportAnchor('settings-classic-toolbar')}
-      >
-        <h2>{localize('classicToolbar.heading')}</h2>
-        <Checkbox
-          label={localize('classicToolbar.toggleLabel')}
-          value={enabled ? CheckboxValue.On : CheckboxValue.Off}
-          onChange={this.onShowClassicToolbarChanged}
-          ariaDescribedBy="classic-toolbar-provenance"
-        />
-        <details className="appearance-classic-toolbar-explanation">
-          <summary>{localize('classicToolbar.explanationSummary')}</summary>
-          <p className="appearance-customization-caption">
-            {translateWithFunnyLevel(
-              'classicToolbar.explanation',
-              languageMode,
-              levels
-            )}
-          </p>
-          <p className="appearance-customization-caption">
-            {localize('classicToolbar.boundaryNote')}
-          </p>
-        </details>
-        <p
-          id="classic-toolbar-provenance"
-          className="appearance-customization-caption appearance-classic-toolbar-provenance"
-        >
-          {provenance}
-        </p>
-      </div>
-    )
-  }
-
   private onShowDialogEmojiChanged = (
     event: React.FormEvent<HTMLInputElement>
   ) => {
@@ -311,17 +242,6 @@ export class Appearance extends React.Component<
     this.setState({
       showDialogEmoji: enabled,
       showDialogEmojiProvenance: getShowDialogEmojiProvenance(),
-    })
-  }
-
-  private onShowClassicToolbarChanged = (
-    event: React.FormEvent<HTMLInputElement>
-  ) => {
-    const enabled = event.currentTarget.checked
-    setShowClassicToolbar(enabled)
-    this.setState({
-      showClassicToolbar: enabled,
-      showClassicToolbarProvenance: getShowClassicToolbarProvenance(),
     })
   }
 
@@ -1001,7 +921,6 @@ export class Appearance extends React.Component<
         {this.renderElementGestureNote()}
         {this.renderLanguageAndNavigation()}
         {this.renderDialogEmoji()}
-        {this.renderClassicToolbar()}
         {this.renderPersonalVocabulary()}
         <SchoolModePreferences
           languageMode={this.props.appearanceCustomization.languageMode}

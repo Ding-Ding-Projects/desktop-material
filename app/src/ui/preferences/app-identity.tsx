@@ -37,7 +37,6 @@ import { AppBrand } from '../window/app-brand'
 import { Button } from '../lib/button'
 import { Select } from '../lib/select'
 import { TextBox } from '../lib/text-box'
-import { InfiniteColorPicker } from '../appearance/infinite-color-picker'
 
 interface IAppIdentityProps {
   readonly value: IAppIdentityCustomization
@@ -306,15 +305,25 @@ export class AppIdentity extends React.Component<
     }
   }
 
-  private onLogoColorChanged = (logoColor: string) => this.update({ logoColor })
+  private onLogoColorChanged = (event: React.FormEvent<HTMLInputElement>) => {
+    this.update({ logoColor: event.currentTarget.value })
+  }
 
-  private onFontColorChanged = (fontColor: string) => this.update({ fontColor })
+  private onFontColorChanged = (event: React.FormEvent<HTMLInputElement>) => {
+    this.update({ fontColor: event.currentTarget.value })
+  }
 
-  private onLogoBorderColorChanged = (logoBorderColor: string) =>
-    this.update({ logoBorderColor })
+  private onLogoBorderColorChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.update({ logoBorderColor: event.currentTarget.value })
+  }
 
-  private onHighlightColorChanged = (highlightColor: string) =>
-    this.update({ highlightColor })
+  private onHighlightColorChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.update({ highlightColor: event.currentTarget.value })
+  }
 
   private onClearLogoColor = () => {
     this.update({ logoColor: null })
@@ -551,10 +560,11 @@ export class AppIdentity extends React.Component<
             <div className="app-identity-color-control">
               <label htmlFor="app-identity-logo-color">Logo color</label>
               <div>
-                <InfiniteColorPicker
+                <input
                   id="app-identity-logo-color"
+                  type="color"
                   value={identity.logoColor ?? '#0969da'}
-                  label="Logo color"
+                  aria-label="Logo color"
                   onChange={this.onLogoColorChanged}
                 />
                 <Button
@@ -572,10 +582,11 @@ export class AppIdentity extends React.Component<
                 Border color
               </label>
               <div>
-                <InfiniteColorPicker
+                <input
                   id="app-identity-logo-border-color"
+                  type="color"
                   value={identity.logoBorderColor ?? '#8c959f'}
-                  label="Logo border color"
+                  aria-label="Logo border color"
                   onChange={this.onLogoBorderColorChanged}
                 />
                 <Button
@@ -799,10 +810,11 @@ export class AppIdentity extends React.Component<
           <div className="app-identity-color-control app-identity-name-color">
             <label htmlFor="app-identity-name-color">Name color</label>
             <div>
-              <InfiniteColorPicker
+              <input
                 id="app-identity-name-color"
+                type="color"
                 value={identity.fontColor ?? '#24292f'}
-                label="App name color"
+                aria-label="App name color"
                 onChange={this.onFontColorChanged}
               />
               <Button
@@ -819,10 +831,11 @@ export class AppIdentity extends React.Component<
               Highlight color
             </label>
             <div>
-              <InfiniteColorPicker
+              <input
                 id="app-identity-highlight-color"
+                type="color"
                 value={identity.highlightColor ?? '#dbeafe'}
-                label="App name highlight color"
+                aria-label="App name highlight color"
                 onChange={this.onHighlightColorChanged}
               />
               <Button

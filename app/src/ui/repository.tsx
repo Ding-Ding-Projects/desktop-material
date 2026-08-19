@@ -231,29 +231,6 @@ interface IRepositoryViewProps {
   readonly actionsStore: ActionsStore
   readonly releasesStore: GitHubReleasesStore
   readonly issueWorkflowsStore: GitHubIssuesStore
-
-  /**
-   * The host already renders navigation that reaches every
-   * `RepositorySectionTab` this view's own rail does, plus an equivalent
-   * Settings control — Classic mode's MD3 rail, as of the shell unification,
-   * is the one caller that sets this. Omitted (the default), this view draws
-   * its rail exactly as it always has, so every existing caller — Material
-   * mode's classic-section fallback included — is unchanged.
-   *
-   * True suppresses the section tabs (`renderTabs()`) and the Settings
-   * button, because the host's navigation dispatches the identical
-   * `PopupType.Preferences` popup for Settings and a real section change for
-   * every tab. It does not suppress Branches, the account avatar, or the
-   * contextual "Changed files"/"Commit list" buttons: none of those three
-   * has a working equivalent on the host's own navigation today (Branches
-   * opens a live foldout the host's "branches" destination does not yet
-   * trigger in Classic mode; the account avatar opens a quick inline
-   * account-switch popover the host's own avatar does not replace, since it
-   * only opens Preferences; the compact buttons have no host equivalent at
-   * all). Removing any of the three would drop a reachable control with
-   * nothing standing in for it.
-   */
-  readonly shellProvidesNavigation?: boolean
 }
 
 interface IRepositoryViewState {
@@ -838,16 +815,9 @@ export class RepositoryView extends React.Component<
       selectedSection === RepositorySectionTab.History &&
       this.props.state.commitSelection.shas.length > 0
 
-    // See `IRepositoryViewProps.shellProvidesNavigation`: the section tabs
-    // and Settings are the two controls the host's own navigation already
-    // provides, in Classic mode, so this rail stops drawing them there
-    // rather than drawing the same destinations twice with two contradictory
-    // active states.
-    const shellProvidesNavigation = this.props.shellProvidesNavigation === true
-
     return (
       <nav className="repository-rail" aria-label="Repository navigation">
-        {!shellProvidesNavigation && this.renderTabs()}
+        {this.renderTabs()}
         {showCompactChangesList && (
           <button
             type="button"
@@ -888,18 +858,16 @@ export class RepositoryView extends React.Component<
           <span className="rail-label">Branches</span>
         </button>
         <div className="rail-spacer" />
-        {!shellProvidesNavigation && (
-          <button
-            type="button"
-            className="rail-icon-button rail-settings"
-            onClick={this.onShowPreferences}
-            aria-label="Settings"
-          >
-            <span className="rail-icon">
-              <MaterialSymbol name="settings" size={22} />
-            </span>
-          </button>
-        )}
+        <button
+          type="button"
+          className="rail-icon-button rail-settings"
+          onClick={this.onShowPreferences}
+          aria-label="Settings"
+        >
+          <span className="rail-icon">
+            <MaterialSymbol name="settings" size={22} />
+          </span>
+        </button>
         <button
           type="button"
           className="rail-icon-button rail-avatar"
@@ -1144,17 +1112,12 @@ export class RepositoryView extends React.Component<
     ) {
       return <React.Fragment />
     }
-    const maximumWidth =
-      selectedSection === RepositorySectionTab.Changes ||
-      selectedSection === RepositorySectionTab.History
-        ? Math.min(this.props.sidebarWidth.max, 356)
-        : this.props.sidebarWidth.max
     return (
       <FocusContainer onFocusWithinChanged={this.onSidebarFocusWithinChanged}>
         <Resizable
           id="repository-sidebar"
           width={this.props.sidebarWidth.value}
-          maximumWidth={maximumWidth}
+          maximumWidth={this.props.sidebarWidth.max}
           minimumWidth={this.props.sidebarWidth.min}
           onReset={this.handleSidebarWidthReset}
           onResize={this.handleSidebarResize}
@@ -1700,16 +1663,8 @@ export class RepositoryView extends React.Component<
   }
 
   public render() {
-    const selectedSection = this.getSelectedSection()
-    const className =
-      selectedSection === RepositorySectionTab.Changes
-        ? 'repository-workbench repository-workbench-changes'
-        : selectedSection === RepositorySectionTab.History
-        ? 'repository-workbench repository-workbench-history'
-        : undefined
-
     return (
-      <UiView id="repository" className={className}>
+      <UiView id="repository">
         {this.renderRail()}
         {this.renderAccountSwitcher()}
         {this.renderSidebar()}

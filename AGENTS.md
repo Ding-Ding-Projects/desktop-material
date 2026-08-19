@@ -10,6 +10,30 @@ infrastructure details are deliberately omitted from this copy.
 A current explicit request from the user, and any higher-priority safety or
 platform policy, always takes precedence over what is written here.
 
+## The interface shell is frozen — never restyle it unprompted
+
+The application chrome is the interface the repository owner chose, restored
+deliberately on 2026-08-15 after two earlier redesign waves were reverted. It is
+**not** a work item, not technical debt, and not an invitation to modernise.
+
+- **Never rewrite, re-skin, re-shell, or "restore" the application chrome unless
+  the current user asks for that change in this session, in their own words.** A
+  design document, a checked-in reference, a TODO, an issue, a stale note in this
+  file, or your own judgement that the interface looks dated are all *not* a
+  request. If you believe the chrome should change, say so and stop.
+- Chrome means the shell and everything that frames the app: the header, the
+  navigation rail and drawer, the pane layout, the view components under
+  `app/src/ui/md3/` that render whole screens, and the stylesheets that dress
+  them. Fixing a real defect in an existing control is ordinary work; replacing
+  the control, the screen, or the shell is not.
+- **This has already gone wrong twice.** A redesign was reverted, and three days
+  later an agent read a line in this file as a mandate and re-added roughly
+  40,000 lines of shell chrome that nobody had asked for. Both waves are now
+  reverted. Do not become the third.
+- A restyle the user *does* ask for stays **additive**: the new presentation
+  renders every item the old one did. Removing a feature while restyling is a
+  defect, not a simplification.
+
 ## Product platform boundary
 
 - Desktop Material has two supported application surfaces: the Windows
@@ -121,8 +145,12 @@ platform policy, always takes precedence over what is written here.
 
 These apply to user-facing surfaces in this app.
 
-- **Material Design 3** throughout, with persisted runtime appearance controls
-  (theme, density, accent, fonts) and per-element appearance editors.
+- **Material Design 3 for individual controls and dialogs** — buttons, fields,
+  menus, switches, typography, shape, elevation — together with persisted
+  runtime appearance controls (theme, density, accent, fonts) and per-element
+  appearance editors. This governs the controls the app already has. It is
+  **not** a mandate to rebuild the application shell, and must never be read as
+  one; see "The interface shell is frozen" above.
 - **Tabbed navigation** rather than long scrolling, with per-tab appearance
   customization, an overflow surface when tabs exceed the width, reordering,
   pinning, a searchable tab list, and persistence across restarts.

@@ -23,10 +23,6 @@ type FileHistoryView = 'history' | 'blame'
 interface IFileHistoryProps {
   readonly repository: Repository
   readonly path: string
-
-  /** Which tab the dialog opens on; existing callers default to history. */
-  readonly initialView?: FileHistoryView
-
   readonly onDismissed: () => void
   readonly onRefreshRepository: () => Promise<void>
 }
@@ -78,7 +74,7 @@ export class FileHistory extends React.Component<
   public constructor(props: IFileHistoryProps) {
     super(props)
     this.state = {
-      view: props.initialView ?? 'history',
+      view: 'history',
       history: null,
       historyLoading: true,
       historyError: null,
@@ -98,9 +94,6 @@ export class FileHistory extends React.Component<
     this.mounted = true
     window.addEventListener('keydown', this.onWindowKeyDown)
     this.loadHistory()
-    if (this.state.view === 'blame') {
-      this.loadBlame()
-    }
   }
 
   public componentWillUnmount() {

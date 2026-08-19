@@ -1,5 +1,3 @@
-import { isAnimatedRainbowColor } from './color-value'
-
 /** Version of the portable, code-native repository logo document. */
 export const RepositoryLogoDesignVersion = 1 as const
 export const MaxRepositoryLogoLayers = 8
@@ -57,7 +55,8 @@ export interface IRepositoryLogoTextLayer extends IRepositoryLogoLayerBase {
 }
 
 export type RepositoryLogoLayer =
-  IRepositoryLogoMarkLayer | IRepositoryLogoTextLayer
+  | IRepositoryLogoMarkLayer
+  | IRepositoryLogoTextLayer
 
 export interface IRepositoryLogoDesign {
   readonly version: typeof RepositoryLogoDesignVersion
@@ -152,9 +151,7 @@ function clamp(
 }
 
 function color(value: unknown, fallback: string): string {
-  return typeof value === 'string' &&
-    (/^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value) ||
-      isAnimatedRainbowColor(value))
+  return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)
     ? value
     : fallback
 }
