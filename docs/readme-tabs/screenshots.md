@@ -129,7 +129,7 @@ controls, and the active panel below the selected page.
 
 | Global Settings | Repository Settings | Stash Manager |
 | --- | --- | --- |
-| <img src="../assets/screenshots/material-settings.png" alt="Global Settings with browser-style tabs, close actions, search, and overflow" width="320"><br><sub>SHA-256 `43ff361771efeeeb01eb8b40b778b9a4e5b3a311457fc632271d9ad4aa513fc`</sub> | <img src="../assets/screenshots/material-remote-manager.png" alt="Repository Settings with browser-style tabs and the Remote page selected" width="320"><br><sub>SHA-256 `bb432055f8e05e687f78a8ec0cd661fcfb24fe0993ac9fb87efbdf4cd2f07c16`</sub> | <img src="../assets/screenshots/material-stash-manager.png" alt="Stash Manager with browser-style Manage, Export, History, and Appearance and voice pages" width="320"><br><sub>SHA-256 `856671a301ce9954302ccd36ef665678c4ffb7c6a8102f3863125fb68858549b`</sub> |
+| <img src="../assets/screenshots/material-settings.png" alt="Global Settings with browser-style tabs, close actions, search, and overflow" width="320"><br><sub>SHA-256 `d9146992f82160f4e3f62cb2de4bd384a3515f2fe2377d73d2598270b95bc003`</sub> | <img src="../assets/screenshots/material-remote-manager.png" alt="Repository Settings with browser-style tabs and the Remote page selected" width="320"><br><sub>SHA-256 `bb432055f8e05e687f78a8ec0cd661fcfb24fe0993ac9fb87efbdf4cd2f07c16`</sub> | <img src="../assets/screenshots/material-stash-manager.png" alt="Stash Manager with browser-style Manage, Export, History, and Appearance and voice pages" width="320"><br><sub>SHA-256 `856671a301ce9954302ccd36ef665678c4ffb7c6a8102f3863125fb68858549b`</sub> |
 
 <sub>全域設定、倉庫設定同 Stash 管理員而家共用同一條似瀏覽器嘅分頁列；開新頁、關頁同搵滿瀉分頁都係同一套手勢。</sub>
 
