@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "tool": {
+    "name": "desktop-material-design-parity-compare",
+    "version": "1.0.0"
+  },
+  "tuple": {
+    "referenceFile": "design/Desktop Material v2.dc.html",
+    "referenceRoute": "workspace-changes-light",
+    "productionRoute": "workspace-changes-light",
+    "state": "workspace-changes-light",
+    "theme": "light",
+    "viewportWidth": 960,
+    "viewportHeight": 660,
+    "scale": 1
+  },
+  "inputs": {
+    "reference": {
+      "path": "C:/Users/cntow/AppData/Local/Temp/desktop-material-parity-b174/reference-workspace-changes.png",
+      "bytes": 121098,
+      "sha256": "e5e36ba5183770e85e1faa6396570eb7088b69c928997d6bd4123843def52091",
+      "width": 960,
+      "height": 660,
+      "bitDepth": 8,
+      "colorType": 2
+    },
+    "production": {
+      "path": "C:/Users/cntow/AppData/Local/Temp/desktop-material-parity-b174/production-workspace-changes.png",
+      "bytes": 80162,
+      "sha256": "4e742a0493e043bff4680ec22b48f53c7acfcc5fbfc106086db93b80d9b91396",
+      "width": 960,
+      "height": 660,
+      "bitDepth": 8,
+      "colorType": 2
+    }
+  },
+  "comparison": {
+    "path": "C:/Users/cntow/AppData/Local/Temp/desktop-material-parity-b174/workspace-changes-side-by-side.png",
+    "bytes": 160259,
+    "sha256": "b757e575d16999877f73eb46efa6faf1dc28ec088aef729dc16d0bff5853f195",
+    "width": 1968,
+    "height": 740,
+    "layout": {
+      "labels": {
+        "reference": "REFERENCE",
+        "production": "PRODUCTION"
+      },
+      "padding": 16,
+      "gap": 16,
+      "headerHeight": 40,
+      "headerToImageGap": 8
+    }
+  },
+  "diff": {
+    "comparedPixelCount": 633600,
+    "differentPixelCount": 510768,
+    "differentPixelFraction": {
+      "numerator": 510768,
+      "denominator": 633600
+    },
+    "differentPixelRatio": 0.806136363636,
+    "changedBounds": {
+      "left": 0,
+      "top": 0,
+      "right": 959,
+      "bottom": 659,
+      "width": 960,
+      "height": 660
+    },
+    "totalAbsoluteChannelDelta": 37447590,
+    "maximumChannelDelta": 255
+  },
+  "immutableInputsVerified": true
+}
