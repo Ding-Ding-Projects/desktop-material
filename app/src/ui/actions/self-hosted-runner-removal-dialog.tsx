@@ -3,8 +3,8 @@ import * as React from 'react'
 
 import { ISelfHostedRunner } from '../../lib/self-hosted-runner/types'
 import { Button } from '../lib/button'
-import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { trapActionsDialogFocus } from './actions-dialog-focus'
+import { Md3DestructiveGateBody } from '../md3/md3-destructive-gate'
 
 interface ISelfHostedRunnerRemovalDialogProps {
   readonly runner: ISelfHostedRunner
@@ -16,9 +16,7 @@ interface ISelfHostedRunnerRemovalDialogProps {
 }
 
 interface ISelfHostedRunnerRemovalDialogState {
-  readonly identityConfirmed: boolean
-  readonly scopeConfirmed: boolean
-  readonly authorizationProgress: number
+  readonly gateAuthorized: boolean
 }
 
 let removalDialogSequence = 0
@@ -47,9 +45,7 @@ export class SelfHostedRunnerRemovalDialog extends React.Component<
     this.progressId = `self-hosted-runner-removal-progress-${instanceId}`
     this.errorId = `self-hosted-runner-removal-error-${instanceId}`
     this.state = {
-      identityConfirmed: false,
-      scopeConfirmed: false,
-      authorizationProgress: 0,
+      gateAuthorized: false,
     }
   }
 
@@ -82,31 +78,15 @@ export class SelfHostedRunnerRemovalDialog extends React.Component<
 
   private onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (
-      !this.props.submitting &&
-      this.state.identityConfirmed &&
-      this.state.scopeConfirmed &&
-      this.state.authorizationProgress === 100
-    ) {
+    if (!this.props.submitting && this.state.gateAuthorized) {
       this.props.onConfirm()
     }
-  }
-
-  private onAuthorizationProgress = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    this.setState({ authorizationProgress: Number(event.currentTarget.value) })
   }
 
   public render() {
     const { runner, submitting, error, progressMessage, onDismissed } =
       this.props
-    const { identityConfirmed, scopeConfirmed, authorizationProgress } =
-      this.state
-    const bothConfirmed = identityConfirmed && scopeConfirmed
-    const authorized = bothConfirmed && authorizationProgress === 100
-    const moving =
-      bothConfirmed && authorizationProgress > 0 && authorizationProgress < 100
+    const { gateAuthorized } = this.state
     const describedBy = [
       this.descriptionId,
       progressMessage ? this.progressId : null,
@@ -152,64 +132,22 @@ export class SelfHostedRunnerRemovalDialog extends React.Component<
                 </p>
               )}
             </div>
-            <fieldset className="actions-super-confirmation-checks">
-              <legend>Authorize this exact removal</legend>
-              <Checkbox
-                value={identityConfirmed ? CheckboxValue.On : CheckboxValue.Off}
-                disabled={submitting}
-                label={`I confirmed the runner identity: ${runner.name}.`}
-                onChange={event =>
-                  this.setState({
-                    identityConfirmed: event.currentTarget.checked,
-                    authorizationProgress: 0,
-                  })
-                }
-              />
-              <Checkbox
-                value={scopeConfirmed ? CheckboxValue.On : CheckboxValue.Off}
-                disabled={submitting}
-                label={`I confirmed the affected repository: ${runner.owner}/${runner.repository}.`}
-                onChange={event =>
-                  this.setState({
-                    scopeConfirmed: event.currentTarget.checked,
-                    authorizationProgress: 0,
-                  })
-                }
-              />
-            </fieldset>
-            <label className="actions-super-confirmation-slider">
-              <span>
-                Slide fully to authorize removal ({authorizationProgress}%)
-              </span>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={bothConfirmed ? authorizationProgress : 0}
-                disabled={!bothConfirmed || submitting}
-                aria-label="Full-range removal authorization"
-                aria-valuetext={`${authorizationProgress}% authorized`}
-                onChange={this.onAuthorizationProgress}
-              />
-              <output aria-live="polite">{authorizationProgress}%</output>
-            </label>
-            <div
-              id={this.progressId}
-              className={`actions-super-confirmation-progress ${
-                authorized ? 'complete' : moving ? 'moving' : ''
-              }`}
-              role="status"
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              {submitting
-                ? progressMessage ??
-                  'Removal is in progress and cannot be dismissed until the exact result is known.'
-                : authorized
-                ? 'Authorization complete. Submit to remove this runner.'
-                : 'Both confirmations are required before the slider can move.'}
-            </div>
+            <Md3DestructiveGateBody
+              actionId="self-hosted-runner-removal"
+              summary={`Remove runner ${runner.name} from ${runner.owner}/${runner.repository}.`}
+              irreversible="The runner registration and managed runner files will be deleted."
+              targetKeyLabel={`runner ${runner.name}`}
+              effectKeyLabel="unregistering the runner and deleting its files"
+              disabled={submitting}
+              onAuthorizationChanged={gateAuthorized =>
+                this.setState({ gateAuthorized })
+              }
+            />
+            {progressMessage && submitting ? (
+              <div id={this.progressId} role="status" aria-live="polite">
+                {progressMessage}
+              </div>
+            ) : null}
             {error && (
               <div
                 id={this.errorId}
@@ -227,12 +165,12 @@ export class SelfHostedRunnerRemovalDialog extends React.Component<
               disabled={submitting}
               ariaDescribedBy={this.descriptionId}
             >
-              {submitting ? 'Wait for removal result' : 'Keep runner'}
+              {submitting ? 'Wait for removal result' : 'Emergency exit'}
             </Button>
             <Button
               type="submit"
               className="destructive"
-              disabled={!authorized || submitting}
+              disabled={!this.state.gateAuthorized || submitting}
               ariaDescribedBy={this.descriptionId}
             >
               {submitting ? 'Removing…' : 'Remove runner'}

@@ -49,6 +49,20 @@ import { Tooltip } from '../lib/tooltip'
  */
 const RailGlyphSize = 22
 
+function setExternalRef<T>(
+  ref: React.Ref<T> | undefined,
+  instance: T | null
+): void {
+  if (ref == null) {
+    return
+  }
+  if (typeof ref === 'function') {
+    ref(instance)
+  } else {
+    ;(ref as React.MutableRefObject<T | null>).current = instance
+  }
+}
+
 export interface IMd3NavigationRailProps {
   /**
    * The destinations, in the order they are rendered. `md3Destinations`
@@ -93,6 +107,12 @@ export interface IMd3NavigationRailProps {
   /** The rail's account-avatar button. */
   readonly onOpenAccountSwitcher: () => void
 
+  /** Whether this avatar owns the open account switcher. */
+  readonly accountSwitcherOpen?: boolean
+
+  /** The host anchor for the floating account switcher and focus return. */
+  readonly accountButtonRef?: React.Ref<HTMLButtonElement>
+
   /** The rail's own context menu. */
   readonly onContextMenu?: (event: React.MouseEvent<HTMLElement>) => void
 
@@ -132,6 +152,14 @@ export function Md3NavigationRail(props: IMd3NavigationRailProps) {
   const accountRef = React.useMemo(
     () => createObservableRef<HTMLButtonElement>(),
     []
+  )
+  const { accountButtonRef } = props
+  const setAccountRef = React.useCallback(
+    (instance: HTMLButtonElement | null) => {
+      accountRef(instance)
+      setExternalRef(accountButtonRef, instance)
+    },
+    [accountRef, accountButtonRef]
   )
 
   // One observable ref per destination: it is both the tooltip's target and
@@ -330,10 +358,12 @@ export function Md3NavigationRail(props: IMd3NavigationRailProps) {
       </button>
 
       <button
-        ref={accountRef}
+        ref={setAccountRef}
         type="button"
         className="md3-navigation-rail__account"
         aria-label={accountLabel}
+        aria-haspopup="dialog"
+        aria-expanded={props.accountSwitcherOpen ?? false}
         onClick={onOpenAccountSwitcher}
       >
         <Tooltip target={accountRef} applyAriaDescribedBy={false}>

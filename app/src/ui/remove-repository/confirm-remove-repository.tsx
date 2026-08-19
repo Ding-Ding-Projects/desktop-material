@@ -8,6 +8,7 @@ import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { DefaultAppDisplayName } from '../../models/app-identity'
 import { RemoveRepositoryResult } from '../../models/remove-repository-result'
 import { t } from '../../lib/i18n'
+import { Md3DestructiveGateBody } from '../md3/md3-destructive-gate'
 
 interface IConfirmRemoveRepositoryProps {
   /** The repository to be removed */
@@ -41,6 +42,7 @@ interface IConfirmRemoveRepositoryState {
    * dialog should surface the permanent "Force delete" fallback.
    */
   readonly trashFailed: boolean
+  readonly gateAuthorized: boolean
 }
 
 export class ConfirmRemoveRepository extends React.Component<
@@ -54,10 +56,14 @@ export class ConfirmRemoveRepository extends React.Component<
       deleteRepoFromDisk: false,
       isRemovingRepository: false,
       trashFailed: false,
+      gateAuthorized: false,
     }
   }
 
   private onSubmit = async () => {
+    if (!this.state.gateAuthorized) {
+      return
+    }
     this.setState({ isRemovingRepository: true })
 
     const result = await this.props.onConfirmation(
@@ -75,6 +81,9 @@ export class ConfirmRemoveRepository extends React.Component<
   }
 
   private onForceDelete = async () => {
+    if (!this.state.gateAuthorized) {
+      return
+    }
     this.setState({ isRemovingRepository: true })
 
     await this.props.onForceDelete(this.props.repository)
@@ -134,6 +143,25 @@ export class ConfirmRemoveRepository extends React.Component<
               />
             </div>
           )}
+          <Md3DestructiveGateBody
+            actionId="remove-repository"
+            summary={`Remove repository ${this.props.repository.name}.`}
+            irreversible={
+              trashFailed
+                ? 'The repository directory will be permanently deleted.'
+                : 'The repository entry will be removed from the application.'
+            }
+            targetKeyLabel={`repository ${this.props.repository.name}`}
+            effectKeyLabel={
+              trashFailed
+                ? 'permanently deleting its files'
+                : 'removing the repository'
+            }
+            onAuthorizationChanged={gateAuthorized =>
+              this.setState({ gateAuthorized })
+            }
+            disabled={isRemovingRepository}
+          />
         </DialogContent>
         <DialogFooter>
           <OkCancelButtonGroup
@@ -143,7 +171,12 @@ export class ConfirmRemoveRepository extends React.Component<
                 ? t('removeRepository.forceDeleteButton', {})
                 : 'Remove'
             }
+            okButtonDisabled={
+              isRemovingRepository || !this.state.gateAuthorized
+            }
+            cancelButtonDisabled={isRemovingRepository}
           />
+          <p>Emergency exit: Cancel leaves the repository untouched.</p>
         </DialogFooter>
       </Dialog>
     )

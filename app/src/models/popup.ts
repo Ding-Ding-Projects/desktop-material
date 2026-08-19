@@ -106,6 +106,7 @@ export enum PopupType {
   BranchRules = 'BranchRules',
   SparseCheckout = 'SparseCheckout',
   ActionsLocalRun = 'ActionsLocalRun',
+  ActionsRunArtifacts = 'ActionsRunArtifacts',
   RepositorySettings = 'RepositorySettings',
   AddSubmodule = 'AddSubmodule',
   IgnoredSubmodule = 'IgnoredSubmodule',
@@ -318,6 +319,11 @@ export type PopupDetail =
     }
   | { type: PopupType.CreateGitHubIssue; repository: Repository }
   | { type: PopupType.ActionsLocalRun; repository: Repository }
+  | {
+      type: PopupType.ActionsRunArtifacts
+      repository: Repository
+      runId: number
+    }
   | {
       type: PopupType.CreateGitHubPullRequest
       repository: RepositoryWithGitHubRepository

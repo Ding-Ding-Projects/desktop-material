@@ -5,6 +5,7 @@ import { Dispatcher } from '../dispatcher'
 import { Row } from '../lib/row'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { Commit } from '../../models/commit'
+import { Md3DestructiveGateBody } from '../md3/md3-destructive-gate'
 
 interface IWarningBeforeResetProps {
   readonly dispatcher: Dispatcher
@@ -15,6 +16,7 @@ interface IWarningBeforeResetProps {
 
 interface IWarningBeforeResetState {
   readonly isLoading: boolean
+  readonly gateAuthorized: boolean
 }
 
 /**
@@ -27,7 +29,7 @@ export class WarningBeforeReset extends React.Component<
 > {
   public constructor(props: IWarningBeforeResetProps) {
     super(props)
-    this.state = { isLoading: false }
+    this.state = { isLoading: false, gateAuthorized: false }
   }
 
   public render() {
@@ -51,15 +53,37 @@ export class WarningBeforeReset extends React.Component<
             result in some of these changes being lost. Do you want to continue
             anyway?
           </Row>
+          <Md3DestructiveGateBody
+            actionId="reset-to-commit"
+            summary={`Reset to commit ${this.props.commit.sha}.`}
+            irreversible="Uncommitted working-directory changes may be lost."
+            targetKeyLabel="the current working directory"
+            effectKeyLabel="resetting to the selected commit"
+            onAuthorizationChanged={gateAuthorized =>
+              this.setState({ gateAuthorized })
+            }
+            disabled={this.state.isLoading}
+          />
         </DialogContent>
         <DialogFooter>
-          <OkCancelButtonGroup destructive={true} okButtonText="Continue" />
+          <OkCancelButtonGroup
+            destructive={true}
+            okButtonText="Continue"
+            okButtonDisabled={
+              this.state.isLoading || !this.state.gateAuthorized
+            }
+            cancelButtonDisabled={this.state.isLoading}
+          />
+          <p>Emergency exit: Cancel keeps the current changes.</p>
         </DialogFooter>
       </Dialog>
     )
   }
 
   private onSubmit = async () => {
+    if (!this.state.gateAuthorized) {
+      return
+    }
     const { dispatcher, repository, commit, onDismissed } = this.props
     this.setState({ isLoading: true })
 

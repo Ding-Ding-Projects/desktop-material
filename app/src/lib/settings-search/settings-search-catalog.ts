@@ -377,6 +377,23 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
       teleportTargetId: 'settingsSchoolMode',
     },
     {
+      id: 'appearance-classic-toolbar',
+      tab: PreferencesTab.Appearance,
+      titleKey: 'settingsSearch.entry.appearanceClassicToolbar.title',
+      descriptionKey: 'settingsSearch.entry.appearanceClassicToolbar.desc',
+      keywords: [
+        'toolbar',
+        'classic',
+        'band',
+        'chrome',
+        'compatibility',
+        'shell',
+        '工具列',
+        '經典',
+      ],
+      teleportTargetId: 'settingsClassicToolbar',
+    },
+    {
       id: 'appearance-surface-locks',
       tab: PreferencesTab.Appearance,
       titleKey: 'settingsSearch.entry.appearanceSurfaceLocks.title',

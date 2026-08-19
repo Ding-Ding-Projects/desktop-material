@@ -1077,22 +1077,6 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     },
   },
   {
-    event: 'palette:set-classic-mode',
-    title: 'Use Classic mode',
-    titleKey: 'classicExperience.toggleLabel',
-    group: 'App',
-    materialSymbol: 'history_toggle_off',
-    keywords:
-      'classic mode material interface legacy old previous before rewrite shell layout sidebar toolbar',
-    descriptionKey: 'classicExperience.boundaryNote',
-    control: { kind: 'toggle' },
-    home: {
-      kind: 'preferences',
-      tab: PreferencesTab.Appearance,
-      targetId: 'settingsClassicExperience',
-    },
-  },
-  {
     event: 'palette:set-external-credential-helper',
     title: 'Use the external credential helper',
     titleKey: 'palette.externalCredentialHelper',
