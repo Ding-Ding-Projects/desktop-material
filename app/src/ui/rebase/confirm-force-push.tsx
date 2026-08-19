@@ -14,13 +14,13 @@ interface IConfirmForcePushProps {
   readonly repository: Repository
   readonly upstreamBranch: string
   readonly askForConfirmationOnForcePush: boolean
-  readonly gateAuthorized: boolean
   readonly onDismissed: () => void
 }
 
 interface IConfirmForcePushState {
   readonly isLoading: boolean
   readonly askForConfirmationOnForcePush: boolean
+  readonly gateAuthorized: boolean
 }
 
 export class ConfirmForcePush extends React.Component<

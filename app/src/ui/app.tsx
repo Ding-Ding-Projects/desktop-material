@@ -155,10 +155,8 @@ import {
   BranchDropdown,
   WorktreeDropdown,
   RevertProgress,
-  OneClickCommitPushButton,
   ThemeToggleButton,
 } from './toolbar'
-import { canAutoCommitPush } from '../lib/automation/automation-guards'
 import { Octicon } from './octicons'
 import * as octicons from './octicons/octicons.generated'
 import {
@@ -291,7 +289,6 @@ import {
   UpdateProgressAppearanceEditor,
 } from './appearance'
 import { LocalizedText } from './lib/localized-text'
-import { MaterialSymbol } from './lib/material-symbol'
 import { SubtreeManagerDialog } from './subtrees/subtree-manager-dialog'
 import { AddSubtreeDialog } from './subtrees/add-subtree-dialog'
 import { IGitModulesEntry } from '../lib/git/gitmodules'
@@ -12242,40 +12239,6 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   private renderBuildRunToolbarOverflowButton = () =>
     this.renderBuildRunToolbarButton()
-
-  private renderOneClickCommitPushButton() {
-    const selection = this.state.selectedState
-    if (!selection || selection.type !== SelectionType.Repository) {
-      return null
-    }
-    const state = selection.state
-    const tip = state.branchesState.tip
-    const message = state.changesState.commitMessage
-    const guard = canAutoCommitPush({
-      tipIsValid: tip.kind === TipState.Valid,
-      hasChanges: state.changesState.workingDirectory.files.length > 0,
-      hasConflict: state.changesState.conflictState !== null,
-      hasMultiCommitOperation: state.multiCommitOperationState !== null,
-      isCommitting: state.isCommitting,
-      isGeneratingCommitMessage: state.isGeneratingCommitMessage,
-      isPushPullFetchInProgress: state.isPushPullFetchInProgress,
-      isCheckingOut: state.checkoutProgress !== null,
-      hasDraftCommitMessage:
-        message.summary.trim().length > 0 ||
-        (message.description?.trim().length ?? 0) > 0,
-      hasUpstream:
-        tip.kind === TipState.Valid && tip.branch.upstreamRemoteName !== null,
-      mergeHeadSet: false,
-    })
-    return (
-      <OneClickCommitPushButton
-        repository={selection.repository}
-        dispatcher={this.props.dispatcher}
-        phase={state.oneClickCommitPushPhase}
-        disabledReason={guard.safe ? null : guard.reason}
-      />
-    )
-  }
 
   private renderBuildRunPanel() {
     const selection = this.state.selectedState

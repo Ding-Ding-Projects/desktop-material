@@ -86,7 +86,6 @@ export class SelfHostedRunnerRemovalDialog extends React.Component<
   public render() {
     const { runner, submitting, error, progressMessage, onDismissed } =
       this.props
-    const { gateAuthorized } = this.state
     const describedBy = [
       this.descriptionId,
       progressMessage ? this.progressId : null,

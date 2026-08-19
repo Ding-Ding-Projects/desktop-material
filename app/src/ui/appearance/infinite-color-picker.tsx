@@ -15,8 +15,8 @@ import {
   PopoverAnchorPosition,
   PopoverDecoration,
 } from '../lib/popover'
-import ColorEngine = require('./infinite-color-engine')
-import { IInfiniteColor } from './infinite-color-engine'
+import * as ColorEngine from './infinite-color-engine'
+import type { IInfiniteColor } from './infinite-color-engine'
 
 export { AnimatedRainbowColor, isAnimatedRainbowColor }
 
@@ -730,7 +730,13 @@ export class InfiniteColorPicker extends React.Component<
             {this.state.error ??
               `Contrast ${contrast.ratio.toFixed(2)}:1 against ${
                 this.props.contrastAgainst ?? '#ffffff'
-              } · ${contrast.passesAA ? 'AA' : contrast.passesAALarge ? 'AA large' : 'below AA'}`}
+              } · ${
+                contrast.passesAA
+                  ? 'AA'
+                  : contrast.passesAALarge
+                  ? 'AA large'
+                  : 'below AA'
+              }`}
           </p>
 
           {this.state.color.clipped && (
