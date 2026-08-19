@@ -1,0 +1,504 @@
+// The MD3 shell's History destination, from the `<sc-if value="{{ isHistory }}">`
+// branch of `design/History MD3.dc.html`.
+//
+// Every size, radius, weight, colour and duration below is the contract's,
+// taken from the markup's inline styles and from the `renderVals()` strings
+// (`historyEmptyStyle`, `graphToggleStyle`, `datesToggleStyle`, the
+// `commitRows` mapping, and the `sheetOpen` block).
+//
+// Only the left pane and the commit-detail sheet live here. The right-hand
+// column is the shared `Md3DiffPane` — toolbar, `Find in diff` row, file chip
+// strip and the 19px line grid — whose measurements are in
+// `_md3-diff-pane.scss`; restating any of them here would be a second place for
+// the same value to drift. The repeated controls (search row, chips, rows,
+// group headers, empty state, icon and reset buttons) come from
+// `_md3-shell.scss` and are composed rather than redeclared, and the contract's
+// `dmUp` / `dmFade` / `dmSheet` animations arrive through the `.md3-anim-*`
+// classes, which are already disabled under `prefers-reduced-motion`.
+
+// ---------------------------------------------------------------------------
+// Layout
+// ---------------------------------------------------------------------------
+
+.md3-history {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  min-height: 0;
+  padding: 0 8px 8px 8px;
+}
+
+// The left pane: `flex: none; width: 356px; ... surface-container; radius 12px`.
+.md3-history__list-pane {
+  background: var(--md-sys-color-surface-container);
+  border-radius: 12px;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// `flex: 1; min-height: 0; overflow-y: auto; padding: 0 6px 8px 6px`.
+.md3-history__list-scroller {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 6px 8px 6px;
+}
+
+.md3-history__list {
+  display: flex;
+  flex-direction: column;
+}
+
+// The day header occupies a grid row of its own so the list keeps valid grid
+// semantics; it contributes no box beyond `.md3-group-header`'s own padding.
+.md3-history__group-row {
+  display: block;
+}
+
+// ---------------------------------------------------------------------------
+// A commit row
+// ---------------------------------------------------------------------------
+
+.md3-history__row {
+  // Two cells: the bulk checkbox, then everything the contract draws. They sit
+  // side by side, so the row is the flex container and the content cell is the
+  // one that grows. `.md3-row` supplies the padding, the radius, the transition
+  // and the selected fill.
+  align-items: center;
+  display: flex;
+  gap: 8px;
+
+  // Rows outside the viewport skip layout and paint entirely, which is what
+  // keeps a several-hundred-commit page cheap without windowing the list and
+  // losing its day headers and roving focus along the way. The intrinsic size
+  // is the row's real height, so the scrollbar does not lurch as rows arrive.
+  contain-intrinsic-size: auto 58px;
+  content-visibility: auto;
+}
+
+// The bulk-selection cell, ahead of the contract's leading column. `flex: none`
+// so it keeps its width while the summary column shrinks: a checkbox that
+// shrinks becomes unclickable long before the text beside it becomes
+// unreadable.
+.md3-history__select-cell {
+  align-items: center;
+  display: flex;
+  flex: none;
+  justify-content: center;
+  min-inline-size: 22px;
+}
+
+.md3-history__row-cell {
+  align-items: center;
+  display: flex;
+  flex: 1 1 auto;
+  gap: 8px;
+  min-width: 0;
+}
+
+// `spineStyle`: a 3px full-height rail — primary when selected,
+// primary-container when unpushed, outline-variant otherwise.
+.md3-history__spine {
+  align-self: stretch;
+  background: var(--md-sys-color-outline-variant);
+  border-radius: 999px;
+  flex: none;
+  width: 3px;
+}
+
+.md3-history__spine--selected {
+  background: var(--md-sys-color-primary);
+}
+
+.md3-history__spine--unpushed {
+  background: var(--md-sys-color-primary-container);
+}
+
+// `avatarStyle`: 28px round initials, primary fill while selected.
+.md3-history__avatar {
+  background: var(--md-sys-color-surface-container-highest);
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface-variant);
+  display: grid;
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 700;
+  height: 28px;
+  place-items: center;
+  width: 28px;
+}
+
+.md3-history__avatar--selected {
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+}
+
+.md3-history__row-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.md3-history__byline {
+  align-items: center;
+  color: var(--md-sys-color-on-surface-variant);
+  display: flex;
+  font-size: 11px;
+  gap: 6px;
+  min-width: 0;
+}
+
+// A flex child defaults to `min-width: auto`, which refuses to shrink below its
+// own content, so `text-overflow` never engages and the text pushes its
+// siblings out of the row instead of ellipsing. The byline needs both.
+.md3-history__byline-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// `flex: none` keeps the abbreviated SHA whole at every width the pane
+// supports, which is the contract's intent. The floor and the ellipsis are a
+// backstop: if a caller ever hands this an unabbreviated value again, it
+// truncates inside its own box rather than sliding underneath the tag pill.
+.md3-history__sha {
+  flex: 0 1 auto;
+  font-family: var(--font-family-monospace);
+  min-width: 0;
+  opacity: 0.75;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// The tag pill.
+.md3-history__tag {
+  align-items: center;
+  background: var(--md-sys-color-tertiary-container);
+  border-radius: 999px;
+  color: var(--md-sys-color-on-tertiary-container);
+  display: inline-flex;
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 600;
+  gap: 3px;
+  height: 20px;
+  padding: 0 8px;
+}
+
+// The unpushed badge.
+.md3-history__unpushed {
+  background: var(--md-sys-color-primary-container);
+  border-radius: 999px;
+  color: var(--md-sys-color-on-primary-container);
+  display: grid;
+  flex: none;
+  height: 20px;
+  place-items: center;
+  width: 20px;
+}
+
+// `pinStyle`: outline when unpinned, primary when pinned.
+.md3-history__pin {
+  color: var(--md-sys-color-outline);
+}
+
+.md3-history__pin--on {
+  color: var(--md-sys-color-primary);
+}
+
+// ---------------------------------------------------------------------------
+// The commit detail sheet
+// ---------------------------------------------------------------------------
+
+// The scrim fills the diff pane rather than the window, which is why the pane
+// carries `position: relative` in `_md3-diff-pane.scss`.
+.md3-history__sheet-scrim {
+  background: var(--dm-scrim);
+  display: flex;
+  inset: 0;
+  justify-content: flex-end;
+  position: absolute;
+  z-index: 5;
+}
+
+.md3-history__sheet {
+  background: var(--md-sys-color-surface-container-high);
+  box-shadow: var(--dm-elev3);
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  min-width: 0;
+  width: min(372px, 100%);
+}
+
+.md3-history__sheet-header {
+  align-items: flex-start;
+  display: flex;
+  flex: none;
+  gap: 10px;
+  padding: 12px 8px 10px 14px;
+}
+
+.md3-history__sheet-avatar {
+  background: var(--md-sys-color-primary-container);
+  border-radius: 999px;
+  color: var(--md-sys-color-on-primary-container);
+  display: grid;
+  flex: none;
+  font-size: 11.5px;
+  font-weight: 700;
+  height: 32px;
+  place-items: center;
+  width: 32px;
+}
+
+.md3-history__sheet-heading {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+// `text-wrap: pretty` breaks at spaces, and a commit summary need not contain
+// one: a pasted URL, a Java class name or a long branch reference is a single
+// token that overflows the 372px sheet and paints over its own close button.
+// `overflow-wrap: anywhere` lets such a token break rather than escape.
+.md3-history__sheet-summary {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.md3-history__sheet-byline {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.md3-history__sheet-stats {
+  align-items: center;
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 14px 10px 14px;
+}
+
+.md3-history__sheet-sha {
+  align-items: center;
+  background: var(--md-sys-color-surface-container-highest);
+  border: 0;
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family-monospace);
+  font-size: 11px;
+  gap: 5px;
+  height: 24px;
+  padding: 0 10px;
+
+  &:hover {
+    background: color-mix(in srgb, var(--md-sys-color-surface-container-highest) 88%, var(--md-sys-color-on-surface));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
+  }
+}
+
+.md3-history__sheet-pill {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 600;
+  height: 24px;
+  padding: 0 10px;
+}
+
+.md3-history__sheet-pill--add {
+  background: var(--dm-green-container);
+  color: var(--dm-green-on-container);
+}
+
+.md3-history__sheet-pill--del {
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+.md3-history__sheet-pill--files {
+  background: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
+}
+
+// Shown in place of the three number pills while the commit's `--numstat` read
+// is still in flight. Deliberately quiet — a neutral container rather than the
+// green/red/tertiary trio — so it reads as "no answer yet" rather than as a
+// fourth measurement.
+.md3-history__sheet-pill--pending {
+  background: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface-variant);
+  font-weight: 500;
+}
+
+// A commit body is arbitrary text — stack traces, URLs, base64 — and none of it
+// is guaranteed to contain a break opportunity. It also has to keep the
+// author's own line breaks, which the contract's sample body has and which a
+// default `normal` collapses into one paragraph.
+.md3-history__sheet-body {
+  color: var(--md-sys-color-on-surface-variant);
+  flex: none;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  padding: 0 14px 12px 14px;
+  text-wrap: pretty;
+  white-space: pre-wrap;
+}
+
+.md3-history__sheet-files {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 8px 6px 8px;
+}
+
+// The `listitem` wrapper carries the semantics and nothing else; the button
+// inside it is what the contract draws.
+.md3-history__sheet-file-item {
+  display: contents;
+}
+
+.md3-history__sheet-file {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  box-sizing: border-box;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  padding: 7px 10px;
+  width: 100%;
+
+  &:hover {
+    background: var(--dm-state);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: -2px;
+  }
+}
+
+.md3-history__sheet-file--active {
+  background: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface);
+}
+
+// `iconStyle`: green for a new file, on-surface-variant otherwise. The chip
+// strip's copy of this lives in `_md3-diff-pane.scss`; this one is the sheet's.
+.md3-history__file-icon {
+  color: var(--md-sys-color-on-surface-variant);
+  flex: none;
+}
+
+.md3-history__file-icon--new {
+  color: var(--dm-green-on-container);
+}
+
+.md3-history__sheet-file-path {
+  flex: 1 1 auto;
+  font-family: var(--font-family-monospace);
+  font-size: 11px;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.md3-history__sheet-file-add {
+  color: var(--dm-green-on-container);
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.md3-history__sheet-file-del {
+  color: var(--md-sys-color-error);
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.md3-history__sheet-footer {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: 6px;
+  padding: 8px 12px 12px 12px;
+}
+
+.md3-history__sheet-primary {
+  align-items: center;
+  background: var(--md-sys-color-primary);
+  border: 0;
+  border-radius: 999px;
+  color: var(--md-sys-color-on-primary);
+  cursor: pointer;
+  display: flex;
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+  height: 34px;
+  justify-content: center;
+
+  &:hover {
+    background: color-mix(in srgb, var(--md-sys-color-primary) 90%, var(--md-sys-color-on-primary));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.md3-history__sheet-action {
+  background: var(--md-sys-color-surface-container-highest);
+  border: 0;
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  display: grid;
+  height: 34px;
+  place-items: center;
+  width: 34px;
+
+  &:hover {
+    background: color-mix(in srgb, var(--md-sys-color-surface-container-highest) 88%, var(--md-sys-color-on-surface));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
+  }
+}
