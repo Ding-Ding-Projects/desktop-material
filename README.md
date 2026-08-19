@@ -161,6 +161,39 @@ is the real artifact rather than a source preview. The shell is now frozen; see
 
 ![Desktop Material running the restored August 7 chrome: a left navigation rail listing Changes, History, Graph, Actions, Releases, Large files, Issues, API explorer and Launchpad; a toolbar with Current repository, Current branch, Fetch origin, Commit and push, and Build and run; the repository tab strip above them; and the Changes pane beside a No local changes empty state](docs/assets/screenshots/classic-chrome-after-revert.png)
 
+<details>
+<summary><strong>The full capture matrix — every surface, from the built application (2026-08-19)</strong></summary>
+
+All captured from `dist/GitHubDesktop-win32-x64/GitHubDesktop.exe`, built locally by
+`build-installer.bat` and driven on an off-screen desktop. Real artifact, no mockups.
+
+| Surface | Capture |
+| --- | --- |
+| Changes (main screen) | ![Changes destination with the file filter, commit summary and description fields, Commit to main button, and a No local changes empty state offering to open the repository in an editor, Explorer, or GitHub](docs/assets/screenshots/classic-chrome-after-revert.png) |
+| History | ![History destination listing recent commits with author avatars and release tags, a Commit list and Graph tab pair, filters, a commit search field, and a diff of README.md alongside two changed files](docs/assets/screenshots/classic-chrome-history.png) |
+| Graph | ![Graph destination rendering the commit graph for the current branch](docs/assets/screenshots/classic-chrome-graph.png) |
+| Actions | ![Actions destination listing GitHub Actions workflow runs for the repository](docs/assets/screenshots/classic-chrome-actions.png) |
+| Releases | ![Releases destination listing published releases for the repository](docs/assets/screenshots/classic-chrome-releases.png) |
+| Large files | ![Large files destination showing the Cheap LFS inventory for the repository](docs/assets/screenshots/classic-chrome-large-files.png) |
+| Issues | ![Issues destination listing repository issues](docs/assets/screenshots/classic-chrome-issues.png) |
+| API explorer | ![API explorer destination for issuing GitHub API requests from inside the app](docs/assets/screenshots/classic-chrome-api-explorer.png) |
+| Launchpad | ![Launchpad destination with Pinned, Ready to merge, Unassigned, CI failing and Merge conflicts sections, each showing an explicit empty state](docs/assets/screenshots/classic-chrome-launchpad.png) |
+| Settings | ![Settings dialog showing a Settings tab position control set to Left, a Search settings field with its adjacent Regex builder button, and closable tabs for Accounts, Integrations, Copilot, Git, Appearance, Notifications and Prompts with a nine-item overflow indicator](docs/assets/screenshots/classic-chrome-preferences.png) |
+| Appearance editor | ![Appearance settings showing the Language selector and a Playfulness section with two independent sliders, English playfulness at 5 and Cantonese playfulness at 3, each labelled from 1 Fully serious to 5 Maximum fun](docs/assets/screenshots/classic-chrome-appearance.png) |
+| Settings history | ![Settings history panel listing 81 commits of profile settings changes with Undo and Redo controls, a timeline search field, and a diff of settings.json](docs/assets/screenshots/classic-chrome-settings-history.png) |
+| Menu with shortcuts | ![Branch menu open in light theme, every enabled command showing its keyboard shortcut right-aligned and unavailable commands greyed out](docs/assets/screenshots/classic-chrome-branch-menu.png) |
+| Dialog | ![Create a branch dialog in light theme with a Name field, an explanation that the branch will be based on main, a checked Clone submodules for the new branch option warning that large submodules take a while, and Create branch and Cancel buttons](docs/assets/screenshots/classic-chrome-dialog.png) |
+| Light theme | ![Launchpad rendered in the light theme, showing the same rail, toolbar and section cards with light surfaces and a moon icon offering the dark theme](docs/assets/screenshots/classic-chrome-light-theme.png) |
+
+**Not captured, and why:** the narrow-width layout. The approved headless capture
+route cannot resize a window that lives on an off-screen desktop — `resize_window`
+answers `No matching window found` for both a handle and a title that
+`list_headless_windows` had just returned — and no other route is a permitted
+substitute. Recorded as an open gap rather than filled with a resized-desktop
+screenshot that would not be the same thing.
+
+</details>
+
 ![Packaged Windows Desktop Material first-run surface after the renderer startup fix](docs/assets/screenshots/material-blank-startup-fixed-20260806.png)
 
 ![Centered stash manager dialog with Manage, Export, History, and Appearance and voice tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager-centered-20260803.png)
