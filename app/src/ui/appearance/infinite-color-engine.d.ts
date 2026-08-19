@@ -53,20 +53,25 @@ export interface IInfiniteColorEngine {
   toOklchString(color: IInfiniteColor): string
   toCmykString(color: IInfiniteColor): string
   toName(color: IInfiniteColor): string | null
-  rgbToHsv(r: number, g: number, b: number): {
+  rgbToHsv(
+    r: number,
+    g: number,
+    b: number
+  ): {
     readonly h: number
     readonly s: number
     readonly v: number
   }
-  hsvToRgb(h: number, s: number, v: number): {
+  hsvToRgb(
+    h: number,
+    s: number,
+    v: number
+  ): {
     readonly r: number
     readonly g: number
     readonly b: number
   }
-  contrastRatio(
-    foreground: IInfiniteColor,
-    background: IInfiniteColor
-  ): number
+  contrastRatio(foreground: IInfiniteColor, background: IInfiniteColor): number
   contrastReport(
     foreground: IInfiniteColor,
     background: IInfiniteColor

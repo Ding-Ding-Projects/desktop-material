@@ -250,7 +250,7 @@ export const TabGroupColors = [
   'grey',
 ] as const
 
-export type TabGroupColor = (typeof TabGroupColors)[number]
+export type TabGroupColor = typeof TabGroupColors[number]
 
 export const DefaultTabGroupColor: TabGroupColor = 'blue'
 

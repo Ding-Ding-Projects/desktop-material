@@ -167,7 +167,7 @@ export class RepositoryLogoStudio extends React.Component<
     this.currentDesign = design
     const selected = design.layers.some(layer => layer.id === selectedLayerId)
       ? selectedLayerId
-      : (design.layers[0]?.id ?? null)
+      : design.layers[0]?.id ?? null
     this.setState(state => ({
       design,
       past: [...state.past, previous].slice(-MaxUndoDepth),
@@ -189,7 +189,7 @@ export class RepositoryLogoStudio extends React.Component<
       layer => layer.id === this.state.selectedLayerId
     )
       ? this.state.selectedLayerId
-      : (design.layers[0]?.id ?? null)
+      : design.layers[0]?.id ?? null
     this.setState({
       design,
       past,

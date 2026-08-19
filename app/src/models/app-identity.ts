@@ -39,9 +39,16 @@ export type AppLogoShadow = 'none' | 'soft' | 'strong'
 export type AppNameFontWeight = 400 | 500 | 600 | 700 | 800
 export type AppNameFontWidth = 'condensed' | 'normal' | 'expanded'
 export type AppNameTextCase =
-  'normal' | 'uppercase' | 'lowercase' | 'capitalize'
+  | 'normal'
+  | 'uppercase'
+  | 'lowercase'
+  | 'capitalize'
 export type AppNameTextEffect =
-  'none' | 'soft-shadow' | 'strong-shadow' | 'glow' | 'embossed'
+  | 'none'
+  | 'soft-shadow'
+  | 'strong-shadow'
+  | 'glow'
+  | 'embossed'
 export type AppNameHighlight = 'none' | 'soft' | 'pill'
 
 /** Profile-scoped identity rendered in the app title bar and window title. */
@@ -430,12 +437,12 @@ export function appLogoStyleToCss(
     identity.logoShape === 'circle'
       ? '50%'
       : identity.logoShape === 'square'
-        ? '3px'
-        : '7px'
+      ? '3px'
+      : '7px'
   const rainbowBorder = isAnimatedRainbowColor(identity.logoBorderColor)
   const borderColor = rainbowBorder
     ? RainbowCssColor
-    : (identity.logoBorderColor ?? 'var(--md-sys-color-outline-variant)')
+    : identity.logoBorderColor ?? 'var(--md-sys-color-outline-variant)'
   const border =
     identity.logoBorder === 'none'
       ? 'none'
@@ -444,8 +451,8 @@ export function appLogoStyleToCss(
     identity.logoShadow === 'strong'
       ? '0 4px 10px rgb(0 0 0 / 38%)'
       : identity.logoShadow === 'soft'
-        ? '0 2px 5px rgb(0 0 0 / 24%)'
-        : 'none'
+      ? '0 2px 5px rgb(0 0 0 / 24%)'
+      : 'none'
   const rainbowBackground = isAnimatedRainbowColor(identity.logoColor)
   const style: React.CSSProperties & Record<string, string | number> = {
     '--dm-app-logo-size': `${identity.logoSize}px`,
@@ -453,7 +460,7 @@ export function appLogoStyleToCss(
     '--dm-app-logo-rotation': `${identity.logoRotation}deg`,
     backgroundColor: rainbowBackground
       ? RainbowCssColor
-      : (identity.logoColor ?? 'var(--md-sys-color-primary)'),
+      : identity.logoColor ?? 'var(--md-sys-color-primary)',
     borderRadius,
     border,
     boxShadow,

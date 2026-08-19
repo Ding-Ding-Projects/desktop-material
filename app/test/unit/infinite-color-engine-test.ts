@@ -16,7 +16,11 @@ describe('infinite colour engine', () => {
       'hsl(220, 60%, 50%)',
       '#3366ccff',
     ]) {
-      assert.notEqual(ColorEngine.parse(input), null, `failed to parse ${input}`)
+      assert.notEqual(
+        ColorEngine.parse(input),
+        null,
+        `failed to parse ${input}`
+      )
     }
   })
 

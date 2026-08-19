@@ -30,7 +30,10 @@ const RepositoryNameColors: ReadonlyArray<string> = [
 ]
 
 type RepositoryNameBooleanStyle =
-  'bold' | 'italic' | 'underline' | 'strikeThrough'
+  | 'bold'
+  | 'italic'
+  | 'underline'
+  | 'strikeThrough'
 
 export interface IRepositoryListNameAppearanceEditorProps {
   /** Null means that this repository inherits the ordinary row typography. */

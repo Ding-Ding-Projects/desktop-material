@@ -736,7 +736,13 @@ export class InfiniteColorPicker extends React.Component<
             {this.state.error ??
               `Contrast ${contrast.ratio.toFixed(2)}:1 against ${
                 this.props.contrastAgainst ?? '#ffffff'
-              } · ${contrast.passesAA ? 'AA' : contrast.passesAALarge ? 'AA large' : 'below AA'}`}
+              } · ${
+                contrast.passesAA
+                  ? 'AA'
+                  : contrast.passesAALarge
+                  ? 'AA large'
+                  : 'below AA'
+              }`}
           </p>
 
           {this.state.color.clipped && (

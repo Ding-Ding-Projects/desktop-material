@@ -57,7 +57,8 @@ export interface IRepositoryLogoTextLayer extends IRepositoryLogoLayerBase {
 }
 
 export type RepositoryLogoLayer =
-  IRepositoryLogoMarkLayer | IRepositoryLogoTextLayer
+  | IRepositoryLogoMarkLayer
+  | IRepositoryLogoTextLayer
 
 export interface IRepositoryLogoDesign {
   readonly version: typeof RepositoryLogoDesignVersion

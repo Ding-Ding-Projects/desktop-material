@@ -35,7 +35,11 @@ const ToolbarTextColors: ReadonlyArray<string> = [
 ]
 
 type BooleanStyleKey =
-  'bold' | 'italic' | 'underline' | 'strikeThrough' | 'smallCaps'
+  | 'bold'
+  | 'italic'
+  | 'underline'
+  | 'strikeThrough'
+  | 'smallCaps'
 type ChoiceStyleKey = 'textAlign' | 'textCase' | 'textEffect'
 
 export interface IToolbarTextStyleEditorProps {

@@ -359,8 +359,8 @@ export class TabStyleEditor extends React.Component<
       direction === 'left'
         ? 'tabs.style.alignLeftAria'
         : direction === 'center'
-          ? 'tabs.style.alignCenterAria'
-          : 'tabs.style.alignRightAria'
+        ? 'tabs.style.alignCenterAria'
+        : 'tabs.style.alignRightAria'
     return (
       <button
         type="button"

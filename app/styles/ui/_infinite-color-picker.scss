@@ -64,14 +64,9 @@
 .infinite-color-picker-rainbow button > span:first-child {
   border: 1px solid var(--md-sys-color-outline, #79747e);
   background-color: transparent;
-  background-image:
-    linear-gradient(45deg, #c9c9c9 25%, transparent 25%), linear-gradient(-45deg, #c9c9c9 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #c9c9c9 75%),
+  background-image: linear-gradient(45deg, #c9c9c9 25%, transparent 25%), linear-gradient(-45deg, #c9c9c9 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #c9c9c9 75%),
     linear-gradient(-45deg, transparent 75%, #c9c9c9 75%);
-  background-position:
-    0 0,
-    0 5px,
-    5px -5px,
-    -5px 0;
+  background-position: 0 0, 0 5px, 5px -5px, -5px 0;
   background-size: 10px 10px;
 }
 
@@ -271,10 +266,7 @@
 .infinite-color-picker-alpha input[type='range'] {
   border-radius: 8px;
   background: linear-gradient(to right, transparent, var(--dm-infinite-alpha-color, #000)), linear-gradient(45deg, #c9c9c9 25%, transparent 25%), linear-gradient(-45deg, #c9c9c9 25%, transparent 25%);
-  background-size:
-    100% 100%,
-    10px 10px,
-    10px 10px;
+  background-size: 100% 100%, 10px 10px, 10px 10px;
 }
 
 .infinite-color-picker-entry {

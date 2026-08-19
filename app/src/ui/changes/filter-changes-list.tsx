@@ -136,7 +136,8 @@ interface IFilterChangesListProps {
   readonly onFileSelectionChanged: (rows: ReadonlyArray<number>) => void
   readonly onIncludeChanged: (
     file:
-      WorkingDirectoryFileChange | ReadonlyArray<WorkingDirectoryFileChange>,
+      | WorkingDirectoryFileChange
+      | ReadonlyArray<WorkingDirectoryFileChange>,
     include: boolean
   ) => void
   readonly onCreateCommit: (context: ICommitContext) => Promise<boolean>
@@ -643,14 +644,14 @@ export class FilterChangesList extends React.Component<
       selection === DiffSelectionType.All
         ? true
         : selection === DiffSelectionType.None
-          ? false
-          : null
+        ? false
+        : null
 
     const include = isUncommittableSubmodule
       ? false
       : rebaseConflictState !== null
-        ? file.status.kind !== AppFileStatusKind.Untracked
-        : includeAll
+      ? file.status.kind !== AppFileStatusKind.Untracked
+      : includeAll
 
     const disableSelection =
       isCommitting || rebaseConflictState !== null || isUncommittableSubmodule
@@ -658,8 +659,8 @@ export class FilterChangesList extends React.Component<
     const checkboxTooltip = isUncommittableSubmodule
       ? 'This submodule change cannot be added to a commit in this repository because it contains changes that have not been committed.'
       : isPartiallyCommittableSubmodule
-        ? 'Only changes that have been committed within the submodule will be added to this repository. You need to commit any other modified or untracked changes in the submodule before including them in this repository.'
-        : undefined
+      ? 'Only changes that have been committed within the submodule will be added to this repository. You need to commit any other modified or untracked changes in the submodule before including them in this repository.'
+      : undefined
 
     const changedFile = (
       <ChangedFile
@@ -763,8 +764,8 @@ export class FilterChangesList extends React.Component<
           ? `Discard Changes`
           : `Discard changes`
         : __DARWIN__
-          ? `Discard ${files.length} Selected Changes`
-          : `Discard ${files.length} selected changes`
+        ? `Discard ${files.length} Selected Changes`
+        : `Discard ${files.length} selected changes`
 
     return this.props.askForConfirmationOnDiscardChanges ? `${label}…` : label
   }
@@ -775,8 +776,8 @@ export class FilterChangesList extends React.Component<
         ? 'Stash Changes'
         : 'Stash changes'
       : __DARWIN__
-        ? `Stash ${files.length} Selected Changes`
-        : `Stash ${files.length} selected changes`
+      ? `Stash ${files.length} Selected Changes`
+      : `Stash ${files.length} selected changes`
 
   private onContextMenu = (event: React.MouseEvent<any>) => {
     event.preventDefault()
@@ -1082,10 +1083,10 @@ export class FilterChangesList extends React.Component<
       cheapLfsTargets.length === 0 && cheapLfsExcludedPaths.length > 0
         ? t('cheapLfs.workingTree.menu.wholeFileRequired')
         : cheapLfsTargets.length === 1
-          ? t('cheapLfs.workingTree.menu.one')
-          : t('cheapLfs.workingTree.menu.many', {
-              count: String(cheapLfsTargets.length),
-            })
+        ? t('cheapLfs.workingTree.menu.one')
+        : t('cheapLfs.workingTree.menu.many', {
+            count: String(cheapLfsTargets.length),
+          })
 
     const enabled = status.kind !== AppFileStatusKind.Deleted
     items.push(

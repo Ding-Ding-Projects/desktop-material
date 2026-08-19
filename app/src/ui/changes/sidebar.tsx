@@ -261,7 +261,8 @@ export class ChangesSidebar extends React.Component<IChangesSidebarProps, {}> {
 
   private onIncludeChanged = (
     file:
-      WorkingDirectoryFileChange | ReadonlyArray<WorkingDirectoryFileChange>,
+      | WorkingDirectoryFileChange
+      | ReadonlyArray<WorkingDirectoryFileChange>,
     include: boolean
   ) => {
     this.props.dispatcher.changeFileIncluded(
