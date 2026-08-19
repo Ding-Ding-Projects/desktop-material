@@ -1,0 +1,44 @@
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: block;
+  src: url('../app/styles/fonts/roboto-latin-normal-400-700.woff2')
+    format('woff2');
+}
+
+@font-face {
+  font-family: 'Roboto Mono';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: block;
+  src: url('../app/styles/fonts/roboto-mono-latin-normal-400-500.woff2')
+    format('woff2');
+}
+
+@font-face {
+  font-family: 'Roboto Serif';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: block;
+  src: url('../app/styles/fonts/roboto-serif-latin-normal-400-600.woff2')
+    format('woff2');
+}
+
+@font-face {
+  font-family: 'Roboto Serif';
+  font-style: italic;
+  font-weight: 400 600;
+  font-display: block;
+  src: url('../app/styles/fonts/roboto-serif-latin-italic-400-600.woff2')
+    format('woff2');
+}
+
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url('../app/styles/fonts/material-symbols-rounded-subset-158.woff2')
+    format('woff2');
+}

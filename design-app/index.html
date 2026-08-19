@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' file: data: blob:; script-src 'self' file: 'unsafe-inline' 'unsafe-eval'; style-src 'self' file: 'unsafe-inline'; font-src 'self' file: data:; img-src 'self' file: data: blob:; connect-src 'none'; frame-src 'self' file: data: blob:"
+    />
+    <title>Desktop Material Design Reference</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="title-bar">
+      <div class="title-bar__drag">
+        <span class="title-bar__mark" aria-hidden="true">◆</span>
+        <span>Desktop Material Design Reference</span>
+      </div>
+      <div class="window-actions" aria-label="Window controls">
+        <button
+          type="button"
+          data-window-action="minimize"
+          aria-label="Minimize"
+        >
+          —
+        </button>
+        <button
+          type="button"
+          data-window-action="maximize"
+          aria-label="Maximize or restore"
+        >
+          □
+        </button>
+        <button type="button" data-window-action="close" aria-label="Close">
+          ×
+        </button>
+      </div>
+    </header>
+
+    <main class="app-shell">
+      <aside class="control-pane" aria-label="Design reference controls">
+        <section class="control-section">
+          <p class="eyebrow">Reference</p>
+          <label for="reference-search">Search checked-in references</label>
+          <input
+            id="reference-search"
+            type="search"
+            autocomplete="off"
+            placeholder="Filter by file or title"
+          />
+          <div
+            id="reference-list"
+            class="choice-list"
+            role="listbox"
+            aria-label="Design references"
+          ></div>
+        </section>
+
+        <section class="control-section">
+          <p class="eyebrow">State</p>
+          <label for="state-search">Search deterministic states</label>
+          <input
+            id="state-search"
+            type="search"
+            autocomplete="off"
+            placeholder="Filter by state name"
+          />
+          <div
+            id="state-list"
+            class="choice-list choice-list--states"
+            role="listbox"
+            aria-label="Design states"
+          ></div>
+        </section>
+
+        <section class="control-section">
+          <p class="eyebrow">Presentation</p>
+          <fieldset class="segmented-control">
+            <legend>Theme</legend>
+            <label
+              ><input type="radio" name="theme" value="light" />Light</label
+            >
+            <label><input type="radio" name="theme" value="dark" />Dark</label>
+          </fieldset>
+          <div class="viewport-grid">
+            <label
+              >Width
+              <input
+                id="viewport-width"
+                type="number"
+                min="320"
+                max="4096"
+                step="1"
+            /></label>
+            <label
+              >Height
+              <input
+                id="viewport-height"
+                type="number"
+                min="320"
+                max="4096"
+                step="1"
+            /></label>
+          </div>
+          <div class="preset-row" aria-label="Viewport presets">
+            <button type="button" data-viewport="924x540">924 × 540</button>
+            <button type="button" data-viewport="1240x725">1240 × 725</button>
+            <button type="button" data-viewport="1440x900">1440 × 900</button>
+          </div>
+          <label class="switch-row">
+            <input id="auto-fit" type="checkbox" />
+            <span>Use the design's auto-fit scaling</span>
+          </label>
+          <button id="apply" class="primary-action" type="button">
+            Render selected reference
+          </button>
+        </section>
+
+        <section class="identity-card" aria-live="polite">
+          <p class="eyebrow">Exact identity</p>
+          <dl id="identity"></dl>
+        </section>
+      </aside>
+
+      <section class="preview-pane" aria-label="Rendered design reference">
+        <div class="preview-toolbar">
+          <div>
+            <strong id="preview-title">Loading reference…</strong>
+            <span id="preview-state"></span>
+          </div>
+          <output id="status" role="status">Starting</output>
+        </div>
+        <div class="preview-stage" id="preview-stage">
+          <iframe id="preview" title="Rendered design reference"></iframe>
+        </div>
+      </section>
+    </main>
+
+    <script src="./runtime.js"></script>
+    <script src="./renderer.js"></script>
+  </body>
+</html>

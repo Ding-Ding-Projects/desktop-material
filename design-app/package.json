@@ -1,0 +1,12 @@
+{
+  "name": "desktop-material-design-reference",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local Electron viewer and deterministic capture tool for the checked-in design references",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "node run.mjs",
+    "list": "node run.mjs --list true",
+    "test": "node --test test/*.test.cjs"
+  }
+}
