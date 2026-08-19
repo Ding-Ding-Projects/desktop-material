@@ -10,7 +10,7 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7
         if: |
           startsWith(github.ref, 'refs/heads/releases/') && !contains(github.ref, 'test')
 

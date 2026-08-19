@@ -39,7 +39,7 @@ jobs:
     env:
       RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.release_target_sha || github.sha }}
           fetch-depth: 0

@@ -48,7 +48,7 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7
         with:
           ref: ${{ env.RELEASE_TARGET_SHA }}
           fetch-depth: 0
@@ -108,7 +108,7 @@ jobs:
     runs-on: windows-2022
     steps:
       - name: Initial checkout for Windows bootstrap
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
@@ -116,7 +116,7 @@ jobs:
         shell: cmd
         run: "%GITHUB_WORKSPACE%\\.github\\scripts\\ensure-windows-git-bash.cmd"
       - name: Repeat checkout with bootstrapped Git
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
@@ -156,7 +156,7 @@ jobs:
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
       RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
@@ -236,7 +236,7 @@ jobs:
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
       RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
