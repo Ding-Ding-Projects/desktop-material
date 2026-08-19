@@ -1,0 +1,221 @@
+// The MD3 shell's own layout — the four boxes of
+// `design/History MD3.dc.html`: the root column, the body row, the drawer's
+// sibling `<main>`, and the rounded pane inside it.
+//
+// Everything shared with the views (motion classes, tokens, icon buttons,
+// search rows, chips, empty states) already lives in `_md3-shell.scss` and the
+// per-component partials; nothing here restates them.
+//
+// The two legacy bands — the repository tab strip and the classic toolbar —
+// are this fork's, not the contract's. Multi-repository tabs are a real
+// feature the single-repository prototype never drew, and the classic toolbar
+// is kept behind a persisted setting that ships enabled. Both are laid out
+// here so the pane below them keeps the contract's exact geometry.
+//
+// Material mode follows that contract's four boxes exactly, with its own
+// navigation drawer as the body row's first child. Classic mode's body row is
+// the same three-box shape — nav, panel, main — but the nav in question is
+// `design/Desktop Material v2.dc.html`'s fixed 88px navigation rail rather
+// than the drawer; `Md3Shell` picks between the two components by its
+// `navigation` prop and marks the root `.md3-shell--rail` when the rail is
+// showing. The body row, `<main>` and the pane below stay the identical boxes
+// either way — nothing here branches on `.md3-shell--rail` today, because the
+// rail declares its own fixed width, padding and scroll behaviour in
+// `_md3-navigation-rail.scss`, exactly as the drawer already does for itself
+// in `_md3-navigation-drawer.scss`. The modifier class exists so a rail-only
+// override has somewhere to go the day one is actually needed, without
+// touching the drawer's geometry to make room for it.
+
+.md3-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+}
+
+// `flex: 1; min-height: 0` — the pane scrolls, the shell never does.
+.md3-shell__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.md3-shell__main {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 8px 8px 0;
+}
+
+// The contract's `<section>`: a surface-container-low card with a 16px radius.
+.md3-shell__pane {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--md-sys-color-surface-container-low);
+  border-radius: 16px;
+}
+
+// The destination view fills what the pane header leaves.
+.md3-shell__destination {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// ---------------------------------------------------------------------------
+// Legacy chrome
+// ---------------------------------------------------------------------------
+
+// The repository tab strip, between the header and the shell body. It keeps
+// its own component's styles; this only reserves the band and restates the
+// shell's surface roles so the strip reads as part of the MD3 chrome rather
+// than as a leftover from the previous interface.
+.md3-shell__tab-strip {
+  flex: none;
+  min-width: 0;
+  padding: 0 8px 4px 8px;
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+
+  // A strip wider than the window scrolls inside itself; the shell body must
+  // never scroll sideways.
+  > * {
+    max-width: 100%;
+  }
+}
+
+// The classic toolbar band, above the pane and inside `<main>` so it shares
+// the pane's left edge.
+.md3-shell__classic-toolbar {
+  flex: none;
+  min-width: 0;
+  margin-bottom: 8px;
+  overflow-x: auto;
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+}
+
+// ---------------------------------------------------------------------------
+// Focus
+// ---------------------------------------------------------------------------
+
+// The pane heading is a screen-reader-only focus target. It takes focus on a
+// destination change, so it needs a visible ring for a sighted keyboard user
+// even though the text itself is not rendered.
+.md3-shell__pane > h1.sr-only:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+// ---------------------------------------------------------------------------
+// The classic-toolbar setting's row
+// ---------------------------------------------------------------------------
+//
+// Same shape as the dialog-emoji row it sits beside: bilingual mode gives
+// every one of these strings its longest form and the provenance line is a
+// whole sentence, so nothing here may establish a minimum width the
+// preferences pane cannot shrink below.
+.appearance-classic-toolbar {
+  min-width: 0;
+  max-width: 100%;
+
+  .appearance-classic-toolbar-explanation,
+  .appearance-classic-toolbar-provenance {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  summary {
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Resizable panes
+//
+// The width itself is set inline by `Md3ResizablePane`, because it is a value
+// the user chose and this stylesheet has no way to know it. What lives here is
+// everything around it: the grab area, the visible line, and the states.
+//
+// The handle is 8px of grab area with a 1px line drawn inside it. A 1px target
+// is findable with a mouse and essentially unhittable with a trackpad, and it
+// is well under any minimum touch size, so the target and the mark it draws
+// are deliberately different sizes.
+.md3-resizable-handle {
+  align-self: stretch;
+  background: transparent;
+  border: none;
+  cursor: col-resize;
+  flex: none;
+  padding: 0;
+  position: relative;
+  touch-action: none;
+  width: 8px;
+
+  &::after {
+    background: var(--md-sys-color-outline-variant, var(--box-border-color));
+    border-radius: 1px;
+    bottom: 8px;
+    content: '';
+    left: 50%;
+    opacity: 0;
+    position: absolute;
+    top: 8px;
+    transform: translateX(-50%);
+    transition: opacity 120ms ease, background-color 120ms ease;
+    width: 2px;
+  }
+
+  // Shown on approach and while in use, rather than drawn permanently: a
+  // divider between every pair of panes is a lot of lines for a layout whose
+  // panes are already separated by their own surfaces and radii.
+  &:hover::after,
+  &:focus-visible::after,
+  &.is-dragging::after {
+    opacity: 1;
+  }
+
+  &:focus-visible::after,
+  &.is-dragging::after {
+    background: var(--md-sys-color-primary, var(--focus-color));
+  }
+
+  // The focus ring is the separator's own, not a rectangle around 8px of
+  // nothing: a keyboard user needs to see which divider they are about to move.
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary, var(--focus-color));
+    outline-offset: -1px;
+    border-radius: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::after {
+      transition: none;
+    }
+  }
+}
+
+// A pane being resized must not let its content pick its width back up. The
+// scroller inside it defaults to `min-width: auto`, which refuses to shrink
+// below the widest row, so dragging narrower would simply stop having an
+// effect part-way.
+.md3-resizable-pane {
+  min-width: 0;
+  overflow: hidden;
+}

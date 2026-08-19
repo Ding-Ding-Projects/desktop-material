@@ -1,0 +1,394 @@
+import * as React from 'react'
+import classNames from 'classnames'
+import { t } from '../../lib/i18n'
+import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
+import { createObservableRef, ObservableRef } from '../lib/observable-ref'
+import { Tooltip } from '../lib/tooltip'
+
+/**
+ * The MD3 shell's navigation drawer — the `<nav>` element of
+ * `design/History MD3.dc.html`.
+ *
+ * The contract renders it in two widths: 208px expanded with its rows
+ * stretched, and 68px collapsed with its rows centred as 44px squares. The
+ * width animates over 280ms; every measurement lives in
+ * `app/styles/ui/_md3-navigation-drawer.scss`.
+ *
+ * Two things the contract cannot express are handled here rather than in the
+ * stylesheet:
+ *
+ * - The collapsed state hides every visible label, so each control carries an
+ *   `aria-label` that survives the collapse. Without it the drawer is eight
+ *   unnamed buttons the moment it narrows, and nothing on screen says so.
+ * - The contract's `title` hints are rendered through the app's own `Tooltip`,
+ *   because `title` is unreachable by keyboard and this repository forbids it.
+ */
+
+/** The glyph size the contract gives the compose, destination and repository icons. */
+const DrawerGlyphSize = 18
+
+/** The trailing `swap_horiz` glyph on the repository chip. */
+const RepositorySwapGlyphSize = 16
+
+/**
+ * The eight destinations the contract ships, in its order. The identifiers are
+ * stable; the labels they render are localized and must never be used as
+ * identity.
+ */
+export type Md3DestinationId =
+  | 'changes'
+  | 'history'
+  | 'branches'
+  | 'actions'
+  | 'inbox'
+  | 'terminal'
+  | 'agents'
+  | 'repositories'
+
+/** The contract's `destDefs` order and icons. */
+const DestinationOrder: ReadonlyArray<{
+  readonly id: Md3DestinationId
+  readonly icon: MaterialSymbolName
+}> = [
+  { id: 'changes', icon: 'edit_note' },
+  { id: 'history', icon: 'history' },
+  { id: 'branches', icon: 'merge_type' },
+  { id: 'actions', icon: 'play_circle' },
+  { id: 'inbox', icon: 'inbox' },
+  { id: 'terminal', icon: 'terminal' },
+  { id: 'agents', icon: 'smart_toy' },
+  { id: 'repositories', icon: 'book_2' },
+]
+
+function destinationLabel(id: Md3DestinationId): string {
+  switch (id) {
+    case 'changes':
+      return t('md3.drawer.destination.changes')
+    case 'history':
+      return t('md3.drawer.destination.history')
+    case 'branches':
+      return t('md3.drawer.destination.branches')
+    case 'actions':
+      return t('md3.drawer.destination.actions')
+    case 'inbox':
+      return t('md3.drawer.destination.inbox')
+    case 'terminal':
+      return t('md3.drawer.destination.terminal')
+    case 'agents':
+      return t('md3.drawer.destination.agents')
+    case 'repositories':
+      return t('md3.drawer.destination.repositories')
+  }
+}
+
+export interface IMd3Destination {
+  /**
+   * Stable identity. The label is localized, so comparing labels would break
+   * the moment the language mode changes.
+   */
+  readonly id: string
+
+  /** The visible, localized name. Hidden while the drawer is collapsed. */
+  readonly label: string
+
+  readonly icon: MaterialSymbolName
+
+  /**
+   * The trailing badge. The contract renders it only when it is non-empty and
+   * the drawer is expanded, so an empty string means "no badge" — not "zero".
+   */
+  readonly count: string
+
+  readonly active: boolean
+}
+
+/**
+ * Build the contract's eight destinations with their exact order, icons and
+ * localized labels, so a caller only has to supply the counts and which one is
+ * current.
+ *
+ * @param counts  Badge text per destination. A missing or empty entry renders
+ *                no badge, matching the contract's `count: ''`.
+ * @param active  The destination that is currently showing in the main pane.
+ */
+export function md3Destinations(
+  counts: Partial<Record<Md3DestinationId, string>>,
+  active: Md3DestinationId
+): ReadonlyArray<IMd3Destination> {
+  return DestinationOrder.map(d => ({
+    id: d.id,
+    label: destinationLabel(d.id),
+    icon: d.icon,
+    count: counts[d.id] ?? '',
+    active: d.id === active,
+  }))
+}
+
+export interface IMd3NavigationDrawerProps {
+  /**
+   * The destinations, in the order they are rendered. `md3Destinations` builds
+   * the contract's eight.
+   */
+  readonly destinations: ReadonlyArray<IMd3Destination>
+
+  /** 208px with labels when true, 68px icon-only when false. */
+  readonly expanded: boolean
+
+  /** The repository named on the footer chip. */
+  readonly activeRepositoryName: string
+
+  /** Receives the `id` of the destination the user chose. */
+  readonly onSelectDestination: (id: string) => void
+
+  /** The compose ("Commit") button. */
+  readonly onOpenCompose: () => void
+
+  /**
+   * The footer chip. The contract sends this to the Repositories destination;
+   * a host that opens a switcher instead may do so, provided the chip's
+   * accessible name still describes what it does.
+   */
+  readonly onSelectRepository: () => void
+
+  /** The drawer's own context menu. */
+  readonly onContextMenu?: (event: React.MouseEvent<HTMLElement>) => void
+
+  /**
+   * The DOM id of the main pane the destinations switch between. Supplied, it
+   * becomes `aria-controls` on every destination so assistive technology can
+   * follow the relationship; omitted, the destinations are simply announced as
+   * a vertical tab list.
+   */
+  readonly mainPaneId?: string
+
+  readonly className?: string
+}
+
+/**
+ * The contract's navigation drawer.
+ *
+ * The destinations are a vertical tab list over the main pane: exactly one is
+ * selected, activating one swaps the pane rather than navigating away, and so
+ * they take a single tab stop with arrow keys moving between them (roving
+ * `tabindex`, per the ARIA authoring practices for a tab list). The selected
+ * row also carries `aria-current="page"`, which costs nothing and answers the
+ * question a user of a screen reader most often asks of a navigation rail.
+ */
+export function Md3NavigationDrawer(props: IMd3NavigationDrawerProps) {
+  const {
+    destinations,
+    expanded,
+    onSelectDestination,
+    onOpenCompose,
+    onSelectRepository,
+  } = props
+
+  const composeRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
+  const repositoryRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
+
+  // One observable ref per destination: it is both the tooltip's target and
+  // the handle the roving tabindex moves focus with.
+  const destinationRefs = React.useRef(
+    new Map<string, ObservableRef<HTMLButtonElement>>()
+  )
+  const refFor = React.useCallback((id: string) => {
+    const existing = destinationRefs.current.get(id)
+    if (existing !== undefined) {
+      return existing
+    }
+    const created = createObservableRef<HTMLButtonElement>()
+    destinationRefs.current.set(id, created)
+    return created
+  }, [])
+
+  const ids = destinations.map(d => d.id).join('\u0000')
+  React.useEffect(() => {
+    const live = new Set(ids.split('\u0000'))
+    for (const id of Array.from(destinationRefs.current.keys())) {
+      if (!live.has(id)) {
+        destinationRefs.current.delete(id)
+      }
+    }
+  }, [ids])
+
+  const [focusedId, setFocusedId] = React.useState<string | null>(null)
+
+  // The tab stop follows the user's last arrow-key move, and otherwise sits on
+  // the selected destination — never on a destination that has gone away.
+  const activeDestination = destinations.find(d => d.active)
+  const firstDestination = destinations.length > 0 ? destinations[0] : undefined
+  const rovingId =
+    destinations.find(d => d.id === focusedId)?.id ??
+    activeDestination?.id ??
+    firstDestination?.id
+
+  const onDestinationKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLButtonElement>) => {
+      const index = destinations.findIndex(
+        d => d.id === event.currentTarget.dataset.destinationId
+      )
+      if (index === -1 || destinations.length === 0) {
+        return
+      }
+
+      let next = index
+      switch (event.key) {
+        case 'ArrowDown':
+          next = (index + 1) % destinations.length
+          break
+        case 'ArrowUp':
+          next = (index - 1 + destinations.length) % destinations.length
+          break
+        case 'Home':
+          next = 0
+          break
+        case 'End':
+          next = destinations.length - 1
+          break
+        default:
+          return
+      }
+
+      event.preventDefault()
+      const target = destinations[next]
+      setFocusedId(target.id)
+      destinationRefs.current.get(target.id)?.current?.focus()
+    },
+    [destinations]
+  )
+
+  const onDestinationClick = React.useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      const id = event.currentTarget.dataset.destinationId
+      if (id !== undefined) {
+        setFocusedId(id)
+        onSelectDestination(id)
+      }
+    },
+    [onSelectDestination]
+  )
+
+  const commitLabel = t('md3.drawer.commit')
+  const repositoryLabel = t('md3.drawer.repository', {
+    name: props.activeRepositoryName,
+  })
+
+  return (
+    <nav
+      className={classNames(
+        'md3-navigation-drawer',
+        { 'md3-navigation-drawer--collapsed': !expanded },
+        props.className
+      )}
+      aria-label={t('md3.drawer.label')}
+      onContextMenu={props.onContextMenu}
+    >
+      <button
+        ref={composeRef}
+        type="button"
+        className="md3-navigation-drawer__compose"
+        aria-label={commitLabel}
+        onClick={onOpenCompose}
+      >
+        {expanded ? null : (
+          <Tooltip target={composeRef} applyAriaDescribedBy={false}>
+            {commitLabel}
+          </Tooltip>
+        )}
+        <MaterialSymbol name="edit" size={DrawerGlyphSize} />
+        <span className="md3-navigation-drawer__compose-label">
+          {commitLabel}
+        </span>
+      </button>
+
+      <div
+        className="md3-navigation-drawer__destinations"
+        role="tablist"
+        aria-orientation="vertical"
+        aria-label={t('md3.drawer.destinations')}
+      >
+        {destinations.map(destination => {
+          const ref = refFor(destination.id)
+          const hasCount = destination.count.length > 0
+          const accessibleName = hasCount
+            ? t('md3.drawer.destinationWithCount', {
+                label: destination.label,
+                count: destination.count,
+              })
+            : destination.label
+
+          return (
+            <button
+              key={destination.id}
+              ref={ref}
+              type="button"
+              role="tab"
+              data-destination-id={destination.id}
+              className={classNames('md3-navigation-drawer__destination', {
+                'md3-navigation-drawer__destination--active':
+                  destination.active,
+              })}
+              aria-selected={destination.active}
+              aria-current={destination.active ? 'page' : undefined}
+              aria-controls={props.mainPaneId}
+              aria-label={accessibleName}
+              tabIndex={destination.id === rovingId ? 0 : -1}
+              onClick={onDestinationClick}
+              onKeyDown={onDestinationKeyDown}
+            >
+              <Tooltip target={ref} applyAriaDescribedBy={false}>
+                {destination.label}
+              </Tooltip>
+              <MaterialSymbol
+                name={destination.icon}
+                className="md3-navigation-drawer__icon"
+                size={DrawerGlyphSize}
+              />
+              <span className="md3-navigation-drawer__destination-label">
+                {destination.label}
+              </span>
+              {hasCount ? (
+                <span className="md3-navigation-drawer__destination-count">
+                  {destination.count}
+                </span>
+              ) : null}
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="md3-navigation-drawer__spacer" />
+
+      <button
+        ref={repositoryRef}
+        type="button"
+        className="md3-navigation-drawer__repository"
+        aria-label={repositoryLabel}
+        onClick={onSelectRepository}
+      >
+        <Tooltip target={repositoryRef} applyAriaDescribedBy={false}>
+          {props.activeRepositoryName}
+        </Tooltip>
+        <MaterialSymbol
+          name="book_2"
+          className="md3-navigation-drawer__repository-icon"
+          size={DrawerGlyphSize}
+        />
+        <span className="md3-navigation-drawer__repository-label">
+          {props.activeRepositoryName}
+        </span>
+        <MaterialSymbol
+          name="swap_horiz"
+          className="md3-navigation-drawer__repository-swap"
+          size={RepositorySwapGlyphSize}
+        />
+      </button>
+    </nav>
+  )
+}

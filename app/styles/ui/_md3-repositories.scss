@@ -1,0 +1,526 @@
+// The MD3 shell's Repositories destination.
+//
+// Every literal here is copied from the `<sc-if value="{{ isRepositories }}">`
+// branch of `design/History MD3.dc.html` (markup lines 655–700) and the
+// `repoRows` / `repoEmptyStyle` values its `renderVals()` computes (lines
+// 2058–2098). The row, name, detail, chip, search, group-header and empty-state
+// geometry all come from `_md3-shell.scss`; only what is specific to this
+// destination is declared below.
+//
+// The surfaces the contract does not draw — the bulk-selection bar, the
+// determinate run with its per-repository results, and the two-key removal
+// gate — are styled from the same tokens so they read as part of the same pane
+// rather than as a bolted-on panel.
+
+.md3-repositories-view {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  min-height: 0;
+  padding: 0 8px 8px 8px;
+}
+
+// The single full-width pane.
+.md3-repositories-view__pane {
+  background: var(--md-sys-color-surface-container);
+  border-radius: 12px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+// The scrolling list container.
+.md3-repositories-view__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 6px 8px 6px;
+}
+
+// ---------------------------------------------------------------------------
+// Rows
+// ---------------------------------------------------------------------------
+
+.md3-repositories-view__row {
+  // The row is a grid row, so its own focus ring matters: it is the tab stop
+  // the arrow keys move.
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: -2px;
+  }
+
+  > [role='gridcell'] {
+    align-items: center;
+    display: inline-flex;
+    flex: none;
+    min-width: 0;
+  }
+}
+
+// `iconStyle` — 17px, primary for the current repository.
+.md3-repositories-view__row-icon {
+  color: var(--md-sys-color-on-surface-variant);
+  flex: none;
+}
+
+.md3-repositories-view__row-icon--current {
+  color: var(--md-sys-color-primary);
+}
+
+// The identity cell holds the glyph and the three-line column, and is the one
+// cell that grows. Written as a child selector so it outranks the shared
+// `flex: none` above without reaching for `!important`.
+.md3-repositories-view__row > .md3-repositories-view__identity {
+  flex: 1 1 auto;
+  gap: 8px;
+  min-width: 0;
+}
+
+// The contract's `<span style="display: flex; flex-direction: column; gap: 2px">`.
+.md3-repositories-view__column {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.md3-repositories-view__name-line {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+// The contract's meta line: 10.5px, on-surface-variant, single line.
+.md3-repositories-view__meta {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 10.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Pinned / hidden / missing, which the contract's sample never shows but the
+// repository list has always reported.
+.md3-repositories-view__flag {
+  background: var(--md-sys-color-surface-container-highest);
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface-variant);
+  flex: none;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 1px 6px;
+  text-transform: uppercase;
+}
+
+.md3-repositories-view__flag--missing {
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+// `langStyle` — and the resting half of `changeStyle`.
+.md3-repositories-view__pill {
+  align-items: center;
+  background: var(--md-sys-color-surface-container-highest);
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface-variant);
+  display: inline-flex;
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 600;
+  height: 20px;
+  padding: 0 8px;
+}
+
+// `changeStyle` in its clean branch: no fill at all.
+.md3-repositories-view__pill--changes {
+  background: transparent;
+}
+
+// `changeStyle` in its dirty branch.
+.md3-repositories-view__pill--dirty {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+// `openStyle` in its interactive branch.
+.md3-repositories-view__open {
+  background: var(--md-sys-color-surface-container-high);
+  border: 0;
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface);
+  cursor: pointer;
+  flex: none;
+  font-size: 11px;
+  font-weight: 600;
+  height: 26px;
+  padding: 0 12px;
+  transition: background-color 180ms cubic-bezier(0.2, 0, 0, 1);
+
+  &:hover {
+    background: color-mix(in srgb, var(--md-sys-color-surface-container-high) 88%, var(--md-sys-color-on-surface));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
+  }
+}
+
+// `openStyle` in its current-repository branch: a readout, not a control.
+.md3-repositories-view__current {
+  align-items: center;
+  color: var(--md-sys-color-on-surface-variant);
+  display: inline-flex;
+  flex: none;
+  font-size: 11px;
+  font-weight: 600;
+  height: 26px;
+  padding: 0 12px;
+}
+
+.md3-repositories-view__row-menu {
+  flex: none;
+}
+
+// The multi-select checkbox, which only exists while selection mode is on.
+.md3-repositories-view__checkbox {
+  accent-color: var(--md-sys-color-primary);
+  block-size: 16px;
+  cursor: pointer;
+  flex: none;
+  inline-size: 16px;
+  margin: 0 2px 0 0;
+}
+
+// ---------------------------------------------------------------------------
+// Notices
+// ---------------------------------------------------------------------------
+
+.md3-repositories-view__notice {
+  align-items: center;
+  color: var(--md-sys-color-on-surface-variant);
+  display: flex;
+  flex: none;
+  font-size: 11.5px;
+  gap: 6px;
+  margin: 0;
+  padding: 0 12px 8px 12px;
+
+  > span {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Bulk selection
+// ---------------------------------------------------------------------------
+
+.md3-repositories-view__bulk {
+  align-items: center;
+  background: var(--md-sys-color-surface-container-high);
+  border-radius: 12px;
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 10px 8px 10px;
+  padding: 8px 10px;
+}
+
+// The shared bar (`_md3-bulk-bar.scss`) owns select-all, the count, invert,
+// clear, every verb and the export picker; it takes the whole row so what
+// stays beside it — the group field and the exit — sits underneath rather
+// than being squeezed against it.
+.md3-repositories-view__bulk .md3-bulk-bar {
+  flex: 1 1 100%;
+}
+
+.md3-repositories-view__bulk-group {
+  align-items: center;
+  color: var(--md-sys-color-on-surface);
+  display: inline-flex;
+  font-size: 11.5px;
+  font-weight: 600;
+  gap: 6px;
+
+  input[type='checkbox'] {
+    accent-color: var(--md-sys-color-primary);
+    block-size: 16px;
+    inline-size: 16px;
+    margin: 0;
+  }
+
+  input[type='text'] {
+    background: var(--md-sys-color-surface-container);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 999px;
+    color: var(--md-sys-color-on-surface);
+    font: inherit;
+    font-size: 11.5px;
+    font-weight: 500;
+    height: 26px;
+    padding: 0 10px;
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 1px;
+    }
+  }
+}
+
+// The honest scope line beside select-all: what "all" actually covers.
+.md3-repositories-view__bulk-scope {
+  color: var(--md-sys-color-on-surface-variant);
+  flex: 1 1 220px;
+  font-size: 10.5px;
+  min-width: 0;
+}
+
+// ---------------------------------------------------------------------------
+// The determinate run
+// ---------------------------------------------------------------------------
+
+.md3-repositories-view__run {
+  background: var(--md-sys-color-surface-container-high);
+  border-radius: 12px;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 10px 8px 10px;
+  max-height: 40vh;
+  overflow-y: auto;
+  padding: 10px 12px;
+}
+
+.md3-repositories-view__run-heading {
+  align-items: baseline;
+  color: var(--md-sys-color-on-surface);
+  display: flex;
+  font-size: 12px;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.md3-repositories-view__run-count {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.md3-repositories-view__run-track {
+  background: var(--md-sys-color-surface-container-highest);
+  border-radius: 999px;
+  flex: none;
+  height: 4px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.md3-repositories-view__run-fill {
+  background: var(--md-sys-color-primary);
+  display: block;
+  height: 100%;
+  transition: width 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.md3-repositories-view__run-note {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11px;
+  margin: 0;
+}
+
+.md3-repositories-view__run-results {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  > li {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    min-width: 0;
+  }
+}
+
+.md3-repositories-view__run-name {
+  color: var(--md-sys-color-on-surface);
+  flex: none;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.md3-repositories-view__run-detail {
+  color: var(--md-sys-color-on-surface-variant);
+  flex: 1 1 auto;
+  font-size: 10.5px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.md3-repositories-view__run-actions {
+  display: flex;
+  gap: 6px;
+}
+
+// ---------------------------------------------------------------------------
+// The removal gate
+// ---------------------------------------------------------------------------
+
+.md3-repositories-view__removal {
+  background: var(--md-sys-color-surface-container-highest);
+  border: 1px solid var(--md-sys-color-error);
+  border-radius: 12px;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 10px 8px 10px;
+  max-height: 46vh;
+  overflow-y: auto;
+  padding: 12px;
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.md3-repositories-view__removal-title {
+  color: var(--md-sys-color-on-surface);
+  font-size: 13px;
+}
+
+.md3-repositories-view__removal-body {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11.5px;
+}
+
+.md3-repositories-view__removal-eyebrow {
+  color: var(--md-sys-color-error);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.md3-repositories-view__removal-list {
+  color: var(--md-sys-color-on-surface);
+  display: flex;
+  flex-direction: column;
+  font-size: 11.5px;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  max-height: 140px;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.md3-repositories-view__removal-keys {
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+
+  > legend {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 0 0 4px 0;
+    text-transform: uppercase;
+  }
+
+  label {
+    align-items: flex-start;
+    color: var(--md-sys-color-on-surface);
+    display: flex;
+    font-size: 11.5px;
+    gap: 8px;
+  }
+
+  input[type='checkbox'] {
+    accent-color: var(--md-sys-color-error);
+    block-size: 16px;
+    flex: none;
+    inline-size: 16px;
+    margin: 1px 0 0 0;
+  }
+}
+
+.md3-repositories-view__removal-slider {
+  color: var(--md-sys-color-on-surface-variant);
+  display: flex;
+  flex-direction: column;
+  font-size: 11px;
+  gap: 4px;
+
+  input[type='range'] {
+    accent-color: var(--md-sys-color-error);
+    width: 100%;
+  }
+}
+
+.md3-repositories-view__removal-state {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11px;
+}
+
+.md3-repositories-view__removal-state--ready {
+  color: var(--md-sys-color-error);
+  font-weight: 600;
+}
+
+.md3-repositories-view__removal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.md3-repositories-view__removal-confirm {
+  background: var(--md-sys-color-error);
+  border: 0;
+  border-radius: 999px;
+  color: var(--md-sys-color-on-error);
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 600;
+  height: 28px;
+  padding: 0 14px;
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.38;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Reduced motion
+// ---------------------------------------------------------------------------
+
+@media (prefers-reduced-motion: reduce) {
+  .md3-repositories-view__open,
+  .md3-repositories-view__run-fill {
+    transition: none;
+  }
+}

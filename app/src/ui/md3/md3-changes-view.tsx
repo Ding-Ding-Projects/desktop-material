@@ -1,0 +1,1733 @@
+import * as React from 'react'
+
+import { Md3ResizablePane } from './md3-resizable-pane'
+import classNames from 'classnames'
+import { tFunny } from '../../lib/funny-level-text'
+import { t } from '../../lib/i18n'
+import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
+import { createObservableRef, ObservableRef } from '../lib/observable-ref'
+import { Tooltip } from '../lib/tooltip'
+import {
+  Md3Chip,
+  Md3ChipRow,
+  Md3ChipRowSpacer,
+  Md3EmptyState,
+  Md3GhostButton,
+  Md3IconButton,
+  Md3SearchField,
+} from './md3-primitives'
+import { formatAddDelete, statusTone } from './md3-style-contract'
+import { Md3DiffPane, IMd3DiffPaneProps } from './md3-diff-pane'
+import {
+  useMd3MeasuredRowHeight,
+  useMd3VirtualWindow,
+} from './md3-virtual-window'
+import {
+  IMd3BulkAction,
+  Md3BulkBar,
+  md3BulkExportMenuSpec,
+} from './md3-bulk-bar'
+import {
+  IMd3ListExport,
+  IMd3ListExportColumn,
+  Md3ListExportFormat,
+  serializeMd3ListExport,
+} from './md3-list-export'
+import {
+  IMd3BulkPartition,
+  md3ApplySelection,
+  md3BulkPartitionSummary,
+  md3BulkScope,
+  md3BulkScopeLabel,
+  md3InvertSelection,
+  md3PartitionBulk,
+  md3SelectionIntent,
+  md3ToggleSelectAll,
+} from './md3-list-selection'
+import { Md3MenuOverlay } from './md3-menu-overlay'
+import { Md3DestructiveGate } from './md3-destructive-gate'
+import { notify } from './md3-toast'
+
+/**
+ * The Changes destination of the MD3 shell contract
+ * (`design/History MD3.dc.html`, the `isChanges` branch).
+ *
+ * A fixed 356px column holding the changed-file filter, the tri-state
+ * include-all toggle, the file list and the commit composer pinned to its
+ * foot, beside the shared diff pane.
+ *
+ * The measurements live in `app/styles/ui/_md3-changes-view.scss`; the diff
+ * pane is `md3-diff-pane.tsx`, shared verbatim with History.
+ *
+ * Three things the contract's prototype does not draw, kept here because the
+ * surface this replaces already had them and no feature may be lost in the
+ * rewrite:
+ *
+ *  - **The filter chips.** The existing changes list filters by inclusion
+ *    state and by file status. They render between the include-all toggle and
+ *    the trailing overflow, so the contract's leading and trailing controls sit
+ *    exactly where it puts them.
+ *  - **Multi-selection.** Ctrl/Cmd-click adds to the selection and Shift-click
+ *    extends it, which is what makes the existing bulk context-menu commands
+ *    ("Include selected files", "Copy selected paths", ignoring several files
+ *    at once) reachable at all.
+ *  - **The native context menu.** Right-clicking a row, or the list itself,
+ *    raises the host's own menu through `onFileContextMenu` /
+ *    `onListContextMenu`. The contract's `changeRowMenu` and `changesMenu`
+ *    overlays are the styled front door; the native menu is where discard,
+ *    stash, ignore-folder, copy-relative-path, reveal, open-with and the Cheap
+ *    LFS commands continue to live.
+ *
+ * The component owns no state beyond keyboard focus. Every value it renders
+ * arrives as a prop and every change leaves as a callback, so the shell keeps
+ * being the single place that knows what the working tree actually holds.
+ */
+
+/** A file's status letter, as the contract's `statusTone()` keys them. */
+export type Md3ChangeStatus = 'A' | 'M' | 'D'
+
+export interface IMd3ChangedFile {
+  /** Repository-relative path. Unique, and used as the React key. */
+  readonly path: string
+
+  readonly status: Md3ChangeStatus
+
+  /** Whether the file is included in the next commit. */
+  readonly included: boolean
+
+  /**
+   * Whether only some of the file's hunks are included. The contract's row
+   * checkbox is binary; partial selection is an existing capability of this
+   * surface, so it renders the third glyph and reports `aria-checked="mixed"`
+   * rather than rounding to one of the other two.
+   */
+  readonly partiallyIncluded?: boolean
+
+  /**
+   * Whether `addedLineCount` and `deletedLineCount` are real.
+   *
+   * `git status` reports which files changed, never by how much; the line
+   * totals arrive only with a file's diff, and the app loads that for the
+   * selected file alone. So they are zero — not absent — for every other row,
+   * and a zero meaning "not known" must never render as a zero meaning
+   * "nothing changed". A row that reports `+0 −0` says the file is identical
+   * to HEAD, which is false of every file in this list by definition.
+   */
+  readonly statsLoaded: boolean
+
+  readonly addedLineCount: number
+
+  readonly deletedLineCount: number
+}
+
+/** One filter chip in the row beneath the search field. */
+export interface IMd3ChangesFilterChip {
+  /** Unique within the row. */
+  readonly id: string
+
+  readonly label: string
+
+  readonly active: boolean
+
+  readonly onToggle: () => void
+}
+
+export interface IMd3ChangesViewProps {
+  // -- the file list ------------------------------------------------------
+
+  /** Every changed file that survives the current query and filters. */
+  readonly files: ReadonlyArray<IMd3ChangedFile>
+
+  /**
+   * How many changed files the working tree holds in total, before the query
+   * and the filters. The include-all label counts the whole tree, not the
+   * filtered view, so a filtered list can never report a commit as smaller
+   * than it is.
+   */
+  readonly totalFileCount: number
+
+  /** How many of those are included in the next commit. */
+  readonly includedFileCount: number
+
+  /** The paths currently selected. The first drives the diff pane. */
+  readonly selectedPaths: ReadonlyArray<string>
+
+  readonly onSelectionChanged: (paths: ReadonlyArray<string>) => void
+
+  /** Include or exclude one file. */
+  readonly onIncludeChanged: (path: string, included: boolean) => void
+
+  /** The tri-state toggle: include everything, or exclude everything. */
+  readonly onIncludeAllChanged: (included: boolean) => void
+
+  /** The contract's `changeRowMenu`. */
+  readonly onOpenRowMenu: (
+    path: string,
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => void
+
+  /** The host's own context menu for a file, with the full command set. */
+  readonly onFileContextMenu: (
+    path: string,
+    event: React.MouseEvent<HTMLElement>
+  ) => void
+
+  /** The contract's `changesMenu` — discard, ignore, stash, group by folder. */
+  readonly onOpenChangesMenu: (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => void
+
+  /** The host's own context menu for the list as a whole. */
+  readonly onListContextMenu?: (event: React.MouseEvent<HTMLElement>) => void
+
+  // -- the filter ---------------------------------------------------------
+
+  readonly searchValue: string
+
+  readonly searchRegexEnabled: boolean
+
+  readonly onSearchChange: (value: string) => void
+
+  readonly onSearchClear: () => void
+
+  readonly onToggleSearchRegex: () => void
+
+  readonly onOpenSearchBuilder: () => void
+
+  readonly onSearchContextMenu?: (
+    event: React.MouseEvent<HTMLDivElement>
+  ) => void
+
+  /** Inclusion and status filters. Omitted renders no chips. */
+  readonly filterChips?: ReadonlyArray<IMd3ChangesFilterChip>
+
+  /** Clears the query and every filter, from the empty state. */
+  readonly onResetFilters?: () => void
+
+  // -- bulk actions -------------------------------------------------------
+
+  /**
+   * Copy the bulk scope's paths, one per line. Omitted hides the verb.
+   *
+   * The same capability the row context menu's "Copy selected paths" already
+   * has; the bar reaches it for a scope the user never had to click through.
+   */
+  readonly onCopyPaths?: (text: string) => void
+
+  /**
+   * Discard the working-tree changes to these files. Omitted hides the verb.
+   *
+   * Irreversible, so the bar routes it through the destructive gate before
+   * ever calling this.
+   */
+  readonly onDiscardFiles?: (paths: ReadonlyArray<string>) => void
+
+  /** Receives a serialized export of the bulk scope. Omitted hides Export. */
+  readonly onExportChanges?: (
+    payload: IMd3ListExport,
+    files: ReadonlyArray<IMd3ChangedFile>
+  ) => void
+
+  // -- the composer -------------------------------------------------------
+
+  /** The committing account's initials, for the composer avatar. */
+  readonly authorInitials: string
+
+  /** The committing account's name, which names the avatar. */
+  readonly authorName: string
+
+  readonly commitSummary: string
+
+  readonly commitDescription: string
+
+  readonly onCommitSummaryChanged: (summary: string) => void
+
+  readonly onCommitDescriptionChanged: (description: string) => void
+
+  /** The branch the commit lands on, named by the commit button. */
+  readonly branchName: string
+
+  /**
+   * Replaces "Commit to {branch}" — for amending, or for committing onto a
+   * detached HEAD, where naming a branch would be a lie.
+   */
+  readonly commitButtonLabel?: string
+
+  /** Commit. Only called once there is a non-blank summary. */
+  readonly onCommit: () => void
+
+  /** Commit and push. Only called once there is a non-blank summary. */
+  readonly onCommitAndPush: () => void
+
+  /**
+   * Open the full composer dialog.
+   *
+   * Committing with an empty summary opens it rather than doing nothing, which
+   * is what the contract does: a button that silently refuses is a button the
+   * user presses twice and then reports as broken. `push` carries whether it
+   * was the one-click commit-and-push that was pressed, so the dialog can arm
+   * the matching action.
+   */
+  readonly onOpenComposer: (push: boolean) => void
+
+  readonly onDraftWithCopilot: () => void
+
+  readonly onAddCoAuthors: () => void
+
+  /** Disables both commit actions — mid-commit, mid-rebase, or read-only. */
+  readonly commitDisabled?: boolean
+
+  /**
+   * Rendered between the file list and the composer: commit warnings,
+   * oversized-file notices, an undo-commit offer, a continue-rebase prompt.
+   * The shell owns them; the view owns where they sit.
+   */
+  readonly banners?: React.ReactNode
+
+  /**
+   * Rendered inside the composer beneath the description — the co-author
+   * editor and the avatar stack it fills in.
+   */
+  readonly composerExtras?: React.ReactNode
+
+  /**
+   * Replaces the built-in empty state when the working tree is genuinely
+   * clean, as opposed to filtered down to nothing.
+   */
+  readonly emptyContent?: React.ReactNode
+
+  // -- the diff pane ------------------------------------------------------
+
+  /**
+   * Everything the shared diff pane needs. `action` and `fileMenuLabel` are
+   * supplied by this view — the contract fixes them to "Include hunk" and the
+   * working-tree file commands — so the shell cannot accidentally hand the
+   * Changes pane History's Details toggle.
+   */
+  readonly diff: Omit<IMd3DiffPaneProps, 'action' | 'fileMenuLabel'>
+
+  /** Include the hunk under the cursor in the commit. */
+  readonly onIncludeHunk: () => void
+
+  /** Set while there is no hunk to include. */
+  readonly includeHunkDisabled?: boolean
+
+  readonly className?: string
+}
+
+/** The contract's soft limit on summary length, reported by the hint. */
+const SummaryLengthGuide = 50
+
+/**
+ * Above this many changed files the list renders a window rather than every
+ * row. A generated-file sweep or a first commit routinely runs to thousands.
+ */
+const ListVirtualizeThreshold = 300
+
+/** The row height assumed until the first row has been measured. */
+const AssumedRowHeight = 62
+
+/**
+ * The row's own focusable controls, in DOM order, for Left/Right navigation.
+ *
+ * The bulk checkbox is an `input` rather than a button, so a selector of
+ * `button` alone walks straight past the one control the arrow keys are now
+ * the only pointer-free way to reach.
+ */
+const RowControlSelector = 'input[type="checkbox"], button'
+
+/**
+ * The composer is a `<form>` so that Enter in the summary field submits it
+ * rather than doing nothing, but the commit itself runs through the button's
+ * own handler; the browser's navigation is never wanted.
+ */
+function preventDefault(event: React.FormEvent) {
+  event.preventDefault()
+}
+
+/** The contract's `c.name` — `path.split('/').pop()`. */
+export function md3ChangeName(path: string): string {
+  const index = path.lastIndexOf('/')
+  return index === -1 ? path : path.slice(index + 1)
+}
+
+/** The contract's `c.dir` — `path.split('/').slice(0, -1).join('/')`. */
+export function md3ChangeDirectory(path: string): string {
+  const index = path.lastIndexOf('/')
+  return index === -1 ? '' : path.slice(0, index)
+}
+
+const basename = md3ChangeName
+const directory = md3ChangeDirectory
+
+/**
+ * The extension segment of the detail line.
+ *
+ * The contract writes `path.split('.').pop()`, which answers the whole
+ * filename for a file that has no dot at all — so `Makefile` would describe
+ * itself as being of type "Makefile". A leading dot is a dotfile rather than
+ * an extension, so `.gitignore` has none either.
+ */
+export function md3ChangeExtension(path: string): string | undefined {
+  const name = basename(path)
+  const index = name.lastIndexOf('.')
+  return index > 0 ? name.slice(index + 1) : undefined
+}
+
+/**
+ * The contract's `c.detail` — "new file · +24 −9 · tsx · included".
+ *
+ * Rendered from the file's real added and deleted counts rather than the
+ * contract's `24 + i * 7` sample arithmetic, which exists only to give the
+ * prototype eight distinguishable rows.
+ *
+ * A file whose diff has not been loaded has no counts to render, so the
+ * `+a −d` segment is dropped entirely — "modified · tsx · included" — rather
+ * than printed as `+0 −0`, which would state that a file in the changed-file
+ * list is unchanged.
+ */
+export function md3ChangeDetail(file: IMd3ChangedFile): string {
+  return [
+    statusLabel(file.status),
+    file.statsLoaded
+      ? formatAddDelete(file.addedLineCount, file.deletedLineCount)
+      : undefined,
+    md3ChangeExtension(file.path),
+    file.included || file.partiallyIncluded === true
+      ? t('md3.changes.state.included')
+      : t('md3.changes.state.excluded'),
+  ]
+    .filter((part): part is string => part !== undefined && part.length > 0)
+    .join(' · ')
+}
+
+/**
+ * The contract's `visibleChanges` — `changes.filter(c => cMatch(c.path))`.
+ *
+ * The list's `files` prop is documented as the rows that survive the query, so
+ * something has to apply it; handing the view the whole working directory
+ * leaves the filter field present, correctly typed, and completely inert,
+ * which is what it was doing.
+ *
+ * Plain-text substring matching is the default and regex is the explicit
+ * opt-in, exactly as the contract's `matcher()` has it. An unparseable pattern
+ * matches everything rather than nothing: a half-typed `(` must not blank the
+ * list and make the user think their working tree emptied itself.
+ */
+export function md3VisibleChangedFiles<T extends { readonly path: string }>(
+  files: ReadonlyArray<T>,
+  query: string,
+  regexEnabled: boolean
+): ReadonlyArray<T> {
+  const raw = query.trim()
+  if (raw.length === 0) {
+    return files
+  }
+
+  if (regexEnabled) {
+    let expression: RegExp
+    try {
+      expression = new RegExp(raw, 'i')
+    } catch {
+      return files
+    }
+    return files.filter(file => expression.test(file.path))
+  }
+
+  const lowered = raw.toLowerCase()
+  return files.filter(file => file.path.toLowerCase().includes(lowered))
+}
+
+// ---------------------------------------------------------------------------
+// Bulk actions
+// ---------------------------------------------------------------------------
+
+/**
+ * The declared export schema for a changed file.
+ *
+ * `statsLoaded` is exported beside the two counts because the counts are only
+ * real when it is true — see {@link md3ChangeExportRecord}. A reader who has
+ * the flag can tell "nothing changed" from "nobody measured"; one who has only
+ * an empty cell cannot.
+ */
+export const Md3ChangeExportColumns: ReadonlyArray<IMd3ListExportColumn> = [
+  { name: 'path' },
+  { name: 'name' },
+  { name: 'directory' },
+  { name: 'extension' },
+  { name: 'status' },
+  { name: 'statusLabel' },
+  { name: 'included' },
+  { name: 'partiallyIncluded' },
+  { name: 'statsLoaded' },
+  { name: 'addedLines' },
+  { name: 'deletedLines' },
+]
+
+/**
+ * Flatten one changed file for export.
+ *
+ * The line counts stay empty rather than becoming `0` for a file whose diff
+ * has never been loaded, for exactly the reason the row drops the `+a −d`
+ * segment: a `0` in a file says the change was empty, which is false of every
+ * row in this list by definition.
+ */
+export function md3ChangeExportRecord(
+  file: IMd3ChangedFile
+): Readonly<Record<string, string | number | boolean>> {
+  return {
+    path: file.path,
+    name: md3ChangeName(file.path),
+    directory: md3ChangeDirectory(file.path),
+    extension: md3ChangeExtension(file.path) ?? '',
+    status: file.status,
+    statusLabel: statusLabel(file.status),
+    included: file.included,
+    partiallyIncluded: file.partiallyIncluded === true,
+    statsLoaded: file.statsLoaded,
+    addedLines: file.statsLoaded ? file.addedLineCount : '',
+    deletedLines: file.statsLoaded ? file.deletedLineCount : '',
+  }
+}
+
+/**
+ * Whether the query or any chip is narrowing the list.
+ *
+ * The bar's select-all says "all 12 matching these filters" or "all 12" on the
+ * strength of this one boolean, and getting it wrong is the defect neither the
+ * component nor the user can see. Blank-but-not-empty queries count as no
+ * query, matching {@link md3VisibleChangedFiles}, which trims before matching.
+ */
+export function md3ChangesFiltersActive(
+  query: string,
+  chips: ReadonlyArray<IMd3ChangesFilterChip> | undefined
+): boolean {
+  return query.trim().length > 0 || (chips ?? []).some(chip => chip.active)
+}
+
+/** Whether a file counts as in the commit — partial inclusion is inclusion. */
+function isIncluded(file: IMd3ChangedFile): boolean {
+  return file.included || file.partiallyIncluded === true
+}
+
+/** The rows a bulk Include would actually change, and the ones it would not. */
+export function md3ChangesIncludable(
+  files: ReadonlyArray<IMd3ChangedFile>
+): IMd3BulkPartition<IMd3ChangedFile> {
+  return md3PartitionBulk(
+    files,
+    // A partially included file is still changed by Include — it goes whole.
+    file => !file.included || file.partiallyIncluded === true,
+    t('md3.changes.bulkSkipIncluded')
+  )
+}
+
+/** The rows a bulk Exclude would actually change. */
+export function md3ChangesExcludable(
+  files: ReadonlyArray<IMd3ChangedFile>
+): IMd3BulkPartition<IMd3ChangedFile> {
+  return md3PartitionBulk(files, isIncluded, t('md3.changes.bulkSkipExcluded'))
+}
+
+/** Everything {@link md3ChangesBulkActions} needs to decide what to offer. */
+export interface IMd3ChangesBulkSpec {
+  readonly includable: IMd3BulkPartition<IMd3ChangedFile>
+  readonly excludable: IMd3BulkPartition<IMd3ChangedFile>
+
+  /** How many rows the scope holds, whatever any verb can do with them. */
+  readonly scopeCount: number
+
+  readonly onInclude: () => void
+  readonly onExclude: () => void
+
+  /** Omitted where the host supplies no clipboard. */
+  readonly onCopyPaths?: () => void
+
+  /** Opens the destructive gate. Never discards by itself. */
+  readonly onDiscard?: () => void
+
+  readonly discardButtonRef?: ObservableRef<HTMLButtonElement>
+}
+
+/**
+ * The verbs this list offers in bulk.
+ *
+ * Each one is a capability the surface already has per row — include, exclude,
+ * copy the path, discard the change — reached for a whole scope instead of one
+ * row at a time. Include and Exclude are disabled by the *partition*, not by
+ * the scope size, so a button that would change nothing says so before it is
+ * pressed rather than reporting a count it did not act on.
+ */
+export function md3ChangesBulkActions(
+  spec: IMd3ChangesBulkSpec
+): ReadonlyArray<IMd3BulkAction> {
+  const actions: Array<IMd3BulkAction> = [
+    {
+      id: 'include',
+      label: t('md3.changes.bulkInclude'),
+      icon: 'check_box',
+      disabled: spec.includable.applied.length === 0,
+      onClick: spec.onInclude,
+    },
+    {
+      id: 'exclude',
+      label: t('md3.changes.bulkExclude'),
+      icon: 'check_box_outline_blank',
+      disabled: spec.excludable.applied.length === 0,
+      onClick: spec.onExclude,
+    },
+  ]
+
+  if (spec.onCopyPaths !== undefined) {
+    actions.push({
+      id: 'copyPaths',
+      label: t('md3.changes.bulkCopyPaths'),
+      icon: 'content_copy',
+      disabled: spec.scopeCount === 0,
+      onClick: spec.onCopyPaths,
+    })
+  }
+
+  if (spec.onDiscard !== undefined) {
+    actions.push({
+      id: 'discard',
+      label: t('md3.changes.bulkDiscard'),
+      icon: 'delete_sweep',
+      destructive: true,
+      hasPopup: 'dialog',
+      buttonRef: spec.discardButtonRef,
+      disabled: spec.scopeCount === 0,
+      onClick: spec.onDiscard,
+    })
+  }
+
+  return actions
+}
+
+/** The contract's `allCheckIcon`. */
+export function md3IncludeAllIcon(
+  includedCount: number,
+  totalCount: number
+): MaterialSymbolName {
+  if (totalCount > 0 && includedCount === totalCount) {
+    return 'check_box'
+  }
+  return includedCount === 0
+    ? 'check_box_outline_blank'
+    : 'indeterminate_check_box'
+}
+
+/** The contract's `summaryHint`: "12/50", and past 50 "62/50 — summary is long". */
+export function md3SummaryHint(summaryLength: number): string {
+  const params = {
+    count: String(summaryLength),
+    limit: String(SummaryLengthGuide),
+  }
+  return summaryLength > SummaryLengthGuide
+    ? t('md3.changes.summaryHintLong', params)
+    : t('md3.changes.summaryHint', params)
+}
+
+function statusLabel(status: Md3ChangeStatus): string {
+  if (status === 'A') {
+    return t('md3.changes.status.new')
+  }
+  if (status === 'D') {
+    return t('md3.changes.status.deleted')
+  }
+  return t('md3.changes.status.modified')
+}
+
+function includeIcon(file: IMd3ChangedFile): MaterialSymbolName {
+  if (file.partiallyIncluded === true) {
+    return 'indeterminate_check_box'
+  }
+  return file.included ? 'check_box' : 'check_box_outline_blank'
+}
+
+function includeChecked(file: IMd3ChangedFile): boolean | 'mixed' {
+  if (file.partiallyIncluded === true) {
+    return 'mixed'
+  }
+  return file.included
+}
+
+/**
+ * The row's own icon buttons.
+ *
+ * `Md3IconButton` is the right control everywhere else, but these two sit
+ * inside a grid row with roving focus and therefore have to be removed from
+ * the tab sequence, which that component does not expose. The class is the
+ * shared one, so the pixels cannot drift; only the `tabIndex` differs.
+ */
+function Md3ChangesRowButton(props: {
+  readonly icon: MaterialSymbolName
+  readonly iconSize: number
+  readonly label: string
+  readonly checked?: boolean | 'mixed'
+  readonly className?: string
+  readonly onClick: (event: React.MouseEvent<HTMLButtonElement>) => void
+}) {
+  const ref = React.useMemo(() => createObservableRef<HTMLButtonElement>(), [])
+
+  return (
+    <button
+      ref={ref}
+      type="button"
+      tabIndex={-1}
+      role={props.checked === undefined ? undefined : 'checkbox'}
+      aria-checked={props.checked}
+      className={classNames(
+        'md3-icon-button',
+        'md3-icon-button--small',
+        props.className
+      )}
+      aria-label={props.label}
+      onClick={props.onClick}
+    >
+      <Tooltip target={ref} applyAriaDescribedBy={false}>
+        {props.label}
+      </Tooltip>
+      <MaterialSymbol name={props.icon} size={props.iconSize} />
+    </button>
+  )
+}
+
+interface IMd3ChangesRowProps {
+  readonly file: IMd3ChangedFile
+  readonly index: number
+  readonly selected: boolean
+  readonly focused: boolean
+
+  /**
+   * Set on the first rendered row only, so the list can learn its real height
+   * for the windowing arithmetic.
+   */
+  readonly rowRef?: React.RefObject<HTMLDivElement>
+
+  /** Whether the row is ticked for a bulk action. Not the same as selected. */
+  readonly checked: boolean
+
+  readonly onCheckboxPointer: (
+    event: React.MouseEvent<HTMLInputElement>
+  ) => void
+  readonly onCheckboxKeyDown: (
+    event: React.KeyboardEvent<HTMLInputElement>
+  ) => void
+  readonly onCheckboxChange: (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => void
+
+  readonly onSelect: (index: number, event: React.MouseEvent) => void
+  readonly onToggleInclude: (path: string) => void
+  readonly onOpenRowMenu: (
+    path: string,
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => void
+  readonly onContextMenu: (
+    path: string,
+    event: React.MouseEvent<HTMLElement>
+  ) => void
+  readonly onKeyDown: (index: number, event: React.KeyboardEvent) => void
+}
+
+function Md3ChangesRow(props: IMd3ChangesRowProps) {
+  const {
+    file,
+    index,
+    onSelect,
+    onToggleInclude,
+    onOpenRowMenu,
+    onKeyDown,
+    onContextMenu,
+  } = props
+
+  const name = basename(file.path)
+  const dir = directory(file.path)
+  const tone = statusTone(file.status)
+  const detail = md3ChangeDetail(file)
+
+  const onRowClick = React.useCallback(
+    (event: React.MouseEvent) => onSelect(index, event),
+    [onSelect, index]
+  )
+
+  const onRowKeyDown = React.useCallback(
+    (event: React.KeyboardEvent) => onKeyDown(index, event),
+    [onKeyDown, index]
+  )
+
+  const onRowContextMenu = React.useCallback(
+    (event: React.MouseEvent<HTMLElement>) => onContextMenu(file.path, event),
+    [onContextMenu, file.path]
+  )
+
+  const onIncludeClick = React.useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.stopPropagation()
+      onToggleInclude(file.path)
+    },
+    [onToggleInclude, file.path]
+  )
+
+  const onMenuClick = React.useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.stopPropagation()
+      onOpenRowMenu(file.path, event)
+    },
+    [onOpenRowMenu, file.path]
+  )
+
+  return (
+    <div
+      ref={props.rowRef}
+      role="row"
+      data-md3-change-index={index}
+      aria-rowindex={index + 1}
+      aria-selected={props.selected}
+      aria-label={name}
+      tabIndex={props.focused ? 0 : -1}
+      className={classNames('md3-row', 'md3-changes-view__row', {
+        'md3-row--active': props.selected,
+      })}
+      onClick={onRowClick}
+      onKeyDown={onRowKeyDown}
+      onContextMenu={onRowContextMenu}
+    >
+      <span role="gridcell" className="md3-changes-view__select-cell">
+        <input
+          type="checkbox"
+          className="md3-bulk-bar__checkbox"
+          data-row-index={index}
+          checked={props.checked}
+          aria-label={t('md3.changes.row.select', { name })}
+          /*
+           * `-1` because the row is the tab stop: a sweep of four hundred
+           * changed files would otherwise cost four hundred Tabs to cross.
+           * The row's own Left/Right cell navigation reaches the box, and
+           * Ctrl+Space ticks it without leaving the row at all.
+           */
+          tabIndex={-1}
+          onMouseDown={props.onCheckboxPointer}
+          onClick={props.onCheckboxPointer}
+          onKeyDown={props.onCheckboxKeyDown}
+          onChange={props.onCheckboxChange}
+        />
+      </span>
+      <span role="gridcell" className="md3-changes-view__cell">
+        <Md3ChangesRowButton
+          icon={includeIcon(file)}
+          iconSize={13}
+          checked={includeChecked(file)}
+          className={classNames('md3-changes-view__include', {
+            'md3-changes-view__include--off':
+              !file.included && file.partiallyIncluded !== true,
+          })}
+          label={t('md3.changes.include', { name })}
+          onClick={onIncludeClick}
+        />
+      </span>
+      <span role="gridcell" className="md3-changes-view__body">
+        <span
+          className={classNames('md3-row__name', {
+            'md3-row__name--active': props.selected,
+          })}
+        >
+          {name}
+        </span>
+        <span className="md3-changes-view__dir">{dir}</span>
+        <span className="md3-row__detail">{detail}</span>
+      </span>
+      <span role="gridcell" className="md3-changes-view__cell">
+        {/*
+          The letter alone is not speech-friendly, and the detail line above
+          already carries the same fact in words ("new file", "deleted",
+          "modified"). Announcing both would say it twice.
+        */}
+        <span
+          className={classNames(
+            'md3-changes-view__status',
+            tone.container,
+            tone.on
+          )}
+          aria-hidden={true}
+        >
+          {file.status}
+        </span>
+      </span>
+      <span role="gridcell" className="md3-changes-view__cell">
+        <Md3ChangesRowButton
+          icon="more_vert"
+          iconSize={15}
+          label={t('md3.changes.rowMenu', { name })}
+          onClick={onMenuClick}
+        />
+      </span>
+    </div>
+  )
+}
+
+export function Md3ChangesView(props: IMd3ChangesViewProps) {
+  const {
+    files,
+    selectedPaths,
+    onSelectionChanged,
+    onIncludeChanged,
+    onIncludeAllChanged,
+    onFileContextMenu,
+    commitSummary,
+    onCommit,
+    onCommitAndPush,
+    onOpenComposer,
+    totalFileCount,
+    includedFileCount,
+  } = props
+
+  const listRef = React.useRef<HTMLDivElement>(null)
+  const firstRowRef = React.useRef<HTMLDivElement>(null)
+
+  /** The row that owns the tab stop. Selection can span several rows. */
+  const [focusedIndex, setFocusedIndex] = React.useState(0)
+
+  /** Set when a keyboard move has to land focus on a row once it renders. */
+  const focusPending = React.useRef(false)
+
+  const rowHeight = useMd3MeasuredRowHeight(
+    firstRowRef,
+    AssumedRowHeight,
+    files.length
+  )
+  const virtualize = files.length > ListVirtualizeThreshold
+  const view = useMd3VirtualWindow(
+    listRef,
+    files.length,
+    rowHeight,
+    virtualize,
+    6
+  )
+
+  const clampedFocus = Math.min(focusedIndex, Math.max(0, files.length - 1))
+
+  React.useEffect(() => {
+    if (focusedIndex > 0 && focusedIndex >= files.length) {
+      setFocusedIndex(Math.max(0, files.length - 1))
+    }
+  }, [files.length, focusedIndex])
+
+  const moveFocus = React.useCallback(
+    (index: number, extendSelection: boolean, selectionFollows: boolean) => {
+      const next = Math.max(0, Math.min(files.length - 1, index))
+      if (files.length === 0) {
+        return
+      }
+
+      setFocusedIndex(next)
+      focusPending.current = true
+
+      const list = listRef.current
+      if (list !== null && virtualize) {
+        // Scroll first so the row exists by the time focus is applied.
+        const top = next * rowHeight
+        if (top < list.scrollTop) {
+          list.scrollTop = top
+        } else if (top + rowHeight > list.scrollTop + list.clientHeight) {
+          list.scrollTop = top + rowHeight - list.clientHeight
+        }
+      }
+
+      if (extendSelection) {
+        const from = Math.min(clampedFocus, next)
+        const to = Math.max(clampedFocus, next)
+        onSelectionChanged(files.slice(from, to + 1).map(f => f.path))
+        return
+      }
+
+      if (selectionFollows) {
+        const target = files[next]
+        if (target !== undefined) {
+          onSelectionChanged([target.path])
+        }
+      }
+    },
+    [files, clampedFocus, onSelectionChanged, virtualize, rowHeight]
+  )
+
+  React.useLayoutEffect(() => {
+    if (!focusPending.current) {
+      return
+    }
+    const list = listRef.current
+    if (list === null) {
+      return
+    }
+    const row = list.querySelector<HTMLElement>(
+      `[data-md3-change-index="${clampedFocus}"]`
+    )
+    if (row !== null) {
+      focusPending.current = false
+      row.focus()
+    }
+  })
+
+  const onRowSelect = React.useCallback(
+    (index: number, event: React.MouseEvent) => {
+      const file = files[index]
+      if (file === undefined) {
+        return
+      }
+
+      setFocusedIndex(index)
+
+      if (event.shiftKey && selectedPaths.length > 0) {
+        const anchorIndex = files.findIndex(f => f.path === selectedPaths[0])
+        const from = Math.min(anchorIndex === -1 ? index : anchorIndex, index)
+        const to = Math.max(anchorIndex === -1 ? index : anchorIndex, index)
+        onSelectionChanged(files.slice(from, to + 1).map(f => f.path))
+        return
+      }
+
+      if (event.ctrlKey || event.metaKey) {
+        const already = selectedPaths.includes(file.path)
+        onSelectionChanged(
+          already
+            ? selectedPaths.filter(path => path !== file.path)
+            : [...selectedPaths, file.path]
+        )
+        return
+      }
+
+      onSelectionChanged([file.path])
+    },
+    [files, selectedPaths, onSelectionChanged]
+  )
+
+  const onToggleInclude = React.useCallback(
+    (path: string) => {
+      const file = files.find(f => f.path === path)
+      if (file === undefined) {
+        return
+      }
+      // A partially included file is treated as included, so one press takes
+      // it all the way out rather than to a second ambiguous state.
+      onIncludeChanged(
+        path,
+        !(file.included || file.partiallyIncluded === true)
+      )
+    },
+    [files, onIncludeChanged]
+  )
+
+  // ---------------------------------------------------------------------
+  // Bulk selection
+  // ---------------------------------------------------------------------
+
+  /*
+   * The bulk tick set is the view's own, and deliberately separate from
+   * `selectedPaths` — that one drives the diff pane, and a bulk selection of
+   * ninety files has no single answer to "which diff". Keeping them apart is
+   * what lets a user tick ninety rows without the pane beside them reloading
+   * ninety times.
+   */
+  const [checked, setChecked] = React.useState<ReadonlySet<string>>(
+    () => new Set<string>()
+  )
+  const anchorIndex = React.useRef<number | null>(null)
+  const [exportOpen, setExportOpen] = React.useState(false)
+  const [gateOpen, setGateOpen] = React.useState(false)
+  const discardButtonRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
+  const exportButtonRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
+
+  /*
+   * `files` is documented — and built in `md3-view-props.ts` — as the rows that
+   * survive the query and the chips, so this already is the post-filter set.
+   * That is what makes a select-all here honest: it can only reach what the
+   * user can see.
+   */
+  const visiblePaths = React.useMemo(
+    () => files.map(file => file.path),
+    [files]
+  )
+
+  // A file that leaves the list — committed, discarded, or filtered out — must
+  // leave the tick set with it. A bulk verb running against a path the list no
+  // longer holds is the quiet way "discard 9" discards 8 and reports 9.
+  React.useEffect(() => {
+    setChecked(previous => {
+      const next = new Set<string>()
+      for (const path of visiblePaths) {
+        if (previous.has(path)) {
+          next.add(path)
+        }
+      }
+      return next.size === previous.size ? previous : next
+    })
+  }, [visiblePaths])
+
+  const filtersActive = md3ChangesFiltersActive(
+    props.searchValue,
+    props.filterChips
+  )
+
+  const toggleChecked = React.useCallback(
+    (index: number, shiftKey: boolean) => {
+      const intent = md3SelectionIntent({
+        shiftKey,
+        // A checkbox click is always additive: the box is the whole gesture,
+        // so a plain tick must never replace the rest of the selection.
+        ctrlKey: true,
+        metaKey: false,
+      })
+      setChecked(previous => {
+        const result = md3ApplySelection(
+          visiblePaths,
+          previous,
+          index,
+          intent,
+          anchorIndex.current,
+          // A checkbox list extends: a user who has ticked four boxes and then
+          // Shift-clicks a fifth is asking for more, not for those four to go.
+          'extend'
+        )
+        if (intent !== 'range') {
+          anchorIndex.current = result.anchor
+        }
+        return new Set(result.ids)
+      })
+    },
+    [visiblePaths]
+  )
+
+  const onToggleSelectAll = React.useCallback(() => {
+    setChecked(previous => new Set(md3ToggleSelectAll(visiblePaths, previous)))
+    anchorIndex.current = null
+  }, [visiblePaths])
+
+  const onInvertSelection = React.useCallback(() => {
+    setChecked(previous => new Set(md3InvertSelection(visiblePaths, previous)))
+    anchorIndex.current = null
+  }, [visiblePaths])
+
+  const onClearSelection = React.useCallback(() => {
+    setChecked(new Set<string>())
+    anchorIndex.current = null
+  }, [])
+
+  /*
+   * A checkbox's `change` event is a plain `Event` with no modifier state, so
+   * Shift has to be captured from the gesture that produced it. Reading
+   * `nativeEvent.shiftKey` off the change event instead compiles, and is
+   * `undefined` every time — a range that silently never ranges.
+   */
+  const shiftHeld = React.useRef(false)
+
+  const onCheckboxPointer = React.useCallback(
+    (event: React.MouseEvent<HTMLInputElement>) => {
+      shiftHeld.current = event.shiftKey
+      // Without this the row beneath treats the tick as a plain row click and
+      // navigates the diff pane, which is the opposite of what a tick means.
+      event.stopPropagation()
+    },
+    []
+  )
+
+  const onCheckboxKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      shiftHeld.current = event.shiftKey
+    },
+    []
+  )
+
+  const onCheckboxChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const index = Number(event.currentTarget.dataset.rowIndex ?? '-1')
+      if (index >= 0) {
+        toggleChecked(index, shiftHeld.current)
+      }
+      shiftHeld.current = false
+    },
+    [toggleChecked]
+  )
+
+  const onRowKeyDown = React.useCallback(
+    (index: number, event: React.KeyboardEvent) => {
+      /*
+       * Ctrl+Space ticks the focused row and Ctrl+Shift+Space extends the
+       * range, matching what Ctrl-click and Shift-click do with a pointer.
+       * Plain Space still includes the file, because that is what it did
+       * before and no capability may be taken away in the rewrite.
+       */
+      if (event.key === ' ' && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault()
+        toggleChecked(index, event.shiftKey)
+        return
+      }
+
+      const row = event.currentTarget as HTMLElement
+      const onRowItself = event.target === row
+
+      if (!onRowItself) {
+        // Focus is on one of the row's buttons: left and right walk between
+        // them, and Left from the first button returns to the row.
+        const buttons = Array.from(
+          row.querySelectorAll<HTMLElement>(RowControlSelector)
+        )
+        const position = buttons.indexOf(event.target as HTMLElement)
+
+        if (event.key === 'ArrowRight' && position < buttons.length - 1) {
+          event.preventDefault()
+          buttons[position + 1].focus()
+          return
+        }
+        if (event.key === 'ArrowLeft') {
+          event.preventDefault()
+          if (position <= 0) {
+            row.focus()
+          } else {
+            buttons[position - 1].focus()
+          }
+          return
+        }
+        if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') {
+          return
+        }
+      }
+
+      switch (event.key) {
+        case 'ArrowDown':
+          event.preventDefault()
+          moveFocus(index + 1, event.shiftKey, !event.ctrlKey && !event.metaKey)
+          break
+        case 'ArrowUp':
+          event.preventDefault()
+          moveFocus(index - 1, event.shiftKey, !event.ctrlKey && !event.metaKey)
+          break
+        case 'Home':
+          event.preventDefault()
+          moveFocus(0, event.shiftKey, !event.ctrlKey && !event.metaKey)
+          break
+        case 'End':
+          event.preventDefault()
+          moveFocus(
+            files.length - 1,
+            event.shiftKey,
+            !event.ctrlKey && !event.metaKey
+          )
+          break
+        case 'ArrowRight': {
+          event.preventDefault()
+          const first = row.querySelector<HTMLElement>(RowControlSelector)
+          if (first !== null) {
+            first.focus()
+          }
+          break
+        }
+        case 'Enter': {
+          event.preventDefault()
+          const file = files[index]
+          if (file !== undefined) {
+            onSelectionChanged([file.path])
+          }
+          break
+        }
+        case ' ': {
+          event.preventDefault()
+          const file = files[index]
+          if (file !== undefined) {
+            onToggleInclude(file.path)
+          }
+          break
+        }
+        default:
+          break
+      }
+    },
+    [files, moveFocus, onSelectionChanged, onToggleInclude, toggleChecked]
+  )
+
+  // ---------------------------------------------------------------------
+  // Bulk verbs
+  // ---------------------------------------------------------------------
+
+  /** What a bulk verb runs over: the ticked rows, or the whole filtered list. */
+  const scopeFiles = React.useMemo(
+    () => md3BulkScope(files, checked, file => file.path),
+    [files, checked]
+  )
+
+  const scopeLabel = md3BulkScopeLabel(
+    checked.size,
+    files.length,
+    filtersActive
+  )
+
+  /*
+   * Include and Exclude each name what they will skip and why, so the button's
+   * count, the toast afterwards and the work actually done are one set. A
+   * bulk Include that silently passes over the twelve already-included files
+   * and still reports the full count is the failure this prevents.
+   */
+  const includable = React.useMemo(
+    () => md3ChangesIncludable(scopeFiles),
+    [scopeFiles]
+  )
+  const excludable = React.useMemo(
+    () => md3ChangesExcludable(scopeFiles),
+    [scopeFiles]
+  )
+
+  const onBulkInclude = React.useCallback(() => {
+    for (const file of includable.applied) {
+      onIncludeChanged(file.path, true)
+    }
+    const skipped = md3BulkPartitionSummary(includable)
+    if (skipped !== null) {
+      notify(skipped, { kind: 'warning' })
+    }
+  }, [includable, onIncludeChanged])
+
+  const onBulkExclude = React.useCallback(() => {
+    for (const file of excludable.applied) {
+      onIncludeChanged(file.path, false)
+    }
+    const skipped = md3BulkPartitionSummary(excludable)
+    if (skipped !== null) {
+      notify(skipped, { kind: 'warning' })
+    }
+  }, [excludable, onIncludeChanged])
+
+  const { onCopyPaths, onDiscardFiles, onExportChanges } = props
+
+  const onBulkCopyPaths = React.useCallback(() => {
+    if (onCopyPaths === undefined) {
+      return
+    }
+    onCopyPaths(scopeFiles.map(file => file.path).join('\n'))
+  }, [onCopyPaths, scopeFiles])
+
+  const onRequestBulkDiscard = React.useCallback(() => setGateOpen(true), [])
+
+  const onConfirmBulkDiscard = React.useCallback(() => {
+    setGateOpen(false)
+    if (onDiscardFiles === undefined) {
+      return
+    }
+    onDiscardFiles(scopeFiles.map(file => file.path))
+    onClearSelection()
+  }, [onDiscardFiles, scopeFiles, onClearSelection])
+
+  const runExport = React.useCallback(
+    (format: Md3ListExportFormat) => {
+      if (onExportChanges === undefined) {
+        return
+      }
+      const payload = serializeMd3ListExport(
+        scopeFiles.map(md3ChangeExportRecord),
+        {
+          columns: Md3ChangeExportColumns,
+          collectionName: 'changes',
+          recordName: 'change',
+          title: 'Changed files',
+          baseName: 'changes',
+        },
+        format,
+        { scope: scopeLabel }
+      )
+      setExportOpen(false)
+      onExportChanges(payload, scopeFiles)
+      notify(
+        payload.loss === null
+          ? t('md3.bulk.toast.exported', {
+              count: String(payload.count),
+              format: payload.format.toUpperCase(),
+            })
+          : t('md3.bulk.toast.exportedLossy', {
+              count: String(payload.count),
+              format: payload.format.toUpperCase(),
+              loss: payload.loss,
+            })
+      )
+    },
+    [onExportChanges, scopeFiles, scopeLabel]
+  )
+
+  const exportMenuSpec = React.useMemo(
+    () => md3BulkExportMenuSpec(Md3ChangeExportColumns, scopeLabel, runExport),
+    [scopeLabel, runExport]
+  )
+
+  const bulkActions = React.useMemo(
+    () =>
+      md3ChangesBulkActions({
+        includable,
+        excludable,
+        scopeCount: scopeFiles.length,
+        onInclude: onBulkInclude,
+        onExclude: onBulkExclude,
+        onCopyPaths: onCopyPaths === undefined ? undefined : onBulkCopyPaths,
+        onDiscard:
+          onDiscardFiles === undefined ? undefined : onRequestBulkDiscard,
+        discardButtonRef,
+      }),
+    [
+      includable,
+      excludable,
+      scopeFiles,
+      onBulkInclude,
+      onBulkExclude,
+      onCopyPaths,
+      onBulkCopyPaths,
+      onDiscardFiles,
+      onRequestBulkDiscard,
+      discardButtonRef,
+    ]
+  )
+
+  // -- the include-all toggle ---------------------------------------------
+
+  const allIncluded = totalFileCount > 0 && includedFileCount === totalFileCount
+  const noneIncluded = includedFileCount === 0
+
+  const includeAllIcon = md3IncludeAllIcon(includedFileCount, totalFileCount)
+
+  const includeAllLabel = t('md3.changes.includeAll', {
+    included: String(includedFileCount),
+    total: String(totalFileCount),
+  })
+
+  const onIncludeAllClick = React.useCallback(() => {
+    onIncludeAllChanged(!allIncluded)
+  }, [onIncludeAllChanged, allIncluded])
+
+  // -- the composer -------------------------------------------------------
+
+  const summaryHint = md3SummaryHint(commitSummary.length)
+
+  const hasSummary = commitSummary.trim().length > 0
+
+  const onCommitClick = React.useCallback(() => {
+    if (!hasSummary) {
+      onOpenComposer(false)
+      return
+    }
+    onCommit()
+  }, [hasSummary, onOpenComposer, onCommit])
+
+  const onCommitAndPushClick = React.useCallback(() => {
+    if (!hasSummary) {
+      onOpenComposer(true)
+      return
+    }
+    onCommitAndPush()
+  }, [hasSummary, onOpenComposer, onCommitAndPush])
+
+  const { onCommitSummaryChanged, onCommitDescriptionChanged } = props
+
+  const onSummaryInput = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      onCommitSummaryChanged(event.currentTarget.value)
+    },
+    [onCommitSummaryChanged]
+  )
+
+  const onDescriptionInput = React.useCallback(
+    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      onCommitDescriptionChanged(event.currentTarget.value)
+    },
+    [onCommitDescriptionChanged]
+  )
+
+  const commitRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
+  const commitPushRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
+
+  const commitLabel =
+    props.commitButtonLabel ??
+    t('md3.changes.commitTo', { branch: props.branchName })
+
+  const visibleFiles = files.slice(view.start, view.end)
+
+  return (
+    <div
+      className={classNames('md3-changes-view', 'md3-anim-up', props.className)}
+    >
+      <Md3ResizablePane
+        surface="changes-sidebar"
+        label="the changed files list"
+        defaultWidth={356}
+        minimumWidth={240}
+        maximumWidth={720}
+        className="md3-changes-view__sidebar"
+      >
+        <Md3SearchField
+          id="md3-changes-search"
+          searchSurfaceId="md3-changes"
+          value={props.searchValue}
+          placeholder={t('md3.changes.searchPlaceholder')}
+          fieldLabel={t('md3.changes.searchField')}
+          regexEnabled={props.searchRegexEnabled}
+          onChange={props.onSearchChange}
+          onClear={props.onSearchClear}
+          onToggleRegex={props.onToggleSearchRegex}
+          onOpenBuilder={props.onOpenSearchBuilder}
+          onContextMenu={props.onSearchContextMenu}
+        />
+
+        <Md3ChipRow label={t('md3.changes.filters')}>
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={allIncluded ? true : noneIncluded ? false : 'mixed'}
+            className="md3-changes-view__include-all"
+            onClick={onIncludeAllClick}
+          >
+            <MaterialSymbol name={includeAllIcon} size={14} />
+            <span>{includeAllLabel}</span>
+          </button>
+          {(props.filterChips ?? []).map(chip => (
+            <Md3Chip
+              key={chip.id}
+              label={chip.label}
+              active={chip.active}
+              onToggle={chip.onToggle}
+            />
+          ))}
+          <Md3ChipRowSpacer />
+          <Md3IconButton
+            small={true}
+            icon="more_vert"
+            label={t('md3.changes.changesMenu')}
+            hasPopup="dialog"
+            onClick={props.onOpenChangesMenu}
+          />
+        </Md3ChipRow>
+
+        <Md3BulkBar
+          listId="changes"
+          label={t('md3.changes.bulkLabel')}
+          visibleIds={visiblePaths}
+          selected={checked}
+          filtered={filtersActive}
+          scopeLabel={scopeLabel}
+          actions={bulkActions}
+          onToggleSelectAll={onToggleSelectAll}
+          onInvertSelection={onInvertSelection}
+          onClearSelection={onClearSelection}
+          onExport={onExportChanges === undefined ? undefined : runExport}
+          exportColumns={Md3ChangeExportColumns}
+          onOpenExport={
+            onExportChanges === undefined
+              ? undefined
+              : () => setExportOpen(true)
+          }
+          exportButtonRef={exportButtonRef}
+        />
+
+        <div
+          ref={listRef}
+          className="md3-changes-view__list"
+          onScroll={view.onScroll}
+          onContextMenu={props.onListContextMenu}
+        >
+          {files.length === 0 ? (
+            props.emptyContent ?? (
+              <Md3EmptyState
+                message={tFunny('md3.changes.empty')}
+                onAction={props.onResetFilters}
+              />
+            )
+          ) : (
+            <div
+              role="grid"
+              aria-label={t('md3.changes.list')}
+              aria-rowcount={files.length}
+              aria-multiselectable={true}
+              className="md3-changes-view__grid"
+              style={
+                virtualize
+                  ? { paddingTop: view.topPad, paddingBottom: view.bottomPad }
+                  : undefined
+              }
+            >
+              {visibleFiles.map((file, offset) => {
+                const index = view.start + offset
+                return (
+                  <Md3ChangesRow
+                    key={file.path}
+                    file={file}
+                    index={index}
+                    rowRef={offset === 0 ? firstRowRef : undefined}
+                    selected={selectedPaths.includes(file.path)}
+                    checked={checked.has(file.path)}
+                    onCheckboxPointer={onCheckboxPointer}
+                    onCheckboxKeyDown={onCheckboxKeyDown}
+                    onCheckboxChange={onCheckboxChange}
+                    focused={index === clampedFocus}
+                    onSelect={onRowSelect}
+                    onToggleInclude={onToggleInclude}
+                    onOpenRowMenu={props.onOpenRowMenu}
+                    onContextMenu={onFileContextMenu}
+                    onKeyDown={onRowKeyDown}
+                  />
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {props.banners}
+
+        <form
+          className="md3-changes-view__composer"
+          aria-label={t('md3.changes.composer')}
+          onSubmit={preventDefault}
+        >
+          <div className="md3-changes-view__composer-row">
+            <span
+              className="md3-changes-view__avatar"
+              role="img"
+              aria-label={t('md3.changes.avatar', { name: props.authorName })}
+            >
+              {props.authorInitials}
+            </span>
+            <input
+              id="md3-changes-summary"
+              type="text"
+              className="md3-changes-view__summary"
+              placeholder={t('md3.changes.summaryPlaceholder')}
+              aria-label={t('md3.changes.summaryPlaceholder')}
+              aria-describedby="md3-changes-summary-hint"
+              value={commitSummary}
+              onChange={onSummaryInput}
+            />
+            <Md3IconButton
+              small={true}
+              icon="smart_toy"
+              iconSize={16}
+              label={t('md3.changes.copilot')}
+              onClick={props.onDraftWithCopilot}
+            />
+          </div>
+
+          <textarea
+            id="md3-changes-description"
+            className="md3-changes-view__description"
+            placeholder={t('md3.changes.descriptionPlaceholder')}
+            aria-label={t('md3.changes.descriptionPlaceholder')}
+            value={props.commitDescription}
+            onChange={onDescriptionInput}
+          />
+
+          {props.composerExtras}
+
+          <div className="md3-changes-view__composer-row md3-changes-view__composer-row--tight">
+            <Md3GhostButton
+              icon="group_add"
+              label={t('md3.changes.coAuthors')}
+              accessibleName={t('md3.changes.coAuthorsName')}
+              onClick={props.onAddCoAuthors}
+            />
+            <span
+              id="md3-changes-summary-hint"
+              className="md3-changes-view__hint"
+            >
+              {summaryHint}
+            </span>
+          </div>
+
+          <div className="md3-changes-view__composer-row md3-changes-view__composer-row--tight">
+            <button
+              ref={commitRef}
+              type="button"
+              className={classNames('md3-changes-view__commit', {
+                'md3-changes-view__commit--armed': hasSummary,
+              })}
+              disabled={props.commitDisabled}
+              onClick={onCommitClick}
+            >
+              <Tooltip target={commitRef} applyAriaDescribedBy={false}>
+                {hasSummary ? commitLabel : t('md3.changes.commitNeedsSummary')}
+              </Tooltip>
+              <MaterialSymbol name="commit" size={16} />
+              <span>{commitLabel}</span>
+            </button>
+            <button
+              ref={commitPushRef}
+              type="button"
+              className="md3-changes-view__commit-push"
+              aria-label={t('md3.changes.commitAndPush')}
+              disabled={props.commitDisabled}
+              onClick={onCommitAndPushClick}
+            >
+              <Tooltip target={commitPushRef} applyAriaDescribedBy={false}>
+                {t('md3.changes.commitAndPush')}
+              </Tooltip>
+              <MaterialSymbol name="bolt" size={16} />
+            </button>
+          </div>
+        </form>
+      </Md3ResizablePane>
+
+      <Md3DiffPane
+        {...props.diff}
+        fileMenuLabel={t('md3.changes.fileMenu')}
+        action={{
+          kind: 'includeHunk',
+          onIncludeHunk: props.onIncludeHunk,
+          disabled: props.includeHunkDisabled,
+        }}
+      />
+
+      {exportOpen ? (
+        <Md3MenuOverlay
+          spec={exportMenuSpec}
+          onDismiss={() => setExportOpen(false)}
+          onOpenRegexBuilder={props.onOpenSearchBuilder}
+          returnFocusTo={exportButtonRef}
+        />
+      ) : null}
+
+      {gateOpen ? (
+        <Md3DestructiveGate
+          actionId="changes-bulk-discard"
+          icon="delete_sweep"
+          title={t('md3.changes.gate.title', {
+            count: String(scopeFiles.length),
+          })}
+          summary={t('md3.changes.gate.summary', {
+            count: String(scopeFiles.length),
+            scope: scopeLabel,
+          })}
+          /*
+           * The preview is the point of the gate rather than decoration:
+           * "discard 9 files" is a number, and a number is not something a
+           * person can check against what they meant. The paths are.
+           */
+          preview={scopeFiles.map(file => file.path)}
+          irreversible={t('md3.changes.gate.irreversible')}
+          targetKeyLabel={t('md3.changes.gate.keyTarget', {
+            count: String(scopeFiles.length),
+            scope: scopeLabel,
+          })}
+          effectKeyLabel={t('md3.changes.gate.keyEffect')}
+          confirmLabel={t('md3.changes.gate.confirm', {
+            count: String(scopeFiles.length),
+          })}
+          anchorTo={discardButtonRef}
+          onConfirm={onConfirmBulkDiscard}
+          onDismissed={() => setGateOpen(false)}
+        />
+      ) : null}
+    </div>
+  )
+}
