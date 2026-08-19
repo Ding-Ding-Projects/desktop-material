@@ -16,6 +16,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
+      # actions/ai-inference@v3 spawns the Copilot CLI rather than bundling it,
+      # so without this step every run dies with "Copilot CLI not found (tried
+      # to spawn "copilot")" and no issue ever gets summarized. The runner
+      # image does not ship it; the job has to install what it invokes.
+      - name: Install the Copilot CLI the inference step spawns
+        run: npm install -g @github/copilot
+
       - name: Run AI inference
         id: inference
         uses: actions/ai-inference@v3
