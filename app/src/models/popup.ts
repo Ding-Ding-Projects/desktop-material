@@ -78,11 +78,7 @@ export interface IOpencodeSendContext {
 
 /** The operation requesting a Cheap LFS payload password. */
 export type CheapLfsPayloadPasswordPurpose =
-  | 'encrypt'
-  | 'decrypt'
-  | 'change'
-  | 'forget'
-  | 'forget-stale'
+  'encrypt' | 'decrypt' | 'change' | 'forget' | 'forget-stale'
 
 /** Why an encryption prompt is blocking the current operation. */
 export type CheapLfsPayloadPasswordContext = 'commit-auto-pin'
@@ -92,6 +88,7 @@ export enum PopupType {
   DeleteBranch = 'DeleteBranch',
   DeleteRemoteBranch = 'DeleteRemoteBranch',
   ConfirmDiscardChanges = 'ConfirmDiscardChanges',
+  IgnoreFilesContaining = 'IgnoreFilesContaining',
   Preferences = 'Preferences',
   SettingsHistory = 'SettingsHistory',
   NotificationHistory = 'NotificationHistory',
@@ -285,6 +282,12 @@ export type PopupDetail =
       showDiscardChangesSetting?: boolean
       discardingAllChanges?: boolean
       permanentlyDelete?: boolean
+    }
+  | {
+      type: PopupType.IgnoreFilesContaining
+      repository: Repository
+      filename: string
+      paths: ReadonlyArray<string>
     }
   | {
       type: PopupType.ConfirmDiscardSelection
