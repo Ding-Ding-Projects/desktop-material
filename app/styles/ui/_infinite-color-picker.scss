@@ -1,0 +1,525 @@
+:root {
+  // Level 3. The picker publishes the selected global level at runtime.
+  --dm-rainbow-duration: 10s;
+}
+
+.infinite-color-picker-control {
+  display: inline-flex;
+  min-width: 0;
+}
+
+.infinite-color-picker-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 132px;
+  min-height: 40px;
+  padding: 6px 12px;
+  border: 1px solid var(--md-sys-color-outline-variant, #79747e);
+  border-radius: 20px;
+  background: var(--md-sys-color-surface-container-high, #ece6f0);
+  color: var(--md-sys-color-on-surface, #1d1b20);
+  font: inherit;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--md-sys-color-secondary-container, #e8def8);
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--md-sys-color-primary, #6750a4);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.5;
+  }
+}
+
+.infinite-color-picker-inline-input {
+  width: 96px;
+  min-height: 40px;
+  margin-inline-start: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--md-sys-color-outline-variant, #79747e);
+  border-radius: 12px;
+  background: var(--md-sys-color-surface, #fffbfe);
+  color: var(--md-sys-color-on-surface, #1d1b20);
+  font: inherit;
+
+  &:focus-visible {
+    outline: 3px solid var(--md-sys-color-primary, #6750a4);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+.infinite-color-picker-trigger-swatch,
+.infinite-color-picker-preview,
+.infinite-color-picker-swatch,
+.infinite-color-picker-rainbow button > span:first-child {
+  border: 1px solid var(--md-sys-color-outline, #79747e);
+  background-color: transparent;
+  background-image:
+    linear-gradient(45deg, #c9c9c9 25%, transparent 25%), linear-gradient(-45deg, #c9c9c9 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #c9c9c9 75%),
+    linear-gradient(-45deg, transparent 75%, #c9c9c9 75%);
+  background-position:
+    0 0,
+    0 5px,
+    5px -5px,
+    -5px 0;
+  background-size: 10px 10px;
+}
+
+.infinite-color-picker-trigger-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.popover-component.infinite-color-picker-popover {
+  width: min(620px, calc(100vw - 20px));
+  max-height: min(760px, calc(100vh - 20px));
+  border: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
+  border-radius: 28px;
+  background: var(--md-sys-color-surface-container-high, #ece6f0);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 24%);
+
+  > .popover-content {
+    border-radius: inherit;
+    background: inherit;
+  }
+}
+
+.infinite-color-picker-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 20px;
+  color: var(--md-sys-color-on-surface, #1d1b20);
+
+  > header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+
+    > div {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    h3 {
+      margin: 0;
+      font: var(--md-sys-typescale-title-large, 500 1.375rem/1.75rem sans-serif);
+    }
+
+    span {
+      overflow-wrap: anywhere;
+      color: var(--md-sys-color-on-surface-variant, #49454f);
+    }
+
+    button {
+      flex: 0 0 auto;
+    }
+  }
+
+  button,
+  input {
+    font: inherit;
+  }
+
+  button {
+    min-height: 40px;
+    padding: 6px 12px;
+    border: 1px solid var(--md-sys-color-outline, #79747e);
+    border-radius: 20px;
+    background: var(--md-sys-color-surface-container, #f3edf7);
+    color: var(--md-sys-color-on-surface, #1d1b20);
+    cursor: pointer;
+
+    &:hover:not(:disabled),
+    &.active {
+      background: var(--md-sys-color-secondary-container, #e8def8);
+      color: var(--md-sys-color-on-secondary-container, #1d192b);
+    }
+
+    &:focus-visible {
+      outline: 3px solid var(--md-sys-color-primary, #6750a4);
+      outline-offset: 2px;
+    }
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.5;
+    }
+  }
+}
+
+.infinite-color-picker-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    strong,
+    span {
+      overflow-wrap: anywhere;
+    }
+
+    span {
+      color: var(--md-sys-color-on-surface-variant, #49454f);
+      font-size: 0.8125rem;
+    }
+  }
+}
+
+.infinite-color-picker-preview {
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+}
+
+.infinite-color-picker-field {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  min-height: 180px;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  border: 1px solid var(--md-sys-color-outline, #79747e);
+  border-radius: 20px;
+  cursor: crosshair;
+  touch-action: none;
+
+  &::before,
+  &::after {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    content: '';
+  }
+
+  &::before {
+    background: linear-gradient(to right, #fff, transparent);
+  }
+
+  &::after {
+    background: linear-gradient(to top, #000, transparent);
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--md-sys-color-primary, #6750a4);
+    outline-offset: 2px;
+  }
+}
+
+.infinite-color-picker-field-marker {
+  position: absolute;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 70%);
+  pointer-events: none;
+}
+
+.infinite-color-picker-range {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr) 5rem;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+
+  > span,
+  > output {
+    color: var(--md-sys-color-on-surface-variant, #49454f);
+    font-size: 0.8125rem;
+  }
+
+  > output {
+    text-align: end;
+  }
+
+  input[type='range'] {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    margin: 0;
+    accent-color: var(--md-sys-color-primary, #6750a4);
+  }
+
+  &:first-of-type input[type='range'] {
+    border-radius: 8px;
+    background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+  }
+}
+
+.infinite-color-picker-alpha input[type='range'] {
+  border-radius: 8px;
+  background: linear-gradient(to right, transparent, var(--dm-infinite-alpha-color, #000)), linear-gradient(45deg, #c9c9c9 25%, transparent 25%), linear-gradient(-45deg, #c9c9c9 25%, transparent 25%);
+  background-size:
+    100% 100%,
+    10px 10px,
+    10px 10px;
+}
+
+.infinite-color-picker-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  > span {
+    color: var(--md-sys-color-on-surface-variant, #49454f);
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+
+  input {
+    min-height: 48px;
+    padding: 10px 14px;
+    border: 1px solid var(--md-sys-color-outline, #79747e);
+    border-radius: 12px;
+    background: var(--md-sys-color-surface, #fef7ff);
+    color: var(--md-sys-color-on-surface, #1d1b20);
+    font-family: var(--dm-monospace-font, ui-monospace, monospace);
+
+    &[aria-invalid='true'] {
+      border: 2px solid var(--md-sys-color-error, #b3261e);
+    }
+
+    &:focus-visible {
+      outline: 3px solid var(--md-sys-color-primary, #6750a4);
+      outline-offset: 2px;
+    }
+  }
+}
+
+.infinite-color-picker-rainbow {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 18px;
+  background: var(--md-sys-color-surface-container, #f3edf7);
+
+  > div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    > span {
+      color: var(--md-sys-color-on-surface-variant, #49454f);
+      font-size: 0.8125rem;
+    }
+  }
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  button > span:first-child {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+  }
+}
+
+.infinite-color-picker-status,
+.infinite-color-picker-gamut {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--md-sys-color-tertiary-container, #ffd8e4);
+  color: var(--md-sys-color-on-tertiary-container, #31111d);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+
+  &.error {
+    background: var(--md-sys-color-error-container, #f9dedc);
+    color: var(--md-sys-color-on-error-container, #410e0b);
+  }
+}
+
+.infinite-color-picker-gamut {
+  background: var(--md-sys-color-error-container, #f9dedc);
+  color: var(--md-sys-color-on-error-container, #410e0b);
+}
+
+.infinite-color-picker-swatches,
+.infinite-color-picker-translator {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  h4,
+  p {
+    margin: 0;
+  }
+
+  h4 {
+    font: var(--md-sys-typescale-title-medium, 500 1rem/1.5rem sans-serif);
+  }
+
+  p {
+    color: var(--md-sys-color-on-surface-variant, #49454f);
+    font-size: 0.8125rem;
+  }
+}
+
+.infinite-color-picker-swatch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.infinite-color-picker-panel .infinite-color-picker-swatch {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 14px;
+}
+
+.infinite-color-picker-translation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.infinite-color-picker-translation-row {
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+
+  label {
+    color: var(--md-sys-color-on-surface-variant, #49454f);
+    font-size: 0.8125rem;
+  }
+
+  input {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 10px;
+    border: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
+    border-radius: 10px;
+    background: var(--md-sys-color-surface, #fef7ff);
+    color: var(--md-sys-color-on-surface, #1d1b20);
+    font-family: var(--dm-monospace-font, ui-monospace, monospace);
+
+    &:focus-visible {
+      outline: 3px solid var(--md-sys-color-primary, #6750a4);
+      outline-offset: 2px;
+    }
+  }
+}
+
+@property --dm-rainbow-hue {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: 282deg;
+}
+
+@keyframes dm-infinite-rainbow-hue {
+  from {
+    --dm-rainbow-hue: 0deg;
+  }
+  to {
+    --dm-rainbow-hue: 360deg;
+  }
+}
+
+:root {
+  animation: dm-infinite-rainbow-hue var(--dm-rainbow-duration) linear infinite;
+}
+
+.infinite-color-picker-rainbow-background,
+.infinite-color-rainbow-background {
+  background-color: hsl(var(--dm-rainbow-hue) 78% 52%);
+}
+
+.infinite-color-rainbow-color {
+  color: hsl(var(--dm-rainbow-hue) 78% 52%);
+}
+
+.infinite-color-rainbow-fill {
+  fill: hsl(var(--dm-rainbow-hue) 78% 52%);
+}
+
+.infinite-color-rainbow-stroke {
+  stroke: hsl(var(--dm-rainbow-hue) 78% 52%);
+}
+
+.infinite-color-rainbow-border {
+  border-color: hsl(var(--dm-rainbow-hue) 78% 52%);
+}
+
+.infinite-color-rainbow-stop {
+  stop-color: hsl(var(--dm-rainbow-hue) 78% 52%);
+}
+
+@media (max-width: 520px) {
+  .infinite-color-picker-panel {
+    padding: 14px;
+  }
+
+  .infinite-color-picker-range {
+    grid-template-columns: minmax(0, 1fr) 4.5rem;
+
+    > span {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .infinite-color-picker-rainbow > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .infinite-color-picker-translation-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+
+    label {
+      grid-column: 1 / -1;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    animation: none;
+    --dm-rainbow-hue: 282deg;
+  }
+}
+
+@media (forced-colors: active) {
+  .infinite-color-picker-field::after {
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    background: Canvas;
+    color: CanvasText;
+    content: 'Use the numeric color fields in high contrast mode.';
+    text-align: center;
+  }
+}

@@ -15,6 +15,7 @@ import { IRepositoryLogoDesign } from '../../models/repository-logo'
 import { Button } from '../lib/button'
 import { Select } from '../lib/select'
 import { RepositoryLogoStudio } from '../repository-logo/repository-logo-studio'
+import { InfiniteColorPicker } from './infinite-color-picker'
 
 const RepositoryNameColors: ReadonlyArray<string> = [
   '#000000',
@@ -29,10 +30,7 @@ const RepositoryNameColors: ReadonlyArray<string> = [
 ]
 
 type RepositoryNameBooleanStyle =
-  | 'bold'
-  | 'italic'
-  | 'underline'
-  | 'strikeThrough'
+  'bold' | 'italic' | 'underline' | 'strikeThrough'
 
 export interface IRepositoryListNameAppearanceEditorProps {
   /** Null means that this repository inherits the ordinary row typography. */
@@ -84,12 +82,7 @@ export class RepositoryListNameAppearanceEditor extends React.Component<IReposit
     }
   }
 
-  private onCustomColor = (event: React.FormEvent<HTMLInputElement>) => {
-    const color = event.currentTarget.value
-    if (isValidTabColor(color)) {
-      this.patch({ color })
-    }
-  }
+  private onCustomColor = (color: string) => this.patch({ color })
 
   private onInheritColor = () => this.patch({ color: undefined })
 
@@ -121,10 +114,6 @@ export class RepositoryListNameAppearanceEditor extends React.Component<IReposit
       Math.max(MinTabFontSize, value?.fontSize ?? DefaultTabFontSize)
     )
     const selectedColor = value?.color
-    const pickerColor =
-      selectedColor !== undefined && /^#[0-9a-f]{6}$/i.test(selectedColor)
-        ? selectedColor
-        : '#006493'
     const previewStyle = {
       ...tabTitleStyleToCss(value),
       fontFamily:
@@ -229,20 +218,14 @@ export class RepositoryListNameAppearanceEditor extends React.Component<IReposit
               >
                 Inherit
               </button>
-              <label className="tab-style-color-custom">
-                <span
-                  className="tab-style-color-custom-swatch"
-                  style={{ backgroundColor: pickerColor }}
-                />
-                <span className="tab-style-color-custom-label">Custom…</span>
-                <input
-                  type="color"
-                  value={pickerColor}
-                  aria-label="Custom repository-name text color"
-                  disabled={this.props.disabled}
-                  onChange={this.onCustomColor}
-                />
-              </label>
+              <InfiniteColorPicker
+                id="repository-list-name-custom-color"
+                label="Custom repository-name text color"
+                value={selectedColor ?? '#006493'}
+                disabled={this.props.disabled}
+                swatches={RepositoryNameColors}
+                onChange={this.onCustomColor}
+              />
             </div>
           </div>
           <div className="tab-style-swatches">
