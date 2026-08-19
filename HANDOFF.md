@@ -233,11 +233,11 @@ English words rendered where icons belong.
 
 `wip/stopped-fleets-2026-08-14` merged as `fe1db0dbb5`, and only its GitLab
 design-conformance work survived — five of its seven files built on the shell
-that is now gone. That closes open item 3 below and leaves one open: **the
-header avatar's account switcher is still broken.** The reverted rail avatar
-works (`onToggleAccountSwitcher`, `railAvatarButtonRef`); the header's does not,
-and the fix that was in flight targeted files that no longer exist, so it must
-be rewritten against the reverted chrome rather than ported.
+that is now gone. That closes open item 3 below. Issue #195's current MD3
+header-avatar wiring is now covered by focused regression tests for shared
+account-switcher routing, distinct header and rail expanded state, and focus
+return through the invoking avatar anchor. Those tests were added in the
+task-owned issue-195 lane; they have not been run in the Yum Leung Cha pass.
 
 Verified for this integration: `npx tsc --noEmit -p tsconfig.json` exit 0, zero
 errors, on the merged tree at `fe1db0dbb5`. The test suite, lint, captures,
@@ -315,8 +315,9 @@ work is preserved on the jer **`wip/stopped-fleets-2026-08-14`**, commit
   `railAvatarButtonRef`). The wrinkle: one handler serves two avatars (header and
   rail) and the popover must anchor to whichever was clicked. `ObservableRef` is
   structurally assignable to `React.RefObject`, so the rail's existing observable
-  ref can be the `anchorRef` without breaking its Tooltip. **Still a live bug in
-  the reverted UI** — the header avatar has the same defect.
+  ref can be the `anchorRef` without breaking its Tooltip. Issue #195 now has
+  focused MD3 shell regression coverage for both avatar routes, independent
+  expanded state, and focus-return anchoring; the coverage has not been run.
 - **GitLab design conformance.** `renderGitLabAccounts()` in
   `app/src/ui/preferences/accounts.tsx` diverges from
   `design/Desktop Material v2.dc.html` lines 5174-5296 in five strings and one

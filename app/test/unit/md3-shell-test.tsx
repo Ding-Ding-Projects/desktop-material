@@ -358,6 +358,16 @@ function buildViews(overrides: Partial<IMd3ShellViews> = {}): IMd3ShellViews {
 interface IHarnessProps {
   readonly initialState?: Partial<IMd3ShellState>
 
+  readonly navigation?: 'drawer' | 'rail'
+
+  readonly accountSwitcherAnchor?: 'header' | 'rail' | null
+
+  readonly onOpenAccountSwitcher?: (anchor: 'header' | 'rail') => void
+
+  readonly headerAccountButtonRef?: React.Ref<HTMLButtonElement>
+
+  readonly railAccountButtonRef?: React.Ref<HTMLButtonElement>
+
   /** Receives every state the shell moves to, newest last. */
   readonly onState?: (state: IMd3ShellState, action: Md3ShellAction) => void
 
@@ -420,6 +430,7 @@ function Harness(props: IHarnessProps) {
     <Md3Shell
       state={state}
       onStateChange={onStateChange}
+      navigation={props.navigation}
       appIdentity={DefaultAppIdentityCustomization}
       accountInitials="AL"
       accountName="Alice Lindqvist"
@@ -429,7 +440,12 @@ function Harness(props: IHarnessProps) {
       onOpenNotifications={noop}
       onToggleTheme={noop}
       onOpenSettings={noop}
-      onOpenAccountSwitcher={noop}
+      onOpenAccountSwitcher={
+        props.onOpenAccountSwitcher ?? (() => undefined)
+      }
+      accountSwitcherAnchor={props.accountSwitcherAnchor}
+      headerAccountButtonRef={props.headerAccountButtonRef}
+      railAccountButtonRef={props.railAccountButtonRef}
       repositoryName="desktop-material"
       branchName="development"
       pushState="ahead"
@@ -903,6 +919,68 @@ describe('md3 shell — the eleven search fields', () => {
       { type: 'toggle-search-regex', field: 'logs' },
       { type: 'open-builder', target: { kind: 'search', field: 'logs' } },
     ])
+  })
+})
+
+describe('md3 shell — shared account switcher anchors', () => {
+  it('routes each avatar, separates expanded state, and preserves focus anchors', () => {
+    const anchors: Array<'header' | 'rail'> = []
+    const headerRef = React.createRef<HTMLButtonElement>()
+    const railRef = React.createRef<HTMLButtonElement>()
+    const view = render(
+      <Harness
+        navigation="rail"
+        accountSwitcherAnchor="header"
+        onOpenAccountSwitcher={anchor => anchors.push(anchor)}
+        headerAccountButtonRef={headerRef}
+        railAccountButtonRef={railRef}
+      />
+    )
+
+    const header = view.container.querySelector(
+      '.md3-app-header__account'
+    ) as HTMLButtonElement | null
+    const rail = view.container.querySelector(
+      '.md3-navigation-rail__account'
+    ) as HTMLButtonElement | null
+    assert.ok(header !== null)
+    assert.ok(rail !== null)
+    assert.equal(headerRef.current, header)
+    assert.equal(railRef.current, rail)
+    assert.notEqual(headerRef.current, railRef.current)
+
+    assert.equal(header.getAttribute('aria-expanded'), 'true')
+    assert.equal(rail.getAttribute('aria-expanded'), 'false')
+
+    fireEvent.click(header)
+    fireEvent.click(rail)
+    assert.deepStrictEqual(anchors, ['header', 'rail'])
+
+    view.rerender(
+      <Harness
+        navigation="rail"
+        accountSwitcherAnchor="rail"
+        onOpenAccountSwitcher={anchor => anchors.push(anchor)}
+        headerAccountButtonRef={headerRef}
+        railAccountButtonRef={railRef}
+      />
+    )
+
+    assert.equal(header.getAttribute('aria-expanded'), 'false')
+    assert.equal(rail.getAttribute('aria-expanded'), 'true')
+
+    headerRef.current?.focus()
+    assert.equal(
+      document.activeElement,
+      header,
+      'the shared switcher can return focus to the header avatar that opened it'
+    )
+    railRef.current?.focus()
+    assert.equal(
+      document.activeElement,
+      rail,
+      'the shared switcher can return focus to the rail avatar that opened it'
+    )
   })
 })
 
