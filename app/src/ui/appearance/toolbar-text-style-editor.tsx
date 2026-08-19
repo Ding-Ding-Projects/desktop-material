@@ -13,13 +13,13 @@ import {
   MaxTabCharacterSpacing,
   MinTabCharacterSpacing,
   MinTabFontSize,
+  isValidTabColor,
   tabFontOptions,
   tabTitleStyleToCss,
 } from '../../models/repository-tab'
 import { t } from '../../lib/i18n'
 import { Button } from '../lib/button'
 import { Select } from '../lib/select'
-import { InfiniteColorPicker } from './infinite-color-picker'
 
 const ToolbarTextColors: ReadonlyArray<string> = [
   '#000000',
@@ -35,7 +35,11 @@ const ToolbarTextColors: ReadonlyArray<string> = [
 ]
 
 type BooleanStyleKey =
-  'bold' | 'italic' | 'underline' | 'strikeThrough' | 'smallCaps'
+  | 'bold'
+  | 'italic'
+  | 'underline'
+  | 'strikeThrough'
+  | 'smallCaps'
 type ChoiceStyleKey = 'textAlign' | 'textCase' | 'textEffect'
 
 export interface IToolbarTextStyleEditorProps {
@@ -106,7 +110,11 @@ export class ToolbarTextStyleEditor extends React.Component<IToolbarTextStyleEdi
     this.patch({ characterSpacing: event.currentTarget.valueAsNumber })
   }
 
-  private onCustomColor = (color: string) => this.patch({ color })
+  private onCustomColor = (event: React.FormEvent<HTMLInputElement>) => {
+    if (isValidTabColor(event.currentTarget.value)) {
+      this.patch({ color: event.currentTarget.value })
+    }
+  }
 
   private renderToggle(
     key: BooleanStyleKey,
@@ -216,6 +224,10 @@ export class ToolbarTextStyleEditor extends React.Component<IToolbarTextStyleEdi
       ? t('appearance.toolbarTypographyInheritProfile')
       : t('appearance.toolbarTypographyThemeDefaults')
     const selectedColor = effective?.color
+    const pickerColor =
+      selectedColor !== undefined && /^#[0-9a-f]{6}$/i.test(selectedColor)
+        ? selectedColor
+        : '#006493'
 
     return (
       <section
@@ -428,13 +440,16 @@ export class ToolbarTextStyleEditor extends React.Component<IToolbarTextStyleEdi
                 ? t('appearance.toolbarInheritColor')
                 : t('appearance.toolbarThemeColor')}
             </button>
-            <InfiniteColorPicker
-              id="toolbar-typography-custom-color"
-              label={t('appearance.toolbarCustomColor')}
-              value={selectedColor ?? '#006493'}
-              swatches={ToolbarTextColors}
-              onChange={this.onCustomColor}
-            />
+            <label className="toolbar-typography-custom-color">
+              <span style={{ backgroundColor: pickerColor }} />
+              {t('appearance.toolbarCustomColor')}
+              <input
+                type="color"
+                value={pickerColor}
+                aria-label={t('appearance.toolbarCustomColor')}
+                onChange={this.onCustomColor}
+              />
+            </label>
           </div>
           <div className="toolbar-typography-swatches">
             {ToolbarTextColors.map(color => {

@@ -1,9 +1,5 @@
 import * as React from 'react'
-import { readFile, stat } from 'fs/promises'
 
-import { Button } from '../lib/button'
-import { TextBox } from '../lib/text-box'
-import { showOpenDialog } from '../main-process-proxy'
 import {
   IPersonalVocabulary,
   MaxVocabularyBytes,
@@ -40,10 +36,7 @@ import {
 
 type VocabularyState =
   | { readonly kind: 'none' }
-  | {
-      readonly kind: 'loaded'
-      readonly vocabulary: IPersonalVocabulary
-    }
+  | { readonly kind: 'loaded'; readonly vocabulary: IPersonalVocabulary }
   | { readonly kind: 'rejected'; readonly reason: string }
   | { readonly kind: 'unreadable'; readonly reason: string }
 
@@ -60,6 +53,7 @@ export class PersonalVocabularyControl extends React.Component<
   IPersonalVocabularyControlProps,
   IPersonalVocabularyControlState
 > {
+  private readonly inputId = 'personal-vocabulary-file'
   private readonly statusId = 'personal-vocabulary-status'
 
   public constructor(props: IPersonalVocabularyControlProps) {
@@ -69,46 +63,27 @@ export class PersonalVocabularyControl extends React.Component<
       status:
         cached === null
           ? { kind: 'none' }
-          : {
-              kind: 'loaded',
-              vocabulary: cached,
-            },
+          : { kind: 'loaded', vocabulary: cached },
     }
   }
 
-  private onChooseFile = async () => {
-    const chosenPath = await showOpenDialog({
-      title: 'Choose a vocabulary file',
-      properties: ['openFile'],
-      filters: [{ name: 'JSON', extensions: ['json'] }],
-    })
-
-    if (chosenPath === null) {
+  private onFileChosen = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0]
+    // Clearing the input means choosing the same file twice in a row still
+    // raises a change event, which is otherwise a control that works once.
+    event.currentTarget.value = ''
+    if (file === undefined) {
       return
     }
 
-    const fileSize = await stat(chosenPath).then(
-      result => result.size,
-      () => {
-        return null
-      }
-    )
-    if (fileSize === null) {
-      this.setState({
-        status: {
-          kind: 'unreadable',
-          reason: 'That file could not be read. Nothing has been changed.',
-        },
-      })
-      return
-    }
-
-    if (fileSize > MaxVocabularyBytes) {
+    // The size is checked here as well as inside the validator, so a file far
+    // over the limit is never read into memory in the first place.
+    if (file.size > MaxVocabularyBytes) {
       this.setState({
         status: {
           kind: 'rejected',
           reason: `That file is ${Math.round(
-            fileSize / 1024
+            file.size / 1024
           )} KB, and the limit is ${Math.round(
             MaxVocabularyBytes / 1024
           )} KB. Nothing has been changed.`,
@@ -119,7 +94,7 @@ export class PersonalVocabularyControl extends React.Component<
 
     let bytes: Uint8Array
     try {
-      bytes = new Uint8Array(await readFile(chosenPath))
+      bytes = new Uint8Array(await file.arrayBuffer())
     } catch (error) {
       this.setState({
         status: {
@@ -148,12 +123,7 @@ export class PersonalVocabularyControl extends React.Component<
 
     cachePersonalVocabulary(result.vocabulary)
     setActivePersonalVocabulary(result.vocabulary)
-    this.setState({
-      status: {
-        kind: 'loaded',
-        vocabulary: result.vocabulary,
-      },
-    })
+    this.setState({ status: { kind: 'loaded', vocabulary: result.vocabulary } })
     this.props.onChanged?.(result.vocabulary)
   }
 
@@ -177,10 +147,10 @@ export class PersonalVocabularyControl extends React.Component<
       case 'loaded':
         return (
           <p className="settings-description" id={this.statusId}>
-            {/* The count, never the entries. The entries are the private part. */}
-            A vocabulary file is loaded with {status.vocabulary.terms.size}{' '}
-            {status.vocabulary.terms.size === 1 ? 'entry' : 'entries'}. It is
-            held on this computer only.
+            {/* The count, never the terms. The terms are the private part. */}A
+            vocabulary file is loaded with {status.vocabulary.terms.size}{' '}
+            {status.vocabulary.terms.size === 1 ? 'term' : 'terms'}. It is held
+            on this computer only.
           </p>
         )
       case 'rejected':
@@ -199,46 +169,44 @@ export class PersonalVocabularyControl extends React.Component<
 
   public render() {
     const loaded = this.state.status.kind === 'loaded'
-    const fileSummary =
-      this.state.status.kind === 'loaded'
-        ? 'Local vocabulary file'
-        : 'No file selected'
     return (
       <div className="personal-vocabulary-control">
-        <TextBox
-          label="Vocabulary file"
-          value={fileSummary}
-          readOnly={true}
-          ariaDescribedBy={this.statusId}
+        <label htmlFor={this.inputId}>Choose a vocabulary file</label>
+        <input
+          id={this.inputId}
+          type="file"
+          accept="application/json,.json"
+          aria-describedby={this.statusId}
+          onChange={this.onFileChosen}
         />
-        <div className="personal-vocabulary-control-actions">
-          <Button type="button" onClick={this.onChooseFile}>
-            Choose file…
-          </Button>
-          {loaded ? (
-            <Button
-              type="button"
-              onClick={this.onClear}
-              tooltip="Remove the loaded vocabulary and restore the original wording"
-            >
-              Clear and restore original wording
-            </Button>
-          ) : null}
-        </div>
+        {/*
+          Absent rather than disabled. A disabled text button has no container
+          and no border, so "Nothing to clear" rendered as a line of stray grey
+          text floating between two controls — it read as a caption nobody had
+          styled rather than as a button that was unavailable. The state it was
+          reporting is already stated, in words, by the status line directly
+          below it.
+        */}
+        {loaded ? (
+          <button
+            type="button"
+            onClick={this.onClear}
+            title="Remove the loaded vocabulary and restore the original wording"
+          >
+            Clear and restore original wording
+          </button>
+        ) : null}
         {this.renderStatus()}
         <details>
           <summary>What this file looks like</summary>
           <p className="settings-description">
             A JSON object declaring{' '}
-            <code>"schemaVersion": {PersonalVocabularySchemaVersion}</code> and
-            an <code>entries</code> object mapping the word the app renders to
-            the word you would rather read. At most {MaxVocabularyEntries}{' '}
-            entries and {Math.round(MaxVocabularyBytes / 1024)} KB. The current
-            cache still tolerates older local data that used{' '}
-            <code>"version"</code>, but new files use{' '}
-            <code>"schemaVersion"</code>. It is read on this computer, never
-            uploaded, and never included in an export, a screenshot, a
-            diagnostic report or this app's history.
+            <code>"version": {PersonalVocabularySchemaVersion}</code> and a{' '}
+            <code>terms</code> object mapping the word the app renders to the
+            word you would rather read. At most {MaxVocabularyEntries} terms and{' '}
+            {Math.round(MaxVocabularyBytes / 1024)} KB. It is read on this
+            computer, never uploaded, and never included in an export, a
+            screenshot, a diagnostic report or this app's history.
           </p>
         </details>
       </div>

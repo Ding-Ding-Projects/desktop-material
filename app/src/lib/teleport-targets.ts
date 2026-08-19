@@ -50,7 +50,6 @@ export const TeleportTargetSelectors = {
   settingsFunnyEnglish: '[data-teleport-target="settings-funny-english"]',
   settingsFunnyCantonese: '[data-teleport-target="settings-funny-cantonese"]',
   settingsDialogEmoji: '[data-teleport-target="settings-dialog-emoji"]',
-  settingsClassicToolbar: '[data-teleport-target="settings-classic-toolbar"]',
   settingsSupportTickets: '[data-teleport-target="settings-support-tickets"]',
   settingsSurfaceLocks: '[data-teleport-target="settings-surface-locks"]',
   settingsAuthenticator: '[data-teleport-target="settings-authenticator"]',

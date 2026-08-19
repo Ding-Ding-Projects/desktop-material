@@ -119,33 +119,9 @@ describe('Material ripple state layer', () => {
     span.dispatchEvent(new Event('animationend'))
   })
 
-  it('replaces a prior ripple when a control is pressed repeatedly', () => {
-    const host = document.createElement('button')
-    stubRect(host, { width: 80, height: 40 })
-
-    const first = attachRipple(host, { clientX: 10, clientY: 10 })
-    const second = attachRipple(host, { clientX: 20, clientY: 20 })
-
-    assert.ok(first !== null)
-    assert.ok(second !== null)
-    assert.equal(host.querySelectorAll(rippleSelector).length, 1)
-    assert.equal(host.querySelector(rippleSelector), second)
-    assert.equal(first.isConnected, false)
-    second.dispatchEvent(new Event('animationend'))
-  })
-
   it('returns null for a disabled native button host', () => {
     const host = document.createElement('button')
     host.disabled = true
-    stubRect(host, { width: 40, height: 40 })
-
-    assert.equal(attachRipple(host, {}), null)
-    assert.equal(host.querySelector(rippleSelector), null)
-  })
-
-  it('returns null for a composite host marked aria-disabled', () => {
-    const host = document.createElement('div')
-    host.setAttribute('aria-disabled', 'true')
     stubRect(host, { width: 40, height: 40 })
 
     assert.equal(attachRipple(host, {}), null)

@@ -8,7 +8,6 @@ import { PathText } from '../lib/path-text'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { ITextDiff, DiffSelection } from '../../models/diff'
-import { Md3DestructiveGateBody } from '../md3/md3-destructive-gate'
 
 interface IDiscardSelectionProps {
   readonly repository: Repository
@@ -43,7 +42,6 @@ interface IDiscardSelectionState {
    * is checked.
    */
   readonly confirmDiscardSelection: boolean
-  readonly gateAuthorized: boolean
 }
 
 /** A component to confirm and then discard changes from a selection. */
@@ -57,7 +55,6 @@ export class DiscardSelection extends React.Component<
     this.state = {
       isDiscardingSelection: false,
       confirmDiscardSelection: true,
-      gateAuthorized: false,
     }
   }
 
@@ -90,18 +87,6 @@ export class DiscardSelection extends React.Component<
             </li>
           </ul>
 
-          <Md3DestructiveGateBody
-            actionId="discard-selection"
-            summary={`Discard the selected changes to ${this.props.file.path}.`}
-            irreversible="The selected lines will be removed from the working file."
-            targetKeyLabel="the selected diff"
-            effectKeyLabel="discarding its lines"
-            onAuthorizationChanged={gateAuthorized =>
-              this.setState({ gateAuthorized })
-            }
-            disabled={isDiscardingChanges}
-          />
-
           <Checkbox
             label="Do not show this message again"
             value={
@@ -117,19 +102,15 @@ export class DiscardSelection extends React.Component<
           <OkCancelButtonGroup
             destructive={true}
             okButtonText={this.getOkButtonLabel()}
-            okButtonDisabled={isDiscardingChanges || !this.state.gateAuthorized}
+            okButtonDisabled={isDiscardingChanges}
             cancelButtonDisabled={isDiscardingChanges}
           />
-          <p>Emergency exit: Cancel leaves the selected lines untouched.</p>
         </DialogFooter>
       </Dialog>
     )
   }
 
   private discard = async () => {
-    if (!this.state.gateAuthorized) {
-      return
-    }
     this.setState({ isDiscardingSelection: true })
 
     await this.props.dispatcher.discardChangesFromSelection(

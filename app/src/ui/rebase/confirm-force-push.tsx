@@ -7,7 +7,6 @@ import { DialogFooter, DialogContent, Dialog } from '../dialog'
 import { Ref } from '../lib/ref'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { observeUserInitiatedOperation } from '../lib/observed-operations'
-import { Md3DestructiveGateBody } from '../md3/md3-destructive-gate'
 
 interface IConfirmForcePushProps {
   readonly dispatcher: Dispatcher
@@ -20,7 +19,6 @@ interface IConfirmForcePushProps {
 interface IConfirmForcePushState {
   readonly isLoading: boolean
   readonly askForConfirmationOnForcePush: boolean
-  readonly gateAuthorized: boolean
 }
 
 export class ConfirmForcePush extends React.Component<
@@ -33,7 +31,6 @@ export class ConfirmForcePush extends React.Component<
     this.state = {
       isLoading: false,
       askForConfirmationOnForcePush: props.askForConfirmationOnForcePush,
-      gateAuthorized: false,
     }
   }
 
@@ -64,28 +61,9 @@ export class ConfirmForcePush extends React.Component<
               onChange={this.onAskForConfirmationOnForcePushChanged}
             />
           </div>
-          <Md3DestructiveGateBody
-            actionId="force-push"
-            summary={`Force push ${this.props.upstreamBranch}.`}
-            irreversible="Published history on the upstream branch will be rewritten."
-            targetKeyLabel={`upstream branch ${this.props.upstreamBranch}`}
-            effectKeyLabel="rewriting its published history"
-            onAuthorizationChanged={gateAuthorized =>
-              this.setState({ gateAuthorized })
-            }
-            disabled={this.state.isLoading}
-          />
         </DialogContent>
         <DialogFooter>
-          <OkCancelButtonGroup
-            destructive={true}
-            okButtonText="I'm sure"
-            okButtonDisabled={
-              this.state.isLoading || !this.state.gateAuthorized
-            }
-            cancelButtonDisabled={this.state.isLoading}
-          />
-          <p>Emergency exit: Cancel leaves published history unchanged.</p>
+          <OkCancelButtonGroup destructive={true} okButtonText="I'm sure" />
         </DialogFooter>
       </Dialog>
     )
@@ -100,9 +78,6 @@ export class ConfirmForcePush extends React.Component<
   }
 
   private onForcePush = () => {
-    if (!this.state.gateAuthorized) {
-      return
-    }
     this.props.dispatcher.setConfirmForcePushSetting(
       this.state.askForConfirmationOnForcePush
     )

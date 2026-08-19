@@ -18,7 +18,6 @@ import { showOpenDialog, showSaveDialog } from '../main-process-proxy'
 import { Button } from '../lib/button'
 import { Select } from '../lib/select'
 import { TextBox } from '../lib/text-box'
-import { InfiniteColorPicker } from '../appearance/infinite-color-picker'
 import { RepositoryLogo } from './repository-logo'
 
 interface IRepositoryLogoStudioProps {
@@ -167,7 +166,7 @@ export class RepositoryLogoStudio extends React.Component<
     this.currentDesign = design
     const selected = design.layers.some(layer => layer.id === selectedLayerId)
       ? selectedLayerId
-      : (design.layers[0]?.id ?? null)
+      : design.layers[0]?.id ?? null
     this.setState(state => ({
       design,
       past: [...state.past, previous].slice(-MaxUndoDepth),
@@ -189,7 +188,7 @@ export class RepositoryLogoStudio extends React.Component<
       layer => layer.id === this.state.selectedLayerId
     )
       ? this.state.selectedLayerId
-      : (design.layers[0]?.id ?? null)
+      : design.layers[0]?.id ?? null
     this.setState({
       design,
       past,
@@ -247,14 +246,13 @@ export class RepositoryLogoStudio extends React.Component<
     })
   }
 
-  private onPrimaryColorChanged = (primaryColor: string) =>
-    this.patchBackground({ primaryColor })
-
-  private onSecondaryColorChanged = (secondaryColor: string) =>
-    this.patchBackground({ secondaryColor })
-
-  private onBorderColorChanged = (borderColor: string) =>
-    this.patchBackground({ borderColor })
+  private onBackgroundColorChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.patchBackground({
+      [event.currentTarget.name]: event.currentTarget.value,
+    })
+  }
 
   private onBackgroundRangeChanged = (
     event: React.FormEvent<HTMLInputElement>
@@ -341,8 +339,11 @@ export class RepositoryLogoStudio extends React.Component<
     })
   }
 
-  private onLayerColorChanged = (color: string) =>
-    this.patchSelectedLayer({ color })
+  private onLayerColorChanged = (event: React.FormEvent<HTMLInputElement>) => {
+    this.patchSelectedLayer({
+      [event.currentTarget.name]: event.currentTarget.value,
+    })
+  }
 
   private onLayerRangeChanged = (event: React.FormEvent<HTMLInputElement>) => {
     this.patchSelectedLayer({
@@ -670,37 +671,40 @@ export class RepositoryLogoStudio extends React.Component<
             <option value="soft">Soft</option>
             <option value="strong">Strong</option>
           </Select>
-          <div className="repository-logo-color">
+          <label className="repository-logo-color">
             <span>
               {background.fill === 'gradient' ? 'Start color' : 'Color'}
             </span>
-            <InfiniteColorPicker
-              label={background.fill === 'gradient' ? 'Start color' : 'Color'}
+            <input
+              type="color"
+              name="primaryColor"
               value={background.primaryColor}
               disabled={this.editingDisabled}
-              onChange={this.onPrimaryColorChanged}
+              onChange={this.onBackgroundColorChanged}
             />
-          </div>
+          </label>
           {background.fill === 'gradient' && (
-            <div className="repository-logo-color">
+            <label className="repository-logo-color">
               <span>End color</span>
-              <InfiniteColorPicker
-                label="End color"
+              <input
+                type="color"
+                name="secondaryColor"
                 value={background.secondaryColor}
                 disabled={this.editingDisabled}
-                onChange={this.onSecondaryColorChanged}
+                onChange={this.onBackgroundColorChanged}
               />
-            </div>
+            </label>
           )}
-          <div className="repository-logo-color">
+          <label className="repository-logo-color">
             <span>Border color</span>
-            <InfiniteColorPicker
-              label="Border color"
+            <input
+              type="color"
+              name="borderColor"
               value={background.borderColor}
               disabled={this.editingDisabled}
-              onChange={this.onBorderColorChanged}
+              onChange={this.onBackgroundColorChanged}
             />
-          </div>
+          </label>
         </div>
         <div className="repository-logo-range-grid">
           {background.fill === 'gradient' &&
@@ -854,15 +858,16 @@ export class RepositoryLogoStudio extends React.Component<
         </div>
         <div className="repository-logo-control-grid">
           {this.renderLayerSpecific(layer)}
-          <div className="repository-logo-color">
+          <label className="repository-logo-color">
             <span>Layer color</span>
-            <InfiniteColorPicker
-              label="Layer color"
+            <input
+              type="color"
+              name="color"
               value={layer.color}
               disabled={this.editingDisabled}
               onChange={this.onLayerColorChanged}
             />
-          </div>
+          </label>
         </div>
         <div className="repository-logo-range-grid">
           {this.renderRange(

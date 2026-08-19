@@ -1,5 +1,3 @@
-import { isAnimatedRainbowColor, RainbowCssColor } from './color-value'
-
 /**
  * Per-tab title styling. Every field is optional; an unset field falls back to
  * the default tab appearance.
@@ -250,7 +248,7 @@ export const TabGroupColors = [
   'grey',
 ] as const
 
-export type TabGroupColor = (typeof TabGroupColors)[number]
+export type TabGroupColor = typeof TabGroupColors[number]
 
 export const DefaultTabGroupColor: TabGroupColor = 'blue'
 
@@ -345,11 +343,6 @@ export function isValidTabColor(color: string): boolean {
   return hexColorPattern.test(color)
 }
 
-/** Accept a solid stored hex or the non-CSS animated-rainbow marker. */
-export function isValidTabColorValue(color: string): boolean {
-  return isValidTabColor(color) || isAnimatedRainbowColor(color)
-}
-
 /** A hex colour split into the part a native picker can show and the rest. */
 export interface ITabColorParts {
   /** Always `#rrggbb`, so it can be compared and fed to `<input type="color">`. */
@@ -385,9 +378,6 @@ export function tabColorParts(color: string): ITabColorParts | null {
 
 /** Whether two stored tab colours name the same colour, however spelled. */
 export function isSameTabColor(left: string, right: string): boolean {
-  if (isAnimatedRainbowColor(left) || isAnimatedRainbowColor(right)) {
-    return left === right
-  }
   const a = tabColorParts(left)
   const b = tabColorParts(right)
   return a !== null && b !== null && a.rgb === b.rgb && a.alpha === b.alpha
@@ -430,12 +420,12 @@ export function normalizeTabTitleStyle(value: unknown): ITabTitleStyle | null {
   if (typeof value.fontSize === 'number' && Number.isFinite(value.fontSize)) {
     normalized.fontSize = clampTabFontSize(value.fontSize)
   }
-  if (typeof value.color === 'string' && isValidTabColorValue(value.color)) {
+  if (typeof value.color === 'string' && isValidTabColor(value.color)) {
     normalized.color = value.color
   }
   if (
     typeof value.backgroundColor === 'string' &&
-    isValidTabColorValue(value.backgroundColor)
+    isValidTabColor(value.backgroundColor)
   ) {
     normalized.backgroundColor = value.backgroundColor
   }
@@ -508,22 +498,14 @@ export function tabTitleStyleToCss(
   if (style.fontSize !== undefined) {
     css.fontSize = `${clampTabFontSize(style.fontSize)}px`
   }
-  if (style.color !== undefined && isValidTabColorValue(style.color)) {
-    if (isAnimatedRainbowColor(style.color)) {
-      css.color = RainbowCssColor
-    } else {
-      css.color = style.color
-    }
+  if (style.color !== undefined && isValidTabColor(style.color)) {
+    css.color = style.color
   }
   if (
     style.backgroundColor !== undefined &&
-    isValidTabColorValue(style.backgroundColor)
+    isValidTabColor(style.backgroundColor)
   ) {
-    if (isAnimatedRainbowColor(style.backgroundColor)) {
-      css.backgroundColor = RainbowCssColor
-    } else {
-      css.backgroundColor = style.backgroundColor
-    }
+    css.backgroundColor = style.backgroundColor
   }
   if (style.fontFamily !== undefined) {
     const stack = tabFontStack(style.fontFamily)

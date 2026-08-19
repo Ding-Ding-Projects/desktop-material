@@ -274,17 +274,12 @@ export function Md3DestructiveGateBody(props: IMd3DestructiveGateBodyProps) {
   const [targetKey, setTargetKey] = React.useState(false)
   const [effectKey, setEffectKey] = React.useState(false)
   const [progress, setProgress] = React.useState(0)
-  const lastAuthorization = React.useRef<boolean | undefined>(undefined)
 
   const state = md3GateState(targetKey, effectKey, progress)
   const authorized = state === 'authorized'
   const bothKeysTurned = targetKey && effectKey
 
   React.useEffect(() => {
-    if (lastAuthorization.current === authorized) {
-      return
-    }
-    lastAuthorization.current = authorized
     onAuthorizationChanged?.(authorized)
   }, [authorized, onAuthorizationChanged])
 

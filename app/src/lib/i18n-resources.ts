@@ -1217,14 +1217,6 @@ export type TranslationKey =
   | 'globalIgnore.savedStatus'
   | 'globalIgnore.loadError'
   | 'globalIgnore.saveError'
-  | 'ignoreFilesContaining.title'
-  | 'ignoreFilesContaining.description'
-  | 'ignoreFilesContaining.patternLabel'
-  | 'ignoreFilesContaining.builderLabel'
-  | 'ignoreFilesContaining.preview'
-  | 'ignoreFilesContaining.invalidPattern'
-  | 'ignoreFilesContaining.noMatches'
-  | 'ignoreFilesContaining.confirm'
   | 'customGit.title'
   | 'customGit.description'
   | 'customGit.savedPreset'
@@ -7084,18 +7076,6 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'globalIgnore.savedStatus': 'Global ignore rules saved and activated.',
   'globalIgnore.loadError': 'Global ignore rules could not be loaded: {error}',
   'globalIgnore.saveError': 'Global ignore rules were not changed: {error}',
-  'ignoreFilesContaining.title': 'Ignore files containing',
-  'ignoreFilesContaining.description':
-    'Build a wildcard rule from the filename, review the live matches, then add it to .gitignore.',
-  'ignoreFilesContaining.patternLabel': 'Wildcard pattern',
-  'ignoreFilesContaining.builderLabel': 'Wildcard builder',
-  'ignoreFilesContaining.preview':
-    '{count} matching file(s) in this working tree',
-  'ignoreFilesContaining.invalidPattern':
-    'Use a valid wildcard pattern. Close every character class and keep it under 256 characters.',
-  'ignoreFilesContaining.noMatches':
-    'This wildcard matches no current files. Adjust it before adding the rule.',
-  'ignoreFilesContaining.confirm': 'Add to .gitignore',
   'customGit.title': 'Custom Git command presets',
   'customGit.description':
     'Save local, non-shell Git argument presets. Every run is reviewed and bound to the currently selected repository.',
@@ -13981,17 +13961,6 @@ export const cantoneseTranslations: Readonly<
   'globalIgnore.savedStatus': '全域忽略規則已儲存並啟用。',
   'globalIgnore.loadError': '讀唔到全域忽略規則：{error}',
   'globalIgnore.saveError': '全域忽略規則冇更改：{error}',
-  'ignoreFilesContaining.title': '忽略包含指定文字嘅檔案',
-  'ignoreFilesContaining.description':
-    '用檔名砌 wildcard 規則，即時睇對中邊啲檔案，確認後先加落 .gitignore。',
-  'ignoreFilesContaining.patternLabel': 'Wildcard 規則',
-  'ignoreFilesContaining.builderLabel': 'Wildcard builder',
-  'ignoreFilesContaining.preview': '目前 working tree 有 {count} 個對中檔案',
-  'ignoreFilesContaining.invalidPattern':
-    'Wildcard 規則唔有效；請關好每個字元類別，並保持少過 256 個字元。',
-  'ignoreFilesContaining.noMatches':
-    '呢個 wildcard 暫時對唔中任何檔案；改好先加規則。',
-  'ignoreFilesContaining.confirm': '加落 .gitignore',
   'customGit.title': '自訂 Git 指令預設',
   'customGit.description':
     '儲存本機、唔經 shell 嘅 Git 參數預設。每次執行都要先覆核，並只會套用到目前所揀 repo。',

@@ -17,7 +17,7 @@ import {
   DefaultTabCharacterSpacing,
   isSameTabColor,
   isValidTabColor,
-  isValidTabColorValue,
+  tabColorParts,
   tabFontOptions,
   tabTitleStyleToCss,
 } from '../../models/repository-tab'
@@ -37,7 +37,6 @@ import {
   TranslationVariables,
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
-import { InfiniteColorPicker } from '../appearance/infinite-color-picker'
 
 interface ITabStyleEditorProps {
   readonly tab: IRepositoryTab
@@ -241,7 +240,7 @@ export class TabStyleEditor extends React.Component<
   }
 
   private applyColor(color: string, target: TabColorTarget) {
-    if (!isValidTabColorValue(color)) {
+    if (!isValidTabColor(color)) {
       return
     }
     this.update(target === 'color' ? { color } : { backgroundColor: color })
@@ -249,10 +248,6 @@ export class TabStyleEditor extends React.Component<
   }
 
   private rememberColor(color: string, target: TabColorTarget) {
-    // The animated-rainbow marker is a behavior choice, never a swatch or CSS.
-    if (!isValidTabColor(color)) {
-      return
-    }
     const lower = color.toLowerCase()
     const recent =
       target === 'color'
@@ -280,10 +275,19 @@ export class TabStyleEditor extends React.Component<
     )
   }
 
-  private onTextColorInput = (color: string) => this.applyColor(color, 'color')
-
-  private onHighlightColorInput = (color: string) =>
-    this.applyColor(color, 'backgroundColor')
+  private onColorInput = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const target: TabColorTarget =
+      event.currentTarget.dataset.target === 'backgroundColor'
+        ? 'backgroundColor'
+        : 'color'
+    // `<input type="color">` can only ever emit opaque six-digit hex, so taking
+    // its value verbatim silently flattened a semi-transparent colour the user
+    // had set. Nudging the hue must not also discard the alpha.
+    const existing = this.style[target]
+    const alpha =
+      existing === undefined ? '' : tabColorParts(existing)?.alpha ?? ''
+    this.applyColor(`${event.currentTarget.value}${alpha}`, target)
+  }
 
   private onUseDefaultColor = (event: React.MouseEvent<HTMLButtonElement>) => {
     const target: TabColorTarget =
@@ -359,8 +363,8 @@ export class TabStyleEditor extends React.Component<
       direction === 'left'
         ? 'tabs.style.alignLeftAria'
         : direction === 'center'
-          ? 'tabs.style.alignCenterAria'
-          : 'tabs.style.alignRightAria'
+        ? 'tabs.style.alignCenterAria'
+        : 'tabs.style.alignRightAria'
     return (
       <button
         type="button"
@@ -523,6 +527,14 @@ export class TabStyleEditor extends React.Component<
     const recent = isHighlight
       ? this.state.recentHighlightColors
       : this.state.recentColors
+    // The native picker speaks only six-digit hex, so a stored `#abc` or
+    // `#rrggbbaa` has to be shown as its six-digit body rather than replaced
+    // with the default, which claimed the tab had no colour at all.
+    const pickerValue =
+      current === undefined
+        ? DefaultPickerColor
+        : tabColorParts(current)?.rgb ?? DefaultPickerColor
+
     return (
       <div
         className="tab-style-row tab-style-colors"
@@ -556,19 +568,26 @@ export class TabStyleEditor extends React.Component<
                   : 'tabs.style.defaultColor'
               )}
             </button>
-            <InfiniteColorPicker
-              id={`tab-style-${target}-infinite-color`}
-              label={this.accessibleText(
-                isHighlight
-                  ? 'tabs.style.customHighlightAria'
-                  : 'tabs.style.customTextColorAria'
-              )}
-              value={current ?? DefaultPickerColor}
-              swatches={paletteColors}
-              onChange={
-                isHighlight ? this.onHighlightColorInput : this.onTextColorInput
-              }
-            />
+            <label className="tab-style-color-custom">
+              <span
+                className="tab-style-color-custom-swatch"
+                style={{ backgroundColor: pickerValue }}
+              />
+              <span className="tab-style-color-custom-label">
+                {this.text('tabs.style.custom')}
+              </span>
+              <input
+                type="color"
+                value={pickerValue}
+                data-target={target}
+                aria-label={this.accessibleText(
+                  isHighlight
+                    ? 'tabs.style.customHighlightAria'
+                    : 'tabs.style.customTextColorAria'
+                )}
+                onChange={this.onColorInput}
+              />
+            </label>
           </div>
         </div>
         <div className="tab-style-swatches">

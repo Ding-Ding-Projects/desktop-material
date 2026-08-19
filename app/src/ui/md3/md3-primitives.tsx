@@ -3,18 +3,15 @@ import classNames from 'classnames'
 import { t } from '../../lib/i18n'
 import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
 import { createObservableRef, ObservableRef } from '../lib/observable-ref'
-import { attachRipple } from '../lib/ripple'
-import { SearchableSelect } from '../lib/searchable-select'
 import { Tooltip } from '../lib/tooltip'
 
 /**
  * The repeated controls of the MD3 shell design contract
  * (`design/History MD3.dc.html`).
  *
- * Existing measurements live in `app/styles/ui/_md3-shell.scss`; the reusable
- * field extensions live in `_md3-primitives.scss`. These components keep the
- * markup, ARIA state and glyph sizes in one place rather than once per view.
- * The contract's inline `style` strings are not
+ * Every measurement lives in `app/styles/ui/_md3-shell.scss`; these components
+ * exist so the markup, the ARIA state and the glyph sizes are written once
+ * rather than once per view. The contract's inline `style` strings are not
  * reproduced here — a value that appears in two views must resolve to the same
  * pixel in both, and a class is the only way to guarantee that.
  *
@@ -50,25 +47,6 @@ function useTooltipTarget<T>(
   return supplied ?? fallback
 }
 
-/** Shared native press bridge for primitive-owned interactive elements. */
-function onMd3RippleMouseDown(event: React.MouseEvent<HTMLElement>) {
-  attachRipple(event.currentTarget, event)
-}
-
-function mergeAriaDescriptions(
-  caller: string | undefined,
-  field: string | undefined
-): string | undefined {
-  const merged = [caller, field].filter(
-    (value): value is string => value !== undefined && value.length > 0
-  )
-  return merged.length === 0 ? undefined : merged.join(' ')
-}
-
-function isAriaInvalid(value: React.AriaAttributes['aria-invalid']): boolean {
-  return value !== undefined && value !== false && value !== 'false'
-}
-
 export interface IMd3IconButtonProps {
   /** The ligature to render. Decorative — the accessible name is `label`. */
   readonly icon: MaterialSymbolName
@@ -80,8 +58,6 @@ export interface IMd3IconButtonProps {
   readonly label: string
 
   readonly onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void
-
-  readonly onMouseDown?: (event: React.MouseEvent<HTMLButtonElement>) => void
 
   readonly onContextMenu?: (event: React.MouseEvent<HTMLButtonElement>) => void
 
@@ -140,15 +116,6 @@ export function Md3IconButton(props: IMd3IconButtonProps) {
       ? SmallIconButtonGlyphSize
       : IconButtonGlyphSize
   const tooltip = props.tooltip === undefined ? props.label : props.tooltip
-  const onMouseDown = React.useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
-      if (props.disabled !== true) {
-        attachRipple(event.currentTarget, event)
-        props.onMouseDown?.(event)
-      }
-    },
-    [props.disabled, props.onMouseDown]
-  )
 
   return (
     <button
@@ -170,7 +137,6 @@ export function Md3IconButton(props: IMd3IconButtonProps) {
       aria-haspopup={props.hasPopup}
       disabled={props.disabled}
       tabIndex={props.tabIndex}
-      onMouseDown={onMouseDown}
       onClick={props.onClick}
       onContextMenu={props.onContextMenu}
     >
@@ -192,8 +158,6 @@ export interface IMd3TextButtonProps {
   readonly icon?: MaterialSymbolName
 
   readonly onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void
-
-  readonly onMouseDown?: (event: React.MouseEvent<HTMLButtonElement>) => void
 
   readonly onContextMenu?: (event: React.MouseEvent<HTMLButtonElement>) => void
 
@@ -230,15 +194,6 @@ function Md3TextButton(
   props: IMd3TextButtonProps & { readonly baseClassName: string }
 ) {
   const ref = useTooltipTarget(props.buttonRef)
-  const onMouseDown = React.useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
-      if (props.disabled !== true) {
-        attachRipple(event.currentTarget, event)
-        props.onMouseDown?.(event)
-      }
-    },
-    [props.disabled, props.onMouseDown]
-  )
 
   return (
     <button
@@ -250,7 +205,6 @@ function Md3TextButton(
       aria-expanded={props.expanded}
       aria-haspopup={props.hasPopup}
       disabled={props.disabled}
-      onMouseDown={onMouseDown}
       onClick={props.onClick}
       onContextMenu={props.onContextMenu}
     >
@@ -281,390 +235,6 @@ export function Md3TonalButton(props: IMd3TextButtonProps) {
 /** The contract's `smallGhostBtn`: 26px, outline-variant border, no fill. */
 export function Md3GhostButton(props: IMd3TextButtonProps) {
   return <Md3TextButton {...props} baseClassName="md3-ghost-button" />
-}
-
-export interface IMd3FieldProps {
-  readonly id: string
-  readonly label: string
-  /** Existing rich controls compose here without being cloned or replaced. */
-  readonly children: React.ReactNode
-  readonly supportingText?: string
-  readonly error?: string
-  readonly leadingIcon?: MaterialSymbolName
-  readonly trailingAction?: React.ReactNode
-  readonly disabled?: boolean
-  readonly required?: boolean
-  readonly invalid?: boolean
-  readonly className?: string
-}
-
-/**
- * Shared outlined-field anatomy for native text controls and composed rich
- * controls. It owns the labelled group, supporting/error text, state
- * attributes and tokenized container while the child owns its behavior.
- */
-export function Md3Field(props: IMd3FieldProps) {
-  const errorMessage =
-    props.error !== undefined && props.error.length > 0
-      ? props.error
-      : undefined
-  const invalid = props.invalid === true || errorMessage !== undefined
-  const message = errorMessage ?? props.supportingText
-  const describedBy = message === undefined ? undefined : `${props.id}-support`
-  const disabled = props.disabled === true
-  const required = props.required === true
-  const labelId = `${props.id}-label`
-
-  return (
-    <div
-      className={classNames('md3-field', props.className)}
-      data-disabled={disabled || undefined}
-      data-invalid={invalid || undefined}
-    >
-      <label id={labelId} className="md3-field__label" htmlFor={props.id}>
-        {props.label}
-        {required ? <span aria-hidden="true"> *</span> : null}
-      </label>
-      <div
-        className="md3-field__container"
-        role="group"
-        aria-labelledby={labelId}
-        aria-describedby={describedBy}
-      >
-        {props.leadingIcon === undefined ? null : (
-          <MaterialSymbol
-            className="md3-field__leading-icon"
-            name={props.leadingIcon}
-            size={18}
-          />
-        )}
-        <div className="md3-field__control">{props.children}</div>
-        {props.trailingAction === undefined ? null : (
-          <div className="md3-field__trailing">{props.trailingAction}</div>
-        )}
-      </div>
-      {message === undefined ? null : (
-        <p id={describedBy} className="md3-field__support" role="status">
-          {message}
-        </p>
-      )}
-    </div>
-  )
-}
-
-export type IMd3TextFieldProps = Omit<
-  React.InputHTMLAttributes<HTMLInputElement>,
-  'children' | 'className' | 'id' | 'type'
-> & {
-  readonly id: string
-  readonly label: string
-  readonly supportingText?: string
-  readonly error?: string
-  readonly leadingIcon?: MaterialSymbolName
-  readonly trailingAction?: React.ReactNode
-  readonly className?: string
-  readonly inputClassName?: string
-  readonly inputRef?: React.Ref<HTMLInputElement>
-  /** Search, file, color and selection inputs use their dedicated primitives. */
-  readonly type?: 'email' | 'password' | 'tel' | 'text' | 'url'
-}
-
-function md3FieldDescriptionId(
-  id: string,
-  supportingText: string | undefined,
-  error: string | undefined
-): string | undefined {
-  const message =
-    error !== undefined && error.length > 0 ? error : supportingText
-  return message === undefined ? undefined : `${id}-support`
-}
-
-/** A labelled Material text field that retains native input semantics. */
-export function Md3TextField(props: IMd3TextFieldProps) {
-  const {
-    id,
-    label,
-    supportingText,
-    error,
-    leadingIcon,
-    trailingAction,
-    className,
-    inputClassName,
-    inputRef,
-    disabled,
-    required,
-    'aria-describedby': callerDescribedBy,
-    'aria-invalid': callerInvalid,
-    ...inputProps
-  } = props
-
-  const errorInvalid = error !== undefined && error.length > 0
-  const invalid = isAriaInvalid(callerInvalid) || errorInvalid
-  const describedBy = mergeAriaDescriptions(
-    callerDescribedBy,
-    md3FieldDescriptionId(id, supportingText, error)
-  )
-
-  return (
-    <Md3Field
-      id={id}
-      label={label}
-      supportingText={supportingText}
-      error={error}
-      leadingIcon={leadingIcon}
-      trailingAction={trailingAction}
-      disabled={disabled}
-      required={required}
-      invalid={invalid}
-      className={className}
-    >
-      <input
-        {...inputProps}
-        ref={inputRef}
-        id={id}
-        className={classNames('md3-field__native', inputClassName)}
-        disabled={disabled}
-        required={required}
-        aria-invalid={callerInvalid ?? (errorInvalid ? true : undefined)}
-        aria-describedby={describedBy}
-      />
-    </Md3Field>
-  )
-}
-
-export type IMd3TextAreaProps = Omit<
-  React.TextareaHTMLAttributes<HTMLTextAreaElement>,
-  'children' | 'className' | 'id'
-> & {
-  readonly id: string
-  readonly label: string
-  readonly supportingText?: string
-  readonly error?: string
-  readonly leadingIcon?: MaterialSymbolName
-  readonly trailingAction?: React.ReactNode
-  readonly className?: string
-  readonly textAreaClassName?: string
-  readonly textAreaRef?: React.Ref<HTMLTextAreaElement>
-}
-
-/** A labelled Material multiline field that retains native textarea behavior. */
-export function Md3TextArea(props: IMd3TextAreaProps) {
-  const {
-    id,
-    label,
-    supportingText,
-    error,
-    leadingIcon,
-    trailingAction,
-    className,
-    textAreaClassName,
-    textAreaRef,
-    disabled,
-    required,
-    'aria-describedby': callerDescribedBy,
-    'aria-invalid': callerInvalid,
-    ...textAreaProps
-  } = props
-
-  const errorInvalid = error !== undefined && error.length > 0
-  const invalid = isAriaInvalid(callerInvalid) || errorInvalid
-  const describedBy = mergeAriaDescriptions(
-    callerDescribedBy,
-    md3FieldDescriptionId(id, supportingText, error)
-  )
-
-  return (
-    <Md3Field
-      id={id}
-      label={label}
-      supportingText={supportingText}
-      error={error}
-      leadingIcon={leadingIcon}
-      trailingAction={trailingAction}
-      disabled={disabled}
-      required={required}
-      invalid={invalid}
-      className={classNames('md3-field--multiline', className)}
-    >
-      <textarea
-        {...textAreaProps}
-        ref={textAreaRef}
-        id={id}
-        className={classNames('md3-field__native', textAreaClassName)}
-        disabled={disabled}
-        required={required}
-        aria-invalid={callerInvalid ?? (errorInvalid ? true : undefined)}
-        aria-describedby={describedBy}
-      />
-    </Md3Field>
-  )
-}
-
-export interface IMd3SearchableSelectOption {
-  readonly value: string
-  readonly label: string
-}
-
-export interface IMd3SearchableSelectProps {
-  readonly label: string
-  readonly value: string
-  readonly options: ReadonlyArray<IMd3SearchableSelectOption>
-  readonly onChange: (value: string) => void
-  readonly searchSurfaceId: string
-  readonly regexBuilderTarget: string
-  /** Localized accessible name and placeholder for the popover search. */
-  readonly searchPlaceholder: string
-  /** Localized honest empty state for the filtered option set. */
-  readonly emptyMessage: string
-  /** Localized fallback when no option is currently selected. */
-  readonly placeholder?: string
-  readonly supportingText?: string
-  readonly error?: string
-  readonly disabled?: boolean
-  readonly className?: string
-}
-
-/**
- * Material presentation for the shared searchable listbox. The underlying
- * `SearchableSelect` remains the one owner of filtering, keyboard navigation,
- * per-field mode state and the full regex builder.
- */
-export function Md3SearchableSelect(props: IMd3SearchableSelectProps) {
-  return (
-    <SearchableSelect
-      className={classNames('md3-searchable-select', props.className)}
-      label={props.label}
-      value={props.value}
-      options={props.options}
-      onChange={props.onChange}
-      searchSurfaceId={props.searchSurfaceId}
-      regexBuilderTarget={props.regexBuilderTarget}
-      searchPlaceholder={props.searchPlaceholder}
-      emptyMessage={props.emptyMessage}
-      placeholder={props.placeholder}
-      supportingText={props.supportingText}
-      error={props.error}
-      disabled={props.disabled}
-      ripple={true}
-      indicator={
-        <MaterialSymbol
-          className="md3-searchable-select__expand"
-          name="expand_more"
-          size={20}
-        />
-      }
-    />
-  )
-}
-
-export interface IMd3DisclosureProps {
-  readonly summary: React.ReactNode
-  readonly children: React.ReactNode
-  readonly open?: boolean
-  readonly defaultOpen?: boolean
-  readonly onToggle?: (event: React.SyntheticEvent<HTMLDetailsElement>) => void
-  readonly className?: string
-  readonly contentClassName?: string
-}
-
-/** A native disclosure with Material container, focus and expansion states. */
-export function Md3Disclosure(props: IMd3DisclosureProps) {
-  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(
-    props.defaultOpen === true
-  )
-  const open = props.open ?? uncontrolledOpen
-  const onToggle = React.useCallback(
-    (event: React.SyntheticEvent<HTMLDetailsElement>) => {
-      if (props.open === undefined) {
-        setUncontrolledOpen(event.currentTarget.open)
-      }
-      props.onToggle?.(event)
-    },
-    [props.onToggle, props.open]
-  )
-
-  return (
-    <details
-      className={classNames('md3-disclosure', props.className)}
-      open={open}
-      onToggle={onToggle}
-    >
-      <summary
-        className="md3-disclosure__summary"
-        onMouseDown={onMd3RippleMouseDown}
-      >
-        <span>{props.summary}</span>
-        <MaterialSymbol
-          className="md3-disclosure__icon"
-          name="expand_more"
-          size={20}
-        />
-      </summary>
-      <div
-        className={classNames(
-          'md3-disclosure__content',
-          props.contentClassName
-        )}
-      >
-        {props.children}
-      </div>
-    </details>
-  )
-}
-
-export interface IMd3FileActionProps {
-  readonly label: string
-  readonly onChange: (event: React.ChangeEvent<HTMLInputElement>) => void
-  readonly accept?: string
-  readonly multiple?: boolean
-  readonly disabled?: boolean
-  readonly name?: string
-  readonly icon?: MaterialSymbolName
-  readonly variant?: 'tonal' | 'ghost'
-  readonly className?: string
-  readonly inputClassName?: string
-}
-
-/**
- * A real Material action in front of the native file picker. The picker stays
- * local and native; only its unthemeable browser chrome is visually hidden.
- */
-export function Md3FileAction(props: IMd3FileActionProps) {
-  const inputRef = React.useRef<HTMLInputElement>(null)
-  const chooseFile = React.useCallback(() => {
-    const input = inputRef.current
-    if (input === null) {
-      return
-    }
-
-    // Selecting the same file twice must still produce a change event.
-    input.value = ''
-    input.click()
-  }, [])
-  const Action = props.variant === 'ghost' ? Md3GhostButton : Md3TonalButton
-
-  return (
-    <span className={classNames('md3-file-action', props.className)}>
-      <input
-        ref={inputRef}
-        type="file"
-        className={classNames('md3-file-action__input', props.inputClassName)}
-        accept={props.accept}
-        multiple={props.multiple}
-        disabled={props.disabled}
-        name={props.name}
-        tabIndex={-1}
-        aria-hidden="true"
-        onChange={props.onChange}
-      />
-      <Action
-        label={props.label}
-        icon={props.icon ?? 'description'}
-        disabled={props.disabled}
-        onClick={chooseFile}
-      />
-    </span>
-  )
 }
 
 export interface IMd3SearchFieldProps {
@@ -890,7 +460,6 @@ export function Md3SearchField(props: IMd3SearchFieldProps) {
             type="button"
             className="md3-search-row__clear"
             aria-label={clearLabel}
-            onMouseDown={onMd3RippleMouseDown}
             onClick={props.onClear}
           >
             <Tooltip target={clearRef} applyAriaDescribedBy={false}>
@@ -907,7 +476,6 @@ export function Md3SearchField(props: IMd3SearchFieldProps) {
           })}
           aria-pressed={props.regexEnabled}
           aria-label={regexLabel}
-          onMouseDown={onMd3RippleMouseDown}
           onClick={props.onToggleRegex}
         >
           <Tooltip target={regexRef} applyAriaDescribedBy={false}>
@@ -1018,7 +586,6 @@ export function Md3Chip(props: IMd3ChipProps) {
       aria-pressed={props.active}
       aria-label={t('md3.chip.filterBy', { label: props.label })}
       disabled={props.disabled}
-      onMouseDown={onMd3RippleMouseDown}
       onClick={onClick}
       onContextMenu={props.onContextMenu}
     >
@@ -1070,7 +637,6 @@ export function Md3EmptyState(props: IMd3EmptyStateProps) {
         <button
           type="button"
           className="md3-reset-button"
-          onMouseDown={onMd3RippleMouseDown}
           onClick={props.onAction}
         >
           {actionLabel}

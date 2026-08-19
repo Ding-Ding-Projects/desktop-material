@@ -8,7 +8,6 @@ import { PathText } from '../lib/path-text'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { TrashNameLabel } from '../lib/context-menu'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
-import { Md3DestructiveGateBody } from '../md3/md3-destructive-gate'
 
 interface IDiscardChangesProps {
   readonly repository: Repository
@@ -35,8 +34,6 @@ interface IDiscardChangesState {
   readonly isDiscardingChanges: boolean
 
   readonly confirmDiscardChanges: boolean
-
-  readonly gateAuthorized: boolean
 }
 
 /**
@@ -56,7 +53,6 @@ export class DiscardChanges extends React.Component<
     this.state = {
       isDiscardingChanges: false,
       confirmDiscardChanges: this.props.confirmDiscardChanges,
-      gateAuthorized: false,
     }
   }
 
@@ -105,25 +101,6 @@ export class DiscardChanges extends React.Component<
               {TrashNameLabel}.
             </p>
           )}
-          <Md3DestructiveGateBody
-            actionId="discard-changes"
-            summary={
-              this.props.discardingAllChanges
-                ? 'Discard all selected changes.'
-                : 'Discard the selected changes.'
-            }
-            irreversible={
-              this.props.permanentlyDelete
-                ? 'These changes cannot be restored after deletion.'
-                : 'The selected changes will be moved to the trash.'
-            }
-            targetKeyLabel="the selected files"
-            effectKeyLabel="discarding their changes"
-            onAuthorizationChanged={gateAuthorized =>
-              this.setState({ gateAuthorized })
-            }
-            disabled={isDiscardingChanges}
-          />
           {this.renderConfirmDiscardChanges()}
         </DialogContent>
 
@@ -131,10 +108,9 @@ export class DiscardChanges extends React.Component<
           <OkCancelButtonGroup
             destructive={true}
             okButtonText={this.getOkButtonLabel()}
-            okButtonDisabled={isDiscardingChanges || !this.state.gateAuthorized}
+            okButtonDisabled={isDiscardingChanges}
             cancelButtonDisabled={isDiscardingChanges}
           />
-          <p>Emergency exit: Cancel leaves the selected changes untouched.</p>
         </DialogFooter>
       </Dialog>
     )
@@ -188,9 +164,6 @@ export class DiscardChanges extends React.Component<
   }
 
   private discard = async () => {
-    if (!this.state.gateAuthorized) {
-      return
-    }
     this.setState({ isDiscardingChanges: true })
 
     const moveToTrash = !this.props.permanentlyDelete

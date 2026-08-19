@@ -1,10 +1,9 @@
 import * as Path from 'path'
 import {
   isValidFontFamily,
-  isValidTabColorValue,
+  isValidTabColor,
   tabFontStack,
 } from './repository-tab'
-import { isAnimatedRainbowColor, RainbowCssColor } from './color-value'
 
 export const DefaultAppDisplayName = 'Desktop Material'
 export const MaxAppDisplayNameLength = 48
@@ -39,9 +38,16 @@ export type AppLogoShadow = 'none' | 'soft' | 'strong'
 export type AppNameFontWeight = 400 | 500 | 600 | 700 | 800
 export type AppNameFontWidth = 'condensed' | 'normal' | 'expanded'
 export type AppNameTextCase =
-  'normal' | 'uppercase' | 'lowercase' | 'capitalize'
+  | 'normal'
+  | 'uppercase'
+  | 'lowercase'
+  | 'capitalize'
 export type AppNameTextEffect =
-  'none' | 'soft-shadow' | 'strong-shadow' | 'glow' | 'embossed'
+  | 'none'
+  | 'soft-shadow'
+  | 'strong-shadow'
+  | 'glow'
+  | 'embossed'
 export type AppNameHighlight = 'none' | 'soft' | 'pill'
 
 /** Profile-scoped identity rendered in the app title bar and window title. */
@@ -213,7 +219,7 @@ export function getAppDisplayName(value: unknown): string {
 }
 
 export function isValidAppIdentityColor(value: unknown): value is string {
-  return typeof value === 'string' && isValidTabColorValue(value)
+  return typeof value === 'string' && isValidTabColor(value)
 }
 
 /** Accept absolute image paths written by Windows, macOS, or Linux profiles. */
@@ -366,23 +372,16 @@ export function appNameStyleToCss(
     textTransform: identity.textCase === 'normal' ? 'none' : identity.textCase,
     opacity: identity.fontOpacity,
   }
+
   if (identity.highlightStyle !== 'none') {
-    if (isAnimatedRainbowColor(identity.highlightColor)) {
-      css.backgroundColor = RainbowCssColor
-    } else {
-      css.backgroundColor =
-        identity.highlightColor ?? 'var(--md-sys-color-secondary-container)'
-    }
+    css.backgroundColor =
+      identity.highlightColor ?? 'var(--md-sys-color-secondary-container)'
     css.borderRadius = identity.highlightStyle === 'pill' ? '999px' : '5px'
     css.padding = identity.highlightStyle === 'pill' ? '2px 7px' : '1px 4px'
   }
 
   if (identity.fontColor !== null) {
-    if (isAnimatedRainbowColor(identity.fontColor)) {
-      css.color = RainbowCssColor
-    } else {
-      css.color = identity.fontColor
-    }
+    css.color = identity.fontColor
   }
   switch (identity.textEffect) {
     case 'soft-shadow':
@@ -430,12 +429,10 @@ export function appLogoStyleToCss(
     identity.logoShape === 'circle'
       ? '50%'
       : identity.logoShape === 'square'
-        ? '3px'
-        : '7px'
-  const rainbowBorder = isAnimatedRainbowColor(identity.logoBorderColor)
-  const borderColor = rainbowBorder
-    ? RainbowCssColor
-    : (identity.logoBorderColor ?? 'var(--md-sys-color-outline-variant)')
+      ? '3px'
+      : '7px'
+  const borderColor =
+    identity.logoBorderColor ?? 'var(--md-sys-color-outline-variant)'
   const border =
     identity.logoBorder === 'none'
       ? 'none'
@@ -444,23 +441,18 @@ export function appLogoStyleToCss(
     identity.logoShadow === 'strong'
       ? '0 4px 10px rgb(0 0 0 / 38%)'
       : identity.logoShadow === 'soft'
-        ? '0 2px 5px rgb(0 0 0 / 24%)'
-        : 'none'
-  const rainbowBackground = isAnimatedRainbowColor(identity.logoColor)
+      ? '0 2px 5px rgb(0 0 0 / 24%)'
+      : 'none'
   const style: React.CSSProperties & Record<string, string | number> = {
     '--dm-app-logo-size': `${identity.logoSize}px`,
     '--dm-app-logo-inset': `${identity.logoInset}px`,
     '--dm-app-logo-rotation': `${identity.logoRotation}deg`,
-    backgroundColor: rainbowBackground
-      ? RainbowCssColor
-      : (identity.logoColor ?? 'var(--md-sys-color-primary)'),
+    backgroundColor: identity.logoColor ?? 'var(--md-sys-color-primary)',
     borderRadius,
     border,
     boxShadow,
     color:
-      identity.logoColor === null ||
-      rainbowBackground ||
-      colorIsDark(identity.logoColor)
+      identity.logoColor === null || colorIsDark(identity.logoColor)
         ? '#ffffff'
         : '#111111',
   }
