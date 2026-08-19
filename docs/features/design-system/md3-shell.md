@@ -1,4 +1,19 @@
-# The Material Design 3 shell
+# The Material Design 3 shell — RETIRED
+
+> **This describes a shell that is not in the application and is kept for
+> history only.** `app/src/ui/md3/md3-shell.tsx` and the view components around
+> it were removed on 2026-08-19, together with the rest of an unrequested
+> rebuild. The chrome the app actually renders is the August 7 chrome, and it is
+> **frozen**: see the "The interface shell is frozen" section of
+> [AGENTS.md](../../../AGENTS.md) before acting on anything below.
+>
+> This document has already been read once as a mandate. It is not one. Do not
+> use it to "restore" the shell — that rebuild has now happened twice and been
+> reverted twice.
+>
+> What survived the revert and is still real: the Material Design 3 *controls*
+> and *dialogs* — primitives, toasts, the destructive gate, locks, the
+> authenticator, the regex builder. Those are documented in their own articles.
 
 The application chrome, rewritten against `design/History MD3.dc.html` and
 assembled as one component. `Md3Shell` (`app/src/ui/md3/md3-shell.tsx`) is what
