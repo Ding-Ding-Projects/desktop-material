@@ -1,3 +1,5 @@
+import { isAbsolute } from 'path'
+
 import { largeRepositoryPathKey } from './large-repository/large-repository-mode'
 import type { AIProviderKind } from './ai-security-policy'
 
@@ -39,6 +41,13 @@ export const DefaultAIAdminPolicySettings: IAIAdminPolicySettings = {
   repositoryOverrides: {},
 }
 
+const FailClosedAIAdminPolicySettings: IAIAdminPolicySettings = Object.freeze({
+  aiFeaturesEnabled: false,
+  allowedProviderKinds: Object.freeze([]),
+  defaultRepositoryEligibility: 'deny',
+  repositoryOverrides: Object.freeze({}),
+})
+
 /** localStorage key holding the JSON settings blob. */
 export const AIAdminPolicySettingsStorageKey = 'ai-admin-policy-settings-v1'
 
@@ -51,72 +60,111 @@ const validProviderKinds: ReadonlySet<AIProviderKind> = new Set([
   'byok',
 ])
 
-function coerceBoolean(value: unknown, fallback: boolean): boolean {
-  return typeof value === 'boolean' ? value : fallback
-}
+const settingsKeys = [
+  'aiFeaturesEnabled',
+  'allowedProviderKinds',
+  'defaultRepositoryEligibility',
+  'repositoryOverrides',
+] as const
 
-function coerceProviderKinds(value: unknown): ReadonlyArray<AIProviderKind> {
+function parseProviderKinds(
+  value: unknown
+): ReadonlyArray<AIProviderKind> | null {
   if (!Array.isArray(value)) {
-    return DefaultAIAdminPolicySettings.allowedProviderKinds
+    return null
   }
   const result: Array<AIProviderKind> = []
   for (const entry of value) {
     if (
-      typeof entry === 'string' &&
-      validProviderKinds.has(entry as AIProviderKind) &&
-      !result.includes(entry as AIProviderKind)
+      typeof entry !== 'string' ||
+      !validProviderKinds.has(entry as AIProviderKind)
     ) {
+      return null
+    }
+    if (!result.includes(entry as AIProviderKind)) {
       result.push(entry as AIProviderKind)
     }
   }
   return result
 }
 
-function coerceEligibility(
-  value: unknown,
-  fallback: 'allow' | 'deny'
-): 'allow' | 'deny' {
-  return value === 'allow' || value === 'deny' ? value : fallback
-}
-
-function coerceRepositoryOverrides(
+function parseRepositoryOverrides(
   value: unknown
-): Record<string, 'allow' | 'deny'> {
-  if (typeof value !== 'object' || value === null) {
-    return {}
+): Record<string, 'allow' | 'deny'> | null {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    Array.isArray(value) ||
+    Object.getPrototypeOf(value) !== Object.prototype
+  ) {
+    return null
   }
   const result: Record<string, 'allow' | 'deny'> = {}
   for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
-    if (raw === 'allow' || raw === 'deny') {
-      result[largeRepositoryPathKey(key)] = raw
+    if (
+      !isAbsolute(key) ||
+      /[\u0000-\u001f\u007f]/.test(key) ||
+      (raw !== 'allow' && raw !== 'deny')
+    ) {
+      return null
     }
+    result[largeRepositoryPathKey(key)] = raw
   }
   return result
 }
 
 /**
  * Normalize an arbitrary parsed value into fully-populated, valid settings.
- * Never throws; unknown or corrupt fields fall back to the (safe) defaults.
+ * Never throws. A present but incomplete or corrupt administrator policy must
+ * deny every AI request; only the absence of stored policy uses the product
+ * defaults.
  */
 export function normalizeAIAdminPolicySettings(
   value: unknown
 ): IAIAdminPolicySettings {
-  const d = DefaultAIAdminPolicySettings
-  if (typeof value !== 'object' || value === null) {
-    return d
-  }
-  const raw = value as Record<string, unknown>
-  return {
-    aiFeaturesEnabled: coerceBoolean(
-      raw.aiFeaturesEnabled,
-      d.aiFeaturesEnabled
-    ),
-    allowedProviderKinds: coerceProviderKinds(raw.allowedProviderKinds),
-    defaultRepositoryEligibility: coerceEligibility(
-      raw.defaultRepositoryEligibility,
-      d.defaultRepositoryEligibility
-    ),
-    repositoryOverrides: coerceRepositoryOverrides(raw.repositoryOverrides),
+  try {
+    if (
+      typeof value !== 'object' ||
+      value === null ||
+      Array.isArray(value) ||
+      Object.getPrototypeOf(value) !== Object.prototype
+    ) {
+      return FailClosedAIAdminPolicySettings
+    }
+
+    const raw = value as Record<string, unknown>
+    const keys = Object.keys(raw).sort()
+    if (
+      keys.length !== settingsKeys.length ||
+      ![...settingsKeys]
+        .sort()
+        .every((expected, index) => keys[index] === expected)
+    ) {
+      return FailClosedAIAdminPolicySettings
+    }
+
+    const allowedProviderKinds = parseProviderKinds(raw.allowedProviderKinds)
+    const repositoryOverrides = parseRepositoryOverrides(
+      raw.repositoryOverrides
+    )
+    if (
+      typeof raw.aiFeaturesEnabled !== 'boolean' ||
+      allowedProviderKinds === null ||
+      (raw.defaultRepositoryEligibility !== 'allow' &&
+        raw.defaultRepositoryEligibility !== 'deny') ||
+      repositoryOverrides === null
+    ) {
+      return FailClosedAIAdminPolicySettings
+    }
+
+    return {
+      aiFeaturesEnabled: raw.aiFeaturesEnabled,
+      allowedProviderKinds,
+      defaultRepositoryEligibility: raw.defaultRepositoryEligibility,
+      repositoryOverrides,
+    }
+  } catch {
+    return FailClosedAIAdminPolicySettings
   }
 }
 
@@ -135,7 +183,7 @@ export function parseAIAdminPolicySettings(
   try {
     return normalizeAIAdminPolicySettings(JSON.parse(raw))
   } catch {
-    return DefaultAIAdminPolicySettings
+    return FailClosedAIAdminPolicySettings
   }
 }
 
@@ -192,7 +240,8 @@ export function getAIAdminPolicySettings(): IAIAdminPolicySettings {
   try {
     raw = localStorage.getItem(AIAdminPolicySettingsStorageKey)
   } catch {
-    raw = null
+    cachedSettings = FailClosedAIAdminPolicySettings
+    return cachedSettings
   }
   cachedSettings = parseAIAdminPolicySettings(raw)
   return cachedSettings
