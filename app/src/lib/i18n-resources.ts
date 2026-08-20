@@ -4145,6 +4145,33 @@ export type TranslationKey =
   | 'md3.regexBuilder.token.either'
   | 'md3.regexBuilder.token.lookahead'
   | 'md3.regexBuilder.token.lookbehind'
+  | 'md3.regexBuilder.group.escapes'
+  | 'md3.regexBuilder.group.lazy'
+  | 'md3.regexBuilder.group.references'
+  | 'md3.regexBuilder.token.notWordBoundary'
+  | 'md3.regexBuilder.token.notWord'
+  | 'md3.regexBuilder.token.notDigit'
+  | 'md3.regexBuilder.token.notSpace'
+  | 'md3.regexBuilder.token.tab'
+  | 'md3.regexBuilder.token.newline'
+  | 'md3.regexBuilder.token.carriageReturn'
+  | 'md3.regexBuilder.token.hexEscape'
+  | 'md3.regexBuilder.token.unicodeEscape'
+  | 'md3.regexBuilder.token.unicodePoint'
+  | 'md3.regexBuilder.token.unicodeLetter'
+  | 'md3.regexBuilder.token.unicodeNumber'
+  | 'md3.regexBuilder.token.unicodeScript'
+  | 'md3.regexBuilder.token.lazyOneOrMore'
+  | 'md3.regexBuilder.token.lazyZeroOrMore'
+  | 'md3.regexBuilder.token.lazyOptional'
+  | 'md3.regexBuilder.token.lazyRepeatRange'
+  | 'md3.regexBuilder.token.exactly'
+  | 'md3.regexBuilder.token.atLeast'
+  | 'md3.regexBuilder.token.namedCapture'
+  | 'md3.regexBuilder.token.namedBackreference'
+  | 'md3.regexBuilder.token.backreference'
+  | 'md3.regexBuilder.token.negativeLookahead'
+  | 'md3.regexBuilder.token.negativeLookbehind'
   | 'md3.regexBuilder.tester'
   | 'md3.regexBuilder.testLabel'
   | 'md3.regexBuilder.result.idle'
@@ -10860,6 +10887,33 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'md3.regexBuilder.token.either': 'either',
   'md3.regexBuilder.token.lookahead': 'lookahead',
   'md3.regexBuilder.token.lookbehind': 'lookbehind',
+  'md3.regexBuilder.group.escapes': 'Escapes and Unicode',
+  'md3.regexBuilder.group.lazy': 'Lazy quantifiers',
+  'md3.regexBuilder.group.references': 'References and assertions',
+  'md3.regexBuilder.token.notWordBoundary': 'not a word boundary',
+  'md3.regexBuilder.token.notWord': 'not a word character',
+  'md3.regexBuilder.token.notDigit': 'not a digit',
+  'md3.regexBuilder.token.notSpace': 'not whitespace',
+  'md3.regexBuilder.token.tab': 'tab',
+  'md3.regexBuilder.token.newline': 'newline',
+  'md3.regexBuilder.token.carriageReturn': 'carriage return',
+  'md3.regexBuilder.token.hexEscape': 'hex character',
+  'md3.regexBuilder.token.unicodeEscape': 'code unit',
+  'md3.regexBuilder.token.unicodePoint': 'code point (needs u)',
+  'md3.regexBuilder.token.unicodeLetter': 'any letter (needs u)',
+  'md3.regexBuilder.token.unicodeNumber': 'any digit (needs u)',
+  'md3.regexBuilder.token.unicodeScript': 'Han script (needs u)',
+  'md3.regexBuilder.token.lazyOneOrMore': 'one or more, lazy',
+  'md3.regexBuilder.token.lazyZeroOrMore': 'zero or more, lazy',
+  'md3.regexBuilder.token.lazyOptional': 'optional, lazy',
+  'md3.regexBuilder.token.lazyRepeatRange': 'repeat range, lazy',
+  'md3.regexBuilder.token.exactly': 'exactly three',
+  'md3.regexBuilder.token.atLeast': 'two or more',
+  'md3.regexBuilder.token.namedCapture': 'named capture',
+  'md3.regexBuilder.token.namedBackreference': 'named backreference',
+  'md3.regexBuilder.token.backreference': 'backreference to group 1',
+  'md3.regexBuilder.token.negativeLookahead': 'negative lookahead',
+  'md3.regexBuilder.token.negativeLookbehind': 'negative lookbehind',
   'md3.regexBuilder.tester': 'Live tester',
   'md3.regexBuilder.testLabel': 'Test string',
   'md3.regexBuilder.result.idle': 'Enter a pattern to test.',
@@ -17490,6 +17544,33 @@ export const cantoneseTranslations: Readonly<
   'md3.regexBuilder.token.either': '二揀一',
   'md3.regexBuilder.token.lookahead': '向前望',
   'md3.regexBuilder.token.lookbehind': '向後望',
+  'md3.regexBuilder.group.escapes': '轉義同 Unicode',
+  'md3.regexBuilder.group.lazy': '最少數量詞',
+  'md3.regexBuilder.group.references': '回引同斷言',
+  'md3.regexBuilder.token.notWordBoundary': '唔係字詞邊界',
+  'md3.regexBuilder.token.notWord': '非字詞字元',
+  'md3.regexBuilder.token.notDigit': '非數字',
+  'md3.regexBuilder.token.notSpace': '非空白',
+  'md3.regexBuilder.token.tab': 'Tab 位',
+  'md3.regexBuilder.token.newline': '換行',
+  'md3.regexBuilder.token.carriageReturn': '回車',
+  'md3.regexBuilder.token.hexEscape': '十六進位字元',
+  'md3.regexBuilder.token.unicodeEscape': '編碼單位',
+  'md3.regexBuilder.token.unicodePoint': '碼位（要 u）',
+  'md3.regexBuilder.token.unicodeLetter': '任何字母（要 u）',
+  'md3.regexBuilder.token.unicodeNumber': '任何數字（要 u）',
+  'md3.regexBuilder.token.unicodeScript': '漢字（要 u）',
+  'md3.regexBuilder.token.lazyOneOrMore': '一個或以上，最少',
+  'md3.regexBuilder.token.lazyZeroOrMore': '零個或以上，最少',
+  'md3.regexBuilder.token.lazyOptional': '可有可無，最少',
+  'md3.regexBuilder.token.lazyRepeatRange': '重複範圍，最少',
+  'md3.regexBuilder.token.exactly': '啱啱三次',
+  'md3.regexBuilder.token.atLeast': '兩次或以上',
+  'md3.regexBuilder.token.namedCapture': '具名擷取',
+  'md3.regexBuilder.token.namedBackreference': '具名回引',
+  'md3.regexBuilder.token.backreference': '回引第一組',
+  'md3.regexBuilder.token.negativeLookahead': '否定向前望',
+  'md3.regexBuilder.token.negativeLookbehind': '否定向後望',
   'md3.regexBuilder.tester': '即時測試',
   'md3.regexBuilder.testLabel': '測試字串',
   'md3.regexBuilder.result.idle': '打個 pattern 嚟試下先。',

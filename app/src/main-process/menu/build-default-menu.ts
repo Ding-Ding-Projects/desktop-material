@@ -373,6 +373,11 @@ export function buildDefaultMenuTemplate(
       {
         id: 'pull',
         label: __DARWIN__ ? 'Pull' : 'Pu&ll',
+        // Push is CmdOrCtrl+P and fetch is CmdOrCtrl+Shift+T, so pull — easily
+        // the most frequent of the three — was the one command in the group a
+        // user had to reach for the mouse to run. Shift+P pairs it with push
+        // and was unused.
+        accelerator: 'CmdOrCtrl+Shift+P',
         click: emit('pull'),
       },
       {
@@ -397,6 +402,9 @@ export function buildDefaultMenuTemplate(
       {
         id: 'fork-repository',
         label: __DARWIN__ ? 'Fork Repository…' : 'Fork repositor&y…',
+        // Every other command in this submenu carries an accelerator; this one
+        // did not, and it is in the command palette with no binding either.
+        accelerator: 'CmdOrCtrl+Shift+K',
         click: emit('fork-repository'),
       },
       {

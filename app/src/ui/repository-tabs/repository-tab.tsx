@@ -250,13 +250,30 @@ export class RepositoryTab extends React.Component<
     this.setState({ isRenaming: false, draftLabel: '' })
   }
 
+  private readonly frameRef = React.createRef<HTMLDivElement>()
+
+  /**
+   * Cancel the inline rename and put focus back on the tab.
+   *
+   * Escape unmounted the input and left focus on document.body, so a keyboard
+   * user lost their place in the tab strip entirely and had to tab back to
+   * where they already were. Every other dismissable surface in this directory
+   * — the dropdown, the context menu, the searchable select — returns focus to
+   * the control that opened it; this one simply did not.
+   */
+  private cancelRename = () => {
+    this.setState({ isRenaming: false, draftLabel: '' }, () => {
+      this.frameRef.current?.focus()
+    })
+  }
+
   private onRenameKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
       event.preventDefault()
       this.commitRename()
     } else if (event.key === 'Escape') {
       event.preventDefault()
-      this.setState({ isRenaming: false, draftLabel: '' })
+      this.cancelRename()
     }
   }
 
@@ -375,6 +392,7 @@ export class RepositoryTab extends React.Component<
 
     return (
       <div
+        ref={this.frameRef}
         className={className}
         style={frameStyle}
         data-tab-id={tab.id}

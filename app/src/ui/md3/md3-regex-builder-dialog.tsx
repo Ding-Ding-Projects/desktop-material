@@ -154,6 +154,7 @@ export const Md3RegexTokenGroups: ReadonlyArray<IMd3RegexTokenGroup> = [
       { token: '^', labelKey: 'md3.regexBuilder.token.start' },
       { token: '$', labelKey: 'md3.regexBuilder.token.end' },
       { token: '\\b', labelKey: 'md3.regexBuilder.token.wordBoundary' },
+      { token: '\\B', labelKey: 'md3.regexBuilder.token.notWordBoundary' },
     ],
   },
   {
@@ -166,6 +167,9 @@ export const Md3RegexTokenGroups: ReadonlyArray<IMd3RegexTokenGroup> = [
       { token: '[a-z]', labelKey: 'md3.regexBuilder.token.charRange' },
       { token: '[^x]', labelKey: 'md3.regexBuilder.token.notX' },
       { token: '.', labelKey: 'md3.regexBuilder.token.any' },
+      { token: '\\W', labelKey: 'md3.regexBuilder.token.notWord' },
+      { token: '\\D', labelKey: 'md3.regexBuilder.token.notDigit' },
+      { token: '\\S', labelKey: 'md3.regexBuilder.token.notSpace' },
     ],
   },
   {
@@ -176,6 +180,8 @@ export const Md3RegexTokenGroups: ReadonlyArray<IMd3RegexTokenGroup> = [
       { token: '*', labelKey: 'md3.regexBuilder.token.zeroOrMore' },
       { token: '?', labelKey: 'md3.regexBuilder.token.optional' },
       { token: '{2,4}', labelKey: 'md3.regexBuilder.token.repeatRange' },
+      { token: '{3}', labelKey: 'md3.regexBuilder.token.exactly' },
+      { token: '{2,}', labelKey: 'md3.regexBuilder.token.atLeast' },
     ],
   },
   {
@@ -187,6 +193,51 @@ export const Md3RegexTokenGroups: ReadonlyArray<IMd3RegexTokenGroup> = [
       { token: 'a|b', labelKey: 'md3.regexBuilder.token.either' },
       { token: '(?=…)', labelKey: 'md3.regexBuilder.token.lookahead' },
       { token: '(?<=…)', labelKey: 'md3.regexBuilder.token.lookbehind' },
+    ],
+  },
+  {
+    id: 'lazy',
+    titleKey: 'md3.regexBuilder.group.lazy',
+    tokens: [
+      { token: '+?', labelKey: 'md3.regexBuilder.token.lazyOneOrMore' },
+      { token: '*?', labelKey: 'md3.regexBuilder.token.lazyZeroOrMore' },
+      { token: '??', labelKey: 'md3.regexBuilder.token.lazyOptional' },
+      { token: '{2,4}?', labelKey: 'md3.regexBuilder.token.lazyRepeatRange' },
+    ],
+  },
+  {
+    id: 'references',
+    titleKey: 'md3.regexBuilder.group.references',
+    tokens: [
+      { token: '(?<name>…)', labelKey: 'md3.regexBuilder.token.namedCapture' },
+      {
+        token: '\\k<name>',
+        labelKey: 'md3.regexBuilder.token.namedBackreference',
+      },
+      { token: '\\1', labelKey: 'md3.regexBuilder.token.backreference' },
+      { token: '(?!…)', labelKey: 'md3.regexBuilder.token.negativeLookahead' },
+      {
+        token: '(?<!…)',
+        labelKey: 'md3.regexBuilder.token.negativeLookbehind',
+      },
+    ],
+  },
+  {
+    id: 'escapes',
+    titleKey: 'md3.regexBuilder.group.escapes',
+    tokens: [
+      { token: '\\t', labelKey: 'md3.regexBuilder.token.tab' },
+      { token: '\\n', labelKey: 'md3.regexBuilder.token.newline' },
+      { token: '\\r', labelKey: 'md3.regexBuilder.token.carriageReturn' },
+      { token: '\\x41', labelKey: 'md3.regexBuilder.token.hexEscape' },
+      { token: '\\u2014', labelKey: 'md3.regexBuilder.token.unicodeEscape' },
+      { token: '\\u{1F600}', labelKey: 'md3.regexBuilder.token.unicodePoint' },
+      { token: '\\p{L}', labelKey: 'md3.regexBuilder.token.unicodeLetter' },
+      { token: '\\p{Nd}', labelKey: 'md3.regexBuilder.token.unicodeNumber' },
+      {
+        token: '\\p{Script=Han}',
+        labelKey: 'md3.regexBuilder.token.unicodeScript',
+      },
     ],
   },
 ]

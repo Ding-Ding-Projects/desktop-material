@@ -253,6 +253,27 @@ export class JobLogViewer extends React.Component<
   private getSearchSampleItems = () =>
     this.getLines().slice(0, 50).map(getActionsLogLineText)
 
+  /**
+   * Enter jumps to the next match, Shift+Enter to the previous one.
+   *
+   * The panel already had Previous and Next buttons and a match count, so the
+   * navigation existed — it just could not be reached from the field the user
+   * was already typing in. Pressing Enter in a search box and having nothing
+   * happen reads as "no matches", which is the wrong thing to learn when there
+   * are several.
+   */
+  private onSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Enter') {
+      return
+    }
+    event.preventDefault()
+    if (event.shiftKey) {
+      this.previousMatch()
+    } else {
+      this.nextMatch()
+    }
+  }
+
   private nextMatch = () => {
     const count = this.getMatches(this.getLines()).length
     if (count > 0) {
@@ -460,6 +481,7 @@ export class JobLogViewer extends React.Component<
               type="search"
               value={this.state.search}
               onChange={this.onSearch}
+              onKeyDown={this.onSearchKeyDown}
               placeholder="Search logs"
               aria-label="Search logs"
             />
