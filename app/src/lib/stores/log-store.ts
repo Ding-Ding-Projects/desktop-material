@@ -17,6 +17,7 @@ import {
 import { IProfileHistoryPage } from '../../models/profile'
 import { LogLevel } from '../logging/log-level'
 import { runWithLogSinkSuppressed } from '../logging/renderer/log-sink'
+import { enqueueRecoveringLogWrite } from './log-write-chain'
 
 /** The single log file tracked by the log-history repository. */
 export const LogFileName = 'app.log'
@@ -312,8 +313,9 @@ export class LogStore {
 
   /**
    * Write the log to disk and queue a commit. Writes are serialized behind
-   * `writeChain`; appends carry their own chunk and trims snapshot the full
-   * content at enqueue time, so later appends stay ordered after them.
+   * `writeChain`; every operation snapshots the full content so an append
+   * following a failed write can replace the file without losing earlier
+   * in-memory lines. Successful appends still write only their own chunk.
    */
   private persist(appendedLines: ReadonlyArray<string> | null): Promise<void> {
     const repository = this.repository
@@ -323,19 +325,21 @@ export class LogStore {
     }
 
     const path = join(repository.path, LogFileName)
-    const content =
-      appendedLines === null ? serializeLogLines(this.lines) : null
+    const fullContent = serializeLogLines(this.lines)
+    const appendedContent =
+      appendedLines === null ? null : serializeLogLines(appendedLines)
 
-    this.writeChain = this.writeChain
-      .catch(() => undefined)
-      .then(async () => {
-        if (content !== null) {
-          await writeFile(path, content, 'utf8')
-        } else if (appendedLines !== null && appendedLines.length > 0) {
-          await appendFile(path, serializeLogLines(appendedLines), 'utf8')
-        }
-        queue.schedule(LogCommitDescription)
-      })
+    this.writeChain = enqueueRecoveringLogWrite(
+      this.writeChain,
+      fullContent,
+      appendedContent,
+      {
+        append: content => appendFile(path, content, 'utf8'),
+        rewrite: content => writeFile(path, content, 'utf8'),
+      }
+    ).then(() => {
+      queue.schedule(LogCommitDescription)
+    })
 
     return this.writeChain
   }
