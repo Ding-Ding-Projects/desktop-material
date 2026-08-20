@@ -328,6 +328,14 @@ describe('Desktop Material self-hosted server', () => {
       { token: joined.body.deviceToken }
     )
     assert.equal(missing.response.status, 404)
+
+    const malformed = await jsonRequest(
+      instance.origin,
+      '/v1/workspaces/%',
+      { token: joined.body.deviceToken }
+    )
+    assert.equal(malformed.response.status, 404)
+    assert.deepEqual(malformed.body, { error: 'workspace-not-found' })
   })
 
   it('refuses a non-loopback clear-text listener without a trusted proxy', async () => {

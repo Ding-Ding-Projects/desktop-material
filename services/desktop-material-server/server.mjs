@@ -1378,9 +1378,16 @@ export async function createDesktopMaterialServer(options) {
           sendJson(response, status, { error: 'device-auth-required' })
           return
         }
-        const shareToken = decodeURIComponent(
-          pathname.slice('/v1/workspaces/'.length)
-        )
+        let shareToken
+        try {
+          shareToken = decodeURIComponent(
+            pathname.slice('/v1/workspaces/'.length)
+          )
+        } catch {
+          status = 404
+          sendJson(response, status, { error: 'workspace-not-found' })
+          return
+        }
         if (shareToken.length < 32 || shareToken.length > 256) {
           status = 404
           sendJson(response, status, { error: 'workspace-not-found' })
