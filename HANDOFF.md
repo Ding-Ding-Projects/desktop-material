@@ -1,5 +1,49 @@
 # Desktop Material — Active parity handoff
 
+## Eighteen defects, five hunts — 2026-08-19
+
+Five adversarial hunts ran over the tree, every finding put through independent
+refuters that default to refuted on any uncertainty. Eighteen survived and were
+fixed. Three are worth knowing about before touching the related code.
+
+**The tertiary colour role was never declared.** 155 `var()` references across
+30 stylesheets, zero declarations, no fallbacks — so each resolved to the
+guaranteed-invalid value and the property computed as unset. Chips, badges and
+status pills rendered with no fill, which is why parts of the app had stopped
+looking like Material Design. Declared now for light and dark in
+`app/styles/_material.scss`. Accent blocks deliberately do not restate it; they
+do not restate the secondary base either.
+
+**Every toast was silently lost.** `Md3ToastHost` says "mount it once, at the
+root of the shell", and the shell that mounted it was reverted. Seven surfaces
+pushed into a store with no subscriber. Mounted in `app.tsx`.
+
+**Support Tickets was built and unreachable.** Three dead ends: a palette entry
+with no handler, an unlock-prompt link reporting the desk unavailable, and
+nothing rendering it. A lock here is not a security boundary, so a closed
+recovery route is the feature failing rather than degrading.
+
+### Guards added, each proved red then green
+
+| Guard | Catches |
+| --- | --- |
+| `interface-shell-frozen-test.ts` | 35 shell files returning, 9 surviving controls being removed |
+| `atomic-rename-coverage-test.ts` | a bare `rename` where user state is published |
+| `lock-recovery-wiring-test.ts` | the recovery desk being disconnected again |
+| `md3-regex-builder-tokens-test.ts` | a token the builder offers but cannot compile |
+
+### Recorded so nobody rediscovers it
+
+The commit graph is rebuilt in full whenever history loads a batch, and that
+**cannot** be resumed from a cached prefix. `visibleSHAs` spans the whole loaded
+list and history arrives newest first, so a commit's parents load in later
+batches and the oldest row legitimately changes when they do. A cached prefix
+freezes that row in its earlier, wrong shape. Only the constant was taken; the
+per-row lane lookups are one index instead of a scan per lane and per parent,
+and output equivalence was proved by running the same tests against both
+implementations.
+
+
 ## The August 7 chrome, restored a second time — 2026-08-19
 
 **Read this before the entry below it.** The chrome described there was rebuilt
