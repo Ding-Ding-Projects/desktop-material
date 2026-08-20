@@ -160,8 +160,8 @@ function normalizeEvent(candidate, receivedAt) {
   if (clientId === null || sessionId === null || level === null) {
     return null
   }
-  const message = redact(String(candidate.message || '')).slice(
-    0,
+  const message = truncateUtf8(
+    redact(String(candidate.message || '')),
     maximumMessageBytes
   )
   if (message.length === 0) {
@@ -375,6 +375,23 @@ function safeText(value, maximumLength) {
   return String(value || '')
     .replace(/[\u0000-\u001f\u007f]/g, '')
     .slice(0, maximumLength)
+}
+
+function truncateUtf8(value, maximumBytes) {
+  if (Buffer.byteLength(value, 'utf8') <= maximumBytes) {
+    return value
+  }
+  let bytes = 0
+  let end = 0
+  for (const character of value) {
+    const characterBytes = Buffer.byteLength(character, 'utf8')
+    if (bytes + characterBytes > maximumBytes) {
+      break
+    }
+    bytes += characterBytes
+    end += character.length
+  }
+  return value.slice(0, end)
 }
 
 function validTimestamp(value) {

@@ -167,3 +167,29 @@ test('applies the query limit to the newest matching events', async () => {
   assert.equal(result.count, 1)
   assert.equal(result.events[0].message, 'newest event')
 })
+
+test('caps stored messages by UTF-8 bytes without splitting characters', async () => {
+  const response = await fetch(`http://127.0.0.1:${port}/v1/logs`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      clientId: 'message-byte-client',
+      sessionId: 'session-one',
+      level: 'info',
+      message: '😀'.repeat(20_000),
+    }),
+  })
+  assert.equal(response.status, 202)
+
+  const query = await fetch(
+    `http://127.0.0.1:${port}/v1/logs?client=message-byte-client`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  const result = await query.json()
+  assert.equal(result.count, 1)
+  assert.equal(Buffer.byteLength(result.events[0].message, 'utf8'), 32 * 1024)
+  assert.equal(result.events[0].message, '😀'.repeat(8_192))
+})
