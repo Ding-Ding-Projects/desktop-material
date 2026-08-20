@@ -425,6 +425,14 @@ export class RepositoryTab extends React.Component<
         </button>
         <span
           className="repository-tab-label"
+          // The label is capped at 240px — 184px and 132px at the narrower
+          // breakpoints — and truncated with an ellipsis. A long or renamed
+          // tab, or a bilingual label, therefore loses its tail with no way to
+          // read it: the tab strip routes overflowing TABS into a dropdown, but
+          // that does nothing for text truncated inside a tab that is visible.
+          // The accessible name already carried the full text; a sighted mouse
+          // user had nothing.
+          title={this.label}
           style={tabTitleStyleToCss(tab.titleStyle)}
           data-context-menu-owner="tab-title-appearance"
           data-customization-surface="tab-title"

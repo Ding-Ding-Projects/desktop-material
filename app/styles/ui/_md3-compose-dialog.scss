@@ -127,6 +127,14 @@
   flex-direction: column;
   gap: 8px;
   min-height: 0;
+  // The panel is capped at 78vh and the description carries a 110px floor, so
+  // on a short viewport — or in bilingual mode, where the context line wraps —
+  // header + context + summary + description + footer can exceed the cap. With
+  // the default overflow the footer's Commit and Push buttons were pushed past
+  // the panel's bottom edge with no scrollbar anywhere in the ancestor chain,
+  // so they could not be reached by mouse, by scrolling, or by resizing.
+  // Scrolling the body keeps the footer pinned and reachable.
+  overflow-y: auto;
   padding: 0 16px 8px 16px;
 }
 

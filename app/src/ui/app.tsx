@@ -510,6 +510,7 @@ import {
   setDiffContextPreferences,
 } from './diff/diff-context-preferences'
 import { teleportAnchor } from '../lib/teleport-targets'
+import { Md3ToastHost } from './md3/md3-toast'
 
 const MinuteInMilliseconds = 1000 * 60
 const HourInMilliseconds = MinuteInMilliseconds * 60
@@ -7885,6 +7886,17 @@ export class App extends React.Component<IAppProps, IAppState> {
           {this.renderNotificationCentre()}
         </CrashProofBoundary>
         {this.renderAppearanceEditor()}
+        {/*
+          The toast host. Its own doc says "mount it once, at the root of the
+          shell" — and the shell that mounted it was removed with the rest of
+          the reverted chrome, so it went with it. Seven surfaces have been
+          pushing toasts into a store with no mounted subscriber ever since:
+          unlocking a lock, every support-ticket action, authenticator
+          registration, compose and docs. Nothing was clipped or covered; the
+          messages were simply never painted, so the user got no confirmation
+          that anything had happened at all.
+        */}
+        <Md3ToastHost />
         {this.renderPopups()}
         {this.renderDragElement()}
         <div
