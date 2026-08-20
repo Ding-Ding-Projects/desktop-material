@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { randomBytes, createHash } from 'node:crypto'
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, it } from 'node:test'
@@ -75,6 +75,13 @@ async function jsonRequest(origin, path, options = {}) {
 }
 
 describe('Desktop Material self-hosted server', () => {
+  it('creates the default Cloud Patch directory with native path semantics', async () => {
+    const paths = await fixture()
+    await startFixture(paths)
+
+    assert.equal((await stat(join(paths.root, 'cloud-patches'))).isDirectory(), true)
+  })
+
   it('reports bounded health without disclosing bootstrap secrets', async () => {
     const paths = await fixture()
     const instance = await startFixture(paths)
