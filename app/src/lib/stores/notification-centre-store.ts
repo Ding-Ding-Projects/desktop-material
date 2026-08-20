@@ -1,5 +1,4 @@
 import { join } from 'path'
-import { rename } from 'fs/promises'
 import { randomUUID } from 'crypto'
 import { TypedBaseStore } from './base-store'
 import { getPath } from '../../ui/main-process-proxy'
@@ -33,6 +32,7 @@ import {
   readCrashSafeText,
   writeCrashSafeText,
 } from '../crash-safe-file'
+import { renameWithRetry } from '../rename-with-retry'
 
 /** The single notifications file tracked by the notification repository. */
 const NotificationsFileName = 'notifications.json'
@@ -567,9 +567,7 @@ export class NotificationCentreStore extends TypedBaseStore<INotificationCentreS
     dir: string
   ): Promise<Repository> {
     const quarantine = `${dir}-corrupt-${Date.now()}`
-    await rename(dir, quarantine).catch(err =>
-      log.error('Failed to quarantine corrupt notifications directory', err)
-    )
+    await renameWithRetry(dir, quarantine)
 
     const repository = await ensureProfileRepository(dir)
     this.entries = []
