@@ -1,3 +1,4 @@
+import { SupportTicketEntryPoint } from '../lib/support-tickets'
 import {
   Repository,
   RepositoryWithGitHubRepository,
@@ -95,6 +96,7 @@ export enum PopupType {
   IgnoreFilesContaining = 'IgnoreFilesContaining',
   Preferences = 'Preferences',
   SettingsHistory = 'SettingsHistory',
+  SupportTickets = 'SupportTickets',
   NotificationHistory = 'NotificationHistory',
   NotificationAutomations = 'NotificationAutomations',
   LogHistory = 'LogHistory',
@@ -302,6 +304,14 @@ export type PopupDetail =
     }
   | { type: PopupType.Preferences; initialSelectedTab?: PreferencesTab }
   | { type: PopupType.SettingsHistory; scope?: SettingsHistoryScope }
+  | {
+      type: PopupType.SupportTickets
+      /** Which of the three routes the user arrived by. */
+      entryPoint: SupportTicketEntryPoint
+      /** Set when a lock sent the user here, so the ticket opens scoped. */
+      lockId?: string
+      targetLabel?: string
+    }
   | { type: PopupType.NotificationHistory }
   | { type: PopupType.NotificationAutomations; entry?: INotificationEntry }
   | { type: PopupType.LogHistory }

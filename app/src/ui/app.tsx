@@ -511,6 +511,7 @@ import {
 } from './diff/diff-context-preferences'
 import { teleportAnchor } from '../lib/teleport-targets'
 import { Md3ToastHost } from './md3/md3-toast'
+import { Md3SupportTicketsDesk } from './md3/md3-support-tickets-view'
 
 const MinuteInMilliseconds = 1000 * 60
 const HourInMilliseconds = MinuteInMilliseconds * 60
@@ -1704,6 +1705,13 @@ export class App extends React.Component<IAppProps, IAppState> {
     switch (event) {
       case 'palette:find-in-view':
         return this.findText()
+      case 'palette:support-tickets':
+        // The palette already listed this and nothing handled it, so choosing
+        // it did nothing at all.
+        return this.props.dispatcher.showPopup({
+          type: PopupType.SupportTickets,
+          entryPoint: 'help',
+        })
       case 'palette:toggle-theme':
         return this.toggleSelectedTheme()
       case 'palette:preferences-accounts':
@@ -4837,6 +4845,14 @@ export class App extends React.Component<IAppProps, IAppState> {
             key="settings-history"
             dispatcher={this.props.dispatcher}
             scope={popup.scope}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.SupportTickets:
+        return (
+          <Md3SupportTicketsDesk
+            key="support-tickets"
+            entryPoint={popup.entryPoint}
             onDismissed={onPopupDismissedFn}
           />
         )

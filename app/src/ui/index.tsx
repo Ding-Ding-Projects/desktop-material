@@ -115,6 +115,8 @@ import {
 } from '../lib/internal-browser'
 import { showBrowserExternalOpenFailure } from './lib/browser-external-open-failure'
 import { installOsLockCredentialVault } from '../lib/md3-locks/lock-vault-os'
+import { setMd3LockSupportTicketsRoute } from '../lib/md3-locks/lock-credentials'
+import { PopupType } from '../models/popup'
 import { installAppearanceLockGate } from './appearance'
 import { restorePersonalVocabulary } from '../lib/personal-vocabulary'
 
@@ -662,6 +664,21 @@ const dispatcher = new Dispatcher(
 ipcRenderer.on('browser-external-open-failed', () =>
   showBrowserExternalOpenFailure(dispatcher, getPersistedLanguageMode())
 )
+
+// The "Forgotten your password?" link on a lock's unlock prompt. Without this
+// the link reported Support Tickets as unavailable, even though the desk is
+// fully built — the wiring lived in the shell that was reverted and nothing
+// replaced it, so the one recovery route a for-fun lock offers was closed.
+// A lock is deliberately not a security boundary, so being unable to reach the
+// recovery desk is the whole feature failing rather than a missing extra.
+setMd3LockSupportTicketsRoute(({ lockId, targetLabel }) => {
+  dispatcher.showPopup({
+    type: PopupType.SupportTickets,
+    entryPoint: 'unlockPrompt',
+    lockId,
+    targetLabel,
+  })
+})
 
 installAgentCommandExecutor(
   dispatcher,
