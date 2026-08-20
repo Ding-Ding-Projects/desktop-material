@@ -577,7 +577,11 @@ function normalizeRepositoryUrl(value) {
   }
   try {
     const url = new URL(value)
-    if (url.protocol !== 'https:' && url.protocol !== 'ssh:') {
+    if (
+      (url.protocol !== 'https:' && url.protocol !== 'ssh:') ||
+      url.password ||
+      (url.protocol === 'https:' && url.username)
+    ) {
       return null
     }
   } catch {
