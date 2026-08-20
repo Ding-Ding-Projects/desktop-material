@@ -103,6 +103,13 @@ export class ElementAppearanceCoordinator extends TypedBaseStore<IElementAppeara
   private readonly tabInitializations = new Map<string, Promise<void>>()
   private readonly repositoryInitializations = new Map<string, Promise<void>>()
   private readonly elementSubscriptions = new Array<Disposable>()
+  /**
+   * Subscriptions belonging to one tab's store, so a closed tab can release
+   * exactly its own and nothing else. `elementSubscriptions` is a flat list
+   * that can only be disposed wholesale, which is fine for a profile switch and
+   * useless for closing a single tab.
+   */
+  private readonly tabSubscriptions = new Map<string, Array<Disposable>>()
   private profileSwitchTail: Promise<void> = Promise.resolve()
 
   public constructor(private readonly profileStore: ProfileStore) {
@@ -284,12 +291,48 @@ export class ElementAppearanceCoordinator extends TypedBaseStore<IElementAppeara
         initializationMessage: 'Initialize tab title appearance',
       })
       this.tabStores.set(key, store)
-      this.observe(store, () => this.emitUpdate(this.getState()))
+      this.tabSubscriptions.set(
+        key,
+        this.observe(store, () => this.emitUpdate(this.getState()))
+      )
       initialization = store.initialize()
       this.tabInitializations.set(key, initialization)
     }
     await (initialization ?? store.initialize())
     return store.getState().setting.value
+  }
+
+  /**
+   * Release the appearance store a closed tab was using.
+   *
+   * These maps were only ever added to. Every tab ever opened in a session left
+   * its `DedicatedSettingStore` — and the git-backed profile repository handle
+   * inside it — retained until a profile switch cleared everything wholesale,
+   * so memory and file handles grew with the number of distinct tabs the user
+   * had ever opened rather than with the number currently open.
+   *
+   * Flushing first matters: a tab can be closed while a commit is still
+   * pending, and dropping the store without flushing would discard the user's
+   * last appearance change. Nothing is lost by releasing afterwards — the store
+   * is backed by disk, so reopening the tab reads the same state back.
+   */
+  public async releaseTabTitleElement(tabId: string): Promise<void> {
+    const key = stableElementKey(tabId)
+    const store = this.tabStores.get(key)
+    if (store === undefined) {
+      return
+    }
+
+    try {
+      await store.flush()
+    } finally {
+      for (const subscription of this.tabSubscriptions.get(key) ?? []) {
+        subscription.dispose()
+      }
+      this.tabSubscriptions.delete(key)
+      this.tabStores.delete(key)
+      this.tabInitializations.delete(key)
+    }
   }
 
   public async setTabTitleElement(
@@ -402,6 +445,7 @@ export class ElementAppearanceCoordinator extends TypedBaseStore<IElementAppeara
     this.repositoryStores.clear()
     this.featureInitializations.clear()
     this.tabInitializations.clear()
+    this.tabSubscriptions.clear()
     this.repositoryInitializations.clear()
     this.featureHighlights = {}
     this.initialized = false
@@ -551,11 +595,16 @@ export class ElementAppearanceCoordinator extends TypedBaseStore<IElementAppeara
     return this.rootPath
   }
 
-  private observe<T>(store: DedicatedSettingStore<T>, onUpdate: () => void) {
-    this.elementSubscriptions.push(store.onDidUpdate(onUpdate))
-    this.elementSubscriptions.push(
-      store.onDidError(error => this.emitError(error))
-    )
+  private observe<T>(
+    store: DedicatedSettingStore<T>,
+    onUpdate: () => void
+  ): Array<Disposable> {
+    const created = [
+      store.onDidUpdate(onUpdate),
+      store.onDidError(error => this.emitError(error)),
+    ]
+    this.elementSubscriptions.push(...created)
+    return created
   }
 
   private disposeElementSubscriptions() {

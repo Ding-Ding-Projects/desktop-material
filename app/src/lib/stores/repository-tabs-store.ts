@@ -521,6 +521,12 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
       `Close tab: ${closed.customLabel ?? '#' + closed.repositoryId}`
     )
     this.tabStyleRevisions.delete(id)
+    // Release the closed tab's appearance store too. Only the revision entry
+    // was being dropped here, so every tab ever opened left its store — and the
+    // git-backed repository handle inside it — retained for the life of the
+    // session. The release flushes first, so a pending appearance change made
+    // moments before the close is still committed.
+    await this.elementAppearanceCoordinator?.releaseTabTitleElement(id)
     return activeTabId
   }
 

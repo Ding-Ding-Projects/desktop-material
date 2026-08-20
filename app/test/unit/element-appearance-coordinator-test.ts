@@ -521,4 +521,50 @@ describe('ElementAppearanceCoordinator', () => {
     )
     assert.deepEqual(await readdir(outside), [])
   })
+
+  it('releases the store belonging to a closed tab instead of retaining it', async t => {
+    const root = await createTempDirectory(t)
+    const coordinator = await createCoordinator(root)
+
+    // Open several tabs, then close them. Before the fix these maps only ever
+    // grew: every tab ever opened kept its DedicatedSettingStore, and the
+    // git-backed repository handle inside it, until a profile switch cleared
+    // everything wholesale.
+    const ids = ['tab-a', 'tab-b', 'tab-c']
+    for (const id of ids) {
+      await coordinator.ensureTabTitleElement(id, null)
+    }
+
+    const held = coordinator as unknown as {
+      tabStores: Map<string, unknown>
+      tabInitializations: Map<string, unknown>
+      tabSubscriptions: Map<string, unknown>
+    }
+
+    assert.equal(held.tabStores.size, ids.length)
+    assert.equal(held.tabInitializations.size, ids.length)
+    assert.equal(held.tabSubscriptions.size, ids.length)
+
+    for (const id of ids) {
+      await coordinator.releaseTabTitleElement(id)
+    }
+
+    assert.equal(held.tabStores.size, 0, 'tab stores were retained after close')
+    assert.equal(held.tabInitializations.size, 0)
+    assert.equal(held.tabSubscriptions.size, 0)
+
+    // Releasing is not destructive: reopening reads the same state back from
+    // disk, so a closed-and-reopened tab is not a reset tab.
+    const reopened = await coordinator.ensureTabTitleElement('tab-a', null)
+    assert.notEqual(reopened, undefined)
+    assert.equal(held.tabStores.size, 1)
+  })
+
+  it('releasing a tab that was never opened is a no-op', async t => {
+    const root = await createTempDirectory(t)
+    const coordinator = await createCoordinator(root)
+    await coordinator.releaseTabTitleElement('never-opened')
+    const held = coordinator as unknown as { tabStores: Map<string, unknown> }
+    assert.equal(held.tabStores.size, 0)
+  })
 })
