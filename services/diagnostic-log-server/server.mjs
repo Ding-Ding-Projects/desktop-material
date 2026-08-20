@@ -225,9 +225,19 @@ async function query(url, response) {
       ) {
         continue
       }
-      results.push(event)
-      if (results.length > limit) {
-        results.shift()
+      const receivedAt = String(event.receivedAt)
+      const insertionIndex = results.findIndex(
+        item => receivedAt.localeCompare(String(item.receivedAt)) > 0
+      )
+      if (insertionIndex === -1) {
+        if (results.length < limit) {
+          results.push(event)
+        }
+      } else {
+        results.splice(insertionIndex, 0, event)
+        if (results.length > limit) {
+          results.pop()
+        }
       }
     }
   }
