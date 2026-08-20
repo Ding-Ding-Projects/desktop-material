@@ -258,7 +258,7 @@ async function listLogFiles(client) {
       : [join(storageRoot, client)]
   const files = []
   for (const root of roots) {
-    for (const entry of await safeReadDir(root)) {
+    for (const entry of await safeReadDir(root, client !== null)) {
       if (entry.isFile() && /^\d{4}-\d{2}-\d{2}\.jsonl$/.test(entry.name)) {
         files.push(join(root, entry.name))
       }
@@ -319,11 +319,14 @@ async function childDirectories(root) {
     .map(entry => join(root, entry.name))
 }
 
-async function safeReadDir(path) {
+async function safeReadDir(path, allowMissing = false) {
   try {
     return await readdir(path, { withFileTypes: true })
-  } catch {
-    return []
+  } catch (error) {
+    if (allowMissing && error?.code === 'ENOENT') {
+      return []
+    }
+    throw error
   }
 }
 
