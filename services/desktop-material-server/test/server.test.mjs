@@ -296,6 +296,20 @@ describe('Desktop Material self-hosted server', () => {
     })
     assert.equal(invalid.response.status, 400)
 
+    const credentialsInUrl = await jsonRequest(
+      instance.origin,
+      '/v1/workspaces',
+      {
+        method: 'POST',
+        token: joined.body.deviceToken,
+        body: {
+          name: 'Credential leak',
+          repositoryUrl: 'https://user:password@example.com/org/payments.git',
+        },
+      }
+    )
+    assert.equal(credentialsInUrl.response.status, 400)
+
     const created = await jsonRequest(instance.origin, '/v1/workspaces', {
       method: 'POST',
       token: joined.body.deviceToken,
