@@ -1,5 +1,6 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'crypto'
 import { promises as Fs } from 'fs'
+import { renameWithRetry } from '../../lib/rename-with-retry'
 import * as Http from 'http'
 import { networkInterfaces } from 'os'
 import * as Path from 'path'
@@ -659,7 +660,7 @@ export class AgentServer {
       mode: 0o600,
     })
     await Fs.chmod(temporaryPath, 0o600)
-    await Fs.rename(temporaryPath, this.configPath)
+    await renameWithRetry(temporaryPath, this.configPath)
   }
 
   private async handleRequest(

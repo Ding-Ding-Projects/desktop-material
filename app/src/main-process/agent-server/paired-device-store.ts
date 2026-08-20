@@ -1,5 +1,6 @@
 import { createHash, timingSafeEqual } from 'crypto'
 import { promises as Fs } from 'fs'
+import { renameWithRetry } from '../../lib/rename-with-retry'
 import * as Path from 'path'
 import { IAgentPairedDevice } from '../../lib/agent-commands'
 
@@ -205,6 +206,6 @@ export class PairedDeviceStore {
       mode: 0o600,
     })
     await Fs.chmod(temporaryPath, 0o600)
-    await Fs.rename(temporaryPath, this.metadataPath)
+    await renameWithRetry(temporaryPath, this.metadataPath)
   }
 }
