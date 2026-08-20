@@ -28,6 +28,8 @@ const maximumQueryResults = 2_000
 const maximumMessageBytes = 32 * 1024
 const token = await loadToken()
 
+class RequestTooLargeError extends Error {}
+
 await mkdir(storageRoot, { recursive: true })
 
 const server = createServer(async (request, response) => {
@@ -93,7 +95,15 @@ function authorized(header) {
 }
 
 async function ingest(request, response) {
-  const body = await readBody(request)
+  let body
+  try {
+    body = await readBody(request)
+  } catch (error) {
+    if (error instanceof RequestTooLargeError) {
+      return json(response, 413, { ok: false, error: 'request_too_large' })
+    }
+    throw error
+  }
   let parsed
   try {
     parsed = JSON.parse(body)
@@ -313,7 +323,7 @@ async function readBody(request) {
   for await (const chunk of request) {
     size += chunk.length
     if (size > maximumRequestBytes) {
-      throw new Error('request_too_large')
+      throw new RequestTooLargeError()
     }
     chunks.push(chunk)
   }
