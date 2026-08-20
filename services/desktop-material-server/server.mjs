@@ -8,7 +8,7 @@ import {
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { createServer as createHttpServer } from 'node:http'
 import { createServer as createHttpsServer } from 'node:https'
-import { dirname } from 'node:path'
+import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import {
@@ -643,7 +643,7 @@ export async function createDesktopMaterialServer(options) {
     configuration.oauth === null ? null : new SelfHostedSsoSessionStore(clock)
   const cloudPatchDataDirectory =
     options.cloudPatchDataDirectory ??
-    `${dirname(options.statePath)}/cloud-patches`
+    join(dirname(options.statePath), 'cloud-patches')
   const cloudPatchStore =
     configuration.cloudPatchEncryptionKey === null
       ? null
