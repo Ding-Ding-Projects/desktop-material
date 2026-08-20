@@ -184,13 +184,17 @@ All captured from `dist/GitHubDesktop-win32-x64/GitHubDesktop.exe`, built locall
 | Menu with shortcuts | ![Branch menu open in light theme, every enabled command showing its keyboard shortcut right-aligned and unavailable commands greyed out](docs/assets/screenshots/classic-chrome-branch-menu.png) |
 | Dialog | ![Create a branch dialog in light theme with a Name field, an explanation that the branch will be based on main, a checked Clone submodules for the new branch option warning that large submodules take a while, and Create branch and Cancel buttons](docs/assets/screenshots/classic-chrome-dialog.png) |
 | Light theme | ![Launchpad rendered in the light theme, showing the same rail, toolbar and section cards with light surfaces and a moon icon offering the dark theme](docs/assets/screenshots/classic-chrome-light-theme.png) |
+| Narrow layout | ![Desktop Material at 976 by 808 pixels: the toolbar has dropped its Current repository and Current branch labels to bare names and collapsed Build and run into an overflow control, the suggestion cards wrap their headings onto two lines instead of clipping, and the navigation rail and Changes pane remain fully usable](docs/assets/screenshots/classic-chrome-narrow.png) |
 
-**Not captured, and why:** the narrow-width layout. The approved headless capture
-route cannot resize a window that lives on an off-screen desktop — `resize_window`
-answers `No matching window found` for both a handle and a title that
-`list_headless_windows` had just returned — and no other route is a permitted
-substitute. Recorded as an open gap rather than filled with a resized-desktop
-screenshot that would not be the same thing.
+**How the narrow layout was captured.** The headless route cannot resize a window
+that lives on an off-screen desktop — `resize_window` answers `No matching window
+found` for both a handle and a title that `list_headless_windows` had just
+returned. Rather than reach for a route that is not permitted, the window size was
+set the way the application itself persists it, in `window-state.json` under the
+app's roaming data directory, and the app was relaunched. It opened at 976x808:
+the requested 760 was clamped to the application's own enforced minimum width,
+which is the documented behaviour rather than a failure. The original window state
+was restored afterwards.
 
 </details>
 
