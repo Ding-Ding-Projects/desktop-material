@@ -155,7 +155,17 @@ describe('external open guard', () => {
       externalOpenTarget('editor', path),
       externalOpenTarget('editor', path, 'code', undefined)
     )
-    assert.equal(externalOpenTarget('editor', path), `editor\0${path}`)
+    assert.equal(
+      externalOpenTarget('editor', path),
+      JSON.stringify(['editor', path])
+    )
+  })
+
+  it('keeps target-part boundaries unambiguous when a part contains NUL', () => {
+    assert.notEqual(
+      externalOpenTarget('editor', '/repo/a\0chosen-editor'),
+      externalOpenTarget('editor', '/repo/a', 'chosen-editor')
+    )
   })
 })
 
