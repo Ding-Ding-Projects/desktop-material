@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict'
 import { randomBytes } from 'node:crypto'
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  readdir,
+  rm,
+  writeFile,
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawn } from 'node:child_process'
@@ -48,13 +55,19 @@ test('requires authorization for log data', async () => {
 })
 
 test('rejects an oversized request as client input', async () => {
+  const body = JSON.stringify({
+    clientId: 'oversized-client',
+    sessionId: 'session-one',
+    level: 'error',
+    message: 'x'.repeat(256 * 1024),
+  })
   const response = await fetch(`http://127.0.0.1:${port}/v1/logs`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    body: 'x'.repeat(256 * 1024 + 1),
+    body,
   })
 
   assert.equal(response.status, 413)
@@ -62,6 +75,7 @@ test('rejects an oversized request as client input', async () => {
     ok: false,
     error: 'request_too_large',
   })
+  assert.equal((await readdir(storage)).includes('oversized-client'), false)
 })
 
 test('serves a dashboard shell without exposing log data', async () => {
