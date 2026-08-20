@@ -1,5 +1,4 @@
 import { join } from 'path'
-import { rename } from 'fs/promises'
 import { TypedBaseStore } from './base-store'
 import { getPath } from '../../ui/main-process-proxy'
 import { Repository } from '../../models/repository'
@@ -29,6 +28,7 @@ import {
   readCrashSafeText,
   writeCrashSafeText,
 } from '../crash-safe-file'
+import { renameWithRetry } from '../rename-with-retry'
 
 /** The single automations file tracked by the automation repository. */
 const AutomationsFileName = 'automations.json'
@@ -429,9 +429,7 @@ export class NotificationAutomationStore extends TypedBaseStore<INotificationAut
     dir: string
   ): Promise<Repository> {
     const quarantine = `${dir}-corrupt-${Date.now()}`
-    await rename(dir, quarantine).catch(err =>
-      log.error('Failed to quarantine corrupt automations directory', err)
-    )
+    await renameWithRetry(dir, quarantine)
 
     const repository = await ensureProfileRepository(dir)
     this.rules = []
