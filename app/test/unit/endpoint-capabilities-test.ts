@@ -65,6 +65,38 @@ describe('endpoint-capabilities', () => {
         true
       )
     })
+
+    it('fails closed for malformed, non-web, and credential-bearing endpoints', () => {
+      const supportsEveryGitHubEndpoint: VersionConstraint = {
+        dotcom: true,
+        ghe: true,
+        es: true,
+      }
+
+      for (const endpoint of [
+        'not a URL',
+        'file:///tmp/github',
+        'ftp://github.enterprise.test',
+        'https://credential@api.github.com',
+        'http://api.github.com',
+      ]) {
+        assert.doesNotThrow(() => {
+          assert.equal(
+            testEndpoint(endpoint, supportsEveryGitHubEndpoint),
+            false,
+            endpoint
+          )
+        })
+      }
+
+      assert.equal(
+        testEndpoint(
+          'http://github.enterprise.test/api/v3',
+          supportsEveryGitHubEndpoint
+        ),
+        true
+      )
+    })
   })
 
   describe('supportsRepoRules', () => {
