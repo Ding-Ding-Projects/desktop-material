@@ -6154,7 +6154,7 @@ export function getEndpointForRepository(url: string): string {
   } else if (parsed.hostname === 'bitbucket.org') {
     return getBitbucketAPIEndpoint()
   } else {
-    return `${parsed.protocol}//${parsed.hostname}/api`
+    return `${parsed.protocol}//${parsed.host}/api`
   }
 }
 
