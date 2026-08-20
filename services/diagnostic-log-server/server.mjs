@@ -345,8 +345,8 @@ function redact(value) {
     .replace(/https?:\/\/[^/\s:@]+:[^@\s/]+@/gi, 'https://[REDACTED]@')
     .replace(/\bBearer\s+[A-Za-z0-9._~+/-]{8,}=*\b/gi, 'Bearer [REDACTED]')
     .replace(
-      /\b(?:authorization|proxy-authorization|token|password|passwd|secret|api[-_]?key)\b\s*[:=]\s*[^\s,;]+/gi,
-      match => `${match.split(/[:=]/, 1)[0]}=[REDACTED]`
+      /\b(authorization|proxy-authorization|token|password|passwd|secret|api[-_]?key)\b\s*[:=]\s*(?:"(?:\\.|[^"\\\r\n])*"|'(?:\\.|[^'\\\r\n])*'|[^\s,;]+)/gi,
+      (_match, key) => `${key}=[REDACTED]`
     )
     .replace(
       /\b(?:gh[opsu]_|github_pat_)[A-Za-z0-9_]{12,}\b/g,
