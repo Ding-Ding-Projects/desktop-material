@@ -27,10 +27,18 @@ const tslibCjs = (() => {
 if (tslibCjs !== null) {
   const resolveFilename = Module._resolveFilename
   Module._resolveFilename = function (request, ...rest) {
-    if (request === 'tslib') {
+    const resolved = resolveFilename.call(this, request, ...rest)
+    // Only rescue the ESM wrapper. Matching on the bare specifier alone would
+    // hand every caller the top-level copy and silently shadow a nested one —
+    // tsutils vendors tslib 1.14.1 beside the app's 2.8.1, and swapping those
+    // changes what the emitted helpers do with no error to read. Redirect the
+    // exact file that cannot be loaded as CJS, and leave every other
+    // resolution, nested copies included, exactly where Node put it.
+    const normalized = resolved.split('\\').join('/')
+    if (request === 'tslib' && normalized.endsWith('/tslib/modules/index.js')) {
       return tslibCjs
     }
-    return resolveFilename.call(this, request, ...rest)
+    return resolved
   }
 }
 

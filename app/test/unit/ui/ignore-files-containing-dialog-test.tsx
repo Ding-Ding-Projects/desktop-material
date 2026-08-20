@@ -20,6 +20,28 @@ describe('ignore files containing wildcard builder', () => {
     )
   })
 
+  it('treats a backslash-escaped character as that literal character', () => {
+    // Regression: the escape was applied twice, so this compiled to an
+    // escaped-backslash atom followed by a bare metacharacter. Escaping a dot
+    // then meant "a literal backslash, then any character", and escaping a
+    // star produced a quantifier that matched the empty string.
+    const dot = wildcardPatternToRegExp('\\.')
+    assert.notEqual(dot, null)
+    assert.equal(dot!.test('.'), true)
+    assert.equal(dot!.test('x'), false)
+
+    const star = wildcardPatternToRegExp('\\*')
+    assert.notEqual(star, null)
+    assert.equal(star!.test('*'), true)
+    assert.equal(star!.test(''), false)
+
+    // An escaped paren used to throw inside RegExp and return null forever,
+    // so the field could never be made valid again.
+    const paren = wildcardPatternToRegExp('\\(')
+    assert.notEqual(paren, null)
+    assert.equal(paren!.test('('), true)
+  })
+
   it('rejects an unfinished character class', () => {
     assert.equal(wildcardPatternToRegExp('*[abc'), null)
   })

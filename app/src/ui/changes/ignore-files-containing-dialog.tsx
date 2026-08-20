@@ -28,7 +28,14 @@ export function wildcardPatternToRegExp(pattern: string): RegExp | null {
     if (character === '\\') {
       const next = pattern[index + 1]
       if (next === undefined) return null
-      source += `\\${next.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')}`
+      // Escape exactly once. `replace` already prepends the backslash for a
+      // metacharacter; the template literal prepended a second one, so an
+      // escaped metacharacter compiled to an escaped-backslash atom followed
+      // by a bare metacharacter. Escaping a dot matched "a literal backslash,
+      // then any character", and escaping a star produced a quantifier that
+      // matched the empty string. A deliberately escaped character is the one
+      // case where the user has said exactly what they mean.
+      source += next.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
       index += 1
       continue
     }

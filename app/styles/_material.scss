@@ -17,6 +17,20 @@
   --md-sys-color-on-secondary: #ffffff;
   --md-sys-color-secondary-container: #d3e5f5;
   --md-sys-color-on-secondary-container: #0c1d29;
+  // The tertiary role. It was consumed in 155 places across 30 stylesheets and
+  // declared in none of them, so every one of those var() references resolved
+  // to the guaranteed-invalid value and the property computed as unset — chips,
+  // badges, status pills and accent rows rendered with no fill at all, which is
+  // why parts of the app stopped looking like Material Design and started
+  // looking like unstyled controls. Declared here for light, and in the dark
+  // block below, which is where every other role is declared. The accent
+  // overrides deliberately do not restate it: they do not restate the secondary
+  // base either, and a role that only some accents carry is the same defect
+  // again in a smaller shape.
+  --md-sys-color-tertiary: #6b5778;
+  --md-sys-color-on-tertiary: #ffffff;
+  --md-sys-color-tertiary-container: #f2daff;
+  --md-sys-color-on-tertiary-container: #251431;
   --md-sys-color-error: #ba1a1a;
   --md-sys-color-on-error: #ffffff;
   --md-sys-color-error-container: #ffdad6;
@@ -144,6 +158,10 @@ body.theme-dark {
   --md-sys-color-on-primary-container: #c9e6ff;
   --md-sys-color-secondary-container: #394956;
   --md-sys-color-on-secondary-container: #d3e5f5;
+  --md-sys-color-tertiary: #d7bee4;
+  --md-sys-color-on-tertiary: #3b2948;
+  --md-sys-color-tertiary-container: #523f5f;
+  --md-sys-color-on-tertiary-container: #f2daff;
   --md-sys-color-error: #ffb4ab;
   --md-sys-color-on-error: #690005;
   --md-sys-color-error-container: #93000a;

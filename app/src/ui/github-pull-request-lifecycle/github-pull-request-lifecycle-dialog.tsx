@@ -759,7 +759,22 @@ export class GitHubPullRequestLifecycleDialog extends React.Component<
     }
   }
 
-  private onSubmit = () => {}
+  /**
+   * Deliberately inert, and passed rather than omitted.
+   *
+   * `Dialog` wraps its content in a real `<form>`; omitting `onSubmit` makes
+   * Enter **dismiss** the dialog, which here would discard a half-written title,
+   * body, or review comment without asking. This dialog also has 29 separate
+   * actions — create, update, review, merge, close, reopen — so there is no one
+   * primary action Enter could reasonably pick.
+   *
+   * Swallowing the event is therefore the safe behaviour, not an oversight. It
+   * was previously an unexplained empty lambda, which reads as forgotten code
+   * and invites someone to "fix" it into a data-losing dismiss.
+   */
+  private onSubmit = () => {
+    // Intentionally does nothing. See the comment above before changing this.
+  }
 
   private onAccountChanged = (event: React.FormEvent<HTMLSelectElement>) => {
     this.setState(

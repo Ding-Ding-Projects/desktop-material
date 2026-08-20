@@ -176,12 +176,20 @@ export class MenuListItem extends React.Component<IMenuListItemProps, {}> {
       selected: this.props.selected,
     })
 
+    // The two roles were crossed: a checkbox item announced as a radio, and a
+    // radio item announced as a plain menu item with no checked state at all.
+    // The class list a few lines above already distinguishes them correctly, so
+    // the markup said one thing and the accessibility tree said another — and
+    // only a screen-reader user would ever have found out.
     const role = this.props.hasNoRole
       ? undefined
       : type === 'checkbox'
+      ? 'menuitemcheckbox'
+      : type === 'radio'
       ? 'menuitemradio'
       : 'menuitem'
-    const ariaChecked = type === 'checkbox' ? item.checked : undefined
+    const ariaChecked =
+      type === 'checkbox' || type === 'radio' ? item.checked : undefined
 
     return (
       /**
