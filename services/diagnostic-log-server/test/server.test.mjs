@@ -47,6 +47,23 @@ test('requires authorization for log data', async () => {
   assert.equal(response.status, 401)
 })
 
+test('rejects an oversized request as client input', async () => {
+  const response = await fetch(`http://127.0.0.1:${port}/v1/logs`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: 'x'.repeat(256 * 1024 + 1),
+  })
+
+  assert.equal(response.status, 413)
+  assert.deepEqual(await response.json(), {
+    ok: false,
+    error: 'request_too_large',
+  })
+})
+
 test('serves a dashboard shell without exposing log data', async () => {
   const response = await fetch(`http://127.0.0.1:${port}/`)
   assert.equal(response.status, 200)
