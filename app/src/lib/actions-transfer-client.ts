@@ -5,13 +5,36 @@ import { IActionsArtifact } from './actions-artifacts'
 import { IActionsArtifactDownloadProgress } from './actions-artifact-download'
 import {
   actionsTransferFailureMessage,
+  ActionsArtifactTransferResult,
+  ActionsJobLogMaximumBytes,
+  ActionsJobLogTransferResult,
+  ActionsJobLogTruncationMarker,
   ActionsTransferError,
   IActionsArtifactTransferSuccess,
   IActionsArtifactTransferRequest,
   IActionsJobLogTransferRequest,
+  IActionsTransferFailure,
   IActionsTransferProgressEvent,
 } from './actions-transfer'
 import * as ipcRenderer from './ipc-renderer'
+
+const opaqueIdPattern = /^[a-f0-9]{32}$/
+const sha256DigestPattern = /^sha256:[a-f0-9]{64}$/
+const transferFailureReasons = new Set([
+  'canceled',
+  'invalid-request',
+  'network',
+  'http',
+  'missing-location',
+  'unsafe-redirect',
+  'too-many-redirects',
+  'expired',
+  'destination',
+  'too-large',
+  'size-mismatch',
+  'digest-mismatch',
+  'missing-body',
+])
 
 function operationId(): string {
   return randomBytes(16).toString('hex')
@@ -41,6 +64,97 @@ function transferError(
     failure.status,
     actionsTransferFailureMessage({ ok: false, ...failure }, subject)
   )
+}
+
+function invalidTransferResponse(subject: 'artifact' | 'job log'): Error {
+  return new Error(`The main process returned an invalid ${subject} transfer response.`)
+}
+
+function transferResponseRecord(
+  value: unknown,
+  subject: 'artifact' | 'job log'
+): Readonly<Record<string, unknown>> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw invalidTransferResponse(subject)
+  }
+  return value as Readonly<Record<string, unknown>>
+}
+
+function parseTransferFailure(
+  input: Readonly<Record<string, unknown>>,
+  subject: 'artifact' | 'job log'
+): IActionsTransferFailure {
+  const { reason, status } = input
+  if (
+    typeof reason !== 'string' ||
+    !transferFailureReasons.has(reason) ||
+    (status !== null &&
+      (typeof status !== 'number' ||
+        !Number.isSafeInteger(status) ||
+        status < 100 ||
+        status > 599))
+  ) {
+    throw invalidTransferResponse(subject)
+  }
+  return {
+    ok: false,
+    reason: reason as IActionsTransferFailure['reason'],
+    status,
+  }
+}
+
+function parseArtifactTransferResponse(
+  value: unknown,
+  expectedBytes: number
+): ActionsArtifactTransferResult {
+  const input = transferResponseRecord(value, 'artifact')
+  if (input.ok === false) {
+    return parseTransferFailure(input, 'artifact')
+  }
+  if (
+    input.ok !== true ||
+    typeof input.downloadId !== 'string' ||
+    !opaqueIdPattern.test(input.downloadId) ||
+    typeof input.path !== 'string' ||
+    input.path.length === 0 ||
+    input.path.length > 32_768 ||
+    input.path.includes('\u0000') ||
+    typeof input.bytes !== 'number' ||
+    !Number.isSafeInteger(input.bytes) ||
+    input.bytes !== expectedBytes ||
+    typeof input.localDigest !== 'string' ||
+    !sha256DigestPattern.test(input.localDigest) ||
+    (input.matchesGitHubDigest !== null &&
+      typeof input.matchesGitHubDigest !== 'boolean')
+  ) {
+    throw invalidTransferResponse('artifact')
+  }
+  return {
+    ok: true,
+    downloadId: input.downloadId,
+    path: input.path,
+    bytes: input.bytes,
+    localDigest: input.localDigest,
+    matchesGitHubDigest: input.matchesGitHubDigest,
+  }
+}
+
+function parseJobLogTransferResponse(value: unknown): ActionsJobLogTransferResult {
+  const input = transferResponseRecord(value, 'job log')
+  if (input.ok === false) {
+    return parseTransferFailure(input, 'job log')
+  }
+  if (
+    input.ok !== true ||
+    typeof input.log !== 'string' ||
+    input.log.length >
+      ActionsJobLogMaximumBytes + ActionsJobLogTruncationMarker.length ||
+    typeof input.truncated !== 'boolean' ||
+    (input.truncated && !input.log.endsWith(ActionsJobLogTruncationMarker))
+  ) {
+    throw invalidTransferResponse('job log')
+  }
+  return { ok: true, log: input.log, truncated: input.truncated }
 }
 
 export async function downloadActionsArtifactThroughMainProcess(
@@ -84,9 +198,9 @@ export async function downloadActionsArtifactThroughMainProcess(
       cancel()
       throw abortError('Artifact download canceled.')
     }
-    const result = await ipcRenderer.invoke(
-      'download-actions-artifact',
-      request
+    const result = parseArtifactTransferResponse(
+      await ipcRenderer.invoke('download-actions-artifact', request),
+      artifact.sizeInBytes
     )
     if (!result.ok) {
       if (result.reason === 'canceled') {
@@ -131,7 +245,9 @@ export async function fetchActionsJobLogThroughMainProcess(
       cancel()
       throw abortError('Job log request canceled.')
     }
-    const result = await ipcRenderer.invoke('fetch-actions-job-log', request)
+    const result = parseJobLogTransferResponse(
+      await ipcRenderer.invoke('fetch-actions-job-log', request)
+    )
     if (!result.ok) {
       if (result.reason === 'canceled') {
         throw abortError('Job log request canceled.')
