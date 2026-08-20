@@ -207,3 +207,38 @@ test('caps stored messages by UTF-8 bytes without splitting characters', async (
   assert.equal(Buffer.byteLength(result.events[0].message, 'utf8'), 32 * 1024)
   assert.equal(result.events[0].message, '😀'.repeat(8_192))
 })
+
+test('redacts complete quoted multiword credentials', async () => {
+  const response = await fetch(`http://127.0.0.1:${port}/v1/logs`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      clientId: 'quoted-secret-client',
+      sessionId: 'session-one',
+      level: 'error',
+      message: 'login failed password="correct horse battery staple"',
+    }),
+  })
+  assert.equal(response.status, 202)
+
+  const query = await fetch(
+    `http://127.0.0.1:${port}/v1/logs?client=quoted-secret-client`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  const result = await query.json()
+  assert.equal(result.count, 1)
+  assert.equal(result.events[0].message, 'login failed password=[REDACTED]')
+
+  const stored = await readFile(
+    join(
+      storage,
+      'quoted-secret-client',
+      `${new Date().toISOString().slice(0, 10)}.jsonl`
+    ),
+    'utf8'
+  )
+  assert.doesNotMatch(stored, /correct|horse|battery|staple/)
+})
