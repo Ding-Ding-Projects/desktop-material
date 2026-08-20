@@ -149,6 +149,28 @@ export class HistoryGraphView extends React.Component<
     (commitSHAs: ReadonlyArray<string>) =>
       new Map(commitSHAs.map((sha, index) => [sha, index]))
   )
+  /**
+   * Rebuilt in full whenever history loads another batch, and deliberately so.
+   *
+   * `commitSHAs` is a new array every batch, which busts this memo, and the
+   * rebuild walks every commit loaded so far — the cumulative cost across a
+   * deep scroll is quadratic in the number of commits.
+   *
+   * Resuming from the previous result is not available, and the reason is worth
+   * recording so nobody spends an afternoon proving it again. `visibleSHAs` is
+   * computed from the whole loaded list, and a commit's parents load in *later*
+   * batches because history arrives newest first. So the oldest loaded row
+   * legitimately changes when the next batch lands: a lane that ended because
+   * its parent was not visible now continues. A cached prefix would freeze that
+   * row in its earlier, now-wrong shape.
+   *
+   * What was available was the constant, and that has been taken: the per-row
+   * lane lookups in `buildCommitGraph` are one index rather than a linear scan
+   * per lane and per parent. Making the rebuild itself incremental needs the
+   * model to treat an unloaded parent as "continues off-screen" instead of
+   * "ends", which changes what is drawn and is a product decision, not a
+   * refactor.
+   */
   private graph = memoizeOne(
     (
       commitSHAs: ReadonlyArray<string>,

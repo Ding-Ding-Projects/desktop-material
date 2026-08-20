@@ -291,11 +291,28 @@ export function buildCommitGraph(
       return true
     })
 
+    // One index for the row instead of a linear scan per lane and per parent.
+    // `continuations` scanned nextLanes for every surviving lane and
+    // `connections` scanned it again for every parent, so a row cost
+    // O(lanes * lanes) where O(lanes) was available. The whole graph is already
+    // rebuilt from scratch each time history loads another batch — see the note
+    // on the memo in history-graph-view — so the constant here is paid on every
+    // one of those rebuilds, over every commit loaded so far.
+    const nextColumnBySha = new Map<string, number>()
+    for (let index = 0; index < nextLanes.length; index += 1) {
+      const sha = nextLanes[index].sha
+      // First wins, matching findIndex, which matters because de-duplication
+      // above can leave two lanes naming the same sha only transiently.
+      if (!nextColumnBySha.has(sha)) {
+        nextColumnBySha.set(sha, index)
+      }
+    }
+
     const continuations = lanes.flatMap((lane, fromColumn) => {
       if (fromColumn === column) {
         return []
       }
-      const toColumn = nextLanes.findIndex(next => next.sha === lane.sha)
+      const toColumn = nextColumnBySha.get(lane.sha) ?? -1
       const targetLane = toColumn < 0 ? undefined : nextLanes[toColumn]
       return toColumn < 0
         ? []
@@ -314,7 +331,7 @@ export function buildCommitGraph(
     })
 
     const connections = parents.map(parent => {
-      const toColumn = nextLanes.findIndex(lane => lane.sha === parent)
+      const toColumn = nextColumnBySha.get(parent) ?? -1
       const targetLane = toColumn < 0 ? undefined : nextLanes[toColumn]
       return {
         fromColumn: column,
