@@ -55,6 +55,29 @@ describe('Actions cache contracts', () => {
     assert.equal(merged.truncated, false)
   })
 
+  it('refreshes a shifted cache record from the later page', () => {
+    const first = parseActionsCacheList(
+      { total_count: 3, actions_caches: [cache(1), cache(2)] },
+      1
+    )
+    const second = parseActionsCacheList(
+      {
+        total_count: 3,
+        actions_caches: [
+          { ...cache(2), last_accessed_at: '2026-07-15T12:00:00Z' },
+          cache(3),
+        ],
+      },
+      2
+    )
+
+    const merged = mergeActionsCachePage(first, second)
+    assert.equal(
+      merged.caches.find(value => value.id === 2)?.lastAccessedAt.toISOString(),
+      '2026-07-15T12:00:00.000Z'
+    )
+  })
+
   it('rejects a cache page that is not the requested continuation', () => {
     const first = parseActionsCacheList(
       { total_count: 90, actions_caches: [cache(1), cache(2)] },
