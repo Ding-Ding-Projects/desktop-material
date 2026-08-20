@@ -194,6 +194,10 @@ export function mergeActionsCachePage(
   existing: IActionsCacheList,
   next: IActionsCacheList
 ): IActionsCacheList {
+  if (existing.nextPage === null || next.page !== existing.nextPage) {
+    throw new Error('The cache page no longer matches the loaded list.')
+  }
+
   const ids = new Set(existing.caches.map(cache => cache.id))
   const merged = [...existing.caches]
   for (const cache of next.caches) {

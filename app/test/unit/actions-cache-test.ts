@@ -55,6 +55,22 @@ describe('Actions cache contracts', () => {
     assert.equal(merged.truncated, false)
   })
 
+  it('rejects a cache page that is not the requested continuation', () => {
+    const first = parseActionsCacheList(
+      { total_count: 90, actions_caches: [cache(1), cache(2)] },
+      1
+    )
+    const stale = parseActionsCacheList(
+      { total_count: 90, actions_caches: [cache(61), cache(62)] },
+      3
+    )
+
+    assert.throws(
+      () => mergeActionsCachePage(first, stale),
+      /cache page no longer matches the loaded list/
+    )
+  })
+
   it('rejects duplicate ids and malformed usage receipts', () => {
     assert.throws(() =>
       parseActionsCacheList({
