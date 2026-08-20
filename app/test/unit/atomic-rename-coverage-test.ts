@@ -75,4 +75,32 @@ describe('files that publish user state retry their rename', () => {
       'the final failure must be rethrown, never swallowed'
     )
   })
+
+  it('batch clone marker replacement retries transient rename failures', () => {
+    const source = read('app/src/lib/stores/batch-clone-staging.ts')
+    const start = source.indexOf('async function replaceStagingMarker(')
+    const end = source.indexOf('\nfunction serializeMarker(', start)
+
+    assert.notEqual(start, -1, 'replaceStagingMarker must remain declared')
+    assert.notEqual(end, -1, 'replaceStagingMarker must retain an exact boundary')
+
+    const replacement = source.slice(start, end)
+    assert.ok(
+      /^import \{ renameWithRetry \} from '\.\.\/rename-with-retry'$/m.test(
+        source
+      ),
+      'batch clone staging must import the retrying rename helper'
+    )
+    assert.ok(
+      /^\s*await renameWithRetry\(temporaryPath, markerPath\)\s*$/m.test(
+        replacement
+      ),
+      'the durable marker replacement must retry transient Windows rename failures'
+    )
+    assert.equal(
+      /^\s*await rename\(temporaryPath, markerPath\)\s*$/m.test(replacement),
+      false,
+      'the durable marker replacement must not call fs.rename directly'
+    )
+  })
 })

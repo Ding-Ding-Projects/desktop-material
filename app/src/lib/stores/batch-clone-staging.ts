@@ -23,6 +23,7 @@ import {
 } from '../../models/batch-clone'
 import { git } from '../git/core'
 import { urlsMatch } from '../repository-matching'
+import { renameWithRetry } from '../rename-with-retry'
 import { inspectCloneDestination } from './batch-clone-journal'
 
 export const BatchCloneStagingVersion = 1
@@ -751,7 +752,7 @@ async function replaceStagingMarker(
   const temporaryPath = `${markerPath}.tmp-${randomBytes(8).toString('hex')}`
   await writeMarkerExclusive(temporaryPath, marker)
   try {
-    await rename(temporaryPath, markerPath)
+    await renameWithRetry(temporaryPath, markerPath)
   } catch (error) {
     await unlink(temporaryPath).catch(() => undefined)
     throw error
