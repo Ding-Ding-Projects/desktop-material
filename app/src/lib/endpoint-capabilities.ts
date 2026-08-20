@@ -41,6 +41,29 @@ const versionCache = new Map<string, semver.SemVer | null>()
 /** Get the cache key for a given endpoint address */
 const endpointVersionKey = (ep: string) => `endpoint-version:${ep}`
 
+const parseWebEndpoint = (endpoint: string): URL | null => {
+  try {
+    const url = new URL(endpoint)
+    if (
+      (url.protocol !== 'https:' && url.protocol !== 'http:') ||
+      url.hostname.length === 0 ||
+      url.username.length > 0 ||
+      url.password.length > 0
+    ) {
+      return null
+    }
+
+    return url
+  } catch {
+    return null
+  }
+}
+
+const isDotComHostname = (hostname: string) =>
+  hostname === 'api.github.com' || hostname === 'github.com'
+
+const isGHEHostname = (hostname: string) => hostname.endsWith('.ghe.com')
+
 /**
  * Whether or not the given endpoint belongs to GitHub.com
  */
@@ -49,23 +72,43 @@ export const isDotCom = (ep: string) => {
     return true
   }
 
-  const { hostname } = new URL(ep)
-  return hostname === 'api.github.com' || hostname === 'github.com'
+  const url = parseWebEndpoint(ep)
+  return (
+    url !== null &&
+    url.protocol === 'https:' &&
+    isDotComHostname(url.hostname)
+  )
 }
 
 export const isGist = (ep: string) => {
-  const { hostname } = new URL(ep)
-  return hostname === 'gist.github.com' || hostname === 'gist.ghe.io'
+  const url = parseWebEndpoint(ep)
+  return (
+    url !== null &&
+    url.protocol === 'https:' &&
+    (url.hostname === 'gist.github.com' || url.hostname === 'gist.ghe.io')
+  )
 }
 
 /** Whether or not the given endpoint URI is under the ghe.com domain */
-export const isGHE = (ep: string) => new URL(ep).hostname.endsWith('.ghe.com')
+export const isGHE = (ep: string) => {
+  const url = parseWebEndpoint(ep)
+  return (
+    url !== null && url.protocol === 'https:' && isGHEHostname(url.hostname)
+  )
+}
 
 /**
  * Whether or not the given endpoint URI appears to point to a GitHub Enterprise
  * Server instance
  */
-export const isGHES = (ep: string) => !isDotCom(ep) && !isGHE(ep)
+export const isGHES = (ep: string) => {
+  const url = parseWebEndpoint(ep)
+  return (
+    url !== null &&
+    !isDotComHostname(url.hostname) &&
+    !isGHEHostname(url.hostname)
+  )
+}
 
 export function getEndpointVersion(endpoint: string) {
   const key = endpointVersionKey(endpoint)
