@@ -242,3 +242,19 @@ test('redacts complete quoted multiword credentials', async () => {
   )
   assert.doesNotMatch(stored, /correct|horse|battery|staple/)
 })
+
+test('reports a missing storage root as an internal failure', async () => {
+  await rm(storage, { recursive: true, force: true })
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/v1/storage`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    assert.equal(response.status, 500)
+    assert.deepEqual(await response.json(), {
+      ok: false,
+      error: 'internal_error',
+    })
+  } finally {
+    await mkdir(storage, { recursive: true })
+  }
+})
