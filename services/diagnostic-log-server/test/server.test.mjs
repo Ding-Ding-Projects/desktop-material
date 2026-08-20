@@ -147,3 +147,37 @@ test('reports bounded storage metadata for agents', async () => {
   assert.equal(result.fileCount, 1)
   assert.ok(result.usedBytes > 0)
 })
+
+test('applies the query limit to the newest matching events', async () => {
+  const clientStorage = join(storage, 'query-order-client')
+  await mkdir(clientStorage)
+  const event = (receivedAt, message) =>
+    JSON.stringify({
+      receivedAt,
+      timestamp: receivedAt,
+      level: 'info',
+      clientId: 'query-order-client',
+      sessionId: 'session-one',
+      appVersion: '',
+      releaseChannel: '',
+      message,
+    }) + '\n'
+
+  await writeFile(
+    join(clientStorage, '2026-01-01.jsonl'),
+    event('2026-01-01T12:00:00.000Z', 'older event')
+  )
+  await writeFile(
+    join(clientStorage, '2026-01-02.jsonl'),
+    event('2026-01-02T12:00:00.000Z', 'newest event')
+  )
+
+  const response = await fetch(
+    `http://127.0.0.1:${port}/v1/logs?client=query-order-client&limit=1`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  assert.equal(response.status, 200)
+  const result = await response.json()
+  assert.equal(result.count, 1)
+  assert.equal(result.events[0].message, 'newest event')
+})
