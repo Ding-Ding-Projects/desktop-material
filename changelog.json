@@ -1,6 +1,7 @@
 {
   "releases": {
     "4.0.0": [
+      "[Fixed] The universal-feature completeness record now names all 62 canonical rows explicitly across seven evidence dimensions. Present source, documentation, and focused-test candidates are separated from pending localization, persistence, built-artifact interaction, and real-capture proof; the completion verdict stays incomplete until those records are verified. This documentation and contract update intentionally ran no tests, reviews, audits, builds, packaging, or captures.",
       "[Added] Added a dated README notice summarizing the latest shared contributor guidance: a hand-written completeness inventory, evidence links across implementation and documentation, and explicit separation of source/release receipts from runtime or visual verification. The notice remains visible through 2026-08-26 and may be removed afterwards; this is documentation-only and adds no application or verification evidence.",
       "[Added] Registered the hand-written universal-feature completeness inventory contract. This records coverage metadata only and does not claim that the listed features are implemented or verified; the ultra-speed pass intentionally skipped tests, reviews, and captures.",
       "[Fixed] Merge all worktrees now relocates a clean default-branch checkout automatically instead of stopping when another worktree owns it, and the explicit Force Mat Day option preserves recoverable dirty work before integration - 9367475ded052f348decb33b77993f49323645c7",

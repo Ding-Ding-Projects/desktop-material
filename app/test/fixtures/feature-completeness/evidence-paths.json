@@ -1,12 +1,3218 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "canonicalFeatureDigest": "8672cb120584bebe2854a091f0c59a1ced1a15cd071e14cc6d4554b77a26c445",
-  "dimensions": {
-    "implementation": "app/src/features/{featureId}/index.ts",
-    "documentation": "docs/features/universal/{featureId}.md",
-    "localization": "app/src/features/{featureId}/localization.ts",
-    "focusedTest": "app/test/unit/features/{featureId}-test.ts",
-    "builtArtifactInteraction": "app/test/fixtures/built-artifact-interactions/{featureId}.json",
-    "realCapture": "docs/verification/universal-features/{featureId}/real-built-artifact.png"
-  }
+  "dimensions": [
+    "implementation",
+    "documentation",
+    "localization",
+    "persistence",
+    "focusedTest",
+    "builtArtifactInteraction",
+    "realCapture"
+  ],
+  "features": [
+    {
+      "id": "language-modes",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/lib/i18n.ts",
+              "app/src/models/language-mode.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "independent-funny-levels",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/lib/funny-level-text.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/features/design-system/tone-funny-level.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "dialog-emoji-toggle",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/preferences/notifications.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/features/design-system/dialog-emoji-decoration.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "school-mode",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/lib/school-mode.ts",
+              "app/src/ui/preferences/school-mode.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/features/design-system/school-mode.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+            "paths": [
+              "app/test/unit/school-mode-test.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "personal-vocabulary",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/lib/personal-vocabulary.ts",
+              "app/src/ui/preferences/personal-vocabulary-control.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/features/design-system/personal-vocabulary.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+            "paths": [
+              "app/test/unit/personal-vocabulary-test.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "spoken-narrator",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/lib/audio/narrator-lines.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/features/design-system/narrator-voice.md",
+              "docs/features/design-system/narration-assets.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+            "paths": [
+              "app/test/unit/audio-narration-manifest-test.ts",
+              "app/test/unit/audio-settings-test.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "narrator-voice-controls",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/lib/audio/narrator-voices.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/features/design-system/narrator-voice.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+            "paths": [
+              "app/test/unit/audio-settings-test.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "scheduled-settings",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/lib/scheduled-settings.ts",
+              "app/src/models/scheduled-settings.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/features/identity-and-workspace/scheduled-settings.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "external-settings-sources",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "pending",
+            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "settings-explanations",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "pending",
+            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "guided-forms",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "pending",
+            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "adhd-modes",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "pending",
+            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "dim-sum-surprise",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/dim-sum/dim-sum-surprise.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+            "paths": [
+              "app/test/unit/dim-sum-surprise-test.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "regex-builder",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/lib/regex-builder/regex-builder.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/regex-guide.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+            "paths": [
+              "app/test/unit/md3-regex-builder-tokens-test.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "browser-style-tabs",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/repository-tabs/repository-tab-strip.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/features/identity-and-workspace/settings-browser-tabs.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "tab-pinning",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/repository-tabs/tab-action-helpers.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+            "paths": [
+              "app/test/unit/settings-tab-strip-test.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "tab-grouping",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/repository-tabs/move-tab-to-group-dialog.tsx",
+              "app/src/ui/repository-tabs/create-tab-group-dialog.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/features/identity-and-workspace/tab-groups.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "tab-discovery-searches",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/repository-tabs/tab-search-popover.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "tab-bulk-close",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/repository-tabs/close-tabs-containing-popover.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "command-palette",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/lib/command-palette-catalog.ts",
+              "app/src/ui/command-palette/command-palette-appearance.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "collapsible-filters",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "pending",
+            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "material-design",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/md3/md3-style-contract.ts",
+              "app/src/ui/md3/md3-primitives.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/features/design-system/material-design-3-site.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+        "paths": [
+          "app/test/unit/material-controls-style-test.ts"
+        ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "appearance-controls",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/lib/appearance-customization.ts",
+              "app/src/ui/preferences/appearance.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/features/identity-and-workspace/owner-scoped-appearance-and-history.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+            "paths": [
+              "app/test/unit/appearance-customization-test.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "per-element-appearance",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/appearance/element-appearance-editors.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+            "paths": [
+              "app/test/unit/element-appearance-runtime-wiring-test.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "word-depth-typography",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/appearance/toolbar-text-style-editor.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "infinite-color-picker",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/appearance/infinite-color-picker.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+        "paths": [
+          "app/test/unit/infinite-color-engine-test.ts"
+        ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "app-logo-customization",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/window/app-brand.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "overlay-surfaces",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/resizable/resizable.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "accessibility",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/accessibility/aria-live-container.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "responsive-sizing",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/resizable/resizable.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "functional-affordances",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "pending",
+            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "non-blocking-notifications",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/notifications/notification-centre-panel.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+            "paths": [
+              "app/test/unit/notification-centre-test.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "destructive-super-confirmation",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/md3/md3-destructive-gate.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/features/design-system/destructive-action-gate.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+        "paths": [
+          "app/test/unit/force-delete-directory-test.ts"
+        ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "long-operation-progress",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/commit-progress/commit-progress.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "operation-recovery",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/pull-branch-deleted/recovery-notification.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "bulk-actions",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/branches/bulk-branch-delete.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+        "paths": [
+          "app/test/unit/ui/bulk-branch-delete-test.tsx"
+        ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "universal-export",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/md3/md3-list-export.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "external-editor",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/open-with-external-editor/open-with-external-editor.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/features/integrations/editor-discovery-and-one-click-opening.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+        "paths": [
+          "app/test/unit/editors/wsl-test.ts"
+        ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "local-version-history",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/version-history/versioned-store-history.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "changelog-viewer",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/changelog/changelog-dialog.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+            "paths": [
+              "app/test/unit/changelog-viewer-wiring-test.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "offline-documentation",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/docs-browser/docs-browser-dialog.tsx",
+              "app/src/lib/docs-browser/docs-browser-bundle.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/features/design-system/offline-documentation-browser.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+            "paths": [
+              "app/test/unit/docs-browser-bundle-test.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "landing-and-documentation-site",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "pending",
+            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "shared-link-embed",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "pending",
+            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "provider-markup-renderer",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "pending",
+            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "status-hub",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "pending",
+            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "toy-locks",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/md3/md3-lock-setup-dialog.tsx",
+              "app/src/ui/md3/md3-lock-unlock-prompt.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "support-tickets",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/md3/md3-support-tickets-view.tsx",
+              "app/src/lib/support-tickets.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/features/identity-and-workspace/support-tickets.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+            "paths": [
+              "app/test/unit/support-tickets-test.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "unlock-ladder",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "pending",
+            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "totp-registration",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/md3/md3-authenticator-registration.tsx",
+              "app/src/lib/authenticator/otpauth-uri.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/features/identity-and-workspace/authenticator-and-qr-registration.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+            "paths": [
+              "app/test/unit/authenticator-qr-test.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "built-in-authenticator",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/md3/md3-authenticator-view.tsx",
+              "app/src/lib/authenticator/entries.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/features/identity-and-workspace/authenticator-and-qr-registration.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+            "paths": [
+              "app/test/unit/authenticator-entries-test.ts",
+              "app/test/unit/authenticator-totp-test.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "secret-mutation-history",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "pending",
+            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "browser-extension-download-surfaces",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "pending",
+            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "file-converter",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "pending",
+            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "pdf-tools",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "pending",
+            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "ollama-suite-manager",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/copilot/ollama-model-manager.tsx",
+              "app/src/lib/ollama/client.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/features/integrations/ollama-model-manager.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "ollama-model-store",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/copilot/ollama-model-manager.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "ollama-batch-pull",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "pending",
+            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "ollama-chat",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/copilot/ollama-chat-workspace.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/features/integrations/ollama-model-manager.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+        "paths": [
+          "app/test/unit/ollama/chat-test.ts"
+        ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "ollama-harness-launch",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "pending",
+            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "pending",
+            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "forge-publishing",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/ui/publish-repository/publish.tsx",
+              "app/src/ui/publish-repository/publish-organization-picker.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/features/repository-management/publish-organization-picker.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+            "paths": [
+              "app/test/unit/publish-organization-picker-style-test.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "build-bootstrap",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "pending",
+            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/features/integrations/self-hosted-windows-dependency-bootstrap.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "pending",
+            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    },
+    {
+      "id": "automatic-updates",
+      "evidence": {
+        "implementation": [
+          {
+            "status": "present",
+            "paths": [
+              "app/src/main-process/squirrel-updater.ts",
+              "app/src/ui/banners/update-available.tsx"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "documentation": [
+          {
+            "status": "present",
+            "paths": [
+              "docs/features/integrations/automated-updates-and-release-notes.md"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "localization": [
+          {
+            "status": "pending",
+            "reason": "Localization evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "persistence": [
+          {
+            "status": "pending",
+            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+          }
+        ],
+        "focusedTest": [
+          {
+            "status": "present",
+            "paths": [
+              "app/test/unit/update-version-order-test.ts"
+            ],
+            "note": "Read-only inspection found this candidate; remaining dimensions still determine completion."
+          }
+        ],
+        "builtArtifactInteraction": [
+          {
+            "status": "pending",
+            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+          }
+        ],
+        "realCapture": [
+          {
+            "status": "pending",
+            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+          }
+        ]
+      }
+    }
+  ]
 }

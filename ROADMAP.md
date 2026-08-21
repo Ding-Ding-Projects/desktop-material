@@ -4,11 +4,16 @@
 
 - [x] Document the hand-written feature-by-surface inventory contract and its
   independent evidence fields.
-- [x] Register the current missing universal-feature identifiers in the
-  completeness metadata without treating registration as implementation proof.
+- [x] Register all 62 canonical universal-feature identifiers in an explicit
+  seven-dimension evidence manifest, with per-row present, pending, or blocked
+  records and reasons for every unverified dimension.
+- [x] Separate manifest/inventory validity from the completion verdict, check
+  claimed-present paths, and exercise content-aware row and dimension mutations
+  in the focused contract source.
 - [ ] Run the deferred tests, reviews, audits, built-artifact interactions, and
   captures needed to verify each registered feature. The August 21 ultra-speed
-  pass intentionally skipped those activities.
+  pass intentionally skipped those activities, so the manifest's completion
+  verdict remains pending until a later evidence pass.
 
 ## August 20 — automated merge-all cleanup
 

@@ -22,14 +22,31 @@ with the owning delivery lane.
 
 ## Universal-feature completeness registration — 2026-08-21
 
-This pass adds the documentation contract for a hand-written, fail-closed
-feature-by-surface completeness inventory. Each entry keeps implementation or
-registration, documentation, localization, persistence, focused tests,
-built-artifact interaction, and real capture evidence separate. Registration
-metadata is an index into those proofs; it is not proof that a feature is
-implemented, reachable, functional, or verified.
+This pass replaces the old uniform evidence-path templates with an explicit
+schema-versioned manifest for all 62 canonical feature IDs. Each row keeps
+implementation or registration, documentation, localization, persistence,
+focused tests, built-artifact interaction, and real capture evidence as an
+independent array of records. A record is `present`, `pending`, or `blocked`;
+present records name only paths found during read-only inspection, while every
+pending or blocked record carries its reason. Registration metadata is an index
+into those proofs; it is not proof that a feature is implemented, reachable,
+functional, or verified.
+
+The focused contract source now validates the exact canonical ID order and
+dimension set, checks repository-relative paths for claimed-present records,
+requires reasons for pending/blocked records, and reports a separate
+completion verdict. Its dedicated completion Chut asserts `complete === true`
+and prints the exact pending, blocked, or missing-path errors; it is expected
+to be red until the deferred evidence is filled. Its row-by-row mutation
+coverage removes each dimension and mutates either a claimed path or a pending
+reason, so a broad template or commented-out placeholder cannot satisfy the
+contract. The current Chut is intentionally red because the ultra-speed pass
+did not run tests, built-artifact interactions, captures, reviews, audits,
+builds, or packaging.
 
 Directly related records are
+`app/test/fixtures/feature-completeness/evidence-paths.json`,
+`app/test/unit/feature-registration-completeness-test.ts`,
 `docs/features/design-system/universal-feature-completeness-inventory.md`, the
 design-system category index, this handoff, `ROADMAP.md`, and `changelog.json`.
 The associated source registration work is owned by separate implementation
