@@ -1,5 +1,18 @@
 # Desktop Material roadmap
 
+## August 21 — root Windows dependency preparation
+
+- [x] Add a root `download-dependencies.bat` entrypoint with silent and
+  idempotent preparation semantics.
+- [x] Record pinned Node.js archive URLs and SHA-256 digests, vendored Yarn,
+  Visual Studio workload requirements, and frozen package-install arguments in
+  `script/windows-dependency-manifest.json`.
+- [x] Route `build.bat` and `build-installer.bat` through the shared preparation
+  path before their existing build or installer work.
+- [ ] Run cold-cache and warm-cache preparation, builds, installer packaging,
+  and artifact captures; this implementation lane intentionally did not run
+  those checks or perform downloads.
+
 ## August 21 — narrator voice controls restored
 
 - [ ] Restore the Sound pane's two runtime voice pickers (English and

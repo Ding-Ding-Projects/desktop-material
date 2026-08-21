@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "platform": "windows",
+  "repository": "https://github.com/Ding-Ding-Projects/desktop-material",
+  "node": {
+    "version": "24.15.0",
+    "archives": {
+      "x64": {
+        "url": "https://nodejs.org/dist/v24.15.0/node-v24.15.0-win-x64.zip",
+        "sha256": "cc5149eabd53779ce1e7bdc5401643622d0c7e6800ade18928a767e940bb0e62"
+      },
+      "arm64": {
+        "url": "https://nodejs.org/dist/v24.15.0/node-v24.15.0-win-arm64.zip",
+        "sha256": "c9eb7402eda26e2ba7e44b6727fc85a8de56c5095b1f71ebd3062892211aa116"
+      }
+    },
+    "installRoot": "%LOCALAPPDATA%\\DesktopMaterial\\toolchain",
+    "verification": "SHA-256 of the downloaded archive followed by node --version"
+  },
+  "yarn": {
+    "version": "1.21.1",
+    "path": "vendor/yarn-1.21.1.js",
+    "source": "repository-vendored",
+    "verification": "node vendor/yarn-1.21.1.js --version"
+  },
+  "visualStudioBuildTools": {
+    "packageId": "Microsoft.VisualStudio.2022.BuildTools",
+    "channel": "2022",
+    "workload": "Microsoft.VisualStudio.Workload.VCTools",
+    "requiredComponent": "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+    "source": "winget canonical package catalog",
+    "sha256": null,
+    "sha256Note": "The upstream installer resolves a component graph through winget; the installed compiler and developer-command probes are the stable post-install verification."
+  },
+  "projectDependencies": {
+    "packageManager": "yarn-classic",
+    "lockfile": "yarn.lock",
+    "installArgs": [
+      "install",
+      "--frozen-lockfile",
+      "--non-interactive",
+      "--production=false"
+    ],
+    "scope": "repository root and app workspace via the repository post-install hook"
+  },
+  "security": {
+    "signing": false,
+    "credentials": false,
+    "network": "canonical HTTPS sources only",
+    "elevation": "user scope where the upstream installer supports it; Visual Studio may require its own elevation policy"
+  }
+}

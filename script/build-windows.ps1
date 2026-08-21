@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)]
-  [ValidateSet('Build', 'Installer')]
+  [ValidateSet('Prepare', 'Build', 'Installer')]
   [string]$Mode,
 
   [switch]$Silent
@@ -11,9 +11,17 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-$PinnedNodeVersion = '24.15.0'
-$PinnedYarnVersion = '1.21.1'
 $RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$DependencyManifestPath = Join-Path $RepositoryRoot 'script\windows-dependency-manifest.json'
+if (-not (Test-Path -LiteralPath $DependencyManifestPath -PathType Leaf)) {
+  throw "The pinned Windows dependency manifest is missing: '$DependencyManifestPath'."
+}
+$DependencyManifest = Get-Content -LiteralPath $DependencyManifestPath -Raw | ConvertFrom-Json
+$PinnedNodeVersion = [string]$DependencyManifest.node.version
+$PinnedYarnVersion = [string]$DependencyManifest.yarn.version
+if ($PinnedNodeVersion -notmatch '^\d+\.\d+\.\d+$' -or $PinnedYarnVersion -notmatch '^\d+\.\d+\.\d+$') {
+  throw 'The pinned Windows dependency manifest contains an invalid Node.js or Yarn version.'
+}
 $DistDirectory = [IO.Path]::GetFullPath((Join-Path $RepositoryRoot 'dist'))
 $IsSilent = $Silent.IsPresent -or $env:SILENT -eq '1'
 $OverallStopwatch = [Diagnostics.Stopwatch]::StartNew()
@@ -141,19 +149,23 @@ function Install-PortableNode {
   $downloadRoot = Join-Path $toolchainRoot "download-node-$PinnedNodeVersion-$architecture"
   New-Item -ItemType Directory -Force -Path $downloadRoot | Out-Null
   $archivePath = Join-Path $downloadRoot $archiveName
-  $checksumsPath = Join-Path $downloadRoot 'SHASUMS256.txt'
-  $baseUrl = "https://nodejs.org/dist/v$PinnedNodeVersion"
+  $nodeArchive = $DependencyManifest.node.archives.$architecture
+  if ($null -eq $nodeArchive) {
+    throw "The pinned Windows dependency manifest has no Node.js archive for '$architecture'."
+  }
+  $baseUrl = [string]$nodeArchive.url
+  $expectedHash = ([string]$nodeArchive.sha256).ToLowerInvariant()
+  $archiveUrlName = [IO.Path]::GetFileName(([Uri]$baseUrl).AbsolutePath)
+  if (
+    $baseUrl -notmatch '^https://nodejs\.org/' -or
+    $archiveUrlName -ne $archiveName -or
+    $expectedHash -notmatch '^[0-9a-f]{64}$'
+  ) {
+    throw "The pinned Node.js manifest entry for '$architecture' must use a canonical HTTPS URL and a 64-character SHA-256 digest."
+  }
 
   Write-Phase "Downloading canonical Node.js $PinnedNodeVersion portable archive"
-  Invoke-WebRequest -UseBasicParsing -Uri "$baseUrl/$archiveName" -OutFile $archivePath | Out-Null
-  Invoke-WebRequest -UseBasicParsing -Uri "$baseUrl/SHASUMS256.txt" -OutFile $checksumsPath | Out-Null
-  $checksumLine = Get-Content -LiteralPath $checksumsPath | Where-Object {
-    $_ -match [regex]::Escape($archiveName) + '$'
-  }
-  if (@($checksumLine).Count -ne 1) {
-    throw "Node.js did not publish exactly one checksum for $archiveName."
-  }
-  $expectedHash = (($checksumLine -split '\s+')[0]).ToLowerInvariant()
+  Invoke-WebRequest -UseBasicParsing -Uri $baseUrl -OutFile $archivePath | Out-Null
   $actualHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
   if ($expectedHash -ne $actualHash) {
     throw "Node.js archive checksum mismatch: expected $expectedHash, received $actualHash."
@@ -228,11 +240,15 @@ function Resolve-PinnedNode {
 function Resolve-VendoredYarn {
   param([Parameter(Mandatory = $true)][string]$NodePath)
 
+  $manifestYarnPath = [string]$DependencyManifest.yarn.path
+  if ([string]::IsNullOrWhiteSpace($manifestYarnPath)) {
+    throw 'The pinned Windows dependency manifest is missing the vendored Yarn path.'
+  }
   $candidates = @(
-    (Join-Path $RepositoryRoot '.yarn\releases\yarn-1.21.1.js'),
-    (Join-Path $RepositoryRoot '.yarn\releases\yarn-1.21.1.cjs'),
-    (Join-Path $RepositoryRoot 'vendor\yarn-1.21.1.js'),
-    (Join-Path $RepositoryRoot 'script\yarn-1.21.1.js'),
+    (Join-Path $RepositoryRoot ($manifestYarnPath -replace '/', '\')),
+    (Join-Path $RepositoryRoot ".yarn\releases\yarn-$PinnedYarnVersion.js"),
+    (Join-Path $RepositoryRoot ".yarn\releases\yarn-$PinnedYarnVersion.cjs"),
+    (Join-Path $RepositoryRoot "script\yarn-$PinnedYarnVersion.js"),
     (Join-Path $RepositoryRoot 'app\node_modules\yarn\bin\yarn.js')
   )
   foreach ($candidate in $candidates) {
@@ -346,6 +362,14 @@ function Set-VsBuildEnvironment {
 }
 
 function Ensure-VsBuildTools {
+  $visualStudio = $DependencyManifest.visualStudioBuildTools
+  if (
+    [string]::IsNullOrWhiteSpace([string]$visualStudio.packageId) -or
+    [string]::IsNullOrWhiteSpace([string]$visualStudio.workload) -or
+    [string]::IsNullOrWhiteSpace([string]$visualStudio.requiredComponent)
+  ) {
+    throw 'The pinned Windows dependency manifest is missing the Visual Studio package, workload, or required component.'
+  }
   $installationPath = Find-VsBuildTools
   if (-not [string]::IsNullOrWhiteSpace($installationPath)) {
     Assert-VsDeveloperCommands -InstallationPath $installationPath
@@ -356,20 +380,20 @@ function Ensure-VsBuildTools {
 
   $winget = Get-Command winget.exe -ErrorAction SilentlyContinue
   if ($null -eq $winget) {
-    throw 'Visual Studio Build Tools 2022 with Microsoft.VisualStudio.Workload.VCTools is missing, and winget.exe is unavailable for the canonical unattended install.'
+    throw "Visual Studio Build Tools package $($visualStudio.packageId) with $($visualStudio.workload) is missing, and winget.exe is unavailable for the canonical unattended install."
   }
 
   Write-Phase 'Installing Visual Studio Build Tools 2022 with the C++ workload'
-  $override = '--wait --quiet --norestart --nocache --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended'
+  $override = "--wait --quiet --norestart --nocache --add $($visualStudio.workload) --includeRecommended"
   $installExit = Invoke-StatusCommand -FilePath $winget.Source -ArgumentList @(
-    'install', '--id', 'Microsoft.VisualStudio.2022.BuildTools', '--exact',
+    'install', '--id', [string]$visualStudio.packageId, '--exact',
     '--silent', '--accept-package-agreements', '--accept-source-agreements',
     '--disable-interactivity', '--override', $override
   )
   Refresh-ProcessPath
   $installationPath = Find-VsBuildTools
   if ($installExit -ne 0 -or [string]::IsNullOrWhiteSpace($installationPath)) {
-    throw "Visual Studio Build Tools 2022 C++ workload installation failed with exit code $installExit. Required component: Microsoft.VisualStudio.Component.VC.Tools.x86.x64."
+    throw "Visual Studio Build Tools 2022 C++ workload installation failed with exit code $installExit. Required component: $($visualStudio.requiredComponent)."
   }
   Assert-VsDeveloperCommands -InstallationPath $installationPath
   Set-VsBuildEnvironment -InstallationPath $installationPath
@@ -945,7 +969,9 @@ try {
   try {
     $windowsArgvParserRecoverySnapshot =
       New-WindowsArgvParserRecoverySnapshot -NodePath $node
-    Remove-BoundedBuildOutput
+    if ($Mode -ne 'Prepare') {
+      Remove-BoundedBuildOutput
+    }
     $env:npm_config_arch = $TargetArchitecture
     $env:TARGET_ARCH = $TargetArchitecture
     $env:NODE_ENV = 'development'
@@ -979,6 +1005,12 @@ try {
     Ensure-PrintenvzExecutable -NodePath $node -VisualStudioInstallationPath $vsInstallationPath
     if (-not (Test-WarmNativeDependencyCache -NodePath $node)) {
       throw 'The frozen dependency tree is missing a current, nonempty local native output or the windows-argv-parser runtime probe failed.'
+    }
+    if ($Mode -eq 'Prepare') {
+      Write-Phase 'Dependency preparation complete; no application build or installer packaging was requested.'
+      $OverallStopwatch.Stop()
+      Write-Host ("Completed in {0:hh\:mm\:ss}." -f $OverallStopwatch.Elapsed)
+      return
     }
     $env:NODE_ENV = 'production'
     $env:WINDOWS_SIGNING_ENABLED = 'false'
