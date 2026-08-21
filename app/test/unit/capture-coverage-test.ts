@@ -4,20 +4,19 @@ import { join } from 'node:path'
 import { describe, it } from 'node:test'
 
 /**
- * Screenshot coverage contract for the MD3 shell.
+ * Screenshot coverage contract for the current frozen desktop renderer.
  *
  * "Replace all the screenshots" fails in two ways that nothing else catches. A
- * surface the new shell introduced that nobody thought to photograph simply has
+ * current surface nobody thought to photograph simply has
  * no frame, and no test looks for a file that was never named. And a frame that
  * was regenerated from a build predating the change it claims to show is worse
  * than missing — it is confidently wrong, it looks completely normal, and a
  * reader has no way to tell.
  *
- * So this iterates `app/test/fixtures/capture-coverage.json` and demands each
- * required surface be ACCOUNTED FOR: either a real PNG exists and records the
- * commit it was captured from, or the ledger says it is pending and why. The
- * direction matters — a test shaped "every PNG present is well-formed" passes
- * on a gallery that is missing seventy of them.
+ * The former inventory derived its rows from a removed MD3 shell contract. The
+ * current ledger is hand-written and maps each current source boundary to a
+ * pending-or-captured receipt. That prevents a historical gallery image from
+ * silently standing in for the frozen interface that ships today.
  *
  * A `pending` entry is not a failure. An UNACCOUNTED entry is, because that is
  * a surface nobody has decided anything about.
@@ -32,12 +31,14 @@ interface ICaptureStatus {
 }
 
 interface ICaptureLedger {
+  readonly baseline: string
   readonly requiredCount: number
   readonly statuses: Readonly<Record<string, ICaptureStatus>>
   readonly required: ReadonlyArray<{
     readonly id: string
-    readonly source: 'derived' | 'declared'
+    readonly source: 'current-renderer'
     readonly shows: string
+    readonly sourcePaths: ReadonlyArray<string>
   }>
 }
 
@@ -50,27 +51,48 @@ const ledger = JSON.parse(
 const galleryPath = (id: string) =>
   join(root, 'docs/assets/screenshots', `${id}.png`)
 
-describe('MD3 screenshot coverage', () => {
+describe('frozen desktop screenshot coverage', () => {
   it('enumerates a coverage list worth asserting against', () => {
-    // If the extractor's derivation ever breaks, every check below would
-    // iterate a short list and pass on a gallery covering almost nothing.
+    // The list is intentionally hand-written; a new current-renderer feature
+    // needs an explicit capture row rather than an inference from retired UI.
     assert.equal(ledger.required.length, ledger.requiredCount)
-
-    const derived = ledger.required.filter(entry => entry.source === 'derived')
-    const declared = ledger.required.filter(
-      entry => entry.source === 'declared'
-    )
-
-    // 8 destinations + 23 menu kinds, straight out of the design contract.
-    assert.equal(derived.length, 31)
     assert.ok(
-      declared.length >= 40,
-      `only ${declared.length} hand-declared surfaces; the declared half is ` +
-        'the half a derivation cannot supply, so it shrinking is a warning'
+      ledger.required.length >= 26,
+      `only ${ledger.required.length} current rows; high-risk current ` +
+        'surfaces must not disappear from the capture ledger'
     )
 
     const ids = ledger.required.map(entry => entry.id)
     assert.equal(new Set(ids).size, ids.length, 'duplicate capture ids')
+
+    assert.match(ledger.baseline, /^[0-9a-f]{40}$/)
+
+    for (const entry of ledger.required) {
+      assert.equal(entry.source, 'current-renderer')
+      assert.ok(entry.sourcePaths.length > 0, `${entry.id} has no source path`)
+      for (const sourcePath of entry.sourcePaths) {
+        assert.ok(
+          existsSync(join(root, sourcePath)),
+          `${entry.id} maps to missing current source ${sourcePath}`
+        )
+      }
+    }
+
+    for (const id of [
+      'toy-lock-disabled-target',
+      'school-mode-active',
+      'narrator-voice-automatic',
+      'attention-focus',
+      'attention-low-stimulation',
+      'attention-time-awareness',
+      'attention-one-thing',
+      'attention-momentum',
+      'support-tickets-help-route',
+      'authenticator-history',
+      'publish-reauthentication',
+    ]) {
+      assert.ok(ids.includes(id), `missing current high-risk capture row ${id}`)
+    }
   })
 
   it('accounts for every required surface', () => {

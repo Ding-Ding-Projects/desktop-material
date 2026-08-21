@@ -1,5 +1,16 @@
 # Desktop Material — Active parity handoff
 
+## Current frozen-renderer capture ledger — 2026-08-21
+
+The capture ledger no longer derives phantom rows from the removed MD3 shell.
+It names 26 source-mapped states for the frozen renderer baseline, including
+toy locks, School mode, narrator controls, attention modes, Support Tickets,
+authenticator history, and publishing recovery.
+
+All 26 states remain honestly pending. No historical frame is promoted as
+current evidence, and the reverted UI must not be restored to satisfy a stale
+row. The approved cheap headless route remains unavailable.
+
 ## Browser-extension download handoff foundation — 2026-08-21
 
 The desktop app now owns strict native-messaging parsing and distinct styled

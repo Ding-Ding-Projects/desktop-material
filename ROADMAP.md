@@ -1,5 +1,13 @@
 # Desktop Material roadmap
 
+## August 21 — current frozen-renderer capture ledger
+
+- [x] Replace the retired-shell derivation with 26 current source-mapped rows.
+- [x] Register high-risk toy-lock, School, narrator, attention, Support,
+  authenticator-history, and publishing-recovery states without fabricating
+  captures.
+- [ ] Produce real packaged Windows captures through the approved cheap route.
+
 ## August 21 — browser-extension download handoff foundation
 
 - [x] Define strict native-messaging parsing and an explicit unavailable state
