@@ -169,9 +169,16 @@ stands in for capability evidence.
 `app/src/lib/ollama/batch-pull-queue.ts` defines the bounded durable queue
 document and runner above the existing pull primitive: at most 128 items and
 three workers. Every queued, pulling, progress, failed, cancelled, and complete
-transition is handed back to the owner's private persistence callback. A pull
-interrupted by restart is requeued and must be reconciled against the live
-installed list before it can be reported complete.
+transition is handed back to the owner's private persistence callback through a
+single serialized write chain, so overlapping worker streams cannot publish
+stale snapshots out of order. Item ids are capped at 128 characters and model
+names at 256 characters. A pull interrupted by restart is requeued, and
+`reconcileOllamaBatchPullQueue` requeues a previously completed item when a
+successful live installed-model read no longer contains its exact tag. A
+completed queue row is therefore not evidence on its own: the owner must run
+that reconciliation against the live native inventory before displaying it as
+complete. If the inventory request is unavailable, the owner keeps the
+reconciliation state unverified rather than guessing.
 
 `recovery.ts` represents ready, missing/stopped/unhealthy runtime,
 catalog-offline/stale, insufficient-storage, model-incompatible, and

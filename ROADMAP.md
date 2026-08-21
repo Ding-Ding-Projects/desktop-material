@@ -22,7 +22,8 @@
 - [x] Add bounded queue-document normalization, restart reconciliation, and an explicit maximum worker count above the existing pull primitive.
 - [x] Persist per-chat bounded system prompts and generation controls; send them only to the selected loopback model, gate attachments on declared vision capability, and provide redacted copy export plus retry-last-prompt.
 - [x] Add explicit recovery-state and allowlisted harness-profile foundations without inventing an unsupported remote catalog, hardware verdict, or shell launcher.
-- [ ] Add the owned persistent queue runner, official exhaustive catalog source, conservative hardware-fit evidence, full harness preflight/snapshot/rollback UI, localization catalog entries, and built-artifact proof.
+- [x] Add the owned persistent queue runner with serialized transition persistence, bounded ids/model names, and live-inventory reconciliation for completed tags.
+- [ ] Add the official exhaustive catalog source, conservative hardware-fit evidence, full harness preflight/snapshot/rollback UI, localization catalog entries, and built-artifact proof.
 - [ ] Run focused tests, type checks, built-artifact interactions, and captures; this ultra-speed lane intentionally ran none.
 
 ## August 21 — local file-converter foundation
