@@ -19,6 +19,7 @@ export const PersonalVocabularyBoundaryInventory = [
   'dropdown-and-overflow',
   'palette-search-result',
   'notification-copy',
+  'notification-content-boundary',
   'aria-live-copy',
   'repository-selector',
   'worktree-selector',
@@ -27,46 +28,133 @@ export const PersonalVocabularyBoundaryInventory = [
   'host-text-properties',
 ] as const
 
-/** Source/runtime anchor for every inventory row; keep this list hand-written. */
+/**
+ * Source/runtime anchor for every inventory row; keep this list hand-written.
+ *
+ * The line is part of the contract: checking an exact line prevents a
+ * commented-out call, descendant selector, or renamed symbol from satisfying
+ * the inventory accidentally.
+ */
+export interface IPersonalVocabularyBoundaryAnchor {
+  readonly file: string
+  readonly line: number
+  readonly text: string
+}
+
 export const PersonalVocabularyBoundaryAnchors = {
-  'visible-text-children':
-    'app/src/ui/lib/button.tsx:personalizeReactNode(this.props.children)',
-  'accessible-name':
-    'app/src/ui/lib/button.tsx:const hostTextProps = personalizeHostTextProps',
-  'title-and-tooltip':
-    'app/src/ui/lib/tooltip.tsx:personalizeReactNode(this.props.children)',
-  'input-label-and-placeholder':
-    'app/src/ui/lib/text-box.tsx:personalizeOptionalText(this.props.placeholder)',
-  'context-menu-label': 'app/src/lib/menu-item.ts:personalizeMenuItems',
-  'dialog-header':
-    'app/src/ui/dialog/content.tsx:personalizeReactNode(this.props.children)',
-  'dropdown-and-overflow':
-    'app/src/ui/toolbar/toolbar.tsx:renderOverflowItemContent',
-  'palette-search-result':
-    'app/src/ui/command-palette/command-palette.tsx:resolvePaletteTitle',
-  'notification-copy':
-    'app/src/ui/notifications/notification-list-item.tsx:PersonalVocabularyChangedEvent',
-  'aria-live-copy':
-    'app/src/ui/accessibility/aria-live-container.tsx:personalizeText(this.props.message',
-  'repository-selector':
-    'app/src/ui/app.tsx:preserveTitleFromPersonalVocabulary',
-  'worktree-selector':
-    'app/src/ui/toolbar/worktree-dropdown.tsx:preserveTitleFromPersonalVocabulary',
-  'branch-selector':
-    'app/src/ui/toolbar/branch-dropdown.tsx:preserveTitleFromPersonalVocabulary',
-  'technical-content-preservation':
-    'app/src/lib/personal-vocabulary-rendering.ts:data-personal-vocabulary-preserve',
-  'host-text-properties':
-    'app/src/lib/personal-vocabulary-rendering.ts:personalizeHostTextProps',
+  'visible-text-children': {
+    file: 'app/src/ui/lib/button.tsx',
+    line: 261,
+    text: 'const children = personalizeReactNode(this.props.children)',
+  },
+  'accessible-name': {
+    file: 'app/src/ui/lib/button.tsx',
+    line: 262,
+    text: 'const hostTextProps = personalizeHostTextProps({',
+  },
+  'title-and-tooltip': {
+    file: 'app/src/ui/lib/tooltip.tsx',
+    line: 921,
+    text: '{personalizeReactNode(this.props.children)}',
+  },
+  'input-label-and-placeholder': {
+    file: 'app/src/ui/lib/text-box.tsx',
+    line: 343,
+    text: 'placeholder={personalizeOptionalText(this.props.placeholder)}',
+  },
+  'context-menu-label': {
+    file: 'app/src/lib/menu-item.ts',
+    line: 138,
+    text: 'export function personalizeMenuItems<T extends IMenuItem>(',
+  },
+  'dialog-header': {
+    file: 'app/src/ui/dialog/content.tsx',
+    line: 34,
+    text: '{personalizeReactNode(this.props.children)}',
+  },
+  'dropdown-and-overflow': {
+    file: 'app/src/ui/toolbar/toolbar.tsx',
+    line: 531,
+    text: 'private renderOverflowItemContent(',
+  },
+  'palette-search-result': {
+    file: 'app/src/ui/command-palette/command-palette.tsx',
+    line: 58,
+    text: 'function resolvePaletteTitle(command: IPaletteCommand): string {',
+  },
+  'notification-copy': {
+    file: 'app/src/ui/notifications/notification-list-item.tsx',
+    line: 98,
+    text: 'private onPersonalVocabularyChanged = () => this.forceUpdate()',
+  },
+  'notification-content-boundary': {
+    file: 'app/src/ui/notifications/notification-list-item.tsx',
+    line: 136,
+    text: 'const title = personalizeTextBoundary(titleBoundary)',
+  },
+  'aria-live-copy': {
+    file: 'app/src/ui/accessibility/aria-live-container.tsx',
+    line: 108,
+    text: ': personalizeText(this.props.message)',
+  },
+  'repository-selector': {
+    file: 'app/src/ui/app.tsx',
+    line: 9042,
+    text: 'preserveTitleFromPersonalVocabulary={repository !== null}',
+  },
+  'worktree-selector': {
+    file: 'app/src/ui/toolbar/worktree-dropdown.tsx',
+    line: 235,
+    text: 'preserveTitleFromPersonalVocabulary={true}',
+  },
+  'branch-selector': {
+    file: 'app/src/ui/toolbar/branch-dropdown.tsx',
+    line: 286,
+    text: 'preserveTitleFromPersonalVocabulary={true}',
+  },
+  'technical-content-preservation': {
+    file: 'app/src/lib/personal-vocabulary-rendering.ts',
+    line: 234,
+    text: "props['data-personal-vocabulary-preserve'] === true ||",
+  },
+  'host-text-properties': {
+    file: 'app/src/lib/personal-vocabulary-rendering.ts',
+    line: 274,
+    text: "for (const key of ['aria-label', 'title', 'placeholder', 'aria-valuetext']) {",
+  },
 } as const
 
 export type PersonalVocabularyBoundary =
   typeof PersonalVocabularyBoundaryInventory[number]
 
+export type PersonalVocabularyTextBoundaryKind =
+  | 'app-authored'
+  | 'external'
+  | 'technical'
+
+export interface IPersonalVocabularyTextBoundary {
+  readonly kind: PersonalVocabularyTextBoundaryKind
+  readonly value: string
+  /** Persisted app-authored text may already contain the vocabulary output. */
+  readonly alreadyPersonalized?: boolean
+}
+
+/** Render a notification/text boundary exactly once when it owns the copy. */
+export function personalizeTextBoundary(
+  boundary: IPersonalVocabularyTextBoundary
+): string {
+  return boundary.kind === 'app-authored' &&
+    boundary.alreadyPersonalized !== true
+    ? personalizeText(boundary.value)
+    : boundary.value
+}
+
 /** Fail closed when the hand-written inventory is duplicated or incomplete. */
 export function assertPersonalVocabularyBoundaryInventory(
   inventory: ReadonlyArray<string> = PersonalVocabularyBoundaryInventory,
-  anchors: Readonly<Record<string, string>> = PersonalVocabularyBoundaryAnchors
+  anchors: Readonly<
+    Record<string, IPersonalVocabularyBoundaryAnchor>
+  > = PersonalVocabularyBoundaryAnchors
 ): void {
   const expected = new Set<string>(PersonalVocabularyBoundaryInventory)
   const actual = new Set(inventory)
@@ -77,7 +165,17 @@ export function assertPersonalVocabularyBoundaryInventory(
     actual.size !== expected.size ||
     [...expected].some(id => !actual.has(id)) ||
     anchorKeys.length !== expected.size ||
-    anchorKeys.some(id => !expected.has(id) || anchors[id].trim().length === 0)
+    anchorKeys.some(id => {
+      const anchor = anchors[id]
+      return (
+        !expected.has(id) ||
+        anchor === undefined ||
+        anchor.file.trim().length === 0 ||
+        !Number.isInteger(anchor.line) ||
+        anchor.line < 1 ||
+        anchor.text.trim().length === 0
+      )
+    })
   ) {
     throw new Error('Personal vocabulary boundary inventory is incomplete.')
   }

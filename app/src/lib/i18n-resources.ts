@@ -2600,8 +2600,6 @@ export type TranslationKey =
   | 'settings.personalVocabularyFileShapeDescription'
   | 'settings.personalVocabularyRejected'
   | 'settings.personalVocabularyUnreadable'
-  | 'settings.personalVocabularyAppliedAnnouncement'
-  | 'settings.personalVocabularyClearedAnnouncement'
   | 'palette.setPersonalVocabulary'
   | 'palette.setSoundNarratorCooldown'
   | 'palette.setSoundMusic'
@@ -8948,10 +8946,6 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'That vocabulary file was not accepted. Nothing has been changed.',
   'settings.personalVocabularyUnreadable':
     'That vocabulary file could not be read. Nothing has been changed.',
-  'settings.personalVocabularyAppliedAnnouncement':
-    'Personal vocabulary loaded. Existing surfaces now use the supplied wording.',
-  'settings.personalVocabularyClearedAnnouncement':
-    'Personal vocabulary cleared. Original wording restored.',
   'palette.setPersonalVocabulary': 'Personal vocabulary file',
   'palette.setSoundNarratorCooldown': 'Minimum gap between narrated lines',
   'palette.setSoundMusic': 'Play themed music',
@@ -15889,10 +15883,6 @@ export const cantoneseTranslations: Readonly<
     '一個 JSON object，入面有 schemaVersion {version} 同 entries object，將 app 顯示嘅字眼換成你想睇嘅字眼。最多 {entries} 條同 {size} KB。只會喺呢部電腦讀取，唔會上載，亦唔會放入 export、screenshot、診斷報告或者 app 歷史。',
   'settings.personalVocabularyRejected': '呢個字典檔案唔接受，乜都冇改到。',
   'settings.personalVocabularyUnreadable': '呢個字典檔案讀唔到，乜都冇改到。',
-  'settings.personalVocabularyAppliedAnnouncement':
-    '字典已載入，現有畫面而家用返你提供嘅字眼。',
-  'settings.personalVocabularyClearedAnnouncement':
-    '字典已清除，原本字眼已還原。',
   'palette.setPersonalVocabulary': '個人字典檔案',
   'palette.setSoundNarratorCooldown': '兩句旁白之間最短間隔',
   'palette.setSoundMusic': '播主題音樂',

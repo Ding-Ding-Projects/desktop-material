@@ -40,12 +40,12 @@ opens the local file dialog, and clear returns the app to its original wording.
 | --- | --- |
 | No file | No vocabulary file is loaded, and every surface is rendering its original wording |
 | Loaded | A count of terms, and that they are held on this computer only |
-| Refused | The exact reason, and that **nothing has been changed** |
-| Unreadable | The underlying read error, and that nothing has been changed |
+| Refused | Generic safe validation-failure copy, and that **nothing has been changed** |
+| Unreadable | Generic safe read-failure copy, and that nothing has been changed |
 
 The status line reports a **count**, never the terms. The terms are the private
-part; the number is not. Control labels, loaded/cleared announcements, and
-rejection copy follow the active language mode. A rejected or unreadable
+part; the number is not. Control labels, loaded/cleared status copy and their
+polite live regions, and rejection copy follow the active language mode. A rejected or unreadable
 replacement keeps the last valid vocabulary active and keeps **Clear and
 restore original wording** available; only a deliberate clear removes it.
 

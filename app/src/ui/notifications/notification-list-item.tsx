@@ -10,6 +10,10 @@ import {
 import { IMenuItem, showContextualMenu } from '../../lib/menu-item'
 import { personalizeText } from '../../lib/i18n'
 import { PersonalVocabularyChangedEvent } from '../../lib/personal-vocabulary'
+import {
+  personalizeTextBoundary,
+  type IPersonalVocabularyTextBoundary,
+} from '../../lib/personal-vocabulary-rendering'
 
 interface INotificationListItemProps {
   readonly entry: INotificationEntry
@@ -24,6 +28,11 @@ interface INotificationListItemProps {
   /** Toggle the read/unread state without activating the action. */
   readonly onToggleRead: (entry: INotificationEntry) => void
   readonly onDelete: (entry: INotificationEntry) => void
+  /** Explicitly typed title/body ownership; persisted strings default exact. */
+  readonly vocabularyText?: {
+    readonly title: IPersonalVocabularyTextBoundary
+    readonly body: IPersonalVocabularyTextBoundary
+  }
   /**
    * Open the notification-automation builder scoped to this entry. When
    * omitted the row exposes no context menu — this is the sole, deliberately
@@ -118,8 +127,14 @@ export class NotificationListItem extends React.PureComponent<INotificationListI
 
   public render() {
     const { entry, selected, selectionDisabled } = this.props
-    const title = personalizeText(entry.title)
-    const body = personalizeText(entry.body)
+    const titleBoundary =
+      this.props.vocabularyText?.title ??
+      ({ kind: 'external', value: entry.title } as const)
+    const bodyBoundary =
+      this.props.vocabularyText?.body ??
+      ({ kind: 'external', value: entry.body } as const)
+    const title = personalizeTextBoundary(titleBoundary)
+    const body = personalizeTextBoundary(bodyBoundary)
     const className = classNames('notification-item', `kind-${entry.kind}`, {
       unread: !entry.read,
       selected,

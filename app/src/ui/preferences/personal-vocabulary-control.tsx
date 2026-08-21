@@ -42,8 +42,8 @@ import {
 type VocabularyState =
   | { readonly kind: 'none' }
   | { readonly kind: 'loaded'; readonly vocabulary: IPersonalVocabulary }
-  | { readonly kind: 'rejected'; readonly reason: string }
-  | { readonly kind: 'unreadable'; readonly reason: string }
+  | { readonly kind: 'rejected' }
+  | { readonly kind: 'unreadable' }
 
 interface IPersonalVocabularyControlProps {
   /** Raised when the active vocabulary changes, so surfaces can re-render. */
@@ -96,7 +96,6 @@ export class PersonalVocabularyControl extends React.Component<
       this.setState({
         status: {
           kind: 'rejected',
-          reason: this.text('settings.personalVocabularyRejected'),
         },
       })
       return
@@ -109,7 +108,6 @@ export class PersonalVocabularyControl extends React.Component<
       this.setState({
         status: {
           kind: 'unreadable',
-          reason: this.text('settings.personalVocabularyUnreadable'),
         },
       })
       return
@@ -123,7 +121,6 @@ export class PersonalVocabularyControl extends React.Component<
       this.setState({
         status: {
           kind: 'rejected',
-          reason: this.text('settings.personalVocabularyRejected'),
         },
       })
       return
@@ -181,7 +178,11 @@ export class PersonalVocabularyControl extends React.Component<
             role="alert"
             aria-live="assertive"
           >
-            {status.reason}
+            {this.text(
+              status.kind === 'rejected'
+                ? 'settings.personalVocabularyRejected'
+                : 'settings.personalVocabularyUnreadable'
+            )}
           </p>
         )
     }

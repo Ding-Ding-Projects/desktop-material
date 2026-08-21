@@ -26,6 +26,9 @@ import {
   PersonalVocabularyBoundaryInventory,
   personalizeHostTextProps,
   personalizeReactNode,
+  personalizeTextBoundary,
+  type IPersonalVocabularyBoundaryAnchor,
+  type IPersonalVocabularyTextBoundary,
 } from '../../src/lib/personal-vocabulary-rendering'
 import {
   clearPersonalVocabulary,
@@ -33,6 +36,8 @@ import {
   type IPersonalVocabulary,
 } from '../../src/lib/personal-vocabulary'
 import { bilingualVariable, translate } from '../../src/lib/i18n'
+import { setLanguageModePreference } from '../../src/lib/language-preference'
+import { writeSchoolMode } from '../../src/lib/school-mode'
 
 /**
  * Synthetic test-only wording. It proves boundary behavior without carrying a
@@ -79,6 +84,7 @@ describe('personal vocabulary boundary inventory', () => {
         'dropdown-and-overflow',
         'palette-search-result',
         'notification-copy',
+        'notification-content-boundary',
         'aria-live-copy',
         'repository-selector',
         'worktree-selector',
@@ -100,7 +106,10 @@ describe('personal vocabulary boundary inventory', () => {
   })
 
   it('turns red when a category anchor is missing or empty', () => {
-    const missingPaletteAnchor = { ...PersonalVocabularyBoundaryAnchors }
+    const missingPaletteAnchor: Record<
+      string,
+      IPersonalVocabularyBoundaryAnchor
+    > = { ...PersonalVocabularyBoundaryAnchors }
     Reflect.deleteProperty(missingPaletteAnchor, 'palette-search-result')
     assert.throws(() =>
       assertPersonalVocabularyBoundaryInventory(
@@ -111,7 +120,10 @@ describe('personal vocabulary boundary inventory', () => {
 
     const emptySelectorAnchor = {
       ...PersonalVocabularyBoundaryAnchors,
-      'branch-selector': '',
+      'branch-selector': {
+        ...PersonalVocabularyBoundaryAnchors['branch-selector'],
+        text: '',
+      },
     }
     assert.throws(() =>
       assertPersonalVocabularyBoundaryInventory(
@@ -132,27 +144,28 @@ describe('personal vocabulary boundary inventory', () => {
     for (const [id, anchor] of Object.entries(
       PersonalVocabularyBoundaryAnchors
     )) {
-      const separator = anchor.indexOf(':')
-      assert.ok(separator > 0, `${id} has no source separator`)
-      const file = anchor.slice(0, separator)
-      const needle = anchor.slice(separator + 1)
-      const source = readFileSync(join(process.cwd(), file), 'utf8')
-      assert.ok(source.includes(needle), `${id} anchor is stale: ${anchor}`)
+      const source = readFileSync(join(process.cwd(), anchor.file), 'utf8')
+      const lines = source.split(/\r?\n/)
+      assert.equal(
+        lines[anchor.line - 1]?.trim(),
+        anchor.text,
+        `${id} anchor is stale: ${anchor.file}:${anchor.line}`
+      )
     }
 
     const missingAnchor = {
       ...PersonalVocabularyBoundaryAnchors,
       'palette-search-result':
-        'app/src/ui/command-palette/command-palette.tsx:removed-boundary',
+        {
+          ...PersonalVocabularyBoundaryAnchors['palette-search-result'],
+          text: 'removed-boundary',
+        },
     }
     assert.throws(() => {
       const anchor = missingAnchor['palette-search-result']
-      const separator = anchor.indexOf(':')
-      const source = readFileSync(
-        join(process.cwd(), anchor.slice(0, separator)),
-        'utf8'
-      )
-      assert.ok(source.includes(anchor.slice(separator + 1)))
+      const source = readFileSync(join(process.cwd(), anchor.file), 'utf8')
+      const lines = source.split(/\r?\n/)
+      assert.equal(lines[anchor.line - 1]?.trim(), anchor.text)
     })
   })
 })
@@ -160,7 +173,8 @@ describe('personal vocabulary boundary inventory', () => {
 describe('personal vocabulary reaches typed React boundaries', () => {
   it('refreshes the production control after apply, invalid import, and clear', async () => {
     setActivePersonalVocabulary(null)
-    const { container } = render(<PersonalVocabularyControl />)
+    const view = render(<PersonalVocabularyControl />)
+    const { container } = view
     const input = container.querySelector('input[type="file"]')
     assert.ok(input)
     assert.ok(container.textContent?.includes('Choose a vocabulary file'))
@@ -191,6 +205,29 @@ describe('personal vocabulary reaches typed React boundaries', () => {
       )
       assert.ok(container.querySelector('button'))
     })
+    assert.equal(
+      personalizeTextBoundary({
+        kind: 'app-authored',
+        value: 'source-token',
+      }),
+      'replacement-token'
+    )
+
+    setLanguageModePreference('cantonese')
+    view.rerender(<PersonalVocabularyControl />)
+    await waitFor(() =>
+      assert.ok(container.textContent?.includes('呢個字典檔案唔接受'))
+    )
+
+    writeSchoolMode({ enabled: true, name: 'Study mode' })
+    view.rerender(<PersonalVocabularyControl />)
+    assert.ok(
+      container.textContent?.includes(
+        'That vocabulary file was not accepted. Nothing has been changed.'
+      )
+    )
+    writeSchoolMode({ enabled: false, name: 'Study mode' })
+    setLanguageModePreference('english')
 
     const unreadableFile = {
       size: 1,
@@ -210,6 +247,13 @@ describe('personal vocabulary reaches typed React boundaries', () => {
       )
       assert.ok(container.querySelector('button'))
     })
+    assert.equal(
+      personalizeTextBoundary({
+        kind: 'app-authored',
+        value: 'source-token',
+      }),
+      'replacement-token'
+    )
 
     fireEvent.click(container.querySelector('button')!)
     await waitFor(() => {
@@ -240,6 +284,10 @@ describe('personal vocabulary reaches typed React boundaries', () => {
         onActivate={() => undefined}
         onToggleRead={() => undefined}
         onDelete={() => undefined}
+        vocabularyText={{
+          title: { kind: 'app-authored', value: entry.title },
+          body: { kind: 'app-authored', value: entry.body },
+        }}
       />
     )
     assert.ok(container.textContent?.includes('Current repository'))
@@ -249,6 +297,82 @@ describe('personal vocabulary reaches typed React boundaries', () => {
       assert.ok(container.textContent?.includes(fixtureReplacement(0)))
       assert.ok(container.textContent?.includes(fixtureReplacement(2)))
     })
+  })
+
+  it('honours pre-personalized, chained, external, and technical notification boundaries', () => {
+    const boundary = (
+      kind: IPersonalVocabularyTextBoundary['kind'],
+      value: string,
+      alreadyPersonalized?: boolean
+    ): IPersonalVocabularyTextBoundary => ({
+      kind,
+      value,
+      alreadyPersonalized,
+    })
+    setActivePersonalVocabulary({
+      schemaVersion: 1,
+      terms: new Map([
+        ['source-token', 'middle-token'],
+        ['middle-token', 'final-token'],
+      ]),
+    })
+    const makeEntry = (id: string, title: string): INotificationEntry => ({
+      id,
+      kind: 'info',
+      title,
+      body: title,
+      createdAt: new Date(0).toISOString(),
+      read: true,
+    })
+    const props = (
+      entry: INotificationEntry,
+      text: IPersonalVocabularyTextBoundary
+    ) => ({
+      entry,
+      selected: false,
+      onToggleSelected: () => undefined,
+      onActivate: () => undefined,
+      onToggleRead: () => undefined,
+      onDelete: () => undefined,
+      vocabularyText: { title: text, body: text },
+    })
+    const { container } = render(
+      <>
+        <NotificationListItem
+          {...props(
+            makeEntry('pre', 'source-token'),
+            boundary('app-authored', 'middle-token', true)
+          )}
+        />
+        <NotificationListItem
+          {...props(
+            makeEntry('chain', 'source-token'),
+            boundary('app-authored', 'source-token')
+          )}
+        />
+        <NotificationListItem
+          {...props(
+            makeEntry('external', 'source-token'),
+            boundary('external', 'source-token')
+          )}
+        />
+        <NotificationListItem
+          {...props(
+            makeEntry('technical', 'C:/source-token/ref'),
+            boundary('technical', 'C:/source-token/ref')
+          )}
+        />
+      </>
+    )
+    const rows = Array.from(container.querySelectorAll('.notification-item'))
+    assert.equal(rows.length, 4)
+    assert.ok(rows[0].textContent?.includes('middle-token'))
+    assert.ok(!rows[0].textContent?.includes('final-token'))
+    assert.ok(rows[1].textContent?.includes('middle-token'))
+    assert.ok(!rows[1].textContent?.includes('final-token'))
+    assert.ok(rows[2].textContent?.includes('source-token'))
+    assert.ok(!rows[2].textContent?.includes('middle-token'))
+    assert.ok(rows[3].textContent?.includes('C:/source-token/ref'))
   })
 
   it('updates visible children, accessible names, title/tooltip, and inputs', async () => {
@@ -288,6 +412,8 @@ describe('personal vocabulary reaches typed React boundaries', () => {
           min={1}
           max={5}
           step={1}
+          valueText="Current repository"
+          ariaValueText="Current branch"
           onChange={() => undefined}
         />
       </>
@@ -303,6 +429,12 @@ describe('personal vocabulary reaches typed React boundaries', () => {
     assert.strictEqual(input.getAttribute('placeholder'), fixtureReplacement(1))
     assert.strictEqual(input.getAttribute('aria-label'), fixtureReplacement(2))
     assert.ok(container.textContent?.includes(fixtureReplacement(0)))
+    assert.equal(
+      container
+        .querySelector('input[type="range"]')
+        ?.getAttribute('aria-valuetext'),
+      fixtureReplacement(2)
+    )
 
     const tooltipTarget = button
     fireEvent.mouseEnter(tooltipTarget)
@@ -322,9 +454,19 @@ describe('personal vocabulary reaches typed React boundaries', () => {
           <p>Current branch</p>
         </DialogContent>
         <ToolbarDropdown
-          title="feature/current-branch"
+          title="Current repository"
           description="Current branch"
           tooltip="Current worktree"
+          dropdownState="closed"
+          onDropdownStateChanged={() => undefined}
+          dropdownContentRenderer={() => null}
+        />
+        <ToolbarDropdown
+          title="C:/Current repository/current-branch"
+          description="Current worktree"
+          tooltip="C:/Current repository/current-branch"
+          preserveTitleFromPersonalVocabulary={true}
+          preserveTooltipFromPersonalVocabulary={true}
           dropdownState="closed"
           onDropdownStateChanged={() => undefined}
           dropdownContentRenderer={() => null}
@@ -342,7 +484,14 @@ describe('personal vocabulary reaches typed React boundaries', () => {
     // The closed dropdown owns the tooltip but does not mount the portal until
     // the user opens/points at it; its visible selector copy is still covered
     // by the description and title assertions above.
-    assert.ok(container.textContent?.includes('feature/current-branch'))
+    assert.ok(
+      container.textContent?.includes('C:/Current repository/current-branch')
+    )
+    assert.ok(
+      Array.from(container.querySelectorAll('.toolbar-button .title')).some(
+        title => title.textContent?.includes(fixtureReplacement(0))
+      )
+    )
   })
 
   it('preserves technical and explicitly hidden content', () => {

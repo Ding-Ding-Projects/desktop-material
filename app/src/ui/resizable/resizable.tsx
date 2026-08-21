@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { clamp } from '../../lib/clamp'
 import { AriaLiveContainer } from '../accessibility/aria-live-container'
+import { personalizeText } from '../../lib/i18n'
 
 export const DefaultMaxWidth = 350
 export const DefaultMinWidth = 200
