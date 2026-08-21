@@ -1,5 +1,13 @@
 # Desktop Material roadmap
 
+## August 21 — Support Tickets and authenticator history
+
+- [x] Wire the existing About/Help surface to the local Support Tickets desk.
+- [x] Expose redacted `AuthenticatorStore` history through the existing styled
+  history route and reconcile restored metadata against the credential vault.
+- [ ] Run focused wiring tests and collect built-artifact interaction/capture
+  evidence; the ultra-speed lane intentionally deferred them.
+
 ## August 21 — School mode live propagation
 
 - [x] Propagate the shared mode event to the main shell, Settings,

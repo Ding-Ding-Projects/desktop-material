@@ -1,5 +1,20 @@
 # Desktop Material — Active parity handoff
 
+## Support Tickets Help route and authenticator history — 2026-08-21
+
+The existing About surface now opens the real local Support Tickets desk with
+`entryPoint: 'help'`. Authenticator settings exposes **View authenticator
+history** through the current styled Button component and the existing
+`VersionedStoreHistory` route.
+
+The history adapter exposes entry metadata only. Credential-vault records and
+generated codes never enter history, diffs, or exports. After undo, redo, or
+restore, the view re-reads the document and vault; restored entries without a
+matching vault record remain visible but cannot produce a code.
+
+Tests, builds, packaging, runtime interaction, and captures remain unrun under
+the ultra-speed boundary.
+
 ## School mode live propagation — 2026-08-21
 
 The shared `SchoolModeChangedEvent` now reaches the main shell, Settings,

@@ -1,4 +1,5 @@
 export type TranslationKey =
+  | 'about.supportTickets'
   | 'supportTickets.title'
   | 'supportTickets.subtitle'
   | 'supportTickets.entry.unlockPrompt'
@@ -5448,6 +5449,14 @@ export type TranslationKey =
   | 'authenticatorSettings.provenanceMany'
   | 'authenticatorSettings.provenanceUnread'
   | 'authenticatorSettings.unavailable'
+  | 'authenticatorSettings.history.open'
+  | 'authenticatorSettings.history.loading'
+  | 'authenticatorSettings.history.title'
+  | 'authenticatorSettings.history.timeline'
+  | 'authenticatorSettings.history.description'
+  | 'authenticatorSettings.history.emptyTitle'
+  | 'authenticatorSettings.history.emptyDescription'
+  | 'authenticatorSettings.history.missingSecrets'
   | 'surfaceLocks.heading'
   | 'surfaceLocks.manage'
   | 'surfaceLocks.close'
@@ -5625,6 +5634,7 @@ export type TranslationKey =
 
 /** Complete base catalog. Every missing locale entry falls back to this. */
 export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
+  'about.supportTickets': 'Support Tickets',
   'supportTickets.title': 'Support Tickets',
   'supportTickets.subtitle':
     'A local desk for getting back into a lock you set yourself.',
@@ -12449,6 +12459,17 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'The registered accounts have not been read yet.',
   'authenticatorSettings.unavailable':
     'The credential vault could not be read, so no account can be shown: {error}',
+  'authenticatorSettings.history.open': 'View authenticator history',
+  'authenticatorSettings.history.loading': 'Opening authenticator history…',
+  'authenticatorSettings.history.title': 'Authenticator history',
+  'authenticatorSettings.history.timeline': 'Authenticator entries timeline',
+  'authenticatorSettings.history.description':
+    'Review, undo, or restore authenticator entry metadata. Secrets remain in the credential vault and are never part of this history.',
+  'authenticatorSettings.history.emptyTitle': 'No authenticator history yet',
+  'authenticatorSettings.history.emptyDescription':
+    'The first registered entry will appear here.',
+  'authenticatorSettings.history.missingSecrets':
+    '{count} restored entries have no matching credential-vault record; those rows cannot produce a code.',
   'surfaceLocks.heading': 'Surface locks',
   'surfaceLocks.manage': 'Manage locks…',
   'surfaceLocks.close': 'Close the lock manager',
@@ -12696,6 +12717,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
 export const cantoneseTranslations: Readonly<
   Partial<Record<TranslationKey, string>>
 > = {
+  'about.supportTickets': 'Support Tickets 支援櫃檯',
   'supportTickets.title': 'Support Tickets 支援櫃檯',
   'supportTickets.subtitle': '呢個係本機櫃檯，專門幫你搞返自己落嘅鎖。',
   'supportTickets.entry.unlockPrompt': '唔記得咗密碼？',
@@ -19064,6 +19086,16 @@ export const cantoneseTranslations: Readonly<
   'authenticatorSettings.provenanceUnread': '仲未讀過登記咗嘅帳戶。',
   'authenticatorSettings.unavailable':
     '讀唔到憑證保險箱，所以一個帳戶都顯示唔到：{error}',
+  'authenticatorSettings.history.open': '睇驗證器歷史記錄',
+  'authenticatorSettings.history.loading': '開緊驗證器歷史記錄⋯',
+  'authenticatorSettings.history.title': '驗證器歷史記錄',
+  'authenticatorSettings.history.timeline': '驗證器帳戶時間線',
+  'authenticatorSettings.history.description':
+    '檢視、復原或者還原驗證器帳戶資料。密鑰繼續留喺憑證保險箱，永遠唔會入呢份歷史記錄。',
+  'authenticatorSettings.history.emptyTitle': '仲未有驗證器歷史記錄',
+  'authenticatorSettings.history.emptyDescription': '第一個登記嘅帳戶會喺呢度出現。',
+  'authenticatorSettings.history.missingSecrets':
+    '{count} 個還原返嚟嘅帳戶搵唔到相應嘅憑證保險箱記錄；呢啲列唔可以產生密碼。',
   'surfaceLocks.heading': '介面鎖',
   'surfaceLocks.manage': '管理啲鎖⋯',
   'surfaceLocks.close': '閂咗個鎖管理員',

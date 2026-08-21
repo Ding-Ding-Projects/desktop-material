@@ -45,7 +45,9 @@ Support Tickets 就係嗰條路。佢刻意扮成一個客服櫃檯，個玩笑�
 2. **The lock setting** — a "Support Tickets" link in the same settings section,
    available whether or not the lock is currently on.
 3. **Help** — a "Support Tickets" link in the About dialog
-   (`app/src/ui/about/about.tsx`), which is what the Help menu opens.
+   (`app/src/ui/about/about.tsx`). Activating it dispatches the real
+   `PopupType.SupportTickets` route with `entryPoint: 'help'`; it is not a
+   dead link or a second, untracked desk instance.
 
 The desk names the route it was reached by ("You arrived from the unlock
 prompt."), so a user is never left wondering whether they are in the right
