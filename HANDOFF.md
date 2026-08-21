@@ -1,5 +1,20 @@
 # Desktop Material — Active parity handoff
 
+## Appearance locks disable their targets — 2026-08-21
+
+The appearance-lock gate now keeps a locked target behaviorally disabled for
+pointer and keyboard activation, direct callbacks, tab context-menu actions,
+and palette/search teleports. It publishes `aria-disabled="true"` and a locked
+marker while closed, refreshing those semantics as lock or unlock state changes.
+
+Every blocked route opens the existing anchored unlock prompt. Cancellation or
+failed verification leaves the target locked and restores focus to the exact
+attempted control. Multiple locks are answered independently; successful
+verification does not replay the interrupted action.
+
+No tests, typecheck, build, runtime interaction, or capture was run under the
+ultra-speed boundary.
+
 ## Support Tickets Help route and authenticator history — 2026-08-21
 
 The existing About surface now opens the real local Support Tickets desk with

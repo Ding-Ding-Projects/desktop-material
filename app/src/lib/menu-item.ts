@@ -25,6 +25,10 @@ export interface IMenuItem {
   /** The action to invoke when the user selects the item. */
   readonly action?: () => void
 
+  /** Renderer-only appearance-lock boundary for this menu action. */
+  readonly lockTargetId?: string
+  readonly lockAnchor?: HTMLElement
+
   /**
    * The keyboard shortcut this item mirrors, in Electron accelerator syntax
    * (`'CmdOrCtrl+C'`). Display only: the context menu shows it beside the label
@@ -157,7 +161,7 @@ export async function showContextualMenu(
         '../ui/lib/material-context-menu'
       )
       const menuItem = await showMaterialContextMenu(items)
-      menuItem?.action?.()
+      await invokeMenuItemAction(menuItem)
       return
     } catch (e) {
       log.error('Material context menu failed; falling back to native', e)
@@ -173,9 +177,24 @@ export async function showContextualMenu(
     const menuItem = findSubmenuItem(items, indices)
 
     if (menuItem !== undefined && menuItem.action !== undefined) {
-      menuItem.action()
+      await invokeMenuItemAction(menuItem)
     }
   }
+}
+
+async function invokeMenuItemAction(item: IMenuItem | undefined): Promise<void> {
+  if (item?.action === undefined) {
+    return
+  }
+  if (item.lockTargetId === undefined || item.lockAnchor === undefined) {
+    item.action()
+    return
+  }
+
+  // Keep the renderer-only guard lazy so this menu model remains usable by
+  // native-menu and non-appearance consumers without a static UI cycle.
+  const { guardAppearanceActivation } = await import('../ui/appearance')
+  guardAppearanceActivation(item.lockTargetId, item.lockAnchor, item.action)
 }
 
 /**
@@ -188,6 +207,8 @@ function serializeMenuItems(
   return items.map(item => ({
     ...item,
     action: undefined,
+    lockTargetId: undefined,
+    lockAnchor: undefined,
     // Electron expects a NativeImage for icon; ours is an octicon descriptor.
     icon: undefined,
     submenu: item.submenu ? serializeMenuItems(item.submenu) : undefined,

@@ -20,6 +20,7 @@ import * as octicons from '../octicons/octicons.generated'
 import {
   AnchoredAppearanceEditor,
   appearanceLockTargetProps,
+  guardAppearanceElementActivation,
   openAppearanceEditorFromContextMenu,
   openAppearanceEditorFromKeyDown,
 } from '../appearance'
@@ -265,7 +266,7 @@ export class SubmoduleBackButton extends React.Component<
         <Button
           type="button"
           className={`submodule-context-back submodule-context-back-${appearanceCustomization.submoduleBackButtonStyle}`}
-          onClick={this.props.onActivate}
+          onClick={this.onActivate}
           onContextMenu={this.onContextMenu}
           onKeyDown={this.onKeyDown}
           disabled={this.props.disabled}
@@ -284,6 +285,14 @@ export class SubmoduleBackButton extends React.Component<
         {this.renderEditor()}
       </span>
     )
+  }
+
+  /** Keep direct/programmatic activation behind the same lock gate as DOM input. */
+  private onActivate = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (this.props.onActivate === undefined) {
+      return
+    }
+    guardAppearanceElementActivation(event.currentTarget, this.props.onActivate)
   }
 
   private renderEditor() {

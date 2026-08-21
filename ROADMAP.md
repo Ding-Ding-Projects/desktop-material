@@ -34,6 +34,10 @@
   boundary, including metadata-only updates from the settings-owned store.
 - [x] Route appearance-value lock creation through the shared password-or-OTP
   setup dialog, including duration and lock-on-launch persistence.
+- [x] Enforce appearance locks at every activation boundary: pointer,
+  keyboard, direct callbacks, context-menu actions, palette/search teleports,
+  and programmatic tab selection. Locked targets expose `aria-disabled` and
+  remain disabled until their own credential is verified.
 - [ ] Run focused tests and collect built-artifact interaction/capture evidence;
   the ultra-speed implementation lane intentionally deferred them.
 

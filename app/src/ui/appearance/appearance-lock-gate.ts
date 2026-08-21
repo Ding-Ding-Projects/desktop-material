@@ -1,7 +1,10 @@
 import {
   IMd3ActiveUnlock,
+  IMd3Lock,
   isMd3UnlockActive,
   isTargetLocked,
+  locksForTarget,
+  Md3LocksChangedEvent,
   readMd3Locks,
 } from '../../lib/md3-locks'
 import {
@@ -52,6 +55,12 @@ export interface IAppearanceLockBlockedDetail {
   readonly anchor: HTMLElement
 }
 
+/** The semantic attributes every locked target exposes to assistive tech. */
+export interface IAppearanceLockTargetSemantics {
+  readonly 'aria-disabled': 'true' | undefined
+  readonly 'data-md3-locked': 'true' | undefined
+}
+
 /**
  * Props to spread onto an element that has a lockable appearance.
  *
@@ -60,7 +69,37 @@ export interface IAppearanceLockBlockedDetail {
  * the same expression at the same call site.
  */
 export function appearanceLockTargetProps(targetId: string) {
-  return { [AppearanceLockTargetAttribute]: targetId }
+  const semantics = appearanceLockTargetSemantics(targetId)
+  const props: Record<string, string> = {
+    [AppearanceLockTargetAttribute]: targetId,
+  }
+  if (semantics['aria-disabled'] !== undefined) {
+    props['aria-disabled'] = semantics['aria-disabled']
+  }
+  if (semantics['data-md3-locked'] !== undefined) {
+    props['data-md3-locked'] = semantics['data-md3-locked']
+  }
+  return props
+}
+
+/**
+ * Return the current lock semantics for a rendered target.
+ *
+ * `aria-disabled` is deliberately used instead of the native `disabled`
+ * property: a native-disabled button would prevent the activation event from
+ * reaching the prompt host. The capture gate supplies the behavioral block;
+ * this pair makes the state visible to assistive technology and DOM-driven
+ * integrations without making the unlock route unreachable.
+ */
+export function appearanceLockTargetSemantics(
+  targetId: string,
+  now: number = Date.now()
+): IAppearanceLockTargetSemantics {
+  const locked = isAppearanceTargetBlocked(targetId, now)
+  return {
+    'aria-disabled': locked ? 'true' : undefined,
+    'data-md3-locked': locked ? 'true' : undefined,
+  }
 }
 
 /**
@@ -73,15 +112,30 @@ const unlocks = new Map<string, IMd3ActiveUnlock>()
 
 export function recordAppearanceUnlock(unlock: IMd3ActiveUnlock): void {
   unlocks.set(unlock.lockId, unlock)
+  refreshAppearanceLockSemantics()
 }
 
 export function forgetAppearanceUnlock(lockId: string): void {
   unlocks.delete(lockId)
+  refreshAppearanceLockSemantics()
 }
 
 /** Exists so a test can start from a known state. */
 export function clearAppearanceUnlocks(): void {
   unlocks.clear()
+  refreshAppearanceLockSemantics()
+}
+
+/** Return the first credential that is still required for one target. */
+export function firstLockedAppearanceLock(
+  targetId: string,
+  now: number = Date.now()
+): IMd3Lock | null {
+  return (
+    locksForTarget(readMd3Locks(), 'appearanceElement', targetId).find(
+      lock => !isMd3UnlockActive(unlocks.get(lock.id), now)
+    ) ?? null
+  )
 }
 
 /**
@@ -166,13 +220,93 @@ function gate(event: Event): boolean {
   event.preventDefault()
   event.stopPropagation()
   event.stopImmediatePropagation()
-
-  const detail: IAppearanceLockBlockedDetail = {
-    targetId: resolved.targetId,
-    anchor: resolved.anchor,
-  }
-  window.dispatchEvent(new CustomEvent(AppearanceLockBlockedEvent, { detail }))
+  announceAppearanceLockBlocked(resolved.targetId, resolved.anchor)
   return true
+}
+
+/** Announce one blocked activation to the mounted prompt host. */
+export function announceAppearanceLockBlocked(
+  targetId: string,
+  anchor: HTMLElement
+): void {
+  refreshAppearanceLockSemantics()
+  const detail: IAppearanceLockBlockedDetail = { targetId, anchor }
+  window.dispatchEvent(new CustomEvent(AppearanceLockBlockedEvent, { detail }))
+}
+
+/**
+ * Guard an activation that does not travel through the DOM event system.
+ *
+ * Palette commands, context-menu callbacks, shortcut dispatch, and parent
+ * callbacks can all invoke an action directly. Every one uses this helper so
+ * a locked target cannot be reached merely by choosing a different input
+ * route. The callback is never replayed after the prompt succeeds; the user
+ * must activate it again deliberately.
+ */
+export function guardAppearanceActivation(
+  targetId: string,
+  anchor: HTMLElement,
+  activate: () => void
+): boolean {
+  if (isAppearanceTargetBlocked(targetId)) {
+    announceAppearanceLockBlocked(targetId, anchor)
+    return false
+  }
+  activate()
+  return true
+}
+
+/** Guard a direct callback using the target id carried by an element. */
+export function guardAppearanceElementActivation(
+  anchor: HTMLElement,
+  activate: () => void
+): boolean {
+  const resolved = resolveAppearanceLockTarget(anchor)
+  if (resolved === null) {
+    activate()
+    return true
+  }
+  return guardAppearanceActivation(resolved.targetId, resolved.anchor, activate)
+}
+
+/**
+ * Keep semantic attributes current even when a lock is created by a separate
+ * settings surface and the target itself does not re-render.
+ */
+export function refreshAppearanceLockSemantics(): void {
+  if (typeof document === 'undefined') {
+    return
+  }
+
+  const targets = new Set<HTMLElement>()
+  document
+    .querySelectorAll<HTMLElement>(`[${AppearanceLockTargetAttribute}]`)
+    .forEach(element => targets.add(element))
+  for (const [selector] of ProfileAppearanceOwnerSelectors) {
+    document
+      .querySelectorAll<HTMLElement>(selector)
+      .forEach(element => targets.add(element))
+  }
+
+  for (const element of targets) {
+    const resolved = resolveAppearanceLockTarget(element)
+    const targetId =
+      element.getAttribute(AppearanceLockTargetAttribute) ?? resolved?.targetId
+    if (targetId === null || targetId === undefined || targetId.length === 0) {
+      continue
+    }
+    const semantics = appearanceLockTargetSemantics(targetId)
+    if (semantics['aria-disabled'] === undefined) {
+      element.removeAttribute('aria-disabled')
+    } else {
+      element.setAttribute('aria-disabled', semantics['aria-disabled'])
+    }
+    if (semantics['data-md3-locked'] === undefined) {
+      element.removeAttribute('data-md3-locked')
+    } else {
+      element.setAttribute('data-md3-locked', semantics['data-md3-locked'])
+    }
+  }
 }
 
 const onPointer = (event: Event) => {
@@ -198,18 +332,20 @@ export function installAppearanceLockGate(): void {
     return
   }
   installed = true
-  // `mousedown` as well as `click`, because a control that acts on press —
-  // and several do — would otherwise have already acted by the time the click
-  // arrived to be stopped.
-  document.addEventListener('mousedown', onPointer, true)
+  // Pointer-down as well as click, because a control that acts on press — and
+  // several do — would otherwise have already acted by the time click arrived.
+  document.addEventListener('pointerdown', onPointer, true)
   document.addEventListener('click', onPointer, true)
   document.addEventListener('keydown', onKeyDown, true)
+  window.addEventListener(Md3LocksChangedEvent, refreshAppearanceLockSemantics)
+  refreshAppearanceLockSemantics()
 }
 
 /** Exists so a test can leave the document as it found it. */
 export function uninstallAppearanceLockGate(): void {
   installed = false
-  document.removeEventListener('mousedown', onPointer, true)
+  document.removeEventListener('pointerdown', onPointer, true)
   document.removeEventListener('click', onPointer, true)
   document.removeEventListener('keydown', onKeyDown, true)
+  window.removeEventListener(Md3LocksChangedEvent, refreshAppearanceLockSemantics)
 }

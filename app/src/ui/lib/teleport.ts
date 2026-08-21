@@ -2,6 +2,11 @@ import {
   TeleportTargetId,
   teleportTargetSelector,
 } from '../../lib/teleport-targets'
+import {
+  announceAppearanceLockBlocked,
+  isAppearanceTargetBlocked,
+  resolveAppearanceLockTarget,
+} from '../appearance/appearance-lock-gate'
 
 /** The class a spotlit element wears while the ring is showing. */
 export const TeleportSpotlightClassName = 'teleport-spotlight'
@@ -105,6 +110,20 @@ export async function teleportTo(
     () => target.classList.remove(TeleportSpotlightClassName),
     TeleportSpotlightDurationMs
   )
+
+  // A palette/search teleport is also an activation boundary. It may arrive
+  // at a locked surface without producing a DOM click, so announce the lock
+  // here and leave the target behaviorally closed. The prompt host owns the
+  // anchored unlock UI and restores focus after cancellation/failure.
+  const lockedTarget = resolveAppearanceLockTarget(target)
+  if (
+    lockedTarget !== null &&
+    isAppearanceTargetBlocked(lockedTarget.targetId)
+  ) {
+    lockedTarget.anchor.focus({ preventScroll: true })
+    announceAppearanceLockBlocked(lockedTarget.targetId, lockedTarget.anchor)
+    return true
+  }
 
   // Focus lands on the control itself when it takes focus, otherwise on the
   // first focusable thing inside it. Scrolling is already handled above, so the
