@@ -1,0 +1,170 @@
+import { describe, it } from 'node:test'
+import assert from 'node:assert'
+import { readFile } from 'fs/promises'
+import { fileURLToPath } from 'url'
+
+const logStorePath = fileURLToPath(
+  new URL('../../src/lib/stores/log-store.ts', import.meta.url)
+)
+
+describe('LogStore write recovery coverage', () => {
+  it('routes serialized writes through the recovering write chain', async () => {
+    const source = (await readFile(logStorePath, 'utf8')).replace(/\r\n/g, '\n')
+
+    assert.match(
+      source,
+      /^import \{\n  enqueueRecoveringLogWrite,\n  recoverFailedLogWrite,\n\} from '\.\/log-write-chain'$/m
+    )
+    assert.match(
+      source,
+      /^\s*this\.writeChain = enqueueRecoveringLogWrite\($/m
+    )
+    assert.doesNotMatch(source, /^\s*\.catch\(\(\) => undefined\)$/m)
+    assert.doesNotMatch(
+      source,
+      /^\s*await this\.writeChain\.catch\(\(\) => undefined\)$/m
+    )
+  })
+
+  it('replaces the complete snapshot after an earlier append fails', async () => {
+    const { enqueueRecoveringLogWrite } = await import(
+      '../../src/lib/stores/log-write-chain'
+    )
+    const writes: Array<{ kind: 'append' | 'rewrite'; content: string }> = []
+
+    await enqueueRecoveringLogWrite(
+      Promise.reject(new Error('simulated append failure')),
+      'first line\nsecond line\n',
+      'second line\n',
+      {
+        append: async content => {
+          writes.push({ kind: 'append', content })
+        },
+        rewrite: async content => {
+          writes.push({ kind: 'rewrite', content })
+        },
+      }
+    )
+
+    assert.deepEqual(writes, [
+      { kind: 'rewrite', content: 'first line\nsecond line\n' },
+    ])
+  })
+
+  it('keeps normal appends incremental when the earlier write succeeded', async () => {
+    const { enqueueRecoveringLogWrite } = await import(
+      '../../src/lib/stores/log-write-chain'
+    )
+    const writes: Array<{ kind: 'append' | 'rewrite'; content: string }> = []
+
+    await enqueueRecoveringLogWrite(
+      Promise.resolve(),
+      'first line\nsecond line\n',
+      'second line\n',
+      {
+        append: async content => {
+          writes.push({ kind: 'append', content })
+        },
+        rewrite: async content => {
+          writes.push({ kind: 'rewrite', content })
+        },
+      }
+    )
+
+    assert.deepEqual(writes, [{ kind: 'append', content: 'second line\n' }])
+  })
+
+  it('retains a failed recovery so a later queued snapshot can repair it', async () => {
+    const { enqueueRecoveringLogWrite } = await import(
+      '../../src/lib/stores/log-write-chain'
+    )
+    let recoveryAttempts = 0
+
+    const failedRecovery = enqueueRecoveringLogWrite(
+      Promise.reject(new Error('simulated append failure')),
+      'first line\nsecond line\n',
+      'second line\n',
+      {
+        append: async () => {
+          assert.fail('recovery must not append after a failed predecessor')
+        },
+        rewrite: async () => {
+          recoveryAttempts++
+          throw new Error('simulated rewrite failure')
+        },
+      }
+    )
+
+    await assert.rejects(failedRecovery, /simulated rewrite failure/)
+
+    const writes: string[] = []
+    await enqueueRecoveringLogWrite(
+      failedRecovery,
+      'first line\nsecond line\nthird line\n',
+      'third line\n',
+      {
+        append: async () => {
+          assert.fail('a later recovery must replace the complete snapshot')
+        },
+        rewrite: async content => {
+          recoveryAttempts++
+          writes.push(content)
+        },
+      }
+    )
+
+    assert.equal(recoveryAttempts, 2)
+    assert.deepEqual(writes, ['first line\nsecond line\nthird line\n'])
+  })
+
+  it('repairs a failed final write from the complete drain snapshot', async () => {
+    const { recoverFailedLogWrite } = await import(
+      '../../src/lib/stores/log-write-chain'
+    )
+    const writes: string[] = []
+
+    const recovered = await recoverFailedLogWrite(
+      Promise.reject(new Error('simulated final append failure')),
+      'first line\nsecond line\n',
+      async content => {
+        writes.push(content)
+      }
+    )
+
+    assert.equal(recovered, true)
+    assert.deepEqual(writes, ['first line\nsecond line\n'])
+  })
+
+  it('does not rewrite a successful write tail while draining', async () => {
+    const { recoverFailedLogWrite } = await import(
+      '../../src/lib/stores/log-write-chain'
+    )
+
+    const recovered = await recoverFailedLogWrite(
+      Promise.resolve(),
+      'first line\n',
+      async () => {
+        assert.fail('a successful tail must not be rewritten')
+      }
+    )
+
+    assert.equal(recovered, false)
+  })
+
+  it('surfaces a failed drain repair instead of clearing it', async () => {
+    const { recoverFailedLogWrite } = await import(
+      '../../src/lib/stores/log-write-chain'
+    )
+
+    await assert.rejects(
+      recoverFailedLogWrite(
+        Promise.reject(new Error('simulated final append failure')),
+        'first line\n',
+        async () => {
+          throw new Error('simulated drain rewrite failure')
+        }
+      ),
+      /simulated drain rewrite failure/
+    )
+  })
+})
