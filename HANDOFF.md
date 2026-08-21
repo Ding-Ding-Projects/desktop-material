@@ -56,6 +56,26 @@ must perform its own integration and later verification, then add the final
 source commit identifier to the changelog entry if required by its release
 format.
 
+## CI compile repair lane — 2026-08-21
+
+This lane prepares the narrow source repairs reported by the production compile
+feedback. It is scoped to the following files:
+
+- `app/src/lib/process/win32.ts`
+- `app/test/unit/atomic-rename-coverage-test.ts`
+- `app/test/unit/process-win32-test.ts`
+- `changelog.json`
+- `HANDOFF.md`
+
+The source changes use explicit `Buffer<ArrayBufferLike>` types for the bounded
+stderr tail, remove the duplicate fail-closed quarantine coverage declaration,
+and narrow the process-settlement union before reading its rejection error.
+
+Evidence boundary: this ultra-speed lane performed static source inspection
+only. Tests, lint, type-checking, builds, captures, and reviews were not run.
+No commit, publication, or default-branch integration has been performed in
+this lane; the owning delivery lane must inspect and integrate the diff.
+
 ## Five-day public guidance notice — 2026-08-21
 
 Added a compact, public-safe README banner summarizing the latest shared
