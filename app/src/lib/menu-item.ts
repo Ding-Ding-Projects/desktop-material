@@ -182,7 +182,9 @@ export async function showContextualMenu(
   }
 }
 
-async function invokeMenuItemAction(item: IMenuItem | undefined): Promise<void> {
+async function invokeMenuItemAction(
+  item: IMenuItem | null | undefined
+): Promise<void> {
   if (item?.action === undefined) {
     return
   }

@@ -27,11 +27,10 @@ import { SignInResult } from '../../lib/stores/sign-in-store'
 import {
   getPersistedLanguageMode,
   LanguageModeChangedEvent,
-  normalizeLanguageMode,
   translate,
   translateForAccessibleName,
 } from '../../lib/i18n'
-import { LanguageMode } from '../../models/language-mode'
+import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 
 enum PublishTab {
   DotCom = 0,

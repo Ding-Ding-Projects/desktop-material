@@ -128,7 +128,10 @@ export function setAttentionAccommodationEnabled(
   mode: AttentionAccommodationMode,
   enabled: boolean
 ): IAttentionAccommodationPreferences {
-  return updateAttentionAccommodationPreferences({ enabled: { [mode]: enabled } })
+  const enabledChange: Partial<
+    Record<AttentionAccommodationMode, boolean>
+  > = { [mode]: enabled }
+  return updateAttentionAccommodationPreferences({ enabled: enabledChange })
 }
 
 export function setAttentionNextAction(nextAction: string): IAttentionAccommodationPreferences {

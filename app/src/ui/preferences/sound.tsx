@@ -11,6 +11,7 @@ import {
   translatedVariable,
 } from '../../lib/i18n'
 import { TranslationKey } from '../../lib/i18n-resources'
+import type { TranslationVariables } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import { Repository } from '../../models/repository'
 import { showOpenDialog } from '../main-process-proxy'
@@ -183,7 +184,7 @@ export class SoundPreferences extends React.Component<
         : status.kind === 'missing'
         ? 'settings.soundNarratorVoiceMissingStatus'
         : 'settings.soundNarratorVoiceNoneStatus'
-    const variables =
+    const variables: TranslationVariables =
       status.kind === 'chosen'
         ? { voice: status.voice.name, lang: status.voice.lang }
         : status.kind === 'missing'
