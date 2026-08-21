@@ -22,7 +22,12 @@ frozen shell.
 The current integration remains explicitly unavailable because no packaged
 browser extension/native host is registered. The in-app browser's blocked
 download route and File Explorer shell extension are not treated as proof.
-Runtime native-host interaction and captures remain pending.
+This lane adds a checked-in unpacked Manifest V3 link-action extension under
+`browser-extension/`, strict native-messaging framing and exact-origin host
+manifest/registry argv builders, and additional request-path hardening. A
+standalone native host executable and an exact stable extension ID are still
+required before registration is safe. Runtime native-host interaction,
+packaged interaction, and captures remain pending and are not claimed.
 
 ## Ollama suite foundations — 2026-08-21
 

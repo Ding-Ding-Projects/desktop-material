@@ -14,6 +14,9 @@
   until a packaged extension and native host exist.
 - [x] Add styled Start, Downloading, completion, canceled, failed, and
   unavailable states in existing surfaces.
+- [x] Add a checked-in Manifest V3 link-action extension, bounded native frame
+  codec, exact-origin host-manifest builder, and fixed per-user Chrome/Edge
+  registration argv.
 - [ ] Package/register the extension and host, then collect real interaction
   and capture evidence.
 
