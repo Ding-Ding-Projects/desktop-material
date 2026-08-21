@@ -9,6 +9,7 @@ import {
   AppearanceLockTargetAttribute,
   appearanceLockTargetProps,
   clearAppearanceUnlocks,
+  guardAppearanceActivation,
   installAppearanceLockGate,
   isAppearanceTargetBlocked,
   recordAppearanceUnlock,
@@ -19,7 +20,11 @@ import {
   ProfileAppearanceElementId,
   profileAppearanceLockTargetId,
 } from '../../src/models/element-appearance'
-import { addMd3Lock, writeMd3Locks } from '../../src/lib/md3-locks'
+import {
+  addMd3Lock,
+  readMd3Locks,
+  writeMd3Locks,
+} from '../../src/lib/md3-locks'
 import { DefaultMd3UnlockDuration } from '../../src/lib/md3-locks/lock-model'
 
 /**
@@ -231,6 +236,30 @@ describe('the gate stopping an activation', () => {
     assert.strictEqual(activations, 0)
   })
 
+  it('stops a direct callback route while the exact target is locked', () => {
+    lockElement('gated')
+    let directActivations = 0
+
+    assert.strictEqual(
+      guardAppearanceActivation('gated', target, () => directActivations++),
+      false
+    )
+    assert.strictEqual(directActivations, 0)
+
+    const lock = readMd3Locks()[0]
+    assert.ok(lock !== undefined)
+    recordAppearanceUnlock({
+      lockId: lock.id,
+      kind: 'minutes',
+      expiresAt: Date.now() + 60_000,
+    })
+    assert.strictEqual(
+      guardAppearanceActivation('gated', target, () => directActivations++),
+      true
+    )
+    assert.strictEqual(directActivations, 1)
+  })
+
   it('announces the block so the shell can offer the prompt', () => {
     // Without this the element would simply stop working, with nothing on
     // screen to say why or how to get in.
@@ -352,6 +381,37 @@ describe('elements advertise their lock target', () => {
       /notifyAuthenticatorLockEntriesChanged\(/,
       'the settings-owned authenticator store must publish public metadata changes to the lock adapter'
     )
+  })
+
+  it('guards direct command-palette tab actions', () => {
+    const source = readFileSync(join(root, 'app/src/ui/app.tsx'), 'utf8')
+    const start = source.indexOf('private guardActiveTabActivation')
+    const end = source.indexOf('private getPaletteControlValues', start)
+    assert.ok(start >= 0, 'the app must define one active-tab lock boundary')
+    assert.ok(end > start, 'the active-tab lock boundary must have a finite body')
+    const body = source.slice(start, end)
+
+    for (const method of [
+      'private setActiveTabPinned',
+      'private toggleActiveTabFavorite',
+      'private closeActiveTab',
+      'private closeOtherTabsFromActive',
+      'private closeTabsToLeftOfActive',
+      'private closeTabsToRightOfActive',
+    ]) {
+      const methodStart = body.indexOf(method)
+      assert.ok(methodStart >= 0, `${method} is missing`)
+      const nextMethod = body.indexOf('\n  private ', methodStart + method.length)
+      const methodBody = body.slice(
+        methodStart,
+        nextMethod === -1 ? body.length : nextMethod
+      )
+      assert.match(
+        methodBody,
+        /guardActiveTabActivation\(/,
+        `${method} bypasses the exact active-tab lock`
+      )
+    }
   })
 })
 
