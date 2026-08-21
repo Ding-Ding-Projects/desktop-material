@@ -383,7 +383,9 @@ has.
 
 At most 2000 terms and 1 MB. The whole file is checked before a single word of it is applied, and a
 file that fails any check changes **nothing** — not even partially, and never at the expense of a
-vocabulary you already had working. The control tells you what is in effect: a term count when one is
+vocabulary you already had working. Canonical files use `schemaVersion` plus `entries`, and every
+validated entry up to the documented bound participates dynamically rather than passing through a
+fixed term list. The control tells you what is in effect: a term count when one is
 loaded, and the exact reason when one is refused.
 
 It is read on this computer and stays here. It is never uploaded, and it never appears in an export,

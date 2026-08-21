@@ -1,5 +1,11 @@
 # Desktop Material — Active parity handoff
 
+## Personal vocabulary dynamic-entry repair — 2026-08-20
+
+- The upload parser again accepts the documented canonical `schemaVersion`/`entries` payload and keeps older `schemaVersion`/`terms` and `version`/`terms` cache records readable.
+- The focused unit Chut builds 47 distinct mappings, confirms the parsed map keeps all 47, and confirms one replacement pass applies all 47 rather than stopping at the former payload count.
+- Directly affected files: `app/src/lib/personal-vocabulary.ts`, `app/src/ui/preferences/personal-vocabulary-control.tsx`, `app/test/unit/personal-vocabulary-test.ts`, and `docs/features/design-system/personal-vocabulary.md`.
+
 ## Eighteen defects, five hunts — 2026-08-19
 
 Five adversarial hunts ran over the tree, every finding put through independent

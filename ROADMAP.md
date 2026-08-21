@@ -1,5 +1,10 @@
 # Desktop Material roadmap
 
+## Personal vocabulary schema and dynamic entries — August 20, 2026
+
+- [x] Restore the canonical `schemaVersion`/`entries` upload contract while preserving legacy local-cache reads.
+- [x] Prove more than the former 46-entry payload is accepted and fully applied from dynamic file data.
+
 Updated: **August 13, 2026**
 
 ## Current repository snapshot — August 13, 2026

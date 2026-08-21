@@ -201,9 +201,10 @@ export class PersonalVocabularyControl extends React.Component<
           <summary>What this file looks like</summary>
           <p className="settings-description">
             A JSON object declaring{' '}
-            <code>"version": {PersonalVocabularySchemaVersion}</code> and a{' '}
-            <code>terms</code> object mapping the word the app renders to the
-            word you would rather read. At most {MaxVocabularyEntries} terms and{' '}
+            <code>"schemaVersion": {PersonalVocabularySchemaVersion}</code>{' '}
+            and an <code>entries</code> object mapping the word the app renders
+            to the word you would rather read. At most {MaxVocabularyEntries}{' '}
+            terms and{' '}
             {Math.round(MaxVocabularyBytes / 1024)} KB. It is read on this
             computer, never uploaded, and never included in an export, a
             screenshot, a diagnostic report or this app's history.
