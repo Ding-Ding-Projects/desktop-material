@@ -44,6 +44,10 @@ import {
   scheduledThemes,
 } from '../../models/scheduled-settings'
 import { LanguageMode, languageModes } from '../../models/language-mode'
+import {
+  isSchoolModeEnabled,
+  SchoolModeChangedEvent,
+} from '../../lib/school-mode'
 import { teleportAnchor } from '../../lib/teleport-targets'
 
 export interface IScheduledSettingsProps {
@@ -63,6 +67,7 @@ interface IScheduledSettingsState {
   readonly tokenDrafts: Readonly<Record<string, string>>
   readonly connectionMessages: Readonly<Record<string, string>>
   readonly connectionBusy: Readonly<Record<string, boolean>>
+  readonly schoolModeEnabled: boolean
 }
 
 type ScheduledAppearanceValueKey =
@@ -232,7 +237,23 @@ export class ScheduledSettings extends React.Component<
       tokenDrafts: {},
       connectionMessages: {},
       connectionBusy: {},
+      schoolModeEnabled: isSchoolModeEnabled(),
     }
+  }
+
+  public componentDidMount() {
+    window.addEventListener(SchoolModeChangedEvent, this.onSchoolModeChanged)
+  }
+
+  public componentWillUnmount() {
+    window.removeEventListener(
+      SchoolModeChangedEvent,
+      this.onSchoolModeChanged
+    )
+  }
+
+  private onSchoolModeChanged = () => {
+    this.setState({ schoolModeEnabled: isSchoolModeEnabled() })
   }
 
   public componentDidUpdate(prevProps: IScheduledSettingsProps) {
@@ -563,21 +584,22 @@ export class ScheduledSettings extends React.Component<
           </p>
         </details>
         <Row>
-          {this.renderValueSelect(
-            this.text('appearance.scheduledSettingsLanguage'),
-            value.languageMode,
-            languageModes,
-            next => this.updateLanguageValue(rule, next),
-            option =>
-              this.text(
-                option === 'english'
-                  ? 'appearance.scheduledSettingsLanguageEnglish'
-                  : option === 'cantonese'
-                  ? 'appearance.scheduledSettingsLanguageCantonese'
-                  : 'appearance.scheduledSettingsLanguageBilingual'
-              ),
-            'language'
-          )}
+          {!this.state.schoolModeEnabled &&
+            this.renderValueSelect(
+              this.text('appearance.scheduledSettingsLanguage'),
+              value.languageMode,
+              languageModes,
+              next => this.updateLanguageValue(rule, next),
+              option =>
+                this.text(
+                  option === 'english'
+                    ? 'appearance.scheduledSettingsLanguageEnglish'
+                    : option === 'cantonese'
+                    ? 'appearance.scheduledSettingsLanguageCantonese'
+                    : 'appearance.scheduledSettingsLanguageBilingual'
+                ),
+              'language'
+            )}
           {this.renderValueSelect(
             this.text('appearance.scheduledSettingsTheme'),
             value.theme,
@@ -1043,7 +1065,9 @@ export class ScheduledSettings extends React.Component<
             </h2>
             <p className="appearance-customization-caption">
               {translate(
-                'appearance.scheduledSettingsDescription',
+                this.state.schoolModeEnabled
+                  ? 'appearance.scheduledSettingsDescriptionSchoolMode'
+                  : 'appearance.scheduledSettingsDescription',
                 languageMode
               )}
             </p>

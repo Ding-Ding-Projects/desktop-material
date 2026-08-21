@@ -38,6 +38,7 @@ import { CommandPaletteAppearanceEditor } from './command-palette-appearance-edi
 import { RepositorySettingsTab } from '../../models/repository-settings'
 import type { TranslationKey } from '../../lib/i18n-resources'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import { readSchoolMode } from '../../lib/school-mode'
 
 /** The persistence id for the palette's filter mode. */
 const PaletteFilterListId = 'command-palette'
@@ -55,7 +56,24 @@ function paletteRowId(index: number): string {
  * command declares an i18n key, otherwise its English fallback title.
  */
 function resolvePaletteTitle(command: IPaletteCommand): string {
+  if (command.event === 'palette:school-mode') {
+    return t(command.titleKey ?? 'appearance.schoolModeHeading', {
+      name: readSchoolMode().name,
+    })
+  }
   return command.titleKey !== undefined ? t(command.titleKey) : command.title
+}
+
+function resolvePaletteDescription(command: IPaletteCommand): string | null {
+  if (command.descriptionKey === undefined) {
+    return null
+  }
+  return t(
+    command.descriptionKey,
+    command.event === 'palette:school-mode'
+      ? { name: readSchoolMode().name }
+      : undefined
+  )
 }
 
 /** Localize the stable catalog groups shown as row chips. */
@@ -141,7 +159,9 @@ function getPaletteCommandKeys(
 ): ReadonlyArray<string> {
   return [
     resolvePaletteTitle(command),
-    `${command.title} ${command.group} ${resolvePaletteGroup(command.group)} ${
+    `${resolvePaletteTitle(command)} ${command.group} ${resolvePaletteGroup(
+      command.group
+    )} ${
       command.keywords ?? ''
     } ${command.event}`,
   ]
@@ -811,9 +831,9 @@ export class CommandPalette extends React.Component<
           </div>
         </div>
 
-        {command.descriptionKey !== undefined && (
+        {resolvePaletteDescription(command) !== null && (
           <p className="command-palette-detail-description">
-            {t(command.descriptionKey)}
+            {resolvePaletteDescription(command)}
           </p>
         )}
 

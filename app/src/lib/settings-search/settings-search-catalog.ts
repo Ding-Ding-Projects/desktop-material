@@ -333,6 +333,7 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
         '個人',
         '字眼',
       ],
+      hiddenInSchoolMode: true,
     },
     {
       id: 'appearance-language-mode',
@@ -1094,19 +1095,15 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
 export function settingsSearchKeys(
   entry: ISettingsSearchEntry
 ): ReadonlyArray<string> {
-  const schoolModeName =
-    entry.id === 'appearance-school-mode' ? readSchoolMode().name : null
   const title = [
     settingsSearchText(entry, entry.titleKey, 'english'),
     settingsSearchText(entry, entry.titleKey, 'cantonese'),
-    schoolModeName,
   ].join(' ')
 
   const detail = [
     settingsSearchText(entry, entry.descriptionKey, 'english'),
     settingsSearchText(entry, entry.descriptionKey, 'cantonese'),
     ...entry.keywords,
-    schoolModeName ?? '',
   ].join(' ')
 
   return [title, detail]
@@ -1118,8 +1115,14 @@ export function settingsSearchText(
   key: TranslationKey,
   languageOrLocale: string
 ): string {
+  const effectiveKey =
+    entry.id === 'appearance-scheduled-settings' &&
+    isSchoolModeEnabled() &&
+    key === 'appearance.scheduledSettingsDescription'
+      ? 'appearance.scheduledSettingsDescriptionSchoolMode'
+      : key
   return translate(
-    key,
+    effectiveKey,
     languageOrLocale,
     entry.id === 'appearance-school-mode' ? { name: readSchoolMode().name } : {}
   )

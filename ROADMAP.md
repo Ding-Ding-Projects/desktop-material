@@ -1,5 +1,15 @@
 # Desktop Material roadmap
 
+## August 21 — School mode live propagation
+
+- [x] Propagate the shared mode event to the main shell, Settings,
+  scheduled-settings editor, and internal browser.
+- [x] Hide language, playfulness, personal-vocabulary, and scheduled-language
+  capability references while active, while retaining saved values and the
+  renamed unlock route.
+- [ ] Run focused tests and collect built-artifact interaction/capture evidence;
+  the ultra-speed implementation lane intentionally deferred them.
+
 ## August 21 — attention accommodations
 
 - [x] Implement five independently toggleable, off-by-default modes: Focus,

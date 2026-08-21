@@ -73,6 +73,7 @@ describe('School mode', () => {
     assert.equal(paletteEvents.has('palette:set-language-mode'), false)
     assert.equal(paletteEvents.has('palette:set-funny-english'), false)
     assert.equal(paletteEvents.has('palette:set-funny-cantonese'), false)
+    assert.equal(paletteEvents.has('palette:set-personal-vocabulary'), false)
     assert.equal(paletteEvents.has('palette:school-mode'), true)
 
     const settings = filterSettingsEntries(
@@ -84,6 +85,19 @@ describe('School mode', () => {
     assert.equal(
       settings.results.some(
         result => result.item.id === 'appearance-playfulness'
+      ),
+      false
+    )
+
+    const vocabularySettings = filterSettingsEntries(
+      'personal vocabulary',
+      { mode: FilterMode.Substring, caseSensitive: false },
+      undefined,
+      true
+    )
+    assert.equal(
+      vocabularySettings.results.some(
+        result => result.item.id === 'appearance-personal-vocabulary'
       ),
       false
     )

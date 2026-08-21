@@ -13,6 +13,7 @@ import {
   TranslationVariables,
 } from './i18n'
 import { LanguageMode } from '../models/language-mode'
+import { isSchoolModeEnabled } from './school-mode'
 
 /**
  * Per-language playfulness, 1 (fully serious) .. 5 (maximum playfulness).
@@ -175,6 +176,10 @@ export function readFunnyLevels(): IFunnyLevels {
  * stop below it, or "maximum playfulness" is a label with nothing behind it.
  */
 export function funnyBand(level: number): FunnyBand {
+  if (isSchoolModeEnabled()) {
+    return 'plain'
+  }
+
   const clamped = clampFunnyLevel(
     level,
     DefaultAudioSystemSettings.funnyLevelEnglish
@@ -217,11 +222,12 @@ export function translateWithFunnyLevel(
   variables: TranslationVariables = {}
 ): string {
   const localized = funnyLevelBilingualVariable(base, levels, variables)
+  const effectiveLanguageMode = isSchoolModeEnabled() ? 'english' : languageMode
 
-  if (languageMode === 'cantonese') {
+  if (effectiveLanguageMode === 'cantonese') {
     return localized.cantonese
   }
-  if (languageMode === 'bilingual') {
+  if (effectiveLanguageMode === 'bilingual') {
     return `${localized.english} · ${localized.cantonese}`
   }
   return localized.english

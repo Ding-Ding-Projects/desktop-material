@@ -1,5 +1,20 @@
 # Desktop Material — Active parity handoff
 
+## School mode live propagation — 2026-08-21
+
+The shared `SchoolModeChangedEvent` now reaches the main shell, Settings,
+Appearance, scheduled settings, and the internal browser. Existing windows
+refresh immediately. While active, language, playfulness, personal-vocabulary,
+and scheduled-language controls and discovery routes are omitted while saved
+values remain retained. Banded funny-level copy falls back to plain English.
+
+The command palette and settings search resolve the current renamed mode label
+and description without exposing shipped fallback copy. Unlock and Support
+Tickets routes remain available.
+
+No tests, lint, typecheck, builds, captures, reviews, or runtime interaction
+were performed in this ultra-speed lane.
+
 ## Attention accommodations — 2026-08-21
 
 Five independently persisted, off-by-default interface accommodations now

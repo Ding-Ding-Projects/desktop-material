@@ -9,7 +9,7 @@ import type { MaterialSymbolName } from '../ui/lib/material-symbol'
 import type { TeleportTargetId } from './teleport-targets'
 import { PreferencesTab } from '../models/preferences'
 import { RepositorySettingsTab } from '../models/repository-settings'
-import { isSchoolModeEnabled } from './school-mode'
+import { isSchoolModeEnabled, readSchoolMode } from './school-mode'
 import { DocsArticlePaletteCommands } from './docs-browser/docs-browser-palette'
 
 /**
@@ -2476,6 +2476,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     titleKey: 'palette.setPersonalVocabulary',
     group: 'App',
     keywords: 'vocabulary personal words upload json wording rename',
+    hiddenInSchoolMode: true,
     home: {
       kind: 'preferences',
       tab: PreferencesTab.Appearance,
@@ -3883,7 +3884,10 @@ export function filterPaletteCommands(
   const secondary: IPaletteCommand[] = []
 
   for (const command of platformEligible) {
-    const title = command.title.toLowerCase()
+    const title =
+      command.event === 'palette:school-mode'
+        ? readSchoolMode().name.toLowerCase()
+        : command.title.toLowerCase()
     if (title.startsWith(trimmed)) {
       prefix.push(command)
     } else if (title.includes(trimmed)) {

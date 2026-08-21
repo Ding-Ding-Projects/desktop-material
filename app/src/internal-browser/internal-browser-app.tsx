@@ -11,6 +11,10 @@ import {
 import { LanguageMode } from '../models/language-mode'
 import { LanguageModeStorageKey } from '../lib/language-preference'
 import {
+  SchoolModeChangedEvent,
+  SchoolModeStorageKey,
+} from '../lib/school-mode'
+import {
   bookmarkSafeURL,
   IInternalBrowserBookmark,
   IInternalBrowserPendingAddress,
@@ -139,6 +143,7 @@ export class InternalBrowserApp extends React.Component<
     window.addEventListener('keydown', this.onKeyDown)
     window.addEventListener('resize', this.queueBoundsUpdate)
     window.addEventListener('storage', this.onStorage)
+    window.addEventListener(SchoolModeChangedEvent, this.onSchoolModeChanged)
     if (typeof window.matchMedia === 'function') {
       this.colorSchemeMedia = window.matchMedia('(prefers-color-scheme: dark)')
       this.colorSchemeMedia.addEventListener(
@@ -214,6 +219,10 @@ export class InternalBrowserApp extends React.Component<
     window.removeEventListener('keydown', this.onKeyDown)
     window.removeEventListener('resize', this.queueBoundsUpdate)
     window.removeEventListener('storage', this.onStorage)
+    window.removeEventListener(
+      SchoolModeChangedEvent,
+      this.onSchoolModeChanged
+    )
     this.colorSchemeMedia?.removeEventListener(
       'change',
       this.onSystemColorSchemeChanged
@@ -253,11 +262,18 @@ export class InternalBrowserApp extends React.Component<
 
   private onStorage = (event: StorageEvent) => {
     this.applyAppearance()
-    if (event.key === LanguageModeStorageKey) {
+    if (
+      event.key === LanguageModeStorageKey ||
+      event.key === SchoolModeStorageKey
+    ) {
       this.setState({ languageMode: getPersistedLanguageMode() })
     } else if (event.key === InternalBrowserBookmarksStorageKey) {
       this.setState({ bookmarks: readInternalBrowserBookmarks() })
     }
+  }
+
+  private onSchoolModeChanged = () => {
+    this.setState({ languageMode: getPersistedLanguageMode() })
   }
 
   private onBrowserState = (
