@@ -1,5 +1,36 @@
 # Desktop Material — Active parity handoff
 
+## Lockout wait ladder — 2026-08-21
+
+This lane adds a typed wait-ladder domain model, a main-process challenge
+service, IPC declarations/proxy helpers, and a keyboard-first localized panel.
+The implementation lives in `app/src/models/unlock-ladder.ts`,
+`app/src/main-process/unlock-ladder.ts`,
+`app/src/main-process/unlock-ladder-ipc.ts`,
+`app/src/ui/unlock-ladder/`, and `app/styles/ui/_unlock-ladder.scss`.
+
+The service consumes the challenge record before grading its nonce, expires
+challenges after two minutes, keeps answers outside renderer state, and caps
+successful wait skips at three in a rolling hour. The four-choice dish, ten
+small sums, timed one-hit-per-target mole round, and clock transitions are
+explicit. School mode starts at sums without exposing the hidden dish rung.
+Mole taps can be recorded through a main-process receipt-time IPC handler; final
+grading ignores renderer-supplied timestamps.
+Every successful result says `authenticated: false` and
+`attemptsRefunded: 0`; it only marks the current waiting state clear and leaves
+the original escalation deadline unchanged.
+
+`registerUnlockLadderIpc()` is wired into app startup, but the current
+application tree has no owning credential lockout/wait surface. Therefore
+`UnlockLadder` remains deliberately unmounted and there is no reachable user
+flow or integration claim. The parent integration lane must mount it only from
+that real lockout surface, import the stylesheet there, and add focused tests
+for nonce replay/expiry, all rung transitions, the three-per-hour cap, School
+mode, no-authentication/no-refund invariants, and keyboard/reduced-motion
+behaviour. This ultra-speed lane intentionally ran no tests, lint, typecheck,
+reviews, builds, packaged interaction, or captures.
+
+
 ## Five-day public guidance notice — 2026-08-21
 
 Added a compact, public-safe README banner summarizing the latest shared

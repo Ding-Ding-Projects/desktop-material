@@ -1,5 +1,23 @@
 # Desktop Material roadmap
 
+## August 21 — lockout wait ladder
+
+- [x] Add the typed lockout ladder contract and main-process challenge service:
+  four-choice dish, ten sums after five wrong dishes, timed one-hit-per-target
+  mole round, and the original clock.
+- [x] Keep the ladder separate from credentials: a successful challenge clears
+  waiting only, never authenticates, mints a session, or refunds an attempt;
+  preserve the original escalation deadline and level.
+- [x] Enforce expiring single-use server nonces and a maximum of three
+  successful wait skips per rolling hour; start at sums without naming the
+  hidden dish rung in School mode.
+- [x] Add the keyboard-first, reduced-motion-aware renderer panel, localized
+  English/Cantonese/bilingual copy, feature documentation, and changelog entry.
+- [ ] Parent integration must mount the panel only in a real credential
+  lockout/wait flow (none exists in the current tree), then run the focused
+  tests and built-artifact evidence. Do not add a generic destination.
+
+
 ## August 21 — universal-feature completeness registration
 
 - [x] Document the hand-written feature-by-surface inventory contract and its

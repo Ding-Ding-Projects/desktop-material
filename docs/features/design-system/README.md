@@ -63,6 +63,10 @@
   credential per lock, an anchored non-modal unlock prompt, user-chosen unlock
   duration, an enumerable searchable lock manager with bulk removal and export,
   honest labelling in every search, and folder-deletion recovery.
+- [Unlock ladder](unlock-ladder.md) — a bounded wait-recovery ladder whose
+  main-process nonces are single-use and expiring, whose three-per-hour cap and
+  original escalation remain intact, and whose success clears waiting only
+  before returning the user to ordinary credential entry.
 - [Audio system](audio-system.md) — optional, off-by-default spoken narrator,
   synthesized sound effects, and per-repository music, with rate-limiting,
   quiet hours, reduced-sound, screen-reader coexistence, and funny-level tone.
@@ -111,6 +115,7 @@
 - [旁白把聲](narrator-voice.md) — 分語言嘅旁白聲音、語速同音高，執行時向系統攞返實際裝咗嘅聲音清單，預設係「自動揀」，儲存穩定嘅聲音識別碼而唔係會隨語言變嘅顯示名，而且會老實講明把聲係咪唔見咗、要上網先用到、定係根本一把都冇。
 - [School mode](school-mode.md) — 一個持久化、用戶改得名嘅純英文呈現鎖，配本機憑證解鎖、收埋語言／玩味介面、抑制點心彩蛋同明確嘅重設語意。
 - [版面鎖](surface-locks.md) — 自願開啟、純粹好玩嘅密碼／一次性密碼路障，可以落喺分頁、分頁群組或者任何外觀數值上面；每把鎖有自己獨立嘅憑證、貼住控制項嘅非模態解鎖提示、用戶自己揀解鎖時效、可列舉可搜尋兼支援批量刪除同匯出嘅鎖管理器、喺各搜尋度照樣誠實標示，同埋刪資料夾就重設嘅退路。
+- [解鎖梯](unlock-ladder.md) — 有界嘅等待恢復梯，主程序 nonce 只可以用一次而且會過期；每滾動一小時最多清三次等待，原本升級規則照舊，成功後淨係清等待再返去正常輸入憑證。
 - [音效系統](audio-system.md) — 可選、預設關閉嘅語音旁白、合成音效同逐儲存庫音樂，配速率限制、安靜時段、減少聲音、同螢幕閱讀器共存同搞笑程度語氣。
 - [錄製旁白 + 旋律資產](narration-assets.md) — 播放預先產生嘅逐事件語音片段（英文／廣東話／雙語，喺一條唔重疊嘅佇列串行播放）同旋律提示，取代即時語音同合成音效，有自動後備同持久化開關。
 - [獨立音效事件對應](sfx-event-mapping.md) — 純粹嘅事件 → 類別 → 動機對應，令 push／fetch／pull 同每一個 Build & Run 階段喺四個動機家族入面各有自己嘅提示音，配逐類別冷卻時間同設定 → 聲音入面嘅逐提示試聽格。

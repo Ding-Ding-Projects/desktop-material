@@ -140,6 +140,12 @@ import {
   ISetHomeAssistantTokenRequest,
   IScheduledSettingsValue,
 } from '../models/scheduled-settings'
+import type {
+  IUnlockLadderChallenge,
+  IUnlockLadderMoleHitRequest,
+  IUnlockLadderServiceResult,
+  IUnlockLadderSubmission,
+} from '../models/unlock-ladder'
 
 /**
  * Defines the simplex IPC channel names we use from the renderer
@@ -311,6 +317,16 @@ export type RequestChannels = {
  * Return signatures must be promises
  */
 export type RequestResponseChannels = {
+  /** Record a mole using the main process receipt time, not renderer time. */
+  'unlock-ladder-record-mole-hit': (
+    request: IUnlockLadderMoleHitRequest
+  ) => Promise<boolean>
+  /** Issue a server-owned, expiring, single-use ladder challenge. */
+  'unlock-ladder-issue': (lockoutId: string) => Promise<IUnlockLadderChallenge>
+  /** Grade one consumed challenge; the result cannot carry a session. */
+  'unlock-ladder-submit': (
+    request: IUnlockLadderSubmission & { readonly lockoutId: string }
+  ) => Promise<IUnlockLadderServiceResult>
   /** Fetch and validate a bounded scheduled-settings document in the main process. */
   'fetch-scheduled-settings': (
     endpoint: string
