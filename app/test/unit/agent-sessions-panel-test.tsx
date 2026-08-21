@@ -14,6 +14,7 @@ import {
 } from '../../src/models/agent-session'
 import { fireEvent, render, within } from '../helpers/ui/render'
 import { LanguageModeChangedEvent } from '../../src/lib/i18n'
+import { LocalStatusHubFallback } from '../../src/models/status-hub'
 import {
   appendAgentSessionConversationLog,
   beginAgentSessionConversation,
@@ -78,6 +79,7 @@ const setupProps: Pick<
   | 'canCancelCreate'
   | 'onCancelCreate'
   | 'retryableSetups'
+  | 'statusHubStatus'
 > = {
   setupCommands: [],
   setupCommandsAvailable: true,
@@ -85,6 +87,7 @@ const setupProps: Pick<
   canCancelCreate: false,
   onCancelCreate: () => undefined,
   retryableSetups: [],
+  statusHubStatus: LocalStatusHubFallback,
 }
 
 function deferred<T>() {

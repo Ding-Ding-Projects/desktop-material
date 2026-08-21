@@ -116,6 +116,9 @@ describe('IPC channel contract', () => {
   ] as const
 
   const expectedResponseChannels = [
+    'get-status-hub-status',
+    'publish-status-hub-session',
+    'poll-status-hub-replies',
     'fetch-scheduled-settings',
     'fetch-home-assistant-state',
     'set-home-assistant-token',
@@ -174,6 +177,8 @@ describe('IPC channel contract', () => {
     'show-save-dialog',
     'show-open-dialog',
     'show-open-dialog-multiple',
+    'file-converter-inspect-source',
+    'file-converter-preflight-storage',
     'is-window-maximized',
     'get-apple-action-on-double-click',
     'should-use-dark-colors',
