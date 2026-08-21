@@ -9,6 +9,19 @@ let invokes = 0
 const invocationPayloads = new Array<unknown>()
 const sends = new Array<{ channel: string; payload: unknown }>()
 let onInvoke: (channel: string, payload: unknown) => void = () => undefined
+let artifactResponse: unknown = {
+  ok: true,
+  downloadId: 'd'.repeat(32),
+  path: 'C:\\Downloads\\artifact.zip',
+  bytes: 4,
+  localDigest: `sha256:${'a'.repeat(64)}`,
+  matchesGitHubDigest: true,
+}
+let jobLogResponse: unknown = {
+  ok: true,
+  log: 'verified log',
+  truncated: false,
+}
 
 mock.module('../../src/lib/ipc-renderer', {
   namedExports: {
@@ -17,7 +30,7 @@ mock.module('../../src/lib/ipc-renderer', {
       invocationPayloads.push(payload)
       onInvoke(channel, payload)
       if (channel === 'fetch-actions-job-log') {
-        return { ok: true, log: 'verified log', truncated: false }
+        return jobLogResponse
       }
       if (channel === 'inspect-actions-artifact-subjects') {
         return {
@@ -38,14 +51,7 @@ mock.module('../../src/lib/ipc-renderer', {
           archiveDigest: `sha256:${'a'.repeat(64)}`,
         }
       }
-      return {
-        ok: true,
-        downloadId: 'd'.repeat(32),
-        path: 'C:\\Downloads\\artifact.zip',
-        bytes: 4,
-        localDigest: `sha256:${'a'.repeat(64)}`,
-        matchesGitHubDigest: true,
-      }
+      return artifactResponse
     },
     send: (channel: string, payload: unknown) =>
       sends.push({ channel, payload }),
@@ -180,6 +186,67 @@ describe('Actions transfer renderer client', () => {
 
     assert.equal(log, 'verified log')
     assert.equal(invokes, 1)
+  })
+
+  it('rejects malformed artifact and job-log success responses', async () => {
+    invokes = 0
+    invocationPayloads.length = 0
+    sends.length = 0
+    onInvoke = () => undefined
+    const {
+      downloadActionsArtifactThroughMainProcess,
+      fetchActionsJobLogThroughMainProcess,
+    } = await import('../../src/lib/actions-transfer-client')
+    const controller = new AbortController()
+    const validArtifactResponse = artifactResponse
+    const validJobLogResponse = jobLogResponse
+
+    try {
+      artifactResponse = {
+        ...(validArtifactResponse as Record<string, unknown>),
+        matchesGitHubDigest: 'yes',
+      }
+      await assert.rejects(
+        downloadActionsArtifactThroughMainProcess(
+          account,
+          repository,
+          artifact,
+          'C:\\Downloads\\artifact.zip',
+          controller.signal
+        ),
+        /invalid artifact transfer response/
+      )
+
+      artifactResponse = {
+        ok: false,
+        reason: 'mystery',
+        status: 'not-a-status',
+      }
+      await assert.rejects(
+        downloadActionsArtifactThroughMainProcess(
+          account,
+          repository,
+          artifact,
+          'C:\\Downloads\\artifact.zip',
+          controller.signal
+        ),
+        /invalid artifact transfer response/
+      )
+
+      jobLogResponse = { ok: true, log: 42, truncated: false }
+      await assert.rejects(
+        fetchActionsJobLogThroughMainProcess(
+          account,
+          repository,
+          7,
+          controller.signal
+        ),
+        /invalid job log transfer response/
+      )
+    } finally {
+      artifactResponse = validArtifactResponse
+      jobLogResponse = validJobLogResponse
+    }
   })
 
   it('does not invoke subject inspection when already aborted', async () => {
