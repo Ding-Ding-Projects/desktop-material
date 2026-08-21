@@ -27,3 +27,22 @@ export function enqueueRecoveringLogWrite(
     () => actions.rewrite(fullContent)
   )
 }
+
+/**
+ * Drain a serialized write tail. If its last operation failed and no later
+ * append arrived to repair it, replace the file from the latest complete
+ * snapshot. The boolean tells the caller to schedule history for that repair.
+ */
+export function recoverFailedLogWrite(
+  previous: Promise<void>,
+  fullContent: string,
+  rewrite: (content: string) => Promise<void>
+): Promise<boolean> {
+  return previous.then(
+    () => false,
+    async () => {
+      await rewrite(fullContent)
+      return true
+    }
+  )
+}

@@ -13,13 +13,17 @@ describe('LogStore write recovery coverage', () => {
 
     assert.match(
       source,
-      /^import \{ enqueueRecoveringLogWrite \} from '\.\/log-write-chain'$/m
+      /^import \{\n  enqueueRecoveringLogWrite,\n  recoverFailedLogWrite,\n\} from '\.\/log-write-chain'$/m
     )
     assert.match(
       source,
       /^\s*this\.writeChain = enqueueRecoveringLogWrite\($/m
     )
     assert.doesNotMatch(source, /^\s*\.catch\(\(\) => undefined\)$/m)
+    assert.doesNotMatch(
+      source,
+      /^\s*await this\.writeChain\.catch\(\(\) => undefined\)$/m
+    )
   })
 
   it('replaces the complete snapshot after an earlier append fails', async () => {
@@ -111,5 +115,56 @@ describe('LogStore write recovery coverage', () => {
 
     assert.equal(recoveryAttempts, 2)
     assert.deepEqual(writes, ['first line\nsecond line\nthird line\n'])
+  })
+
+  it('repairs a failed final write from the complete drain snapshot', async () => {
+    const { recoverFailedLogWrite } = await import(
+      '../../src/lib/stores/log-write-chain'
+    )
+    const writes: string[] = []
+
+    const recovered = await recoverFailedLogWrite(
+      Promise.reject(new Error('simulated final append failure')),
+      'first line\nsecond line\n',
+      async content => {
+        writes.push(content)
+      }
+    )
+
+    assert.equal(recovered, true)
+    assert.deepEqual(writes, ['first line\nsecond line\n'])
+  })
+
+  it('does not rewrite a successful write tail while draining', async () => {
+    const { recoverFailedLogWrite } = await import(
+      '../../src/lib/stores/log-write-chain'
+    )
+
+    const recovered = await recoverFailedLogWrite(
+      Promise.resolve(),
+      'first line\n',
+      async () => {
+        assert.fail('a successful tail must not be rewritten')
+      }
+    )
+
+    assert.equal(recovered, false)
+  })
+
+  it('surfaces a failed drain repair instead of clearing it', async () => {
+    const { recoverFailedLogWrite } = await import(
+      '../../src/lib/stores/log-write-chain'
+    )
+
+    await assert.rejects(
+      recoverFailedLogWrite(
+        Promise.reject(new Error('simulated final append failure')),
+        'first line\n',
+        async () => {
+          throw new Error('simulated drain rewrite failure')
+        }
+      ),
+      /simulated drain rewrite failure/
+    )
   })
 })
