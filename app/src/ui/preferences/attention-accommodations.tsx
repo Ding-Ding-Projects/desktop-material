@@ -1,5 +1,8 @@
 import * as React from 'react'
+import { Button } from '../lib/button'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
+import { Select } from '../lib/select'
+import { TextBox } from '../lib/text-box'
 import { DialogContent } from '../dialog'
 import { teleportAnchor } from '../../lib/teleport-targets'
 import {
@@ -155,22 +158,22 @@ export class AttentionAccommodations extends React.Component<
               className="attention-accommodations-next-action"
               {...teleportAnchor('settingsAttentionNextAction')}
             >
-              <label htmlFor="attention-next-action">
-                {localize('Next action', '下一步')}
-              </label>
-              <input
-                id="attention-next-action"
-                type="text"
+              <TextBox
+                className="attention-accommodations-next-action-textbox"
+                label={localize('Next action', '下一步')}
                 value={this.state.preferences.nextAction}
-                maxLength={240}
-                onChange={this.onNextActionChanged}
-                onBlur={this.persistNextAction}
                 placeholder={localize(
                   'Write one concrete next action',
                   '寫低一件具體下一步'
                 )}
+                ariaDescribedBy="attention-next-action-help"
+                onValueChanged={this.onNextActionChanged}
+                onBlur={this.persistNextAction}
               />
-              <p className="settings-description">
+              <p
+                id="attention-next-action-help"
+                className="settings-description"
+              >
                 {localize(
                   'This text stays on this computer and remains until you change or clear it.',
                   '呢段文字只留喺呢部電腦，直到你修改或者清除。'
@@ -184,12 +187,10 @@ export class AttentionAccommodations extends React.Component<
               className="attention-accommodations-momentum-defer"
               {...teleportAnchor('settingsAttentionMomentumDefer')}
             >
-              <label htmlFor="attention-momentum-defer">
-                {localize('Prompt defer interval', '提示延後時間')}
-              </label>
-              <select
-                id="attention-momentum-defer"
-                value={this.state.momentumDeferMinutes}
+              <Select
+                className="attention-accommodations-momentum-defer-select"
+                label={localize('Prompt defer interval', '提示延後時間')}
+                value={String(this.state.momentumDeferMinutes)}
                 onChange={this.onMomentumDeferChanged}
               >
                 {[15, 30, 60, 120].map(minutes => (
@@ -197,10 +198,10 @@ export class AttentionAccommodations extends React.Component<
                     {localize(`${minutes} minutes`, `${minutes} 分鐘`)}
                   </option>
                 ))}
-              </select>
-              <button type="button" onClick={this.deferMomentum}>
+              </Select>
+              <Button type="button" onClick={this.deferMomentum}>
                 {localize('Defer the next prompt', '延後下一次提示')}
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -252,21 +253,22 @@ export class AttentionAccommodations extends React.Component<
     this.setState({ preferences: setAttentionAccommodationEnabled(mode, enabled) })
   }
 
-  private onNextActionChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
+  private onNextActionChanged = (value: string) => {
     this.setState({
       preferences: {
         ...this.state.preferences,
-        nextAction: event.currentTarget.value,
+        nextAction: value.slice(0, 240),
       },
     })
   }
 
-  private persistNextAction = () => {
-    this.setState({ preferences: setAttentionNextAction(this.state.preferences.nextAction) })
+  private persistNextAction = (value: string) => {
+    const nextAction = value.slice(0, 240)
+    this.setState({ preferences: setAttentionNextAction(nextAction) })
   }
 
   private onMomentumDeferChanged = (
-    event: React.ChangeEvent<HTMLSelectElement>
+    event: React.FormEvent<HTMLSelectElement>
   ) => {
     this.setState({ momentumDeferMinutes: Number(event.currentTarget.value) })
   }

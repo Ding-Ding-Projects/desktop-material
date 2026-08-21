@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { Button } from '../lib/button'
 import {
   createAttentionSessionStartedAt,
   deferAttentionMomentum,
@@ -125,9 +126,13 @@ export class AttentionAccommodationRuntime extends React.Component<
                 '呢度有 15 分鐘冇變過。'
               )}
             </span>
-            <button type="button" onClick={this.deferMomentum}>
+            <Button
+              type="button"
+              className="attention-momentum-prompt-defer-button"
+              onClick={this.deferMomentum}
+            >
               {localize('Not now', '而家唔要')}
-            </button>
+            </Button>
           </div>
         )}
       </div>

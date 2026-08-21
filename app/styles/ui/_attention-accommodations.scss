@@ -31,7 +31,7 @@
   font-size: 12px;
 }
 
-.attention-momentum-prompt button {
+.attention-momentum-prompt .button-component {
   margin-left: auto;
 }
 
@@ -55,10 +55,19 @@
   margin-top: 16px;
 }
 
-.attention-accommodations-next-action input,
-.attention-accommodations-momentum-defer select {
-  min-height: 34px;
-  padding: 6px 8px;
+.attention-accommodations-next-action .text-box-component,
+.attention-accommodations-momentum-defer .select-component {
+  width: 100%;
+  min-width: 0;
+}
+
+.attention-accommodations-momentum-defer .select-component select {
+  width: 100%;
+  min-width: 0;
+}
+
+.attention-accommodations-momentum-defer .button-component {
+  justify-self: start;
 }
 
 #desktop-app-chrome[data-attention-low-stimulation='true'] *,
