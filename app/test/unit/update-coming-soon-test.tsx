@@ -673,6 +673,7 @@ describe('update coming soon', () => {
         onShowAcknowledgements: () => undefined,
         onShowTermsAndConditions: () => undefined,
         onShowChangelog: () => undefined,
+        onShowSupportTickets: () => undefined,
         onQuitAndInstall: () => undefined,
         updateState: updateState(UpdateStatus.UpdateComingSoon),
         allowDevelopment: true,

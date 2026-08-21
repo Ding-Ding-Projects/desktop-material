@@ -40,6 +40,7 @@ interface IAboutTestDialogProps {
   /** A function to call when the user wants to see Terms and Conditions. */
   readonly onShowTermsAndConditions: () => void
   readonly onShowChangelog: () => void
+  readonly onShowSupportTickets: () => void
 }
 
 interface IAboutTestDialogState {
@@ -91,6 +92,7 @@ export class AboutTestDialog extends React.Component<
         onShowAcknowledgements={this.props.onShowAcknowledgements}
         onShowTermsAndConditions={this.props.onShowTermsAndConditions}
         onShowChangelog={this.props.onShowChangelog}
+        onShowSupportTickets={this.props.onShowSupportTickets}
         updateState={this.state.updateState}
         onQuitAndInstall={this.props.onDismissed}
         allowDevelopment={true}
