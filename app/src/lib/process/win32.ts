@@ -10,7 +10,10 @@ import {
 
 const maximumStderrTailBytes = 64 * 1024
 
-function appendStderrTail(current: Buffer, data: Buffer | string): Buffer {
+function appendStderrTail(
+  current: Buffer<ArrayBufferLike>,
+  data: Buffer<ArrayBufferLike> | string
+): Buffer<ArrayBufferLike> {
   const chunk = Buffer.isBuffer(data) ? data : Buffer.from(data)
 
   if (chunk.length >= maximumStderrTailBytes) {
@@ -87,7 +90,7 @@ export function spawn(
     const child = spawnInternal(command, args as string[])
     return new Promise<string>((resolve, reject) => {
       let stdout = ''
-      let stderr = Buffer.alloc(0)
+      let stderr: Buffer<ArrayBufferLike> = Buffer.alloc(0)
 
       // If Node.js encounters a synchronous runtime error while spawning
       // `stdout` will be undefined and the error will be emitted asynchronously

@@ -71,8 +71,12 @@ describe('process/win32', () => {
       assert.notEqual(cleanup.kind, 'timeout', 'blocked child did not terminate')
     }
 
-    assert.notEqual(outcome.kind, 'timeout', 'stderr pipe was not drained')
-    assert.equal(outcome.kind, 'rejected')
+    if (outcome.kind === 'timeout') {
+      assert.fail('stderr pipe was not drained')
+    }
+    if (outcome.kind !== 'rejected') {
+      assert.fail(`expected child process to reject, got ${outcome.kind}`)
+    }
     assert.match(String(outcome.error), new RegExp(diagnostic))
     assert.ok(
       String(outcome.error).length < 128 * 1024,
