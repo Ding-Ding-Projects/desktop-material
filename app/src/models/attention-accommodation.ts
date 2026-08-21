@@ -109,7 +109,7 @@ export function saveAttentionAccommodationPreferences(
 }
 
 export function updateAttentionAccommodationPreferences(
-  change: Partial<IAttentionAccommodationPreferences> & {
+  change: Partial<Omit<IAttentionAccommodationPreferences, 'enabled'>> & {
     enabled?: Partial<Record<AttentionAccommodationMode, boolean>>
   }
 ): IAttentionAccommodationPreferences {
