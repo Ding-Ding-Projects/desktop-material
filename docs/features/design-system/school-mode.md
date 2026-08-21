@@ -12,14 +12,21 @@ interface. It is a local user-experience setting, not a security boundary.
 - Enabling the mode requires a credential between 4 and 128 characters and a
   matching confirmation. The credential is never stored as plain text.
 - While enabled, the app resolves every translation request as English, hides
-  the language-mode and playfulness controls, removes their command-palette and
-  settings-search rows, hides scheduled language selection, and suppresses the
-  dim-sum surprise.
+  the language-mode, playfulness, and personal-vocabulary controls, removes
+  their command-palette and settings-search rows, hides scheduled language
+  selection, and suppresses the dim-sum surprise. Existing open windows—the
+  main shell, Settings, and the internal browser—apply the change immediately
+  from the shared `SchoolModeChangedEvent`; reopening a window is not required.
 - Turning the mode off requires the locally verified credential. The selected
   display name and the user's previous language/playfulness values remain
   stored and become effective again after the mode is disabled.
-- The command palette remains available so the user can navigate directly to
-  the renamed mode and unlock it.
+- The command palette and settings search remain available so the user can
+  navigate directly to the renamed mode and unlock it. Both surfaces resolve
+  the current display name instead of leaking the shipped fallback or an
+  interpolation placeholder.
+- Scheduled settings keep saved language values for later use, but the active
+  editor removes language controls and explains that language scheduling is
+  unavailable until the presentation lock is turned off.
 
 ## Configuration and persistence
 
@@ -55,12 +62,12 @@ it.
 
 ## Verification
 
-- `app/test/unit/school-mode-test.ts` verifies normalization, persistence,
-  salted credential storage, credential verification, and the hidden palette
-  and settings-search rows.
-- The focused command-palette, settings-search, and School mode suite passes
-  50/50 tests.
-- `yarn lint:src` validates the source and test changes.
+- `app/test/unit/school-mode-test.ts` covers normalization, persistence, salted
+  credential storage, credential verification, and hidden palette/search rows
+  including personal vocabulary. The live-window and conditional-rendering
+  changes in this lane were not executed under the current ultra-speed
+  boundary; tests, lint, typecheck, builds, captures, and reviews remain
+  unrun.
 
 ## Suggested articles
 

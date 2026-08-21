@@ -36,6 +36,12 @@ customization objects, including typography and safe identity styling. API
 identity payloads never provide a custom local logo path; that path remains a
 local profile choice.
 
+When the user-renamable School mode is active, the editor remains available for
+theme and appearance values but removes the language selector and its
+language-specific copy. Saved language values are retained and become eligible
+again when the presentation lock is turned off; this is a temporary projection,
+not destructive migration of the schedule.
+
 ## API source
 
 An API rule fetches a bounded JSON document over HTTPS. HTTP is accepted only

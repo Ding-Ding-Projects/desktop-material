@@ -228,7 +228,10 @@ import {
 } from '../models/dim-sum'
 import { isWithinQuietHours } from '../lib/audio/audio-throttle'
 import { readFunnyLevels } from '../lib/funny-level-text'
-import { isSchoolModeEnabled } from '../lib/school-mode'
+import {
+  isSchoolModeEnabled,
+  SchoolModeChangedEvent,
+} from '../lib/school-mode'
 import { CrashProofBoundary } from './crash-proof-boundary'
 import { Button } from './lib/button'
 import { Loading } from './lib/loading'
@@ -1021,6 +1024,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     document.ondragover = null
     document.ondrop = null
     document.body.ondrop = null
+    window.removeEventListener(SchoolModeChangedEvent, this.onSchoolModeChanged)
 
     if (shouldRenderApplicationMenu()) {
       window.removeEventListener('keydown', this.onWindowKeyDown)
@@ -3491,6 +3495,7 @@ export class App extends React.Component<IAppProps, IAppState> {
   public componentDidMount() {
     this.mounted = true
     this.disposed = false
+    window.addEventListener(SchoolModeChangedEvent, this.onSchoolModeChanged)
     this.syncAgentSessionWorktrees()
     this.syncAgentSessionPolling()
     void detectAgentRunnerAvailability().then(availability => {
@@ -3585,6 +3590,12 @@ export class App extends React.Component<IAppProps, IAppState> {
         this.syncFeatureAppearanceOwners()
       }
     })
+  }
+
+  private onSchoolModeChanged = () => {
+    if (this.mounted) {
+      this.forceUpdate()
+    }
   }
 
   private clearRepositoryFileDrag() {

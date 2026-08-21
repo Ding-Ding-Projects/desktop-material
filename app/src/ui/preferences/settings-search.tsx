@@ -6,6 +6,7 @@ import {
   ISettingsSearchEntry,
   groupSettingsResultsByTab,
   settingsSearchKeys,
+  settingsSearchText,
   settingsTabNameKey,
 } from '../../lib/settings-search/settings-search-catalog'
 import { LanguageMode } from '../../models/language-mode'
@@ -201,9 +202,13 @@ export class SettingsSearch extends React.Component<
       return []
     }
 
-    const english = translate(entry.titleKey, 'english')
-    const cantonese = translate(entry.titleKey, 'cantonese')
-    const displayed = translate(entry.titleKey, this.props.languageMode)
+    const english = settingsSearchText(entry, entry.titleKey, 'english')
+    const cantonese = settingsSearchText(entry, entry.titleKey, 'cantonese')
+    const displayed = settingsSearchText(
+      entry,
+      entry.titleKey,
+      this.props.languageMode
+    )
 
     const mode = this.props.languageMode
     const englishAt = mode === 'cantonese' ? -1 : 0
@@ -311,19 +316,23 @@ export class SettingsSearch extends React.Component<
                 {group.matches.map(match => {
                   flatIndex += 1
                   const index = flatIndex
-                  const title = translate(
+                  const title = settingsSearchText(
+                    match.item,
                     match.item.titleKey,
                     this.props.languageMode
                   )
-                  const description = translate(
+                  const description = settingsSearchText(
+                    match.item,
                     match.item.descriptionKey,
                     this.props.languageMode
                   )
                   const isHighlighted = index === this.state.highlightedIndex
-                  const accessibleName = `${translateForAccessibleName(
+                  const accessibleName = `${settingsSearchText(
+                    match.item,
                     match.item.titleKey,
-                    {},
-                    this.props.languageMode
+                    this.props.languageMode === 'cantonese'
+                      ? 'cantonese'
+                      : 'english'
                   )}, ${translateForAccessibleName(
                     'settingsSearch.inTab',
                     {

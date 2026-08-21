@@ -1,5 +1,26 @@
 # Desktop Material — Active parity handoff
 
+## School mode live propagation follow-up — 2026-08-21
+
+The School mode lane now wires the shared `SchoolModeChangedEvent` into the
+main shell, Settings, Appearance, scheduled-settings editor, School mode
+surface, and the internal browser. Existing windows refresh immediately. While
+the presentation lock is active, language/playfulness/personal-vocabulary
+controls and their palette or settings-search routes are omitted, and the
+scheduled editor hides language selection while retaining saved values. The
+funny-level resolver also falls back to plain English so direct banded-copy
+callers do not reintroduce bilingual or playful output.
+
+The command palette and settings search resolve the current renamed School mode
+label and description, including matching and accessible text, rather than an
+interpolation placeholder or shipped fallback. The unlock and Support Tickets
+routes remain available.
+
+Changed source and direct records are on `fix/school-mode-live-suppression` in
+the task worktree. No commit, push, merge, release, build, test, lint,
+typecheck, review, audit, or screenshot was performed in this lane; the source
+tip must be verified by the owning coordinator before integration.
+
 ## Five-day public guidance notice — 2026-08-21
 
 Added a compact, public-safe README banner summarizing the latest shared

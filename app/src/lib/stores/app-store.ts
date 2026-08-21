@@ -1027,6 +1027,10 @@ import {
 import type { ElementAppearanceCoordinator } from './element-appearance-coordinator'
 import { ScheduledSettingsRuntime } from '../scheduled-settings'
 import {
+  isSchoolModeEnabled,
+  SchoolModeChangedEvent,
+} from '../school-mode'
+import {
   fetchHomeAssistantState,
   fetchScheduledSettingsAPI,
 } from '../scheduled-settings-api-client'
@@ -2669,6 +2673,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   private wireupStoreEventHandlers() {
+    window.addEventListener(SchoolModeChangedEvent, this.onSchoolModeChanged)
     this.elementAppearanceCoordinator?.onDidUpdate(state => {
       this.scheduledBaseAppearanceCustomization = state.appearance
       this.applyScheduledSettingsValue(this.scheduledSettingsValue)
@@ -2781,6 +2786,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
   }
 
+  private onSchoolModeChanged = () => {
+    this.applyScheduledSettingsValue(this.scheduledSettingsValue)
+  }
+
   /** Apply a schedule as a reversible overlay on the user's stored values. */
   private applyScheduledSettingsValue(
     value: IScheduledSettingsValue | null
@@ -2790,7 +2799,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.appearanceCustomization = normalizeAppearanceCustomization({
       ...base,
       ...(value?.appearance ?? {}),
-      languageMode: value?.languageMode ?? base.languageMode,
+      languageMode: isSchoolModeEnabled()
+        ? 'english'
+        : value?.languageMode ?? base.languageMode,
     })
 
     this.scheduledThemeOverride =

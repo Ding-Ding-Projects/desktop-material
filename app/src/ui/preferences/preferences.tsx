@@ -124,6 +124,7 @@ import {
   translateForAccessibleName,
 } from '../../lib/i18n'
 import type { TranslationKey } from '../../lib/i18n'
+import { SchoolModeChangedEvent } from '../../lib/school-mode'
 import {
   IHomeAssistantSettingsRequest,
   ISetHomeAssistantTokenRequest,
@@ -433,6 +434,7 @@ export class Preferences extends React.Component<
       LanguageModeChangedEvent,
       this.onLanguageModeChanged
     )
+    window.addEventListener(SchoolModeChangedEvent, this.onSchoolModeChanged)
   }
 
   public componentWillUnmount() {
@@ -440,9 +442,17 @@ export class Preferences extends React.Component<
       LanguageModeChangedEvent,
       this.onLanguageModeChanged
     )
+    window.removeEventListener(
+      SchoolModeChangedEvent,
+      this.onSchoolModeChanged
+    )
   }
 
   private onLanguageModeChanged = () => {
+    this.setState({ languageMode: getPersistedLanguageMode() })
+  }
+
+  private onSchoolModeChanged = () => {
     this.setState({ languageMode: getPersistedLanguageMode() })
   }
 

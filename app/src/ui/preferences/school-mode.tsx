@@ -8,6 +8,7 @@ import {
   verifySchoolModeCredential,
   writeSchoolMode,
   ISchoolModeState as SchoolModeState,
+  SchoolModeChangedEvent,
 } from '../../lib/school-mode'
 import { translate } from '../../lib/i18n'
 import { Button } from '../lib/button'
@@ -57,6 +58,27 @@ export class SchoolModePreferences extends React.Component<
       busy: false,
       error: null,
     }
+  }
+
+  public componentDidMount() {
+    window.addEventListener(SchoolModeChangedEvent, this.onSchoolModeChanged)
+  }
+
+  public componentWillUnmount() {
+    window.removeEventListener(
+      SchoolModeChangedEvent,
+      this.onSchoolModeChanged
+    )
+  }
+
+  private onSchoolModeChanged = () => {
+    const schoolMode = readSchoolMode()
+    this.setState({
+      schoolMode,
+      name: schoolMode.name,
+      requestedEnable: false,
+      requestedDisable: false,
+    })
   }
 
   private localize = (

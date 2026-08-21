@@ -54,6 +54,10 @@ import {
   IScheduledSettingsProps,
   ScheduledSettings,
 } from './scheduled-settings'
+import {
+  isSchoolModeEnabled,
+  SchoolModeChangedEvent,
+} from '../../lib/school-mode'
 
 type AppearanceSelectKey = 'languageMode'
 
@@ -112,6 +116,7 @@ interface IAppearanceState {
   readonly showDialogEmoji: boolean
   /** Whether that value was chosen here or is the shipped fallback. */
   readonly showDialogEmojiProvenance: DialogEmojiProvenance
+  readonly schoolModeEnabled: boolean
 }
 
 export class Appearance extends React.Component<
@@ -137,11 +142,27 @@ export class Appearance extends React.Component<
       funnyLevelCantonese: audioSettings.funnyLevelCantonese,
       showDialogEmoji: getShowDialogEmoji(),
       showDialogEmojiProvenance: getShowDialogEmojiProvenance(),
+      schoolModeEnabled: isSchoolModeEnabled(),
     }
 
     if (!usePropTheme) {
       this.initializeSelectedTheme()
     }
+  }
+
+  public componentDidMount() {
+    window.addEventListener(SchoolModeChangedEvent, this.onSchoolModeChanged)
+  }
+
+  public componentWillUnmount() {
+    window.removeEventListener(
+      SchoolModeChangedEvent,
+      this.onSchoolModeChanged
+    )
+  }
+
+  private onSchoolModeChanged = () => {
+    this.setState({ schoolModeEnabled: isSchoolModeEnabled() })
   }
 
   /**
@@ -919,9 +940,9 @@ export class Appearance extends React.Component<
     return (
       <DialogContent>
         {this.renderElementGestureNote()}
-        {this.renderLanguageAndNavigation()}
+        {!this.state.schoolModeEnabled && this.renderLanguageAndNavigation()}
         {this.renderDialogEmoji()}
-        {this.renderPersonalVocabulary()}
+        {!this.state.schoolModeEnabled && this.renderPersonalVocabulary()}
         <SchoolModePreferences
           languageMode={this.props.appearanceCustomization.languageMode}
         />

@@ -1,5 +1,14 @@
 # Desktop Material roadmap
 
+## August 21 — School mode live propagation follow-up
+
+- [ ] Propagate the shared School mode event to the main shell, Settings,
+  scheduled-settings editor, and internal browser; hide language, playfulness,
+  personal-vocabulary, and scheduled-language capability references while the
+  lock is active; keep renamed unlock routes searchable. Source changes are
+  present on the task lane, but tests, lint, typecheck, builds, captures, and
+  reviews were intentionally not run in the ultra-speed pass.
+
 ## August 21 — universal-feature completeness registration
 
 - [x] Document the hand-written feature-by-surface inventory contract and its

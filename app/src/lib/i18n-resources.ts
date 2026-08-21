@@ -245,6 +245,7 @@ export type TranslationKey =
   | 'appearance.elementGesture.maximum'
   | 'appearance.scheduledSettingsHeading'
   | 'appearance.scheduledSettingsDescription'
+  | 'appearance.scheduledSettingsDescriptionSchoolMode'
   | 'appearance.scheduledSettingsRuleDetails'
   | 'appearance.scheduledSettingsRuleHelp'
   | 'appearance.scheduledSettingsRuleProvenance'
@@ -5961,6 +5962,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'appearance.scheduledSettingsHeading': 'Scheduled settings',
   'appearance.scheduledSettingsDescription':
     'Apply language, theme, and appearance customizations during local date and time windows. A schedule can also read a validated API or a Home Assistant boolean entity; external failures leave the local settings unchanged.',
+  'appearance.scheduledSettingsDescriptionSchoolMode':
+    'Apply theme and appearance customizations during local date and time windows. Language scheduling is unavailable while the presentation lock is active; external failures leave the local settings unchanged.',
   'appearance.scheduledSettingsRuleDetails': 'How this schedule works',
   'appearance.scheduledSettingsRuleHelp':
     'The rule matches the selected local weekdays and time window. Every day overrides the weekday checklist; a window that crosses midnight continues from the selected start day into the next local day.',
@@ -12962,6 +12965,8 @@ export const cantoneseTranslations: Readonly<
   'appearance.scheduledSettingsHeading': '排程設定',
   'appearance.scheduledSettingsDescription':
     '喺指定本地日期同時間套用語言、主題同外觀自訂。排程亦可以讀經驗證嘅 API 或 Home Assistant 布林實體；外部來源失敗時，會保留本地設定唔亂郁。',
+  'appearance.scheduledSettingsDescriptionSchoolMode':
+    '喺指定本地日期同時間套用主題同外觀自訂。呈現鎖開啟時唔提供語言排程；外部來源失敗時，會保留本地設定唔亂郁。',
   'appearance.scheduledSettingsRuleDetails': '呢條排程點樣運作',
   'appearance.scheduledSettingsRuleHelp':
     '呢條規則會按照你揀嘅本地星期同時間範圍匹配。「每日」會覆蓋星期清單；跨午夜嘅時間窗會由所選開始日延續到下一個本地日。',
