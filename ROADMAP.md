@@ -1,5 +1,15 @@
 # Desktop Material roadmap
 
+## August 21 — universal-feature completeness registration
+
+- [x] Document the hand-written feature-by-surface inventory contract and its
+  independent evidence fields.
+- [x] Register the current missing universal-feature identifiers in the
+  completeness metadata without treating registration as implementation proof.
+- [ ] Run the deferred tests, reviews, audits, built-artifact interactions, and
+  captures needed to verify each registered feature. The August 21 ultra-speed
+  pass intentionally skipped those activities.
+
 ## August 20 — automated merge-all cleanup
 
 - [x] Move a clean default-branch checkout from another worktree automatically

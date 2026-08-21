@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "canonicalFeatureDigest": "8672cb120584bebe2854a091f0c59a1ced1a15cd071e14cc6d4554b77a26c445",
+  "dimensions": {
+    "implementation": "app/src/features/{featureId}/index.ts",
+    "documentation": "docs/features/universal/{featureId}.md",
+    "localization": "app/src/features/{featureId}/localization.ts",
+    "focusedTest": "app/test/unit/features/{featureId}-test.ts",
+    "builtArtifactInteraction": "app/test/fixtures/built-artifact-interactions/{featureId}.json",
+    "realCapture": "docs/verification/universal-features/{featureId}/real-built-artifact.png"
+  }
+}

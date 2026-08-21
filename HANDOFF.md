@@ -1,5 +1,25 @@
 # Desktop Material — Active parity handoff
 
+## Universal-feature completeness registration — 2026-08-21
+
+This pass adds the documentation contract for a hand-written, fail-closed
+feature-by-surface completeness inventory. Each entry keeps implementation or
+registration, documentation, localization, persistence, focused tests,
+built-artifact interaction, and real capture evidence separate. Registration
+metadata is an index into those proofs; it is not proof that a feature is
+implemented, reachable, functional, or verified.
+
+Directly related records are
+`docs/features/design-system/universal-feature-completeness-inventory.md`, the
+design-system category index, this handoff, `ROADMAP.md`, and `changelog.json`.
+The associated source registration work is owned by separate implementation
+lanes.
+
+Evidence boundary: the 2026-08-21 ultra-speed pass intentionally ran no tests,
+reviews, audits, built-artifact interactions, captures, builds, or packaging in
+this records lane. A later verification pass must fill or refresh those evidence
+fields before any registered feature is described as implemented or verified.
+
 ## Automated merge-all cleanup — 2026-08-20
 
 The Worktrees dialog now recovers automatically when the default branch is
