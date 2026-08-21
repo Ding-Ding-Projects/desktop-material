@@ -30,6 +30,12 @@ const MUST_FAIL_CLOSED_WHEN_QUARANTINE_RENAME_FAILS = [
   'app/src/lib/stores/notification-automation-store.ts',
 ]
 
+/** Stores that move corrupt repositories aside before reinitializing them. */
+const MUST_FAIL_CLOSED_WHEN_QUARANTINE_RENAME_FAILS = [
+  'app/src/lib/stores/notification-centre-store.ts',
+  'app/src/lib/stores/notification-automation-store.ts',
+]
+
 function read(relative: string): string {
   const absolute = Path.join(repoRoot, relative)
   assert.equal(
