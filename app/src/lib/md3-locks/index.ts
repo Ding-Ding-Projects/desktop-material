@@ -77,6 +77,7 @@ export {
   verifyMd3LockPassword,
   removeMd3LockCredential,
   md3LockAttemptState,
+  clearMd3LockWait,
   clearMd3LockAttempts,
   clearAllMd3LockAttempts,
   verifyMd3Lock,

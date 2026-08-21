@@ -78,6 +78,21 @@ export const selectAllWindowContents = sendProxy(
   0
 )
 
+/** Start the main-process-owned wait record for one credential lock. */
+export const startUnlockLadder = invokeProxy('unlock-ladder-start', 1)
+
+/** Ask the main process for the current server-owned ladder challenge. */
+export const issueUnlockLadderChallenge = invokeProxy('unlock-ladder-issue', 1)
+
+/** Record a mole at main-process receipt time before final grading. */
+export const recordUnlockLadderMoleHit = invokeProxy(
+  'unlock-ladder-record-mole-hit',
+  1
+)
+
+/** Submit one single-use nonce; a correct result only clears WAITING. */
+export const submitUnlockLadder = invokeProxy('unlock-ladder-submit', 1)
+
 /** Set the menu item's enabledness. */
 export const updateMenuState = sendProxy('update-menu-state', 1)
 

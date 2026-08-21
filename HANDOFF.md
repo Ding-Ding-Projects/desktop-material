@@ -1,5 +1,25 @@
 # Desktop Material — Active parity handoff
 
+## Credential wait ladder — 2026-08-21
+
+The bounded wait-recovery ladder is now mounted in the existing
+`Md3LockUnlockPrompt`, the real anchored password/OTP credential surface for
+locked tabs, groups, and appearance values. It starts only after that surface's
+credential verifier records a throttled retry wait; no generic destination was
+added.
+
+The main process owns the ladder record, answer material, nonce consumption,
+challenge expiry, and mole receipt timestamps. School mode starts at arithmetic
+sums without exposing the dish rung. A successful ladder result clears only the
+current retry deadline through `clearMd3LockWait`; the consecutive-failure
+count remains, the attempt budget is not refunded, and the prompt returns to its
+ordinary credential field. The ladder result cannot create an unlock, session,
+cookie, or authenticated state.
+
+Focused evidence: `app/test/unit/unlock-ladder-test.ts`, 5/5 tests passing. The
+packaged Windows interaction and screenshots remain pending because the approved
+cheap headless route was not run in this lane.
+
 ## Current frozen-renderer capture ledger — 2026-08-21
 
 The capture ledger no longer derives phantom rows from the removed MD3 shell.

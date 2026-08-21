@@ -155,6 +155,9 @@ export interface IMd3TextButtonProps {
   /** The visible text. */
   readonly label: string
 
+  /** Native form semantics for the shared MD3 text-button primitive. */
+  readonly type?: 'button' | 'submit' | 'reset'
+
   /** An optional leading glyph. Decorative. */
   readonly icon?: MaterialSymbolName
 
@@ -199,7 +202,7 @@ function Md3TextButton(
   return (
     <button
       ref={ref}
-      type="button"
+      type={props.type ?? 'button'}
       className={classNames(props.baseClassName, props.className)}
       aria-label={props.accessibleName}
       aria-pressed={props.pressed}

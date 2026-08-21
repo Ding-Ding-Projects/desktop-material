@@ -8,6 +8,7 @@ import {
 } from '../../lib/funny-level-text'
 import {
   createActiveUnlock,
+  clearMd3LockWait,
   IMd3ActiveUnlock,
   IMd3Lock,
   IMd3UnlockDuration,
@@ -17,14 +18,33 @@ import {
   MinimumUnlockMinutes,
   Md3UnlockDurationKind,
   Md3UnlockDurationKinds,
+  md3LockAttemptState,
   openMd3LockSupportTickets,
   verifyMd3Lock,
 } from '../../lib/md3-locks'
+import { isSchoolModeEnabled } from '../../lib/school-mode'
+import {
+  UnlockLadderMaxSkipsPerRollingHour,
+  UnlockLadderRollingWindowMs,
+  IUnlockLadderChallenge,
+  IUnlockLadderLockoutState,
+  IUnlockLadderServiceResult,
+  IUnlockLadderStartRequest,
+  UnlockLadderAnswer,
+} from '../../models/unlock-ladder'
 import { MaterialSymbol } from '../lib/material-symbol'
 import { DialogEmoji } from '../lib/dialog-emoji'
 import { createObservableRef } from '../lib/observable-ref'
 import { Md3GhostButton, Md3IconButton, Md3TonalButton } from './md3-primitives'
 import { notify } from './md3-toast'
+import { UnlockLadder } from '../unlock-ladder/unlock-ladder'
+import { unlockLadderText } from '../unlock-ladder/unlock-ladder-localization'
+import {
+  issueUnlockLadderChallenge,
+  recordUnlockLadderMoleHit,
+  startUnlockLadder,
+  submitUnlockLadder,
+} from '../main-process-proxy'
 
 /**
  * The unlock prompt for a locked tab, tab group or appearance value.
@@ -184,12 +204,24 @@ export function Md3LockUnlockPrompt(props: IMd3LockUnlockPromptProps) {
   const languageMode = getPersistedLanguageMode()
   const funnyLevels = readFunnyLevels()
 
+  const initialAttemptState = React.useMemo(
+    () => md3LockAttemptState(lock.id),
+    [lock.id]
+  )
+
   const [answer, setAnswer] = React.useState('')
   const [duration, setDuration] = React.useState<IMd3UnlockDuration>(
     lock.unlockDuration
   )
   const [status, setStatus] = React.useState<string | null>(null)
-  const [retryAt, setRetryAt] = React.useState(0)
+  const [retryAt, setRetryAt] = React.useState(initialAttemptState.retryAt)
+  const [ladder, setLadder] = React.useState<{
+    readonly lockoutId: string
+    readonly challenge: IUnlockLadderChallenge
+    readonly remainingSkips: number
+  } | null>(null)
+  const [ladderStarting, setLadderStarting] = React.useState(false)
+  const [ladderDismissed, setLadderDismissed] = React.useState(false)
   const [busy, setBusy] = React.useState(false)
   const [tick, setTick] = React.useState(0)
 
@@ -231,6 +263,79 @@ export function Md3LockUnlockPrompt(props: IMd3LockUnlockPromptProps) {
   const throttled = throttleRemainingMs > 0
   const throttleSeconds = Math.ceil(throttleRemainingMs / 1000)
 
+  const ladderLockoutId = React.useMemo(
+    () => `md3-lockout:${lock.id}:${instanceId}`,
+    [instanceId, lock.id]
+  )
+
+  const startLadderIfWaiting = React.useCallback(
+    (waitUntil: number, failures: number) => {
+      if (
+        waitUntil <= readNow() ||
+        ladder !== null ||
+        ladderStarting ||
+        ladderDismissed
+      ) {
+        return
+      }
+      setLadderStarting(true)
+      const request: IUnlockLadderStartRequest = {
+        lockoutId: ladderLockoutId,
+        lockoutLevel: failures,
+        // This is intentionally zero: the wait ladder never owns or refunds
+        // the credential lock's attempt budget.
+        attemptsRemaining: 0,
+        waitUntil,
+        schoolMode: isSchoolModeEnabled(),
+      }
+      void startUnlockLadder(request)
+        .then((state: IUnlockLadderLockoutState) =>
+          issueUnlockLadderChallenge(state.lockoutId).then(challenge => ({
+            challenge,
+            remainingSkips: Math.max(
+              0,
+              UnlockLadderMaxSkipsPerRollingHour -
+                state.ladderSkipTimestamps.filter(
+                  timestamp =>
+                    readNow() - timestamp < UnlockLadderRollingWindowMs
+                ).length
+            ),
+          }))
+        )
+        .then(({ challenge, remainingSkips }) => {
+          setLadder({
+            lockoutId: ladderLockoutId,
+            challenge,
+            remainingSkips,
+          })
+        })
+        .catch(() => {
+          setLadderDismissed(true)
+          setStatus('The wait ladder is unavailable; continue waiting.')
+        })
+        .finally(() => setLadderStarting(false))
+    },
+    [
+      issueUnlockLadderChallenge,
+      ladder,
+      ladderLockoutId,
+      ladderDismissed,
+      ladderStarting,
+      readNow,
+    ]
+  )
+
+  React.useEffect(() => {
+    if (throttled) {
+      startLadderIfWaiting(retryAt, initialAttemptState.consecutiveFailures)
+    }
+  }, [
+    initialAttemptState.consecutiveFailures,
+    retryAt,
+    startLadderIfWaiting,
+    throttled,
+  ])
+
   const position = md3LockPromptPosition(anchorRect, {
     width: typeof window === 'undefined' ? PromptWidth : window.innerWidth,
     height: typeof window === 'undefined' ? 600 : window.innerHeight,
@@ -255,6 +360,72 @@ export function Md3LockUnlockPrompt(props: IMd3LockUnlockPromptProps) {
     },
     []
   )
+
+  const onLadderSubmit = React.useCallback(
+    async (
+      answerToGrade: UnlockLadderAnswer
+    ): Promise<IUnlockLadderServiceResult | null> => {
+      if (ladder === null) {
+        return null
+      }
+      const result = await submitUnlockLadder({
+        lockoutId: ladder.lockoutId,
+        challengeId: ladder.challenge.challengeId,
+        nonce: ladder.challenge.nonce,
+        answer: answerToGrade,
+      })
+      if (result.waitingCleared) {
+        // Clear only the current retry deadline. The failure count survives,
+        // so the ladder never refunds or erases credential escalation.
+        clearMd3LockWait(lock.id)
+        setRetryAt(0)
+        setLadder(null)
+        setLadderDismissed(false)
+        setStatus(
+          unlockLadderText('credentialNext', languageMode, {
+            english: funnyLevels.english,
+            cantonese: funnyLevels.cantonese,
+          })
+        )
+        return result
+      }
+
+      try {
+        const challenge = await issueUnlockLadderChallenge(ladder.lockoutId)
+        setLadder(current =>
+          current === null ? current : { ...current, challenge }
+        )
+      } catch {
+        // The service reaches the clock rung after the failed mole round.
+        setLadder(null)
+        setStatus(
+          unlockLadderText('clock', languageMode, {
+            english: funnyLevels.english,
+            cantonese: funnyLevels.cantonese,
+          })
+        )
+      }
+      return result
+    },
+    [funnyLevels, issueUnlockLadderChallenge, languageMode, ladder, lock.id]
+  )
+
+  const onLadderMoleHit = React.useCallback(
+    (
+      request: Readonly<{
+        readonly challengeId: string
+        readonly nonce: string
+        readonly moleId: string
+      }>
+    ) => recordUnlockLadderMoleHit({ ...request, lockoutId: ladderLockoutId }),
+    [ladderLockoutId]
+  )
+
+  const onLadderCancel = React.useCallback(() => {
+    setLadder(null)
+    setLadderDismissed(true)
+    setStatus(null)
+  }, [])
 
   const onMinutesChanged = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -287,6 +458,10 @@ export function Md3LockUnlockPrompt(props: IMd3LockUnlockPromptProps) {
       result => {
         setBusy(false)
         setRetryAt(result.retryAt)
+
+        if (result.retryAt > at) {
+          startLadderIfWaiting(result.retryAt, result.consecutiveFailures)
+        }
 
         if (result.outcome === 'matched') {
           setStatus(null)
@@ -338,6 +513,7 @@ export function Md3LockUnlockPrompt(props: IMd3LockUnlockPromptProps) {
     readNow,
     retryAt,
     runVerify,
+    startLadderIfWaiting,
   ])
 
   const onSubmit = React.useCallback(
@@ -426,53 +602,67 @@ export function Md3LockUnlockPrompt(props: IMd3LockUnlockPromptProps) {
         )}
       </p>
 
-      <label className="md3-lock-prompt__field" htmlFor={answerId}>
-        <span>{answerLabel}</span>
-        <input
-          ref={answerRef}
-          id={answerId}
-          className="md3-lock-prompt__input"
-          type={lock.factor === 'otp' ? 'text' : 'password'}
-          inputMode={lock.factor === 'otp' ? 'numeric' : undefined}
-          autoComplete="off"
-          spellCheck={false}
-          value={answer}
-          aria-describedby={statusId}
-          aria-invalid={status !== null}
-          disabled={busy}
-          onChange={onAnswerChanged}
-        />
-      </label>
+      {ladder === null ? (
+        <>
+          <label className="md3-lock-prompt__field" htmlFor={answerId}>
+            <span>{answerLabel}</span>
+            <input
+              ref={answerRef}
+              id={answerId}
+              className="md3-lock-prompt__input"
+              type={lock.factor === 'otp' ? 'text' : 'password'}
+              inputMode={lock.factor === 'otp' ? 'numeric' : undefined}
+              autoComplete="off"
+              spellCheck={false}
+              value={answer}
+              aria-describedby={statusId}
+              aria-invalid={status !== null}
+              disabled={busy}
+              onChange={onAnswerChanged}
+            />
+          </label>
 
-      <fieldset className="md3-lock-prompt__durations">
-        <legend>{t('md3.locks.unlock.durationLegend')}</legend>
-        {Md3UnlockDurationKinds.map(kind => (
-          <label className="md3-lock-prompt__duration" key={kind}>
-            <input
-              type="radio"
-              name={`md3-lock-unlock-duration-${instanceId}`}
-              value={kind}
-              checked={duration.kind === kind}
-              onChange={onDurationChanged}
-            />
-            <span>{durationLabel(kind)}</span>
-          </label>
-        ))}
-        {duration.kind === 'minutes' ? (
-          <label className="md3-lock-prompt__minutes" htmlFor={minutesId}>
-            <span>{t('md3.locks.unlock.minutesLabel')}</span>
-            <input
-              id={minutesId}
-              type="number"
-              min={MinimumUnlockMinutes}
-              max={MaximumUnlockMinutes}
-              step={1}
-              value={duration.minutes}
-              onChange={onMinutesChanged}
-            />
-          </label>
-        ) : null}
-      </fieldset>
+          <fieldset className="md3-lock-prompt__durations">
+            <legend>{t('md3.locks.unlock.durationLegend')}</legend>
+            {Md3UnlockDurationKinds.map(kind => (
+              <label className="md3-lock-prompt__duration" key={kind}>
+                <input
+                  type="radio"
+                  name={`md3-lock-unlock-duration-${instanceId}`}
+                  value={kind}
+                  checked={duration.kind === kind}
+                  onChange={onDurationChanged}
+                />
+                <span>{durationLabel(kind)}</span>
+              </label>
+            ))}
+            {duration.kind === 'minutes' ? (
+              <label className="md3-lock-prompt__minutes" htmlFor={minutesId}>
+                <span>{t('md3.locks.unlock.minutesLabel')}</span>
+                <input
+                  id={minutesId}
+                  type="number"
+                  min={MinimumUnlockMinutes}
+                  max={MaximumUnlockMinutes}
+                  step={1}
+                  value={duration.minutes}
+                  onChange={onMinutesChanged}
+                />
+              </label>
+            ) : null}
+          </fieldset>
+        </>
+      ) : (
+        <UnlockLadder
+          challenge={ladder.challenge}
+          languageMode={languageMode}
+          funnyLevels={funnyLevels}
+          remainingSkips={ladder.remainingSkips}
+          onSubmit={onLadderSubmit}
+          onMoleHit={onLadderMoleHit}
+          onCancel={onLadderCancel}
+        />
+      )}
 
       <p
         id={statusId}

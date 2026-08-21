@@ -1,5 +1,18 @@
 # Desktop Material roadmap
 
+## August 21 — credential wait ladder
+
+- [x] Mount the bounded wait-recovery ladder in the existing anchored
+  password/OTP lock prompt only while that prompt has a real retry wait.
+- [x] Keep challenge answers and mole receipt times in the main process, with
+  expiring single-use nonces, the three-per-hour wait-skip cap, and School-mode
+  start-at-sums semantics.
+- [x] Clear only the lock retry deadline after a correct ladder result; retain
+  the consecutive-failure count and require the ordinary credential step.
+- [x] Add focused model/service and credential-ledger tests (5/5 passing).
+- [ ] Capture the mounted flow from the packaged Windows artifact through the
+  approved cheap headless route.
+
 ## August 21 — current frozen-renderer capture ledger
 
 - [x] Replace the retired-shell derivation with 26 current source-mapped rows.

@@ -196,6 +196,13 @@
       d: "The Windows Preferences wizard provisions the repository's own services/desktop-material-server container. The main process owns the Docker and filesystem operations; the…",
     },
     {
+      t: 'Attention accommodations',
+      h: 'features/design-system/attention-accommodations.html',
+      s: 'features/design-system/attention-accommodations.md',
+      c: 'features',
+      d: 'Desktop Material provides five independently toggleable interface accommodations in Settings → Attention accommodations. They are all off by default, persist locally, and do…',
+    },
+    {
       t: 'Audio system (narrator, sound effects, per-repository music)',
       h: 'features/design-system/audio-system.html',
       s: 'features/design-system/audio-system.md',
@@ -266,7 +273,7 @@
       d: "Desktop Material mirrors the Desktop Material v2.dc.html prototype's two app-wide motion primitives:",
     },
     {
-      t: 'The Material Design 3 shell',
+      t: 'The Material Design 3 shell — RETIRED',
       h: 'features/design-system/md3-shell.html',
       s: 'features/design-system/md3-shell.md',
       c: 'features',
@@ -305,7 +312,7 @@
       h: 'features/design-system/',
       s: 'features/design-system/README.md',
       c: 'features',
-      d: 'The Material Design 3 shell — the application chrome rewritten',
+      d: 'Attention accommodations — five independent,',
     },
     {
       t: 'Repository-themed music',
@@ -329,6 +336,13 @@
       d: 'Builds on the audio system to give each meaningful app event its own recognizable sound effect instead of routing everything through the shared commit / auto-commit cue. It…',
     },
     {
+      t: 'Status Hub projection',
+      h: 'features/design-system/status-hub.html',
+      s: 'features/design-system/status-hub.md',
+      c: 'features',
+      d: "The existing Agents sidebar is the desktop surface for the current repository's agent-session fleet. It shows a compact status line supplied by a main-process Status Hub…",
+    },
+    {
       t: 'Surface locks / 版面鎖',
       h: 'features/design-system/surface-locks.html',
       s: 'features/design-system/surface-locks.md',
@@ -341,6 +355,20 @@
       s: 'features/design-system/tone-funny-level.md',
       c: 'features',
       d: "Two independent sliders — one for English, one for Cantonese — set how playful the app's copy reads, from 1 (fully serious) to 5 (maximum playfulness). They live on Settings →…",
+    },
+    {
+      t: 'Universal-feature completeness inventory',
+      h: 'features/design-system/universal-feature-completeness-inventory.html',
+      s: 'features/design-system/universal-feature-completeness-inventory.md',
+      c: 'features',
+      d: "The universal-feature completeness inventory is the repository's explicit map from each required user-facing feature to each user-facing surface that must ship it. It prevents…",
+    },
+    {
+      t: 'Unlock ladder / 解鎖梯',
+      h: 'features/design-system/unlock-ladder.html',
+      s: 'features/design-system/unlock-ladder.md',
+      c: 'features',
+      d: 'The lockout ladder is a wait-recovery surface. It gives a locked-out person a bounded activity that may clear the current waiting state, while leaving the credential and the…',
     },
     {
       t: 'GitHub Desktop demand backlog coverage',
@@ -483,6 +511,13 @@
       d: "Desktop Material's supported Windows catalog includes Visual Studio Code/VSCodium variants, JetBrains IDEs, Sublime Text, Vim/Neovim front ends, and other Windows editors.…",
     },
     {
+      t: 'Browser-extension download handoff',
+      h: 'features/integrations/browser-extension-downloads.html',
+      s: 'features/integrations/browser-extension-downloads.md',
+      c: 'features',
+      d: 'Desktop Material now owns the Windows desktop surfaces and bounded message contract for a browser-extension download handoff. It does not currently ship a browser extension or…',
+    },
+    {
       t: 'Build & Run output controls',
       h: 'features/integrations/build-run-output-controls.html',
       s: 'features/integrations/build-run-output-controls.md',
@@ -574,6 +609,13 @@
       d: 'Desktop Material can hand a failed Build & Run stage, or a free-form repository request, to either the Codex CLI or OpenCode. The provider choice is stored with that repository…',
     },
     {
+      t: 'Local file converter',
+      h: 'features/integrations/local-file-converter.html',
+      s: 'features/integrations/local-file-converter.md',
+      c: 'features',
+      d: 'Desktop Material is establishing a local file-converter workspace for files a person chooses from their own machine. The workspace must identify source bytes before offering a…',
+    },
+    {
       t: 'Ollama model manager',
       h: 'features/integrations/ollama-model-manager.html',
       s: 'features/integrations/ollama-model-manager.md',
@@ -600,6 +642,13 @@
       s: 'features/integrations/repository-releases-dashboard.md',
       c: 'features',
       d: 'Open Releases from a GitHub repository rail to search and status-filter the bounded loaded catalog, select a release, inspect metadata and assets, or enter the existing…',
+    },
+    {
+      t: 'Root Windows dependency fetcher / 根目錄 Windows 依賴擷取器',
+      h: 'features/integrations/root-windows-dependency-fetcher.html',
+      s: 'features/integrations/root-windows-dependency-fetcher.md',
+      c: 'features',
+      d: 'The repository root now carries download-dependencies.bat, a one-click, repeatable preparation path for a clean Windows checkout. It accepts /s, --silent, or SILENT=1; silent…',
     },
     {
       t: 'Self-hosted GitHub Actions runner manager',
@@ -1776,6 +1825,20 @@
       s: 'verification/close-all-open-issues-2026-07-28/run-manifest.md',
       c: 'verification',
       d: 'Run ID: close-all-open-issues-20260728',
+    },
+    {
+      t: 'Current frozen-renderer capture ledger — 2026-08-21',
+      h: 'verification/current-capture-ledger-2026-08-21.html',
+      s: 'verification/current-capture-ledger-2026-08-21.md',
+      c: 'verification',
+      d: 'The previous capture ledger was derived from a removed design-contract fixture and described the reverted MD3 shell. It could neither regenerate nor honestly describe the…',
+    },
+    {
+      t: 'Design-reference parity evidence',
+      h: 'verification/design-parity/',
+      s: 'verification/design-parity/README.md',
+      c: 'verification',
+      d: 'This directory stores deterministic comparison tooling and raw evidence for the checked-in design references. The evidence is tied to a source commit, a reference route, a…',
     },
     {
       t: 'Cleanup ledger',
