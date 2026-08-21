@@ -93,6 +93,10 @@
   `script/windows-dependency-manifest.json`.
 - [x] Route `build.bat` and `build-installer.bat` through the shared preparation
   path before their existing build or installer work.
+- [x] Preflight interactive administrator elevation once, while keeping `/s`,
+  `--silent`, and `SILENT=1` prompt-free and process-scoped.
+- [x] Require fresh, non-empty installer artifacts, verify the Squirrel manifest,
+  and report unsigned setup/MSI receipts with size, SHA-256, and source commit.
 - [ ] Run cold-cache and warm-cache preparation, builds, installer packaging,
   and artifact captures; this implementation lane intentionally did not run
   those checks or perform downloads.
