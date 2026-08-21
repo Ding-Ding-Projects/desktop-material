@@ -110,6 +110,12 @@ export interface IOllamaPullOptions extends IOllamaRequestOptions {
 
 export interface IOllamaChatOptions extends IOllamaRequestOptions {
   readonly onChunk?: (chunk: IOllamaChatResponseChunk) => void
+  /** Bounded local chat controls; omitted values use Ollama's documented defaults. */
+  readonly parameters?: {
+    readonly temperature: number
+    readonly topP: number
+    readonly numPredict: number
+  }
 }
 
 /** The fetch response subset consumed by the bounded Ollama client. */

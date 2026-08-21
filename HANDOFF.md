@@ -1,5 +1,18 @@
 # Desktop Material — Active parity handoff
 
+## Ollama suite foundations — 2026-08-21
+
+The existing Preferences, model-manager, and chat surfaces now have bounded
+queue, chat-control, recovery, and harness-profile foundations without adding a
+generic dashboard or changing the frozen shell. Chat sessions persist bounded
+local system prompts and generation parameters, support retry and redacted
+export, and fail closed on unknown image capability.
+
+The durable queue, recovery-state, and allowlisted harness-profile contracts
+are foundations only. Exhaustive official catalogue evidence, hardware-fit
+proof, complete launcher/rollback UI, runtime interaction, and captures remain
+pending.
+
 ## Status Hub projection foundation — 2026-08-21
 
 The existing Agents sidebar now owns the desktop-visible Status Hub state line;

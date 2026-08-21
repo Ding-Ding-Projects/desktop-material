@@ -152,6 +152,38 @@ Cantonese**, or **English / 香港粵語** language mode. The workspace is keybo
 reachable, announces changing progress and results, and reflows at compact
 window sizes.
 
+## Batch-pull, chat-control, and harness foundations
+
+Each chat now persists a bounded system prompt and generation controls
+(`temperature`, `top_p`, and maximum response tokens) in that chat's existing
+local Git-backed record. The prompt is prepended only to that chat's loopback
+request. Invalid values fall back to local defaults rather than being forwarded.
+Retry last prompt creates an ordinary new request and never rewrites history.
+Copy redacted export omits image bytes, endpoint URLs, credentials, local paths,
+and data URLs.
+
+Image attachment is fail-closed: it is available only where the selected
+installed model declares a known vision/image capability. A model name never
+stands in for capability evidence.
+
+`app/src/lib/ollama/batch-pull-queue.ts` defines the bounded durable queue
+document and runner above the existing pull primitive: at most 128 items and
+three workers. Every queued, pulling, progress, failed, cancelled, and complete
+transition is handed back to the owner's private persistence callback. A pull
+interrupted by restart is requeued and must be reconciled against the live
+installed list before it can be reported complete.
+
+`recovery.ts` represents ready, missing/stopped/unhealthy runtime,
+catalog-offline/stale, insufficient-storage, model-incompatible, and
+harness-failed states. The current installed-model list is not asserted to be
+an exhaustive official remote catalog, and no hardware-fit verdict is guessed.
+
+`harness-profile.ts` is the allowlisted profile/snapshot foundation for a
+future launcher. It permits only an explicitly selected executable, bounded
+argument array, working directory, and environment-key list; shell syntax and
+secret values are rejected. Process launch, health verification, and rollback
+UI remain pending instead of being represented by decorative controls.
+
 ## Ollama API references
 
 The manager uses Ollama's documented native API contracts for
@@ -181,6 +213,13 @@ message/image/appearance/font commits, non-rewriting undo/redo/restore,
 malformed-image rejection, bounded native chat serialization, streamed UI
 updates, cancellation, model changes without transcript loss, localized
 history controls, and compact workspace styling.
+
+The focused source tests for queue restart reconciliation and chat parameter,
+prompt, and capability validation are
+`app/test/unit/ollama/batch-pull-queue-test.ts` and
+`app/test/unit/ollama/chat-options-test.ts`. They were added but not run in the
+ultra-speed lane; built-artifact interaction and real capture evidence remain
+pending.
 
 Standalone-tab acceptance covers the unconfigured setup state rendering without
 any Copilot sign-in content, a non-Ollama BYOK provider still counting as

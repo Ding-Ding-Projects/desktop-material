@@ -23,6 +23,11 @@ import {
 } from '../../models/chat-session'
 import { IProfileHistoryPage } from '../../models/profile'
 import { ITabTitleStyle } from '../../models/repository-tab'
+import {
+  IOllamaChatParameters,
+  normalizeOllamaChatParameters,
+  normalizeOllamaSystemPrompt,
+} from '../ollama/chat-options'
 import { IVersionedStoreHistorySource } from '../../ui/version-history'
 import { TypedBaseStore } from './base-store'
 import { DedicatedSettingStore } from './dedicated-setting-store'
@@ -213,6 +218,22 @@ export class ChatSessionStore extends TypedBaseStore<IChatSessionStoreState> {
       target === 'messageStyle'
         ? 'Update chat message font'
         : 'Update chat composer font'
+    )
+  }
+
+  public setSystemPrompt(systemPrompt: string): Promise<void> {
+    const normalized = normalizeOllamaSystemPrompt(systemPrompt)
+    return this.mutate(
+      current => current.systemPrompt === normalized ? null : { ...current, systemPrompt: normalized },
+      normalized.length === 0 ? 'Clear chat system prompt' : 'Update chat system prompt'
+    )
+  }
+
+  public setParameters(parameters: IOllamaChatParameters): Promise<void> {
+    const normalized = normalizeOllamaChatParameters(parameters)
+    return this.mutate(
+      current => jsonEqual(current.parameters, normalized) ? null : { ...current, parameters: normalized },
+      'Update chat generation parameters'
     )
   }
 

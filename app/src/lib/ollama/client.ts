@@ -32,6 +32,7 @@ import {
   parseVersionResponse,
   validateGenerateResponse,
 } from './validation'
+import { normalizeOllamaChatParameters } from './chat-options'
 
 export const DefaultOllamaRequestTimeoutMs = 30_000
 export const DefaultOllamaLoadTimeoutMs = 10 * 60 * 1_000
@@ -692,12 +693,23 @@ export class OllamaClient implements IOllamaClient {
       this.chatTotalTimeoutMs
     )
     const normalizedMessages = normalizeOllamaChatMessages(messages)
+    const parameters =
+      options.parameters === undefined
+        ? undefined
+        : normalizeOllamaChatParameters(options.parameters)
     return this.request(
       'POST',
       'chat',
       {
         model: normalizeOllamaModelName(model),
         messages: normalizedMessages,
+        ...(parameters === undefined
+          ? {}
+          : { options: {
+              temperature: parameters.temperature,
+              top_p: parameters.topP,
+              num_predict: parameters.numPredict,
+            } }),
         stream: true,
       },
       options,

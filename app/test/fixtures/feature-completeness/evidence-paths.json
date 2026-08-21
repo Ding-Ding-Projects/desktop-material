@@ -2914,14 +2914,20 @@
       "evidence": {
         "implementation": [
           {
-            "status": "pending",
-            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+            "status": "present",
+            "paths": [
+              "app/src/lib/ollama/batch-pull-queue.ts"
+            ],
+            "note": "Bounded durable queue-document validation and restart reconciliation exist; the owned queue runner remains pending."
           }
         ],
         "documentation": [
           {
-            "status": "pending",
-            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "docs/features/integrations/ollama-model-manager.md"
+            ],
+            "note": "Documents bounded queue limits and the incomplete owner/runner boundary."
           }
         ],
         "localization": [
@@ -3017,14 +3023,21 @@
       "evidence": {
         "implementation": [
           {
-            "status": "pending",
-            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+            "status": "present",
+            "paths": [
+              "app/src/lib/ollama/harness-profile.ts",
+              "app/src/lib/ollama/recovery.ts"
+            ],
+            "note": "Allowlisted profile validation and recovery-state foundation exist; process launch, snapshot persistence, health verification, and rollback are pending."
           }
         ],
         "documentation": [
           {
-            "status": "pending",
-            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "docs/features/integrations/ollama-model-manager.md"
+            ],
+            "note": "Documents the strict foundation boundary without claiming a launcher exists."
           }
         ],
         "localization": [

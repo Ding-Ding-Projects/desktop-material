@@ -303,6 +303,18 @@ export function getOllamaModelManagerStrings(
       text('ollama.manager.chatImageAlt', { index: String(index) }),
     chatImageLimit: count =>
       text('ollama.manager.chatImageLimit', { count: String(count) }),
+    // The locale catalogs do not yet contain these new recovery-copy keys.
+    // Keep the exact pending boundary explicit instead of inventing translated strings.
+    chatSystemPrompt: 'System prompt',
+    chatSystemPromptHint:
+      'Optional local instructions for this chat. They are sent only to the configured loopback model.',
+    chatTemperature: 'Temperature (0–2)',
+    chatTopP: 'Top P (0–1)',
+    chatMaxTokens: 'Maximum response tokens',
+    chatRetry: 'Retry last prompt',
+    chatExportRedacted: 'Copy redacted export',
+    chatAttachmentsUnavailable:
+      'This model has not declared image capability. Attachments remain unavailable.',
     chatAccentName: palette => text(accentTranslationKeys[palette]),
     unknown: text('ollama.manager.unknown'),
     never: text('ollama.manager.never'),

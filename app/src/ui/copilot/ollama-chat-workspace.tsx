@@ -31,6 +31,11 @@ import {
 import { DialogStackContext } from '../dialog'
 import { ToolbarTextStyleEditor } from '../appearance/toolbar-text-style-editor'
 import { Button } from '../lib/button'
+import { TextBox } from '../lib/text-box'
+import {
+  normalizeOllamaChatParameters,
+  supportsOllamaVision,
+} from '../../lib/ollama/chat-options'
 import {
   IVersionedStoreHistoryStrings,
   IVersionedStoreHistorySource,
@@ -94,6 +99,14 @@ export interface IOllamaChatWorkspaceStrings {
   readonly chatImageAlt: (index: number) => string
   readonly chatImageLimit: (count: number) => string
   readonly chatAccentName: (palette: AccentPalette) => string
+  readonly chatSystemPrompt: string
+  readonly chatSystemPromptHint: string
+  readonly chatTemperature: string
+  readonly chatTopP: string
+  readonly chatMaxTokens: string
+  readonly chatRetry: string
+  readonly chatExportRedacted: string
+  readonly chatAttachmentsUnavailable: string
 }
 
 export interface IOllamaChatWorkspaceProps {
@@ -102,6 +115,8 @@ export interface IOllamaChatWorkspaceProps {
   readonly sessionsRootPath?: string
   readonly client: IOllamaModelManagerClient
   readonly models: ReadonlyArray<string>
+  /** Provider-declared capabilities keyed by installed model name. Missing is unsafe. */
+  readonly modelCapabilities?: Readonly<Record<string, ReadonlyArray<string> | undefined>>
   readonly preferredModel: string | null
   readonly strings: IOllamaChatWorkspaceStrings
 }
@@ -499,6 +514,80 @@ export class OllamaChatWorkspace extends React.Component<
     )
   }
 
+  private supportsAttachments(): boolean {
+    const selected = this.effectiveModel()
+    if (selected === null) return false
+    // The native client surface intentionally exposes only installed model names;
+    // unknown capability metadata must fail closed for image attachment.
+    return supportsOllamaVision(this.props.modelCapabilities?.[selected])
+  }
+
+  private retryLastPrompt = () => {
+    const session = this.state.session
+    if (session === null || this.state.streaming) {
+      return
+    }
+    const lastUser = [...session.messages]
+      .reverse()
+      .find(message => message.role === 'user')
+    if (lastUser === undefined) {
+      return
+    }
+    this.setState(
+      { input: lastUser.content, images: lastUser.images ?? [] },
+      () => void this.send()
+    )
+  }
+
+  private copyRedactedExport = () => {
+    const session = this.state.session
+    if (session === null) return
+    const transcript = session.messages.map(message => ({
+      role: message.role,
+      content: message.content,
+      images: message.images === undefined ? undefined : '[omitted]',
+    }))
+    clipboard.writeText(
+      JSON.stringify(
+        {
+          title: session.title,
+          model: session.model,
+          messages: transcript,
+          attachments: 'omitted from export',
+        },
+        null,
+        2
+      )
+    )
+  }
+
+  private setSystemPrompt = async (systemPrompt: string) => {
+    const id = this.state.activeSessionId
+    if (id === null) {
+      return
+    }
+    try {
+      await this.sessionsStore.setSystemPrompt(id, systemPrompt)
+    } catch {
+      this.setState({ error: this.props.strings.chatLoadError })
+    }
+  }
+
+  private setParameter = async (key: 'temperature' | 'topP' | 'numPredict', value: string) => {
+    const id = this.state.activeSessionId
+    const session = this.state.session
+    if (id === null || session === null) {
+      return
+    }
+    const parsed = Number(value)
+    const parameters = normalizeOllamaChatParameters({ ...session.parameters, [key]: parsed })
+    try {
+      await this.sessionsStore.setParameters(id, parameters)
+    } catch {
+      this.setState({ error: this.props.strings.chatLoadError })
+    }
+  }
+
   private send = async () => {
     const id = this.state.activeSessionId
     const store = this.activeStore
@@ -552,11 +641,18 @@ export class OllamaChatWorkspace extends React.Component<
         return
       }
 
+      const wireMessages = [
+        ...(persisted.systemPrompt.length === 0
+          ? []
+          : [{ role: 'system' as const, content: persisted.systemPrompt }]),
+        ...toOllamaChatMessages(persisted.messages),
+      ]
       const response = await this.props.client.chat!(
         model,
-        toOllamaChatMessages(persisted.messages),
+        wireMessages,
         {
           signal: controller.signal,
+          parameters: persisted.parameters,
           onChunk: delta => this.onDelta(requestId, controller, delta),
         }
       )
@@ -1050,6 +1146,29 @@ export class OllamaChatWorkspace extends React.Component<
       >
         <h4>{strings.chatAppearanceHeading}</h4>
         <p>{strings.chatSettingsHint}</p>
+        <TextBox
+          label={strings.chatSystemPrompt}
+          value={session.systemPrompt}
+          placeholder={strings.chatSystemPromptHint}
+          onValueChanged={this.setSystemPrompt}
+        />
+        <div className="ollama-chat-generation-fields">
+          <TextBox
+            label={strings.chatTemperature}
+            value={String(session.parameters.temperature)}
+            onValueChanged={value => void this.setParameter('temperature', value)}
+          />
+          <TextBox
+            label={strings.chatTopP}
+            value={String(session.parameters.topP)}
+            onValueChanged={value => void this.setParameter('topP', value)}
+          />
+          <TextBox
+            label={strings.chatMaxTokens}
+            value={String(session.parameters.numPredict)}
+            onValueChanged={value => void this.setParameter('numPredict', value)}
+          />
+        </div>
         <div className="ollama-chat-appearance-fields">
           <label>
             {strings.chatAccentLabel}
@@ -1155,6 +1274,8 @@ export class OllamaChatWorkspace extends React.Component<
           >
             {strings.chatHistory}
           </Button>
+          <Button size="small" disabled={this.state.streaming || !session.messages.some(message => message.role === 'user')} onClick={this.retryLastPrompt}>{strings.chatRetry}</Button>
+          <Button size="small" disabled={session.messages.length === 0} onClick={this.copyRedactedExport}>{strings.chatExportRedacted}</Button>
         </header>
         {this.renderSettings()}
         <div
@@ -1224,6 +1345,9 @@ export class OllamaChatWorkspace extends React.Component<
               ))}
             </div>
           )}
+          {!this.supportsAttachments() && (
+            <p className="ollama-chat-attachment-status" role="status">{strings.chatAttachmentsUnavailable}</p>
+          )}
           <label
             className="ollama-chat-visually-hidden"
             htmlFor="ollama-chat-workspace-input"
@@ -1260,7 +1384,7 @@ export class OllamaChatWorkspace extends React.Component<
               onClick={this.openImagePicker}
               disabled={
                 this.state.images.length >= MaxChatImagesPerMessage ||
-                effectiveModel === null
+                effectiveModel === null || !this.supportsAttachments()
               }
             >
               {strings.chatAttachImage}
