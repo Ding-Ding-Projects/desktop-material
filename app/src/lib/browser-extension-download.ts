@@ -95,11 +95,26 @@ export function parseBrowserExtensionDownloadRequest(
   if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
     return null
   }
+  if (
+    parsed.username !== '' ||
+    parsed.password !== '' ||
+    parsed.hostname === ''
+  ) {
+    return null
+  }
 
   return { id, source, suggestedFileName, destination, receivedAt }
 }
 
 /** A destination must be a complete local path, never an extension-provided URI. */
 export function isBrowserExtensionDownloadDestination(value: string): boolean {
+  if (
+    value.length === 0 ||
+    /[\u0000-\u001f]/u.test(value) ||
+    /(?:^|[\\/])\.\.(?:[\\/]|$)/u.test(value) ||
+    /[ .](?:\\|\/)?$/u.test(value)
+  ) {
+    return false
+  }
   return /^(?:[a-zA-Z]:[\\/]|\\\\[^\\/]+[\\/][^\\/]+)/.test(value)
 }

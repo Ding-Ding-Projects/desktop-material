@@ -2,17 +2,22 @@
   "feature": "browser-extension-download-dialogs",
   "implementation": [
     "app/src/lib/browser-extension-download.ts",
+    "app/src/lib/browser-extension-native-messaging.ts",
     "app/src/main-process/browser-extension-download-handoff.ts",
     "app/src/main-process/browser-extension-download-queue.ts",
     "app/src/ui/browser-extension-download/browser-extension-download-surfaces.tsx",
-    "app/src/ui/preferences/integrations.tsx"
+    "app/src/ui/preferences/integrations.tsx",
+    "browser-extension/manifest.json",
+    "browser-extension/background.js",
+    "browser-extension/options.html",
+    "browser-extension/options.js"
   ],
   "documentation": "docs/features/integrations/browser-extension-downloads.md",
   "localization": "app/src/lib/i18n-resources.ts",
   "focusedTests": "app/test/unit/browser-extension-download-test.ts",
   "builtArtifactInteraction": {
     "status": "pending",
-    "reason": "No installed browser extension or native-messaging host is packaged in this lane."
+    "reason": "The unpacked extension source exists, but no standalone host executable is packaged or registered; exact extension ID and host path remain required."
   },
   "capture": {
     "status": "pending",
