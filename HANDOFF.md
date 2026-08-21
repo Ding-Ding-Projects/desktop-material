@@ -32,10 +32,22 @@ generic dashboard or changing the frozen shell. Chat sessions persist bounded
 local system prompts and generation parameters, support retry and redacted
 export, and fail closed on unknown image capability.
 
-The durable queue, recovery-state, and allowlisted harness-profile contracts
-are foundations only. Exhaustive official catalogue evidence, hardware-fit
-proof, complete launcher/rollback UI, runtime interaction, and captures remain
-pending.
+The durable queue now has an owned runner in
+`app/src/lib/ollama/batch-pull-queue.ts`: it is capped at 128 items and three
+workers, serializes every persistence callback across overlapping workers and
+progress events, rejects oversized ids/model names, and requeues completed tags
+that disappear from a successful live installed-model inventory. The queue
+still has no renderer-owned persistent store in this lane; the caller must
+provide that private callback and must not report completed rows until live
+inventory reconciliation has succeeded.
+
+The recovery-state and allowlisted harness-profile contracts remain
+foundations only. Exhaustive official catalogue evidence, conservative
+hardware-fit proof, complete launcher/rollback UI, runtime interaction, and
+captures remain pending. Focused queue coverage is in
+`app/test/unit/ollama/batch-pull-queue-test.ts`; it passed **6/6** using the
+repository's existing TypeScript test loader. No built-artifact interaction or
+capture was run in this narrow source lane.
 
 ## Status Hub projection foundation — 2026-08-21
 
