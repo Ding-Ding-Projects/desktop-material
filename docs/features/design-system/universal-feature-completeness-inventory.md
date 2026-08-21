@@ -23,6 +23,24 @@ only that the repository names or wires the feature; it does not prove that the
 feature is complete, reachable, functional, accessible, localized, persistent,
 tested, exercised in the built application, or visually verified.
 
+The current machine-readable manifest is
+[`evidence-paths.json`](../../../app/test/fixtures/feature-completeness/evidence-paths.json).
+It contains all **62** canonical feature IDs in canonical order and uses schema
+version 2 with seven independent dimensions: `implementation`, `documentation`,
+`localization`, `persistence`, `focusedTest`, `builtArtifactInteraction`, and
+`realCapture`. Each dimension is an array of records, so one feature can cite
+more than one file without collapsing separate proof into a single path.
+
+Each record is explicitly `present`, `pending`, or `blocked`. A `present` record
+names repository-relative paths that were found during read-only inspection;
+it does not promote the feature to complete. `pending` and `blocked` records
+must carry a reason. The completion verdict walks every record, checks every
+claimed-present path, and remains incomplete while any required evidence is
+pending or blocked. The August 21 ultra-speed pass intentionally leaves the
+runtime, persistence, built-artifact interaction, and real-capture dimensions
+pending where they were not independently verified; that state is evidence of
+an open Chut, not a missing file to be papered over.
+
 The inventory also records a documented equivalent when a requirement cannot
 be implemented literally on a particular surface. The reason and the closest
 accessible behavior must be explicit. A blank field, placeholder, sibling-app
@@ -31,14 +49,26 @@ incomplete.
 
 ## Fail-closed behavior
 
-The completeness check compares the hand-written inventory with the canonical
-feature identifiers and surface identifiers. It must fail when:
+The completeness check compares the hand-written manifest with the canonical
+feature identifiers and required dimensions. It must fail when:
 
 - a required feature or surface is absent from the inventory;
 - an entry is duplicated or uses an unknown identifier;
-- any required evidence field is missing or no longer resolves exactly;
+- any required evidence dimension is missing, empty, malformed, or no longer
+  resolves exactly;
+- a `present` record names a missing repository path;
+- a `pending` or `blocked` record has no reason; or
 - a surface delegates its required behavior to another surface; or
 - a documented equivalent omits its reason or accessible behavior.
+
+Inventory validity and completion are separate verdicts. A valid manifest can
+have an incomplete completion verdict while evidence is honestly pending. The
+dedicated completion Chut nevertheless asserts `complete === true`; with the
+current deferred evidence it is expected to be red, and its failure message
+prints the exact pending, blocked, or missing paths that must be resolved. The
+focused contract test exercises both verdicts and mutates every row and every
+dimension using the row's actual ID and record content, including missing paths
+and missing pending reasons.
 
 A negative regression check must deliberately remove one required feature,
 surface, and evidence reference at a time, observe failure, restore the record,
