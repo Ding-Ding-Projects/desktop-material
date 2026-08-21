@@ -280,6 +280,7 @@ import {
   IRepositoryTabsAppearance,
   AppIdentityAppearanceEditor,
   AppearanceLockPromptHost,
+  guardAppearanceActivation,
   AppWorkspaceAppearanceEditor,
   CodeDiffAppearanceEditor,
   DefaultRepositoryLogoAppearanceEditor,
@@ -2007,17 +2008,39 @@ export class App extends React.Component<IAppProps, IAppState> {
       this.props.repositoryStateManager
     )
 
+  /** Keep direct command-palette tab actions behind the tab's own toy lock. */
+  private guardActiveTabActivation(activate: () => void): boolean {
+    const tab = this.props.repositoryTabsStore.getActiveTab()
+    if (tab === null) {
+      return false
+    }
+
+    const targetId = `repository-tab:${tab.id}`
+    const anchor =
+      Array.from(
+        document.querySelectorAll<HTMLElement>('.repository-tab[data-tab-id]')
+      ).find(element => element.dataset.tabId === tab.id) ??
+      document.querySelector<HTMLElement>('.repository-tab-strip') ??
+      document.body
+
+    return guardAppearanceActivation(targetId, anchor, activate)
+  }
+
   private setActiveTabPinned(isPinned: boolean) {
     const tab = this.props.repositoryTabsStore.getActiveTab()
     if (tab !== null) {
-      this.props.repositoryTabsStore.setTabPinned(tab.id, isPinned)
+      this.guardActiveTabActivation(() => {
+        void this.props.repositoryTabsStore.setTabPinned(tab.id, isPinned)
+      })
     }
   }
 
   private toggleActiveTabFavorite() {
     const tab = this.props.repositoryTabsStore.getActiveTab()
     if (tab !== null) {
-      this.props.repositoryTabsStore.toggleTabFavorite(tab.id)
+      this.guardActiveTabActivation(() => {
+        void this.props.repositoryTabsStore.toggleTabFavorite(tab.id)
+      })
     }
   }
 
@@ -2026,10 +2049,12 @@ export class App extends React.Component<IAppProps, IAppState> {
     if (tab === null) {
       return
     }
-    this.props.repositoryTabsStore
-      .closeTab(tab.id)
-      .then(this.selectActiveTabRepository)
-      .catch(err => log.error('Failed to close tab', err))
+    this.guardActiveTabActivation(() => {
+      void this.props.repositoryTabsStore
+        .closeTab(tab.id)
+        .then(this.selectActiveTabRepository)
+        .catch(err => log.error('Failed to close tab', err))
+    })
   }
 
   private closeOtherTabsFromActive() {
@@ -2037,10 +2062,12 @@ export class App extends React.Component<IAppProps, IAppState> {
     if (tab === null) {
       return
     }
-    this.props.repositoryTabsStore
-      .closeOtherTabs(tab.id)
-      .then(this.selectActiveTabRepository)
-      .catch(err => log.error('Failed to close other tabs', err))
+    this.guardActiveTabActivation(() => {
+      void this.props.repositoryTabsStore
+        .closeOtherTabs(tab.id)
+        .then(this.selectActiveTabRepository)
+        .catch(err => log.error('Failed to close other tabs', err))
+    })
   }
 
   private closeTabsToLeftOfActive() {
@@ -2048,10 +2075,12 @@ export class App extends React.Component<IAppProps, IAppState> {
     if (tab === null) {
       return
     }
-    this.props.repositoryTabsStore
-      .closeTabsToLeft(tab.id)
-      .then(this.selectActiveTabRepository)
-      .catch(err => log.error('Failed to close tabs to the left', err))
+    this.guardActiveTabActivation(() => {
+      void this.props.repositoryTabsStore
+        .closeTabsToLeft(tab.id)
+        .then(this.selectActiveTabRepository)
+        .catch(err => log.error('Failed to close tabs to the left', err))
+    })
   }
 
   private closeTabsToRightOfActive() {
@@ -2059,10 +2088,12 @@ export class App extends React.Component<IAppProps, IAppState> {
     if (tab === null) {
       return
     }
-    this.props.repositoryTabsStore
-      .closeTabsToRight(tab.id)
-      .then(this.selectActiveTabRepository)
-      .catch(err => log.error('Failed to close tabs to the right', err))
+    this.guardActiveTabActivation(() => {
+      void this.props.repositoryTabsStore
+        .closeTabsToRight(tab.id)
+        .then(this.selectActiveTabRepository)
+        .catch(err => log.error('Failed to close tabs to the right', err))
+    })
   }
 
   /**
