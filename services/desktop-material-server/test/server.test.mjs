@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { randomBytes, createHash } from 'node:crypto'
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, it } from 'node:test'
@@ -75,6 +75,13 @@ async function jsonRequest(origin, path, options = {}) {
 }
 
 describe('Desktop Material self-hosted server', () => {
+  it('creates the default Cloud Patch directory with native path semantics', async () => {
+    const paths = await fixture()
+    await startFixture(paths)
+
+    assert.equal((await stat(join(paths.root, 'cloud-patches'))).isDirectory(), true)
+  })
+
   it('reports bounded health without disclosing bootstrap secrets', async () => {
     const paths = await fixture()
     const instance = await startFixture(paths)
@@ -289,6 +296,20 @@ describe('Desktop Material self-hosted server', () => {
     })
     assert.equal(invalid.response.status, 400)
 
+    const credentialsInUrl = await jsonRequest(
+      instance.origin,
+      '/v1/workspaces',
+      {
+        method: 'POST',
+        token: joined.body.deviceToken,
+        body: {
+          name: 'Credential leak',
+          repositoryUrl: 'https://user:password@example.com/org/payments.git',
+        },
+      }
+    )
+    assert.equal(credentialsInUrl.response.status, 400)
+
     const created = await jsonRequest(instance.origin, '/v1/workspaces', {
       method: 'POST',
       token: joined.body.deviceToken,
@@ -321,6 +342,14 @@ describe('Desktop Material self-hosted server', () => {
       { token: joined.body.deviceToken }
     )
     assert.equal(missing.response.status, 404)
+
+    const malformed = await jsonRequest(
+      instance.origin,
+      '/v1/workspaces/%',
+      { token: joined.body.deviceToken }
+    )
+    assert.equal(malformed.response.status, 404)
+    assert.deepEqual(malformed.body, { error: 'workspace-not-found' })
   })
 
   it('refuses a non-loopback clear-text listener without a trusted proxy', async () => {

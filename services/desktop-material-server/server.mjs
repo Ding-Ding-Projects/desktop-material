@@ -8,7 +8,7 @@ import {
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { createServer as createHttpServer } from 'node:http'
 import { createServer as createHttpsServer } from 'node:https'
-import { dirname } from 'node:path'
+import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import {
@@ -577,7 +577,11 @@ function normalizeRepositoryUrl(value) {
   }
   try {
     const url = new URL(value)
-    if (url.protocol !== 'https:' && url.protocol !== 'ssh:') {
+    if (
+      (url.protocol !== 'https:' && url.protocol !== 'ssh:') ||
+      url.password ||
+      (url.protocol === 'https:' && url.username)
+    ) {
       return null
     }
   } catch {
@@ -643,7 +647,7 @@ export async function createDesktopMaterialServer(options) {
     configuration.oauth === null ? null : new SelfHostedSsoSessionStore(clock)
   const cloudPatchDataDirectory =
     options.cloudPatchDataDirectory ??
-    `${dirname(options.statePath)}/cloud-patches`
+    join(dirname(options.statePath), 'cloud-patches')
   const cloudPatchStore =
     configuration.cloudPatchEncryptionKey === null
       ? null
@@ -1378,9 +1382,16 @@ export async function createDesktopMaterialServer(options) {
           sendJson(response, status, { error: 'device-auth-required' })
           return
         }
-        const shareToken = decodeURIComponent(
-          pathname.slice('/v1/workspaces/'.length)
-        )
+        let shareToken
+        try {
+          shareToken = decodeURIComponent(
+            pathname.slice('/v1/workspaces/'.length)
+          )
+        } catch {
+          status = 404
+          sendJson(response, status, { error: 'workspace-not-found' })
+          return
+        }
         if (shareToken.length < 32 || shareToken.length > 256) {
           status = 404
           sendJson(response, status, { error: 'workspace-not-found' })
