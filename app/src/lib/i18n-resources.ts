@@ -3311,6 +3311,10 @@ export type TranslationKey =
   | 'publish.organization.noMatches'
   | 'publish.organization.selectedHint'
   | 'publish.organization.regexErrorPrefix'
+  | 'publish.organization.loadError'
+  | 'publish.organization.retry'
+  | 'publish.authentication.signInAgain'
+  | 'publish.authentication.signInAgainMessage'
   | 'settingsSearch.inputLabel'
   | 'settingsSearch.inputPlaceholder'
   | 'settingsSearch.resultsHeading'
@@ -9889,6 +9893,12 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'No publishing destinations match the current search.',
   'publish.organization.selectedHint': 'Selected',
   'publish.organization.regexErrorPrefix': 'Pattern error:',
+  'publish.organization.loadError':
+    'Organizations could not be loaded. You can still publish to your personal account.',
+  'publish.organization.retry': 'Retry loading organizations',
+  'publish.authentication.signInAgain': 'Sign in again',
+  'publish.authentication.signInAgainMessage':
+    'Your GitHub.com sign-in was refused. Sign in again, then choose Publish repository to retry this publication.',
   'settingsSearch.inputLabel': 'Search settings',
   'settingsSearch.inputPlaceholder': 'Search settings',
   'settingsSearch.resultsHeading': 'Search results',
@@ -16626,6 +16636,12 @@ export const cantoneseTranslations: Readonly<
   'publish.organization.noMatches': '冇發佈目的地啱而家嘅搜尋。',
   'publish.organization.selectedHint': '已揀',
   'publish.organization.regexErrorPrefix': 'Pattern 有問題：',
+  'publish.organization.loadError':
+    '載入唔到 organization；你仍然可以發佈去自己個人帳戶。',
+  'publish.organization.retry': '重試載入 organization',
+  'publish.authentication.signInAgain': '再次登入',
+  'publish.authentication.signInAgainMessage':
+    '你個 GitHub.com 登入被拒絕咗。再次登入，然後揀「發佈儲存庫」再試呢次發佈。',
   'settingsSearch.inputLabel': '搜尋設定',
   'settingsSearch.inputPlaceholder': '打字搵設定…',
   'settingsSearch.resultsHeading': '搜尋結果',

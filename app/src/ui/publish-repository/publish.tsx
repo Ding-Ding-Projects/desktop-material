@@ -12,6 +12,7 @@ import { Dialog, DialogFooter, DialogContent, DialogError } from '../dialog'
 import { TabBar } from '../tab-bar'
 import { assertNever, fatalError } from '../../lib/fatal-error'
 import { CallToAction } from '../lib/call-to-action'
+import { Button } from '../lib/button'
 import { getGitDescription } from '../../lib/git'
 import {
   IDotcomPublicationSettings,
@@ -21,6 +22,16 @@ import {
 } from '../../models/publish-settings'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import memoizeOne from 'memoize-one'
+import { APIError } from '../../lib/http'
+import { SignInResult } from '../../lib/stores/sign-in-store'
+import {
+  getPersistedLanguageMode,
+  LanguageModeChangedEvent,
+  normalizeLanguageMode,
+  translate,
+  translateForAccessibleName,
+} from '../../lib/i18n'
+import { LanguageMode } from '../../models/language-mode'
 
 enum PublishTab {
   DotCom = 0,
@@ -31,6 +42,9 @@ type TabState = IDotcomTabState | IEnterpriseTabState
 
 interface IDotcomTabState {
   readonly kind: 'dotcom'
+
+  /** The GitHub.com account selected for this publication attempt. */
+  readonly selectedAccount: Account | null
 
   /** The settings for publishing the repository. */
   readonly settings: IDotcomPublicationSettings
@@ -77,6 +91,7 @@ interface IPublishState {
   readonly currentTab: PublishTab
   readonly dotcomTabState: IDotcomTabState
   readonly enterpriseTabState: IEnterpriseTabState
+  readonly languageMode: LanguageMode
 
   /** Is the repository currently being published? */
   readonly publishing: boolean
@@ -117,6 +132,7 @@ export class Publish extends React.Component<IPublishProps, IPublishState> {
         org: null,
       },
       error: null,
+      selectedAccount: null,
     }
 
     const enterpriseTabState: IEnterpriseTabState = {
@@ -134,6 +150,7 @@ export class Publish extends React.Component<IPublishProps, IPublishState> {
       currentTab: startingTab,
       dotcomTabState,
       enterpriseTabState,
+      languageMode: getPersistedLanguageMode(),
       publishing: false,
     }
   }
@@ -159,7 +176,10 @@ export class Publish extends React.Component<IPublishProps, IPublishState> {
         </TabBar>
 
         {currentTabState.error ? (
-          <DialogError>{currentTabState.error.message}</DialogError>
+          <DialogError>
+            {currentTabState.error.message}
+            {this.renderPublishErrorAction(currentTabState.error)}
+          </DialogError>
         ) : null}
 
         <div
@@ -176,6 +196,11 @@ export class Publish extends React.Component<IPublishProps, IPublishState> {
   }
 
   public async componentDidMount() {
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+
     const currentTabState = this.getCurrentTabState()
 
     try {
@@ -195,10 +220,7 @@ export class Publish extends React.Component<IPublishProps, IPublishState> {
     const tab = this.state.currentTab
     const currentTabState = this.getCurrentTabState()
     const accounts = this.getAccountsForTab(tab, this.props.accounts)
-    const account =
-      (currentTabState.kind === 'enterprise'
-        ? currentTabState.selectedAccount
-        : undefined) ?? accounts.at(0)
+    const account = this.getAccountForTab(tab)
 
     if (account) {
       return (
@@ -221,9 +243,32 @@ export class Publish extends React.Component<IPublishProps, IPublishState> {
       const enterpriseTabState = {
         ...this.state.enterpriseTabState,
         selectedAccount: account,
+        settings: { ...this.state.enterpriseTabState.settings, org: null },
       }
       this.setTabState(enterpriseTabState)
+    } else {
+      const dotcomTabState = {
+        ...this.state.dotcomTabState,
+        selectedAccount: account,
+        settings: { ...this.state.dotcomTabState.settings, org: null },
+      }
+      this.setTabState(dotcomTabState)
     }
+  }
+
+  public componentWillUnmount() {
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+  }
+
+  private onLanguageModeChanged = (event: Event) => {
+    this.setState({
+      languageMode: normalizeLanguageMode(
+        (event as CustomEvent<unknown>).detail
+      ),
+    })
   }
 
   private onSettingsChanged = (settings: RepositoryPublicationSettings) => {
@@ -242,6 +287,7 @@ export class Publish extends React.Component<IPublishProps, IPublishState> {
         kind: 'dotcom',
         settings: settings,
         error: this.state.dotcomTabState.error,
+        selectedAccount: this.state.dotcomTabState.selectedAccount,
       }
     }
 
@@ -261,8 +307,7 @@ export class Publish extends React.Component<IPublishProps, IPublishState> {
   private getAccountForTab(tab: PublishTab): Account | null {
     const tabState = this.getTabState(tab)
     const tabAccounts = this.getAccountsForTab(tab, this.props.accounts)
-    const selectedAccount =
-      tabState.kind === 'enterprise' ? tabState.selectedAccount : null
+    const selectedAccount = tabState.selectedAccount
 
     return resolveSelectedAccount(tabAccounts, selectedAccount)
   }
@@ -318,6 +363,74 @@ export class Publish extends React.Component<IPublishProps, IPublishState> {
 
   private signInDotCom = () => {
     this.props.dispatcher.showDotComSignInDialog()
+  }
+
+  /**
+   * Offer re-authentication only for a provider-authenticated publication
+   * failure. The sign-in result updates this tab's selected account and clears
+   * the stale error; publishing remains an explicit second action so a
+   * successful re-authentication can never duplicate a repository creation.
+   */
+  private reauthenticateDotCom = () => {
+    const error = this.state.dotcomTabState.error
+    if (!(error instanceof APIError) || error.responseStatus !== 401) {
+      return
+    }
+
+    const resultCallback = (result: SignInResult) => {
+      if (result.kind !== 'success' || !isDotComAccount(result.account)) {
+        return
+      }
+
+      this.setState(state => ({
+        dotcomTabState: {
+          ...state.dotcomTabState,
+          selectedAccount: result.account,
+          settings: { ...state.dotcomTabState.settings, org: null },
+          error: null,
+        },
+      }))
+    }
+
+    void this.props.dispatcher.showDotComSignInDialog(resultCallback)
+  }
+
+  private renderPublishErrorAction(error: Error) {
+    if (
+      this.state.currentTab !== PublishTab.DotCom ||
+      !(error instanceof APIError) ||
+      error.responseStatus !== 401
+    ) {
+      return null
+    }
+
+    return (
+      <div className="publish-authentication-action">
+        <p>
+          {translate(
+            'publish.authentication.signInAgainMessage',
+            this.state.languageMode
+          )}
+        </p>
+        <Button
+          onClick={this.reauthenticateDotCom}
+          ariaLabel={translateForAccessibleName(
+            'publish.authentication.signInAgain',
+            {},
+            this.state.languageMode
+          )}
+          tooltip={translate(
+            'publish.authentication.signInAgain',
+            this.state.languageMode
+          )}
+        >
+          {translate(
+            'publish.authentication.signInAgain',
+            this.state.languageMode
+          )}
+        </Button>
+      </div>
+    )
   }
 
   private signInEnterprise = () => {
@@ -387,6 +500,7 @@ export class Publish extends React.Component<IPublishProps, IPublishState> {
       const dotcomTabState = {
         ...this.state.dotcomTabState,
         settings: settings,
+        selectedAccount: this.state.dotcomTabState.selectedAccount,
       }
       this.setTabState(dotcomTabState)
     }

@@ -1,5 +1,42 @@
 # Desktop Material — Active parity handoff
 
+## Publish account and owner recovery — 2026-08-21
+
+The Publish repository dialog now retains a selected GitHub.com account in the
+DotCom tab state instead of reverting to the first account after a rerender.
+The resolved account is passed to organization discovery and to the final
+publication call; changing accounts also clears an owner selected for the
+previous identity.
+
+Organization discovery now requests an explicit error result. When lookup
+fails, the personal-account destination stays present, a localized
+non-blocking status names the limitation, and a bounded retry action refreshes
+the same account. A late response from an older account remains fenced by the
+existing request generation.
+
+When a GitHub.com publication returns the existing `APIError` `401`
+classification, the dialog offers **Sign in again**. The callback adopts the
+successful GitHub.com account and clears the stale error; it deliberately does
+not auto-submit publication, so re-authentication cannot duplicate a remote
+repository creation.
+
+Changed surfaces in this lane:
+
+- `app/src/ui/publish-repository/publish.tsx`
+- `app/src/ui/publish-repository/publish-repository.tsx`
+- `app/src/lib/i18n-resources.ts`
+- `app/test/unit/ui/publish-repository-test.tsx`
+- `docs/features/repository-management/publish-organization-picker.md`
+- `ROADMAP.md`
+- `HANDOFF.md`
+- `changelog.json`
+
+Verification boundary: per the ultra-speed lane, no tests, lint, typecheck,
+review, capture, build, or packaging command was run. The focused publish test
+record is intentionally pending, and the selected-account and re-authentication
+paths still need built-artifact interaction evidence before they can be called
+verified.
+
 ## Five-day public guidance notice — 2026-08-21
 
 Added a compact, public-safe README banner summarizing the latest shared
