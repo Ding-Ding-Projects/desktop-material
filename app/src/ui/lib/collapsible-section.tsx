@@ -5,6 +5,10 @@ import {
   readCollapsibleState,
   writeCollapsibleState,
 } from '../../lib/collapsed-state'
+import {
+  personalizeOptionalText,
+  personalizeReactNode,
+} from '../../lib/personal-vocabulary-rendering'
 
 interface ICollapsibleSectionProps {
   /**
@@ -158,7 +162,7 @@ export class CollapsibleSection extends React.Component<
               aria-live="polite"
               aria-atomic="true"
             >
-              {this.props.summary}
+              {personalizeReactNode(this.props.summary)}
             </span>
           )}
         </button>
@@ -166,7 +170,9 @@ export class CollapsibleSection extends React.Component<
           id={this.regionId}
           className="collapsible-section-content"
           role="region"
-          aria-label={this.props.ariaLabel ?? this.props.label}
+          aria-label={personalizeOptionalText(
+            this.props.ariaLabel ?? this.props.label
+          )}
           hidden={!expanded}
         >
           {expanded && this.props.children}

@@ -1,6 +1,7 @@
 import * as React from 'react'
 import classNames from 'classnames'
 import { showContextualMenu } from '../../lib/menu-item'
+import { personalizeOptionalText } from '../../lib/personal-vocabulary-rendering'
 
 interface ITextAreaProps {
   /** The label for the textarea field. */
@@ -78,20 +79,20 @@ export class TextArea extends React.Component<ITextAreaProps, {}> {
     )
     return (
       <label className={className}>
-        {this.props.label}
+        {personalizeOptionalText(this.props.label)}
 
         <textarea
           autoFocus={this.props.autoFocus}
           className={this.props.textareaClassName}
           disabled={this.props.disabled}
           rows={this.props.rows || 3}
-          placeholder={this.props.placeholder}
+          placeholder={personalizeOptionalText(this.props.placeholder)}
           value={this.props.value}
           onChange={this.onChange}
           onKeyDown={this.props.onKeyDown}
           ref={this.props.onTextAreaRef}
           onContextMenu={this.onContextMenu}
-          aria-label={this.props.ariaLabel}
+          aria-label={personalizeOptionalText(this.props.ariaLabel)}
           aria-describedby={this.props.ariaDescribedBy}
         />
       </label>

@@ -4,6 +4,10 @@ import { Tooltip, TooltipDirection } from './tooltip'
 import { createObservableRef } from './observable-ref'
 import { AriaHasPopupType } from './aria-types'
 import { attachRipple } from './ripple'
+import {
+  personalizeOptionalText,
+  personalizeReactNode,
+} from '../../lib/personal-vocabulary-rendering'
 
 export interface IButtonProps {
   /** Stable, non-user-visible hook for deterministic UI verification. */
@@ -254,10 +258,13 @@ export class Button extends React.Component<IButtonProps, {}> {
 
   public render() {
     const { disabled } = this.props
+    const children = personalizeReactNode(this.props.children)
+    const ariaLabel = personalizeOptionalText(this.props.ariaLabel)
+    const explicitTooltip = personalizeOptionalText(this.props.tooltip)
     const tooltip = getButtonHint(
-      this.props.tooltip,
-      this.props.ariaLabel,
-      this.props.children,
+      explicitTooltip,
+      ariaLabel,
+      children,
       this.props.inferTooltip
     )
 
@@ -281,7 +288,7 @@ export class Button extends React.Component<IButtonProps, {}> {
         role={this.props.role}
         aria-expanded={this.props.ariaExpanded}
         aria-disabled={disabled ? 'true' : undefined}
-        aria-label={this.props.ariaLabel}
+        aria-label={ariaLabel}
         aria-describedby={this.props.ariaDescribedBy}
         aria-haspopup={this.props.ariaHaspopup}
         aria-pressed={this.props.ariaPressed}
@@ -310,7 +317,7 @@ export class Button extends React.Component<IButtonProps, {}> {
             {tooltip}
           </Tooltip>
         )}
-        {this.props.children}
+        {children}
       </button>
     )
   }

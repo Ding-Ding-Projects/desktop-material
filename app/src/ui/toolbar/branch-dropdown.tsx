@@ -31,6 +31,7 @@ import { enableResizingToolbarButtons } from '../../lib/feature-flag'
 import { BranchSortOrder } from '../../models/branch-sort-order'
 import { CIStatus } from '../branches/ci-status'
 import { MaterialSymbolName } from '../lib/material-symbol'
+import { personalizeText } from '../../lib/i18n'
 
 interface IBranchDropdownProps {
   readonly dispatcher: Dispatcher
@@ -148,6 +149,7 @@ export class BranchDropdown extends React.Component<IBranchDropdownProps> {
     let canOpen = true
     let disabled = false
     let tooltip: string
+    let preserveTooltip = false
 
     if (this.props.currentPullRequest) {
       materialSymbol = 'call_split'
@@ -158,17 +160,19 @@ export class BranchDropdown extends React.Component<IBranchDropdownProps> {
       return null
     } else if (tip.kind === TipState.Unborn) {
       title = tip.ref
-      tooltip = `Current branch is ${tip.ref}`
+      tooltip = `${personalizeText('Current branch is')} ${tip.ref}`
+      preserveTooltip = true
       canOpen = branchesState.allBranches.some(
         b => !b.isDesktopForkRemoteBranch
       )
     } else if (tip.kind === TipState.Detached) {
       title = `On ${tip.currentSha.substring(0, 7)}`
-      tooltip = 'Currently on a detached HEAD'
+      tooltip = personalizeText('Currently on a detached HEAD')
       materialSymbol = 'commit'
       description = 'Detached HEAD'
     } else if (tip.kind === TipState.Valid) {
       title = tooltip = tip.branch.name
+      preserveTooltip = true
     } else {
       return assertNever(tip, `Unknown tip state: ${tipKind}`)
     }
@@ -184,7 +188,8 @@ export class BranchDropdown extends React.Component<IBranchDropdownProps> {
         description = `${description} (${friendlyProgress}%)`
       }
 
-      tooltip = `Checking out ${checkoutProgress.target}`
+      tooltip = `${personalizeText('Checking out')} ${checkoutProgress.target}`
+      preserveTooltip = true
       progressValue = checkoutProgress.value
       materialSymbol = 'progress_activity'
       iconClassName = 'spin'
@@ -195,7 +200,8 @@ export class BranchDropdown extends React.Component<IBranchDropdownProps> {
       materialSymbol = 'alt_route'
       canOpen = false
       disabled = true
-      tooltip = `Rebasing ${conflictState.targetBranch}`
+      tooltip = `${personalizeText('Rebasing')} ${conflictState.targetBranch}`
+      preserveTooltip = true
     }
 
     const isOpen = this.props.isOpen
@@ -227,6 +233,8 @@ export class BranchDropdown extends React.Component<IBranchDropdownProps> {
             onlyShowTooltipWhenOverflowed={true}
             isOverflowed={isDescriptionOverflowed}
             enableFocusTrap={enableFocusTrap}
+            preserveTitleFromPersonalVocabulary={true}
+            preserveTooltipFromPersonalVocabulary={preserveTooltip}
           >
             {this.renderBranchStatus()}
           </ToolbarDropdown>
@@ -275,6 +283,8 @@ export class BranchDropdown extends React.Component<IBranchDropdownProps> {
             onlyShowTooltipWhenOverflowed={true}
             isOverflowed={isDescriptionOverflowed}
             enableFocusTrap={enableFocusTrap}
+            preserveTitleFromPersonalVocabulary={true}
+            preserveTooltipFromPersonalVocabulary={preserveTooltip}
           >
             {this.renderBranchStatus()}
           </ToolbarDropdown>

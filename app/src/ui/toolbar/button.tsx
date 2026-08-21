@@ -9,6 +9,10 @@ import { Tooltip, TooltipDirection, TooltipTarget } from '../lib/tooltip'
 import { AriaHasPopupType } from '../lib/aria-types'
 import { enableResizingToolbarButtons } from '../../lib/feature-flag'
 import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
+import {
+  personalizeOptionalText,
+  personalizeReactNode,
+} from '../../lib/personal-vocabulary-rendering'
 
 /** The button style. */
 export enum ToolbarButtonStyle {
@@ -123,6 +127,12 @@ export interface IToolbarButtonProps {
    */
   readonly ariaLabel?: string
 
+  /** Keep a technical identifier (for example a branch name) byte-for-byte. */
+  readonly preserveTitleFromPersonalVocabulary?: boolean
+
+  /** Keep a technical tooltip (for example a path or branch name) byte-for-byte. */
+  readonly preserveTooltipFromPersonalVocabulary?: boolean
+
   /**
    * Whether to only show the tooltip when the tooltip target overflows its
    * bounds. Typically this is used in conjunction with an ellipsis CSS ruleset.
@@ -183,13 +193,22 @@ export class ToolbarButton extends React.Component<IToolbarButtonProps, {}> {
   }
 
   public render() {
+    const title = this.props.preserveTitleFromPersonalVocabulary
+      ? this.props.title
+      : personalizeOptionalText(this.props.title)
+    const description =
+      typeof this.props.description === 'string'
+        ? personalizeOptionalText(this.props.description)
+        : personalizeReactNode(this.props.description)
+    const explicitTooltip = this.props.preserveTooltipFromPersonalVocabulary
+      ? this.props.tooltip
+      : personalizeOptionalText(this.props.tooltip)
+    const ariaLabel = personalizeOptionalText(this.props.ariaLabel)
     const tooltip =
-      this.props.tooltip ??
-      this.props.ariaLabel ??
-      this.props.title ??
-      (typeof this.props.description === 'string'
-        ? this.props.description
-        : undefined)
+      explicitTooltip ??
+      ariaLabel ??
+      title ??
+      (typeof description === 'string' ? description : undefined)
     const icon = this.props.materialSymbol ? (
       <span className={classNames('icon', this.props.iconClassName)}>
         <MaterialSymbol
@@ -249,7 +268,7 @@ export class ToolbarButton extends React.Component<IToolbarButtonProps, {}> {
           ariaExpanded={this.props.ariaExpanded}
           ariaHaspopup={this.props.ariaHaspopup}
           ariaControls={this.props.ariaControls}
-          ariaLabel={this.props.ariaLabel}
+          ariaLabel={ariaLabel}
           inferTooltip={false}
         >
           {progress}
@@ -271,12 +290,20 @@ export class ToolbarButton extends React.Component<IToolbarButtonProps, {}> {
 
     const title =
       this.props.title !== undefined ? (
-        <div className="title">{this.props.title}</div>
+        <div className="title">
+          {this.props.preserveTitleFromPersonalVocabulary
+            ? this.props.title
+            : personalizeOptionalText(this.props.title)}
+        </div>
       ) : null
 
     const description =
       this.props.description !== undefined ? (
-        <div className="description">{this.props.description}</div>
+        <div className="description">
+          {typeof this.props.description === 'string'
+            ? personalizeOptionalText(this.props.description)
+            : personalizeReactNode(this.props.description)}
+        </div>
       ) : null
 
     const style = this.props.style || ToolbarButtonStyle.Standard
@@ -292,7 +319,11 @@ export class ToolbarButton extends React.Component<IToolbarButtonProps, {}> {
       case ToolbarButtonStyle.Subtitle:
         return (
           <div className="text">
-            <div className="title">{this.props.title}</div>
+            <div className="title">
+              {this.props.preserveTitleFromPersonalVocabulary
+                ? this.props.title
+                : personalizeOptionalText(this.props.title)}
+            </div>
             {description}
           </div>
         )

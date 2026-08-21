@@ -3,6 +3,11 @@ import { ITooltipProps, Tooltip } from './tooltip'
 import { createObservableRef } from './observable-ref'
 import classNames from 'classnames'
 import { AriaLiveContainer } from '../accessibility/aria-live-container'
+import {
+  personalizeOptionalText,
+  personalizeReactNode,
+} from '../../lib/personal-vocabulary-rendering'
+import { personalizeText } from '../../lib/i18n'
 
 /**
  * IToggledtippedContentProps is a superset of ITooltipProps but does not
@@ -101,7 +106,7 @@ export class ToggledtippedContent extends React.Component<
       <button
         ref={this.buttonRefObservable}
         className={classes}
-        aria-label={ariaLabel}
+        aria-label={personalizeOptionalText(ariaLabel)}
         aria-haspopup="dialog"
         type="button"
         onClick={this.onToggle}
@@ -114,13 +119,13 @@ export class ToggledtippedContent extends React.Component<
               isToggleTip={true}
               {...rest}
             >
-              {tooltip}
+              {personalizeReactNode(tooltip)}
             </Tooltip>
           )}
           {children}
           {this.state.tooltipVisible && (
             <AriaLiveContainer
-              message={ariaLiveMessage}
+              message={personalizeText(ariaLiveMessage)}
               trackedUserInput={this.shouldForceAriaLiveMessage}
             />
           )}

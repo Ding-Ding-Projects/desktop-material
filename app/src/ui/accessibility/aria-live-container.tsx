@@ -1,5 +1,6 @@
 import debounce from 'lodash/debounce'
 import React, { Component } from 'react'
+import { personalizeText } from '../../lib/i18n'
 
 interface IAriaLiveContainerProps {
   /** The content that will be read by the screen reader.
@@ -82,14 +83,16 @@ export class AriaLiveContainer extends Component<
     // because VoiceOver does not detect the empty string as a change.
     this.suffix = this.suffix === '\u00A0\u00A0' ? '\u00A0' : '\u00A0\u00A0'
 
-    return <>{this.props.message + this.suffix}</>
+    return <>{personalizeText(this.props.message ?? '') + this.suffix}</>
   }
 
   private renderMessage() {
     // We are just using this as a typical aria-live container where the message
     // changes per usage - no need to force re-reading of the same message.
     if (this.props.trackedUserInput === undefined) {
-      return this.props.message
+      return this.props.message === null
+        ? null
+        : personalizeText(this.props.message)
     }
 
     // We are using this as a container to force re-reading of the same message,

@@ -2,6 +2,10 @@ import * as React from 'react'
 import classNames from 'classnames'
 import { MaterialSymbol } from './material-symbol'
 import { createUniqueId, releaseUniqueId } from './id-pool'
+import {
+  personalizeOptionalText,
+  personalizeReactNode,
+} from '../../lib/personal-vocabulary-rendering'
 
 interface IMaterialSwitchProps {
   /** Whether the switch is currently on. */
@@ -80,15 +84,14 @@ export class MaterialSwitch extends React.Component<
   }
 
   private renderButton(labelledBy: string | undefined) {
-    const { checked, disabled, ariaLabel, ariaDescribedBy, tabIndex } =
-      this.props
+    const { checked, disabled, ariaDescribedBy, tabIndex } = this.props
 
     return (
       <button
         type="button"
         role="switch"
         aria-checked={checked}
-        aria-label={ariaLabel}
+        aria-label={personalizeOptionalText(this.props.ariaLabel)}
         aria-labelledby={labelledBy}
         aria-describedby={ariaDescribedBy}
         disabled={disabled}
@@ -133,7 +136,7 @@ export class MaterialSwitch extends React.Component<
         )}
       >
         <span className="material-switch-label" id={this.state.labelId}>
-          {label}
+          {personalizeReactNode(label)}
         </span>
         {this.renderButton(labelledBy)}
       </span>

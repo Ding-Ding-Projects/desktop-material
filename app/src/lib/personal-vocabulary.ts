@@ -213,6 +213,10 @@ export function describeVocabularyRejection(
 /** Where the validated cache lives. The source path is never stored. */
 export const PersonalVocabularyStorageKey = 'desktop-material-vocabulary-v1'
 
+/** Raised after the active vocabulary changes so already-mounted surfaces re-render. */
+export const PersonalVocabularyChangedEvent =
+  'desktop-material-personal-vocabulary-changed'
+
 /** Persist a validated vocabulary. Never called with an unvalidated payload. */
 export function cachePersonalVocabulary(vocabulary: IPersonalVocabulary): void {
   try {
@@ -365,6 +369,13 @@ export function setActivePersonalVocabulary(
   vocabulary: IPersonalVocabulary | null
 ): void {
   active = vocabulary
+  if (typeof window !== 'undefined') {
+    // Use the window's constructor rather than the ambient global. Focused
+    // unit tests can install jsdom after this module loads, leaving the two
+    // Event constructors from different realms and jsdom rejecting the wrong
+    // one even though both are named Event.
+    window.dispatchEvent(new window.Event(PersonalVocabularyChangedEvent))
+  }
 }
 
 export function getActivePersonalVocabulary(): IPersonalVocabulary | null {

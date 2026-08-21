@@ -235,10 +235,8 @@ import {
 } from '../models/dim-sum'
 import { isWithinQuietHours } from '../lib/audio/audio-throttle'
 import { readFunnyLevels } from '../lib/funny-level-text'
-import {
-  isSchoolModeEnabled,
-  SchoolModeChangedEvent,
-} from '../lib/school-mode'
+import { isSchoolModeEnabled, SchoolModeChangedEvent } from '../lib/school-mode'
+import { PersonalVocabularyChangedEvent } from '../lib/personal-vocabulary'
 import { CrashProofBoundary } from './crash-proof-boundary'
 import { Button } from './lib/button'
 import { Loading } from './lib/loading'
@@ -1033,6 +1031,10 @@ export class App extends React.Component<IAppProps, IAppState> {
     document.ondrop = null
     document.body.ondrop = null
     window.removeEventListener(SchoolModeChangedEvent, this.onSchoolModeChanged)
+    window.removeEventListener(
+      PersonalVocabularyChangedEvent,
+      this.onPersonalVocabularyChanged
+    )
 
     if (shouldRenderApplicationMenu()) {
       window.removeEventListener('keydown', this.onWindowKeyDown)
@@ -3577,6 +3579,10 @@ export class App extends React.Component<IAppProps, IAppState> {
     this.mounted = true
     this.disposed = false
     window.addEventListener(SchoolModeChangedEvent, this.onSchoolModeChanged)
+    window.addEventListener(
+      PersonalVocabularyChangedEvent,
+      this.onPersonalVocabularyChanged
+    )
     this.syncAgentSessionWorktrees()
     this.syncAgentSessionPolling()
     void detectAgentRunnerAvailability().then(availability => {
@@ -3682,6 +3688,15 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private onSchoolModeChanged = () => {
+    if (this.mounted) {
+      this.forceUpdate()
+    }
+  }
+
+  private onPersonalVocabularyChanged = () => {
+    // The vocabulary is renderer-global, but existing React trees still need
+    // a render pass after upload or clear. This keeps every typed boundary in
+    // sync without walking or mutating the DOM.
     if (this.mounted) {
       this.forceUpdate()
     }
@@ -9024,6 +9039,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         dropdownContentRenderer={this.renderRepositoryList}
         dropdownState={currentState}
         enableFocusTrap={enableFocusTrap}
+        preserveTitleFromPersonalVocabulary={repository !== null}
+        preserveTooltipFromPersonalVocabulary={repository !== null}
       />
     )
   }

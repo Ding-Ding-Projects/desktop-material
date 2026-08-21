@@ -8,6 +8,7 @@ import {
   NotificationCentreKind,
 } from '../../models/notification-centre'
 import { IMenuItem, showContextualMenu } from '../../lib/menu-item'
+import { personalizeText } from '../../lib/i18n'
 
 interface INotificationListItemProps {
   readonly entry: INotificationEntry
@@ -112,7 +113,9 @@ export class NotificationListItem extends React.PureComponent<INotificationListI
             type="checkbox"
             checked={selected}
             disabled={selectionDisabled}
-            aria-label={`Select notification: ${entry.title}`}
+            aria-label={`${personalizeText('Select notification:')} ${
+              entry.title
+            }`}
             onChange={this.onToggleSelected}
           />
         </label>
@@ -141,7 +144,9 @@ export class NotificationListItem extends React.PureComponent<INotificationListI
         <button
           type="button"
           className="notification-item-read-toggle"
-          aria-label={entry.read ? 'Mark as unread' : 'Mark as read'}
+          aria-label={personalizeText(
+            entry.read ? 'Mark as unread' : 'Mark as read'
+          )}
           onClick={this.onToggleRead}
         >
           <Octicon symbol={entry.read ? octicons.dotFill : octicons.check} />
@@ -149,7 +154,7 @@ export class NotificationListItem extends React.PureComponent<INotificationListI
         <button
           type="button"
           className="notification-item-delete"
-          aria-label="Delete notification"
+          aria-label={personalizeText('Delete notification')}
           onClick={this.onDelete}
         >
           <Octicon symbol={octicons.trash} />

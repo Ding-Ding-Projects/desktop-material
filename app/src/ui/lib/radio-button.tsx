@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { createUniqueId, releaseUniqueId } from './id-pool'
+import { personalizeReactNode } from '../../lib/personal-vocabulary-rendering'
 
 interface IRadioButtonProps<T> {
   /**
@@ -74,7 +75,9 @@ export class RadioButton<T extends React.Key> extends React.Component<
             tabIndex={this.props.tabIndex}
             autoFocus={this.props.autoFocus}
           />
-          <span>{this.props.label ?? this.props.children}</span>
+          <span>
+            {personalizeReactNode(this.props.label ?? this.props.children)}
+          </span>
         </label>
       </div>
     )

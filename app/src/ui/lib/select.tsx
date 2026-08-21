@@ -2,6 +2,10 @@ import * as React from 'react'
 import { createUniqueId, releaseUniqueId } from './id-pool'
 import classNames from 'classnames'
 import { MaterialSymbol } from './material-symbol'
+import {
+  personalizeOptionalText,
+  personalizeReactNode,
+} from '../../lib/personal-vocabulary-rendering'
 
 interface ISelectProps {
   /** Form name used to identify this select in shared change handlers. */
@@ -55,7 +59,7 @@ export class Select extends React.Component<ISelectProps, ISelectState> {
   }
 
   private renderLabel() {
-    const label = this.props.label
+    const label = personalizeOptionalText(this.props.label)
     const inputId = this.state.inputId
 
     return label ? <label htmlFor={inputId}>{label}</label> : null
@@ -74,7 +78,7 @@ export class Select extends React.Component<ISelectProps, ISelectState> {
             defaultValue={this.props.defaultValue}
             disabled={this.props.disabled}
           >
-            {this.props.children}
+            {personalizeReactNode(this.props.children)}
           </select>
           <MaterialSymbol
             name="expand_more"

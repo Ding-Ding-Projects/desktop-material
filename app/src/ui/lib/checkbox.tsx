@@ -1,6 +1,10 @@
 import * as React from 'react'
 import { createUniqueId, releaseUniqueId } from './id-pool'
 import classNames from 'classnames'
+import {
+  personalizeOptionalText,
+  personalizeReactNode,
+} from '../../lib/personal-vocabulary-rendering'
 
 /** The possible values for a Checkbox component. */
 export enum CheckboxValue {
@@ -111,7 +115,7 @@ export class Checkbox extends React.Component<ICheckboxProps, ICheckboxState> {
   }
 
   private renderLabel() {
-    const label = this.props.label
+    const label = personalizeReactNode(this.props.label)
     const inputId = this.state.inputId
 
     return label ? <label htmlFor={inputId}>{label}</label> : null
@@ -128,7 +132,7 @@ export class Checkbox extends React.Component<ICheckboxProps, ICheckboxState> {
           onDoubleClick={this.onDoubleClick}
           ref={this.onInputRef}
           disabled={this.props.disabled}
-          aria-label={this.props.ariaLabel}
+          aria-label={personalizeOptionalText(this.props.ariaLabel)}
           aria-describedby={this.props.ariaDescribedBy}
           aria-labelledby={this.props.ariaLabelledBy}
         />

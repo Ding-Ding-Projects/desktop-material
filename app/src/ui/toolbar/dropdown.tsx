@@ -233,6 +233,12 @@ export interface IToolbarDropdownProps {
    */
   readonly ariaLabel?: string
 
+  /** Keep a technical identifier used as the button title unchanged. */
+  readonly preserveTitleFromPersonalVocabulary?: boolean
+
+  /** Keep a technical tooltip used as the button hint unchanged. */
+  readonly preserveTooltipFromPersonalVocabulary?: boolean
+
   /** Whether or not the focus trap should return focus to the activating button  */
   readonly returnFocusOnDeactivate?: boolean
 
@@ -524,6 +530,12 @@ export class ToolbarDropdown extends React.Component<
               : this.isOpen
           }
           ariaHaspopup={this.props.buttonAriaHaspopup}
+          preserveTitleFromPersonalVocabulary={
+            this.props.preserveTitleFromPersonalVocabulary
+          }
+          preserveTooltipFromPersonalVocabulary={
+            this.props.preserveTooltipFromPersonalVocabulary
+          }
         >
           {this.props.children}
           {this.props.dropdownStyle !== ToolbarDropdownStyle.MultiOption &&

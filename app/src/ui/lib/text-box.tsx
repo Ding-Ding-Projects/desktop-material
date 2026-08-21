@@ -5,6 +5,11 @@ import { showContextualMenu } from '../../lib/menu-item'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { AriaLiveContainer } from '../accessibility/aria-live-container'
+import {
+  personalizeOptionalText,
+  personalizeReactNode,
+} from '../../lib/personal-vocabulary-rendering'
+import { personalizeText } from '../../lib/i18n'
 
 export interface ITextBoxProps {
   /** Stable audit identity when this text box is a collection search input. */
@@ -309,7 +314,8 @@ export class TextBox extends React.Component<ITextBoxProps, ITextBoxState> {
   }
 
   public render() {
-    const { label, className, prefixedIcon } = this.props
+    const { className, prefixedIcon } = this.props
+    const label = personalizeReactNode(this.props.label)
     const inputId = label ? this.state.inputId : undefined
 
     return (
@@ -335,14 +341,14 @@ export class TextBox extends React.Component<ITextBoxProps, ITextBoxState> {
           disabled={this.props.disabled}
           readOnly={this.props.readOnly}
           type={this.props.type ?? 'text'}
-          placeholder={this.props.placeholder}
+          placeholder={personalizeOptionalText(this.props.placeholder)}
           value={this.state.value}
           onChange={this.onChange}
           onKeyDown={this.onKeyDown}
           tabIndex={this.props.tabIndex ?? 0}
           onContextMenu={this.onContextMenu}
           spellCheck={this.props.spellcheck === true}
-          aria-label={this.props.ariaLabel}
+          aria-label={personalizeOptionalText(this.props.ariaLabel)}
           aria-labelledby={this.props.ariaLabelledBy}
           aria-controls={this.props.ariaControls}
           aria-activedescendant={this.props.ariaActiveDescendant}
@@ -356,7 +362,9 @@ export class TextBox extends React.Component<ITextBoxProps, ITextBoxState> {
             <button
               type="button"
               className="clear-button"
-              aria-label={this.props.clearButtonAriaLabel ?? 'Clear'}
+              aria-label={personalizeText(
+                this.props.clearButtonAriaLabel ?? 'Clear'
+              )}
               onClick={this.clearSearchText}
             >
               <Octicon symbol={octicons.x} />
@@ -364,7 +372,9 @@ export class TextBox extends React.Component<ITextBoxProps, ITextBoxState> {
           )}
         {this.state.valueCleared && (
           <AriaLiveContainer
-            message={this.props.clearedMessage ?? 'Input cleared'}
+            message={personalizeText(
+              this.props.clearedMessage ?? 'Input cleared'
+            )}
           />
         )}
       </div>

@@ -5,6 +5,7 @@ import { createUniqueId, releaseUniqueId } from './id-pool'
 import classNames from 'classnames'
 import { assertNever } from '../../lib/fatal-error'
 import { rectEquals, rectContains, offsetRect } from './rect'
+import { personalizeReactNode } from '../../lib/personal-vocabulary-rendering'
 
 export enum TooltipDirection {
   NORTH = 'n',
@@ -916,7 +917,9 @@ export class Tooltip<T extends TooltipTarget> extends React.Component<
         onInvalid={stopPropagation}
         onSubmit={stopPropagation}
       >
-        <div className="tooltip-content">{this.props.children}</div>
+        <div className="tooltip-content">
+          {personalizeReactNode(this.props.children)}
+        </div>
       </div>
     )
   }

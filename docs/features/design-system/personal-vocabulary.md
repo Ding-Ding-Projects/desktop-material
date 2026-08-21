@@ -111,12 +111,27 @@ message that helpfully echoes the offending term would defeat the feature.
 
 ## How replacement works
 
-Applied at `translate` in `app/src/lib/i18n.ts` — the single boundary every
-piece of user-facing copy passes through. One place, so the feature reaches
-every surface at once rather than every surface having to remember it.
+Translated copy is personalized at `translate` in
+`app/src/lib/i18n.ts`. Raw React copy uses the typed boundaries in
+`app/src/lib/personal-vocabulary-rendering.ts` and the shared controls that
+own each prop: visible button children, accessible names, titles and tooltips,
+input labels and placeholders, dropdown and toolbar-overflow labels, dialog
+headers and content, notification accessibility copy, palette fallback titles,
+and aria-live announcements. Context-menu labels continue through the menu
+model boundary. This is intentionally not a document-wide DOM mutation: each
+component transforms the text it owns immediately before rendering it.
 
-It runs **after interpolation**, so a term inside a substituted value — a branch
-name, a file path — is reachable too.
+The renderer emits `PersonalVocabularyChangedEvent` after an upload or clear;
+the root `App` subscribes and refreshes the already-mounted tree. A valid file
+therefore updates an open selector, menu, dialog or notification surface
+without requiring a restart. Until a valid file is supplied, these boundaries
+return the original shipped wording unchanged.
+
+Technical content remains exact. Code, preformatted and keyboard shortcut
+text, icon ligatures, `Ref` values such as paths, branch names and SHAs, and
+explicitly hidden text are not treated as user-facing copy by the React text
+boundary. Callers that compose a human sentence around a technical identifier
+personalize the sentence and append the identifier unchanged.
 
 - **Longest term first.** Regex alternation takes the first branch that
   matches, not the longest, so `force push` must be tried before `push`.
@@ -165,7 +180,8 @@ returns the text untouched and no replacement occurs anywhere.
 node script/test.mjs app/test/unit/personal-vocabulary-test.ts
 ```
 
-32 tests. Three guards were verified by breaking the thing they guard and
+40 tests. The boundary inventory and its negative mutation test were verified
+by breaking the thing they guard and
 watching them go red:
 
 | Guard | Broken by | Result |
@@ -173,6 +189,20 @@ watching them go red:
 | Reserved keys are refused | Deleting the `unsafeKeys` check | red |
 | Terms are escaped before compiling | Dropping `escapeForRegExp` | red |
 | A pattern survives reuse | (see below) | could not be made to fail |
+
+The focused boundary suite is:
+
+```
+node script/test.mjs app/test/unit/personal-vocabulary-rendering-test.tsx
+```
+
+It covers the pictured repository/worktree/branch selector descriptions,
+visible labels, accessible names, tooltips, placeholders, dialog copy,
+dropdown and overflow ownership, palette fallback text, notification labels,
+aria-live copy, upload/clear refresh of an already-mounted surface, and
+technical-content preservation. Its hand-written inventory deliberately
+removes one row and asserts red before restoring the complete list and
+asserting green.
 
 The third is worth recording rather than hiding. A `lastIndex` reset was added
 to the cached pattern with a confident comment about why it was necessary, and

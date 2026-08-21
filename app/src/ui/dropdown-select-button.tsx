@@ -6,6 +6,10 @@ import * as octicons from './octicons/octicons.generated'
 import { MenuPane } from './app-menu'
 import { ICheckboxMenuItem, MenuItem } from '../models/app-menu'
 import { ClickSource, SelectionSource } from './lib/list'
+import {
+  personalizeOptionalText,
+  personalizeReactNode,
+} from '../lib/personal-vocabulary-rendering'
 
 export interface IDropdownSelectButtonOption {
   /** The select option header label. */
@@ -262,8 +266,12 @@ export class DropdownSelectButton extends React.Component<
 
     return (
       <>
-        <div className="option-title">{option.label}</div>
-        <div className="option-description">{option.description}</div>
+        <div className="option-title">
+          {personalizeOptionalText(option.label)}
+        </div>
+        <div className="option-description">
+          {personalizeReactNode(option.description)}
+        </div>
       </>
     )
   }
