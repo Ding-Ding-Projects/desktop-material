@@ -131,6 +131,19 @@
   overflow-y: auto;
 }
 
+// A compact factual status line, deliberately inside the existing Agents
+// surface rather than a second dashboard. The sentence is supplied only by the
+// main-process client, so local work never masquerades as a delivered Hub row.
+.agent-sessions-status-hub {
+  background: var(--md-sys-color-surface-container-low);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--font-size-sm);
+  margin: 0;
+  overflow-wrap: anywhere;
+  padding: var(--spacing-half) var(--spacing);
+}
+
 .agent-session-fleet {
   display: grid;
   gap: var(--spacing-half);

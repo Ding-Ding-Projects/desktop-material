@@ -140,6 +140,11 @@ import {
   ISetHomeAssistantTokenRequest,
   IScheduledSettingsValue,
 } from '../models/scheduled-settings'
+import {
+  IStatusHubReplyPollResult,
+  IStatusHubSessionProjection,
+  IStatusHubStatus,
+} from '../models/status-hub'
 
 /**
  * Defines the simplex IPC channel names we use from the renderer
@@ -311,6 +316,17 @@ export type RequestChannels = {
  * Return signatures must be promises
  */
 export type RequestResponseChannels = {
+  /** Main-process-only Status Hub state; no credential crosses this boundary. */
+  'get-status-hub-status': () => Promise<IStatusHubStatus>
+  /** Publish an evidence-backed agent-session projection through the main process. */
+  'publish-status-hub-session': (
+    projection: IStatusHubSessionProjection
+  ) => Promise<IStatusHubStatus>
+  /** Poll the authenticated session inbox and prove Hub delivery before UI says so. */
+  'poll-status-hub-replies': (
+    sessionId: string,
+    cursor: string | null
+  ) => Promise<IStatusHubReplyPollResult>
   /** Fetch and validate a bounded scheduled-settings document in the main process. */
   'fetch-scheduled-settings': (
     endpoint: string

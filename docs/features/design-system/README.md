@@ -26,6 +26,10 @@
   documentation, localization, persistence, test, built-artifact interaction, and
   capture evidence fields; a registration alone is never treated as proof that a
   feature is implemented or verified.
+- [Status Hub projection](status-hub.md) — the existing Agents sidebar's
+  main-process-only project/session/evidence projection, authenticated reply
+  confirmation, and honest local-only fallback when owner configuration is
+  unavailable.
 - [Command palette rows and
   appearance](command-palette-appearance.md) — icon/keyword/group rows, the
   compact aligned Customize appearance editor, stable random-per-repository
@@ -107,6 +111,7 @@
 - [命令面板：全 app 覆蓋、豐富控制項同傳送](command-palette-full-coverage.md) — Ctrl+Shift+P 面板就係 MD3 嘅全螢幕搜尋檢視：設定行有行內開關／方框／步進器／選擇器，撳一下或者 Enter 就傳送到擁有該功能嘅確切控制項（Ctrl+Enter 改為直接執行）。
 - [命令面板覆蓋率](command-palette-coverage-gaps.md) — 完整 133 個命令嘅覆蓋調查同出貨狀態，分清楚即時控制項、淨係傳送嘅目的地、刻意排除，同仲欠嘅目錄前置條件。
 - [通用功能完整性清單](universal-feature-completeness-inventory.md) — 逐個功能、逐個介面手寫嘅合約，分開記錄實作、文件、本地化、持久化、測試、已建置程式互動同畫面證據；淨係登記一個功能，唔代表佢已經實作或者驗證。
+- [Status Hub 投影](status-hub.md) — 既有 Agents 側欄嘅主程序專用 project／session／evidence 投影、已驗證回覆確認，同埋未有 owner 設定時誠實嘅本機後備狀態。
 - [命令面板列同外觀](command-palette-appearance.md) — 圖示／關鍵字／群組列、緊湊對齊嘅「自訂外觀」編輯器、每個儲存庫穩定嘅隨機版面，以及俾原本埋得好深嘅畫面嘅可發現入口。
 - [Material 漣漪同主題揭示](material-ripple-and-theme-reveal.md) — 共用嘅互動回饋同有界嘅主題轉場動畫。
 - [對話框滾輪同觸控板捲動](dialog-wheel-scrolling.md) — 將任何子元素嘅指標捲動導向最近可用嘅對話框捲動擁有者，同時保留巢狀控制項同堆疊面板行為。

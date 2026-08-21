@@ -455,14 +455,23 @@
       "evidence": {
         "implementation": [
           {
-            "status": "pending",
-            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+            "status": "present",
+            "paths": [
+              "app/src/models/status-hub.ts",
+              "app/src/main-process/status-hub-client.ts",
+              "app/src/lib/agent-sessions/agent-session-live-store.ts",
+              "app/src/ui/agent-sessions/agent-sessions-panel.tsx"
+            ],
+            "note": "Main-process boundary and existing Agents-surface projection are implemented; endpoint registration remains owner-configured."
           }
         ],
         "documentation": [
           {
-            "status": "pending",
-            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "docs/features/design-system/status-hub.md"
+            ],
+            "note": "Documents local fallback, evidence states, reply confirmation, and Discord read-plus-reply boundary."
           }
         ],
         "localization": [

@@ -466,6 +466,14 @@ Updated: **August 13, 2026**
 
 ## August 3 audit checkpoint — **Scoped fixes verified; browser page search now usable**
 
+## August 21 — Status Hub projection foundation — **implementation pending verification**
+
+- [ ] The existing Agents sidebar now receives a main-process-only Status Hub
+  status projection with an honest local-only fallback. Repository registration,
+  heartbeat/evidence models, and authenticated inbox reply confirmation are
+  implemented; endpoint/vault configuration, focused Chuts, packaged
+  interaction, and real HuiShots remain pending.
+
 - The Agents creator is now mounted through the shared modal dialog layer and
   keeps its Options disclosure disabled during creation. The live store and
   mount are present; built-app acceptance capture is still pending.

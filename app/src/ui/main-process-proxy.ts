@@ -559,6 +559,11 @@ export const cancelCodex = invokeProxy('codex-cancel', 1)
 /** Run a reviewed Agent setup list in its newly created Git worktree. */
 export const runAgentSetupCommands = invokeProxy('run-agent-setup-commands', 1)
 
+/** Main-process-confirmed status; credentials and Discord bridge state stay private. */
+export const getStatusHubStatus = invokeProxy('get-status-hub-status', 0)
+export const publishStatusHubSession = invokeProxy('publish-status-hub-session', 1)
+export const pollStatusHubReplies = invokeProxy('poll-status-hub-replies', 2)
+
 /** Cancel only the setup operation owned by this renderer. */
 export const cancelAgentSetupCommands = invokeProxy(
   'cancel-agent-setup-commands',

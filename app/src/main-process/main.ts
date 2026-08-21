@@ -177,6 +177,7 @@ import {
   agentSetupCommandRunner,
   registerAgentSetupCommandRunnerIpc,
 } from './agent-setup-command-runner'
+import { createUnconfiguredStatusHubClient } from './status-hub-client'
 
 app.setAppLogsPath()
 enableSourceMaps()
@@ -187,6 +188,9 @@ const updateDownloadState: IAppWindowUpdateDownloadState = {
 }
 let updateInstallTerminalInProgress = false
 const profileRepositoryLocks = new ProfileRepositoryLockRegistry()
+// Until the owner supplies an endpoint and OS-vault credential through the
+// Status Hub owner surface, IPC reports the explicit local-only fallback.
+const statusHubClient = createUnconfiguredStatusHubClient()
 interface IProfileRepositoryLockSenderState {
   documentId: number
   destroyed: boolean
@@ -1226,6 +1230,13 @@ app.on('ready', () => {
 
   ipcMain.handle('fetch-scheduled-settings', async (_event, endpoint) =>
     fetchScheduledSettingsAPI(endpoint)
+  )
+  ipcMain.handle('get-status-hub-status', async () => statusHubClient.getStatus())
+  ipcMain.handle('publish-status-hub-session', async (_event, projection) =>
+    statusHubClient.publish(projection)
+  )
+  ipcMain.handle('poll-status-hub-replies', async (_event, sessionId, cursor) =>
+    statusHubClient.pollReplies(sessionId, cursor)
   )
   ipcMain.handle('fetch-home-assistant-state', async (_event, request) =>
     fetchHomeAssistantState(request)

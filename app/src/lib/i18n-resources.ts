@@ -3930,6 +3930,10 @@ export type TranslationKey =
   | 'agentSessions.agentsTab'
   | 'agentSessions.worktrees'
   | 'agentSessions.newSession'
+  | 'agentSessions.statusHub.connected'
+  | 'agentSessions.statusHub.localOnly'
+  | 'agentSessions.statusHub.authenticationUnavailable'
+  | 'agentSessions.statusHub.deliveryUnconfirmed'
   | 'agentSessions.empty'
   | 'agentSessions.locked'
   | 'agentSessions.missing'
@@ -10637,6 +10641,10 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'agentSessions.agentsTab': 'Agents',
   'agentSessions.worktrees': 'Worktrees',
   'agentSessions.newSession': 'New Agent Session',
+  'agentSessions.statusHub.connected': 'Status Hub connected',
+  'agentSessions.statusHub.localOnly': 'Status Hub unavailable — showing local session state only',
+  'agentSessions.statusHub.authenticationUnavailable': 'Status Hub authentication is unavailable on this computer',
+  'agentSessions.statusHub.deliveryUnconfirmed': 'Status Hub reply delivery is not confirmed yet',
   'agentSessions.empty':
     'No worktrees yet. Create one to start an agent session.',
   'agentSessions.locked': 'Locked',
@@ -17389,6 +17397,10 @@ export const cantoneseTranslations: Readonly<
   'agentSessions.agentsTab': '代理',
   'agentSessions.worktrees': '工作樹',
   'agentSessions.newSession': '新增代理工作階段',
+  'agentSessions.statusHub.connected': 'Status Hub 已連線',
+  'agentSessions.statusHub.localOnly': 'Status Hub 暫時不可用 — 而家只顯示本機工作階段狀態',
+  'agentSessions.statusHub.authenticationUnavailable': '呢部電腦未能使用 Status Hub 驗證',
+  'agentSessions.statusHub.deliveryUnconfirmed': 'Status Hub 回覆傳遞未確認',
   'agentSessions.empty': '未有工作樹。新增一個就可以開始代理工作階段。',
   'agentSessions.locked': '已鎖定',
   'agentSessions.missing': '路徑遺失',
