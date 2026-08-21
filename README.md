@@ -8,6 +8,19 @@
 
 # Desktop Material
 
+> **Contributor notice — visible through August 26, 2026:** The shared engineering guidance has
+> been updated with a hand-written completeness inventory for user-facing capabilities, explicit
+> links between implementation, documentation, localization, tests, built-artifact interactions,
+> and capture evidence, plus fail-closed checks for missing coverage. Handoffs now distinguish
+> source and release receipts from runtime or visual verification, and contributors should keep
+> those evidence boundaries explicit. This is a documentation-only notice; it adds no application
+> or verification evidence. It may be removed after **2026-08-26**.
+>
+> **貢獻者通知 — 保留到 2026 年 8 月 26 日：** 共用工程指引加入咗一份手寫嘅使用者功能完整清單，
+> 並且清楚連結實作、文件、語言內容、測試、已建置程式互動同擷取證據；缺少覆蓋範圍時，檢查會拒絕通過。
+> 交接紀錄而家亦會分開講明原始碼／發佈收據，同埋實際執行或視覺驗證，貢獻者應該保留呢個證據界線。
+> 呢段只係文件通知，冇新增應用程式或者驗證證據；**2026 年 8 月 26 日之後可以移除。**
+
 ## Current status / 目前狀態
 
 Snapshot recorded from the current main evidence on **August 13, 2026**:

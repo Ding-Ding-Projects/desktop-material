@@ -1,5 +1,25 @@
 # Desktop Material — Active parity handoff
 
+## Five-day public guidance notice — 2026-08-21
+
+Added a compact, public-safe README banner summarizing the latest shared
+contributor guidance. It names the new hand-written completeness inventory,
+the evidence links expected between implementation and documentation, and the
+need to distinguish source or release receipts from runtime and visual
+verification. The banner states that it is documentation-only, remains visible
+through **2026-08-26**, and may be removed after that date.
+
+Changed files in this lane:
+
+- `README.md`
+- `changelog.json`
+- `HANDOFF.md`
+
+No application code, tests, captures, builds, packaging, or verification
+evidence were added in this documentation lane. The change is prepared on
+`docs/five-day-shared-instruction-notice`; integration and publication remain
+with the owning delivery lane.
+
 ## Universal-feature completeness registration — 2026-08-21
 
 This pass adds the documentation contract for a hand-written, fail-closed
