@@ -1,5 +1,7 @@
 import * as React from 'react'
+import { FilterMode } from '../../lib/fuzzy-find'
 import { t } from '../../lib/i18n'
+import { filterByMode } from '../lib/filter-string-list'
 import { MaterialSymbol } from '../lib/material-symbol'
 import { createObservableRef } from '../lib/observable-ref'
 import { Md3IconButton, Md3SearchField, Md3TonalButton } from './md3-primitives'
@@ -35,36 +37,75 @@ export interface IMd3MenuFilterResult {
 
 /**
  * Filter a menu's items exactly as the contract's `menuItems` mapping does:
- * a case-insensitive substring match on the label by default, and a
- * case-insensitive regular expression when regex mode is on.
+ * a case-insensitive substring match on the label by default, and the shared
+ * bounded RE2 adapter when regex mode is on. Keeping this at the same adapter
+ * used by the rest of the app means a menu cannot accidentally hand user text
+ * to the renderer's native RegExp engine.
  */
 export function filterMenuItems(
   items: ReadonlyArray<IMd3MenuItem>,
   query: string,
   regexEnabled: boolean
 ): IMd3MenuFilterResult {
-  if (query.length === 0) {
-    return { items, patternInvalid: false }
-  }
-
-  if (regexEnabled) {
-    let expression: RegExp
-    try {
-      expression = new RegExp(query, 'i')
-    } catch {
-      return { items, patternInvalid: true }
-    }
-    return {
-      items: items.filter(item => expression.test(item.label)),
-      patternInvalid: false,
-    }
-  }
-
-  const needle = query.toLowerCase()
+  const result = filterByMode(
+    items,
+    item => [item.label],
+    query,
+    regexEnabled ? FilterMode.Regex : FilterMode.Substring,
+    false
+  )
   return {
-    items: items.filter(item => item.label.toLowerCase().includes(needle)),
-    patternInvalid: false,
+    items: result.items,
+    patternInvalid: result.regexError !== null,
   }
+}
+
+/**
+ * Translate the menu spec's visible shortcut notation into ARIA's key
+ * vocabulary. The hint remains the single source of truth: state hints such as
+ * "On" and pointer gestures such as "⇧click" are deliberately not exposed as
+ * keyboard shortcuts.
+ */
+function ariaKeyShortcutsForHint(hint: string): string | undefined {
+  if (!/[⌘⌥⇧⌃]/u.test(hint)) {
+    return undefined
+  }
+
+  const modifiers: string[] = []
+  let key = ''
+  let isNamedKey = false
+  for (const character of hint) {
+    switch (character) {
+      case '⌘':
+        modifiers.push('Meta')
+        break
+      case '⌥':
+        modifiers.push('Alt')
+        break
+      case '⇧':
+        modifiers.push('Shift')
+        break
+      case '⌃':
+        modifiers.push('Control')
+        break
+      case '⏎':
+        key = 'Enter'
+        isNamedKey = true
+        break
+      default:
+        key += character
+        break
+    }
+  }
+
+  // A pointer gesture is visible in the hint but is not an ARIA keyboard
+  // shortcut. Likewise, refuse multi-character keys that are not the one
+  // explicit Enter glyph handled above.
+  if (key.length !== 1 && !isNamedKey) {
+    return undefined
+  }
+
+  return [...modifiers, key].join('+')
 }
 
 /** Anything with a `current` — an `ObservableRef` or a plain React ref object. */
@@ -378,6 +419,7 @@ export class Md3MenuOverlay extends React.Component<
   }
 
   private renderItem(item: IMd3MenuItem) {
+    const ariaKeyShortcuts = ariaKeyShortcutsForHint(item.hint)
     return (
       <button
         key={item.id}
@@ -385,6 +427,7 @@ export class Md3MenuOverlay extends React.Component<
         role="menuitem"
         className="md3-menu-overlay__item"
         data-item-id={item.id}
+        aria-keyshortcuts={ariaKeyShortcuts}
         onClick={this.onItemClick}
         onKeyDown={this.onItemKeyDown}
       >
@@ -395,7 +438,12 @@ export class Md3MenuOverlay extends React.Component<
         />
         <span className="md3-menu-overlay__item-label">{item.label}</span>
         {item.hint.length === 0 ? null : (
-          <span className="md3-menu-overlay__item-hint">{item.hint}</span>
+          <span
+            className="md3-menu-overlay__item-hint"
+            aria-hidden={ariaKeyShortcuts === undefined ? undefined : true}
+          >
+            {item.hint}
+          </span>
         )}
       </button>
     )

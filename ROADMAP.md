@@ -2,6 +2,11 @@
 
 ## August 21 — universal-feature completeness registration
 
+- [ ] Harden the MD3 menu overlay: route menu and shared search-field regex
+  diagnostics through the bounded RE2 adapter, derive `aria-keyshortcuts` from
+  the rendered item hint, and wrap long bilingual labels within the existing
+  overlay bounds. Implementation is present; tests, reviews, builds, and
+  captures remain intentionally deferred in the ultra-speed lane.
 - [x] Document the hand-written feature-by-surface inventory contract and its
   independent evidence fields.
 - [x] Register the current missing universal-feature identifiers in the
