@@ -1,5 +1,20 @@
 # Desktop Material — Active parity handoff
 
+## Current frozen-renderer capture ledger — 2026-08-21
+
+`app/test/fixtures/capture-coverage.json` no longer derives its rows from the
+removed MD3 shell fixture. The current hand-written ledger names 26 source
+mapped states for the frozen desktop renderer at
+`a5b74008b61094ca9af8c74b893bbfd696feb3cd`, including toy locks, School mode,
+narrator controls, attention accommodations, Support Tickets/authenticator
+history, and publishing recovery.
+
+All 26 states are honestly **pending**. No capture, build, runtime interaction,
+or test ran in the capture-ledger reconciliation. Do not cite existing gallery
+frames as current evidence, and do not restore the reverted UI to make an old
+ledger row fit. The next owner should use the current ledger and the approved
+headless capture route to collect packaged Windows evidence one row at a time.
+
 ## Appearance locks disable their targets — 2026-08-21
 
 The appearance-lock gate now keeps a locked target behaviorally disabled for

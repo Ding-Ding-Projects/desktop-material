@@ -7,6 +7,13 @@ collapsed tab groups, a repository list with several rows — can be produced
 deterministically instead of being re-derived (and abandoned) by each person who
 needs one.
 
+The fixture is evidence for the **current frozen desktop UI** only. Before
+adding a gallery image, find its row in the
+[current capture ledger](../verification/current-capture-ledger-2026-08-21.md),
+capture the packaged renderer from that row's baseline or a later commit, and
+record that exact commit. Do not restore a reverted UI or reuse an older gallery
+frame merely because its filename resembles the requested surface.
+
 It complements, and does not replace, the two neighbouring harnesses:
 
 - `script/headless-screenshot.js` — the minimal "launch and shoot the first

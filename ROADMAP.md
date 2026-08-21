@@ -1,5 +1,16 @@
 # Desktop Material roadmap
 
+## August 21 — current frozen-renderer capture ledger
+
+- [x] Replace the retired MD3-shell capture derivation with a hand-written
+  current-renderer ledger mapped to real source boundaries at
+  `a5b74008b61094ca9af8c74b893bbfd696feb3cd`.
+- [x] Register pending high-risk capture states for toy-lock enforcement,
+  School mode, narrator controls, all five attention accommodations, Support
+  Tickets/authenticator history, and publishing recovery.
+- [ ] Produce and verify real packaged Windows captures for the 26 current
+  ledger rows. Historical gallery frames are not evidence for this baseline.
+
 ## August 21 — Support Tickets and authenticator history
 
 - [x] Wire the existing About/Help surface to the local Support Tickets desk.
