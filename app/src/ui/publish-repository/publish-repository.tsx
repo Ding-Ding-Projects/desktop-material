@@ -17,6 +17,8 @@ import * as octicons from '../octicons/octicons.generated'
 import { RepositoryPublicationSettings } from '../../models/publish-settings'
 import { AccountPicker } from '../account-picker'
 import { PublishOrganizationPicker } from './publish-organization-picker'
+import { Button } from '../lib/button'
+import { translate, translateForAccessibleName } from '../../lib/i18n'
 
 interface IPublishRepositoryProps {
   /** The user to use for publishing. */
@@ -36,6 +38,7 @@ interface IPublishRepositoryProps {
 
 interface IPublishRepositoryState {
   readonly orgs: ReadonlyArray<IAPIOrganization>
+  readonly orgsError: Error | null
   readonly languageMode: LanguageMode
 }
 
@@ -54,6 +57,7 @@ export class PublishRepository extends React.Component<
 
     this.state = {
       orgs: [],
+      orgsError: null,
       languageMode: getPersistedLanguageMode(),
     }
     this.name = props.settings.name
@@ -79,7 +83,7 @@ export class PublishRepository extends React.Component<
 
   public componentWillReceiveProps(nextProps: IPublishRepositoryProps) {
     if (this.props.account !== nextProps.account) {
-      this.setState({ orgs: [] })
+      this.setState({ orgs: [], orgsError: null })
 
       this.fetchOrgs(nextProps.account)
     }
@@ -88,12 +92,29 @@ export class PublishRepository extends React.Component<
   private async fetchOrgs(account: Account) {
     const requestId = ++this.organizationRequestId
     const api = API.fromAccount(account)
-    const apiOrgs = await api.fetchOrgs()
-    const orgs = [...apiOrgs]
-    orgs.sort((a, b) => caseInsensitiveCompare(a.login, b.login))
-    if (this.isMounted && requestId === this.organizationRequestId) {
-      this.setState({ orgs })
+    try {
+      const apiOrgs = await api.fetchOrgs(true)
+      const orgs = [...apiOrgs]
+      orgs.sort((a, b) => caseInsensitiveCompare(a.login, b.login))
+      if (this.isMounted && requestId === this.organizationRequestId) {
+        this.setState({ orgs, orgsError: null })
+      }
+    } catch (error) {
+      if (this.isMounted && requestId === this.organizationRequestId) {
+        this.setState({
+          orgs: [],
+          orgsError:
+            error instanceof Error
+              ? error
+              : new Error(String(error)),
+        })
+      }
     }
+  }
+
+  private onRetryOrganizations = () => {
+    this.setState({ orgsError: null })
+    void this.fetchOrgs(this.props.account)
   }
 
   private onLanguageModeChanged = (event: Event) => {
@@ -182,6 +203,34 @@ export class PublishRepository extends React.Component<
           languageMode={this.state.languageMode}
           onSelectedOrganizationChanged={this.onSelectedOrganizationChanged}
         />
+
+        {this.state.orgsError !== null && (
+          <div className="publish-organization-empty" role="status">
+            <span>
+              {translate(
+                'publish.organization.loadError',
+                this.state.languageMode
+              )}
+            </span>
+            <Button
+              onClick={this.onRetryOrganizations}
+              ariaLabel={translateForAccessibleName(
+                'publish.organization.retry',
+                {},
+                this.state.languageMode
+              )}
+              tooltip={translate(
+                'publish.organization.retry',
+                this.state.languageMode
+              )}
+            >
+              {translate(
+                'publish.organization.retry',
+                this.state.languageMode
+              )}
+            </Button>
+          </div>
+        )}
       </DialogContent>
     )
   }

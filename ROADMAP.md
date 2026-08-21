@@ -21,6 +21,17 @@
   `app/test/unit/changelog-viewer-test.ts`; the ultra-speed pass did not run
   the assertions.
 
+## August 21 — publish account and owner recovery
+
+- [x] Keep the selected GitHub.com account in the Publish repository dialog's
+  tab state and use that identity for organization lookup and publication.
+- [x] Preserve the personal-account destination when organization discovery
+  fails, with localized non-blocking status and an explicit retry action.
+- [x] Offer scoped GitHub.com re-authentication for a classified `401` publish
+  failure without automatically repeating repository creation.
+- [ ] Run the focused publish tests and built-artifact interaction after the
+  ultra-speed implementation pass; this lane intentionally did not run them.
+
 ## August 20 — automated merge-all cleanup
 
 - [x] Move a clean default-branch checkout from another worktree automatically

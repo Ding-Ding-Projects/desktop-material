@@ -5,6 +5,11 @@ own the new GitHub repository. The first choice is always **None — publish to
 my personal account**; every organization returned for the selected account
 follows in a case-insensitive login sort.
 
+The account picker is part of the same reviewed publication state. A selected
+GitHub.com account remains selected when the dialog rerenders, is the account
+used for organization discovery and the final create/push operation, and is
+reconciled against the current signed-in account list if that list changes.
+
 ## Behavior
 
 - The search field filters the personal-account choice and organization
@@ -53,6 +58,14 @@ preferences.
 - Changing accounts clears the old organizations immediately. A request
   generation guard prevents a late response from the previous account from
   replacing the new account's list.
+- If organization discovery fails, the personal-account row remains available
+  and the dialog shows a localized, non-blocking status with a bounded retry
+  action. A failed discovery is never presented as proof that the account has
+  no organizations.
+- A `401` returned while publishing to GitHub.com exposes a scoped **Sign in
+  again** action. Re-authentication updates the selected account and clears
+  the stale error, but publication remains an explicit second action so a
+  successful sign-in cannot create a duplicate repository.
 - A no-match query leaves the listbox at its usable height and shows an honest
   empty-state message plus a zero result count.
 - Oversized labels cannot widen the dialog; they are ellipsized while their
@@ -70,10 +83,11 @@ does not create or publish a repository until the dialog's final action runs.
 ## Verification
 
 Focused tests cover explicit **None** selection, controlled organization
-selection, all three filter modes, invalid-regex preservation, result counts,
-keyboard movement, bilingual copy, active-descendant semantics, and defensive
-scrolling. Source-level layout contracts require a nonzero listbox floor,
-contained scrolling, narrow-width wrapping, and long-label truncation.
+selection, organization lookup failure with personal fallback and retry, all
+three filter modes, invalid-regex preservation, result counts, keyboard
+movement, bilingual copy, active-descendant semantics, and defensive scrolling.
+Source-level layout contracts require a nonzero listbox floor, contained
+scrolling, narrow-width wrapping, and long-label truncation.
 
 The real production build is also exercised on an isolated off-screen Windows
 desktop. Its acceptance scene checks the bilingual picker at 390×844 and the

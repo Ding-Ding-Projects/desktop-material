@@ -51,6 +51,51 @@ const initialSettings: RepositoryPublicationSettings = {
 }
 
 describe('PublishRepository organization integration', () => {
+  it('keeps the personal destination available when organization lookup fails and retries', async () => {
+    const selectedAccount = account('material-verifier', 7)
+    const alpha = organization('Alpha-Labs', 1)
+    let attempts = 0
+    const fromAccount = mock.method(API, 'fromAccount', () => {
+      return {
+        fetchOrgs: async (throwOnError?: boolean) => {
+          assert.equal(throwOnError, true)
+          attempts++
+          if (attempts === 1) {
+            throw new Error('organization lookup unavailable')
+          }
+          return [alpha]
+        },
+      } as unknown as API
+    })
+
+    try {
+      render(
+        <PublishRepository
+          account={selectedAccount}
+          accounts={[selectedAccount]}
+          onSelectedAccountChanged={() => undefined}
+          settings={initialSettings}
+          onSettingsChanged={() => undefined}
+        />
+      )
+
+      await screen.findByText(
+        'Organizations could not be loaded. You can still publish to your personal account.'
+      )
+      assert.ok(
+        screen.getByRole('option', {
+          name: 'None — publish to my personal account',
+        })
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: /retry loading/i }))
+      assert.ok(await screen.findByRole('option', { name: 'Alpha-Labs' }))
+      assert.equal(attempts, 2)
+    } finally {
+      fromAccount.mock.restore()
+    }
+  })
+
   it('sorts fetched organizations and keeps selection controlled by publication settings', async () => {
     const selectedAccount = account('material-verifier', 7)
     const alpha = organization('Alpha-Labs', 1)
