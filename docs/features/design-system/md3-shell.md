@@ -137,10 +137,19 @@ binds a view's search by spreading rather than writing six closures per field.
 `Md3MenuOverlay` renders one: a scrim, a panel with the menu's glyph, title and
 close button, a filter row carrying the `.*` regex toggle and the anchored
 builder launcher, and a scrolling list of actions. Filtering is a
-case-insensitive substring match by default and a case-insensitive regular
-expression when regex mode is on. **An uncompilable pattern leaves the list
-whole** rather than emptying it while somebody is halfway through typing `(foo`,
-and the field additionally says why nothing is being filtered.
+case-insensitive substring match by default and the shared bounded RE2 adapter
+(`filterByMode` through `lib/safe-regex.ts`) when regex mode is on. The menu
+never hands user-authored patterns to the native JavaScript `RegExp` engine.
+**An uncompilable pattern leaves the list whole** rather than emptying it while
+somebody is halfway through typing `(foo`, and the field additionally says why
+nothing is being filtered. The same safe adapter also supplies the shared
+search-field pattern diagnostic, including its input-size bound.
+
+Long translated titles and item labels wrap inside the bounded panel and its
+scrolling list. The visible shortcut hint is sourced from the same `hint` field
+as the menu item and is hidden from assistive technology only when it is
+announced through the item's normalized `aria-keyshortcuts` metadata; state
+hints and pointer gestures remain ordinary readable text.
 
 The shell wraps two things around every spec:
 

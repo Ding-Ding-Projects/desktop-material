@@ -1,6 +1,7 @@
 import * as React from 'react'
 import classNames from 'classnames'
 import { t } from '../../lib/i18n'
+import { compileSafeRegex, MaxRegexPatternLength } from '../../lib/safe-regex'
 import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
 import { createObservableRef, ObservableRef } from '../lib/observable-ref'
 import { Tooltip } from '../lib/tooltip'
@@ -343,13 +344,6 @@ export interface IMd3SearchFieldProps {
 }
 
 /**
- * Compilation is bounded so a pasted megabyte cannot be handed to the engine on
- * every keystroke. It is a guard on the *build*, not on matching — the
- * evaluation limits live with the builder.
- */
-const MaximumSearchPatternLength = 2000
-
-/**
  * Whether a regex-mode query can be compiled at all, and the engine's own
  * complaint when it cannot.
  *
@@ -376,22 +370,20 @@ export function md3SearchPatternError(
     return null
   }
 
-  if (raw.length > MaximumSearchPatternLength) {
+  if (raw.length > MaxRegexPatternLength) {
     return t('md3.search.patternTooLong', {
-      limit: String(MaximumSearchPatternLength),
+      limit: String(MaxRegexPatternLength),
     })
   }
 
-  try {
-    // Built and discarded: the question is whether the engine accepts it, and
-    // every caller compiles its own with the flags that surface needs.
-    new RegExp(raw)
+  const compilation = compileSafeRegex(raw, false)
+  if (compilation.error === null) {
     return null
-  } catch (error) {
-    return t('md3.search.invalidPattern', {
-      reason: error instanceof Error ? error.message : String(error),
-    })
   }
+
+  return t('md3.search.invalidPattern', {
+    reason: compilation.error,
+  })
 }
 
 /**

@@ -1,5 +1,37 @@
 # Desktop Material — Active parity handoff
 
+## MD3 menu safety and bilingual wrapping — 2026-08-21
+
+The menu overlay lane updated the existing MD3 controls without changing the
+frozen application shell. `md3SearchPatternError` now asks the shared bounded
+RE2 adapter whether a pattern is valid, and `filterMenuItems` delegates both
+substring and regex filtering to the shared ordered filter helper. Native
+JavaScript `RegExp` compilation is no longer used for these user-authored menu
+patterns.
+
+Menu rows now derive normalized `aria-keyshortcuts` values from their existing
+visible shortcut hints. A recognized shortcut's visible hint is marked
+decorative for assistive technology so it is announced once through the ARIA
+metadata; state hints and pointer gestures remain readable text. Menu titles and
+labels wrap at word and character boundaries so long bilingual strings remain
+inside the existing bounded panel and scrolling list.
+
+Changed source and records:
+
+- `app/src/ui/md3/md3-primitives.tsx`
+- `app/src/ui/md3/md3-menu-overlay.tsx`
+- `app/styles/ui/_md3-menu-overlay.scss`
+- `docs/features/design-system/md3-shell.md`
+- `changelog.json`
+- `ROADMAP.md`
+- this handoff
+
+No tests, lint, type checks, reviews, builds, captures, commits, pushes, merges,
+or releases were run in this implementation lane. The owning delivery lane
+must perform its own integration and later verification, then add the final
+source commit identifier to the changelog entry if required by its release
+format.
+
 ## Five-day public guidance notice — 2026-08-21
 
 Added a compact, public-safe README banner summarizing the latest shared
