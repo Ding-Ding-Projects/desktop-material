@@ -2111,6 +2111,7 @@ export type TranslationKey =
   | 'settings.selfHostedServerTab'
   | 'settings.automationTab'
   | 'settings.aiTab'
+  | 'settings.attentionTab'
   | 'settings.browserTabSearch'
   | 'settings.browserTabOpenNew'
   | 'settings.browserTabAllOpen'
@@ -3352,6 +3353,17 @@ export type TranslationKey =
   | 'settingsSearch.tabName.sound'
   | 'settingsSearch.tabName.ollama'
   | 'settingsSearch.tabName.ai'
+  | 'settingsSearch.tabName.attention'
+  | 'settingsSearch.entry.attentionFocus.title'
+  | 'settingsSearch.entry.attentionFocus.desc'
+  | 'settingsSearch.entry.attentionLowStimulation.title'
+  | 'settingsSearch.entry.attentionLowStimulation.desc'
+  | 'settingsSearch.entry.attentionTimeAwareness.title'
+  | 'settingsSearch.entry.attentionTimeAwareness.desc'
+  | 'settingsSearch.entry.attentionOneThing.title'
+  | 'settingsSearch.entry.attentionOneThing.desc'
+  | 'settingsSearch.entry.attentionMomentum.title'
+  | 'settingsSearch.entry.attentionMomentum.desc'
   | 'settingsSearch.entry.aiMasterSwitch.title'
   | 'settingsSearch.entry.aiMasterSwitch.desc'
   | 'settingsSearch.entry.aiRepositoryEligibility.title'
@@ -8266,6 +8278,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settings.selfHostedServerTab': 'Self-hosted server',
   'settings.automationTab': 'Automation',
   'settings.aiTab': 'AI',
+  'settings.attentionTab': 'Attention accommodations',
   'settings.browserTabSearch': 'Search {surface}',
   'settings.browserTabOpenNew': 'Open a {surface} page in a new tab',
   'settings.browserTabAllOpen': 'All {surface} pages are already open',
@@ -9954,6 +9967,22 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settingsSearch.tabName.sound': 'Sound',
   'settingsSearch.tabName.ollama': 'Ollama',
   'settingsSearch.tabName.ai': 'AI',
+  'settingsSearch.tabName.attention': 'Attention accommodations',
+  'settingsSearch.entry.attentionFocus.title': 'Focus',
+  'settingsSearch.entry.attentionFocus.desc':
+    'De-emphasize inactive regions while keeping them available.',
+  'settingsSearch.entry.attentionLowStimulation.title': 'Low stimulation',
+  'settingsSearch.entry.attentionLowStimulation.desc':
+    'Reduce non-essential motion, colour intensity, and sound.',
+  'settingsSearch.entry.attentionTimeAwareness.title': 'Time awareness',
+  'settingsSearch.entry.attentionTimeAwareness.desc':
+    'Show elapsed session time and time since activity.',
+  'settingsSearch.entry.attentionOneThing.title': 'One thing at a time',
+  'settingsSearch.entry.attentionOneThing.desc':
+    'Keep one user-chosen next action visible.',
+  'settingsSearch.entry.attentionMomentum.title': 'Momentum',
+  'settingsSearch.entry.attentionMomentum.desc':
+    'Offer a dismissible inactivity prompt with a defer interval.',
   'settingsSearch.entry.aiMasterSwitch.title': 'AI kill switch',
   'settingsSearch.entry.aiMasterSwitch.desc':
     'Turn AI features on or off, and choose which providers are permitted.',
@@ -15138,6 +15167,7 @@ export const cantoneseTranslations: Readonly<
   'settings.browserTabPickerTitle': '揀一個 {surface} 頁面',
   'settings.browserTabNoMatches': '搵唔到啱嘅 {surface} 頁面。',
   'settings.queueTab': 'Clone 隊列',
+  'settings.attentionTab': '專注與節奏調節',
   'settings.queueHeading': 'Clone 隊列',
   'settings.queueDescription':
     '逐個登入帳戶設定點樣留意同 clone 新發現嘅 repository。',
@@ -16714,6 +16744,22 @@ export const cantoneseTranslations: Readonly<
   'settingsSearch.tabName.queue': 'Clone 隊列',
   'settingsSearch.tabName.sound': '聲音',
   'settingsSearch.tabName.ollama': 'Ollama 本地模型',
+  'settingsSearch.tabName.attention': '專注與節奏調節',
+  'settingsSearch.entry.attentionFocus.title': '專注',
+  'settingsSearch.entry.attentionFocus.desc':
+    '淡化冇郁緊嘅區域，但仍然保留全部內容。',
+  'settingsSearch.entry.attentionLowStimulation.title': '低刺激',
+  'settingsSearch.entry.attentionLowStimulation.desc':
+    '減少非必要動畫、顏色強度同聲音。',
+  'settingsSearch.entry.attentionTimeAwareness.title': '時間感知',
+  'settingsSearch.entry.attentionTimeAwareness.desc':
+    '顯示工作階段經過幾耐，同上次活動隔咗幾耐。',
+  'settingsSearch.entry.attentionOneThing.title': '一次一件事',
+  'settingsSearch.entry.attentionOneThing.desc':
+    '保留一件由你揀嘅下一步。',
+  'settingsSearch.entry.attentionMomentum.title': '動力提示',
+  'settingsSearch.entry.attentionMomentum.desc':
+    '冇活動一段時間後提示一下，仲可以延後。',
   'settingsSearch.tabName.ai': 'AI',
   'settingsSearch.entry.aiMasterSwitch.title': 'AI 總開關',
   'settingsSearch.entry.aiMasterSwitch.desc':

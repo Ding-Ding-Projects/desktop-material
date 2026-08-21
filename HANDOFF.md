@@ -1,5 +1,17 @@
 # Desktop Material — Active parity handoff
 
+## Attention accommodations — 2026-08-21
+
+Five independently persisted, off-by-default interface accommodations now
+exist: Focus, Low stimulation, Time awareness, One thing at a time, and
+Momentum. The lane adds a Preferences page, settings-search entries, command
+palette toggles, live root state/styles, elapsed/activity facts, a bounded
+next-action field, and a dismissible inactivity prompt.
+
+The ultra-speed boundary remains explicit: no tests, lint, type checks,
+reviews, builds, captures, packaging, or runtime interaction were performed.
+Built-artifact evidence remains pending.
+
 ## Appearance locks use the authenticator runtime join — 2026-08-21
 
 Appearance-value lock creation now uses the shared `Md3LockSetupDialog`, with

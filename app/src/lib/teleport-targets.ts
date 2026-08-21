@@ -69,6 +69,22 @@ export const TeleportTargetSelectors = {
   settingsExternalEditor: '[data-teleport-target="settings-external-editor"]',
   settingsShell: '[data-teleport-target="settings-shell"]',
 
+  // Attention accommodations
+  settingsAttentionFocus:
+    '[data-teleport-target="settings-attention-focus"]',
+  settingsAttentionLowStimulation:
+    '[data-teleport-target="settings-attention-lowStimulation"]',
+  settingsAttentionTimeAwareness:
+    '[data-teleport-target="settings-attention-timeAwareness"]',
+  settingsAttentionOneThingAtATime:
+    '[data-teleport-target="settings-attention-oneThingAtATime"]',
+  settingsAttentionMomentum:
+    '[data-teleport-target="settings-attention-momentum"]',
+  settingsAttentionNextAction:
+    '[data-teleport-target="settings-attention-next-action"]',
+  settingsAttentionMomentumDefer:
+    '[data-teleport-target="settings-attention-momentum-defer"]',
+
   // Appearance
   settingsUiScale: '[data-teleport-target="settings-ui-scale"]',
   settingsAutoFitZoom: '[data-teleport-target="settings-auto-fit-zoom"]',

@@ -96,6 +96,8 @@ export function settingsTabNameKey(tab: PreferencesTab): TranslationKey {
       return 'settingsSearch.tabName.ollama'
     case PreferencesTab.AI:
       return 'settingsSearch.tabName.ai'
+    case PreferencesTab.Attention:
+      return 'settingsSearch.tabName.attention'
     default:
       return 'settingsSearch.tabName.accounts'
   }
@@ -1036,6 +1038,46 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
       titleKey: 'settings.soundQuietHoursEnableTitle',
       descriptionKey: 'settings.soundQuietHoursEnableDescription',
       keywords: ['quiet', 'hours', 'night', 'schedule', '寧靜', '夜晚'],
+    },
+    {
+      id: 'attention-focus',
+      tab: PreferencesTab.Attention,
+      titleKey: 'settingsSearch.entry.attentionFocus.title',
+      descriptionKey: 'settingsSearch.entry.attentionFocus.desc',
+      keywords: ['focus', 'attention', 'de-emphasize', '專注', '集中'],
+      teleportTargetId: 'settingsAttentionFocus',
+    },
+    {
+      id: 'attention-low-stimulation',
+      tab: PreferencesTab.Attention,
+      titleKey: 'settingsSearch.entry.attentionLowStimulation.title',
+      descriptionKey: 'settingsSearch.entry.attentionLowStimulation.desc',
+      keywords: ['low stimulation', 'motion', 'quiet', 'reduced', '低刺激'],
+      teleportTargetId: 'settingsAttentionLowStimulation',
+    },
+    {
+      id: 'attention-time-awareness',
+      tab: PreferencesTab.Attention,
+      titleKey: 'settingsSearch.entry.attentionTimeAwareness.title',
+      descriptionKey: 'settingsSearch.entry.attentionTimeAwareness.desc',
+      keywords: ['time', 'elapsed', 'session', 'activity', '時間', '工作階段'],
+      teleportTargetId: 'settingsAttentionTimeAwareness',
+    },
+    {
+      id: 'attention-one-thing',
+      tab: PreferencesTab.Attention,
+      titleKey: 'settingsSearch.entry.attentionOneThing.title',
+      descriptionKey: 'settingsSearch.entry.attentionOneThing.desc',
+      keywords: ['next action', 'single task', 'one thing', '下一步', '一次一件事'],
+      teleportTargetId: 'settingsAttentionOneThingAtATime',
+    },
+    {
+      id: 'attention-momentum',
+      tab: PreferencesTab.Attention,
+      titleKey: 'settingsSearch.entry.attentionMomentum.title',
+      descriptionKey: 'settingsSearch.entry.attentionMomentum.desc',
+      keywords: ['momentum', 'inactivity', 'prompt', 'defer', '動力', '延後'],
+      teleportTargetId: 'settingsAttentionMomentum',
     },
   ])
 

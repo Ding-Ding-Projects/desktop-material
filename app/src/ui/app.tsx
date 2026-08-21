@@ -61,6 +61,10 @@ import {
 import { getEditorOverrideLabel } from '../models/editor-override'
 import { Branch } from '../models/branch'
 import { PreferencesTab } from '../models/preferences'
+import {
+  readAttentionAccommodationPreferences,
+  setAttentionAccommodationEnabled,
+} from '../models/attention-accommodation'
 import { AudioCueStore, getAudioCueStore } from '../lib/audio/audio-cue-store'
 import { findItemByAccessKey, itemIsSelectable } from '../models/app-menu'
 import { Account, isDotComAccount } from '../models/account'
@@ -183,6 +187,7 @@ import {
   updateComingSoonTargetKey,
 } from '../lib/update-coming-soon-estimate'
 import { Preferences } from './preferences'
+import { AttentionAccommodationRuntime } from './attention/attention-accommodation-runtime'
 import { SettingsHistoryDialog } from './settings-history'
 import { IVersionedStoreHistorySource } from './version-history'
 import { NotificationHistoryDialog } from './notifications/notification-history-dialog'
@@ -1749,6 +1754,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showPreferencesTab(PreferencesTab.Ollama)
       case 'palette:background-queue':
         return this.showPreferencesTab(PreferencesTab.Queue)
+      case 'palette:preferences-attention':
+        return this.showPreferencesTab(PreferencesTab.Attention)
       case 'palette:cheap-lfs-settings':
         return this.showRepositorySettings(RepositorySettingsTab.CheapLfs)
       case 'palette:repository-automation':
@@ -2069,6 +2076,21 @@ export class App extends React.Component<IAppProps, IAppState> {
     values.set('palette:set-language-mode', customization.languageMode)
     values.set('palette:set-funny-english', audio.funnyLevelEnglish)
     values.set('palette:set-funny-cantonese', audio.funnyLevelCantonese)
+    const attention = readAttentionAccommodationPreferences()
+    values.set('palette:set-attention-focus', attention.enabled.focus)
+    values.set(
+      'palette:set-attention-low-stimulation',
+      attention.enabled.lowStimulation
+    )
+    values.set(
+      'palette:set-attention-time-awareness',
+      attention.enabled.timeAwareness
+    )
+    values.set(
+      'palette:set-attention-one-thing',
+      attention.enabled.oneThingAtATime
+    )
+    values.set('palette:set-attention-momentum', attention.enabled.momentum)
     values.set('palette:set-tab-size', this.state.selectedTabSize)
     values.set(
       'palette:set-highlight-features',
@@ -2400,6 +2422,21 @@ export class App extends React.Component<IAppProps, IAppState> {
           ...this.audioCueStore.getSettings(),
           funnyLevelCantonese: clampFunnyLevel(asNumber, 3),
         })
+      case 'palette:set-attention-focus':
+        setAttentionAccommodationEnabled('focus', asBoolean)
+        return
+      case 'palette:set-attention-low-stimulation':
+        setAttentionAccommodationEnabled('lowStimulation', asBoolean)
+        return
+      case 'palette:set-attention-time-awareness':
+        setAttentionAccommodationEnabled('timeAwareness', asBoolean)
+        return
+      case 'palette:set-attention-one-thing':
+        setAttentionAccommodationEnabled('oneThingAtATime', asBoolean)
+        return
+      case 'palette:set-attention-momentum':
+        setAttentionAccommodationEnabled('momentum', asBoolean)
+        return
       case 'palette:set-tab-size':
         return dispatcher.setSelectedTabSize(asNumber)
       case 'palette:set-confirm-discard':
@@ -9761,6 +9798,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             {this.renderDimSumSurprise()}
             {this.renderZoomInfo()}
             {this.renderFullScreenInfo()}
+            <AttentionAccommodationRuntime />
             {/*
               The prompt a locked element opens. Mounted at the shell rather
               than beside each lockable control, because the gate that blocks

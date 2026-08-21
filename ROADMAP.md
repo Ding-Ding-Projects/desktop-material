@@ -1,5 +1,14 @@
 # Desktop Material roadmap
 
+## August 21 — attention accommodations
+
+- [x] Implement five independently toggleable, off-by-default modes: Focus,
+  Low stimulation, Time awareness, One thing at a time, and Momentum.
+- [x] Add persisted settings, search and palette routing, accessible runtime
+  status, bounded next-action state, and a respected inactivity defer path.
+- [ ] Run focused tests, type checks, built-artifact interactions, and captures;
+  the ultra-speed implementation lane intentionally deferred them.
+
 ## August 21 — appearance-lock/authenticator runtime join
 
 - [x] Wire the renderer startup authenticator document cache to the existing

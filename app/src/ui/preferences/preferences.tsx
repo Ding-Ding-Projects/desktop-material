@@ -103,6 +103,7 @@ import { QueuePreferences } from './queue'
 import { SoundPreferences } from './sound'
 import { OllamaPreferences } from './ollama'
 import { AIPreferences } from './ai'
+import { AttentionAccommodations } from './attention-accommodations'
 import { getAudioCueStore } from '../../lib/audio/audio-cue-store'
 import { LocalizedText } from '../lib/localized-text'
 import { SettingsSearch, SettingsSearchSurfaceId } from './settings-search'
@@ -300,6 +301,7 @@ const PreferencesTabIds: Readonly<Record<PreferencesTab, string>> = {
   [PreferencesTab.Ollama]: 'ollama',
   [PreferencesTab.SelfHostedServer]: 'self-hosted-server',
   [PreferencesTab.AI]: 'ai',
+  [PreferencesTab.Attention]: 'attention',
 }
 
 const PreferencesTabById: Readonly<Record<string, PreferencesTab>> =
@@ -325,6 +327,7 @@ const LegacyPreferencesTabIds: Readonly<Record<string, string>> = {
   '13': 'ollama',
   '14': 'self-hosted-server',
   '15': 'ai',
+  '16': 'attention',
 }
 
 /**
@@ -737,6 +740,13 @@ export class Preferences extends React.Component<
         'settings.aiTab',
         'AI security',
         true
+      ),
+      this.renderRailTab(
+        PreferencesTab.Attention,
+        octicons.accessibility,
+        'settings.attentionTab',
+        'Attention accommodations',
+        true
       )
     )
 
@@ -956,6 +966,9 @@ export class Preferences extends React.Component<
         break
       case PreferencesTab.AI:
         suffix = 'ai'
+        break
+      case PreferencesTab.Attention:
+        suffix = 'attention'
         break
       default:
         return assertNever(tab, `Unknown tab type: ${tab}`)
@@ -1375,6 +1388,9 @@ export class Preferences extends React.Component<
         break
       case PreferencesTab.AI:
         View = <AIPreferences />
+        break
+      case PreferencesTab.Attention:
+        View = <AttentionAccommodations />
         break
       default:
         return assertNever(index, `Unknown tab index: ${index}`)

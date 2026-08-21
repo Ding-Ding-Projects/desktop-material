@@ -15,4 +15,5 @@ export enum PreferencesTab {
   Ollama,
   SelfHostedServer,
   AI,
+  Attention,
 }
