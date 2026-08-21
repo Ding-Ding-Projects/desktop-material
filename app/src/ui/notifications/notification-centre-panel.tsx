@@ -1568,6 +1568,18 @@ export class NotificationCentrePanel extends React.Component<
             onToggleRead={this.onToggleRead}
             onDelete={this.onDelete}
             onOpenAutomations={this.onOpenAutomations}
+            vocabularyText={{
+              title: {
+                kind: 'app-authored',
+                value: entry.title,
+                alreadyPersonalized: true,
+              },
+              body: {
+                kind: 'app-authored',
+                value: entry.body,
+                alreadyPersonalized: true,
+              },
+            }}
           />
         </div>
       </CellMeasurer>

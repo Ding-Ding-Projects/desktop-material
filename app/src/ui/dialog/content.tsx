@@ -1,5 +1,6 @@
 import * as React from 'react'
 import classNames from 'classnames'
+import { personalizeReactNode } from '../../lib/personal-vocabulary-rendering'
 
 interface IDialogContentProps {
   /**
@@ -30,7 +31,7 @@ export class DialogContent extends React.Component<IDialogContentProps, {}> {
 
     return (
       <div className={className} ref={this.props.onRef}>
-        {this.props.children}
+        {personalizeReactNode(this.props.children)}
       </div>
     )
   }

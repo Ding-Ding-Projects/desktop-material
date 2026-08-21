@@ -103,6 +103,11 @@ describe('Appearance preferences', () => {
       'Level 5 of 5'
     )
     assert.ok(screen.getByRole('slider', { name: 'Scale' }))
+    assert.ok(
+      screen.getByRole('heading', {
+        name: translate('settings.personalVocabularyTitle', 'english'),
+      })
+    )
     assert.ok(screen.getByRole('radio', { name: /Light/i }))
     assert.ok(
       screen.getByRole('checkbox', { name: 'Show recent repositories' })
@@ -179,6 +184,11 @@ describe('Appearance preferences', () => {
     assert.ok(
       screen.getByRole('heading', {
         name: translate('appearance.languageAndNavigation', 'cantonese'),
+      })
+    )
+    assert.ok(
+      screen.getByRole('heading', {
+        name: translate('settings.personalVocabularyTitle', 'cantonese'),
       })
     )
     // Cantonese mode with the Cantonese level at 1 reads the Cantonese plain

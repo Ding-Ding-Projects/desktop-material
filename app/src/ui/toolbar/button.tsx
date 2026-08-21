@@ -123,6 +123,12 @@ export interface IToolbarButtonProps {
    */
   readonly ariaLabel?: string
 
+  /** Keep a technical identifier (for example a branch name) byte-for-byte. */
+  readonly preserveTitleFromPersonalVocabulary?: boolean
+
+  /** Keep a technical tooltip (for example a path or branch name) byte-for-byte. */
+  readonly preserveTooltipFromPersonalVocabulary?: boolean
+
   /**
    * Whether to only show the tooltip when the tooltip target overflows its
    * bounds. Typically this is used in conjunction with an ellipsis CSS ruleset.
@@ -183,13 +189,15 @@ export class ToolbarButton extends React.Component<IToolbarButtonProps, {}> {
   }
 
   public render() {
+    const title = this.props.title
+    const description = this.props.description
+    const explicitTooltip = this.props.tooltip
+    const ariaLabel = this.props.ariaLabel
     const tooltip =
-      this.props.tooltip ??
-      this.props.ariaLabel ??
-      this.props.title ??
-      (typeof this.props.description === 'string'
-        ? this.props.description
-        : undefined)
+      explicitTooltip ??
+      ariaLabel ??
+      title ??
+      (typeof description === 'string' ? description : undefined)
     const icon = this.props.materialSymbol ? (
       <span className={classNames('icon', this.props.iconClassName)}>
         <MaterialSymbol
@@ -234,7 +242,11 @@ export class ToolbarButton extends React.Component<IToolbarButtonProps, {}> {
             isTargetOverflowed={this.props.isOverflowed}
             applyAriaDescribedBy={this.props.tooltip !== undefined}
           >
-            {tooltip}
+            {this.props.preserveTooltipFromPersonalVocabulary ? (
+              <span data-personal-vocabulary-preserve={true}>{tooltip}</span>
+            ) : (
+              tooltip
+            )}
           </Tooltip>
         )}
         <Button
@@ -249,7 +261,7 @@ export class ToolbarButton extends React.Component<IToolbarButtonProps, {}> {
           ariaExpanded={this.props.ariaExpanded}
           ariaHaspopup={this.props.ariaHaspopup}
           ariaControls={this.props.ariaControls}
-          ariaLabel={this.props.ariaLabel}
+          ariaLabel={ariaLabel}
           inferTooltip={false}
         >
           {progress}
@@ -271,7 +283,14 @@ export class ToolbarButton extends React.Component<IToolbarButtonProps, {}> {
 
     const title =
       this.props.title !== undefined ? (
-        <div className="title">{this.props.title}</div>
+        <div
+          className="title"
+          data-personal-vocabulary-preserve={
+            this.props.preserveTitleFromPersonalVocabulary ? true : undefined
+          }
+        >
+          {this.props.title}
+        </div>
       ) : null
 
     const description =
@@ -292,7 +311,16 @@ export class ToolbarButton extends React.Component<IToolbarButtonProps, {}> {
       case ToolbarButtonStyle.Subtitle:
         return (
           <div className="text">
-            <div className="title">{this.props.title}</div>
+            <div
+              className="title"
+              data-personal-vocabulary-preserve={
+                this.props.preserveTitleFromPersonalVocabulary
+                  ? true
+                  : undefined
+              }
+            >
+              {this.props.title}
+            </div>
             {description}
           </div>
         )

@@ -15,7 +15,7 @@ import {
   resolvePaletteHome,
 } from '../../lib/command-palette-catalog'
 import { settingsTabNameKey } from '../../lib/settings-search/settings-search-catalog'
-import { t, translateForAccessibleName } from '../../lib/i18n'
+import { personalizeText, t, translateForAccessibleName } from '../../lib/i18n'
 import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
 import { isDesktopMaterialFeatureEntryPoint } from '../../lib/desktop-material-features'
 import { FilterModeControl } from '../lib/filter-mode-control'
@@ -61,7 +61,9 @@ function resolvePaletteTitle(command: IPaletteCommand): string {
       name: readSchoolMode().name,
     })
   }
-  return command.titleKey !== undefined ? t(command.titleKey) : command.title
+  return command.titleKey !== undefined
+    ? t(command.titleKey)
+    : personalizeText(command.title)
 }
 
 function resolvePaletteDescription(command: IPaletteCommand): string | null {
@@ -94,7 +96,7 @@ function resolvePaletteGroup(group: string): string {
     case 'Repository':
       return t('commandPalette.groupRepository')
     default:
-      return group
+      return personalizeText(group)
   }
 }
 

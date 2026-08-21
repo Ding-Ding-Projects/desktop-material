@@ -174,12 +174,14 @@ export class Appearance extends React.Component<
    * nobody finds.
    */
   private renderPersonalVocabulary() {
+    const languageMode = this.props.appearanceCustomization.languageMode
+
     return (
       <div
         className="appearance-section appearance-customization-section"
         {...teleportAnchor('settings-personal-vocabulary')}
       >
-        <h2>Personal vocabulary</h2>
+        <h2>{translate('settings.personalVocabularyTitle', languageMode)}</h2>
         <PersonalVocabularyControl />
       </div>
     )

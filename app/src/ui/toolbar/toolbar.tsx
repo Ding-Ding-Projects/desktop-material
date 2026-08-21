@@ -10,6 +10,7 @@ import {
 import { createUniqueId, releaseUniqueId } from '../lib/id-pool'
 import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
 import { ToolbarButton } from './button'
+import { personalizeText } from '../../lib/i18n'
 import {
   calculateToolbarOverflow,
   IToolbarOverflowLayoutItem,
@@ -545,7 +546,7 @@ export class Toolbar extends React.Component<IToolbarProps, IToolbarState> {
           <MaterialSymbol name={props.overflowSymbol} size={18} />
         )}
         <span className="toolbar-overflow-default-label">
-          {props.overflowLabel}
+          {personalizeText(props.overflowLabel)}
         </span>
       </span>
     )
@@ -573,7 +574,9 @@ export class Toolbar extends React.Component<IToolbarProps, IToolbarState> {
       >
         <div id={this.overflowContentId} className="toolbar-overflow-surface">
           <div className="toolbar-overflow-header">
-            <h3 id={this.overflowHeadingId}>More toolbar actions</h3>
+            <h3 id={this.overflowHeadingId}>
+              {personalizeText('More toolbar actions')}
+            </h3>
             <Button
               className="toolbar-overflow-close"
               ariaLabel="Close more toolbar actions"
@@ -651,7 +654,11 @@ export class Toolbar extends React.Component<IToolbarProps, IToolbarState> {
         className={className}
         ref={this.onToolbarRef}
         role="toolbar"
-        aria-label={this.props.ariaLabel}
+        aria-label={
+          this.props.ariaLabel === undefined
+            ? undefined
+            : personalizeText(this.props.ariaLabel)
+        }
       >
         {React.Children.map(this.props.children, (child, index) => {
           const item = itemsByIndex.get(index)

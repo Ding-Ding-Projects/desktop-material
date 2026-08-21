@@ -1,5 +1,6 @@
 import * as React from 'react'
 import classNames from 'classnames'
+import { personalizeOptionalText } from '../../lib/personal-vocabulary-rendering'
 
 interface IRangeSliderProps {
   readonly id: string
@@ -41,9 +42,9 @@ export function RangeSlider({
   return (
     <div className={classNames('range-slider-component', className)}>
       <div className="range-slider-label-row">
-        <label htmlFor={id}>{label}</label>
+        <label htmlFor={id}>{personalizeOptionalText(label)}</label>
         <output id={outputId} htmlFor={id} aria-live="polite">
-          {valueText}
+          {personalizeOptionalText(valueText)}
         </output>
       </div>
       <input
@@ -55,7 +56,7 @@ export function RangeSlider({
         value={value}
         disabled={disabled}
         aria-describedby={ariaDescribedBy}
-        aria-valuetext={ariaValueText}
+        aria-valuetext={personalizeOptionalText(ariaValueText)}
         onChange={event => onChange(Number(event.currentTarget.value))}
       />
     </div>

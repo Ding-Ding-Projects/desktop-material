@@ -8,6 +8,12 @@ import {
   NotificationCentreKind,
 } from '../../models/notification-centre'
 import { IMenuItem, showContextualMenu } from '../../lib/menu-item'
+import { personalizeText } from '../../lib/i18n'
+import { PersonalVocabularyChangedEvent } from '../../lib/personal-vocabulary'
+import {
+  personalizeTextBoundary,
+  type IPersonalVocabularyTextBoundary,
+} from '../../lib/personal-vocabulary-rendering'
 
 interface INotificationListItemProps {
   readonly entry: INotificationEntry
@@ -22,6 +28,11 @@ interface INotificationListItemProps {
   /** Toggle the read/unread state without activating the action. */
   readonly onToggleRead: (entry: INotificationEntry) => void
   readonly onDelete: (entry: INotificationEntry) => void
+  /** Explicitly typed title/body ownership; persisted strings default exact. */
+  readonly vocabularyText?: {
+    readonly title: IPersonalVocabularyTextBoundary
+    readonly body: IPersonalVocabularyTextBoundary
+  }
   /**
    * Open the notification-automation builder scoped to this entry. When
    * omitted the row exposes no context menu — this is the sole, deliberately
@@ -70,6 +81,22 @@ const kindIcons: Record<NotificationCentreKind, OcticonSymbol> = {
  * virtualized list whose positioned wrapper carries the listitem role.
  */
 export class NotificationListItem extends React.PureComponent<INotificationListItemProps> {
+  public componentDidMount() {
+    window.addEventListener(
+      PersonalVocabularyChangedEvent,
+      this.onPersonalVocabularyChanged
+    )
+  }
+
+  public componentWillUnmount() {
+    window.removeEventListener(
+      PersonalVocabularyChangedEvent,
+      this.onPersonalVocabularyChanged
+    )
+  }
+
+  private onPersonalVocabularyChanged = () => this.forceUpdate()
+
   private onActivate = () => this.props.onActivate(this.props.entry)
 
   private onToggleRead = (event: React.MouseEvent) => {
@@ -100,6 +127,14 @@ export class NotificationListItem extends React.PureComponent<INotificationListI
 
   public render() {
     const { entry, selected, selectionDisabled } = this.props
+    const titleBoundary =
+      this.props.vocabularyText?.title ??
+      ({ kind: 'external', value: entry.title } as const)
+    const bodyBoundary =
+      this.props.vocabularyText?.body ??
+      ({ kind: 'external', value: entry.body } as const)
+    const title = personalizeTextBoundary(titleBoundary)
+    const body = personalizeTextBoundary(bodyBoundary)
     const className = classNames('notification-item', `kind-${entry.kind}`, {
       unread: !entry.read,
       selected,
@@ -112,7 +147,7 @@ export class NotificationListItem extends React.PureComponent<INotificationListI
             type="checkbox"
             checked={selected}
             disabled={selectionDisabled}
-            aria-label={`Select notification: ${entry.title}`}
+            aria-label={`${personalizeText('Select notification:')} ${title}`}
             onChange={this.onToggleSelected}
           />
         </label>
@@ -126,10 +161,10 @@ export class NotificationListItem extends React.PureComponent<INotificationListI
           </span>
           <span className="notification-item-body">
             <span className="notification-item-title">
-              {entry.title}
+              {title}
               {!entry.read ? <span className="sr-only"> (unread)</span> : null}
             </span>
-            <span className="notification-item-text">{entry.body}</span>
+            <span className="notification-item-text">{body}</span>
             <span className="notification-item-time">
               <RelativeTime date={new Date(entry.createdAt)} />
             </span>
@@ -141,7 +176,9 @@ export class NotificationListItem extends React.PureComponent<INotificationListI
         <button
           type="button"
           className="notification-item-read-toggle"
-          aria-label={entry.read ? 'Mark as unread' : 'Mark as read'}
+          aria-label={personalizeText(
+            entry.read ? 'Mark as unread' : 'Mark as read'
+          )}
           onClick={this.onToggleRead}
         >
           <Octicon symbol={entry.read ? octicons.dotFill : octicons.check} />
@@ -149,7 +186,7 @@ export class NotificationListItem extends React.PureComponent<INotificationListI
         <button
           type="button"
           className="notification-item-delete"
-          aria-label="Delete notification"
+          aria-label={personalizeText('Delete notification')}
           onClick={this.onDelete}
         >
           <Octicon symbol={octicons.trash} />

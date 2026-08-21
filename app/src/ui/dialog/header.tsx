@@ -2,6 +2,10 @@ import * as React from 'react'
 import { MaterialSymbol } from '../lib/material-symbol'
 import { DialogDecorationKind } from '../../lib/dialog-emoji'
 import { DialogEmoji } from '../lib/dialog-emoji'
+import {
+  personalizeOptionalText,
+  personalizeReactNode,
+} from '../../lib/personal-vocabulary-rendering'
 
 interface IDialogHeaderProps {
   /**
@@ -79,7 +83,7 @@ export class DialogHeader extends React.Component<IDialogHeaderProps, {}> {
       <button
         className="close"
         onClick={this.onCloseButtonClick}
-        aria-label="Close"
+        aria-label={personalizeOptionalText('Close')}
       >
         <MaterialSymbol name="close" size={16} />
       </button>
@@ -98,7 +102,9 @@ export class DialogHeader extends React.Component<IDialogHeaderProps, {}> {
     return (
       <div className="dialog-header">
         <DialogEmoji kind={this.props.emojiDecoration} />
-        <h1 id={this.props.titleId}>{this.props.title}</h1>
+        <h1 id={this.props.titleId}>
+          {personalizeReactNode(this.props.title)}
+        </h1>
         {this.props.renderAccessory?.()}
         {spinner}
         {this.renderCloseButton()}

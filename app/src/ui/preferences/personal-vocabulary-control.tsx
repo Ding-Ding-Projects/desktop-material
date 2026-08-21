@@ -7,11 +7,16 @@ import {
   PersonalVocabularySchemaVersion,
   cachePersonalVocabulary,
   clearPersonalVocabulary,
-  describeVocabularyRejection,
   parsePersonalVocabulary,
   readCachedPersonalVocabulary,
   setActivePersonalVocabulary,
 } from '../../lib/personal-vocabulary'
+import {
+  getPersistedLanguageMode,
+  translate,
+  type TranslationKey,
+  type TranslationVariables,
+} from '../../lib/i18n'
 
 /**
  * Where the user uploads their own vocabulary file.
@@ -37,8 +42,8 @@ import {
 type VocabularyState =
   | { readonly kind: 'none' }
   | { readonly kind: 'loaded'; readonly vocabulary: IPersonalVocabulary }
-  | { readonly kind: 'rejected'; readonly reason: string }
-  | { readonly kind: 'unreadable'; readonly reason: string }
+  | { readonly kind: 'rejected' }
+  | { readonly kind: 'unreadable' }
 
 interface IPersonalVocabularyControlProps {
   /** Raised when the active vocabulary changes, so surfaces can re-render. */
@@ -55,16 +60,25 @@ export class PersonalVocabularyControl extends React.Component<
 > {
   private readonly inputId = 'personal-vocabulary-file'
   private readonly statusId = 'personal-vocabulary-status'
+  private activeVocabulary: IPersonalVocabulary | null
 
   public constructor(props: IPersonalVocabularyControlProps) {
     super(props)
     const cached = readCachedPersonalVocabulary()
+    this.activeVocabulary = cached
     this.state = {
       status:
         cached === null
           ? { kind: 'none' }
           : { kind: 'loaded', vocabulary: cached },
     }
+  }
+
+  private text(
+    key: TranslationKey,
+    variables: TranslationVariables = {}
+  ): string {
+    return translate(key, getPersistedLanguageMode(), variables)
   }
 
   private onFileChosen = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,11 +96,6 @@ export class PersonalVocabularyControl extends React.Component<
       this.setState({
         status: {
           kind: 'rejected',
-          reason: `That file is ${Math.round(
-            file.size / 1024
-          )} KB, and the limit is ${Math.round(
-            MaxVocabularyBytes / 1024
-          )} KB. Nothing has been changed.`,
         },
       })
       return
@@ -95,13 +104,10 @@ export class PersonalVocabularyControl extends React.Component<
     let bytes: Uint8Array
     try {
       bytes = new Uint8Array(await file.arrayBuffer())
-    } catch (error) {
+    } catch {
       this.setState({
         status: {
           kind: 'unreadable',
-          reason: `That file could not be read: ${
-            error instanceof Error ? error.message : String(error)
-          }. Nothing has been changed.`,
         },
       })
       return
@@ -115,13 +121,13 @@ export class PersonalVocabularyControl extends React.Component<
       this.setState({
         status: {
           kind: 'rejected',
-          reason: describeVocabularyRejection(result.rejection),
         },
       })
       return
     }
 
     cachePersonalVocabulary(result.vocabulary)
+    this.activeVocabulary = result.vocabulary
     setActivePersonalVocabulary(result.vocabulary)
     this.setState({ status: { kind: 'loaded', vocabulary: result.vocabulary } })
     this.props.onChanged?.(result.vocabulary)
@@ -129,6 +135,7 @@ export class PersonalVocabularyControl extends React.Component<
 
   private onClear = () => {
     clearPersonalVocabulary()
+    this.activeVocabulary = null
     setActivePersonalVocabulary(null)
     this.setState({ status: { kind: 'none' } })
     this.props.onChanged?.(null)
@@ -139,18 +146,27 @@ export class PersonalVocabularyControl extends React.Component<
     switch (status.kind) {
       case 'none':
         return (
-          <p className="settings-description" id={this.statusId}>
-            No vocabulary file is loaded. Every surface is rendering its
-            original wording.
+          <p
+            className="settings-description"
+            id={this.statusId}
+            aria-live="polite"
+          >
+            {this.text('settings.personalVocabularyNoFile')}
           </p>
         )
       case 'loaded':
         return (
-          <p className="settings-description" id={this.statusId}>
-            {/* The count, never the terms. The terms are the private part. */}A
-            vocabulary file is loaded with {status.vocabulary.terms.size}{' '}
-            {status.vocabulary.terms.size === 1 ? 'term' : 'terms'}. It is held
-            on this computer only.
+          <p
+            className="settings-description"
+            id={this.statusId}
+            aria-live="polite"
+          >
+            {this.text(
+              status.vocabulary.terms.size === 1
+                ? 'settings.personalVocabularyLoadedOne'
+                : 'settings.personalVocabularyLoadedMany',
+              { count: String(status.vocabulary.terms.size) }
+            )}
           </p>
         )
       case 'rejected':
@@ -160,18 +176,25 @@ export class PersonalVocabularyControl extends React.Component<
             className="settings-description is-error"
             id={this.statusId}
             role="alert"
+            aria-live="assertive"
           >
-            {status.reason}
+            {this.text(
+              status.kind === 'rejected'
+                ? 'settings.personalVocabularyRejected'
+                : 'settings.personalVocabularyUnreadable'
+            )}
           </p>
         )
     }
   }
 
   public render() {
-    const loaded = this.state.status.kind === 'loaded'
+    const loaded = this.activeVocabulary !== null
     return (
       <div className="personal-vocabulary-control">
-        <label htmlFor={this.inputId}>Choose a vocabulary file</label>
+        <label htmlFor={this.inputId}>
+          {this.text('settings.personalVocabularyChooseFile')}
+        </label>
         <input
           id={this.inputId}
           type="file"
@@ -191,23 +214,22 @@ export class PersonalVocabularyControl extends React.Component<
           <button
             type="button"
             onClick={this.onClear}
-            title="Remove the loaded vocabulary and restore the original wording"
+            title={this.text('settings.personalVocabularyClearTitle')}
           >
-            Clear and restore original wording
+            {this.text('settings.personalVocabularyClear')}
           </button>
         ) : null}
         {this.renderStatus()}
         <details>
-          <summary>What this file looks like</summary>
+          <summary>
+            {this.text('settings.personalVocabularyFileShapeSummary')}
+          </summary>
           <p className="settings-description">
-            A JSON object declaring{' '}
-            <code>"schemaVersion": {PersonalVocabularySchemaVersion}</code>{' '}
-            and an <code>entries</code> object mapping the word the app renders
-            to the word you would rather read. At most {MaxVocabularyEntries}{' '}
-            terms and{' '}
-            {Math.round(MaxVocabularyBytes / 1024)} KB. It is read on this
-            computer, never uploaded, and never included in an export, a
-            screenshot, a diagnostic report or this app's history.
+            {this.text('settings.personalVocabularyFileShapeDescription', {
+              version: String(PersonalVocabularySchemaVersion),
+              entries: String(MaxVocabularyEntries),
+              size: String(Math.round(MaxVocabularyBytes / 1024)),
+            })}
           </p>
         </details>
       </div>

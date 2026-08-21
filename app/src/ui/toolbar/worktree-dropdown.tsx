@@ -17,6 +17,7 @@ import { Resizable } from '../resizable'
 import { enableResizingToolbarButtons } from '../../lib/feature-flag'
 import { WorktreeAdministration } from '../worktrees/worktree-administration'
 import { menuAccelerator } from '../../lib/menu-accelerators'
+import { personalizeText } from '../../lib/i18n'
 
 interface IWorktreeDropdownProps {
   readonly dispatcher: Dispatcher
@@ -219,6 +220,9 @@ export class WorktreeDropdown extends React.Component<
       ? Path.basename(currentWorktree.path)
       : this.props.repository.name
     const description = __DARWIN__ ? 'Current Worktree' : 'Current worktree'
+    const tooltip = isOpen
+      ? undefined
+      : `${personalizeText('Current worktree is')} ${title}`
 
     const toolbarDropdown = (
       <ToolbarDropdown
@@ -227,7 +231,9 @@ export class WorktreeDropdown extends React.Component<
         materialSymbolSize={19}
         title={title}
         description={description}
-        tooltip={isOpen ? undefined : `Current worktree is ${title}`}
+        tooltip={tooltip}
+        preserveTitleFromPersonalVocabulary={true}
+        preserveTooltipFromPersonalVocabulary={true}
         onDropdownStateChanged={this.props.onDropDownStateChanged}
         onContextMenu={this.onContextMenu}
         dropdownContentRenderer={this.renderWorktreeFoldout}
