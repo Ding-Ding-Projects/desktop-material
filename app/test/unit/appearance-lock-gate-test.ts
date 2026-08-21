@@ -27,6 +27,8 @@ import {
 } from '../../src/lib/md3-locks'
 import { DefaultMd3UnlockDuration } from '../../src/lib/md3-locks/lock-model'
 
+const root = process.cwd()
+
 /**
  * A lock has to be felt to be a lock.
  *
@@ -388,7 +390,10 @@ describe('elements advertise their lock target', () => {
     const start = source.indexOf('private guardActiveTabActivation')
     const end = source.indexOf('private getPaletteControlValues', start)
     assert.ok(start >= 0, 'the app must define one active-tab lock boundary')
-    assert.ok(end > start, 'the active-tab lock boundary must have a finite body')
+    assert.ok(
+      end > start,
+      'the active-tab lock boundary must have a finite body'
+    )
     const body = source.slice(start, end)
 
     for (const method of [
@@ -401,7 +406,10 @@ describe('elements advertise their lock target', () => {
     ]) {
       const methodStart = body.indexOf(method)
       assert.ok(methodStart >= 0, `${method} is missing`)
-      const nextMethod = body.indexOf('\n  private ', methodStart + method.length)
+      const nextMethod = body.indexOf(
+        '\n  private ',
+        methodStart + method.length
+      )
       const methodBody = body.slice(
         methodStart,
         nextMethod === -1 ? body.length : nextMethod

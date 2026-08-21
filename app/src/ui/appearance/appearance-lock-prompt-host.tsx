@@ -1,12 +1,12 @@
 import * as React from 'react'
 
+import { Md3LockSetupDialog } from '../md3/md3-lock-setup-dialog'
 import { Md3LockUnlockPrompt } from '../md3/md3-lock-unlock-prompt'
-import {
-  IMd3ActiveUnlock,
-  IMd3Lock,
-} from '../../lib/md3-locks'
+import { IMd3ActiveUnlock, IMd3Lock } from '../../lib/md3-locks'
 import {
   AppearanceLockBlockedEvent,
+  AppearanceLockCreationRequestedEvent,
+  IAppearanceLockCreationRequestedDetail,
   IAppearanceLockBlockedDetail,
   firstLockedAppearanceLock,
   refreshAppearanceLockSemantics,
@@ -45,6 +45,13 @@ interface IAppearanceLockPromptHostState {
   /** The control that was blocked, so focus can go back to it. */
   readonly anchor: HTMLElement | null
   readonly applicationDataFolder: string | null
+  readonly creation: {
+    readonly targetId: string
+    readonly targetLabel: string
+    readonly anchor: HTMLElement
+    readonly anchorRect: DOMRect
+  } | null
+  readonly creationMenu: boolean
 }
 
 export class AppearanceLockPromptHost extends React.Component<
@@ -56,6 +63,8 @@ export class AppearanceLockPromptHost extends React.Component<
     anchorRect: null,
     anchor: null,
     applicationDataFolder: null,
+    creation: null,
+    creationMenu: false,
   }
 
   private mounted = false
@@ -63,6 +72,10 @@ export class AppearanceLockPromptHost extends React.Component<
   public componentDidMount() {
     this.mounted = true
     window.addEventListener(AppearanceLockBlockedEvent, this.onBlocked)
+    window.addEventListener(
+      AppearanceLockCreationRequestedEvent,
+      this.onCreationRequested
+    )
     const resolve = this.props.resolveFolder ?? (() => getPath('userData'))
     void resolveApplicationDataFolder(resolve).then(folder => {
       if (this.mounted) {
@@ -74,6 +87,10 @@ export class AppearanceLockPromptHost extends React.Component<
   public componentWillUnmount() {
     this.mounted = false
     window.removeEventListener(AppearanceLockBlockedEvent, this.onBlocked)
+    window.removeEventListener(
+      AppearanceLockCreationRequestedEvent,
+      this.onCreationRequested
+    )
   }
 
   private onBlocked = (event: Event) => {
@@ -97,6 +114,34 @@ export class AppearanceLockPromptHost extends React.Component<
     })
   }
 
+  private onCreationRequested = (event: Event) => {
+    const detail = (
+      event as CustomEvent<IAppearanceLockCreationRequestedDetail>
+    ).detail
+    if (detail === undefined) {
+      return
+    }
+    this.setState({
+      lock: null,
+      anchor: detail.anchor,
+      anchorRect: detail.anchor.getBoundingClientRect(),
+      creation: {
+        targetId: detail.targetId,
+        targetLabel: detail.targetLabel,
+        anchor: detail.anchor,
+        anchorRect: detail.anchor.getBoundingClientRect(),
+      },
+      creationMenu: detail.openWizard !== true,
+    })
+  }
+
+  private openCreationSetup = () => this.setState({ creationMenu: false })
+
+  private onCreationSaved = () => {
+    refreshAppearanceLockSemantics()
+    this.dismiss()
+  }
+
   private onUnlocked = (unlock: IMd3ActiveUnlock) => {
     recordAppearanceUnlock(unlock)
     refreshAppearanceLockSemantics()
@@ -109,13 +154,67 @@ export class AppearanceLockPromptHost extends React.Component<
 
   private dismiss = () => {
     const { anchor } = this.state
-    this.setState({ lock: null, anchorRect: null, anchor: null }, () =>
-      anchor?.focus()
+    this.setState(
+      {
+        lock: null,
+        anchorRect: null,
+        anchor: null,
+        creation: null,
+        creationMenu: false,
+      },
+      () => anchor?.focus()
     )
   }
 
   public render() {
-    const { lock, anchorRect } = this.state
+    const { lock, anchorRect, creation, creationMenu } = this.state
+    if (creation !== null && creationMenu) {
+      return (
+        <div
+          className="md3-lock-setup md3-lock-creation-menu"
+          role="menu"
+          aria-label="Element lock commands"
+          style={{
+            position: 'fixed',
+            top: creation.anchorRect.bottom + 4,
+            left: creation.anchorRect.left,
+          }}
+        >
+          <button
+            type="button"
+            role="menuitem"
+            aria-keyshortcuts="Control+Shift+L"
+            onClick={this.openCreationSetup}
+          >
+            Lock this element…
+          </button>
+          <button type="button" role="menuitem" onClick={this.dismiss}>
+            Cancel
+          </button>
+        </div>
+      )
+    }
+    if (creation !== null) {
+      return (
+        <Md3LockSetupDialog
+          lock={null}
+          target={{
+            kind: 'appearanceElement',
+            id: creation.targetId,
+            label: creation.targetLabel,
+          }}
+          anchorRect={{
+            top: creation.anchorRect.top,
+            left: creation.anchorRect.left,
+            width: creation.anchorRect.width,
+            height: creation.anchorRect.height,
+          }}
+          applicationDataFolder={this.state.applicationDataFolder}
+          onSaved={this.onCreationSaved}
+          onDismissed={this.dismiss}
+        />
+      )
+    }
     if (lock === null) {
       return null
     }
