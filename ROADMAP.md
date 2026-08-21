@@ -9,6 +9,12 @@
 - [ ] Run the deferred tests, reviews, audits, built-artifact interactions, and
   captures needed to verify each registered feature. The August 21 ultra-speed
   pass intentionally skipped those activities.
+- [ ] Verify changelog Markdown and plain-text exports preserve each recorded
+  full commit SHA and its forge URL, and explicitly report entries with no
+  recorded commit. The implementation and focused assertions are present in
+  `app/src/lib/changelog/changelog-export.ts` and
+  `app/test/unit/changelog-viewer-test.ts`; the ultra-speed pass did not run
+  the assertions.
 
 ## August 20 — automated merge-all cleanup
 

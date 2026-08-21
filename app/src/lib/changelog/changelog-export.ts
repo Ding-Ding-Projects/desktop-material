@@ -10,6 +10,7 @@
 import { FilterMode } from '../fuzzy-find'
 import { IChangelogRelease } from './changelog-catalog'
 import { IChangelogFilter } from './changelog-filter'
+import { commitUrlOrNull } from './commit-url'
 
 export type ChangelogExportFormat = 'markdown' | 'text'
 
@@ -112,6 +113,36 @@ function describeStamp(release: IChangelogRelease): string {
     : `${release.date} ${release.time}`
 }
 
+const MissingCommitNotice =
+  'Commit: not recorded (no commit SHA is available for this changelog entry).'
+
+/**
+ * Keeps the traceability that the viewer shows beside each entry in the
+ * Markdown source too: the full SHA is the link label and the forge URL is
+ * the destination. A malformed reference is reported rather than turned into
+ * a confidently wrong link.
+ */
+function describeCommitAsMarkdown(commit: string | null): string {
+  if (commit === null) {
+    return MissingCommitNotice
+  }
+  const url = commitUrlOrNull(commit)
+  return url === null
+    ? `Commit: ${commit} (forge URL unavailable: the reference is not a full commit SHA).`
+    : `Commit: [${commit}](${url})`
+}
+
+/** Plain text carries both the full SHA and the URL without Markdown syntax. */
+function describeCommitAsText(commit: string | null): string {
+  if (commit === null) {
+    return MissingCommitNotice
+  }
+  const url = commitUrlOrNull(commit)
+  return url === null
+    ? `Commit: ${commit} (forge URL unavailable: the reference is not a full commit SHA).`
+    : `Commit: ${commit} (${url})`
+}
+
 /** Renders the shown releases as Markdown. */
 export function exportChangelogAsMarkdown(
   releases: ReadonlyArray<IChangelogRelease>,
@@ -141,7 +172,9 @@ export function exportChangelogAsMarkdown(
     }
     for (const entry of release.entries) {
       const category = entry.category === null ? '' : `**${entry.category}** — `
-      lines.push(`- ${category}${entry.text}`)
+      lines.push(
+        `- ${category}${entry.text} — ${describeCommitAsMarkdown(entry.commit)}`
+      )
     }
     lines.push('')
   }
@@ -179,7 +212,9 @@ export function exportChangelogAsText(
     }
     for (const entry of release.entries) {
       const category = entry.category === null ? '' : `[${entry.category}] `
-      lines.push(`  * ${category}${entry.text}`)
+      lines.push(
+        `  * ${category}${entry.text} — ${describeCommitAsText(entry.commit)}`
+      )
     }
     lines.push('')
   }

@@ -417,18 +417,23 @@ describe('date range presets', () => {
 })
 
 describe('changelog export', () => {
+  const linkedCommit = '0123456789abcdef0123456789abcdef01234567'
   const releases = [
     {
       version: '2.0.0',
       date: '2026-03-10',
       time: '09:30',
-      entries: [{ category: 'Fixed', text: 'Stop the crash', commit: null }],
+      entries: [
+        { category: 'Fixed', text: 'Stop the crash', commit: linkedCommit },
+      ],
     },
     {
       version: '1.8.0-beta1',
       date: null,
       time: null,
-      entries: [],
+      entries: [
+        { category: null, text: 'An older change', commit: null },
+      ],
     },
   ]
 
@@ -469,14 +474,33 @@ describe('changelog export', () => {
     const markdown = exportChangelogAsMarkdown(releases, context)
     assert.match(markdown, /## 2\.0\.0 — 2026-03-10 09:30/)
     assert.match(markdown, /## 1\.8\.0-beta1 — date unrecorded/)
-    assert.match(markdown, /No changes recorded for this release/)
     assert.match(markdown, /- \*\*Fixed\*\* — Stop the crash/)
+    assert.match(
+      markdown,
+      new RegExp(
+        `Commit: \\[${linkedCommit}\\]\\(https://github\\.com/Ding-Ding-Projects/desktop-material/commit/${linkedCommit}\\)`
+      )
+    )
+    assert.match(
+      markdown,
+      /Commit: not recorded \(no commit SHA is available for this changelog entry\)\./
+    )
   })
 
   it('renders plain text with the same facts', () => {
     const text = exportChangelogAsText(releases, context)
     assert.match(text, /2\.0\.0 — 2026-03-10 09:30/)
     assert.match(text, /\[Fixed\] Stop the crash/)
+    assert.match(
+      text,
+      new RegExp(
+        `Commit: ${linkedCommit} \\(https://github\\.com/Ding-Ding-Projects/desktop-material/commit/${linkedCommit}\\)`
+      )
+    )
+    assert.match(
+      text,
+      /Commit: not recorded \(no commit SHA is available for this changelog entry\)\./
+    )
     assert.doesNotMatch(text, /\*\*/, 'plain text carries no Markdown emphasis')
   })
 

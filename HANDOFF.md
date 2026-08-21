@@ -1,5 +1,29 @@
 # Desktop Material — Active parity handoff
 
+## Changelog export traceability — 2026-08-21
+
+The in-app changelog export lane now keeps provenance visible in both export
+formats. Markdown entries include the full 40-character commit SHA as a link to
+the exact project forge commit URL. Plain-text entries include the same full SHA
+and URL without Markdown syntax. Entries with no recorded commit explicitly say
+`Commit: not recorded (no commit SHA is available for this changelog entry).`
+Malformed references are reported without inventing a link.
+
+Changed files in this lane:
+
+- `app/src/lib/changelog/changelog-export.ts`
+- `app/test/unit/changelog-viewer-test.ts`
+- `docs/features/integrations/automated-updates-and-release-notes.md`
+- `ROADMAP.md`
+- `HANDOFF.md`
+- `changelog.json`
+
+The focused assertions cover both linked and absent commit metadata, but this
+ultra-speed lane intentionally ran no tests, lint, type checks, reviews,
+captures, builds, or packaging. The evidence state is therefore **implemented;
+verification deferred** until a later pass runs the focused checks against the
+integrated default branch.
+
 ## Five-day public guidance notice — 2026-08-21
 
 Added a compact, public-safe README banner summarizing the latest shared

@@ -74,6 +74,27 @@ The first release has no previous tag, so it uses the exact target's reachable
 history with the same limits. A mismatched checkout, tag target, ancestry,
 provider response, Git object ID, or output bound stops publication.
 
+## In-app changelog export traceability
+
+The in-app changelog viewer exports the filtered history in both Markdown and
+plain text. Each entry carries the full 40-character commit SHA when the
+changelog recorded one, together with the project forge URL. Markdown renders
+the SHA as a link whose destination is the exact commit URL; plain text keeps
+the same SHA and URL in parentheses so the trace survives copying into another
+tool.
+
+An entry without a recorded commit is not given a guessed or neighbouring
+reference. Both formats say: `Commit: not recorded (no commit SHA is available
+for this changelog entry).` A malformed reference is also reported rather than
+turned into a link. The export therefore remains useful as a standalone file
+without claiming more provenance than the source changelog contains.
+
+The focused implementation is
+`app/src/lib/changelog/changelog-export.ts`, with coverage in
+`app/test/unit/changelog-viewer-test.ts`. The ultra-speed delivery pass updates
+the focused assertions but intentionally does not run tests, lint, type checks,
+builds, or captures; those remain deferred verification work.
+
 ## Express installer release
 
 The same workflow has two deliberately different entry paths:
