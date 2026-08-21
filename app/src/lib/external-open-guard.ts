@@ -49,14 +49,14 @@ export type ExternalOpenKind =
 /**
  * Build the guard key for one open.
  *
- * Keys are namespaced by kind and joined with NUL so no path, editor id, or
- * argument can be crafted to collide with a different target.
+ * Keys encode the complete tuple so no path, editor id, or argument can be
+ * crafted to collide with a different target or part boundary.
  */
 export function externalOpenTarget(
   kind: ExternalOpenKind,
   ...parts: ReadonlyArray<string | null | undefined>
 ): string {
-  return [kind, ...parts.map(part => part ?? '')].join('\0')
+  return JSON.stringify([kind, ...parts.map(part => part ?? '')])
 }
 
 /** An observable registry of the external opens currently in flight. */

@@ -107,6 +107,15 @@ describe('API', () => {
       )
     })
 
+    it('preserves a self-hosted repository port in its API endpoint', () => {
+      assert.equal(
+        getEndpointForRepository(
+          'http://github.enterprise.test:8443/team/project.git'
+        ),
+        'http://github.enterprise.test:8443/api'
+      )
+    })
+
     it('maps third-party API endpoints back to exact browser roots', () => {
       assert.equal(
         getHTMLURL('https://gitlab.example.com/gitlab/api/v4'),
