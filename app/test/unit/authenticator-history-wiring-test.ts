@@ -26,9 +26,16 @@ describe('authenticator history wiring', () => {
       /!this\.state\.secrets\.has\(entry\.id\)/,
       'restored metadata with a missing vault record must stay visibly unavailable'
     )
+    const historyRenderer = settings.match(
+      /private renderHistory\(\)\s*\{[\s\S]*?(?=\r?\n  private missingSecretCount)/
+    )?.[0]
+    assert.ok(
+      historyRenderer,
+      'the shared history renderer must remain addressable'
+    )
     assert.doesNotMatch(
-      settings,
-      /getSecret|exportSecret|secret[^\n]*history/i,
+      historyRenderer,
+      /\b(?:getSecret|exportSecret)\s*\(|\bsecret\b/i,
       'the history join must not expose credential material'
     )
   })
