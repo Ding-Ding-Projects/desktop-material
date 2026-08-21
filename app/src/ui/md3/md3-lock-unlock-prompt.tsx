@@ -97,6 +97,11 @@ export interface IMd3LockAnchorRect {
   readonly height: number
 }
 
+export interface IMd3LockPanelSize {
+  readonly width: number
+  readonly height: number
+}
+
 export interface IMd3LockUnlockPromptProps {
   readonly lock: IMd3Lock
 
@@ -144,34 +149,54 @@ function clamp(value: number, minimum: number, maximum: number): number {
  */
 export function md3LockPromptPosition(
   anchor: IMd3LockAnchorRect | null,
-  viewport: { readonly width: number; readonly height: number }
+  viewport: { readonly width: number; readonly height: number },
+  panelSize: IMd3LockPanelSize = { width: PromptWidth, height: 0 }
 ): { readonly top: number; readonly left: number } {
+  const width = clamp(
+    panelSize.width > 0 ? panelSize.width : PromptWidth,
+    ViewportMargin,
+    Math.max(ViewportMargin, viewport.width - ViewportMargin * 2)
+  )
+  // Before the first layout pass there is no measured height. Use the full
+  // available viewport as a safe provisional panel; ResizeObserver replaces
+  // this with the actual rendered dimensions immediately after mount.
+  const height = clamp(
+    panelSize.height > 0
+      ? panelSize.height
+      : Math.max(ViewportMargin, viewport.height - ViewportMargin * 2),
+    ViewportMargin,
+    Math.max(ViewportMargin, viewport.height - ViewportMargin * 2)
+  )
+  const maxLeft = Math.max(
+    ViewportMargin,
+    viewport.width - width - ViewportMargin
+  )
+  const maxTop = Math.max(
+    ViewportMargin,
+    viewport.height - height - ViewportMargin
+  )
+
   if (anchor === null) {
     return {
       top: ViewportMargin * 8,
       left: clamp(
-        Math.round((viewport.width - PromptWidth) / 2),
+        Math.round((viewport.width - width) / 2),
         ViewportMargin,
-        Math.max(ViewportMargin, viewport.width - PromptWidth - ViewportMargin)
+        maxLeft
       ),
     }
   }
 
   const preferredTop = anchor.top + anchor.height + ViewportMargin
-  const left = clamp(
-    anchor.left,
-    ViewportMargin,
-    Math.max(ViewportMargin, viewport.width - PromptWidth - ViewportMargin)
-  )
+  const preferredAbove = anchor.top - height - ViewportMargin
+  const top =
+    preferredTop + height > viewport.height - ViewportMargin &&
+    preferredAbove >= ViewportMargin
+      ? preferredAbove
+      : clamp(preferredTop, ViewportMargin, maxTop)
+  const left = clamp(anchor.left, ViewportMargin, maxLeft)
 
-  return {
-    top: clamp(
-      preferredTop,
-      ViewportMargin,
-      Math.max(ViewportMargin, viewport.height - ViewportMargin)
-    ),
-    left,
-  }
+  return { top, left }
 }
 
 export function Md3LockUnlockPrompt(props: IMd3LockUnlockPromptProps) {
@@ -226,6 +251,10 @@ export function Md3LockUnlockPrompt(props: IMd3LockUnlockPromptProps) {
   const [tick, setTick] = React.useState(0)
 
   const panelRef = React.useRef<HTMLFormElement | null>(null)
+  const [panelSize, setPanelSize] = React.useState<IMd3LockPanelSize>({
+    width: PromptWidth,
+    height: 0,
+  })
   const answerRef = React.useRef<HTMLInputElement | null>(null)
   const closeRef = React.useMemo(
     () => createObservableRef<HTMLButtonElement>(),
@@ -248,6 +277,32 @@ export function Md3LockUnlockPrompt(props: IMd3LockUnlockPromptProps) {
       }
     }
   }, [])
+
+  React.useLayoutEffect(() => {
+    const panel = panelRef.current
+    if (panel === null) {
+      return
+    }
+    const measure = () => {
+      const rect = panel.getBoundingClientRect()
+      if (rect.width > 0 && rect.height > 0) {
+        setPanelSize(current =>
+          current.width === rect.width && current.height === rect.height
+            ? current
+            : { width: rect.width, height: rect.height }
+        )
+      }
+    }
+    measure()
+    const resizeObserver =
+      typeof ResizeObserver === 'function' ? new ResizeObserver(measure) : null
+    resizeObserver?.observe(panel)
+    window.addEventListener('resize', measure)
+    return () => {
+      resizeObserver?.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [ladder, status])
 
   // While a wrong-answer delay is running the remaining seconds have to visibly
   // count down, or the prompt looks broken rather than patient.
@@ -336,10 +391,14 @@ export function Md3LockUnlockPrompt(props: IMd3LockUnlockPromptProps) {
     throttled,
   ])
 
-  const position = md3LockPromptPosition(anchorRect, {
-    width: typeof window === 'undefined' ? PromptWidth : window.innerWidth,
-    height: typeof window === 'undefined' ? 600 : window.innerHeight,
-  })
+  const position = md3LockPromptPosition(
+    anchorRect,
+    {
+      width: typeof window === 'undefined' ? PromptWidth : window.innerWidth,
+      height: typeof window === 'undefined' ? 600 : window.innerHeight,
+    },
+    panelSize
+  )
 
   const onAnswerChanged = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {

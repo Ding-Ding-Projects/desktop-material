@@ -50,6 +50,7 @@ import {
 import { Md3LockRemovalGate } from './md3-lock-removal-gate'
 import { IMd3LockAnchorRect } from './md3-lock-unlock-prompt'
 import { notify } from './md3-toast'
+import { announceAppearanceLockBlocked } from '../appearance/appearance-lock-gate'
 
 /**
  * The lock manager: every lock in the app, as a real list.
@@ -263,6 +264,20 @@ function Md3LockRow(props: IMd3LockRowProps) {
     onLockAgain(lock)
   }, [onLockAgain, lock])
 
+  const handleUnlock = React.useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      // This manager button is the reliable route for a native-disabled target:
+      // browsers do not promise to dispatch click/keyboard events from the
+      // disabled control itself. The prompt still names the exact target lock.
+      announceAppearanceLockBlocked(
+        lock.target.id,
+        event.currentTarget,
+        lock.target.kind
+      )
+    },
+    [lock]
+  )
+
   return (
     // A grid row is the focusable unit of this list: it carries the roving
     // tabindex, answers Space and Enter, and is reached by the arrow keys.
@@ -308,6 +323,16 @@ function Md3LockRow(props: IMd3LockRowProps) {
         </span>
       </span>
       <span role="gridcell" className="md3-locks__row-actions">
+        {!open ? (
+          <Md3IconButton
+            small={true}
+            icon="key"
+            iconSize={RowButtonGlyphSize}
+            label={t('md3.locks.row.unlock', { label: lock.target.label })}
+            tabIndex={focused ? 0 : -1}
+            onClick={handleUnlock}
+          />
+        ) : null}
         {open ? (
           <Md3IconButton
             small={true}
@@ -688,6 +713,15 @@ export function Md3LocksView(props: IMd3LocksViewProps) {
       if (event.key === 'Enter') {
         event.preventDefault()
         onEditLock(lock, rectOf(event.currentTarget))
+        return
+      }
+      if (event.key.toLowerCase() === 'u') {
+        event.preventDefault()
+        announceAppearanceLockBlocked(
+          lock.target.id,
+          event.currentTarget,
+          lock.target.kind
+        )
       }
     },
     [onEditLock, toggleSelected, visible]

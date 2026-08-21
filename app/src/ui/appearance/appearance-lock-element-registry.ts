@@ -44,6 +44,8 @@ export const AppearanceActionableElementSelector =
 
 const registrations = new Map<string, IAppearanceElementRegistration>()
 const elementIds = new WeakMap<Element, string>()
+const registeredElements = new Map<Element, string>()
+const registrationReferenceCounts = new Map<string, number>()
 let observer: MutationObserver | null = null
 let installed = false
 let registryChangeScheduled = false
@@ -64,6 +66,16 @@ function notifyRegistryChanged(): void {
   }
 }
 
+function decrementRegistrationReference(targetId: string): void {
+  const count = registrationReferenceCounts.get(targetId) ?? 0
+  if (count <= 1) {
+    registrationReferenceCounts.delete(targetId)
+    registrations.delete(targetId)
+  } else {
+    registrationReferenceCounts.set(targetId, count - 1)
+  }
+}
+
 function bounded(value: string, maximum: number): string {
   return value.trim().slice(0, maximum)
 }
@@ -72,8 +84,42 @@ function safeHint(value: string): string {
   return bounded(value, 64).replace(/[^a-zA-Z0-9_.-]+/g, '_')
 }
 
+function stableDigest(value: string): string {
+  let hash = 2166136261
+  for (let index = 0; index < value.length; index++) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0')
+}
+
+function surfaceNamespace(element: Element): string {
+  const surface =
+    element
+      .closest('[data-md3-surface-id]')
+      ?.getAttribute('data-md3-surface-id') ??
+    document.body?.getAttribute('data-md3-surface-id') ??
+    document.body?.id ??
+    'desktop-material'
+  const windowName =
+    typeof window !== 'undefined' && window.name !== '' ? window.name : 'window'
+  return `${safeHint(surface).slice(0, 32)}-${safeHint(windowName).slice(
+    0,
+    24
+  )}`
+}
+
 function elementHint(element: Element): string | null {
-  const attributes = ['data-testid', 'id', 'name', 'role', 'aria-label']
+  const attributes = [
+    'data-testid',
+    'id',
+    'name',
+    'role',
+    'type',
+    'class',
+    'data-context-menu-owner',
+    'data-md3-surface-id',
+  ]
   if (element.getAttribute(AppearanceAutoLockTargetAttribute) !== 'true') {
     attributes.unshift('data-md3-element-id')
   }
@@ -94,8 +140,10 @@ function stableFingerprint(element: Element): string {
     'id',
     'name',
     'role',
-    'aria-label',
     'type',
+    'class',
+    'data-context-menu-owner',
+    'data-md3-surface-id',
   ]) {
     if (
       attribute === 'data-md3-element-id' &&
@@ -147,29 +195,35 @@ function automaticTargetId(element: Element): string {
     const ancestor: Element | null = current.parentElement
     const index =
       ancestor === null ? 0 : stableSiblingOrdinal(current, ancestor)
-    const hint = elementHint(current)
+    const fingerprint = stableFingerprint(current)
     segments.unshift(
-      `${current.tagName.toLowerCase()}-${hint ?? 'node'}-${Math.max(0, index)}`
+      `${current.tagName.toLowerCase()}-${stableDigest(fingerprint)}-${Math.max(
+        0,
+        index
+      )}`
     )
     current = ancestor
   }
 
-  const id = `element:${bounded(segments.join('/'), 220)}`
+  const identityPath = segments.join('/')
+  const displayHint = safeHint(elementHint(element) ?? element.tagName)
+  const id = `element:${surfaceNamespace(element)}:${displayHint.slice(
+    0,
+    32
+  )}:${stableDigest(identityPath)}`
   elementIds.set(element, id)
   return id
 }
 
 function defaultLabel(element: Element): string {
   const explicit =
-    element.getAttribute('aria-label') ??
-    element.getAttribute('title') ??
-    element.getAttribute('data-md3-element-label')
+    element.getAttribute('data-md3-element-label') ??
+    element.getAttribute('role')
   if (explicit !== null && explicit.trim() !== '') {
     return bounded(explicit, 120)
   }
 
-  const text = bounded(element.textContent ?? '', 120).replace(/\s+/g, ' ')
-  return text !== '' ? text : `${element.tagName.toLowerCase()} element`
+  return `${element.tagName.toLowerCase()} element`
 }
 
 function isIgnoredInfrastructure(element: Element): boolean {
@@ -254,6 +308,17 @@ export function registerAppearanceElement(
     actionable: isActionable(element),
     source,
   }
+  const previousTargetId = registeredElements.get(element)
+  if (previousTargetId !== undefined && previousTargetId !== targetId) {
+    decrementRegistrationReference(previousTargetId)
+  }
+  if (previousTargetId !== targetId) {
+    registrationReferenceCounts.set(
+      targetId,
+      (registrationReferenceCounts.get(targetId) ?? 0) + 1
+    )
+    registeredElements.set(element, targetId)
+  }
   registrations.set(targetId, registration)
   notifyRegistryChanged()
   return registration
@@ -268,6 +333,25 @@ function registerTree(root: ParentNode): void {
     .forEach(element => registerAppearanceElement(element))
 }
 
+function unregisterTree(root: Node): void {
+  const elements: Element[] = []
+  if (root instanceof Element) {
+    elements.push(root)
+    elements.push(...Array.from(root.querySelectorAll('*')))
+  }
+  for (const element of elements) {
+    const targetId = registeredElements.get(element)
+    if (targetId === undefined) {
+      continue
+    }
+    registeredElements.delete(element)
+    decrementRegistrationReference(targetId)
+  }
+  if (elements.length > 0) {
+    notifyRegistryChanged()
+  }
+}
+
 /** Return a read-only snapshot for inventories and diagnostics. */
 export function listAppearanceElementRegistrations(): ReadonlyArray<IAppearanceElementRegistration> {
   return Array.from(registrations.values())
@@ -276,6 +360,8 @@ export function listAppearanceElementRegistrations(): ReadonlyArray<IAppearanceE
 /** Clear the in-memory inventory; intended for focused tests only. */
 export function clearAppearanceElementRegistrations(): void {
   registrations.clear()
+  registeredElements.clear()
+  registrationReferenceCounts.clear()
 }
 
 /**
@@ -294,6 +380,9 @@ export function installAppearanceElementInstrumentation(): void {
   if (typeof MutationObserver === 'function') {
     observer = new MutationObserver(records => {
       for (const record of records) {
+        for (const node of Array.from(record.removedNodes)) {
+          unregisterTree(node)
+        }
         for (const node of Array.from(record.addedNodes)) {
           if (node instanceof Element) {
             registerTree(node)
@@ -310,6 +399,7 @@ export function uninstallAppearanceElementInstrumentation(): void {
   observer?.disconnect()
   observer = null
   installed = false
+  clearAppearanceElementRegistrations()
 }
 
 /** Whether the instrumentation boundary is active. */

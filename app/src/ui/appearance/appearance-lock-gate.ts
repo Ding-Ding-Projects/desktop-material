@@ -1,6 +1,7 @@
 import {
   IMd3ActiveUnlock,
   IMd3Lock,
+  Md3LockSurfaceKind,
   isMd3UnlockActive,
   isTargetLocked,
   locksForTarget,
@@ -58,9 +59,12 @@ export const AppearanceLockBlockedEvent = 'desktop-material-lock-blocked'
 /** Raised by the universal context/keyboard lock-creation affordance. */
 export const AppearanceLockCreationRequestedEvent =
   'desktop-material-lock-creation-requested'
+export const AppearanceUnlocksChangedEvent =
+  'desktop-material-appearance-unlocks-changed'
 
 export interface IAppearanceLockBlockedDetail {
   readonly targetId: string
+  readonly targetKind?: Md3LockSurfaceKind
   /** The element that was activated, so the prompt can anchor to it. */
   readonly anchor: HTMLElement
 }
@@ -136,33 +140,71 @@ export function appearanceLockTargetSemantics(
  * restart, which is the opposite of what `lockOnLaunch` promises.
  */
 const unlocks = new Map<string, IMd3ActiveUnlock>()
+const launchUnlockIds = new Set<string>()
 
 /** Native disabled values are restored after the last applicable lock opens. */
 const nativeDisabledBeforeAppearanceLock = new WeakMap<HTMLElement, boolean>()
 
 export function recordAppearanceUnlock(unlock: IMd3ActiveUnlock): void {
+  launchUnlockIds.delete(unlock.lockId)
   unlocks.set(unlock.lockId, unlock)
   refreshAppearanceLockSemantics()
+  notifyAppearanceUnlocksChanged()
 }
 
 export function forgetAppearanceUnlock(lockId: string): void {
   unlocks.delete(lockId)
+  launchUnlockIds.delete(lockId)
   refreshAppearanceLockSemantics()
+  notifyAppearanceUnlocksChanged()
 }
 
 /** Exists so a test can start from a known state. */
 export function clearAppearanceUnlocks(): void {
   unlocks.clear()
+  launchUnlockIds.clear()
   refreshAppearanceLockSemantics()
+  notifyAppearanceUnlocksChanged()
+}
+
+export function getAppearanceUnlocks(): ReadonlyArray<IMd3ActiveUnlock> {
+  return Array.from(unlocks.values())
+}
+
+function notifyAppearanceUnlocksChanged(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(AppearanceUnlocksChangedEvent))
+  }
+}
+
+/**
+ * Apply the persisted lock-on-launch choice when the renderer starts. A lock
+ * configured with `lockOnLaunch: false` is intentionally open for this app
+ * session until the user chooses Lock again; the setting is not decorative.
+ */
+export function initializeAppearanceUnlocksForLaunch(): void {
+  for (const lock of readMd3Locks()) {
+    if (!lock.lockOnLaunch && !unlocks.has(lock.id)) {
+      unlocks.set(lock.id, {
+        lockId: lock.id,
+        kind: 'session',
+        expiresAt: null,
+      })
+      launchUnlockIds.add(lock.id)
+    }
+  }
+  refreshAppearanceLockSemantics()
+  notifyAppearanceUnlocksChanged()
 }
 
 /** Return the first credential that is still required for one target. */
 export function firstLockedAppearanceLock(
   targetId: string,
-  now: number = Date.now()
+  now: number = Date.now(),
+  kind: Md3LockSurfaceKind = 'appearanceElement'
 ): IMd3Lock | null {
   return (
-    locksForTarget(readMd3Locks(), 'appearanceElement', targetId).find(
+    locksForTarget(readMd3Locks(), kind, targetId).find(
       lock => !isMd3UnlockActive(unlocks.get(lock.id), now)
     ) ?? null
   )
@@ -357,10 +399,15 @@ function gate(event: Event): boolean {
 /** Announce one blocked activation to the mounted prompt host. */
 export function announceAppearanceLockBlocked(
   targetId: string,
-  anchor: HTMLElement
+  anchor: HTMLElement,
+  targetKind: Md3LockSurfaceKind = 'appearanceElement'
 ): void {
   refreshAppearanceLockSemantics()
-  const detail: IAppearanceLockBlockedDetail = { targetId, anchor }
+  const detail: IAppearanceLockBlockedDetail = {
+    targetId,
+    anchor,
+    targetKind,
+  }
   window.dispatchEvent(new CustomEvent(AppearanceLockBlockedEvent, { detail }))
 }
 
@@ -452,6 +499,21 @@ export function guardAppearanceElementActivation(
 export function refreshAppearanceLockSemantics(): void {
   if (typeof document === 'undefined') {
     return
+  }
+
+  const liveLockIds = new Set(readMd3Locks().map(lock => lock.id))
+  const liveLocks = readMd3Locks()
+  for (const lockId of unlocks.keys()) {
+    if (!liveLockIds.has(lockId)) {
+      unlocks.delete(lockId)
+      launchUnlockIds.delete(lockId)
+    }
+  }
+  for (const lock of liveLocks) {
+    if (lock.lockOnLaunch && launchUnlockIds.has(lock.id)) {
+      launchUnlockIds.delete(lock.id)
+      unlocks.delete(lock.id)
+    }
   }
 
   const targets = new Set<HTMLElement>()
@@ -557,14 +619,11 @@ function scheduleUnownedContextMenuFallback(
 
 function targetLabel(anchor: HTMLElement): string {
   const explicit =
-    anchor.getAttribute('aria-label') ??
-    anchor.getAttribute('title') ??
-    anchor.getAttribute('data-md3-element-label')
+    anchor.getAttribute('data-md3-element-label') ?? anchor.getAttribute('role')
   if (explicit !== null && explicit.trim() !== '') {
     return explicit.trim().slice(0, 120)
   }
-  const text = (anchor.textContent ?? '').replace(/\s+/g, ' ').trim()
-  return text.slice(0, 120) || `${anchor.tagName.toLowerCase()} element`
+  return `${anchor.tagName.toLowerCase()} element`
 }
 
 const onContextMenu = (event: Event) => {
@@ -691,6 +750,7 @@ export function installAppearanceLockGate(): void {
   }
   installed = true
   installAppearanceElementInstrumentation()
+  initializeAppearanceUnlocksForLaunch()
   // Pointer-down as well as click, because a control that acts on press — and
   // several do — would otherwise have already acted by the time click arrived.
   document.addEventListener('pointerdown', onPointer, true)
@@ -730,5 +790,9 @@ export function uninstallAppearanceLockGate(): void {
     AppearanceElementRegistryChangedEvent,
     refreshAppearanceLockSemantics
   )
+  unlocks.clear()
+  launchUnlockIds.clear()
+  refreshAppearanceLockSemantics()
+  notifyAppearanceUnlocksChanged()
   uninstallAppearanceElementInstrumentation()
 }

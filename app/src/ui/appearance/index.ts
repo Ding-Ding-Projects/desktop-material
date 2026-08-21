@@ -63,6 +63,7 @@ export type {
 export {
   AppearanceLockBlockedEvent,
   AppearanceLockCreationRequestedEvent,
+  AppearanceUnlocksChangedEvent,
   AppearanceLockTargetAttribute,
   announceAppearanceLockCreation,
   announceAppearanceLockBlocked,
@@ -72,6 +73,7 @@ export {
   consumeAppearanceLockContextMenuTarget,
   firstLockedAppearanceLock,
   forgetAppearanceUnlock,
+  getAppearanceUnlocks,
   guardAppearanceActivation,
   guardAppearanceElementActivation,
   installAppearanceLockGate,

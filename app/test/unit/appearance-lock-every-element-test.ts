@@ -28,6 +28,8 @@ import {
   uninstallAppearanceLockGate,
 } from '../../src/ui/appearance/appearance-lock-gate'
 import { AppearanceLockPromptHost } from '../../src/ui/appearance/appearance-lock-prompt-host'
+import { Md3LocksView } from '../../src/ui/md3/md3-locks-view'
+import { md3LockPromptPosition } from '../../src/ui/md3/md3-lock-unlock-prompt'
 import { addMd3Lock, writeMd3Locks } from '../../src/lib/md3-locks'
 import { DefaultMd3UnlockDuration } from '../../src/lib/md3-locks/lock-model'
 
@@ -52,6 +54,7 @@ describe('every rendered element joins the toy-lock boundary', () => {
     uninstallAppearanceLockGate()
     uninstallAppearanceElementInstrumentation()
     document.body.innerHTML = ''
+    document.body.removeAttribute('data-md3-surface-id')
   })
 
   afterEach(() => {
@@ -61,6 +64,7 @@ describe('every rendered element joins the toy-lock boundary', () => {
     writeMd3Locks([])
     clearAppearanceUnlocks()
     document.body.innerHTML = ''
+    document.body.removeAttribute('data-md3-surface-id')
   })
 
   it('has a hand-written inventory spanning actionable and non-actionable elements', async () => {
@@ -109,6 +113,23 @@ describe('every rendered element joins the toy-lock boundary', () => {
     assert.equal(listAppearanceElementRegistrations().length, 1)
   })
 
+  it('removes stale registrations when an element unmounts', async () => {
+    installAppearanceElementInstrumentation()
+    const removed = document.createElement('div')
+    document.body.appendChild(removed)
+    await waitForMutationObserver()
+    const targetId = removed.getAttribute(AppearanceLockTargetAttribute)
+    assert.ok(targetId)
+    removed.remove()
+    await waitForMutationObserver()
+    assert.equal(
+      listAppearanceElementRegistrations().some(
+        registration => registration.targetId === targetId
+      ),
+      false
+    )
+  })
+
   it('recreates the same semantic DOM with the same persisted target id', async () => {
     const first = document.createElement('button')
     first.id = 'stable-action'
@@ -150,6 +171,32 @@ describe('every rendered element joins the toy-lock boundary', () => {
     )
   })
 
+  it('uses neutral labels and collision-resistant namespaced identities', async () => {
+    document.body.dataset.md3SurfaceId = 'settings-surface'
+    const prefix = 'neutral-metadata-'.repeat(10)
+    const first = document.createElement('button')
+    first.id = `${prefix}first`
+    first.setAttribute('aria-label', 'Private person label')
+    first.textContent = 'Private text'
+    const second = document.createElement('button')
+    second.id = `${prefix}second`
+    document.body.append(first, second)
+    installAppearanceElementInstrumentation()
+    await waitForMutationObserver()
+
+    const firstTargetId = first.getAttribute(AppearanceLockTargetAttribute)
+    const secondTargetId = second.getAttribute(AppearanceLockTargetAttribute)
+    assert.ok(firstTargetId)
+    assert.ok(secondTargetId)
+    assert.notEqual(firstTargetId, secondTargetId)
+    assert.match(firstTargetId, /^element:settings-surface-window:/)
+    assert.doesNotMatch(firstTargetId, /Private|person|label|text/i)
+    const firstRegistration = listAppearanceElementRegistrations().find(
+      registration => registration.targetId === firstTargetId
+    )
+    assert.equal(firstRegistration?.label, 'button element')
+  })
+
   it('keeps an automatic registration separate from a profile-owned surface', () => {
     const toolbar = document.createElement('div')
     toolbar.id = 'desktop-app-toolbar'
@@ -185,6 +232,8 @@ describe('every rendered element joins the toy-lock boundary', () => {
 
     const targetId = button.getAttribute(AppearanceLockTargetAttribute)
     assert.ok(targetId)
+    let activations = 0
+    button.addEventListener('click', () => activations++)
     addMd3Lock({
       target: { kind: 'appearanceElement', id: targetId, label: 'Button' },
       factor: 'password',
@@ -192,9 +241,18 @@ describe('every rendered element joins the toy-lock boundary', () => {
       lockOnLaunch: true,
     })
     assert.equal(isAppearanceTargetBlocked(targetId), true)
+    const blockedClick = new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+    })
+    button.dispatchEvent(blockedClick)
+    assert.equal(blockedClick.defaultPrevented, true)
+    assert.equal(activations, 0)
 
     // Deliberately remove both joins. The assertion must turn red if a future
-    // refactor silently stops registering or enforcing the actual element.
+    // refactor silently stops registering or enforcing the actual element. The
+    // behavior assertion above is the real regression; this mutation proves
+    // the attribute is the load-bearing registration join rather than a badge.
     button.removeAttribute(AppearanceLockTargetAttribute)
     button.removeAttribute(AppearanceAutoLockTargetAttribute)
     assert.equal(
@@ -202,6 +260,14 @@ describe('every rendered element joins the toy-lock boundary', () => {
       null,
       'mutation removed the concrete registration as intended'
     )
+    button.disabled = false
+    const unregisteredClick = new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+    })
+    button.dispatchEvent(unregisteredClick)
+    assert.equal(unregisteredClick.defaultPrevented, false)
+    assert.equal(activations, 1)
   })
 
   it('blocks pointer, context-menu, keyboard, and direct callback routes for the exact target', async () => {
@@ -374,11 +440,91 @@ describe('every rendered element joins the toy-lock boundary', () => {
     assert.notEqual(profileLock.id, childLock.id)
   })
 
+  it('honors lockOnLaunch=false and relocks when the user changes it', async () => {
+    const button = document.createElement('button')
+    button.id = 'launch-choice-action'
+    document.body.appendChild(button)
+    installAppearanceElementInstrumentation()
+    await waitForMutationObserver()
+    const targetId = button.getAttribute(AppearanceLockTargetAttribute)
+    assert.ok(targetId)
+    const lock = addMd3Lock({
+      target: { kind: 'appearanceElement', id: targetId, label: 'Action' },
+      factor: 'password',
+      unlockDuration: { kind: 'session', minutes: 10 },
+      lockOnLaunch: false,
+    })
+
+    installAppearanceLockGate()
+    assert.equal(isAppearanceTargetBlocked(targetId), false)
+    assert.equal(button.disabled, false)
+
+    writeMd3Locks([{ ...lock, lockOnLaunch: true }])
+    assert.equal(isAppearanceTargetBlocked(targetId), true)
+    assert.equal(button.disabled, true)
+  })
+
+  it('opens the exact disabled target prompt through the manager unlock wrapper', async () => {
+    const target = document.createElement('button')
+    target.id = 'manager-unlock-action'
+    document.body.appendChild(target)
+    render(
+      React.createElement(AppearanceLockPromptHost, {
+        resolveFolder: () => Promise.resolve('C:\\app-data'),
+      })
+    )
+    installAppearanceLockGate()
+    await waitForMutationObserver()
+    const targetId = target.getAttribute(AppearanceLockTargetAttribute)
+    assert.ok(targetId)
+    const lock = addMd3Lock({
+      target: { kind: 'appearanceElement', id: targetId, label: 'Action' },
+      factor: 'password',
+      unlockDuration: { kind: 'session', minutes: 10 },
+      lockOnLaunch: true,
+    })
+
+    render(
+      React.createElement(Md3LocksView, {
+        locks: [lock],
+        activeUnlocks: [],
+        applicationDataFolder: 'C:\\app-data',
+        onEditLock: () => undefined,
+        onRemoveLocks: () => undefined,
+        onLockAgain: () => undefined,
+        onExport: () => undefined,
+        now: () => Date.now(),
+      })
+    )
+    const unlock = screen.getByRole('button', { name: 'Unlock Action' })
+    fireEvent.click(unlock)
+    assert.match(screen.getByRole('dialog').textContent ?? '', /Unlock Action/)
+  })
+
+  it('clamps measured panels above/below and left/right inside narrow viewports', () => {
+    const bottomRight = md3LockPromptPosition(
+      { top: 780, left: 1380, width: 40, height: 30 },
+      { width: 1440, height: 900 },
+      { width: 320, height: 400 }
+    )
+    assert.equal(bottomRight.left, 1112)
+    assert.equal(bottomRight.top, 372)
+
+    const narrow = md3LockPromptPosition(
+      { top: 300, left: 300, width: 20, height: 20 },
+      { width: 320, height: 240 },
+      { width: 500, height: 300 }
+    )
+    assert.equal(narrow.left, 8)
+    assert.equal(narrow.top, 300 - 224 - 8)
+  })
+
   it('keeps the registry boundary and activation enforcement coupled', () => {
     const source = registrySource()
     assert.match(source, /MutationObserver/)
     assert.match(source, /registerAppearanceElement\(element\)/)
     assert.match(source, /data-md3-element-id/)
+    assert.doesNotMatch(source, /aria-label/)
 
     const gate = readFileSync(
       join(process.cwd(), 'app/src/ui/appearance/appearance-lock-gate.ts'),
@@ -388,12 +534,40 @@ describe('every rendered element joins the toy-lock boundary', () => {
     assert.match(gate, /event\.stopImmediatePropagation\(\)/)
     assert.match(gate, /contextmenu/)
     assert.match(gate, /guardAppearanceActivation\(/)
+    assert.doesNotMatch(gate, /targetLabel[\s\S]{0,400}aria-label/)
     const menu = readFileSync(
       join(process.cwd(), 'app/src/lib/menu-item.ts'),
       'utf8'
     )
     assert.match(menu, /consumeAppearanceLockContextMenuTarget\(/)
     assert.match(menu, /md3\.locks\.menu\.lockElement/)
+    const manager = readFileSync(
+      join(process.cwd(), 'app/src/ui/md3/md3-locks-view.tsx'),
+      'utf8'
+    )
+    assert.match(manager, /announceAppearanceLockBlocked\(/)
+    assert.match(manager, /md3\.locks\.row\.unlock/)
+    const prompt = readFileSync(
+      join(process.cwd(), 'app/src/ui/md3/md3-lock-unlock-prompt.tsx'),
+      'utf8'
+    )
+    assert.match(prompt, /ResizeObserver/)
+    assert.match(prompt, /panelSize/)
+    const setup = readFileSync(
+      join(process.cwd(), 'app/src/ui/md3/md3-lock-setup-dialog.tsx'),
+      'utf8'
+    )
+    assert.match(setup, /ResizeObserver/)
+    assert.match(setup, /panelSize/)
+    const host = readFileSync(
+      join(
+        process.cwd(),
+        'app/src/ui/appearance/appearance-lock-prompt-host.tsx'
+      ),
+      'utf8'
+    )
+    assert.match(host, /measureCreationMenu/)
+    assert.match(host, /ArrowDown/)
   })
 
   it('offers Lock this element from context-menu and keyboard routes', async () => {
@@ -417,16 +591,13 @@ describe('every rendered element joins the toy-lock boundary', () => {
     fireEvent.click(contextCommand)
     assert.match(
       screen.getByRole('dialog').textContent ?? '',
-      /Lock Context target/
+      /Lock button element/
     )
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
     // The equivalent keyboard route works from the exact focused element and
     // produces the same target-specific wizard without opening a side door.
-    fireEvent.keyDown(target, {
-      key: 'Escape',
-      bubbles: true,
-      cancelable: true,
-    })
+    target.focus()
     fireEvent.keyDown(target, {
       key: 'l',
       ctrlKey: true,
@@ -434,8 +605,35 @@ describe('every rendered element joins the toy-lock boundary', () => {
       bubbles: true,
       cancelable: true,
     })
-    assert.ok(
-      await screen.findByRole('menuitem', { name: 'Lock this element…' })
+    const keyboardCommand = await screen.findByRole('menuitem', {
+      name: 'Lock this element…',
+    })
+    assert.equal(
+      document.activeElement,
+      keyboardCommand,
+      'keyboard creation opens with its first command focused'
+    )
+    fireEvent.keyDown(keyboardCommand, {
+      key: 'ArrowDown',
+      bubbles: true,
+      cancelable: true,
+    })
+    assert.equal(
+      (document.activeElement as HTMLElement).textContent,
+      'Cancel',
+      'ArrowDown moves to the next menu command'
+    )
+    const cancelMenuItem = document.activeElement
+    assert.ok(cancelMenuItem instanceof HTMLElement)
+    fireEvent.keyDown(cancelMenuItem, {
+      key: 'Escape',
+      bubbles: true,
+      cancelable: true,
+    })
+    assert.equal(
+      document.activeElement,
+      target,
+      'Escape closes the menu and restores focus to the target'
     )
   })
 
@@ -462,6 +660,6 @@ describe('every rendered element joins the toy-lock boundary', () => {
     const pending = consumeAppearanceLockContextMenuTarget()
     assert.ok(pending)
     assert.equal(pending?.anchor, owner)
-    assert.equal(pending?.targetLabel, 'Existing menu target')
+    assert.equal(pending?.targetLabel, 'button element')
   })
 })

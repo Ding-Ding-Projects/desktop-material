@@ -125,11 +125,29 @@ Native disableable controls expose the real `disabled` property while any
 applicable lock is closed and restore the prior value after every relevant lock
 is answered.
 
+The lock manager also exposes an **Unlock** action on every closed lock. It
+opens the same exact-target prompt from a manager-owned enabled control, so a
+native-disabled button never has to provide its own click event in order to be
+recovered. Rows support the same action from their keyboard route, and
+`lockOnLaunch: false` starts the app session unlocked until the user chooses
+**Lock again**.
+
+Automatic target IDs use neutral DOM metadata, a surface/window namespace, and
+a full-path digest. User-facing `aria-label` and text content never enter an
+automatic target ID or label, and removed DOM nodes are retired from the
+in-memory registration inventory.
+
 Generic elements receive one **Lock this element…** context-menu surface and a
 `Ctrl`+`Shift`+`L`/Menu-key equivalent that opens the existing anchored setup
 wizard. A surface that already owns a context menu keeps its existing actions;
 the shared menu builder appends the same lock item once, rather than opening a
 competing overlay.
+
+The setup, unlock, and generic creation panels measure their rendered width and
+height with `ResizeObserver`, flip above an anchor when the lower edge does not
+fit, and clamp both axes to the actual viewport. The generic creation menu
+focuses its first command, supports arrow navigation and Escape, and returns
+focus to the originating element when dismissed.
 
 ### A wrong answer
 

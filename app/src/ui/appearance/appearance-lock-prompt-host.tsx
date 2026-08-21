@@ -1,7 +1,10 @@
 import * as React from 'react'
 
 import { Md3LockSetupDialog } from '../md3/md3-lock-setup-dialog'
-import { Md3LockUnlockPrompt } from '../md3/md3-lock-unlock-prompt'
+import {
+  md3LockPromptPosition,
+  Md3LockUnlockPrompt,
+} from '../md3/md3-lock-unlock-prompt'
 import { IMd3ActiveUnlock, IMd3Lock } from '../../lib/md3-locks'
 import {
   AppearanceLockBlockedEvent,
@@ -53,6 +56,10 @@ interface IAppearanceLockPromptHostState {
     readonly anchorRect: DOMRect
   } | null
   readonly creationMenu: boolean
+  readonly creationPosition: {
+    readonly top: number
+    readonly left: number
+  } | null
 }
 
 export class AppearanceLockPromptHost extends React.Component<
@@ -66,12 +73,16 @@ export class AppearanceLockPromptHost extends React.Component<
     applicationDataFolder: null,
     creation: null,
     creationMenu: false,
+    creationPosition: null,
   }
 
   private mounted = false
+  private creationMenuNode: HTMLDivElement | null = null
+  private creationFirstButton: HTMLButtonElement | null = null
 
   public componentDidMount() {
     this.mounted = true
+    window.addEventListener('resize', this.onWindowResize)
     window.addEventListener(AppearanceLockBlockedEvent, this.onBlocked)
     window.addEventListener(
       AppearanceLockCreationRequestedEvent,
@@ -87,11 +98,35 @@ export class AppearanceLockPromptHost extends React.Component<
 
   public componentWillUnmount() {
     this.mounted = false
+    window.removeEventListener('resize', this.onWindowResize)
     window.removeEventListener(AppearanceLockBlockedEvent, this.onBlocked)
     window.removeEventListener(
       AppearanceLockCreationRequestedEvent,
       this.onCreationRequested
     )
+  }
+
+  public componentDidUpdate(
+    previousProps: IAppearanceLockPromptHostProps,
+    previousState: IAppearanceLockPromptHostState
+  ) {
+    void previousProps
+    if (
+      this.state.creation !== null &&
+      this.state.creationMenu &&
+      (!previousState.creationMenu ||
+        previousState.creation === null ||
+        previousState.creation.targetId !== this.state.creation.targetId)
+    ) {
+      this.creationFirstButton?.focus()
+      this.measureCreationMenu()
+    }
+  }
+
+  private onWindowResize = () => {
+    if (this.state.creationMenu) {
+      this.measureCreationMenu()
+    }
   }
 
   private onBlocked = (event: Event) => {
@@ -103,7 +138,11 @@ export class AppearanceLockPromptHost extends React.Component<
     // The first still-closed lock on that element. Two locks are two answers,
     // so the user is asked for them one at a time rather than being shown a
     // form with two fields and no explanation of why.
-    const lock = firstLockedAppearanceLock(detail.targetId)
+    const lock = firstLockedAppearanceLock(
+      detail.targetId,
+      Date.now(),
+      detail.targetKind ?? 'appearanceElement'
+    )
     if (lock === null) {
       return
     }
@@ -133,10 +172,78 @@ export class AppearanceLockPromptHost extends React.Component<
         anchorRect: detail.anchor.getBoundingClientRect(),
       },
       creationMenu: detail.openWizard !== true,
+      creationPosition: null,
     })
   }
 
-  private openCreationSetup = () => this.setState({ creationMenu: false })
+  private setCreationMenuNode = (node: HTMLDivElement | null) => {
+    this.creationMenuNode = node
+  }
+
+  private setCreationFirstButton = (node: HTMLButtonElement | null) => {
+    this.creationFirstButton = node
+  }
+
+  private measureCreationMenu = () => {
+    const creation = this.state.creation
+    const menu = this.creationMenuNode
+    if (!this.state.creationMenu || creation === null || menu === null) {
+      return
+    }
+    const rect = menu.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) {
+      return
+    }
+    const position = md3LockPromptPosition(
+      {
+        top: creation.anchorRect.top,
+        left: creation.anchorRect.left,
+        width: creation.anchorRect.width,
+        height: creation.anchorRect.height,
+      },
+      {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
+      { width: rect.width, height: rect.height }
+    )
+    const current = this.state.creationPosition
+    if (current?.top === position.top && current.left === position.left) {
+      return
+    }
+    this.setState({ creationPosition: position })
+  }
+
+  private openCreationSetup = () =>
+    this.setState({ creationMenu: false, creationPosition: null })
+
+  private onCreationMenuKeyDown = (
+    event: React.KeyboardEvent<HTMLDivElement>
+  ) => {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      event.stopPropagation()
+      this.dismiss()
+      return
+    }
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') {
+      return
+    }
+    const buttons =
+      this.creationMenuNode?.querySelectorAll<HTMLButtonElement>(
+        '[role="menuitem"]'
+      )
+    if (buttons === undefined || buttons.length === 0) {
+      return
+    }
+    const current = Array.from(buttons).indexOf(
+      document.activeElement as HTMLButtonElement
+    )
+    const delta = event.key === 'ArrowDown' ? 1 : -1
+    const next = (current + delta + buttons.length) % buttons.length
+    event.preventDefault()
+    buttons[next]?.focus()
+  }
 
   private onCreationSaved = () => {
     refreshAppearanceLockSemantics()
@@ -162,35 +269,40 @@ export class AppearanceLockPromptHost extends React.Component<
         anchor: null,
         creation: null,
         creationMenu: false,
+        creationPosition: null,
       },
       () => anchor?.focus()
     )
   }
 
   public render() {
-    const { lock, anchorRect, creation, creationMenu } = this.state
+    const { lock, anchorRect, creation, creationMenu, creationPosition } =
+      this.state
     if (creation !== null && creationMenu) {
       return (
         <div
           className="md3-lock-setup md3-lock-creation-menu"
           role="menu"
-          aria-label="Element lock commands"
+          aria-label={t('md3.locks.menu.elementCommands')}
+          ref={this.setCreationMenuNode}
+          onKeyDown={this.onCreationMenuKeyDown}
           style={{
             position: 'fixed',
-            top: creation.anchorRect.bottom + 4,
-            left: creation.anchorRect.left,
+            top: creationPosition?.top ?? creation.anchorRect.bottom + 4,
+            left: creationPosition?.left ?? creation.anchorRect.left,
           }}
         >
           <button
             type="button"
             role="menuitem"
             aria-keyshortcuts="Control+Shift+L"
+            ref={this.setCreationFirstButton}
             onClick={this.openCreationSetup}
           >
             {t('md3.locks.menu.lockElement')}
           </button>
           <button type="button" role="menuitem" onClick={this.dismiss}>
-            Cancel
+            {t('md3.locks.setup.cancel')}
           </button>
         </div>
       )

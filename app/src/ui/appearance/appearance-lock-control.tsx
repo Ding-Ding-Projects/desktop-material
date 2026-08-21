@@ -13,6 +13,7 @@ import {
 import { verifyMd3LockPassword } from '../../lib/md3-locks/lock-credentials'
 import { getPath } from '../main-process-proxy'
 import { Md3LockSetupDialog } from '../md3/md3-lock-setup-dialog'
+import { t } from '../../lib/i18n'
 
 /**
  * The toy lock every appearance editor carries.
@@ -160,9 +161,7 @@ export class AppearanceLockControl extends React.Component<
       if (this.mounted) {
         this.setState({
           busy: false,
-          problem:
-            'That password does not match. The lock is still in place — ' +
-            'delete the application data folder below to clear it.',
+          problem: t('md3.locks.appearance.passwordMismatch'),
         })
       }
       return
@@ -182,10 +181,11 @@ export class AppearanceLockControl extends React.Component<
   private renderRecovery(): JSX.Element {
     return (
       <p className="appearance-lock-recovery">
-        This is a speed bump for fun, not security: it is not encryption and it
-        protects nothing from anyone else using this computer. Forgotten the
-        password? Deleting this app's application data folder clears every lock
-        on this computer — Settings lists the exact path.
+        {this.state.applicationDataFolder === null
+          ? t('md3.locks.appearance.recoveryUnknown')
+          : t('md3.locks.appearance.recovery', {
+              folder: this.state.applicationDataFolder,
+            })}
       </p>
     )
   }
@@ -212,7 +212,7 @@ export class AppearanceLockControl extends React.Component<
             onClick={this.cancel}
             disabled={this.state.busy}
           >
-            Cancel
+            {t('md3.locks.setup.cancel')}
           </Button>
         </div>
         {this.renderRecovery()}
@@ -238,23 +238,24 @@ export class AppearanceLockControl extends React.Component<
       )
     }
     if (this.state.mode === 'removing') {
-      return this.renderForm(this.removeLock, 'Remove the lock')
+      return this.renderForm(
+        this.removeLock,
+        t('md3.locks.appearance.removePassword')
+      )
     }
 
     return (
       <div className="appearance-lock">
         {this.locked ? (
           <>
-            <p className="appearance-lock-state">
-              🔒 This appearance is locked.
-            </p>
+            <p className="appearance-lock-state">{t('md3.locks.row.locked')}</p>
             <Button type="button" onClick={this.startRemoving}>
-              Remove the lock…
+              {t('md3.locks.appearance.remove')}
             </Button>
           </>
         ) : (
           <Button type="button" onClick={this.startCreating}>
-            Lock this appearance…
+            {t('md3.locks.appearance.lock')}
           </Button>
         )}
         {this.renderRecovery()}
