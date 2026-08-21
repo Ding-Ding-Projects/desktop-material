@@ -63,6 +63,7 @@ import { shellNeedsPatching, updateEnvironmentForProcess } from '../lib/shell'
 import { installDevGlobals } from './install-globals'
 import {
   reportUncaughtException,
+  getPath,
   sendErrorReport,
   setBrowserOpenMode,
   setWindowRepositoryState,
@@ -116,6 +117,12 @@ import {
 import { showBrowserExternalOpenFailure } from './lib/browser-external-open-failure'
 import { installOsLockCredentialVault } from '../lib/md3-locks/lock-vault-os'
 import { setMd3LockSupportTicketsRoute } from '../lib/md3-locks/lock-credentials'
+import { installAuthenticatorLockFactor } from '../lib/md3-locks/lock-totp-authenticator'
+import { IAuthenticatorEntry } from '../lib/authenticator/entries'
+import {
+  AuthenticatorDirectoryName,
+  AuthenticatorStore,
+} from '../lib/stores/authenticator-store'
 import { PopupType } from '../models/popup'
 import { installAppearanceLockGate } from './appearance'
 import { restorePersonalVocabulary } from '../lib/personal-vocabulary'
@@ -130,6 +137,42 @@ if (__DEV__) {
 // the feature's own barrel because it loads a native dependency that a plain
 // Node test process cannot import.
 installOsLockCredentialVault()
+
+// OTP appearance locks use the app's existing authenticator document and
+// vault. Keep only the public entry metadata in this renderer-side cache; the
+// adapter reads a secret solely inside the authenticator vault boundary when a
+// user answers a lock. The cache is populated asynchronously so renderer
+// startup never waits on the dedicated history repository.
+const authenticatorEntries = new Map<string, IAuthenticatorEntry>()
+
+const updateAuthenticatorEntries = (document: {
+  entries: ReadonlyArray<IAuthenticatorEntry>
+}) => {
+  authenticatorEntries.clear()
+  for (const entry of document.entries) {
+    authenticatorEntries.set(entry.id, entry)
+  }
+}
+
+installAuthenticatorLockFactor({
+  findEntry: entryId => authenticatorEntries.get(entryId) ?? null,
+  onEntriesChanged: entries => updateAuthenticatorEntries({ entries }),
+})
+void (async () => {
+  try {
+    const userData = await getPath('userData')
+    const store = new AuthenticatorStore({
+      root: Path.join(userData, AuthenticatorDirectoryName),
+    })
+    store.onDidUpdate(updateAuthenticatorEntries)
+    await store.initialize()
+    updateAuthenticatorEntries(await store.get())
+  } catch (error) {
+    // An unavailable authenticator must leave OTP locks unavailable, never
+    // guess at an entry or report that a code was accepted.
+    console.error('Unable to initialize authenticator lock factors', error)
+  }
+})()
 
 // And a lock has to be felt to be a lock. This gates activation of any element
 // carrying a lock target id, so locking an element's appearance locks the

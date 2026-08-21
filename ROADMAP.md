@@ -1,5 +1,15 @@
 # Desktop Material roadmap
 
+## August 21 — appearance-lock/authenticator runtime join
+
+- [x] Wire the renderer startup authenticator document cache to the existing
+  OTP lock verifier and keep all secret reads inside the credential-vault
+  boundary, including metadata-only updates from the settings-owned store.
+- [x] Route appearance-value lock creation through the shared password-or-OTP
+  setup dialog, including duration and lock-on-launch persistence.
+- [ ] Run focused tests and collect built-artifact interaction/capture evidence;
+  the ultra-speed implementation lane intentionally deferred them.
+
 ## August 21 — root Windows dependency preparation
 
 - [x] Add a root `download-dependencies.bat` entrypoint with silent and

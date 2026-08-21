@@ -1,5 +1,23 @@
 # Desktop Material — Active parity handoff
 
+## Appearance locks use the authenticator runtime join — 2026-08-21
+
+Appearance-value lock creation now uses the shared `Md3LockSetupDialog`, with
+the existing password or authenticator OTP choices, unlock duration, and
+lock-on-launch settings.
+
+Renderer startup installs `installAuthenticatorLockFactor` with a cache of
+public authenticator entry metadata loaded from the existing
+`AuthenticatorStore`. OTP verification still reads the secret only through
+`readAuthenticatorSecret` and the operating-system credential-vault boundary;
+no secret is copied into the lock registry, document history, exports, logs, or
+UI. The settings-owned store publishes metadata snapshots after initialization
+and updates so newly registered factors become available without restart.
+
+Verification boundary: no tests, lint, typecheck, review, build, package,
+runtime interaction, or capture was run. The generated offline docs browser
+bundle was not rebuilt and remains pending.
+
 ## Root Windows dependency preparation — 2026-08-21
 
 This lane adds `download-dependencies.bat` and the checked-in

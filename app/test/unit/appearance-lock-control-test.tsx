@@ -93,11 +93,37 @@ const showsRemove = () =>
 const showsLock = () =>
   screen.queryByRole('button', { name: /Lock this appearance…/ }) !== null
 
+/** The appearance editor now delegates creation to the shared lock setup. */
+const savePasswordLock = (password: string) => {
+  fireEvent.change(screen.getByLabelText(/Password for this lock/), {
+    target: { value: password },
+  })
+  fireEvent.change(screen.getByLabelText(/Type it again/), {
+    target: { value: password },
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Save this lock' }))
+}
+
 /** An alert with real text, which is how the component reports a refusal. */
 const alerted = () =>
-  (screen.queryByRole('alert')?.textContent ?? '').length > 0
+  ((screen.queryByRole('alert')?.textContent ?? '') +
+    (screen.queryByRole('status')?.textContent ?? '')).length > 0
 
 describe('appearance lock control', () => {
+  it('delegates creation to the shared password-or-authenticator setup', () => {
+    const source = readFileSync(
+      join(root, 'app/src/ui/appearance/appearance-lock-control.tsx'),
+      'utf8'
+    )
+    assert.match(source, /<Md3LockSetupDialog/)
+    assert.match(source, /lock=\{null\}/)
+    assert.match(
+      source,
+      /applicationDataFolder=\{this\.state\.applicationDataFolder\}/
+    )
+    assert.match(source, /onLockSaved/)
+  })
+
   it('says it is a toy before anything is locked', () => {
     render(control())
 
@@ -122,12 +148,7 @@ describe('appearance lock control', () => {
     fireEvent.click(
       screen.getByRole('button', { name: /Lock this appearance…/ })
     )
-    fireEvent.change(screen.getByLabelText(/Lock this appearance/), {
-      target: { value: 'correct horse' },
-    })
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Lock this appearance' })
-    )
+    savePasswordLock('correct horse')
     await waitFor(showsRemove, 'the locked state to render')
 
     const [lock] = readMd3Locks()
@@ -142,18 +163,19 @@ describe('appearance lock control', () => {
     fireEvent.click(
       screen.getByRole('button', { name: /Lock this appearance…/ })
     )
-    fireEvent.change(screen.getByLabelText(/Lock this appearance/), {
+    fireEvent.change(screen.getByLabelText(/Password for this lock/), {
       target: { value: 'x' },
     })
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Lock this appearance' })
-    )
+    fireEvent.change(screen.getByLabelText(/Type it again/), {
+      target: { value: 'x' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save this lock' }))
     await waitFor(alerted, 'the refusal to be reported')
 
     assert.equal(readMd3Locks().length, 0, 'nothing may be locked')
     // The message says what to do, not merely that something was wrong.
     assert.match(
-      screen.getByRole('alert').textContent ?? '',
+      screen.getByRole('status').textContent ?? '',
       /4 to 128 characters/
     )
   })
@@ -164,12 +186,7 @@ describe('appearance lock control', () => {
     fireEvent.click(
       screen.getByRole('button', { name: /Lock this appearance…/ })
     )
-    fireEvent.change(screen.getByLabelText(/Lock this appearance/), {
-      target: { value: 'correct horse' },
-    })
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Lock this appearance' })
-    )
+    savePasswordLock('correct horse')
     await waitFor(showsRemove, 'the locked state to render')
 
     fireEvent.click(screen.getByRole('button', { name: /Remove the lock…/ }))
@@ -193,12 +210,7 @@ describe('appearance lock control', () => {
     fireEvent.click(
       screen.getByRole('button', { name: /Lock this appearance…/ })
     )
-    fireEvent.change(screen.getByLabelText(/Lock this appearance/), {
-      target: { value: 'correct horse' },
-    })
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Lock this appearance' })
-    )
+    savePasswordLock('correct horse')
     await waitFor(showsRemove, 'the locked state to render')
 
     fireEvent.click(screen.getByRole('button', { name: /Remove the lock…/ }))

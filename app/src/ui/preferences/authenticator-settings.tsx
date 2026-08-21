@@ -8,6 +8,7 @@ import {
 } from '../../lib/authenticator/entries'
 import { decodeBase32 } from '../../lib/authenticator/base32'
 import { readAuthenticatorSecret } from '../../lib/authenticator/secret-vault'
+import { notifyAuthenticatorLockEntriesChanged } from '../../lib/md3-locks/lock-totp-authenticator'
 import {
   AuthenticatorDirectoryName,
   AuthenticatorStore,
@@ -149,6 +150,7 @@ export class AuthenticatorPreferences extends React.Component<
         const create = this.props.createStore ?? this.defaultCreateStore
         this.store = await create()
         this.store.onDidUpdate(document => {
+          notifyAuthenticatorLockEntriesChanged(document.entries)
           if (this.mounted) {
             this.setState({ document })
             void this.loadSecrets(document.entries)
@@ -156,6 +158,7 @@ export class AuthenticatorPreferences extends React.Component<
         })
       }
       const document = await this.store.get()
+      notifyAuthenticatorLockEntriesChanged(document.entries)
       if (!this.mounted) {
         return
       }
