@@ -1,5 +1,24 @@
 # Desktop Material — Active parity handoff
 
+## Browser-extension download handoff foundation — 2026-08-21
+
+The Windows desktop app now owns strict native-messaging request parsing plus
+separate Start download, active Downloading, and completion surfaces under
+`app/src/ui/browser-extension-download/`. The implementation uses the existing
+Dialog, Button, and OperationProgressRow primitives; it does not revive the
+reverted app shell or manufacture a generic browser destination.
+
+The current integration status is explicitly unavailable because this release
+does not yet package a browser extension or register a native-messaging host.
+The app-hosted browser's blocked-download route, renderer IPC, and File
+Explorer shell extension are deliberately excluded as proof. The future
+transfer owner must use unique same-volume temporary output, validate it, and
+atomically materialize only the approved destination.
+
+Focused parser tests and a feature-evidence manifest were added but not run.
+The ultra-speed boundary also deferred type checks, builds, packaging, runtime
+interaction, native-host installation, and captures.
+
 ## Appearance locks disable their targets — 2026-08-21
 
 The appearance-lock gate now keeps a locked target behaviorally disabled for

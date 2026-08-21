@@ -12,6 +12,9 @@ Desktop Material 嘅整合功能將 Git 工作流程接上作業系統、編輯�
   isolated authentication escape. Combined local tests, the exact Windows
   production build, and hidden-desktop acceptance pass; packaged E2E and
   remote publication remain separate.
+- [Browser-extension download handoff](browser-extension-downloads.md) — bounded
+  native-messaging intake and the Windows desktop Start, Downloading, and
+  completion surfaces.
 - [Windows-only graphical edition support](windows-only-platform-support.md)
 - [Windows Explorer context menu and quick-action
   window](windows-explorer-context-menu.md)
@@ -53,6 +56,7 @@ Desktop Material 嘅整合功能將 Git 工作流程接上作業系統、編輯�
   fallback](gh-cli-push-fallback.md)
 
 - [App 自寄瀏覽器](app-hosted-browser.md) — 喺沙箱 `WebContentsView` 分頁開 HTTP(S) 連結，有網址／導覽控制、書籤、彈出同轉址擷取、記住嘅內部／外部選擇，以及隔離嘅認證出口。合併本機測試、精確 Windows 生產建置同隱藏桌面接受全部通過；已打包 E2E 同遠端發佈仍然係另外嘅關卡。
+- [瀏覽器 extension 下載交接](browser-extension-downloads.md) — 有界 native-messaging 接收，同 Windows 桌面開始下載、下載中同完成畫面。
 - [淨係 Windows 嘅圖形版支援](windows-only-platform-support.md)
 - [Windows 檔案總管右鍵選單同快速操作視窗](windows-explorer-context-menu.md)
 - [自動更新建置狀態同發佈說明](automated-updates-and-release-notes.md)

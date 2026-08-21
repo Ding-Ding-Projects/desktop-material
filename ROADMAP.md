@@ -1,5 +1,16 @@
 # Desktop Material roadmap
 
+## August 21 — browser-extension download handoff foundation
+
+- [x] Define the bounded native-messaging request contract and an explicit
+  unavailable state until an installed browser extension and host manifest
+  exist; do not use the blocked in-app browser route or a File Explorer shell
+  extension as a substitute.
+- [x] Add desktop-owned Start download, active Downloading, and completion
+  surfaces using the existing dialog, Button, and operation-progress primitives.
+- [ ] Wire an installed extension/native host to the queue, exercise atomic
+  output, and collect real built-artifact interaction and capture evidence.
+
 ## August 21 — Support Tickets and authenticator history
 
 - [x] Wire the existing About/Help surface to the local Support Tickets desk.

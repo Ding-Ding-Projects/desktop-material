@@ -278,6 +278,8 @@ describe('Settings surfaces i18n', () => {
     'settings.integrationsCustomEditorLabel',
     'settings.integrationsCustomShellLabel',
     'settings.integrationsSelectEditor',
+    'settings.browserExtensionDownloadTitle',
+    'settings.browserExtensionDownloadSubtitle',
     'settings.tabsDockPosition',
     'settings.tabsDockDescription',
     'settings.tabsDockLeft',

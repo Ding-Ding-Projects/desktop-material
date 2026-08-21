@@ -1,0 +1,21 @@
+{
+  "feature": "browser-extension-download-dialogs",
+  "implementation": [
+    "app/src/lib/browser-extension-download.ts",
+    "app/src/main-process/browser-extension-download-handoff.ts",
+    "app/src/main-process/browser-extension-download-queue.ts",
+    "app/src/ui/browser-extension-download/browser-extension-download-surfaces.tsx",
+    "app/src/ui/preferences/integrations.tsx"
+  ],
+  "documentation": "docs/features/integrations/browser-extension-downloads.md",
+  "localization": "app/src/lib/i18n-resources.ts",
+  "focusedTests": "app/test/unit/browser-extension-download-test.ts",
+  "builtArtifactInteraction": {
+    "status": "pending",
+    "reason": "No installed browser extension or native-messaging host is packaged in this lane."
+  },
+  "capture": {
+    "status": "pending",
+    "reason": "The ultra-speed lane intentionally did not launch or capture the Windows desktop app."
+  }
+}

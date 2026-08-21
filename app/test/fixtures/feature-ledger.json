@@ -254,6 +254,7 @@
     "docs/features/integrations/README.md",
     "docs/features/integrations/actions-workflow-manager.md",
     "docs/features/integrations/app-hosted-browser.md",
+    "docs/features/integrations/browser-extension-downloads.md",
     "docs/features/integrations/automated-updates-and-release-notes.md",
     "docs/features/integrations/broad-editor-support.md",
     "docs/features/integrations/build-run-output-controls.md",

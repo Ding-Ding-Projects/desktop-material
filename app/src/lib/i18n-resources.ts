@@ -2292,6 +2292,31 @@ export type TranslationKey =
   | 'browser.error.loadFailed'
   | 'browser.error.certificate'
   | 'browser.error.downloadBlocked'
+  | 'browserDownload.start.title'
+  | 'browserDownload.start.body'
+  | 'browserDownload.start.file'
+  | 'browserDownload.start.source'
+  | 'browserDownload.start.destination'
+  | 'browserDownload.start.confirm'
+  | 'browserDownload.start.cancel'
+  | 'browserDownload.progress.title'
+  | 'browserDownload.progress.label'
+  | 'browserDownload.progress.running'
+  | 'browserDownload.progress.paused'
+  | 'browserDownload.progress.destination'
+  | 'browserDownload.progress.pause'
+  | 'browserDownload.progress.resume'
+  | 'browserDownload.progress.cancel'
+  | 'browserDownload.completed.title'
+  | 'browserDownload.completed.body'
+  | 'browserDownload.completed.close'
+  | 'browserDownload.failed.title'
+  | 'browserDownload.failed.body'
+  | 'browserDownload.canceled.title'
+  | 'browserDownload.canceled.body'
+  | 'browserDownload.unavailable'
+  | 'settings.browserExtensionDownloadTitle'
+  | 'settings.browserExtensionDownloadSubtitle'
   | 'browser.error.rendererGone'
   | 'browser.error.tooManyTabs'
   | 'settings.integrationsExternalEditorTitle'
@@ -8503,6 +8528,36 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'This page was blocked because its certificate could not be verified.',
   'browser.error.downloadBlocked':
     'The in-app browser does not save downloads. Open this page externally to download.',
+  'browserDownload.start.title': 'Start download',
+  'browserDownload.start.body':
+    'Review the file, source, and destination before the browser extension starts this transfer.',
+  'browserDownload.start.file': 'File',
+  'browserDownload.start.source': 'Source',
+  'browserDownload.start.destination': 'Destination',
+  'browserDownload.start.confirm': 'Start download',
+  'browserDownload.start.cancel': 'Cancel',
+  'browserDownload.progress.title': 'Downloading',
+  'browserDownload.progress.label': 'Browser extension download progress',
+  'browserDownload.progress.running': 'Downloading through the browser-extension handoff.',
+  'browserDownload.progress.paused': 'Download paused. No transfer is running.',
+  'browserDownload.progress.destination': 'Saving to {destination}',
+  'browserDownload.progress.pause': 'Pause',
+  'browserDownload.progress.resume': 'Resume',
+  'browserDownload.progress.cancel': 'Cancel download',
+  'browserDownload.completed.title': 'Download complete',
+  'browserDownload.completed.body': '{file} finished downloading.',
+  'browserDownload.completed.close': 'Close',
+  'browserDownload.failed.title': 'Download did not finish',
+  'browserDownload.failed.body':
+    'The download did not finish. No partial output is presented as complete.',
+  'browserDownload.canceled.title': 'Download canceled',
+  'browserDownload.canceled.body':
+    'The transfer stopped and its temporary output was removed.',
+  'browserDownload.unavailable':
+    'Browser-extension downloads are unavailable: {reason}',
+  'settings.browserExtensionDownloadTitle': 'Browser-extension downloads',
+  'settings.browserExtensionDownloadSubtitle':
+    'Installed extensions can hand off a user-confirmed download here. This build states when no native-messaging host is installed.',
   'browser.error.rendererGone':
     'This page stopped unexpectedly. Refresh it or open it externally.',
   'browser.error.tooManyTabs':
@@ -15389,6 +15444,33 @@ export const cantoneseTranslations: Readonly<
   'browser.error.certificate': '頁面憑證驗證唔到，已經安全擋住。',
   'browser.error.downloadBlocked':
     'App 內瀏覽器唔會儲存下載；要下載請喺外部開啟呢個頁面。',
+  'browserDownload.start.title': '開始下載',
+  'browserDownload.start.body':
+    '瀏覽器 extension 開始傳送之前，請睇清楚檔案、來源同目的地。',
+  'browserDownload.start.file': '檔案',
+  'browserDownload.start.source': '來源',
+  'browserDownload.start.destination': '目的地',
+  'browserDownload.start.confirm': '開始下載',
+  'browserDownload.start.cancel': '取消',
+  'browserDownload.progress.title': '下載緊',
+  'browserDownload.progress.label': '瀏覽器 extension 下載進度',
+  'browserDownload.progress.running': '正經瀏覽器 extension 交接下載緊。',
+  'browserDownload.progress.paused': '下載已暫停，而家冇傳送緊。',
+  'browserDownload.progress.destination': '儲存去 {destination}',
+  'browserDownload.progress.pause': '暫停',
+  'browserDownload.progress.resume': '繼續',
+  'browserDownload.progress.cancel': '取消下載',
+  'browserDownload.completed.title': '下載完成',
+  'browserDownload.completed.body': '{file} 已經下載完成。',
+  'browserDownload.completed.close': '關閉',
+  'browserDownload.failed.title': '下載未完成',
+  'browserDownload.failed.body': '下載未完成；唔會將部分輸出當完成。',
+  'browserDownload.canceled.title': '已取消下載',
+  'browserDownload.canceled.body': '傳送已停止，暫存輸出已移除。',
+  'browserDownload.unavailable': '瀏覽器 extension 下載未可用：{reason}',
+  'settings.browserExtensionDownloadTitle': '瀏覽器 extension 下載',
+  'settings.browserExtensionDownloadSubtitle':
+    '已安裝嘅 extension 可以喺呢度交接已確認嘅下載；呢個版本冇 native-messaging host 就會如實講。',
   'browser.error.rendererGone':
     '呢個頁面意外停止咗。請重新整理，或者喺外部開啟。',
   'browser.error.tooManyTabs':
