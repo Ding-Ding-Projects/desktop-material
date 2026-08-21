@@ -27,6 +27,7 @@ import {
   Md3AuthenticatorView,
 } from '../md3/md3-authenticator-view'
 import { IMd3RegistrationResult } from '../md3/md3-authenticator-registration'
+import { Button } from '../lib/button'
 import { VersionedStoreHistory } from '../version-history'
 
 /**
@@ -443,14 +444,14 @@ export class AuthenticatorPreferences extends React.Component<
         >
           {this.t('authenticatorSettings.manage')}
         </button>
-        <button
+        <Button
           type="button"
           className="authenticator-history-open"
           onClick={this.onOpenHistory}
-          aria-expanded={this.state.historyOpen}
+          ariaExpanded={this.state.historyOpen}
         >
           {this.t('authenticatorSettings.history.open')}
-        </button>
+        </Button>
         <details className="authenticator-explanation">
           <summary>
             {this.t('authenticatorSettings.explanationSummary')}
