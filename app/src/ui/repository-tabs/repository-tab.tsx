@@ -223,18 +223,24 @@ export class RepositoryTab extends React.Component<
     // Middle-click closes the tab, matching browser behavior.
     if (event.button === 1) {
       event.preventDefault()
-      this.props.onClose(this.props.tab)
+      guardAppearanceElementActivation(event.currentTarget, () =>
+        this.props.onClose(this.props.tab)
+      )
     }
   }
 
   private onCloseClick = (event: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation()
-    this.props.onClose(this.props.tab)
+    guardAppearanceElementActivation(event.currentTarget, () =>
+      this.props.onClose(this.props.tab)
+    )
   }
 
   private onFavoriteClick = (event: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation()
-    this.props.onToggleFavorite(this.props.tab)
+    guardAppearanceElementActivation(event.currentTarget, () =>
+      this.props.onToggleFavorite(this.props.tab)
+    )
   }
 
   private onDoubleClick = () => {
