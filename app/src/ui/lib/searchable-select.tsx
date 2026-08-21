@@ -29,6 +29,7 @@ interface ISearchableSelectProps {
   readonly regexBuilderTarget: string
   readonly placeholder?: string
   readonly disabled?: boolean
+  readonly ariaDescribedBy?: string
 }
 
 interface ISearchableSelectState {
@@ -198,7 +199,7 @@ export class SearchableSelect extends React.Component<
   }
 
   public render() {
-    const { label, disabled, searchSurfaceId } = this.props
+    const { label, disabled, searchSurfaceId, ariaDescribedBy } = this.props
 
     return (
       <div className="searchable-select">
@@ -212,6 +213,7 @@ export class SearchableSelect extends React.Component<
           aria-expanded={this.state.open}
           aria-controls={this.listboxId}
           aria-haspopup="listbox"
+          aria-describedby={ariaDescribedBy}
           disabled={disabled}
           onClick={this.onToggle}
           onKeyDown={this.onButtonKeyDown}

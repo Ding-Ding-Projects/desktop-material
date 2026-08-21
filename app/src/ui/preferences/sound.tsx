@@ -27,6 +27,11 @@ import {
 import { repositoryThemeName } from '../../lib/audio/repo-theme-name'
 import { teleportAnchor } from '../../lib/teleport-targets'
 import {
+  ISearchableSelectOption,
+  SearchableSelect,
+} from '../lib/searchable-select'
+import { RangeSlider } from '../lib/range-slider'
+import {
   INarratorVoice,
   NarratorVoiceLanguage,
   describeVoiceChoice,
@@ -184,49 +189,53 @@ export class SoundPreferences extends React.Component<
         : status.kind === 'missing'
         ? { uri: status.uri }
         : {}
-
-    return (
-      <div className="sound-voice-picker">
-        <label htmlFor={id}>
-          <LocalizedText
-            translationKey={labelKey}
-            languageMode={languageMode}
-          />
-        </label>
-        <select
-          id={id}
-          value={chosen}
-          aria-describedby={statusId}
-          disabled={available.length === 0}
-          onChange={event => onChange(event.currentTarget.value)}
-        >
-          <option value="">
-            {translate(
-              'settings.soundNarratorChooseAutomatically',
-              languageMode
-            )}
-          </option>
-          {status.kind === 'missing' ? (
-            <option value={status.uri}>
-              {translate(
+    const label = translate(labelKey, languageMode)
+    const options: ReadonlyArray<ISearchableSelectOption> = [
+      {
+        value: '',
+        label: translate(
+          'settings.soundNarratorChooseAutomatically',
+          languageMode
+        ),
+      },
+      ...(status.kind === 'missing'
+        ? [
+            {
+              value: status.uri,
+              label: translate(
                 'settings.soundNarratorVoiceMissingOption',
                 languageMode,
                 { uri: status.uri }
-              )}
-            </option>
-          ) : null}
-          {available.map(voice => (
-            <option key={voice.uri} value={voice.uri}>
-              {voice.name} ({voice.lang})
-              {voice.localService
-                ? ''
-                : ` — ${translate(
-                    'settings.soundNarratorNetworkVoiceOption',
-                    languageMode
-                  )}`}
-            </option>
-          ))}
-        </select>
+              ),
+            },
+          ]
+        : []),
+      ...available.map(voice => ({
+        value: voice.uri,
+        label: `${voice.name} (${voice.lang})${
+          voice.localService
+            ? ''
+            : ` — ${translate(
+                'settings.soundNarratorNetworkVoiceOption',
+                languageMode
+              )}`
+        }`,
+      })),
+    ]
+
+    return (
+      <div className="sound-voice-picker">
+        <SearchableSelect
+          label={label}
+          value={chosen}
+          options={options}
+          searchSurfaceId={`settings-sound-narrator-voice-${language}`}
+          regexBuilderTarget={label}
+          placeholder={label}
+          ariaDescribedBy={statusId}
+          disabled={available.length === 0}
+          onChange={onChange}
+        />
         <p className="settings-description" id={statusId} role="status">
           {translate(statusKey, languageMode, variables)}
         </p>
@@ -668,25 +677,20 @@ export class SoundPreferences extends React.Component<
     onChange: (value: number) => void
   ) {
     const label = translate(labelKey, this.state.languageMode)
+    const valueText = value.toFixed(1)
     return (
-      <div className="sound-field-group">
-        <label htmlFor={id}>{label}</label>
-        <div className="sound-slider-row">
-          <input
-            id={id}
-            type="range"
-            min={min}
-            max={max}
-            step={0.1}
-            value={value}
-            onChange={event => onChange(Number(event.currentTarget.value))}
-            aria-valuetext={value.toFixed(1)}
-          />
-          <span className="sound-slider-value" aria-hidden={true}>
-            {value.toFixed(1)}
-          </span>
-        </div>
-      </div>
+      <RangeSlider
+        id={id}
+        className="sound-range-slider"
+        label={label}
+        min={min}
+        max={max}
+        step={0.1}
+        value={value}
+        valueText={valueText}
+        ariaValueText={valueText}
+        onChange={onChange}
+      />
     )
   }
 
