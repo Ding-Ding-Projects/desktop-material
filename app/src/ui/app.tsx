@@ -175,6 +175,7 @@ import {
   onOpencodeLog,
   cancelAgentSetupCommands,
   runAgentSetupCommands,
+  getStatusHubStatus,
 } from './main-process-proxy'
 import { DiscardChanges } from './discard-changes'
 import { IgnoreFilesContainingDialog } from './changes/ignore-files-containing-dialog'
@@ -3548,6 +3549,14 @@ export class App extends React.Component<IAppProps, IAppState> {
       }
       this.agentRunnerAvailability = availability
       this.forceUpdate()
+    })
+    void getStatusHubStatus().then(status => {
+      if (this.mounted) {
+        this.agentSessionLiveStore.setStatusHubStatus(status)
+      }
+    }).catch(() => {
+      // The store already holds an explicit local-only fallback. Never turn an
+      // IPC failure into a misleading connected status.
     })
     // componentDidMount is the first committed shell. Reveal the hidden native
     // window here: requestAnimationFrame can be throttled while that window is
@@ -8702,6 +8711,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         canCancelCreate={this.activeAgentSetupOperationId !== null}
         onCancelCreate={this.onCancelAgentSessionCreate}
         retryableSetups={retryableSetups}
+        statusHubStatus={this.agentSessionLiveStore.getStatusHubStatus()}
       />
     )
   }

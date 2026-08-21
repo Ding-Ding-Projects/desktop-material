@@ -16,6 +16,7 @@ import { AgentSessionFleetList } from './agent-session-fleet-list'
 import { IAgentSetupRetry, NewAgentSessionForm } from './new-agent-session-form'
 import { getPersistedLanguageMode, t } from '../../lib/i18n'
 import { Dialog, DialogContent, DialogLayerPortal } from '../dialog'
+import { IStatusHubStatus } from '../../models/status-hub'
 
 export interface IAgentSessionsPanelProps {
   /** Every worktree in the repository, whether or not an agent runs in it. */
@@ -45,6 +46,8 @@ export interface IAgentSessionsPanelProps {
   readonly canCancelCreate: boolean
   readonly onCancelCreate: () => void
   readonly retryableSetups: ReadonlyArray<IAgentSetupRetry>
+  /** Main-process-confirmed Hub state; never inferred from the local fleet. */
+  readonly statusHubStatus: IStatusHubStatus
 }
 
 interface IAgentSessionsPanelState {
@@ -88,6 +91,19 @@ export class AgentSessionsPanel extends React.Component<
 
   private onOpenCreator = () => {
     this.setState({ isCreatorOpen: true, isSubmitting: false })
+  }
+
+  private statusHubLabel() {
+    switch (this.props.statusHubStatus.connection) {
+      case 'connected':
+        return t('agentSessions.statusHub.connected')
+      case 'authentication-unavailable':
+        return t('agentSessions.statusHub.authenticationUnavailable')
+      case 'delivery-unconfirmed':
+        return t('agentSessions.statusHub.deliveryUnconfirmed')
+      case 'unavailable':
+        return t('agentSessions.statusHub.localOnly')
+    }
   }
 
   private onCloseCreator = () => {
@@ -206,6 +222,9 @@ export class AgentSessionsPanel extends React.Component<
             {t('agentSessions.newSession')}
           </Button>
         </div>
+        <p className="agent-sessions-status-hub" role="status">
+          {this.statusHubLabel()}
+        </p>
         {this.renderCreator()}
         <div className="agent-sessions-fleet-scroller">
           <AgentSessionFleetList

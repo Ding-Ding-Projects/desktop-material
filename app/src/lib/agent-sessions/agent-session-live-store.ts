@@ -4,6 +4,10 @@ import {
 } from '../../models/agent-session'
 import { win32 as WindowsPath } from 'path'
 import { IAgentSessionOverlay } from './agent-session-fleet'
+import {
+  IStatusHubStatus,
+  LocalStatusHubFallback,
+} from '../../models/status-hub'
 
 /** Default cadence for refreshing worktree change summaries. */
 export const DefaultAgentSessionDiffPollIntervalMs = 2_000
@@ -158,6 +162,8 @@ export class AgentSessionLiveStore {
   private nextPathVersion = 1
   private pollingEnabled = true
   private disposed = false
+  /** One app-wide Hub status: all fleet rows share a single project record. */
+  private statusHub: IStatusHubStatus = LocalStatusHubFallback
 
   public constructor(
     private readonly dependencies: IAgentSessionLiveStoreDependencies
@@ -195,6 +201,29 @@ export class AgentSessionLiveStore {
     return (
       this.pathOperations.get(canonicalAgentSessionPath(worktreePath)) ?? null
     )
+  }
+
+  /** Read the truthful Hub state without exposing endpoint credentials. */
+  public getStatusHubStatus(): IStatusHubStatus {
+    return this.statusHub
+  }
+
+  /**
+   * Update only from a main-process IPC result. The renderer cannot mark the
+   * Hub connected by itself, which prevents a decorative green status chip.
+   */
+  public setStatusHubStatus(status: IStatusHubStatus): void {
+    if (
+      this.disposed ||
+      (this.statusHub.connection === status.connection &&
+        this.statusHub.stableURL === status.stableURL &&
+        this.statusHub.message === status.message &&
+        this.statusHub.lastUpdatedAt === status.lastUpdatedAt)
+    ) {
+      return
+    }
+    this.statusHub = status
+    this.emit()
   }
 
   /**
@@ -443,6 +472,7 @@ export class AgentSessionLiveStore {
     this.pathVersions.clear()
     this.operationPaths.clear()
     this.pathOperations.clear()
+    this.statusHub = LocalStatusHubFallback
   }
 
   private trackPath(pathKey: string, worktreePath: string): void {

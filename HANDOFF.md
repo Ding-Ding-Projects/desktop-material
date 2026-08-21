@@ -1,5 +1,22 @@
 # Desktop Material — Active parity handoff
 
+## Status Hub projection foundation — 2026-08-21
+
+The existing Agents sidebar now owns the desktop-visible Status Hub state line;
+no duplicate dashboard or raw browser controls were added. A typed,
+main-process-only client projects repository registration, heartbeat and
+evidence states, a stable URL when configured, and authenticated inbox replies
+that are marked delivered only after confirmation. No endpoint or vault
+credential is configured in this checkout, so the shipped state is explicitly
+local-only rather than a mock connected state.
+
+The Discord bridge remains documented as Hub-owned read-plus-reply only; it is
+not a renderer client and receives no desktop agent credential. See
+`docs/features/design-system/status-hub.md`.
+
+No tests, lint, typecheck, build, runtime interaction, or capture was run in
+this assigned Yum Leung Cha lane.
+
 ## Appearance locks disable their targets — 2026-08-21
 
 The appearance-lock gate now keeps a locked target behaviorally disabled for
