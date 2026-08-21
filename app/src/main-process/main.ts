@@ -122,6 +122,7 @@ import {
 } from './github-release-transfer'
 import { registerGitHubReleaseTransferIPC } from './github-release-transfer-ipc'
 import { registerNotificationAutomationIpc } from './notification-automation-runner'
+import { registerUnlockLadderIpc } from './unlock-ladder-ipc'
 import {
   releaseAllCompletedActionsArtifactDownloads,
   releaseCompletedActionsArtifactDownload,
@@ -1401,6 +1402,7 @@ app.on('ready', () => {
   registerCLIWorkbenchIpc()
   registerGitHubReleaseTransferIPC(ipcMain)
   registerNotificationAutomationIpc()
+  registerUnlockLadderIpc()
 
   ipcMain.on('update-accounts', (event, accounts) => {
     updateAccounts(accounts)

@@ -108,6 +108,14 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       sourcePath: 'docs/features/collaboration/self-hosted-server-wizard.md',
     },
     {
+      id: 'design-system/attention-accommodations',
+      category: 'design-system',
+      title: 'Attention accommodations',
+      description:
+        'Desktop Material provides five independently toggleable interface accommodations in Settings → Attention accommodations. They are all off by default, persist locally, and do…',
+      sourcePath: 'docs/features/design-system/attention-accommodations.md',
+    },
+    {
       id: 'design-system/audio-system',
       category: 'design-system',
       title: 'Audio system (narrator, sound effects, per-repository music)',
@@ -235,8 +243,7 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       id: 'design-system/README',
       category: 'design-system',
       title: 'Design-system features / 設計系統功能',
-      description:
-        'The Material Design 3 shell — the application chrome rewritten',
+      description: 'Attention accommodations — five independent,',
       sourcePath: 'docs/features/design-system/README.md',
     },
     {
@@ -264,6 +271,14 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       sourcePath: 'docs/features/design-system/sfx-event-mapping.md',
     },
     {
+      id: 'design-system/status-hub',
+      category: 'design-system',
+      title: 'Status Hub projection',
+      description:
+        "The existing Agents sidebar is the desktop surface for the current repository's agent-session fleet. It shows a compact status line supplied by a main-process Status Hub…",
+      sourcePath: 'docs/features/design-system/status-hub.md',
+    },
+    {
       id: 'design-system/surface-locks',
       category: 'design-system',
       title: 'Surface locks / 版面鎖',
@@ -278,6 +293,23 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       description:
         "Two independent sliders — one for English, one for Cantonese — set how playful the app's copy reads, from 1 (fully serious) to 5 (maximum playfulness). They live on Settings →…",
       sourcePath: 'docs/features/design-system/tone-funny-level.md',
+    },
+    {
+      id: 'design-system/universal-feature-completeness-inventory',
+      category: 'design-system',
+      title: 'Universal-feature completeness inventory',
+      description:
+        "The universal-feature completeness inventory is the repository's explicit map from each required user-facing feature to each user-facing surface that must ship it. It prevents…",
+      sourcePath:
+        'docs/features/design-system/universal-feature-completeness-inventory.md',
+    },
+    {
+      id: 'design-system/unlock-ladder',
+      category: 'design-system',
+      title: 'Unlock ladder / 解鎖梯',
+      description:
+        'The lockout ladder is a wait-recovery surface. It gives a locked-out person a bounded activity that may clear the current waiting state, while leaving the credential and the…',
+      sourcePath: 'docs/features/design-system/unlock-ladder.md',
     },
     {
       id: 'github-desktop-demand-backlog',
@@ -435,14 +467,6 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       sourcePath: 'docs/features/integrations/app-hosted-browser.md',
     },
     {
-      id: 'integrations/browser-extension-downloads',
-      category: 'integrations',
-      title: 'Browser-extension download handoff',
-      description:
-        'A bounded native-messaging foundation for browser-extension initiated downloads. It owns separate Start download, Downloading, and completion surfaces while honestly reporting the current missing extension/host boundary.',
-      sourcePath: 'docs/features/integrations/browser-extension-downloads.md',
-    },
-    {
       id: 'integrations/automated-updates-and-release-notes',
       category: 'integrations',
       title: 'Automated update build status and release notes',
@@ -458,6 +482,14 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       description:
         "Desktop Material's supported Windows catalog includes Visual Studio Code/VSCodium variants, JetBrains IDEs, Sublime Text, Vim/Neovim front ends, and other Windows editors.…",
       sourcePath: 'docs/features/integrations/broad-editor-support.md',
+    },
+    {
+      id: 'integrations/browser-extension-downloads',
+      category: 'integrations',
+      title: 'Browser-extension download handoff',
+      description:
+        'Desktop Material now owns the Windows desktop surfaces and bounded message contract for a browser-extension download handoff. It does not currently ship a browser extension or…',
+      sourcePath: 'docs/features/integrations/browser-extension-downloads.md',
     },
     {
       id: 'integrations/build-run-output-controls',
@@ -566,6 +598,14 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       sourcePath: 'docs/features/integrations/local-ai-build-fix.md',
     },
     {
+      id: 'integrations/local-file-converter',
+      category: 'integrations',
+      title: 'Local file converter',
+      description:
+        'Desktop Material is establishing a local file-converter workspace for files a person chooses from their own machine. The workspace must identify source bytes before offering a…',
+      sourcePath: 'docs/features/integrations/local-file-converter.md',
+    },
+    {
       id: 'integrations/ollama-model-manager',
       category: 'integrations',
       title: 'Ollama model manager',
@@ -596,6 +636,15 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       description:
         'Open Releases from a GitHub repository rail to search and status-filter the bounded loaded catalog, select a release, inspect metadata and assets, or enter the existing…',
       sourcePath: 'docs/features/integrations/repository-releases-dashboard.md',
+    },
+    {
+      id: 'integrations/root-windows-dependency-fetcher',
+      category: 'integrations',
+      title: 'Root Windows dependency fetcher / 根目錄 Windows 依賴擷取器',
+      description:
+        'The repository root now carries download-dependencies.bat, a one-click, repeatable preparation path for a clean Windows checkout. It accepts /s, --silent, or SILENT=1; silent…',
+      sourcePath:
+        'docs/features/integrations/root-windows-dependency-fetcher.md',
     },
     {
       id: 'integrations/self-hosted-runner-manager',
@@ -1371,7 +1420,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'design-system',
     label: 'Design System',
-    count: 21,
+    count: 25,
   },
   {
     name: 'identity-and-workspace',
@@ -1381,7 +1430,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'integrations',
     label: 'Integrations',
-    count: 27,
+    count: 30,
   },
   {
     name: 'linux-tui',
@@ -1411,4 +1460,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 157
+export const DocsBrowserArticleCount = 164

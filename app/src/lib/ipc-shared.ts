@@ -149,6 +149,14 @@ import {
   IStatusHubSessionProjection,
   IStatusHubStatus,
 } from '../models/status-hub'
+import type {
+  IUnlockLadderChallenge,
+  IUnlockLadderLockoutState,
+  IUnlockLadderMoleHitRequest,
+  IUnlockLadderServiceResult,
+  IUnlockLadderStartRequest,
+  IUnlockLadderSubmission,
+} from '../models/unlock-ladder'
 
 /**
  * Defines the simplex IPC channel names we use from the renderer
@@ -320,6 +328,20 @@ export type RequestChannels = {
  * Return signatures must be promises
  */
 export type RequestResponseChannels = {
+  /** Start a wait recovery record owned by the main process. */
+  'unlock-ladder-start': (
+    request: IUnlockLadderStartRequest
+  ) => Promise<IUnlockLadderLockoutState>
+  /** Record a mole using the main process receipt time, not renderer time. */
+  'unlock-ladder-record-mole-hit': (
+    request: IUnlockLadderMoleHitRequest
+  ) => Promise<boolean>
+  /** Issue a server-owned, expiring, single-use ladder challenge. */
+  'unlock-ladder-issue': (lockoutId: string) => Promise<IUnlockLadderChallenge>
+  /** Grade one consumed challenge; the result cannot carry a session. */
+  'unlock-ladder-submit': (
+    request: IUnlockLadderSubmission & { readonly lockoutId: string }
+  ) => Promise<IUnlockLadderServiceResult>
   /** Main-process-only Status Hub state; no credential crosses this boundary. */
   'get-status-hub-status': () => Promise<IStatusHubStatus>
   /** Publish an evidence-backed agent-session projection through the main process. */

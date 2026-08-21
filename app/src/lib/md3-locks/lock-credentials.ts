@@ -338,6 +338,20 @@ export function clearMd3LockAttempts(lockId: string): void {
   attempts.delete(lockId)
 }
 
+/**
+ * Clear only the current retry deadline after a wait-ladder win.
+ *
+ * The failure count remains intact: the ladder is allowed to clear WAITING,
+ * never to refund an attempt or erase the lock's escalation history.
+ */
+export function clearMd3LockWait(lockId: string): void {
+  const entry = attempts.get(lockId)
+  if (entry === undefined) {
+    return
+  }
+  attempts.set(lockId, { ...entry, retryAt: 0 })
+}
+
 /** Forget every lock's attempt history. Exists so a test can isolate itself. */
 export function clearAllMd3LockAttempts(): void {
   attempts.clear()

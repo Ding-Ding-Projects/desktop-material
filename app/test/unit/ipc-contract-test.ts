@@ -116,6 +116,10 @@ describe('IPC channel contract', () => {
   ] as const
 
   const expectedResponseChannels = [
+    'unlock-ladder-start',
+    'unlock-ladder-record-mole-hit',
+    'unlock-ladder-issue',
+    'unlock-ladder-submit',
     'get-status-hub-status',
     'publish-status-hub-session',
     'poll-status-hub-replies',
