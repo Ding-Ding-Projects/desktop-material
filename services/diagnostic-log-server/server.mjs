@@ -28,6 +28,8 @@ const maximumQueryResults = 2_000
 const maximumMessageBytes = 32 * 1024
 const token = await loadToken()
 
+class RequestTooLargeError extends Error {}
+
 await mkdir(storageRoot, { recursive: true })
 
 const server = createServer(async (request, response) => {
@@ -93,7 +95,15 @@ function authorized(header) {
 }
 
 async function ingest(request, response) {
-  const body = await readBody(request)
+  let body
+  try {
+    body = await readBody(request)
+  } catch (error) {
+    if (error instanceof RequestTooLargeError) {
+      return json(response, 413, { ok: false, error: 'request_too_large' })
+    }
+    throw error
+  }
   let parsed
   try {
     parsed = JSON.parse(body)
@@ -150,8 +160,8 @@ function normalizeEvent(candidate, receivedAt) {
   if (clientId === null || sessionId === null || level === null) {
     return null
   }
-  const message = redact(String(candidate.message || '')).slice(
-    0,
+  const message = truncateUtf8(
+    redact(String(candidate.message || '')),
     maximumMessageBytes
   )
   if (message.length === 0) {
@@ -215,9 +225,19 @@ async function query(url, response) {
       ) {
         continue
       }
-      results.push(event)
-      if (results.length > limit) {
-        results.shift()
+      const receivedAt = String(event.receivedAt)
+      const insertionIndex = results.findIndex(
+        item => receivedAt.localeCompare(String(item.receivedAt)) > 0
+      )
+      if (insertionIndex === -1) {
+        if (results.length < limit) {
+          results.push(event)
+        }
+      } else {
+        results.splice(insertionIndex, 0, event)
+        if (results.length > limit) {
+          results.pop()
+        }
       }
     }
   }
@@ -238,7 +258,7 @@ async function listLogFiles(client) {
       : [join(storageRoot, client)]
   const files = []
   for (const root of roots) {
-    for (const entry of await safeReadDir(root)) {
+    for (const entry of await safeReadDir(root, client !== null)) {
       if (entry.isFile() && /^\d{4}-\d{2}-\d{2}\.jsonl$/.test(entry.name)) {
         files.push(join(root, entry.name))
       }
@@ -299,11 +319,14 @@ async function childDirectories(root) {
     .map(entry => join(root, entry.name))
 }
 
-async function safeReadDir(path) {
+async function safeReadDir(path, allowMissing = false) {
   try {
     return await readdir(path, { withFileTypes: true })
-  } catch {
-    return []
+  } catch (error) {
+    if (allowMissing && error?.code === 'ENOENT') {
+      return []
+    }
+    throw error
   }
 }
 
@@ -313,7 +336,7 @@ async function readBody(request) {
   for await (const chunk of request) {
     size += chunk.length
     if (size > maximumRequestBytes) {
-      throw new Error('request_too_large')
+      throw new RequestTooLargeError()
     }
     chunks.push(chunk)
   }
@@ -325,8 +348,8 @@ function redact(value) {
     .replace(/https?:\/\/[^/\s:@]+:[^@\s/]+@/gi, 'https://[REDACTED]@')
     .replace(/\bBearer\s+[A-Za-z0-9._~+/-]{8,}=*\b/gi, 'Bearer [REDACTED]')
     .replace(
-      /\b(?:authorization|proxy-authorization|token|password|passwd|secret|api[-_]?key)\b\s*[:=]\s*[^\s,;]+/gi,
-      match => `${match.split(/[:=]/, 1)[0]}=[REDACTED]`
+      /\b(authorization|proxy-authorization|token|password|passwd|secret|api[-_]?key)\b\s*[:=]\s*(?:"(?:\\.|[^"\\\r\n])*"|'(?:\\.|[^'\\\r\n])*'|[^\s,;]+)/gi,
+      (_match, key) => `${key}=[REDACTED]`
     )
     .replace(
       /\b(?:gh[opsu]_|github_pat_)[A-Za-z0-9_]{12,}\b/g,
@@ -355,6 +378,23 @@ function safeText(value, maximumLength) {
   return String(value || '')
     .replace(/[\u0000-\u001f\u007f]/g, '')
     .slice(0, maximumLength)
+}
+
+function truncateUtf8(value, maximumBytes) {
+  if (Buffer.byteLength(value, 'utf8') <= maximumBytes) {
+    return value
+  }
+  let bytes = 0
+  let end = 0
+  for (const character of value) {
+    const characterBytes = Buffer.byteLength(character, 'utf8')
+    if (bytes + characterBytes > maximumBytes) {
+      break
+    }
+    bytes += characterBytes
+    end += character.length
+  }
+  return value.slice(0, end)
 }
 
 function validTimestamp(value) {
