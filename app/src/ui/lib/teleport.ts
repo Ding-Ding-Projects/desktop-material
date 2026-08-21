@@ -5,7 +5,7 @@ import {
 import {
   announceAppearanceLockBlocked,
   isAppearanceTargetBlocked,
-  resolveAppearanceLockTarget,
+  resolveAppearanceLockTargets,
 } from '../appearance/appearance-lock-gate'
 
 /** The class a spotlit element wears while the ring is showing. */
@@ -115,11 +115,10 @@ export async function teleportTo(
   // at a locked surface without producing a DOM click, so announce the lock
   // here and leave the target behaviorally closed. The prompt host owns the
   // anchored unlock UI and restores focus after cancellation/failure.
-  const lockedTarget = resolveAppearanceLockTarget(target)
-  if (
-    lockedTarget !== null &&
-    isAppearanceTargetBlocked(lockedTarget.targetId)
-  ) {
+  const lockedTarget = resolveAppearanceLockTargets(target).find(candidate =>
+    isAppearanceTargetBlocked(candidate.targetId)
+  )
+  if (lockedTarget !== undefined) {
     lockedTarget.anchor.focus({ preventScroll: true })
     announceAppearanceLockBlocked(lockedTarget.targetId, lockedTarget.anchor)
     return true
