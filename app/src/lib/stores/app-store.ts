@@ -5,12 +5,12 @@ import {
   lstat,
   mkdtemp,
   readFile,
-  rename,
   rm,
   unlink,
   writeFile,
 } from 'fs/promises'
 import { tmpdir } from 'os'
+import { renameWithRetry } from '../rename-with-retry'
 import {
   AccountsStore,
   BatchCloneStore,
@@ -20619,7 +20619,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private async commitCheapLfsWorkflowIndexTransaction(
     transaction: ICheapLfsWorkflowIndexTransaction
   ): Promise<void> {
-    await rename(transaction.lockPath, transaction.indexPath)
+    await renameWithRetry(transaction.lockPath, transaction.indexPath)
   }
 
   private async abortCheapLfsWorkflowIndexTransaction(

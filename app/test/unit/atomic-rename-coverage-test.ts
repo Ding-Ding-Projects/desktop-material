@@ -21,6 +21,7 @@ const repoRoot = Path.resolve(__dirname, '..', '..', '..')
 const MUST_USE_RETRYING_RENAME = [
   'app/src/main-process/agent-server/paired-device-store.ts',
   'app/src/main-process/agent-server/agent-server.ts',
+  'app/src/lib/stores/app-store.ts',
 ]
 
 /** Stores that move corrupt repositories aside before reinitializing them. */
