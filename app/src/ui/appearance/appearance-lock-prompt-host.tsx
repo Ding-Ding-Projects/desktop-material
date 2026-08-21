@@ -4,12 +4,12 @@ import { Md3LockUnlockPrompt } from '../md3/md3-lock-unlock-prompt'
 import {
   IMd3ActiveUnlock,
   IMd3Lock,
-  locksForTarget,
-  readMd3Locks,
 } from '../../lib/md3-locks'
 import {
   AppearanceLockBlockedEvent,
   IAppearanceLockBlockedDetail,
+  firstLockedAppearanceLock,
+  refreshAppearanceLockSemantics,
   recordAppearanceUnlock,
 } from './appearance-lock-gate'
 import { resolveApplicationDataFolder } from '../../lib/support-ticket-recovery'
@@ -85,12 +85,8 @@ export class AppearanceLockPromptHost extends React.Component<
     // The first still-closed lock on that element. Two locks are two answers,
     // so the user is asked for them one at a time rather than being shown a
     // form with two fields and no explanation of why.
-    const [lock] = locksForTarget(
-      readMd3Locks(),
-      'appearanceElement',
-      detail.targetId
-    )
-    if (lock === undefined) {
+    const lock = firstLockedAppearanceLock(detail.targetId)
+    if (lock === null) {
       return
     }
 
@@ -103,6 +99,7 @@ export class AppearanceLockPromptHost extends React.Component<
 
   private onUnlocked = (unlock: IMd3ActiveUnlock) => {
     recordAppearanceUnlock(unlock)
+    refreshAppearanceLockSemantics()
     this.dismiss()
     // Deliberately not re-firing the activation the user was refused. Replaying
     // a click they made before they were asked for a credential would perform

@@ -28,6 +28,7 @@ import { Dispatcher } from '../dispatcher'
 import { translateForAccessibleName } from '../../lib/i18n'
 import {
   appearanceLockTargetProps,
+  guardAppearanceElementActivation,
   openAppearanceEditorFromContextMenu,
 } from '../appearance'
 
@@ -200,10 +201,22 @@ export class RepositoryTab extends React.Component<
     return tab.customLabel ?? repository?.name ?? 'Repository'
   }
 
-  private onClick = () => {
-    if (!this.state.isRenaming) {
-      this.props.onSelect(this.props.tab)
+  private onClick = (event?: React.SyntheticEvent<HTMLElement>) => {
+    if (this.state.isRenaming) {
+      return
     }
+
+    const anchor =
+      event?.currentTarget instanceof HTMLElement
+        ? event.currentTarget
+        : this.frameRef.current
+    if (anchor === null) {
+      return
+    }
+
+    guardAppearanceElementActivation(anchor, () =>
+      this.props.onSelect(this.props.tab)
+    )
   }
 
   private onMouseDown = (event: React.MouseEvent<HTMLElement>) => {
@@ -234,7 +247,7 @@ export class RepositoryTab extends React.Component<
       (event.key === 'Enter' || event.key === ' ')
     ) {
       event.preventDefault()
-      this.onClick()
+      this.onClick(event)
     }
   }
 

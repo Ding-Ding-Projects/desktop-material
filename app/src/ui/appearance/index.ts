@@ -63,12 +63,18 @@ export type {
 export {
   AppearanceLockBlockedEvent,
   AppearanceLockTargetAttribute,
+  announceAppearanceLockBlocked,
   appearanceLockTargetProps,
+  appearanceLockTargetSemantics,
   clearAppearanceUnlocks,
+  firstLockedAppearanceLock,
   forgetAppearanceUnlock,
+  guardAppearanceActivation,
+  guardAppearanceElementActivation,
   installAppearanceLockGate,
   isAppearanceTargetBlocked,
   recordAppearanceUnlock,
+  refreshAppearanceLockSemantics,
   resolveAppearanceLockTarget,
   uninstallAppearanceLockGate,
 } from './appearance-lock-gate'

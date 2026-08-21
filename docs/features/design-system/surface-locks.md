@@ -72,6 +72,22 @@ Activating a locked surface opens `Md3LockUnlockPrompt`: anchored beside the
 control that was clicked, non-modal, and returning focus to that control when it
 is cancelled or dismissed with <kbd>Esc</kbd>.
 
+The same lock is enforced at every activation boundary. Pointer-down and click
+capture, Enter/Space keyboard activation, direct component callbacks, tab
+context-menu actions, and command-palette/search teleports all consult the
+target's own lock record before invoking the action. A blocked route opens the
+same anchored prompt rather than silently dropping the request. The target
+keeps `aria-disabled="true"` and a `data-md3-locked="true"` marker while any
+one of its locks is still closed; those semantics refresh when the lock
+registry or an in-memory unlock changes. The native `disabled` property is not
+used because it would prevent the prompt route from receiving the activation.
+
+Cancellation and failed verification leave the target disabled and return
+focus to the exact element that was attempted. A successful answer is not
+replayed into the interrupted action; the user activates it again deliberately.
+When multiple locks cover one target, the prompt chooses the first still-closed
+lock and never treats another lock's answer as a shared credential.
+
 The prompt always shows, at every funny level and in every language mode:
 
 1. The lead sentence, which the funny level styles.
@@ -238,6 +254,12 @@ node script/test.mjs app/test/unit/md3-locks-test.ts app/test/unit/md3-locks-vie
 - `app/test/unit/appearance-lock-control-test.tsx` — the appearance editor's
   shared password-or-authenticator setup join and its existing password-removal
   path. This lane updates the focused coverage but deliberately does not run it.
+
+The activation-boundary implementation is present in
+`app/src/ui/appearance/appearance-lock-gate.ts`, the shared context-menu action
+dispatcher, `app/src/ui/lib/teleport.ts`, and the tab/submodule activation
+owners. Focused tests, lint, type checks, builds, runtime interaction, and
+captures remain intentionally deferred for the ultra-speed implementation lane.
 
 Six guard-shaped assertions were verified by breaking the thing they guard,
 watching the test go red, and restoring it:

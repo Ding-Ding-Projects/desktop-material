@@ -1,5 +1,23 @@
 # Desktop Material — Active parity handoff
 
+## Appearance locks now disable their targets at every activation boundary — 2026-08-21
+
+The appearance-lock gate now keeps a locked target behaviorally disabled for
+pointer and keyboard activation, direct callbacks, tab context-menu actions,
+and palette/search teleports. It publishes `aria-disabled="true"` plus a
+machine-readable locked marker while the lock is closed, and refreshes those
+semantics when the lock registry or in-memory unlock state changes.
+
+Each blocked route opens the existing anchored unlock prompt. Cancellation or
+failed verification leaves the target locked and restores focus to the exact
+control that was attempted. Multiple locks are answered independently; the
+prompt selects the first still-closed lock rather than reusing an already
+verified one. Successful verification does not replay the interrupted action.
+
+Verification boundary: no tests, lint, typecheck, review, build, package,
+runtime interaction, or capture was run in this ultra-speed lane. The changes
+remain uncommitted and local to the task branch for integration review.
+
 ## Appearance locks use the authenticator runtime join — 2026-08-21
 
 Appearance-value lock creation now uses the shared `Md3LockSetupDialog`, with

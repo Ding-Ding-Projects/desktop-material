@@ -23,6 +23,7 @@ import { RepositoryTab } from './repository-tab'
 import { TabStyleEditor } from './tab-style-editor'
 import {
   AnchoredAppearanceEditor,
+  guardAppearanceActivation,
   isAppearanceEditorPointerGesture,
 } from '../appearance'
 import {
@@ -629,12 +630,26 @@ export class RepositoryTabStrip extends React.Component<
   }
 
   private onSelect = (tab: IRepositoryTab) => {
-    const repository = this.repositoryForTab(tab)
-    if (repository !== null) {
-      this.props.dispatcher.selectRepository(repository)
+    const anchor =
+      Array.from(
+        this.stripRef.current?.querySelectorAll<HTMLElement>(
+          '.repository-tab[data-tab-id]'
+        ) ?? []
+      ).find(element => element.dataset.tabId === tab.id) ??
+      this.state.overflowAnchor ??
+      this.stripRef.current
+    if (anchor === null || anchor === undefined) {
+      return
     }
-    this.props.tabsStore.activateTab(tab.id)
-    this.scrollTabIntoView(tab.id)
+
+    guardAppearanceActivation(`repository-tab:${tab.id}`, anchor, () => {
+      const repository = this.repositoryForTab(tab)
+      if (repository !== null) {
+        this.props.dispatcher.selectRepository(repository)
+      }
+      this.props.tabsStore.activateTab(tab.id)
+      this.scrollTabIntoView(tab.id)
+    })
   }
 
   private scrollTabIntoView(tabId: string) {
@@ -893,12 +908,14 @@ export class RepositoryTabStrip extends React.Component<
   ) {
     const { tabs } = this.state.tabs
     const index = tabs.findIndex(t => t.id === tab.id)
+    const guardAction = (action: () => void) => () =>
+      guardAppearanceActivation(`repository-tab:${tab.id}`, anchor, action)
 
     showContextualMenu([
       {
         label: tab.isPinned === true ? 'Unpin Tab' : 'Pin Tab',
         icon: octicons.pin,
-        action: () => this.onTogglePinned(tab),
+        action: guardAction(() => this.onTogglePinned(tab)),
       },
       {
         label:
@@ -906,51 +923,55 @@ export class RepositoryTabStrip extends React.Component<
             ? 'Remove from Favorites'
             : 'Add to Favorites',
         icon: octicons.star,
-        action: () => this.onToggleFavorite(tab),
+        action: guardAction(() => this.onToggleFavorite(tab)),
       },
       {
         label: 'Arrange Tabs…',
         icon: octicons.arrowSwitch,
-        action: () => this.openArrange(anchor),
+        action: guardAction(() => this.openArrange(anchor)),
       },
       { type: 'separator' },
-      ...this.buildGroupMenuItems(tab, anchor),
+      ...this.buildGroupMenuItems(tab, anchor).map(item => ({
+        ...item,
+        action:
+          item.action === undefined ? undefined : guardAction(item.action),
+      })),
       { type: 'separator' },
       {
         label: 'Customize Appearance…',
         icon: octicons.paintbrush,
-        action: () => this.openStyleEditor(tab, titleAnchor),
+        action: guardAction(() => this.openStyleEditor(tab, titleAnchor)),
       },
       { type: 'separator' },
       {
         label: 'Close Tab',
         icon: octicons.x,
-        action: () => this.onClose(tab),
+        action: guardAction(() => this.onClose(tab)),
       },
       {
         label: 'Close Tabs to the Left',
-        action: () => this.onCloseTabsToLeft(tab),
+        action: guardAction(() => this.onCloseTabsToLeft(tab)),
         enabled: index > 0,
       },
       {
         label: 'Close Tabs to the Right',
-        action: () => this.onCloseTabsToRight(tab),
+        action: guardAction(() => this.onCloseTabsToRight(tab)),
         enabled: index !== -1 && index < tabs.length - 1,
       },
       {
         label: 'Close Other Tabs',
-        action: () => this.onCloseOtherTabs(tab),
+        action: guardAction(() => this.onCloseOtherTabs(tab)),
         enabled: tabs.length > 1,
       },
       { type: 'separator' },
       {
         label: 'Close Tabs Containing…',
-        action: () => this.openCloseMatching(anchor),
+        action: guardAction(() => this.openCloseMatching(anchor)),
         enabled: tabs.length > 0,
       },
       {
         label: 'Close All Tabs Except Those Containing…',
-        action: () => this.openCloseExcept(anchor),
+        action: guardAction(() => this.openCloseExcept(anchor)),
         enabled: tabs.length > 0,
       },
     ])

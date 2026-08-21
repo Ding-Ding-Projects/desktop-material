@@ -755,6 +755,7 @@ export class RepositoryListItem extends React.Component<
           <div
             className={classNames(classNameList)}
             style={tabTitleStyleToCss(this.state.nameStyle)}
+            {...appearanceLockTargetProps(lockTargetId)}
             tabIndex={0}
             role="button"
             aria-label={`Customize ${
@@ -916,6 +917,9 @@ export class RepositoryListItem extends React.Component<
       return (
         <span
           className="repository-list-logo-appearance-target"
+          {...appearanceLockTargetProps(
+            `repository-list-item:logo:${alias ?? repository.name}`
+          )}
           tabIndex={0}
           role="button"
           aria-label={`Customize ${alias ?? repository.name} repository logo`}
