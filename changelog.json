@@ -1,6 +1,8 @@
 {
   "releases": {
     "4.0.0": [
+      "[Fixed] Merge all worktrees now relocates a clean default-branch checkout automatically instead of stopping when another worktree owns it, and the explicit Force Mat Day option preserves recoverable dirty work before integration - 9367475ded052f348decb33b77993f49323645c7",
+      "[Fixed] Force Mat Day now pushes the default branch before removing any merged branch or linked worktree, so cleanup cannot run ahead of publication - 4929ccfe248dd56567623345e5f92a4117f22747",
       "[Fixed] Closing Desktop Material no longer closes an application launched by a Windows .NET Build and Run profile; the final dotnet run process is independent while restore and build stages remain supervised - 9c7781aea90ab2799716202a45c6d077fd072a5d",
       "[Fixed] The MD3 application-header account avatar now has focused regression coverage for shared account-switcher routing, separate header and rail expanded state, and focus-return anchoring - #195",
       "[Added] Desktop Material leaves beta. Releases are plain numbered versions on the production channel, starting at 4.0.0, with no -beta or -material suffix",
