@@ -2389,7 +2389,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     title: 'Narrator voice',
     titleKey: 'palette.setSoundNarratorVoice',
     group: 'App',
-    keywords: 'narrator voice speech english cantonese tts',
+    keywords: 'narrator voice speech english cantonese tts rate pitch',
     home: {
       kind: 'preferences',
       tab: PreferencesTab.Sound,

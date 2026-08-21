@@ -18,10 +18,22 @@ import { AudioCueStore } from '../../lib/audio/audio-cue-store'
 import {
   AudioCueCategory,
   IAudioSystemSettings,
+  MaxTtsPitch,
+  MaxTtsRate,
+  MinTtsPitch,
+  MinTtsRate,
   RepoMusicOverride,
 } from '../../lib/audio/audio-settings'
 import { repositoryThemeName } from '../../lib/audio/repo-theme-name'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import {
+  INarratorVoice,
+  NarratorVoiceLanguage,
+  describeVoiceChoice,
+  onVoicesChanged,
+  readInstalledVoices,
+  voicesForLanguage,
+} from '../../lib/audio/narrator-voices'
 
 /**
  * The auditionable sound-effect cues, grouped by their motif family so the
@@ -83,6 +95,8 @@ interface ISoundPreferencesState {
   readonly languageMode: LanguageMode
   readonly settings: IAudioSystemSettings
   readonly repositoryOverride: RepoMusicOverride | null
+  /** The platform voice list is commonly empty until `voiceschanged`. */
+  readonly voices: ReadonlyArray<INarratorVoice>
 }
 
 /** Settings pane for the optional audio system: SFX, narrator, and music. */
@@ -91,6 +105,7 @@ export class SoundPreferences extends React.Component<
   ISoundPreferencesState
 > {
   private trackRequest = 0
+  private stopWatchingVoices: (() => void) | null = null
 
   public constructor(props: ISoundPreferencesProps) {
     super(props)
@@ -100,6 +115,7 @@ export class SoundPreferences extends React.Component<
       repositoryOverride: props.audioCueStore.getRepositoryOverride(
         props.repository
       ),
+      voices: readInstalledVoices(),
     }
   }
 
@@ -108,10 +124,18 @@ export class SoundPreferences extends React.Component<
       LanguageModeChangedEvent,
       this.onLanguageModeChanged
     )
+    this.stopWatchingVoices = onVoicesChanged(this.onVoicesChanged)
+    // The event may have fired between construction and mounting.
+    this.onVoicesChanged()
   }
+
+  private onVoicesChanged = () =>
+    this.setState({ voices: readInstalledVoices() })
 
   public componentWillUnmount() {
     this.trackRequest++
+    this.stopWatchingVoices?.()
+    this.stopWatchingVoices = null
     document.removeEventListener(
       LanguageModeChangedEvent,
       this.onLanguageModeChanged
@@ -124,6 +148,90 @@ export class SoundPreferences extends React.Component<
         (event as CustomEvent<unknown>).detail
       ),
     })
+  }
+
+  /**
+   * Render one independently persisted narrator voice choice.
+   *
+   * A missing choice remains in the select so a temporarily uninstalled voice
+   * is not silently replaced. The status underneath states what will actually
+   * be heard, including network-backed and no-voice cases.
+   */
+  private renderVoicePicker(
+    language: NarratorVoiceLanguage,
+    labelKey: TranslationKey,
+    chosen: string,
+    onChange: (uri: string) => void
+  ) {
+    const { languageMode, voices } = this.state
+    const available = voicesForLanguage(voices, language)
+    const status = describeVoiceChoice(chosen, available)
+    const id = `sound-tts-voice-${language}`
+    const statusId = `${id}-status`
+    const statusKey: TranslationKey =
+      status.kind === 'automatic'
+        ? 'settings.soundNarratorVoiceAutomaticStatus'
+        : status.kind === 'chosen'
+        ? status.voice.localService
+          ? 'settings.soundNarratorVoiceInstalledStatus'
+          : 'settings.soundNarratorVoiceNetworkStatus'
+        : status.kind === 'missing'
+        ? 'settings.soundNarratorVoiceMissingStatus'
+        : 'settings.soundNarratorVoiceNoneStatus'
+    const variables =
+      status.kind === 'chosen'
+        ? { voice: status.voice.name, lang: status.voice.lang }
+        : status.kind === 'missing'
+        ? { uri: status.uri }
+        : {}
+
+    return (
+      <div className="sound-voice-picker">
+        <label htmlFor={id}>
+          <LocalizedText
+            translationKey={labelKey}
+            languageMode={languageMode}
+          />
+        </label>
+        <select
+          id={id}
+          value={chosen}
+          aria-describedby={statusId}
+          disabled={available.length === 0}
+          onChange={event => onChange(event.currentTarget.value)}
+        >
+          <option value="">
+            {translate(
+              'settings.soundNarratorChooseAutomatically',
+              languageMode
+            )}
+          </option>
+          {status.kind === 'missing' ? (
+            <option value={status.uri}>
+              {translate(
+                'settings.soundNarratorVoiceMissingOption',
+                languageMode,
+                { uri: status.uri }
+              )}
+            </option>
+          ) : null}
+          {available.map(voice => (
+            <option key={voice.uri} value={voice.uri}>
+              {voice.name} ({voice.lang})
+              {voice.localService
+                ? ''
+                : ` — ${translate(
+                    'settings.soundNarratorNetworkVoiceOption',
+                    languageMode
+                  )}`}
+            </option>
+          ))}
+        </select>
+        <p className="settings-description" id={statusId} role="status">
+          {translate(statusKey, languageMode, variables)}
+        </p>
+      </div>
+    )
   }
 
   private update(change: Partial<IAudioSystemSettings>) {
@@ -230,6 +338,22 @@ export class SoundPreferences extends React.Component<
               useRecordedNarration => this.update({ useRecordedNarration }),
               'sound-recorded-narration'
             )}
+          </div>
+          <div {...teleportAnchor('settings-sound-narrator-voice')}>
+            {this.renderVoicePicker(
+              'english',
+              'settings.soundNarratorEnglishVoiceLabel',
+              settings.ttsVoiceEnglish,
+              ttsVoiceEnglish => this.update({ ttsVoiceEnglish })
+            )}
+            {this.renderVoicePicker(
+              'cantonese',
+              'settings.soundNarratorCantoneseVoiceLabel',
+              settings.ttsVoiceCantonese,
+              ttsVoiceCantonese => this.update({ ttsVoiceCantonese })
+            )}
+            {this.renderTtsRate()}
+            {this.renderTtsPitch()}
           </div>
           <div {...teleportAnchor('settings-sound-narrator-volume')}>
             {this.renderVolume(
@@ -505,6 +629,61 @@ export class SoundPreferences extends React.Component<
           />
           <span className="sound-slider-value" aria-hidden={true}>
             {seconds}s
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  private renderTtsRate() {
+    const { settings } = this.state
+    return this.renderTtsRange(
+      'settings.soundNarratorRateLabel',
+      'sound-tts-rate',
+      settings.ttsRate,
+      MinTtsRate,
+      MaxTtsRate,
+      value => this.update({ ttsRate: value })
+    )
+  }
+
+  private renderTtsPitch() {
+    const { settings } = this.state
+    return this.renderTtsRange(
+      'settings.soundNarratorPitchLabel',
+      'sound-tts-pitch',
+      settings.ttsPitch,
+      MinTtsPitch,
+      MaxTtsPitch,
+      value => this.update({ ttsPitch: value })
+    )
+  }
+
+  private renderTtsRange(
+    labelKey: TranslationKey,
+    id: string,
+    value: number,
+    min: number,
+    max: number,
+    onChange: (value: number) => void
+  ) {
+    const label = translate(labelKey, this.state.languageMode)
+    return (
+      <div className="sound-field-group">
+        <label htmlFor={id}>{label}</label>
+        <div className="sound-slider-row">
+          <input
+            id={id}
+            type="range"
+            min={min}
+            max={max}
+            step={0.1}
+            value={value}
+            onChange={event => onChange(Number(event.currentTarget.value))}
+            aria-valuetext={value.toFixed(1)}
+          />
+          <span className="sound-slider-value" aria-hidden={true}>
+            {value.toFixed(1)}
           </span>
         </div>
       </div>

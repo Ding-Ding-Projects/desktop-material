@@ -1,6 +1,7 @@
 {
   "releases": {
     "4.0.0": [
+      "[Fixed] Restored the Sound preferences narrator controls: separate runtime English and Cantonese voice pickers, honest local/network/missing/no-voice status, late voice-list refresh, and bounded speaking-rate and pitch sliders; focused and built-artifact verification remain pending in the ultra-speed lane.",
       "[Fixed] Publish repository now keeps the chosen GitHub.com account active for organization lookup and publication, preserves personal-account fallback when organization discovery fails, and offers a bounded localized retry plus scoped re-authentication path; focused tests and built-artifact evidence remain pending in the ultra-speed lane.",
       "[Fixed] MD3 menu filters now use the shared bounded RE2 adapter for user-authored patterns, menu shortcut hints expose matching ARIA key metadata without double announcement, and long bilingual labels wrap inside the existing overlay bounds; verification remains deferred in the ultra-speed lane.",
       "[Fixed] CI compile compatibility now uses explicit ArrayBufferLike Buffer types for bounded stderr capture, keeps one fail-closed quarantine coverage declaration, and narrows process outcomes before reading rejection diagnostics; tests, lint, type-checking, builds, captures, and reviews were intentionally not run in the ultra-speed lane.",

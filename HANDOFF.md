@@ -1,5 +1,27 @@
 # Desktop Material — Active parity handoff
 
+## Narrator voice controls restoration — 2026-08-21
+
+The Sound preferences pane now renders the narrator settings that the persisted
+audio model already supports:
+
+- independent English and Cantonese voice pickers backed by the platform's
+  live `SpeechSynthesis` voice list;
+- an empty **Choose automatically** choice, stable `voiceURI` persistence, and
+  status copy for local, network-backed, missing, and no-compatible-voice
+  states;
+- late `voiceschanged` refresh with teardown unsubscribe; and
+- bounded speaking-rate (0.5–2.0) and pitch (0.0–2.0) sliders, both localized
+  in English and Hong Kong Cantonese.
+
+The narrator voice group is anchored for the existing settings-search and
+command-palette routes. The feature article is
+`docs/features/design-system/narrator-voice.md`.
+
+Verification boundary: this implementation lane intentionally ran no tests,
+lint, type checks, reviews, captures, builds, packaging, or release checks.
+Built-artifact interaction and current capture evidence remain pending.
+
 ## Publish account and owner recovery — 2026-08-21
 
 The Publish repository dialog now retains a selected GitHub.com account in the
