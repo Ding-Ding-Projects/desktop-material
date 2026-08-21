@@ -407,6 +407,18 @@ export const showOpenDialogMultiple = invokeProxy(
   1
 )
 
+/** Bounded byte-signature inspection for a user-selected converter source. */
+export const inspectFileConverterSource = invokeProxy(
+  'file-converter-inspect-source',
+  1
+)
+
+/** Privileged free-space preflight for a user-selected converter destination. */
+export const preflightFileConverterStorage = invokeProxy(
+  'file-converter-preflight-storage',
+  2
+)
+
 /** Tell the main process read/save the user GUID from/to file */
 export const saveGUID = invokeProxy('save-guid', 1)
 export const getGUID = invokeProxy('get-guid', 0)

@@ -17,6 +17,24 @@
 - [ ] Add the owned persistent queue runner, official exhaustive catalog source, conservative hardware-fit evidence, full harness preflight/snapshot/rollback UI, localization catalog entries, and built-artifact proof.
 - [ ] Run focused tests, type checks, built-artifact interactions, and captures; this ultra-speed lane intentionally ran none.
 
+## August 21 — local file-converter foundation
+
+- [x] Define the Windows desktop converter's local-only source-preservation,
+  bundled-adapter, output-validation, and honest queue-status contract in the
+  categorized feature documentation.
+- [x] Add typed English and Cantonese resource keys for source selection,
+  adapter catalog, target selection, loss disclosure, local-only privacy,
+  queue outcomes, progress, and status.
+- [x] Add the Repository Tools converter workspace with its eight-category
+  registry, local byte-signature inspection, persisted queue controls, and
+  future adapter storage-preflight/atomic-output foundation.
+- [ ] Package and prove offline adapters, wire paged durable queue execution,
+  destination selection, overwrite confirmation, settings/palette/search
+  routes, and generated offline documentation bundle.
+- [ ] Run focused converter tests, type checks, built-artifact interaction, and
+  capture evidence; the ultra-speed converter lane intentionally ran none of
+  these checks.
+
 ## August 21 — Support Tickets and authenticator history
 
 - [x] Wire the existing About/Help surface to the local Support Tickets desk.
