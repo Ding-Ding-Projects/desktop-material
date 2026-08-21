@@ -1,4 +1,8 @@
-import { spawn, ChildProcessWithoutNullStreams } from 'child_process'
+import {
+  spawn,
+  ChildProcess,
+  ChildProcessWithoutNullStreams,
+} from 'child_process'
 import { WebContents } from 'electron'
 import * as path from 'path'
 import { pathExists } from '../../lib/path-exists'
@@ -51,6 +55,27 @@ interface IExecResult {
   readonly code: number
   readonly tail: string
   readonly spawnError: boolean
+}
+
+/**
+ * `dotnet run` hosts the user's application rather than a finite build step.
+ * On Windows it must outlive Desktop Material, so launch it as an independent
+ * process and release every parent-owned handle immediately after spawn.
+ */
+export function shouldDetachRunCommand(
+  stage: BuildStageKind | 'toolchain',
+  command: ICommand,
+  platform: NodeJS.Platform = process.platform
+): boolean {
+  return (
+    platform === 'win32' &&
+    stage === 'run' &&
+    path
+      .basename(command.exe)
+      .toLowerCase()
+      .replace(/\.exe$/, '') === 'dotnet' &&
+    command.args[0]?.toLowerCase() === 'run'
+  )
 }
 
 /** Book-keeping for one in-flight run. */
@@ -563,6 +588,7 @@ export class BuildRunner {
     command: ICommand,
     onSpawn?: (pid: number | undefined) => void
   ): Promise<IExecResult> {
+    const detachAfterSpawn = shouldDetachRunCommand(stage, command)
     const resolved = await resolveExecutable(command.exe, run.env)
 
     // Batch shims (npm.cmd, gradlew.bat, …) cannot be spawned directly with
@@ -590,7 +616,7 @@ export class BuildRunner {
     }
 
     return new Promise<IExecResult>(resolve => {
-      let child: ChildProcessWithoutNullStreams
+      let child: ChildProcess
       try {
         child = spawn(exe, [...args], {
           cwd: run.plan.cwd,
@@ -602,7 +628,8 @@ export class BuildRunner {
           windowsVerbatimArguments: verbatim,
           // POSIX cancellation targets the owned process group so command
           // descendants cannot survive a renderer reload or app shutdown.
-          detached: process.platform !== 'win32',
+          detached: detachAfterSpawn || process.platform !== 'win32',
+          stdio: detachAfterSpawn ? 'ignore' : 'pipe',
         })
       } catch (err) {
         resolve({
@@ -613,9 +640,37 @@ export class BuildRunner {
         return
       }
 
-      run.child = child
+      if (detachAfterSpawn) {
+        child.once('error', err => {
+          const message = err instanceof Error ? err.message : String(err)
+          this.emitLog(
+            run,
+            stage,
+            'meta',
+            `Failed to launch ${command.label}: ${message}`
+          )
+          resolve({ code: -1, tail: message, spawnError: true })
+        })
+        child.once('spawn', () => {
+          if (onSpawn !== undefined) {
+            onSpawn(child.pid)
+          }
+          child.unref()
+          this.emitLog(
+            run,
+            stage,
+            'meta',
+            `${command.label} launched in an independent process and will keep running after Desktop Material closes.`
+          )
+          resolve({ code: 0, tail: '', spawnError: false })
+        })
+        return
+      }
+
+      const streamedChild = child as ChildProcessWithoutNullStreams
+      run.child = streamedChild
       if (onSpawn !== undefined) {
-        onSpawn(child.pid)
+        onSpawn(streamedChild.pid)
       }
 
       let tail = ''
@@ -639,8 +694,8 @@ export class BuildRunner {
           idx = buffers[name].indexOf('\n')
         }
       }
-      child.stdout.on('data', onData('stdout'))
-      child.stderr.on('data', onData('stderr'))
+      streamedChild.stdout.on('data', onData('stdout'))
+      streamedChild.stderr.on('data', onData('stderr'))
 
       let spawnError = false
       let settled = false
@@ -655,7 +710,7 @@ export class BuildRunner {
             buffers[name] = ''
           }
         }
-        if (run.child === child) {
+        if (run.child === streamedChild) {
           run.child = null
         }
         resolve({ code, tail, spawnError })
