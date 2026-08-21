@@ -77,6 +77,12 @@ Older cached data that uses `schemaVersion` plus `terms`, or the earlier
 loaded vocabulary. New user-selected files use `schemaVersion` plus `entries`,
 and that is the only accepted user-facing file shape.
 
+The entries are dynamic data, not a shipped allowlist. The parser enumerates
+every validated key up to the documented 2,000-entry bound, and the replacement
+pattern is compiled from that complete map. Focused coverage loads and applies
+47 distinct entries so the former 46-entry private payload cannot become an
+accidental implementation ceiling.
+
 ## Validation
 
 The **complete byte payload** is validated before anything is displayed or
