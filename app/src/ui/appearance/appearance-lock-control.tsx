@@ -5,18 +5,14 @@ import { PasswordTextBox } from '../lib/password-text-box'
 import {
   IMd3Lock,
   Md3LocksChangedEvent,
-  addMd3Lock,
   isTargetLocked,
   locksForTarget,
   readMd3Locks,
   removeMd3Locks,
 } from '../../lib/md3-locks'
-import {
-  isValidMd3LockPassword,
-  setMd3LockPassword,
-  verifyMd3LockPassword,
-} from '../../lib/md3-locks/lock-credentials'
-import { DefaultMd3UnlockDuration } from '../../lib/md3-locks/lock-model'
+import { verifyMd3LockPassword } from '../../lib/md3-locks/lock-credentials'
+import { getPath } from '../main-process-proxy'
+import { Md3LockSetupDialog } from '../md3/md3-lock-setup-dialog'
 
 /**
  * The toy lock every appearance editor carries.
@@ -59,6 +55,9 @@ interface IAppearanceLockControlState {
   readonly problem: string | null
 
   readonly busy: boolean
+
+  /** The real user-data folder named by the shared setup flow. */
+  readonly applicationDataFolder: string | null
 }
 
 export class AppearanceLockControl extends React.Component<
@@ -75,12 +74,24 @@ export class AppearanceLockControl extends React.Component<
       password: '',
       problem: null,
       busy: false,
+      applicationDataFolder: null,
     }
   }
 
   public componentDidMount() {
     this.mounted = true
     window.addEventListener(Md3LocksChangedEvent, this.onLocksChanged)
+    void getPath('userData').then(
+      folder => {
+        if (this.mounted) {
+          this.setState({ applicationDataFolder: folder })
+        }
+      },
+      () => {
+        // The shared setup dialog reports an unavailable path explicitly; it
+        // must never invent one when the main-process bridge is unavailable.
+      }
+    )
   }
 
   public componentWillUnmount() {
@@ -124,51 +135,13 @@ export class AppearanceLockControl extends React.Component<
   private cancel = () =>
     this.setState({ mode: 'idle', password: '', problem: null })
 
-  private createLock = async () => {
-    const password = this.state.password
-    if (!isValidMd3LockPassword(password)) {
-      this.setState({
-        problem:
-          'A lock password must be 4 to 128 characters. Nothing has been locked.',
-      })
-      return
-    }
-
-    this.setState({ busy: true, problem: null })
-    // The lock is written first so it has an id to key the credential by, and
-    // removed again if the vault refuses — a lock whose password never stored
-    // is a lock nobody can ever open.
-    const lock = addMd3Lock({
-      target: {
-        kind: 'appearanceElement',
-        id: this.props.targetId,
-        label: this.props.targetLabel,
-      },
-      factor: 'password',
-      unlockDuration: DefaultMd3UnlockDuration,
-      lockOnLaunch: true,
-    })
-
-    try {
-      await setMd3LockPassword(lock.id, password)
-    } catch (error) {
-      removeMd3Locks([lock.id])
-      if (this.mounted) {
-        this.setState({
-          busy: false,
-          problem: `The password could not be stored, so nothing was locked: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        })
-      }
-      return
-    }
-
+  private onLockSaved = () => {
     if (this.mounted) {
       this.setState({
         busy: false,
         mode: 'idle',
         password: '',
+        problem: null,
         locks: this.read(),
       })
     }
@@ -249,7 +222,20 @@ export class AppearanceLockControl extends React.Component<
 
   public render(): JSX.Element {
     if (this.state.mode === 'creating') {
-      return this.renderForm(this.createLock, 'Lock this appearance')
+      return (
+        <Md3LockSetupDialog
+          lock={null}
+          target={{
+            kind: 'appearanceElement',
+            id: this.props.targetId,
+            label: this.props.targetLabel,
+          }}
+          anchorRect={null}
+          applicationDataFolder={this.state.applicationDataFolder}
+          onSaved={this.onLockSaved}
+          onDismissed={this.cancel}
+        />
+      )
     }
     if (this.state.mode === 'removing') {
       return this.renderForm(this.removeLock, 'Remove the lock')

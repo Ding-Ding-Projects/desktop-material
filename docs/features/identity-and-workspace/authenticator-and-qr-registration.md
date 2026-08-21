@@ -104,6 +104,18 @@ A factor whose secret is not in the credential vault — a restored record whose
 key is gone, for instance — renders as unable to produce a code and says so,
 rather than showing a blank cell that reads as a bug.
 
+Registered factors can also answer the app's for-fun appearance and tab locks.
+The lock setup surface stores only the selected authenticator entry id in the
+lock record. At renderer startup the lock adapter keeps the entry metadata
+available for lookup and asks the existing credential-vault boundary for the
+secret only while verifying a typed code. No secret is copied into the lock
+store, authenticator document, history, export, log, or UI. Removing or
+restoring an entry therefore leaves an OTP lock unavailable when its vault key
+is absent, with a recovery message instead of a guessed or empty code path.
+The authenticator settings surface publishes the public metadata snapshot after
+each mutation, so a factor registered after startup can answer a newly created
+lock without restarting the app.
+
 The list carries what this project asks of every list: a search bar wired to the
 full regex builder, group chips composed with the query, multi-select by click,
 shift-click and keyboard, an honestly-scoped select-all, an inverse selection,

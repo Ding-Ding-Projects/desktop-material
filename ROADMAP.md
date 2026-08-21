@@ -1,5 +1,18 @@
 # Desktop Material roadmap
 
+## August 21 — appearance-lock/authenticator runtime join
+
+- [ ] Wire the renderer startup authenticator document cache to the existing
+  OTP lock verifier and keep all secret reads inside the credential-vault
+  boundary, including metadata-only updates from the settings-owned store.
+  Implementation is present; focused tests and runtime evidence are deferred
+  by the current ultra-speed release boundary.
+- [ ] Route appearance-value lock creation through the shared password-or-OTP
+  setup dialog, including duration and lock-on-launch persistence. Implementation
+  is present; built-artifact interaction and capture evidence remain deferred.
+- [ ] Add the integration commit link to the changelog entry after the lane is
+  merged into the default branch.
+
 ## August 21 — universal-feature completeness registration
 
 - [x] Document the hand-written feature-by-surface inventory contract and its

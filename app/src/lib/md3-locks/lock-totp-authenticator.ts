@@ -36,6 +36,41 @@ export interface IAuthenticatorLockVerifierOptions {
 
   /** Injected by tests. Defaults to the system clock, in seconds. */
   readonly nowSeconds?: () => number
+
+  /**
+   * Receive public entry metadata when another authenticator store instance
+   * changes it. Secrets are never part of this callback.
+   */
+  readonly onEntriesChanged?: (
+    entries: ReadonlyArray<IAuthenticatorEntry>
+  ) => void
+}
+
+let entriesChanged:
+  | ((entries: ReadonlyArray<IAuthenticatorEntry>) => void)
+  | null = null
+
+/**
+ * Publish the authenticator document's public metadata to the installed lock
+ * adapter. The settings surface and startup each own a store instance, so the
+ * explicit notification keeps their entry views joined without adding a
+ * second secret store or reading the credential vault here.
+ */
+export function notifyAuthenticatorLockEntriesChanged(
+  entries: ReadonlyArray<IAuthenticatorEntry>
+): void {
+  entriesChanged?.(
+    entries.map(entry => ({
+      id: entry.id,
+      issuer: entry.issuer,
+      account: entry.account,
+      algorithm: entry.algorithm,
+      digits: entry.digits,
+      period: entry.period,
+      group: entry.group,
+      addedAt: entry.addedAt,
+    }))
+  )
 }
 
 /** Build the verifier. Registered with {@link installAuthenticatorLockFactor}. */
@@ -79,5 +114,6 @@ export function createAuthenticatorLockVerifier(
 export function installAuthenticatorLockFactor(
   options: IAuthenticatorLockVerifierOptions
 ): void {
+  entriesChanged = options.onEntriesChanged ?? null
   setMd3TotpVerifier(createAuthenticatorLockVerifier(options))
 }

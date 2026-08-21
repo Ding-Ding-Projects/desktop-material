@@ -1,5 +1,44 @@
 # Desktop Material — Active parity handoff
 
+## Appearance locks use the authenticator runtime join — 2026-08-21
+
+This lane joins appearance-value lock creation to the shared `Md3LockSetupDialog`.
+The editor now offers the existing password or authenticator OTP choices and
+persists the shared duration and lock-on-launch settings. Removal remains on the
+existing password path because changing a factor is intentionally a
+remove-and-create operation in the shared dialog's contract.
+
+Renderer startup now installs `installAuthenticatorLockFactor` with a cache of
+public authenticator entry metadata loaded from the existing
+`AuthenticatorStore`. OTP verification still reads the secret only through
+`readAuthenticatorSecret` and the operating-system credential-vault boundary;
+no secret is copied into the lock registry, document history, exports, logs, or
+UI. If the store cannot initialize, the OTP factor stays unavailable.
+
+Changed files in this lane:
+
+- `app/src/ui/appearance/appearance-lock-control.tsx`
+- `app/src/ui/index.tsx`
+- `app/src/lib/md3-locks/lock-totp-authenticator.ts`
+- `app/src/ui/preferences/authenticator-settings.tsx`
+- `app/test/unit/appearance-lock-control-test.tsx`
+- `app/test/unit/appearance-lock-gate-test.ts`
+- `docs/features/design-system/surface-locks.md`
+- `docs/features/identity-and-workspace/authenticator-and-qr-registration.md`
+- `changelog.json`
+- `ROADMAP.md`
+- `HANDOFF.md`
+
+Verification boundary: no tests, lint, typecheck, review, build, package,
+runtime interaction, or capture was run in this lane, by explicit ultra-speed
+scope. The parent integration lane must update the changelog entry with the
+actual integration commit link and retain the deferred verification statements.
+The live metadata-cache gap is now closed: the settings-created authenticator
+store publishes a public-entry snapshot after initialization and every update,
+and the startup adapter consumes it without receiving secrets. The generated
+offline docs browser bundle was not rebuilt in this lane; it must be regenerated
+or otherwise refreshed before claiming offline article parity.
+
 ## Five-day public guidance notice — 2026-08-21
 
 Added a compact, public-safe README banner summarizing the latest shared

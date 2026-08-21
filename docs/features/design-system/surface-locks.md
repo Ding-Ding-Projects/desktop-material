@@ -235,6 +235,9 @@ node script/test.mjs app/test/unit/md3-locks-test.ts app/test/unit/md3-locks-vie
 - `app/test/unit/md3-locks-view-test.tsx` — the anchored prompt, the setup
   dialog, the manager list with its search, selection, bulk actions and gate, and
   the context-menu builder.
+- `app/test/unit/appearance-lock-control-test.tsx` — the appearance editor's
+  shared password-or-authenticator setup join and its existing password-removal
+  path. This lane updates the focused coverage but deliberately does not run it.
 
 Six guard-shaped assertions were verified by breaking the thing they guard,
 watching the test go red, and restoring it:
@@ -248,21 +251,29 @@ watching the test go red, and restoring it:
 | No export writes anything that could open a lock | Adding a `digest` column | red |
 | Bulk removal is behind the two-key gate | Enabling the slider without both keys | red |
 
-## Not yet wired
+## Runtime wiring
 
-Two joins are left to the surrounding shell and are named here rather than left
-silent:
+The renderer installs the operating-system lock vault and the authenticator OTP
+adapter during startup. The adapter reads only the authenticator document's
+public entry metadata into an in-memory lookup; when an OTP lock is answered it
+resolves the selected entry's secret through the existing credential-vault
+boundary and passes it to the single RFC 6238 implementation. Secrets never
+enter the lock document, the lookup, application logs, exports, or local Git
+history.
 
-- `setMd3LockCredentialVault` must be called at renderer start-up.
-  `installOsLockCredentialVault()` in `lock-vault-os.ts` does it; it is kept out
-  of the feature's barrel because it loads a native dependency.
-- `setMd3TotpVerifier` must be called with
-  `createAuthenticatorLockVerifier({ findEntry })` once the host holds the
-  authenticator's document, and `setMd3LockSupportTicketsRoute` with a function
-  that opens the Support Tickets desk with the `unlockPrompt` entry point.
+The authenticator settings surface publishes the same metadata-only snapshot
+after initialization and after every add, edit, reorder, group, or removal
+mutation. This joins its store instance to the startup lock adapter immediately
+without duplicating the authenticator secret or history repository.
 
-Until each is installed, the affected control says exactly what is missing rather
-than failing quietly.
+The appearance editor uses the same `Md3LockSetupDialog` as tabs and lock
+manager surfaces. That means an appearance value can be created with either a
+password or a registered authenticator factor, and its unlock duration and
+lock-on-launch choice are saved through the shared lock model. If the
+authenticator document cannot be initialized, OTP locks remain unavailable and
+the setup surface names the unmet condition rather than accepting an
+unanswerable lock. The Support Tickets route is installed alongside these
+startup joins.
 
 ## Suggested articles
 

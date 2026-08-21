@@ -337,6 +337,21 @@ describe('elements advertise their lock target', () => {
     // And the credential vault, without which creating a lock fails and the
     // button appears to do nothing at all.
     assert.match(source, /installOsLockCredentialVault\(\)/)
+    // Appearance OTP locks must use the authenticator's existing entry and
+    // vault boundary. A setup dialog can offer the OTP choice only after this
+    // adapter is installed against the startup document cache.
+    assert.match(source, /installAuthenticatorLockFactor\(/)
+    assert.match(source, /new AuthenticatorStore\(/)
+
+    const authenticatorSettings = readFileSync(
+      join(process.cwd(), 'app/src/ui/preferences/authenticator-settings.tsx'),
+      'utf8'
+    )
+    assert.match(
+      authenticatorSettings,
+      /notifyAuthenticatorLockEntriesChanged\(/,
+      'the settings-owned authenticator store must publish public metadata changes to the lock adapter'
+    )
   })
 })
 
