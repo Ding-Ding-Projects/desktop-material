@@ -27,6 +27,8 @@ import {
 } from '../../src/lib/md3-locks'
 import { DefaultMd3UnlockDuration } from '../../src/lib/md3-locks/lock-model'
 
+const root = process.cwd()
+
 /**
  * A lock has to be felt to be a lock.
  *

@@ -2,6 +2,8 @@ import * as React from 'react'
 
 import { personalizeText } from './i18n'
 
+const PersonalVocabularyAppliedAttribute = 'data-personal-vocabulary-applied'
+
 /**
  * Hand-written inventory of the rendered text boundaries owned by this
  * implementation lane. Keep identifiers exact: a missing row must make the
@@ -22,22 +24,60 @@ export const PersonalVocabularyBoundaryInventory = [
   'worktree-selector',
   'branch-selector',
   'technical-content-preservation',
+  'host-text-properties',
 ] as const
+
+/** Source/runtime anchor for every inventory row; keep this list hand-written. */
+export const PersonalVocabularyBoundaryAnchors = {
+  'visible-text-children':
+    'app/src/ui/lib/button.tsx:personalizeReactNode(this.props.children)',
+  'accessible-name':
+    'app/src/ui/lib/button.tsx:const hostTextProps = personalizeHostTextProps',
+  'title-and-tooltip':
+    'app/src/ui/lib/tooltip.tsx:personalizeReactNode(this.props.children)',
+  'input-label-and-placeholder':
+    'app/src/ui/lib/text-box.tsx:personalizeOptionalText(this.props.placeholder)',
+  'context-menu-label': 'app/src/lib/menu-item.ts:personalizeMenuItems',
+  'dialog-header':
+    'app/src/ui/dialog/content.tsx:personalizeReactNode(this.props.children)',
+  'dropdown-and-overflow':
+    'app/src/ui/toolbar/toolbar.tsx:renderOverflowItemContent',
+  'palette-search-result':
+    'app/src/ui/command-palette/command-palette.tsx:resolvePaletteTitle',
+  'notification-copy':
+    'app/src/ui/notifications/notification-list-item.tsx:PersonalVocabularyChangedEvent',
+  'aria-live-copy':
+    'app/src/ui/accessibility/aria-live-container.tsx:personalizeText(this.props.message',
+  'repository-selector':
+    'app/src/ui/app.tsx:preserveTitleFromPersonalVocabulary',
+  'worktree-selector':
+    'app/src/ui/toolbar/worktree-dropdown.tsx:preserveTitleFromPersonalVocabulary',
+  'branch-selector':
+    'app/src/ui/toolbar/branch-dropdown.tsx:preserveTitleFromPersonalVocabulary',
+  'technical-content-preservation':
+    'app/src/lib/personal-vocabulary-rendering.ts:data-personal-vocabulary-preserve',
+  'host-text-properties':
+    'app/src/lib/personal-vocabulary-rendering.ts:personalizeHostTextProps',
+} as const
 
 export type PersonalVocabularyBoundary =
   typeof PersonalVocabularyBoundaryInventory[number]
 
 /** Fail closed when the hand-written inventory is duplicated or incomplete. */
 export function assertPersonalVocabularyBoundaryInventory(
-  inventory: ReadonlyArray<string> = PersonalVocabularyBoundaryInventory
+  inventory: ReadonlyArray<string> = PersonalVocabularyBoundaryInventory,
+  anchors: Readonly<Record<string, string>> = PersonalVocabularyBoundaryAnchors
 ): void {
   const expected = new Set<string>(PersonalVocabularyBoundaryInventory)
   const actual = new Set(inventory)
+  const anchorKeys = Object.keys(anchors)
   if (
     inventory.length !== expected.size ||
     actual.size !== inventory.length ||
     actual.size !== expected.size ||
-    [...expected].some(id => !actual.has(id))
+    [...expected].some(id => !actual.has(id)) ||
+    anchorKeys.length !== expected.size ||
+    anchorKeys.some(id => !expected.has(id) || anchors[id].trim().length === 0)
   ) {
     throw new Error('Personal vocabulary boundary inventory is incomplete.')
   }
@@ -84,6 +124,7 @@ export function personalizeReactNode(node: React.ReactNode): React.ReactNode {
   const props = node.props as {
     readonly 'aria-hidden'?: boolean | string
     readonly 'data-personal-vocabulary-preserve'?: boolean
+    readonly 'data-personal-vocabulary-applied'?: boolean | string
     readonly children?: React.ReactNode
   }
 
@@ -92,7 +133,9 @@ export function personalizeReactNode(node: React.ReactNode): React.ReactNode {
   if (
     props['aria-hidden'] === true ||
     props['aria-hidden'] === 'true' ||
-    props['data-personal-vocabulary-preserve'] === true
+    props['data-personal-vocabulary-preserve'] === true ||
+    props[PersonalVocabularyAppliedAttribute] === true ||
+    props[PersonalVocabularyAppliedAttribute] === 'true'
   ) {
     return node
   }
@@ -112,7 +155,7 @@ export function personalizeReactNode(node: React.ReactNode): React.ReactNode {
 
   return React.cloneElement(
     node,
-    undefined,
+    { [PersonalVocabularyAppliedAttribute]: 'true' },
     personalizeReactNode(props.children)
   )
 }
@@ -122,4 +165,19 @@ export function personalizeOptionalText(
   value: string | undefined
 ): string | undefined {
   return value === undefined ? undefined : personalizeText(value)
+}
+
+/**
+ * Transform only user-facing host attributes. Structural attributes, values,
+ * ids, paths and provider data are intentionally not in this list.
+ */
+export function personalizeHostTextProps<T extends object>(props: T): T {
+  const result = { ...props } as Record<string, unknown>
+  for (const key of ['aria-label', 'title', 'placeholder', 'aria-valuetext']) {
+    const value = result[key]
+    if (typeof value === 'string') {
+      result[key] = personalizeText(value)
+    }
+  }
+  return result as T
 }

@@ -2590,6 +2590,18 @@ export type TranslationKey =
   | 'settings.soundNarratorPitchLabel'
   | 'settings.personalVocabularyTitle'
   | 'settings.personalVocabularyDescription'
+  | 'settings.personalVocabularyChooseFile'
+  | 'settings.personalVocabularyClear'
+  | 'settings.personalVocabularyClearTitle'
+  | 'settings.personalVocabularyNoFile'
+  | 'settings.personalVocabularyLoadedOne'
+  | 'settings.personalVocabularyLoadedMany'
+  | 'settings.personalVocabularyFileShapeSummary'
+  | 'settings.personalVocabularyFileShapeDescription'
+  | 'settings.personalVocabularyRejected'
+  | 'settings.personalVocabularyUnreadable'
+  | 'settings.personalVocabularyAppliedAnnouncement'
+  | 'settings.personalVocabularyClearedAnnouncement'
   | 'palette.setPersonalVocabulary'
   | 'palette.setSoundNarratorCooldown'
   | 'palette.setSoundMusic'
@@ -8919,6 +8931,27 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settings.personalVocabularyTitle': 'Personal vocabulary file',
   'settings.personalVocabularyDescription':
     'Load a local JSON file that renames the words this app shows you. Nothing is uploaded.',
+  'settings.personalVocabularyChooseFile': 'Choose a vocabulary file',
+  'settings.personalVocabularyClear': 'Clear and restore original wording',
+  'settings.personalVocabularyClearTitle':
+    'Remove the loaded vocabulary and restore the original wording',
+  'settings.personalVocabularyNoFile':
+    'No vocabulary file is loaded. Every surface is rendering its original wording.',
+  'settings.personalVocabularyLoadedOne':
+    'A vocabulary file is loaded with {count} term. It is held on this computer only.',
+  'settings.personalVocabularyLoadedMany':
+    'A vocabulary file is loaded with {count} terms. It is held on this computer only.',
+  'settings.personalVocabularyFileShapeSummary': 'What this file looks like',
+  'settings.personalVocabularyFileShapeDescription':
+    'A JSON object declaring schemaVersion {version} and an entries object mapping the words the app renders to the words you would rather read. At most {entries} terms and {size} KB. It is read on this computer, never uploaded, and never included in an export, a screenshot, a diagnostic report or this app’s history.',
+  'settings.personalVocabularyRejected':
+    'That vocabulary file was not accepted. Nothing has been changed.',
+  'settings.personalVocabularyUnreadable':
+    'That vocabulary file could not be read. Nothing has been changed.',
+  'settings.personalVocabularyAppliedAnnouncement':
+    'Personal vocabulary loaded. Existing surfaces now use the supplied wording.',
+  'settings.personalVocabularyClearedAnnouncement':
+    'Personal vocabulary cleared. Original wording restored.',
   'palette.setPersonalVocabulary': 'Personal vocabulary file',
   'palette.setSoundNarratorCooldown': 'Minimum gap between narrated lines',
   'palette.setSoundMusic': 'Play themed music',
@@ -15842,6 +15875,24 @@ export const cantoneseTranslations: Readonly<
   'settings.personalVocabularyTitle': '個人字典檔案',
   'settings.personalVocabularyDescription':
     '載入一個本機 JSON 檔，換走呢個 app 顯示嘅字眼。 唔會上載去任何地方。',
+  'settings.personalVocabularyChooseFile': '揀一個字典檔案',
+  'settings.personalVocabularyClear': '清除並還原原本字眼',
+  'settings.personalVocabularyClearTitle': '移除已載入字典，還原原本字眼',
+  'settings.personalVocabularyNoFile':
+    '而家未載入字典檔案。所有畫面都照用原本字眼。',
+  'settings.personalVocabularyLoadedOne':
+    '已載入字典檔案，共 {count} 條字眼，只會留喺呢部電腦。',
+  'settings.personalVocabularyLoadedMany':
+    '已載入字典檔案，共 {count} 條字眼，只會留喺呢部電腦。',
+  'settings.personalVocabularyFileShapeSummary': '呢個檔案應該點樣',
+  'settings.personalVocabularyFileShapeDescription':
+    '一個 JSON object，入面有 schemaVersion {version} 同 entries object，將 app 顯示嘅字眼換成你想睇嘅字眼。最多 {entries} 條同 {size} KB。只會喺呢部電腦讀取，唔會上載，亦唔會放入 export、screenshot、診斷報告或者 app 歷史。',
+  'settings.personalVocabularyRejected': '呢個字典檔案唔接受，乜都冇改到。',
+  'settings.personalVocabularyUnreadable': '呢個字典檔案讀唔到，乜都冇改到。',
+  'settings.personalVocabularyAppliedAnnouncement':
+    '字典已載入，現有畫面而家用返你提供嘅字眼。',
+  'settings.personalVocabularyClearedAnnouncement':
+    '字典已清除，原本字眼已還原。',
   'palette.setPersonalVocabulary': '個人字典檔案',
   'palette.setSoundNarratorCooldown': '兩句旁白之間最短間隔',
   'palette.setSoundMusic': '播主題音樂',

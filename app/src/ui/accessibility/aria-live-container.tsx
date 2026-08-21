@@ -32,6 +32,9 @@ interface IAriaLiveContainerProps {
 
   /** Optional id that can be used to associate the message to a control */
   readonly id?: string
+
+  /** Keep technical segments such as file paths exact. */
+  readonly preserveTechnicalMessage?: boolean
 }
 
 interface IAriaLiveContainerState {
@@ -83,15 +86,25 @@ export class AriaLiveContainer extends Component<
     // because VoiceOver does not detect the empty string as a change.
     this.suffix = this.suffix === '\u00A0\u00A0' ? '\u00A0' : '\u00A0\u00A0'
 
-    return <>{personalizeText(this.props.message ?? '') + this.suffix}</>
+    const message = this.props.message ?? ''
+    return (
+      <>
+        {(this.props.preserveTechnicalMessage
+          ? message
+          : personalizeText(message)) + this.suffix}
+      </>
+    )
   }
 
   private renderMessage() {
     // We are just using this as a typical aria-live container where the message
     // changes per usage - no need to force re-reading of the same message.
     if (this.props.trackedUserInput === undefined) {
-      return this.props.message === null
-        ? null
+      if (this.props.message === null) {
+        return null
+      }
+      return this.props.preserveTechnicalMessage
+        ? this.props.message
         : personalizeText(this.props.message)
     }
 

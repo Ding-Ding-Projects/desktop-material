@@ -109,7 +109,10 @@ export class ChangedFile extends React.Component<IChangedFileProps, {}> {
           matches={matches}
         />
 
-        <AriaLiveContainer message={pathScreenReaderMessage} />
+        <AriaLiveContainer
+          message={pathScreenReaderMessage}
+          preserveTechnicalMessage={true}
+        />
         <TooltippedContent
           ancestorFocused={focused}
           openOnFocus={true}

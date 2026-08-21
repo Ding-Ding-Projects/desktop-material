@@ -114,7 +114,6 @@ function parseVocabularyRecord(
   schemaField: 'schemaVersion' | 'version',
   termsField: 'entries' | 'terms'
 ): VocabularyResult {
-
   for (const field of Object.keys(raw)) {
     if (!allowedFields.has(field)) {
       return { ok: false, rejection: { kind: 'unexpected-field', field } }
@@ -206,7 +205,7 @@ export function describeVocabularyRejection(
     case 'value-not-a-string':
       return 'Every replacement must be text. Nothing has been changed.'
     case 'unexpected-field':
-      return `That file has a field this build does not recognise ("${rejection.field}"). Nothing has been changed.`
+      return 'That file has a field this build does not recognise. Nothing has been changed.'
   }
 }
 

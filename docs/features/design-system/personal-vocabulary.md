@@ -44,7 +44,10 @@ opens the local file dialog, and clear returns the app to its original wording.
 | Unreadable | The underlying read error, and that nothing has been changed |
 
 The status line reports a **count**, never the terms. The terms are the private
-part; the number is not.
+part; the number is not. Control labels, loaded/cleared announcements, and
+rejection copy follow the active language mode. A rejected or unreadable
+replacement keeps the last valid vocabulary active and keeps **Clear and
+restore original wording** available; only a deliberate clear removes it.
 
 ![Settings → Appearance showing the Personal vocabulary section: a "Choose a vocabulary file" picker reading "No file chosen", and beneath it "No vocabulary file is loaded. Every surface is rendering its original wording." A collapsed "What this file looks like" disclosure sits below. No clear button is shown, because there is nothing to clear.](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/personal-vocabulary.png)
 
@@ -133,6 +136,15 @@ explicitly hidden text are not treated as user-facing copy by the React text
 boundary. Callers that compose a human sentence around a technical identifier
 personalize the sentence and append the identifier unchanged.
 
+Translation interpolation follows the same split. Catalog prose around a
+placeholder is personalized, while a bare string interpolation and a
+`bilingualVariable` value are protected as exact data. This keeps paths, URLs,
+refs, SHAs, provider names, error payloads and user content unchanged. A
+caller that truly owns a localized copy fragment uses
+`localizedBilingualVariable`; `translatedVariable` produces a value that is
+already localized once, so nested translation does not apply the vocabulary a
+second time.
+
 - **Longest term first.** Regex alternation takes the first branch that
   matches, not the longest, so `force push` must be tried before `push`.
 - **Single pass.** Replacing term by term would let one replacement's output be
@@ -180,7 +192,8 @@ returns the text untouched and no replacement occurs anywhere.
 node script/test.mjs app/test/unit/personal-vocabulary-test.ts
 ```
 
-40 tests. The boundary inventory and its negative mutation test were verified
+The focused parser, menu, rendering, interpolation, aria-live, and appearance
+lock suites report 106 tests. The boundary inventory and its negative mutation test were verified
 by breaking the thing they guard and
 watching them go red:
 

@@ -7,7 +7,6 @@ import {
   personalizeOptionalText,
   personalizeReactNode,
 } from '../../lib/personal-vocabulary-rendering'
-import { personalizeText } from '../../lib/i18n'
 
 /**
  * IToggledtippedContentProps is a superset of ITooltipProps but does not
@@ -125,7 +124,7 @@ export class ToggledtippedContent extends React.Component<
           {children}
           {this.state.tooltipVisible && (
             <AriaLiveContainer
-              message={personalizeText(ariaLiveMessage)}
+              message={ariaLiveMessage}
               trackedUserInput={this.shouldForceAriaLiveMessage}
             />
           )}

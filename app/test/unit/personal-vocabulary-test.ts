@@ -195,6 +195,22 @@ describe('the refusal message', () => {
       /Nothing has been changed/
     )
   })
+
+  it('does not echo an unrecognised field name', () => {
+    const result = parsePersonalVocabulary(
+      encode(
+        JSON.stringify({
+          schemaVersion: PersonalVocabularySchemaVersion,
+          entries: {},
+          'user-private-field-name': true,
+        })
+      )
+    )
+    assert.ok(!result.ok)
+    const message = describeVocabularyRejection(result.rejection)
+    assert.ok(!message.includes('user-private-field-name'))
+    assert.match(message, /Nothing has been changed/)
+  })
 })
 
 describe('the cache compatibility policy', () => {
@@ -214,10 +230,7 @@ describe('the cache compatibility policy', () => {
     const written = JSON.parse(
       values.get('desktop-material-vocabulary-v1') ?? '{}'
     ) as Record<string, unknown>
-    assert.strictEqual(
-      written.schemaVersion,
-      PersonalVocabularySchemaVersion
-    )
+    assert.strictEqual(written.schemaVersion, PersonalVocabularySchemaVersion)
     assert.strictEqual(written.version, undefined)
 
     values.set(
@@ -271,10 +284,7 @@ describe('applying a vocabulary', () => {
 
     assert.strictEqual(vocabulary.terms.size, 47)
     assert.strictEqual(
-      applyPersonalVocabulary(
-        Object.keys(terms).join(' | '),
-        vocabulary
-      ),
+      applyPersonalVocabulary(Object.keys(terms).join(' | '), vocabulary),
       Object.values(terms).join(' | ')
     )
   })

@@ -9,10 +9,6 @@ import { Tooltip, TooltipDirection, TooltipTarget } from '../lib/tooltip'
 import { AriaHasPopupType } from '../lib/aria-types'
 import { enableResizingToolbarButtons } from '../../lib/feature-flag'
 import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
-import {
-  personalizeOptionalText,
-  personalizeReactNode,
-} from '../../lib/personal-vocabulary-rendering'
 
 /** The button style. */
 export enum ToolbarButtonStyle {
@@ -193,17 +189,10 @@ export class ToolbarButton extends React.Component<IToolbarButtonProps, {}> {
   }
 
   public render() {
-    const title = this.props.preserveTitleFromPersonalVocabulary
-      ? this.props.title
-      : personalizeOptionalText(this.props.title)
-    const description =
-      typeof this.props.description === 'string'
-        ? personalizeOptionalText(this.props.description)
-        : personalizeReactNode(this.props.description)
-    const explicitTooltip = this.props.preserveTooltipFromPersonalVocabulary
-      ? this.props.tooltip
-      : personalizeOptionalText(this.props.tooltip)
-    const ariaLabel = personalizeOptionalText(this.props.ariaLabel)
+    const title = this.props.title
+    const description = this.props.description
+    const explicitTooltip = this.props.tooltip
+    const ariaLabel = this.props.ariaLabel
     const tooltip =
       explicitTooltip ??
       ariaLabel ??
@@ -253,7 +242,11 @@ export class ToolbarButton extends React.Component<IToolbarButtonProps, {}> {
             isTargetOverflowed={this.props.isOverflowed}
             applyAriaDescribedBy={this.props.tooltip !== undefined}
           >
-            {tooltip}
+            {this.props.preserveTooltipFromPersonalVocabulary ? (
+              <span data-personal-vocabulary-preserve={true}>{tooltip}</span>
+            ) : (
+              tooltip
+            )}
           </Tooltip>
         )}
         <Button
@@ -290,20 +283,19 @@ export class ToolbarButton extends React.Component<IToolbarButtonProps, {}> {
 
     const title =
       this.props.title !== undefined ? (
-        <div className="title">
-          {this.props.preserveTitleFromPersonalVocabulary
-            ? this.props.title
-            : personalizeOptionalText(this.props.title)}
+        <div
+          className="title"
+          data-personal-vocabulary-preserve={
+            this.props.preserveTitleFromPersonalVocabulary ? true : undefined
+          }
+        >
+          {this.props.title}
         </div>
       ) : null
 
     const description =
       this.props.description !== undefined ? (
-        <div className="description">
-          {typeof this.props.description === 'string'
-            ? personalizeOptionalText(this.props.description)
-            : personalizeReactNode(this.props.description)}
-        </div>
+        <div className="description">{this.props.description}</div>
       ) : null
 
     const style = this.props.style || ToolbarButtonStyle.Standard
@@ -319,10 +311,15 @@ export class ToolbarButton extends React.Component<IToolbarButtonProps, {}> {
       case ToolbarButtonStyle.Subtitle:
         return (
           <div className="text">
-            <div className="title">
-              {this.props.preserveTitleFromPersonalVocabulary
-                ? this.props.title
-                : personalizeOptionalText(this.props.title)}
+            <div
+              className="title"
+              data-personal-vocabulary-preserve={
+                this.props.preserveTitleFromPersonalVocabulary
+                  ? true
+                  : undefined
+              }
+            >
+              {this.props.title}
             </div>
             {description}
           </div>

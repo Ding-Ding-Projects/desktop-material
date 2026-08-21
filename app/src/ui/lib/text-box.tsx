@@ -9,7 +9,6 @@ import {
   personalizeOptionalText,
   personalizeReactNode,
 } from '../../lib/personal-vocabulary-rendering'
-import { personalizeText } from '../../lib/i18n'
 
 export interface ITextBoxProps {
   /** Stable audit identity when this text box is a collection search input. */
@@ -362,7 +361,7 @@ export class TextBox extends React.Component<ITextBoxProps, ITextBoxState> {
             <button
               type="button"
               className="clear-button"
-              aria-label={personalizeText(
+              aria-label={personalizeOptionalText(
                 this.props.clearButtonAriaLabel ?? 'Clear'
               )}
               onClick={this.clearSearchText}
@@ -372,9 +371,7 @@ export class TextBox extends React.Component<ITextBoxProps, ITextBoxState> {
           )}
         {this.state.valueCleared && (
           <AriaLiveContainer
-            message={personalizeText(
-              this.props.clearedMessage ?? 'Input cleared'
-            )}
+            message={this.props.clearedMessage ?? 'Input cleared'}
           />
         )}
       </div>

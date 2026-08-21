@@ -5,7 +5,7 @@ import { createObservableRef } from './observable-ref'
 import { AriaHasPopupType } from './aria-types'
 import { attachRipple } from './ripple'
 import {
-  personalizeOptionalText,
+  personalizeHostTextProps,
   personalizeReactNode,
 } from '../../lib/personal-vocabulary-rendering'
 
@@ -259,12 +259,14 @@ export class Button extends React.Component<IButtonProps, {}> {
   public render() {
     const { disabled } = this.props
     const children = personalizeReactNode(this.props.children)
-    const ariaLabel = personalizeOptionalText(this.props.ariaLabel)
-    const explicitTooltip = personalizeOptionalText(this.props.tooltip)
+    const hostTextProps = personalizeHostTextProps({
+      'aria-label': this.props.ariaLabel,
+    })
+    const ariaLabel = hostTextProps['aria-label']
     const tooltip = getButtonHint(
-      explicitTooltip,
-      ariaLabel,
-      children,
+      this.props.tooltip,
+      this.props.ariaLabel,
+      this.props.children,
       this.props.inferTooltip
     )
 

@@ -167,7 +167,7 @@ export class BranchDropdown extends React.Component<IBranchDropdownProps> {
       )
     } else if (tip.kind === TipState.Detached) {
       title = `On ${tip.currentSha.substring(0, 7)}`
-      tooltip = personalizeText('Currently on a detached HEAD')
+      tooltip = 'Currently on a detached HEAD'
       materialSymbol = 'commit'
       description = 'Detached HEAD'
     } else if (tip.kind === TipState.Valid) {

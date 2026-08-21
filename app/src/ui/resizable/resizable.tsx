@@ -1,7 +1,6 @@
 import * as React from 'react'
 import { clamp } from '../../lib/clamp'
 import { AriaLiveContainer } from '../accessibility/aria-live-container'
-import { personalizeText } from '../../lib/i18n'
 
 export const DefaultMaxWidth = 350
 export const DefaultMinWidth = 200
@@ -181,9 +180,9 @@ export class Resizable extends React.Component<
     const directionMessage =
       direction === ResizeDirection.Increase ? 'increased' : 'decreased'
     this.setState({
-      resizeMessage: `${personalizeText(
+      resizeMessage: `${
         this.props.description
-      )} width ${directionMessage}. Set to ${this.getResizePercentage()}%`,
+      } width ${directionMessage}. Set to ${this.getResizePercentage()}%`,
     })
   }
 
