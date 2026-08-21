@@ -1,5 +1,21 @@
 # Desktop Material — Active parity handoff
 
+## Automated merge-all cleanup — 2026-08-20
+
+The Worktrees dialog now recovers automatically when the default branch is
+checked out in another clean worktree. It transfers the default branch to the
+active worktree, removes a redundant linked owner, and continues the existing
+merge, non-force push, exact-tip deletion, and worktree cleanup sequence.
+
+An explicit **Force Mat Day** checkbox enables the existing preservation path
+for recoverable dirty worktrees: fetch, fast-forward-only pull, commit, and
+push occur before merge. Unsafe work remains retained. Focused candidate and
+renderer coverage passes 4/4; exact-file ESLint and `git diff --check` pass.
+The repository-wide TypeScript run remains red on pre-existing errors in
+`app/src/lib/process/win32.ts`, `app/test/unit/atomic-rename-coverage-test.ts`,
+and `app/test/unit/process-win32-test.ts`. A packaged Windows capture of the
+new checkbox remains outstanding.
+
 ## Eighteen defects, five hunts — 2026-08-19
 
 Five adversarial hunts ran over the tree, every finding put through independent

@@ -912,6 +912,7 @@ const CanonicalGalleryOutputs = Object.freeze([
   'material-actions-job-log',
   'material-actions-cancel',
   'material-actions-pending-deployments',
+  'material-worktree-force-mat-day',
   'material-branch-merge-all',
   'advanced-workflows',
   'material-cheap-lfs-preparing',
@@ -9350,6 +9351,33 @@ scene('merge-all', async () => {
       })
     }
   }
+  await click('.worktree-button')
+  await waitFor(
+    `document.querySelector('.worktree-list .merge-all-worktrees-button') !== null`,
+    'Merge all worktrees action'
+  )
+  await click('.worktree-list .merge-all-worktrees-button')
+  await waitFor(
+    `document.querySelector('#merge-all input[type="checkbox"]') !== null`,
+    'Merge all worktrees options'
+  )
+  await clickText('Force Mat Day')
+  await waitFor(
+    `(() => {
+      const dialog = document.querySelector('#merge-all')
+      const checks = [...document.querySelectorAll('#merge-all input[type="checkbox"]')]
+      if (!(dialog instanceof HTMLElement) || checks.length !== 2 ||
+          !checks.every(check => check instanceof HTMLInputElement && check.checked)) return false
+      const rect = dialog.getBoundingClientRect()
+      return rect.width > 500 && rect.height > 300 && rect.left >= 0 &&
+        rect.top >= 0 && rect.right <= innerWidth && rect.bottom <= innerHeight &&
+        dialog.textContent?.includes('Unsafe or unproved work is always retained.') === true
+    })()`,
+    'Force Mat Day checked, bounded, and safety copy visible'
+  )
+  await parkPointer()
+  await capture('material-worktree-force-mat-day')
+  await closeAllDialogs()
   await evaluate(`require('electron').ipcRenderer.emit('focus'), true`)
   await sleep(1800)
   await menuEvent('show-branches')

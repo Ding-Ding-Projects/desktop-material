@@ -10502,23 +10502,69 @@ export class AppStore extends TypedBaseStore<IAppState> {
       throw new Error('The repository must be clean and idle before merging.')
     }
 
-    const worktrees = await listWorktrees(repository)
-    if (
-      worktrees.some(
-        worktree =>
-          worktree.path !== repository.path &&
-          worktree.branch === defaultBranch.ref
+    let worktrees = await listWorktrees(repository)
+    const defaultBranchOwner = worktrees.find(
+      worktree =>
+        worktree.path !== repository.path &&
+        worktree.branch === defaultBranch.ref
+    )
+    if (defaultBranchOwner !== undefined) {
+      if (defaultBranchOwner.isLocked || defaultBranchOwner.isPrunable) {
+        throw new Error(
+          'The default branch worktree is locked or unavailable and was retained.'
+        )
+      }
+      const ownerStatus = await git(
+        ['status', '--porcelain'],
+        defaultBranchOwner.path,
+        'mergeAllDefaultWorktreeStatus'
       )
-    ) {
-      throw new Error('The default branch is checked out in another worktree.')
+      if (ownerStatus.stdout.trim().length > 0) {
+        if (!options.forceMatDay) {
+          throw new Error(
+            'The default branch worktree has uncommitted changes. Select Force Mat Day to preserve and publish them first.'
+          )
+        }
+        const checkpointFailure = await this.checkpointDirtyMergeAllWorktree(
+          repository,
+          { branch: defaultBranch, worktree: defaultBranchOwner },
+          signal
+        )
+        if (checkpointFailure !== null) {
+          throw new Error(checkpointFailure)
+        }
+      }
+      await git(
+        ['checkout', '--detach', defaultBranchOwner.head],
+        defaultBranchOwner.path,
+        'mergeAllReleaseDefaultWorktree'
+      )
     }
 
     if (
       initial.branchesState.tip.kind !== TipState.Valid ||
       initial.branchesState.tip.branch.name !== defaultBranch.name
     ) {
-      await this._checkoutBranch(repository, defaultBranch)
+      try {
+        await this._checkoutBranch(repository, defaultBranch)
+      } catch (error) {
+        if (defaultBranchOwner !== undefined) {
+          await git(
+            ['checkout', defaultBranch.name],
+            defaultBranchOwner.path,
+            'mergeAllRestoreDefaultWorktree'
+          )
+        }
+        throw error
+      }
       await this._refreshRepository(repository)
+      if (defaultBranchOwner?.type === 'linked') {
+        await this.withTemporaryRepositoryMutationGuard(repository, () =>
+          removeWorktree(repository.path, defaultBranchOwner.path, false)
+        )
+        await this._refreshWorktrees(repository)
+        worktrees = await listWorktrees(repository)
+      }
     }
 
     if (signal.aborted || !this.isTemporaryRepositoryActive(repository)) {
@@ -10544,10 +10590,26 @@ export class AppStore extends TypedBaseStore<IAppState> {
     } else {
       const selection = selectWorktreeCandidates(
         worktrees,
-        refreshed.branchesState.allBranches
+        refreshed.branchesState.allBranches,
+        defaultBranch.ref
       )
       candidates = selection.candidates
-      results = selection.skipped
+      results = [
+        ...(defaultBranchOwner === undefined
+          ? []
+          : [
+              {
+                branch: defaultBranch.name,
+                path: defaultBranchOwner.path,
+                status: 'up-to-date' as const,
+                detail:
+                  defaultBranchOwner.type === 'linked'
+                    ? 'Default branch ownership moved here automatically; the redundant linked worktree was removed after its clean commit was preserved.'
+                    : 'Default branch ownership moved here automatically; the primary worktree was retained at the same commit with detached HEAD.',
+              },
+            ]),
+        ...selection.skipped,
+      ]
     }
     this.updateMergeAllState(repository, { results })
 
@@ -10616,7 +10678,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
           'mergeAllWorktreeStatus'
         )
         if (status.stdout.trim().length > 0) {
-          if (!options.checkpointDirtyWorktrees) {
+          if (!options.checkpointDirtyWorktrees && !options.forceMatDay) {
             return {
               ...base,
               status: 'skipped',

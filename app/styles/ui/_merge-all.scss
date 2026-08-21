@@ -41,6 +41,22 @@
     }
   }
 
+  .merge-all-options {
+    display: grid;
+    gap: var(--spacing-half);
+  }
+
+  .merge-all-checkpoint-option {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-half);
+  }
+
+  .merge-all-option-help {
+    margin: 0;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+
   .merge-all-results {
     width: 100%;
     min-width: 0;

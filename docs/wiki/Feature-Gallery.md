@@ -237,6 +237,7 @@ promoted.
 | `material-responsive-overflow-fixed.png` | Exact-size responsive overflow regression proof |
 | `material-history-power-tools.png` | Searchable History and commit ancestry graph |
 | `material-branch-merge-all.png` | Merge All branches/worktrees with per-target state |
+| `material-worktree-force-mat-day.png` | Merge All worktrees with Force Mat Day preservation enabled |
 | `not-updated-with-main-filter.png` | Merge into main chooser filtered to branches not updated with main |
 | `material-create-pull-request.png` | Native pull-request completion state |
 | `material-effective-branch-rules.png` | Effective protection and ruleset policy |
@@ -808,6 +809,8 @@ reachable without page-level horizontal clipping.
 ![Layered automation schedules and account overrides](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-automation.png)
 
 ![Merge All branches and worktrees with per-target state](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-branch-merge-all.png)
+
+![Merge All worktrees with Force Mat Day preservation enabled](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-worktree-force-mat-day.png)
 
 ![Merge into main chooser with Not updated with main active](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/not-updated-with-main-filter.png)
 

@@ -36,6 +36,23 @@ Up to three selected repositories use the existing bounded batch runner.
 Progress and an isolated result remain visible for every repository, including
 items that were skipped or retained for review.
 
+### Merge all worktrees automation
+
+The Worktrees view's **Merge all worktrees** dialog applies the same
+preservation-first cleanup shape to one repository. A default branch checked
+out in another clean worktree no longer stops the operation: the app detaches
+that worktree at its unchanged commit, checks out the default branch in the
+active worktree, and removes the old worktree only when it is an ordinary
+unlocked linked worktree. A primary worktree is retained.
+
+The explicit **Force Mat Day** checkbox also enables checkpointing for dirty
+linked worktrees. Each recoverable worktree must fetch its tracked remote,
+fast-forward incoming history, commit its exact pending changes, and push that
+checkpoint before it becomes a merge candidate. Divergence, missing tracking,
+failed publication, locks, stale identities, and failed ancestry proof retain
+the affected work. The option never invokes a forced push or forced worktree
+removal and never treats an unsafe deletion as successful.
+
 ## Codex and OpenCode conflict resolution
 
 The operation uses the repository's persisted **Build & Run** fix-provider

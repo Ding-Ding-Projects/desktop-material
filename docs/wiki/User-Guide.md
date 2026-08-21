@@ -2049,6 +2049,11 @@ or signatures should use reviewed manual operations and remote branch protection
 The Branches and Worktrees views also expose **Merge all branches** and **Merge all worktrees**.
 Confirm the target, follow each row's progress, and review any skipped or failed target. When
 Copilot conflict assistance is available, it participates inside the same guarded workflow.
+If the default branch is checked out in another clean worktree, **Merge all worktrees** now moves
+that branch to the active worktree automatically and removes the redundant linked worktree. Select
+**Force Mat Day** to checkpoint, synchronize, and push recoverable dirty worktrees before the same
+merge, push, ancestry-proof, and cleanup sequence. Locked, divergent, unpublished, or otherwise
+unproved work remains in place and is reported instead of being forced or deleted.
 
 When the current branch is `main`, choose **Choose a branch to merge into main** from the
 Branches menu to open the merge sheet. Its **Not updated with main** chip filters by Git

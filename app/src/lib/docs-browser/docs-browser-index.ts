@@ -193,7 +193,7 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
     {
       id: 'design-system/md3-shell',
       category: 'design-system',
-      title: 'The Material Design 3 shell',
+      title: 'The Material Design 3 shell — RETIRED',
       description:
         'The application chrome, rewritten against design/History MD3.dc.html and assembled as one component. Md3Shell (app/src/ui/md3/md3-shell.tsx) is what App.renderApp() renders: a…',
       sourcePath: 'docs/features/design-system/md3-shell.md',
