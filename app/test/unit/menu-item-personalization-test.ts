@@ -10,7 +10,7 @@ import {
 describe('menu labels reach the personal-vocabulary boundary', () => {
   beforeEach(() => {
     setActivePersonalVocabulary({
-      version: 1,
+      schemaVersion: 1,
       terms: new Map([
         ['New worktree…', 'New sandbox…'],
         ['Worktrees', 'Sandboxes'],
