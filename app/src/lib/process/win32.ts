@@ -8,6 +8,24 @@ import {
   setValue,
 } from 'registry-js'
 
+const maximumStderrTailBytes = 64 * 1024
+
+function appendStderrTail(current: Buffer, data: Buffer | string): Buffer {
+  const chunk = Buffer.isBuffer(data) ? data : Buffer.from(data)
+
+  if (chunk.length >= maximumStderrTailBytes) {
+    return chunk.subarray(chunk.length - maximumStderrTailBytes)
+  }
+
+  const retainedBytes = maximumStderrTailBytes - chunk.length
+  const retained =
+    current.length > retainedBytes
+      ? current.subarray(current.length - retainedBytes)
+      : current
+
+  return Buffer.concat([retained, chunk])
+}
+
 function isStringRegistryValue(rv: RegistryValue): rv is RegistryStringEntry {
   return (
     rv.type === RegistryValueType.REG_SZ ||
@@ -69,6 +87,7 @@ export function spawn(
     const child = spawnInternal(command, args as string[])
     return new Promise<string>((resolve, reject) => {
       let stdout = ''
+      let stderr = Buffer.alloc(0)
 
       // If Node.js encounters a synchronous runtime error while spawning
       // `stdout` will be undefined and the error will be emitted asynchronously
@@ -78,11 +97,20 @@ export function spawn(
         })
       }
 
+      if (child.stderr) {
+        child.stderr.on('data', data => {
+          stderr = appendStderrTail(stderr, data)
+        })
+      }
+
       child.on('close', code => {
         if (code === 0) {
           resolve(stdout)
         } else {
-          reject(new Error(`Command "${command} ${args}" failed: "${stdout}"`))
+          const failureOutput = stderr.length > 0 ? stderr.toString() : stdout
+          reject(
+            new Error(`Command "${command} ${args}" failed: "${failureOutput}"`)
+          )
         }
       })
 

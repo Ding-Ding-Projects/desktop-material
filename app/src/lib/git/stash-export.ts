@@ -401,8 +401,13 @@ async function makeArchiveExport(
     await execFile(
       'tar',
       ['-a', '-c', '-f', request.destination, '-C', root, '.'],
-      { windowsHide: true, maxBuffer: archiveLimit }
+      {
+        windowsHide: true,
+        maxBuffer: archiveLimit,
+        signal: request.signal,
+      }
     )
+    throwIfAborted(request.signal)
     return request.destination
   }
   const options = request.sevenZip
@@ -413,8 +418,13 @@ async function makeArchiveExport(
   await execFile(
     executable,
     sevenZipArguments(request.destination, root, options),
-    { windowsHide: true, maxBuffer: archiveLimit }
+    {
+      windowsHide: true,
+      maxBuffer: archiveLimit,
+      signal: request.signal,
+    }
   )
+  throwIfAborted(request.signal)
   return request.destination
 }
 
