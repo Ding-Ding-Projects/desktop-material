@@ -65,6 +65,7 @@ import {
   readAttentionAccommodationPreferences,
   setAttentionAccommodationEnabled,
 } from '../models/attention-accommodation'
+import { getShowDialogEmoji, setShowDialogEmoji } from '../lib/dialog-emoji'
 import { AudioCueStore, getAudioCueStore } from '../lib/audio/audio-cue-store'
 import { findItemByAccessKey, itemIsSelectable } from '../models/app-menu'
 import { Account, isDotComAccount } from '../models/account'
@@ -2081,6 +2082,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     values.set('palette:set-language-mode', customization.languageMode)
     values.set('palette:set-funny-english', audio.funnyLevelEnglish)
     values.set('palette:set-funny-cantonese', audio.funnyLevelCantonese)
+    values.set('palette:set-dialog-emoji', getShowDialogEmoji())
     const attention = readAttentionAccommodationPreferences()
     values.set('palette:set-attention-focus', attention.enabled.focus)
     values.set(
@@ -2427,6 +2429,9 @@ export class App extends React.Component<IAppProps, IAppState> {
           ...this.audioCueStore.getSettings(),
           funnyLevelCantonese: clampFunnyLevel(asNumber, 3),
         })
+      case 'palette:set-dialog-emoji':
+        setShowDialogEmoji(asBoolean)
+        return
       case 'palette:set-attention-focus':
         setAttentionAccommodationEnabled('focus', asBoolean)
         return

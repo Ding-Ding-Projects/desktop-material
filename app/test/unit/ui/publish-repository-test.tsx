@@ -84,7 +84,7 @@ describe('PublishRepository organization integration', () => {
       )
       assert.ok(
         screen.getByRole('option', {
-          name: 'None — publish to my personal account',
+          name: 'None — publish to my personal account. Selected',
         })
       )
 
