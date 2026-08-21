@@ -34,6 +34,7 @@ import { Md3GhostButton, Md3IconButton, Md3TonalButton } from './md3-primitives'
 import {
   md3LockPromptPosition,
   IMd3LockAnchorRect,
+  IMd3LockPanelSize,
 } from './md3-lock-unlock-prompt'
 import { notify } from './md3-toast'
 
@@ -175,6 +176,11 @@ export function Md3LockSetupDialog(props: IMd3LockSetupDialogProps) {
   const [busy, setBusy] = React.useState(false)
 
   const firstFieldRef = React.useRef<HTMLInputElement | null>(null)
+  const panelRef = React.useRef<HTMLFormElement | null>(null)
+  const [panelSize, setPanelSize] = React.useState<IMd3LockPanelSize>({
+    width: 340,
+    height: 0,
+  })
   const closeRef = React.useMemo(
     () => createObservableRef<HTMLButtonElement>(),
     []
@@ -193,10 +199,40 @@ export function Md3LockSetupDialog(props: IMd3LockSetupDialogProps) {
     }
   }, [])
 
-  const position = md3LockPromptPosition(anchorRect, {
-    width: typeof window === 'undefined' ? 340 : window.innerWidth,
-    height: typeof window === 'undefined' ? 600 : window.innerHeight,
-  })
+  React.useLayoutEffect(() => {
+    const panel = panelRef.current
+    if (panel === null) {
+      return
+    }
+    const measure = () => {
+      const rect = panel.getBoundingClientRect()
+      if (rect.width > 0 && rect.height > 0) {
+        setPanelSize(current =>
+          current.width === rect.width && current.height === rect.height
+            ? current
+            : { width: rect.width, height: rect.height }
+        )
+      }
+    }
+    measure()
+    const resizeObserver =
+      typeof ResizeObserver === 'function' ? new ResizeObserver(measure) : null
+    resizeObserver?.observe(panel)
+    window.addEventListener('resize', measure)
+    return () => {
+      resizeObserver?.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [explanationOpen, factor, status])
+
+  const position = md3LockPromptPosition(
+    anchorRect,
+    {
+      width: typeof window === 'undefined' ? 340 : window.innerWidth,
+      height: typeof window === 'undefined' ? 600 : window.innerHeight,
+    },
+    panelSize
+  )
 
   const onFactorChanged = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -414,6 +450,7 @@ export function Md3LockSetupDialog(props: IMd3LockSetupDialogProps) {
     // particular control inside it.
     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <form
+      ref={panelRef}
       className="md3-lock-setup md3-anim-menu"
       role="dialog"
       aria-labelledby={titleId}

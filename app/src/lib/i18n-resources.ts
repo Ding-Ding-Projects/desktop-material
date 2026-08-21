@@ -5067,6 +5067,7 @@ export type TranslationKey =
   | 'md3.locks.row.unlockedSession'
   | 'md3.locks.row.unlockedSurface'
   | 'md3.locks.row.locked'
+  | 'md3.locks.row.unlock'
   | 'md3.locks.row.select'
   | 'md3.locks.row.edit'
   | 'md3.locks.row.remove'
@@ -5149,6 +5150,14 @@ export type TranslationKey =
   | 'md3.locks.unlock.success'
   | 'md3.locks.unlock.lockAgain'
   | 'md3.locks.unlock.minutesLabel'
+  | 'md3.locks.menu.lockElement'
+  | 'md3.locks.menu.elementCommands'
+  | 'md3.locks.appearance.passwordMismatch'
+  | 'md3.locks.appearance.lock'
+  | 'md3.locks.appearance.remove'
+  | 'md3.locks.appearance.removePassword'
+  | 'md3.locks.appearance.recovery'
+  | 'md3.locks.appearance.recoveryUnknown'
   | 'md3.locks.menu.lockTab'
   | 'md3.locks.menu.lockGroup'
   | 'md3.locks.menu.editLock'
@@ -12007,6 +12016,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'md3.locks.row.unlockedSession': 'Unlocked until the app closes',
   'md3.locks.row.unlockedSurface': 'Unlocked while you stay on this surface',
   'md3.locks.row.locked': 'Locked',
+  'md3.locks.row.unlock': 'Unlock {label}',
   'md3.locks.row.select': 'Select the lock on {label}',
   'md3.locks.row.edit': 'Edit the lock on {label}',
   'md3.locks.row.remove': 'Remove the lock on {label}',
@@ -12111,6 +12121,17 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'md3.locks.unlock.success': 'Unlocked {label}.',
   'md3.locks.unlock.lockAgain': 'Lock again',
   'md3.locks.unlock.minutesLabel': 'Minutes',
+  'md3.locks.menu.lockElement': 'Lock this element…',
+  'md3.locks.menu.elementCommands': 'Element lock commands',
+  'md3.locks.appearance.passwordMismatch':
+    'That password does not match. The lock is still in place; use the recovery folder below if needed.',
+  'md3.locks.appearance.lock': 'Lock this appearance…',
+  'md3.locks.appearance.remove': 'Remove the lock…',
+  'md3.locks.appearance.removePassword': 'Remove the lock',
+  'md3.locks.appearance.recovery':
+    'This is a speed bump for fun, not security: it is not encryption and protects nothing from anyone else using this computer. Forgotten the credential? Delete this application data folder and every lock goes with it: {folder}',
+  'md3.locks.appearance.recoveryUnknown':
+    'This is a speed bump for fun, not security: it is not encryption and protects nothing from anyone else using this computer. Forgotten the credential? The local application data folder clears every lock, but its exact path could not be read just now.',
   'md3.locks.menu.lockTab': 'Lock this tab…',
   'md3.locks.menu.lockGroup': 'Lock this group…',
   'md3.locks.menu.editLock': 'Edit this lock…',
@@ -18726,6 +18747,7 @@ export const cantoneseTranslations: Readonly<
   'md3.locks.row.unlockedSession': '解咗鎖，閂 App 之前都唔使再解',
   'md3.locks.row.unlockedSurface': '解咗鎖，你唔行開就一路開住',
   'md3.locks.row.locked': '鎖住',
+  'md3.locks.row.unlock': '解鎖 {label}',
   'md3.locks.row.select': '揀 {label} 嗰把鎖',
   'md3.locks.row.edit': '改 {label} 嗰把鎖',
   'md3.locks.row.remove': '除咗 {label} 嗰把鎖',
@@ -18826,6 +18848,17 @@ export const cantoneseTranslations: Readonly<
   'md3.locks.unlock.success': '{label} 開咗。',
   'md3.locks.unlock.lockAgain': '再鎖返',
   'md3.locks.unlock.minutesLabel': '幾多分鐘',
+  'md3.locks.menu.lockElement': '鎖住呢個元素…',
+  'md3.locks.menu.elementCommands': '元素鎖定指令',
+  'md3.locks.appearance.passwordMismatch':
+    '個密碼對唔上。把鎖仲喺度；唔記得嘅話用下面個退路資料夾。',
+  'md3.locks.appearance.lock': '鎖住呢個外觀…',
+  'md3.locks.appearance.remove': '除咗呢把鎖…',
+  'md3.locks.appearance.removePassword': '除咗呢把鎖',
+  'md3.locks.appearance.recovery':
+    '呢個係好玩嘅路障，唔係保安：唔係加密，亦唔會阻到用同一部電腦嘅其他人。唔記得個 credential？刪咗呢個資料夾，全部鎖一齊冇：{folder}',
+  'md3.locks.appearance.recoveryUnknown':
+    '呢個係好玩嘅路障，唔係保安：唔係加密，亦唔會阻到用同一部電腦嘅其他人。唔記得個 credential？本機資料夾可以清晒啲鎖，但而家攞唔到確實路徑。',
   'md3.locks.menu.lockTab': '鎖住呢個分頁…',
   'md3.locks.menu.lockGroup': '鎖住呢個群組…',
   'md3.locks.menu.editLock': '改呢把鎖…',

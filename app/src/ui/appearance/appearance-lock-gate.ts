@@ -1,6 +1,7 @@
 import {
   IMd3ActiveUnlock,
   IMd3Lock,
+  Md3LockSurfaceKind,
   isMd3UnlockActive,
   isTargetLocked,
   locksForTarget,
@@ -11,6 +12,15 @@ import {
   ProfileAppearanceOwnerSelectors,
   profileAppearanceLockTargetId,
 } from '../../models/element-appearance'
+import {
+  AppearanceAutoLockTargetAttribute,
+  AppearanceActionableElementSelector,
+  AppearanceElementRegistryChangedEvent,
+  AppearanceLockTargetAttribute,
+  installAppearanceElementInstrumentation,
+  uninstallAppearanceElementInstrumentation,
+} from './appearance-lock-element-registry'
+export { AppearanceLockTargetAttribute } from './appearance-lock-element-registry'
 
 /**
  * A lock on an element's appearance also locks the element.
@@ -43,17 +53,39 @@ import {
  * this computer can delete one folder and remove every lock on it.
  */
 
-/** The attribute an element carries so the gate can recognise it. */
-export const AppearanceLockTargetAttribute = 'data-md3-lock-target'
-
 /** Raised when a locked element is activated. The shell opens the prompt. */
 export const AppearanceLockBlockedEvent = 'desktop-material-lock-blocked'
 
+/** Raised by the universal context/keyboard lock-creation affordance. */
+export const AppearanceLockCreationRequestedEvent =
+  'desktop-material-lock-creation-requested'
+export const AppearanceUnlocksChangedEvent =
+  'desktop-material-appearance-unlocks-changed'
+
 export interface IAppearanceLockBlockedDetail {
   readonly targetId: string
+  readonly targetKind?: Md3LockSurfaceKind
   /** The element that was activated, so the prompt can anchor to it. */
   readonly anchor: HTMLElement
 }
+
+export interface IAppearanceLockTargetResolution {
+  readonly targetId: string
+  readonly anchor: HTMLElement
+}
+
+export interface IAppearanceLockCreationRequestedDetail {
+  readonly targetId: string
+  readonly targetLabel: string
+  readonly anchor: HTMLElement
+  /** True when an existing menu item already supplied the command label. */
+  readonly openWizard?: boolean
+}
+
+let pendingContextMenuTarget: {
+  readonly detail: IAppearanceLockCreationRequestedDetail
+  readonly expiresAt: number
+} | null = null
 
 /** The semantic attributes every locked target exposes to assistive tech. */
 export interface IAppearanceLockTargetSemantics {
@@ -85,11 +117,10 @@ export function appearanceLockTargetProps(targetId: string) {
 /**
  * Return the current lock semantics for a rendered target.
  *
- * `aria-disabled` is deliberately used instead of the native `disabled`
- * property: a native-disabled button would prevent the activation event from
- * reaching the prompt host. The capture gate supplies the behavioral block;
- * this pair makes the state visible to assistive technology and DOM-driven
- * integrations without making the unlock route unreachable.
+ * `aria-disabled` accompanies the native `disabled` property where the
+ * platform exposes one. The capture gate remains the prompt route for pointer
+ * and keyboard attempts, while this pair makes the state visible to assistive
+ * technology and DOM-driven integrations.
  */
 export function appearanceLockTargetSemantics(
   targetId: string,
@@ -109,30 +140,71 @@ export function appearanceLockTargetSemantics(
  * restart, which is the opposite of what `lockOnLaunch` promises.
  */
 const unlocks = new Map<string, IMd3ActiveUnlock>()
+const launchUnlockIds = new Set<string>()
+
+/** Native disabled values are restored after the last applicable lock opens. */
+const nativeDisabledBeforeAppearanceLock = new WeakMap<HTMLElement, boolean>()
 
 export function recordAppearanceUnlock(unlock: IMd3ActiveUnlock): void {
+  launchUnlockIds.delete(unlock.lockId)
   unlocks.set(unlock.lockId, unlock)
   refreshAppearanceLockSemantics()
+  notifyAppearanceUnlocksChanged()
 }
 
 export function forgetAppearanceUnlock(lockId: string): void {
   unlocks.delete(lockId)
+  launchUnlockIds.delete(lockId)
   refreshAppearanceLockSemantics()
+  notifyAppearanceUnlocksChanged()
 }
 
 /** Exists so a test can start from a known state. */
 export function clearAppearanceUnlocks(): void {
   unlocks.clear()
+  launchUnlockIds.clear()
   refreshAppearanceLockSemantics()
+  notifyAppearanceUnlocksChanged()
+}
+
+export function getAppearanceUnlocks(): ReadonlyArray<IMd3ActiveUnlock> {
+  return Array.from(unlocks.values())
+}
+
+function notifyAppearanceUnlocksChanged(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(AppearanceUnlocksChangedEvent))
+  }
+}
+
+/**
+ * Apply the persisted lock-on-launch choice when the renderer starts. A lock
+ * configured with `lockOnLaunch: false` is intentionally open for this app
+ * session until the user chooses Lock again; the setting is not decorative.
+ */
+export function initializeAppearanceUnlocksForLaunch(): void {
+  for (const lock of readMd3Locks()) {
+    if (!lock.lockOnLaunch && !unlocks.has(lock.id)) {
+      unlocks.set(lock.id, {
+        lockId: lock.id,
+        kind: 'session',
+        expiresAt: null,
+      })
+      launchUnlockIds.add(lock.id)
+    }
+  }
+  refreshAppearanceLockSemantics()
+  notifyAppearanceUnlocksChanged()
 }
 
 /** Return the first credential that is still required for one target. */
 export function firstLockedAppearanceLock(
   targetId: string,
-  now: number = Date.now()
+  now: number = Date.now(),
+  kind: Md3LockSurfaceKind = 'appearanceElement'
 ): IMd3Lock | null {
   return (
-    locksForTarget(readMd3Locks(), 'appearanceElement', targetId).find(
+    locksForTarget(readMd3Locks(), kind, targetId).find(
       lock => !isMd3UnlockActive(unlocks.get(lock.id), now)
     ) ?? null
   )
@@ -170,36 +242,133 @@ export function isAppearanceTargetBlocked(
  */
 export function resolveAppearanceLockTarget(
   node: EventTarget | null
-): { targetId: string; anchor: HTMLElement } | null {
+): IAppearanceLockTargetResolution | null {
+  return resolveAppearanceLockTargets(node)[0] ?? null
+}
+
+/**
+ * Resolve every lock that applies to one activation, not merely the nearest
+ * DOM owner. A toolbar can be locked while one of its buttons has its own
+ * independent lock; either credential must then be answered. Returning the
+ * complete chain is what prevents an auto-stamped descendant from becoming a
+ * side door around a profile, tab, or group lock.
+ */
+export function resolveAppearanceLockTargets(
+  node: EventTarget | null
+): ReadonlyArray<IAppearanceLockTargetResolution> {
   if (!(node instanceof Element)) {
-    return null
+    return []
   }
 
-  // An explicit attribute wins. It is the more specific of the two routes —
-  // a repository tab declares itself, and must not be resolved as the tab
-  // strip that contains it.
-  const owner = node.closest(`[${AppearanceLockTargetAttribute}]`)
-  if (owner instanceof HTMLElement) {
-    const targetId = owner.getAttribute(AppearanceLockTargetAttribute)
-    if (targetId !== null && targetId !== '') {
-      return { targetId, anchor: owner }
+  const resolutions: IAppearanceLockTargetResolution[] = []
+  const seen = new Set<string>()
+  const add = (targetId: string, anchor: HTMLElement) => {
+    if (targetId !== '' && !seen.has(targetId)) {
+      seen.add(targetId)
+      resolutions.push({ targetId, anchor })
     }
   }
 
-  // Then the profile-level owners, resolved from the same table the appearance
-  // editor uses. These have no fixed anchor to stamp: any element inside the
-  // toolbar is the toolbar's appearance target, so the gate has to walk for
-  // them exactly as the editor does. Sharing the table is what stops a lock
-  // created from one element being looked for on another — which would leave
-  // the lock recorded, listed, and gating nothing.
+  // An explicit product-owned attribute wins. Automatically discovered
+  // attributes are handled below as independent entries, so they cannot hide
+  // an explicit tab, group, or appearance owner.
+  let current: Element | null = node
+  while (current !== null) {
+    if (current instanceof HTMLElement) {
+      const targetId = current.getAttribute(AppearanceLockTargetAttribute)
+      const automatic =
+        current.getAttribute(AppearanceAutoLockTargetAttribute) === 'true'
+      if (!automatic && targetId !== null && targetId !== '') {
+        add(targetId, current)
+      }
+    }
+    current = current.parentElement
+  }
+
+  // Add every automatically discovered target in the event's ancestor chain.
+  // The nearest actionable ancestor is first so a child icon/label still
+  // anchors to the control whose action it represents, while non-actionable
+  // elements retain their own independent identity for appearance locks.
+  // A click on a child icon or label is still the activation of its nearest
+  // actionable ancestor. Without this walk, auto-stamping both a button and
+  // its span would let a lock on the button be bypassed through the span.
+  let automaticOwner: Element | null =
+    node instanceof HTMLElement
+      ? node
+      : node instanceof Element
+      ? node.parentElement
+      : null
+  while (automaticOwner !== null) {
+    const targetId = automaticOwner.getAttribute(AppearanceLockTargetAttribute)
+    if (
+      automaticOwner.getAttribute(AppearanceAutoLockTargetAttribute) ===
+        'true' &&
+      automaticOwner.matches(AppearanceActionableElementSelector) &&
+      targetId !== null &&
+      targetId !== '' &&
+      automaticOwner instanceof HTMLElement
+    ) {
+      add(targetId, automaticOwner)
+    }
+    automaticOwner = automaticOwner.parentElement
+  }
+
+  // Profile-level owners remain separate independent targets. A plain
+  // descendant that is not itself actionable is still the profile owner's
+  // appearance target; a button can therefore require both answers.
   for (const [selector, elementId] of ProfileAppearanceOwnerSelectors) {
     const anchor = node.closest(selector)
     if (anchor instanceof HTMLElement) {
-      return { targetId: profileAppearanceLockTargetId(elementId), anchor }
+      add(profileAppearanceLockTargetId(elementId), anchor)
     }
   }
 
-  return null
+  // Finally include every automatically discovered non-actionable target in
+  // the chain, including the event target itself when it is a DOM element.
+  current = node
+  while (current !== null) {
+    if (current instanceof HTMLElement) {
+      const targetId = current.getAttribute(AppearanceLockTargetAttribute)
+      if (
+        current.getAttribute(AppearanceAutoLockTargetAttribute) === 'true' &&
+        targetId !== null &&
+        targetId !== '' &&
+        !current.matches(AppearanceActionableElementSelector)
+      ) {
+        add(targetId, current)
+      }
+    }
+    current = current.parentElement
+  }
+
+  return resolutions
+}
+
+/**
+ * Resolve the exact element being offered the creation command. Activation
+ * still includes its actionable ancestor chain, but a user opening the menu
+ * on an icon/label is allowed to lock that concrete rendered element itself.
+ */
+export function resolveAppearanceLockCreationTarget(
+  node: EventTarget | null
+): IAppearanceLockTargetResolution | null {
+  if (!(node instanceof Element)) {
+    return null
+  }
+  let current: Element | null = node
+  while (current !== null) {
+    if (current instanceof HTMLElement) {
+      const targetId = current.getAttribute(AppearanceLockTargetAttribute)
+      if (targetId !== null && targetId !== '') {
+        return {
+          targetId,
+          anchor: current,
+        }
+      }
+    }
+    current = current.parentElement
+  }
+  return resolveAppearanceLockTargets(node)[0] ?? null
 }
 
 /**
@@ -209,8 +378,11 @@ export function resolveAppearanceLockTarget(
  * between "no lock here" and "handled".
  */
 function gate(event: Event): boolean {
-  const resolved = resolveAppearanceLockTarget(event.target)
-  if (resolved === null || !isAppearanceTargetBlocked(resolved.targetId)) {
+  const resolved = resolveAppearanceLockTargets(event.target)
+  const blocked = resolved.find(target =>
+    isAppearanceTargetBlocked(target.targetId)
+  )
+  if (blocked === undefined) {
     return false
   }
 
@@ -220,18 +392,55 @@ function gate(event: Event): boolean {
   event.preventDefault()
   event.stopPropagation()
   event.stopImmediatePropagation()
-  announceAppearanceLockBlocked(resolved.targetId, resolved.anchor)
+  announceAppearanceLockBlocked(blocked.targetId, blocked.anchor)
   return true
 }
 
 /** Announce one blocked activation to the mounted prompt host. */
 export function announceAppearanceLockBlocked(
   targetId: string,
-  anchor: HTMLElement
+  anchor: HTMLElement,
+  targetKind: Md3LockSurfaceKind = 'appearanceElement'
 ): void {
   refreshAppearanceLockSemantics()
-  const detail: IAppearanceLockBlockedDetail = { targetId, anchor }
+  const detail: IAppearanceLockBlockedDetail = {
+    targetId,
+    anchor,
+    targetKind,
+  }
   window.dispatchEvent(new CustomEvent(AppearanceLockBlockedEvent, { detail }))
+}
+
+/** Ask the mounted host to show the target-specific Lock this element command. */
+export function announceAppearanceLockCreation(
+  targetId: string,
+  targetLabel: string,
+  anchor: HTMLElement,
+  openWizard = false
+): void {
+  const detail: IAppearanceLockCreationRequestedDetail = {
+    targetId,
+    targetLabel,
+    anchor,
+    openWizard,
+  }
+  window.dispatchEvent(
+    new CustomEvent(AppearanceLockCreationRequestedEvent, { detail })
+  )
+}
+
+/**
+ * Claim the exact target of the most recent owner-backed context menu. The
+ * menu builder consumes this once and appends the lock item to its existing
+ * items; a stale event cannot leak into a later unrelated menu.
+ */
+export function consumeAppearanceLockContextMenuTarget(): IAppearanceLockCreationRequestedDetail | null {
+  const pending = pendingContextMenuTarget
+  pendingContextMenuTarget = null
+  if (pending === null || pending.expiresAt < Date.now()) {
+    return null
+  }
+  return pending.detail
 }
 
 /**
@@ -248,8 +457,14 @@ export function guardAppearanceActivation(
   anchor: HTMLElement,
   activate: () => void
 ): boolean {
-  if (isAppearanceTargetBlocked(targetId)) {
-    announceAppearanceLockBlocked(targetId, anchor)
+  const blockedTarget = [
+    { targetId, anchor },
+    ...resolveAppearanceLockTargets(anchor).filter(
+      target => target.targetId !== targetId
+    ),
+  ].find(target => isAppearanceTargetBlocked(target.targetId))
+  if (blockedTarget !== undefined) {
+    announceAppearanceLockBlocked(blockedTarget.targetId, blockedTarget.anchor)
     return false
   }
   activate()
@@ -261,12 +476,20 @@ export function guardAppearanceElementActivation(
   anchor: HTMLElement,
   activate: () => void
 ): boolean {
-  const resolved = resolveAppearanceLockTarget(anchor)
-  if (resolved === null) {
+  const resolved = resolveAppearanceLockTargets(anchor)
+  if (resolved.length === 0) {
     activate()
     return true
   }
-  return guardAppearanceActivation(resolved.targetId, resolved.anchor, activate)
+  const blockedTarget = resolved.find(target =>
+    isAppearanceTargetBlocked(target.targetId)
+  )
+  if (blockedTarget !== undefined) {
+    announceAppearanceLockBlocked(blockedTarget.targetId, blockedTarget.anchor)
+    return false
+  }
+  activate()
+  return true
 }
 
 /**
@@ -276,6 +499,21 @@ export function guardAppearanceElementActivation(
 export function refreshAppearanceLockSemantics(): void {
   if (typeof document === 'undefined') {
     return
+  }
+
+  const liveLockIds = new Set(readMd3Locks().map(lock => lock.id))
+  const liveLocks = readMd3Locks()
+  for (const lockId of unlocks.keys()) {
+    if (!liveLockIds.has(lockId)) {
+      unlocks.delete(lockId)
+      launchUnlockIds.delete(lockId)
+    }
+  }
+  for (const lock of liveLocks) {
+    if (lock.lockOnLaunch && launchUnlockIds.has(lock.id)) {
+      launchUnlockIds.delete(lock.id)
+      unlocks.delete(lock.id)
+    }
   }
 
   const targets = new Set<HTMLElement>()
@@ -289,39 +527,218 @@ export function refreshAppearanceLockSemantics(): void {
   }
 
   for (const element of targets) {
-    const resolved = resolveAppearanceLockTarget(element)
-    const targetId =
-      element.getAttribute(AppearanceLockTargetAttribute) ?? resolved?.targetId
-    if (targetId === null || targetId === undefined || targetId.length === 0) {
+    const resolved = resolveAppearanceLockTargets(element)
+    if (resolved.length === 0) {
       continue
     }
-    const semantics = appearanceLockTargetSemantics(targetId)
-    if (semantics['aria-disabled'] === undefined) {
+    const locked = resolved.some(target =>
+      isAppearanceTargetBlocked(target.targetId)
+    )
+    if (!locked) {
       element.removeAttribute('aria-disabled')
-    } else {
-      element.setAttribute('aria-disabled', semantics['aria-disabled'])
-    }
-    if (semantics['data-md3-locked'] === undefined) {
       element.removeAttribute('data-md3-locked')
+      restoreNativeDisabledState(element)
     } else {
-      element.setAttribute('data-md3-locked', semantics['data-md3-locked'])
+      element.setAttribute('aria-disabled', 'true')
+      element.setAttribute('data-md3-locked', 'true')
+      setNativeDisabledState(element)
     }
   }
+}
+
+type NativeDisableableElement =
+  | HTMLButtonElement
+  | HTMLInputElement
+  | HTMLSelectElement
+  | HTMLTextAreaElement
+  | HTMLFieldSetElement
+  | HTMLOptGroupElement
+  | HTMLOptionElement
+
+function isNativeDisableableElement(
+  element: HTMLElement
+): element is NativeDisableableElement {
+  return (
+    element instanceof HTMLButtonElement ||
+    element instanceof HTMLInputElement ||
+    element instanceof HTMLSelectElement ||
+    element instanceof HTMLTextAreaElement ||
+    element instanceof HTMLFieldSetElement ||
+    element instanceof HTMLOptGroupElement ||
+    element instanceof HTMLOptionElement
+  )
+}
+
+function setNativeDisabledState(element: HTMLElement): void {
+  if (!isNativeDisableableElement(element)) {
+    return
+  }
+  if (!nativeDisabledBeforeAppearanceLock.has(element)) {
+    nativeDisabledBeforeAppearanceLock.set(element, element.disabled)
+  }
+  element.disabled = true
+}
+
+function restoreNativeDisabledState(element: HTMLElement): void {
+  if (!isNativeDisableableElement(element)) {
+    return
+  }
+  const before = nativeDisabledBeforeAppearanceLock.get(element)
+  if (before === undefined) {
+    return
+  }
+  element.disabled = before
+  nativeDisabledBeforeAppearanceLock.delete(element)
 }
 
 const onPointer = (event: Event) => {
   gate(event)
 }
 
+function scheduleUnownedContextMenuFallback(
+  detail: IAppearanceLockCreationRequestedDetail
+): void {
+  window.setTimeout(() => {
+    const pending = pendingContextMenuTarget
+    if (
+      pending === null ||
+      pending.detail.targetId !== detail.targetId ||
+      pending.detail.anchor !== detail.anchor ||
+      pending.expiresAt < Date.now()
+    ) {
+      return
+    }
+    pendingContextMenuTarget = null
+    announceAppearanceLockCreation(
+      detail.targetId,
+      detail.targetLabel,
+      detail.anchor
+    )
+  }, 0)
+}
+
+function targetLabel(anchor: HTMLElement): string {
+  const explicit =
+    anchor.getAttribute('data-md3-element-label') ?? anchor.getAttribute('role')
+  if (explicit !== null && explicit.trim() !== '') {
+    return explicit.trim().slice(0, 120)
+  }
+  return `${anchor.tagName.toLowerCase()} element`
+}
+
+const onContextMenu = (event: Event) => {
+  if (gate(event)) {
+    return
+  }
+  const target = resolveAppearanceLockCreationTarget(event.target)
+  if (target !== null) {
+    const detail: IAppearanceLockCreationRequestedDetail = {
+      targetId: target.targetId,
+      targetLabel: targetLabel(target.anchor),
+      anchor: target.anchor,
+    }
+    const isShiftPointer =
+      event instanceof MouseEvent && event.button === 2 && event.shiftKey
+    // Shift+right-click is the frozen shell's appearance-editor gesture for
+    // fallback owners without a data-context-menu-owner. Let that owner open
+    // its editor; its own appearance lock control remains available there.
+    if (isShiftPointer) {
+      pendingContextMenuTarget = null
+      return
+    }
+    // Suppress the browser menu once, but let the event reach any existing
+    // React surface. Its call to showContextualMenu consumes the pending
+    // target and appends the lock item to that same menu. If no owner handles
+    // it, the next task opens the one generic lock menu instead.
+    event.preventDefault()
+    pendingContextMenuTarget = { detail, expiresAt: Date.now() + 1_500 }
+    scheduleUnownedContextMenuFallback(detail)
+  }
+}
+
+function isLockCreationShortcut(event: KeyboardEvent): boolean {
+  return (
+    event.key === 'ContextMenu' ||
+    (event.key === 'F10' && event.shiftKey) ||
+    ((event.ctrlKey || event.metaKey) &&
+      event.shiftKey &&
+      event.key.toLowerCase() === 'l')
+  )
+}
+
 const onKeyDown = (event: KeyboardEvent) => {
-  // Only the keys that activate a control. Tabbing through a locked button,
-  // or reading it with a screen reader, is not an activation and must not be
-  // interrupted — a lock that swallowed arrow keys would make the surface
-  // around it unnavigable.
-  if (event.key !== 'Enter' && event.key !== ' ' && event.key !== 'Spacebar') {
+  const source =
+    event.target instanceof Element ? event.target : document.activeElement
+  const resolved = resolveAppearanceLockTargets(source)
+  if (isLockCreationShortcut(event)) {
+    const target = resolveAppearanceLockCreationTarget(source)
+    if (target === null) {
+      return
+    }
+    if (resolved.some(entry => isAppearanceTargetBlocked(entry.targetId))) {
+      gate(event)
+      return
+    }
+    const sourceElement = source instanceof Element ? source : null
+    const existingMenuOwner =
+      sourceElement !== null &&
+      sourceElement.closest('[data-context-menu-owner]') !== null
+    const ownerKeyboardMenu =
+      existingMenuOwner &&
+      (event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey))
+    if (ownerKeyboardMenu) {
+      pendingContextMenuTarget = {
+        detail: {
+          targetId: target.targetId,
+          targetLabel: targetLabel(target.anchor),
+          anchor: target.anchor,
+        },
+        expiresAt: Date.now() + 1_500,
+      }
+      return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+    announceAppearanceLockCreation(
+      target.targetId,
+      targetLabel(target.anchor),
+      target.anchor
+    )
+    return
+  }
+  if (!resolved.some(target => isAppearanceTargetBlocked(target.targetId))) {
+    return
+  }
+
+  // Navigation through a locked button/tab remains possible. Editable and
+  // choice controls, however, change state through ordinary keys such as
+  // arrows or Backspace, so every key except focus escape routes is blocked.
+  const anchor = resolved[0]?.anchor
+  const interactiveEditor = anchor?.matches(
+    'input, select, textarea, [contenteditable="true"]'
+  )
+  const activationKey =
+    event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar'
+  if (!interactiveEditor && !activationKey) {
     return
   }
   gate(event)
+}
+
+const onKeyUp = (event: KeyboardEvent) => {
+  const resolved = resolveAppearanceLockTargets(event.target)
+  if (!resolved.some(target => isAppearanceTargetBlocked(target.targetId))) {
+    return
+  }
+  const anchor = resolved[0]?.anchor
+  const interactiveEditor = anchor?.matches(
+    'input, select, textarea, [contenteditable="true"]'
+  )
+  const activationKey =
+    event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar'
+  if (interactiveEditor || activationKey) {
+    gate(event)
+  }
 }
 
 let installed = false
@@ -332,12 +749,24 @@ export function installAppearanceLockGate(): void {
     return
   }
   installed = true
+  installAppearanceElementInstrumentation()
+  initializeAppearanceUnlocksForLaunch()
   // Pointer-down as well as click, because a control that acts on press — and
   // several do — would otherwise have already acted by the time click arrived.
   document.addEventListener('pointerdown', onPointer, true)
   document.addEventListener('click', onPointer, true)
   document.addEventListener('keydown', onKeyDown, true)
+  document.addEventListener('keyup', onKeyUp, true)
+  document.addEventListener('contextmenu', onContextMenu, true)
+  document.addEventListener('auxclick', onPointer, true)
+  document.addEventListener('dblclick', onPointer, true)
+  document.addEventListener('change', onPointer, true)
+  document.addEventListener('input', onPointer, true)
   window.addEventListener(Md3LocksChangedEvent, refreshAppearanceLockSemantics)
+  window.addEventListener(
+    AppearanceElementRegistryChangedEvent,
+    refreshAppearanceLockSemantics
+  )
   refreshAppearanceLockSemantics()
 }
 
@@ -347,5 +776,23 @@ export function uninstallAppearanceLockGate(): void {
   document.removeEventListener('pointerdown', onPointer, true)
   document.removeEventListener('click', onPointer, true)
   document.removeEventListener('keydown', onKeyDown, true)
-  window.removeEventListener(Md3LocksChangedEvent, refreshAppearanceLockSemantics)
+  document.removeEventListener('keyup', onKeyUp, true)
+  document.removeEventListener('contextmenu', onContextMenu, true)
+  document.removeEventListener('auxclick', onPointer, true)
+  document.removeEventListener('dblclick', onPointer, true)
+  document.removeEventListener('change', onPointer, true)
+  document.removeEventListener('input', onPointer, true)
+  window.removeEventListener(
+    Md3LocksChangedEvent,
+    refreshAppearanceLockSemantics
+  )
+  window.removeEventListener(
+    AppearanceElementRegistryChangedEvent,
+    refreshAppearanceLockSemantics
+  )
+  unlocks.clear()
+  launchUnlockIds.clear()
+  refreshAppearanceLockSemantics()
+  notifyAppearanceUnlocksChanged()
+  uninstallAppearanceElementInstrumentation()
 }

@@ -4,7 +4,7 @@ import { invokeContextualMenu } from '../ui/main-process-proxy'
 import './context-menu-pointer'
 
 /** An octicon-style symbol descriptor rendered before a menu item's label. */
-import { personalizeText } from './i18n'
+import { personalizeText, t } from './i18n'
 
 export interface IMenuItemIcon {
   readonly p: string[]
@@ -152,7 +152,37 @@ export async function showContextualMenu(
   rawItems: ReadonlyArray<IMenuItem>,
   addSpellCheckMenu = false
 ) {
-  const items = personalizeMenuItems(rawItems)
+  let menuItems = rawItems
+  try {
+    // An owner-backed contextmenu event queues one exact rendered target. The
+    // existing surface keeps every item it supplied; this adds one lock item
+    // to that same menu rather than racing it with a second overlay.
+    const {
+      announceAppearanceLockCreation,
+      consumeAppearanceLockContextMenuTarget,
+    } = await import('../ui/appearance/appearance-lock-gate')
+    const target = consumeAppearanceLockContextMenuTarget()
+    if (target !== null) {
+      menuItems = [
+        ...rawItems,
+        {
+          label: t('md3.locks.menu.lockElement'),
+          accelerator: 'CmdOrCtrl+Shift+L',
+          action: () =>
+            announceAppearanceLockCreation(
+              target.targetId,
+              target.targetLabel,
+              target.anchor,
+              true
+            ),
+        },
+      ]
+    }
+  } catch {
+    // Context menus remain usable if the optional renderer lock boundary is
+    // unavailable in a non-UI consumer of this shared menu helper.
+  }
+  const items = personalizeMenuItems(menuItems)
 
   if (!addSpellCheckMenu) {
     try {

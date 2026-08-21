@@ -62,13 +62,18 @@ export type {
 
 export {
   AppearanceLockBlockedEvent,
+  AppearanceLockCreationRequestedEvent,
+  AppearanceUnlocksChangedEvent,
   AppearanceLockTargetAttribute,
+  announceAppearanceLockCreation,
   announceAppearanceLockBlocked,
   appearanceLockTargetProps,
   appearanceLockTargetSemantics,
   clearAppearanceUnlocks,
+  consumeAppearanceLockContextMenuTarget,
   firstLockedAppearanceLock,
   forgetAppearanceUnlock,
+  getAppearanceUnlocks,
   guardAppearanceActivation,
   guardAppearanceElementActivation,
   installAppearanceLockGate,
@@ -76,8 +81,30 @@ export {
   recordAppearanceUnlock,
   refreshAppearanceLockSemantics,
   resolveAppearanceLockTarget,
+  resolveAppearanceLockCreationTarget,
+  resolveAppearanceLockTargets,
   uninstallAppearanceLockGate,
 } from './appearance-lock-gate'
-export type { IAppearanceLockBlockedDetail } from './appearance-lock-gate'
+export type {
+  IAppearanceLockBlockedDetail,
+  IAppearanceLockCreationRequestedDetail,
+  IAppearanceLockTargetResolution,
+} from './appearance-lock-gate'
+
+export {
+  AppearanceActionableElementSelector,
+  AppearanceAutoLockTargetAttribute,
+  AppearanceElementRegistryChangedEvent,
+  clearAppearanceElementRegistrations,
+  installAppearanceElementInstrumentation,
+  isAppearanceElementInstrumentationInstalled,
+  listAppearanceElementRegistrations,
+  registerAppearanceElement,
+  uninstallAppearanceElementInstrumentation,
+} from './appearance-lock-element-registry'
+export type {
+  IAppearanceElementRegistration,
+  IAppearanceElementRegistrationOptions,
+} from './appearance-lock-element-registry'
 
 export { AppearanceLockPromptHost } from './appearance-lock-prompt-host'

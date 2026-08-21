@@ -23,6 +23,11 @@ import { getPath, showSaveDialog } from '../main-process-proxy'
 import { IMd3LockAnchorRect } from '../md3/md3-lock-unlock-prompt'
 import { Md3LockSetupDialog } from '../md3/md3-lock-setup-dialog'
 import { Md3LocksView } from '../md3/md3-locks-view'
+import {
+  AppearanceUnlocksChangedEvent,
+  forgetAppearanceUnlock,
+  getAppearanceUnlocks,
+} from '../appearance/appearance-lock-gate'
 
 /**
  * Settings → Appearance → the lock manager's own row.
@@ -80,7 +85,7 @@ export class SurfaceLocksPreferences extends React.Component<
     this.state = {
       locks: readMd3Locks(props.storage),
       open: false,
-      activeUnlocks: [],
+      activeUnlocks: getAppearanceUnlocks(),
       editing: null,
       applicationDataFolder: null,
     }
@@ -89,12 +94,20 @@ export class SurfaceLocksPreferences extends React.Component<
   public componentDidMount() {
     this.mounted = true
     window.addEventListener(Md3LocksChangedEvent, this.onLocksChanged)
+    window.addEventListener(
+      AppearanceUnlocksChangedEvent,
+      this.onUnlocksChanged
+    )
     void this.loadApplicationDataFolder()
   }
 
   public componentWillUnmount() {
     this.mounted = false
     window.removeEventListener(Md3LocksChangedEvent, this.onLocksChanged)
+    window.removeEventListener(
+      AppearanceUnlocksChangedEvent,
+      this.onUnlocksChanged
+    )
   }
 
   private async loadApplicationDataFolder() {
@@ -106,7 +119,16 @@ export class SurfaceLocksPreferences extends React.Component<
   }
 
   private onLocksChanged = () => {
-    this.setState({ locks: readMd3Locks(this.props.storage) })
+    this.setState({
+      locks: readMd3Locks(this.props.storage),
+      activeUnlocks: getAppearanceUnlocks(),
+    })
+  }
+
+  private onUnlocksChanged = () => {
+    if (this.mounted) {
+      this.setState({ activeUnlocks: getAppearanceUnlocks() })
+    }
   }
 
   private t = (key: TranslationKey, variables?: Record<string, string>) =>
@@ -129,6 +151,7 @@ export class SurfaceLocksPreferences extends React.Component<
     this.setState({
       editing: null,
       locks: readMd3Locks(this.props.storage),
+      activeUnlocks: getAppearanceUnlocks(),
     })
   }
 
@@ -151,12 +174,9 @@ export class SurfaceLocksPreferences extends React.Component<
     })
   }
 
-  private onLockAgain = (lock: IMd3Lock) =>
-    this.setState(previous => ({
-      activeUnlocks: previous.activeUnlocks.filter(
-        unlock => unlock.lockId !== lock.id
-      ),
-    }))
+  private onLockAgain = (lock: IMd3Lock) => {
+    forgetAppearanceUnlock(lock.id)
+  }
 
   private onExport = (result: IMd3LockExport) => {
     const write = this.props.onExportFile ?? this.writeExport

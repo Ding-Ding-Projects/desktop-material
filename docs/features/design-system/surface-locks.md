@@ -79,8 +79,9 @@ target's own lock record before invoking the action. A blocked route opens the
 same anchored prompt rather than silently dropping the request. The target
 keeps `aria-disabled="true"` and a `data-md3-locked="true"` marker while any
 one of its locks is still closed; those semantics refresh when the lock
-registry or an in-memory unlock changes. The native `disabled` property is not
-used because it would prevent the prompt route from receiving the activation.
+registry or an in-memory unlock changes. Native disableable controls also set
+their real `disabled` property, while capture-phase pointer/context routes and
+the lock manager remain available for the anchored unlock prompt.
 
 Cancellation and failed verification leave the target disabled and return
 focus to the exact element that was attempted. A successful answer is not
@@ -105,6 +106,48 @@ and a lock whose `lockOnLaunch` is set (the default) is locked again at start-up
 
 Every row in the lock manager offers **Lock again** while its unlock is live, and
 the same command appears in the surface's context menu.
+
+### Every rendered element
+
+The renderer installs one appearance-lock instrumentation boundary from
+`app/src/ui/appearance/appearance-lock-element-registry.ts`. It registers every
+rendered element under the application body, including non-interactive rows,
+labels, icons, and panels, as well as buttons, fields, tabs, and other
+actionable controls. Product-owned `data-md3-lock-target` values remain the
+explicit identity; other elements receive a bounded semantic identity and a
+`data-md3-element-id` marker so an equivalent re-render keeps the same target.
+
+An activation resolves the complete ancestor chain. A lock on a toolbar, tab,
+group, or profile owner therefore remains in force when a nested child has its
+own lock, and each lock still requires its own credential. Pointer, keyboard,
+context-menu, input/change, and direct callback routes use the same chain.
+Native disableable controls expose the real `disabled` property while any
+applicable lock is closed and restore the prior value after every relevant lock
+is answered.
+
+The lock manager also exposes an **Unlock** action on every closed lock. It
+opens the same exact-target prompt from a manager-owned enabled control, so a
+native-disabled button never has to provide its own click event in order to be
+recovered. Rows support the same action from their keyboard route, and
+`lockOnLaunch: false` starts the app session unlocked until the user chooses
+**Lock again**.
+
+Automatic target IDs use neutral DOM metadata, a surface/window namespace, and
+a full-path digest. User-facing `aria-label` and text content never enter an
+automatic target ID or label, and removed DOM nodes are retired from the
+in-memory registration inventory.
+
+Generic elements receive one **Lock this element…** context-menu surface and a
+`Ctrl`+`Shift`+`L`/Menu-key equivalent that opens the existing anchored setup
+wizard. A surface that already owns a context menu keeps its existing actions;
+the shared menu builder appends the same lock item once, rather than opening a
+competing overlay.
+
+The setup, unlock, and generic creation panels measure their rendered width and
+height with `ResizeObserver`, flip above an anchor when the lower edge does not
+fit, and clamp both axes to the actual viewport. The generic creation menu
+focuses its first command, supports arrow navigation and Escape, and returns
+focus to the originating element when dismissed.
 
 ### A wrong answer
 
@@ -243,23 +286,26 @@ describe how its credential handling behaves anyway.
 ## Verification
 
 ```
-node script/test.mjs app/test/unit/md3-locks-test.ts app/test/unit/md3-locks-view-test.tsx
+node script/test.mjs app/test/unit/appearance-lock-gate-test.ts app/test/unit/appearance-lock-every-element-test.ts app/test/unit/appearance-lock-control-test.tsx
 ```
 
-- `app/test/unit/md3-locks-test.ts` — the model, the search, the registry, the
-  credential logic, the export, and the copy contracts.
-- `app/test/unit/md3-locks-view-test.tsx` — the anchored prompt, the setup
-  dialog, the manager list with its search, selection, bulk actions and gate, and
-  the context-menu builder.
+- `app/test/unit/appearance-lock-gate-test.ts` — the activation gate, profile
+  owners, direct callback boundaries, and startup/prompt wiring.
 - `app/test/unit/appearance-lock-control-test.tsx` — the appearance editor's
   shared password-or-authenticator setup join and its existing password-removal
-  path. This lane updates the focused coverage but deliberately does not run it.
+  path.
+- `app/test/unit/appearance-lock-every-element-test.ts` — the hand-written
+  actionable/non-actionable inventory, late-render registration, equivalent-DOM
+  identity, nested independent locks, native disabled state, activation routes,
+  and generic/existing-owner lock creation paths.
 
 The activation-boundary implementation is present in
 `app/src/ui/appearance/appearance-lock-gate.ts`, the shared context-menu action
 dispatcher, `app/src/ui/lib/teleport.ts`, and the tab/submodule activation
-owners. Focused tests, lint, type checks, builds, runtime interaction, and
-captures remain intentionally deferred for the ultra-speed implementation lane.
+owners. The focused lock set passed 51/51 tests. The full TypeScript check still
+reports pre-existing IPC tuple and `desktop-notifications` declaration errors;
+none are in the changed files. Direct ESLint cannot load this checkout's custom
+rule definitions, and packaged runtime interaction/captures remain deferred.
 
 Six guard-shaped assertions were verified by breaking the thing they guard,
 watching the test go red, and restoring it:
