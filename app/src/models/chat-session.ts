@@ -7,6 +7,12 @@ import {
 } from './appearance-customization'
 import { ITabTitleStyle, normalizeTabTitleStyle } from './repository-tab'
 import { IOllamaChatMessage, OllamaChatRole } from '../lib/ollama/types'
+import {
+  DefaultOllamaChatParameters,
+  IOllamaChatParameters,
+  normalizeOllamaChatParameters,
+  normalizeOllamaSystemPrompt,
+} from '../lib/ollama/chat-options'
 
 /** Current on-disk schema for a Git-backed chat session. */
 export const ChatSessionVersion = 1 as const
@@ -82,6 +88,10 @@ export interface IChatSessionDocument {
   readonly messages: ReadonlyArray<IChatSessionMessage>
   readonly appearance: IAppearanceCustomization
   readonly fontSettings: IChatFontSettings
+  /** Local-only system context; never used to infer a provider identity. */
+  readonly systemPrompt: string
+  /** Bounded generation controls stored beside the session that uses them. */
+  readonly parameters: IOllamaChatParameters
 }
 
 export interface IChatSessionSummary {
@@ -288,6 +298,8 @@ export function normalizeChatSessionDocument(
     messages,
     appearance: normalizeAppearanceCustomization(source.appearance),
     fontSettings: normalizeChatFontSettings(source.fontSettings),
+    systemPrompt: normalizeOllamaSystemPrompt(source.systemPrompt),
+    parameters: normalizeOllamaChatParameters(source.parameters),
   }
 }
 
@@ -322,11 +334,21 @@ function trimChatMessages(
 export function isChatSessionDocument(
   value: unknown
 ): value is IChatSessionDocument {
+  const source = isRecord(value) ? value : null
+  if (source === null) {
+    return false
+  }
+  // Version 1 snapshots predate the bounded prompt and parameter fields. They
+  // remain readable and normalize to the explicit defaults on the next write.
+  const migrated = {
+    ...source,
+    systemPrompt: source.systemPrompt ?? '',
+    parameters: source.parameters ?? DefaultOllamaChatParameters,
+  }
   return (
-    isRecord(value) &&
-    value.version === ChatSessionVersion &&
-    isChatSessionId(value.id) &&
-    jsonEqual(value, normalizeChatSessionDocument(value))
+    source.version === ChatSessionVersion &&
+    isChatSessionId(source.id) &&
+    jsonEqual(migrated, normalizeChatSessionDocument(migrated))
   )
 }
 
@@ -337,6 +359,8 @@ export function createChatSessionDocument(options: {
   readonly now?: number
   readonly appearance?: IAppearanceCustomization
   readonly fontSettings?: IChatFontSettings
+  readonly systemPrompt?: string
+  readonly parameters?: IOllamaChatParameters
 }): IChatSessionDocument {
   const now = normalizeTimestamp(options.now ?? Date.now())
   return normalizeChatSessionDocument({
@@ -349,6 +373,8 @@ export function createChatSessionDocument(options: {
     messages: [],
     appearance: options.appearance ?? DefaultAppearanceCustomization,
     fontSettings: options.fontSettings ?? DefaultChatFontSettings,
+    systemPrompt: options.systemPrompt ?? '',
+    parameters: options.parameters ?? DefaultOllamaChatParameters,
   })
 }
 

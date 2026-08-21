@@ -1,5 +1,26 @@
 # Desktop Material — Active parity handoff
 
+## Ollama suite foundations — 2026-08-21
+
+The existing Preferences/model-manager/chat surfaces now have bounded queue,
+chat-control, recovery, and harness-profile foundations without restoring the
+frozen shell or adding a generic dashboard. Chat sessions persist local-only
+system prompts and validated generation parameters, prepend the prompt only to
+the selected loopback request, fail closed on unknown image capability, support
+retry-last-prompt, and copy a redacted text-only export.
+
+`batch-pull-queue.ts` normalizes a capped durable queue document, persists
+state transitions through its owner callback, and requeues an interrupted pull
+for live reconciliation. `recovery.ts` distinguishes
+missing/stopped/unhealthy/offline/stale/storage/model/harness states.
+`harness-profile.ts` rejects arbitrary shell syntax and secrets; it is a
+foundation only, not a process launcher.
+
+No focused test, type check, build, runtime interaction, capture, packaging,
+commit, push, or release was run in this lane. Localization catalog entries,
+the manager-owned queue persistence integration, official exhaustive catalog and hardware
+evidence, and complete harness preflight/snapshot/rollback remain open.
+
 ## Appearance locks disable their targets — 2026-08-21
 
 The appearance-lock gate now keeps a locked target behaviorally disabled for

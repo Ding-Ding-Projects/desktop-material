@@ -23,6 +23,7 @@ import {
 } from '../../models/chat-session'
 import { IProfileHistoryPage } from '../../models/profile'
 import { ITabTitleStyle } from '../../models/repository-tab'
+import { IOllamaChatParameters } from '../ollama/chat-options'
 import { getPath } from '../../ui/main-process-proxy'
 import { IVersionedStoreHistorySource } from '../../ui/version-history'
 import { readCrashSafeText } from '../crash-safe-file'
@@ -237,6 +238,14 @@ export class ChatSessionsStore extends TypedBaseStore<IChatSessionsState> {
     return this.enqueue(async () => {
       await (await this.getSession(id)).setFontStyle(target, style)
     })
+  }
+
+  public setSystemPrompt(id: string, systemPrompt: string): Promise<void> {
+    return this.enqueue(async () => (await this.getSession(id)).setSystemPrompt(systemPrompt))
+  }
+
+  public setParameters(id: string, parameters: IOllamaChatParameters): Promise<void> {
+    return this.enqueue(async () => (await this.getSession(id)).setParameters(parameters))
   }
 
   public async getHistory(

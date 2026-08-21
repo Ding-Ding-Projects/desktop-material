@@ -58,6 +58,7 @@ export interface IOllamaChatDelta {
 
 export interface IOllamaChatOptions extends IOllamaRequestOptions {
   readonly onChunk?: (delta: IOllamaChatDelta) => void
+  readonly parameters?: { readonly temperature: number; readonly topP: number; readonly numPredict: number }
 }
 
 export interface IOllamaVersion {
@@ -445,6 +446,16 @@ export const DefaultOllamaModelManagerStrings: IOllamaModelManagerStrings = {
   chatMessageCount: count => (count === 1 ? '1 message' : `${count} messages`),
   chatImageAlt: index => `Attached image ${index}`,
   chatImageLimit: count => `You can attach up to ${count} images.`,
+  chatSystemPrompt: 'System prompt',
+  chatSystemPromptHint:
+    'Optional local instructions for this chat. They are sent only to the configured loopback model.',
+  chatTemperature: 'Temperature (0–2)',
+  chatTopP: 'Top P (0–1)',
+  chatMaxTokens: 'Maximum response tokens',
+  chatRetry: 'Retry last prompt',
+  chatExportRedacted: 'Copy redacted export',
+  chatAttachmentsUnavailable:
+    'This model has not declared image capability. Attachments remain unavailable.',
   chatAccentName: palette =>
     `${palette.charAt(0).toUpperCase()}${palette.slice(1)}`,
   unknown: 'Unknown',
@@ -1731,6 +1742,13 @@ export class OllamaModelManager extends React.Component<
     return (this.state.models ?? []).map(model => model.name)
   }
 
+  private getChatModelCapabilities(): Readonly<Record<string, ReadonlyArray<string> | undefined>> {
+    return (this.state.models ?? []).reduce<Record<string, ReadonlyArray<string> | undefined>>(
+      (capabilities, model) => ({ ...capabilities, [model.name]: model.capabilities }),
+      {}
+    )
+  }
+
   private getEffectiveChatModel(): string | null {
     const options = this.getChatModelOptions()
     if (options.length === 0) {
@@ -1792,6 +1810,7 @@ export class OllamaModelManager extends React.Component<
                 sessionsRootPath={this.props.chatSessionsRootPath}
                 client={client}
                 models={options}
+                modelCapabilities={this.getChatModelCapabilities()}
                 preferredModel={effectiveModel}
                 strings={strings}
               />
