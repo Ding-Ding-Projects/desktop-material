@@ -1,5 +1,18 @@
 # Desktop Material — Active parity handoff
 
+## Browser-extension download handoff foundation — 2026-08-21
+
+The desktop app now owns strict native-messaging parsing and distinct styled
+Start, active Downloading, completion, cancellation, failure, and unavailable
+surfaces using the existing Dialog, Button, and OperationProgressRow
+primitives. It does not create a generic browser destination or restore the
+frozen shell.
+
+The current integration remains explicitly unavailable because no packaged
+browser extension/native host is registered. The in-app browser's blocked
+download route and File Explorer shell extension are not treated as proof.
+Runtime native-host interaction and captures remain pending.
+
 ## Ollama suite foundations — 2026-08-21
 
 The existing Preferences, model-manager, and chat surfaces now have bounded

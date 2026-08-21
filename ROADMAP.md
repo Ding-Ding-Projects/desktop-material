@@ -1,5 +1,14 @@
 # Desktop Material roadmap
 
+## August 21 — browser-extension download handoff foundation
+
+- [x] Define strict native-messaging parsing and an explicit unavailable state
+  until a packaged extension and native host exist.
+- [x] Add styled Start, Downloading, completion, canceled, failed, and
+  unavailable states in existing surfaces.
+- [ ] Package/register the extension and host, then collect real interaction
+  and capture evidence.
+
 ## August 21 — Ollama suite foundations
 
 - [x] Add bounded queue-document normalization, restart reconciliation, and an explicit maximum worker count above the existing pull primitive.

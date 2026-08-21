@@ -435,6 +435,14 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       sourcePath: 'docs/features/integrations/app-hosted-browser.md',
     },
     {
+      id: 'integrations/browser-extension-downloads',
+      category: 'integrations',
+      title: 'Browser-extension download handoff',
+      description:
+        'A bounded native-messaging foundation for browser-extension initiated downloads. It owns separate Start download, Downloading, and completion surfaces while honestly reporting the current missing extension/host boundary.',
+      sourcePath: 'docs/features/integrations/browser-extension-downloads.md',
+    },
+    {
       id: 'integrations/automated-updates-and-release-notes',
       category: 'integrations',
       title: 'Automated update build status and release notes',

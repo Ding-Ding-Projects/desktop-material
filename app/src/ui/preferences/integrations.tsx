@@ -26,10 +26,18 @@ import {
   WindowsContextMenuEntryId,
 } from '../../lib/windows-context-menu'
 import { isModernContextMenuActionable } from '../../lib/shell-extension-package'
+import { BrowserExtensionIntegrationAvailability } from '../../lib/browser-extension-download'
+import { BrowserExtensionDownloadIntegrationStatus } from '../browser-extension-download/browser-extension-download-surfaces'
 
 const CustomIntegrationValue = 'other'
 const BranchPresetScriptDocumentationUrl =
   'https://github.com/desktop-plus/desktop-plus/blob/66327944558d5c5c24260ce79a20e4c7ed925e7e/docs/branch-name-presets.md'
+
+const BrowserExtensionDownloadAvailability: BrowserExtensionIntegrationAvailability = {
+  kind: 'unavailable',
+  reason:
+    'No installed browser-extension native-messaging host is registered for this Desktop Material build.',
+}
 
 interface IIntegrationsPreferencesProps {
   readonly availableEditors: ReadonlyArray<string>
@@ -788,6 +796,28 @@ export class Integrations extends React.Component<
     )
   }
 
+  private renderBrowserExtensionDownloads() {
+    const { languageMode } = this.state
+    return (
+      <fieldset {...teleportAnchor('settings-browser-extension-downloads')}>
+        <legend>
+          <h2>
+            {translate('settings.browserExtensionDownloadTitle', languageMode)}
+          </h2>
+        </legend>
+        <p className="settings-description">
+          {translate(
+            'settings.browserExtensionDownloadSubtitle',
+            languageMode
+          )}
+        </p>
+        <BrowserExtensionDownloadIntegrationStatus
+          availability={BrowserExtensionDownloadAvailability}
+        />
+      </fieldset>
+    )
+  }
+
   public render() {
     return (
       <DialogContent>
@@ -802,6 +832,7 @@ export class Integrations extends React.Component<
           {this.renderSelectedShell()}
           {this.state.useCustomShell && this.renderCustomShell()}
         </div>
+        {this.renderBrowserExtensionDownloads()}
         {this.renderWindowsContextMenu()}
         {enableCustomIntegration() && (
           <fieldset {...teleportAnchor('settings-branch-preset-script')}>
