@@ -811,6 +811,12 @@ test('merge-all capture preserves main and cleans only its evidence branch', () 
     "'symbolic-ref', 'refs/remotes/origin/HEAD'",
     '`refs/remotes/origin/${ready.defaultBranch}`',
     'startingBranch !== ready.featureBranch',
+    "capture('material-worktree-force-mat-day')",
+    "clickText('Force Mat Day')",
+    'checks.length !== 2',
+    'checks.every(check => check instanceof HTMLInputElement && check.checked)',
+    "dialog.textContent?.includes('Unsafe or unproved work is always retained.')",
+    'Force Mat Day checked, bounded, and safety copy visible',
     'rows.length !== 1',
     "'gallery/merge-all-evidence'",
     "textContent?.trim() === 'up-to-date'",
@@ -825,6 +831,11 @@ test('merge-all capture preserves main and cleans only its evidence branch', () 
   ]) {
     assert.ok(mergeAll.includes(contract), `merge-all gate misses ${contract}`)
   }
+  assert.ok(
+    mergeAll.indexOf('Force Mat Day checked, bounded, and safety copy visible') <
+      mergeAll.indexOf("capture('material-worktree-force-mat-day')"),
+    'the Force Mat Day semantic and geometry gate must run before capture'
+  )
   assert.ok(
     mergeAll.indexOf('single safe Merge All result') <
       mergeAll.indexOf("capture('material-branch-merge-all')"),
@@ -880,7 +891,7 @@ test('capture-only tooltip suppression is removed before disconnect', () => {
   assert.ok(cleanup < close)
 })
 
-test('canonical and promoted specialist batches own all 92 published images exactly once', () => {
+test('canonical and promoted specialist batches own all 96 published images exactly once', () => {
   const scenes = frozenStringArray('CanonicalGalleryScenes')
   const outputs = frozenStringArray('CanonicalGalleryOutputs')
   const publishedCanonical = outputs.filter(
@@ -899,7 +910,7 @@ test('canonical and promoted specialist batches own all 92 published images exac
     'linux-tui-text-input',
   ]
 
-  assert.equal(CanonicalCandidateCount, 68)
+  assert.equal(CanonicalCandidateCount, 69)
   assert.deepEqual(CanonicalGalleryOutputs, outputs)
   assert.equal(outputs.length, CanonicalCandidateCount)
   assert.equal(new Set(outputs).size, CanonicalCandidateCount)
@@ -908,17 +919,17 @@ test('canonical and promoted specialist batches own all 92 published images exac
     'material-repositories-sheet',
   ])
   assert.deepEqual(DeferredSpecialistOutputs, [])
-  assert.equal(publishedCanonical.length, 66)
-  assert.equal(specialistOutputs.length, 26)
-  assert.equal(new Set(specialistOutputs).size, 26)
-  assert.equal(publishedSpecialistOutputs.length, 26)
+  assert.equal(publishedCanonical.length, 67)
+  assert.equal(specialistOutputs.length, 29)
+  assert.equal(new Set(specialistOutputs).size, 29)
+  assert.equal(publishedSpecialistOutputs.length, 29)
   assert.ok(specialistOutputs.includes('auto-updater-current-source-ready'))
   assert.ok(specialistOutputs.includes('material-publish-organization-picker'))
   assert.ok(!specialistOutputs.includes('auto-updater-update-ready'))
-  assert.equal(ExpectedPublishedGalleryCount, 92)
+  assert.equal(ExpectedPublishedGalleryCount, 96)
   assert.equal(PublishedGalleryOutputs.length, ExpectedPublishedGalleryCount)
-  assert.equal(new Set(PublishedGalleryOutputs).size, 92)
-  assert.equal(GalleryCapturePlan.length, 92)
+  assert.equal(new Set(PublishedGalleryOutputs).size, 96)
+  assert.equal(GalleryCapturePlan.length, 96)
   assert.deepEqual(
     [...expectedCatalog].sort(),
     [...PublishedGalleryOutputs].sort()

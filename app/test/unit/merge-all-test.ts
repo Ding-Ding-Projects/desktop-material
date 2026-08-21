@@ -59,16 +59,35 @@ describe('merge-all candidate selection', () => {
         isPrunable: false,
       },
     ]
-    const result = selectWorktreeCandidates(worktrees, [
-      branch('main'),
-      branch('feature'),
-      branch('locked'),
-    ])
+    const result = selectWorktreeCandidates(
+      worktrees,
+      [branch('main'), branch('feature'), branch('locked')],
+      'refs/heads/main'
+    )
     assert.deepEqual(
       result.candidates.map(item => item.branch.name),
       ['feature']
     )
     assert.equal(result.skipped[0].branch, 'locked')
     assert.match(result.skipped[0].detail, /locked/)
+  })
+
+  it('never selects a linked worktree that owns the default branch', () => {
+    const result = selectWorktreeCandidates(
+      [
+        {
+          path: '/main-linked',
+          head: 'main-sha',
+          branch: 'refs/heads/main',
+          isDetached: false,
+          type: 'linked' as const,
+          isLocked: false,
+          isPrunable: false,
+        },
+      ],
+      [branch('main')],
+      'refs/heads/main'
+    )
+    assert.deepEqual(result, { candidates: [], skipped: [] })
   })
 })

@@ -13,8 +13,8 @@
 const fs = require('fs')
 const path = require('path')
 
-const ExpectedPublishedGalleryCount = 95
-const CanonicalCandidateCount = 68
+const ExpectedPublishedGalleryCount = 96
+const CanonicalCandidateCount = 69
 const DeferredCanonicalOutputs = Object.freeze([
   'material-cheap-lfs-preparing',
   'material-repositories-sheet',

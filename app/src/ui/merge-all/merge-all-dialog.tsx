@@ -18,6 +18,7 @@ interface IMergeAllDialogProps {
 interface IMergeAllDialogState {
   readonly started: boolean
   readonly checkpointDirtyWorktrees: boolean
+  readonly forceMatDay: boolean
 }
 
 export class MergeAllDialog extends React.Component<
@@ -29,6 +30,7 @@ export class MergeAllDialog extends React.Component<
     this.state = {
       started: false,
       checkpointDirtyWorktrees: false,
+      forceMatDay: false,
     }
   }
 
@@ -52,6 +54,7 @@ export class MergeAllDialog extends React.Component<
       this.props.mode,
       {
         checkpointDirtyWorktrees: this.state.checkpointDirtyWorktrees,
+        forceMatDay: this.state.forceMatDay,
       }
     )
   }
@@ -60,6 +63,17 @@ export class MergeAllDialog extends React.Component<
     event: React.FormEvent<HTMLInputElement>
   ) => {
     this.setState({ checkpointDirtyWorktrees: event.currentTarget.checked })
+  }
+
+  private onForceMatDayChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    const forceMatDay = event.currentTarget.checked
+    this.setState({
+      forceMatDay,
+      checkpointDirtyWorktrees:
+        forceMatDay || this.state.checkpointDirtyWorktrees,
+    })
   }
 
   private onCancel = () => {
@@ -89,14 +103,29 @@ export class MergeAllDialog extends React.Component<
             failures stay available.
           </p>
           {!this.state.started && this.props.mode === 'worktrees' && (
-            <label className="merge-all-checkpoint-option">
-              <input
-                type="checkbox"
-                checked={this.state.checkpointDirtyWorktrees}
-                onChange={this.onCheckpointDirtyWorktreesChanged}
-              />
-              Commit, synchronize, and push dirty worktrees before merging
-            </label>
+            <div className="merge-all-options">
+              <label className="merge-all-checkpoint-option">
+                <input
+                  type="checkbox"
+                  checked={this.state.checkpointDirtyWorktrees}
+                  onChange={this.onCheckpointDirtyWorktreesChanged}
+                />
+                Commit, synchronize, and push dirty worktrees before merging
+              </label>
+              <label className="merge-all-checkpoint-option">
+                <input
+                  type="checkbox"
+                  checked={this.state.forceMatDay}
+                  onChange={this.onForceMatDayChanged}
+                />
+                Force Mat Day
+              </label>
+              <p className="merge-all-option-help">
+                Automatically preserve and publish recoverable work, relocate
+                the default branch from another worktree, merge, push, prove,
+                and clean up. Unsafe or unproved work is always retained.
+              </p>
+            </div>
           )}
           {state?.currentBranch && (
             <div className="merge-all-current" role="status">

@@ -8,10 +8,13 @@ export interface IMergeAllOptions {
    * branch. This remains opt-in because it creates a real commit.
    */
   readonly checkpointDirtyWorktrees: boolean
+  /** Preserve recoverable work and automate the complete Mat Day sequence. */
+  readonly forceMatDay: boolean
 }
 
 export const DefaultMergeAllOptions: IMergeAllOptions = {
   checkpointDirtyWorktrees: false,
+  forceMatDay: false,
 }
 
 export type MergeAllPhase =
@@ -69,7 +72,8 @@ export function selectBranchCandidates(
 
 export function selectWorktreeCandidates(
   worktrees: ReadonlyArray<WorktreeEntry>,
-  branches: ReadonlyArray<Branch>
+  branches: ReadonlyArray<Branch>,
+  defaultBranchRef?: string
 ): {
   readonly candidates: ReadonlyArray<IMergeAllCandidate>
   readonly skipped: ReadonlyArray<IMergeAllResult>
@@ -83,7 +87,9 @@ export function selectWorktreeCandidates(
         candidate.type === BranchType.Local && candidate.ref === worktree.branch
     )
     const name = branch?.name ?? worktree.branch ?? worktree.path
-    if (worktree.isLocked) {
+    if (worktree.branch === defaultBranchRef) {
+      continue
+    } else if (worktree.isLocked) {
       skipped.push({
         branch: name,
         path: worktree.path,

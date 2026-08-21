@@ -1,5 +1,18 @@
 # Desktop Material roadmap
 
+## August 20 — automated merge-all cleanup
+
+- [x] Move a clean default-branch checkout from another worktree automatically
+  instead of failing the entire merge-all operation.
+- [x] Add the explicit **Force Mat Day** option, with checkpoint, synchronization,
+  and publication of recoverable dirty worktrees before merge and cleanup.
+- [x] Retain locked, divergent, unpublished, stale, or otherwise unproved work;
+  no forced push or forced worktree removal is introduced.
+- [x] Cover candidate exclusion and dialog option dispatch with focused tests
+  (4/4 passing).
+- [ ] Capture the updated dialog from the packaged Windows application after
+  integration; source and jsdom evidence do not substitute for that artifact.
+
 Updated: **August 13, 2026**
 
 ## Current repository snapshot — August 13, 2026
