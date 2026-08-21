@@ -9,6 +9,59 @@ const read = async path =>
   (await readFile(join(root, path), 'utf8')).replaceAll('\r\n', '\n')
 
 describe('one-click Windows build contract', () => {
+  it('keeps every root entrypoint thin, dependency-first, and silent-aware', async () => {
+    const [build, installer, dependencies] = await Promise.all([
+      read('build.bat'),
+      read('build-installer.bat'),
+      read('download-dependencies.bat'),
+    ])
+
+    for (const source of [build, installer, dependencies]) {
+      assert.match(source, /\/s/)
+      assert.match(source, /--silent/)
+      assert.match(source, /if "%SILENT%"=="1"/)
+      assert.match(source, /-ExecutionPolicy Bypass/)
+      assert.doesNotMatch(source, /Set-ExecutionPolicy/i)
+    }
+    for (const [source, mode] of [
+      [build, 'Build'],
+      [installer, 'Installer'],
+    ]) {
+      assert.match(source, /call "%~dp0download-dependencies\.bat" %~1/)
+      assert.ok(
+        source.indexOf('download-dependencies.bat') <
+          source.indexOf(`-Mode ${mode}`),
+        `${mode} must prepare dependencies before its work mode`
+      )
+    }
+    assert.match(dependencies, /-Mode Prepare/)
+  })
+
+  it('requests elevation only for interactive runs and propagates the child result', async () => {
+    const source = await read('script/build-windows.ps1')
+
+    assert.match(source, /function Test-IsAdministrator/)
+    assert.match(source, /WindowsBuiltInRole\]::Administrator/)
+    assert.match(source, /function Ensure-InteractiveElevation/)
+    assert.match(
+      source,
+      /if \(\$IsSilent\) \{[\s\S]*?Silent mode is not elevated; continuing without an elevation prompt/
+    )
+    assert.match(
+      source,
+      /Start-Process -FilePath \$hostPath -Verb RunAs -Wait -PassThru/
+    )
+    assert.match(source, /-ExecutionPolicy',\s*'Bypass'/)
+    assert.match(source, /-File',\s*\$quotedScriptPath/)
+    assert.match(source, /exit \$elevated\.ExitCode/)
+    assert.ok(
+      source.indexOf('Ensure-InteractiveElevation') <
+        source.indexOf('Get-Content -LiteralPath $DependencyManifestPath'),
+      'elevation must be decided before dependency resolution'
+    )
+    assert.doesNotMatch(source, /Set-ExecutionPolicy/i)
+  })
+
   it('keeps both batch entrypoints thin and silent-aware', async () => {
     const [build, installer] = await Promise.all([
       read('build.bat'),
@@ -31,17 +84,40 @@ describe('one-click Windows build contract', () => {
 
   it('pins and bootstraps the declared toolchain before the frozen build', async () => {
     const source = await read('script/build-windows.ps1')
+    const manifest = JSON.parse(await read('script/windows-dependency-manifest.json'))
 
-    assert.match(source, /\$PinnedNodeVersion = '24\.15\.0'/)
-    assert.match(source, /\$PinnedYarnVersion = '1\.21\.1'/)
-    assert.match(source, /OpenJS\.NodeJS/)
-    assert.match(source, /https:\/\/nodejs\.org\/dist/)
-    assert.match(source, /SHASUMS256\.txt/)
-    assert.match(source, /Refresh-ProcessPath/)
-    assert.match(source, /Microsoft\.VisualStudio\.2022\.BuildTools/)
     assert.match(
       source,
-      /Microsoft\.VisualStudio\.Component\.VC\.Tools\.x86\.x64/
+      /\$PinnedNodeVersion = \[string\]\$DependencyManifest\.node\.version/
+    )
+    assert.match(
+      source,
+      /\$PinnedYarnVersion = \[string\]\$DependencyManifest\.yarn\.version/
+    )
+    assert.equal(manifest.node.version, '24.15.0')
+    assert.equal(manifest.yarn.version, '1.21.1')
+    assert.ok(
+      Object.values(manifest.node.archives).every(({ url }) =>
+        url.startsWith('https://nodejs.org/dist/')
+      ),
+      'Node archives must use canonical HTTPS URLs'
+    )
+    assert.ok(
+      Object.values(manifest.node.archives).every(({ sha256 }) =>
+        /^[0-9a-f]{64}$/.test(sha256)
+      ),
+      'Node archives must carry SHA-256 digests'
+    )
+    assert.match(source, /OpenJS\.NodeJS/)
+    assert.match(source, /Get-FileHash[^\n]+SHA256/)
+    assert.match(source, /Refresh-ProcessPath/)
+    assert.equal(
+      manifest.visualStudioBuildTools.packageId,
+      'Microsoft.VisualStudio.2022.BuildTools'
+    )
+    assert.equal(
+      manifest.visualStudioBuildTools.requiredComponent,
+      'Microsoft.VisualStudio.Component.VC.Tools.x86.x64'
     )
 
     const install = source.indexOf("'install', '--frozen-lockfile'")
@@ -149,18 +225,34 @@ describe('one-click Windows build contract', () => {
 
   it('bounds only printenvz lock metadata and timestamp rounding for native freshness', async () => {
     const source = await read('script/build-windows.ps1')
+    const normalizedSource = source.replaceAll('\\', '/')
 
     assert.match(source, /\[string\[\]\]\$IgnoredSourceNames = @\(\)/)
     assert.match(
       source,
       /Where-Object \{ \$_\.Name -notin \$IgnoredSourceNames \}/
     )
-    assert.match(
-      source,
-      /SourceRoot = Join-Path \$RepositoryRoot 'vendor\\printenvz'[\s\S]*?IgnoredSourceNames = @\('package-lock\.json'\)[\s\S]*?FreshnessToleranceMilliseconds = 2/
+    assert.ok(
+      normalizedSource.includes(
+        "SourceRoot = Join-Path $RepositoryRoot 'vendor/printenvz'"
+      ),
+      'printenvz source root must remain explicit'
+    )
+    const printenvz = normalizedSource.indexOf(
+      "SourceRoot = Join-Path $RepositoryRoot 'vendor/printenvz'"
+    )
+    assert.ok(
+      normalizedSource.indexOf("IgnoredSourceNames = @('package-lock.json'", printenvz) >
+        printenvz,
+      'only printenvz may ignore its generated lock metadata'
+    )
+    assert.ok(
+      normalizedSource.indexOf('FreshnessToleranceMilliseconds = 2', printenvz) >
+        printenvz,
+      'printenvz may carry only its bounded timestamp tolerance'
     )
     assert.equal(
-      source.match(/IgnoredSourceNames = @\('package-lock\.json'\)/g)?.length,
+      source.match(/IgnoredSourceNames = @\('package-lock\.json'[^\n]*\)/g)?.length,
       1,
       'only printenvz may ignore its generated package-lock timestamp'
     )
@@ -344,7 +436,7 @@ describe('one-click Windows build contract', () => {
     assert.match(source, /VC\\Auxiliary\\Build\\vcvarsall\.bat/)
     assert.match(source, /Assert-VsDeveloperCommands -InstallationPath/)
     assert.match(source, /\$env:GYP_MSVS_VERSION = '2022'/)
-    assert.match(source, /\$env:npm_config_msvs_version = '2022'/)
+    assert.match(source, /\$env:npm_config_msvs_version = \$InstallationPath/)
     assert.match(source, /return \[string\]\$installationPath/)
     assert.match(source, /\$vsInstallationResult = @\(Ensure-VsBuildTools\)/)
     assert.match(source, /\[string\]\$vsInstallationPath =/)
@@ -396,6 +488,11 @@ describe('one-click Windows build contract', () => {
     assert.match(source, /Ensure-ManifestPackageAlias/)
     assert.match(source, /verify-releases-manifest\.js/)
     assert.match(source, /\$releases\.FullName, \$DistDirectory/)
+    const artifactResolver = source.slice(
+      source.indexOf('function Get-OneFreshArtifact'),
+      source.indexOf('function Assert-NotSigned')
+    )
+    assert.match(artifactResolver, /\$_.Length -gt 0/)
     assert.match(source, /Get-AuthenticodeSignature/)
     assert.match(source, /SignatureStatus\]::NotSigned/)
     assert.match(source, /WINDOWS_SIGNING_ENABLED = 'false'/)

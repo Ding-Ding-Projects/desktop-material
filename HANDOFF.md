@@ -161,6 +161,13 @@ workload, and the exact frozen Yarn arguments. Preparation is user-scoped where
 the upstream installer supports it, keeps signing disabled, and does not accept
 or write credentials.
 
+The root scripts now preflight interactive administrator elevation before
+dependency resolution. A non-elevated interactive run starts one elevated child
+and returns its exact exit code; `/s`, `--silent`, and `SILENT=1` skip the prompt,
+report the non-elevated continuation, and remain process-scoped. Installer mode
+also rejects zero-byte fresh setup, MSI, `RELEASES`, or full-package artifacts
+before manifest and unsigned-signature verification.
+
 Verification boundary: this lane intentionally ran no tests, lint, type checks,
 builds, packaging, downloads, installation, runtime interaction, or captures.
 Cold/warm preparation and build/package evidence remain pending.

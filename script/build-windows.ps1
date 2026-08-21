@@ -13,6 +13,66 @@ $ProgressPreference = 'SilentlyContinue'
 
 $RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $DependencyManifestPath = Join-Path $RepositoryRoot 'script\windows-dependency-manifest.json'
+$IsSilent = $Silent.IsPresent -or $env:SILENT -eq '1'
+
+function Write-Phase {
+  param([Parameter(Mandatory = $true)][string]$Message)
+  Write-Host "==> $Message"
+}
+
+function Test-IsAdministrator {
+  try {
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = [Security.Principal.WindowsPrincipal]::new($identity)
+    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+  } catch {
+    return $false
+  }
+}
+
+function Ensure-InteractiveElevation {
+  if (Test-IsAdministrator) {
+    return
+  }
+
+  if ($IsSilent) {
+    Write-Warning 'Silent mode is not elevated; continuing without an elevation prompt.'
+    return
+  }
+
+  $hostProcess = Get-Process -Id $PID -ErrorAction Stop
+  $hostPath = [string]$hostProcess.Path
+  if ([string]::IsNullOrWhiteSpace($hostPath)) {
+    $hostPath = [string]$hostProcess.MainModule.FileName
+  }
+  if ([string]::IsNullOrWhiteSpace($hostPath)) {
+    throw 'Interactive elevation is required, but the current PowerShell executable path could not be resolved.'
+  }
+
+  $quotedScriptPath = '"' + $PSCommandPath + '"'
+  $childArguments = @(
+    '-NoProfile',
+    '-ExecutionPolicy',
+    'Bypass',
+    '-File',
+    $quotedScriptPath,
+    '-Mode',
+    $Mode
+  )
+  Write-Phase 'Interactive mode is not elevated; requesting one administrator launch before dependency preparation.'
+  try {
+    $elevated = Start-Process -FilePath $hostPath -Verb RunAs -Wait -PassThru -ArgumentList $childArguments
+  } catch {
+    throw "Interactive elevation was not completed: $($_.Exception.Message)"
+  }
+  if ($null -eq $elevated) {
+    throw 'Interactive elevation did not return a child process result.'
+  }
+  exit $elevated.ExitCode
+}
+
+Ensure-InteractiveElevation
+
 if (-not (Test-Path -LiteralPath $DependencyManifestPath -PathType Leaf)) {
   throw "The pinned Windows dependency manifest is missing: '$DependencyManifestPath'."
 }
@@ -23,17 +83,11 @@ if ($PinnedNodeVersion -notmatch '^\d+\.\d+\.\d+$' -or $PinnedYarnVersion -notma
   throw 'The pinned Windows dependency manifest contains an invalid Node.js or Yarn version.'
 }
 $DistDirectory = [IO.Path]::GetFullPath((Join-Path $RepositoryRoot 'dist'))
-$IsSilent = $Silent.IsPresent -or $env:SILENT -eq '1'
 $OverallStopwatch = [Diagnostics.Stopwatch]::StartNew()
 $TargetArchitecture = switch ($env:PROCESSOR_ARCHITECTURE) {
   'ARM64' { 'arm64' }
   'AMD64' { 'x64' }
   default { throw "Unsupported Windows build architecture '$env:PROCESSOR_ARCHITECTURE'. Expected AMD64 or ARM64." }
-}
-
-function Write-Phase {
-  param([Parameter(Mandatory = $true)][string]$Message)
-  Write-Host "==> $Message"
 }
 
 function Invoke-Checked {
@@ -488,7 +542,10 @@ function Get-OneFreshArtifact {
   )
 
   $matches = @(Get-ChildItem -LiteralPath $DistDirectory -Filter $Filter -File -Recurse -ErrorAction SilentlyContinue |
-    Where-Object { $_.LastWriteTimeUtc -ge $NotBefore.AddSeconds(-2) } |
+    Where-Object {
+      $_.Length -gt 0 -and
+      $_.LastWriteTimeUtc -ge $NotBefore.AddSeconds(-2)
+    } |
     Sort-Object FullName)
   if ($matches.Count -ne 1) {
     throw "$Description requires exactly one fresh '$Filter' artifact under '$DistDirectory'; found $($matches.Count)."
