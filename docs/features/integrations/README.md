@@ -18,6 +18,7 @@ Desktop Material 嘅整合功能將 Git 工作流程接上作業系統、編輯�
 - [Automated update build status and release
   notes](automated-updates-and-release-notes.md)
 - [Self-hosted Windows dependency bootstrap](self-hosted-windows-dependency-bootstrap.md)
+- [Root Windows dependency fetcher](root-windows-dependency-fetcher.md)
 - [Build & Run output controls](build-run-output-controls.md)
 - [Actions workflow manager](actions-workflow-manager.md) — workflow timing,
   bounded job-log transfer retries, and visible recovery actions for transient

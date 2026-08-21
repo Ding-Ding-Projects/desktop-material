@@ -7,6 +7,21 @@ You will need to install these tools on your machine:
  - Python 3
  - Visual C++ Build Tools
 
+## One-click preparation
+
+From the repository root, run `download-dependencies.bat` to prepare the pinned
+Windows toolchain and frozen project dependencies. It uses the manifest at
+[`script/windows-dependency-manifest.json`](../../script/windows-dependency-manifest.json),
+verifies the canonical Node.js archive with SHA-256, and reuses already-valid
+user-scoped caches. Use `download-dependencies.bat /s` (or
+`download-dependencies.bat --silent`) for a completely non-interactive run.
+The command only prepares dependencies; `build.bat` and `build-installer.bat`
+call it automatically before their own work.
+
+The older per-tool notes below describe the individual upstream requirements
+and troubleshooting options. If preparation stops, keep its exact phase and
+error output; do not replace the pinned manifest with an unverified download.
+
 ## Node.js
 
 Let's see if you have the right version of `node` installed. Open a shell and

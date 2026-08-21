@@ -1,5 +1,25 @@
 # Desktop Material — Active parity handoff
 
+## Root Windows dependency preparation — 2026-08-21
+
+This lane adds `download-dependencies.bat` and the checked-in
+`script/windows-dependency-manifest.json`. The root entrypoint accepts `/s`,
+`--silent`, and `SILENT=1`, then invokes the existing
+`script/build-windows.ps1 -Mode Prepare` path. `build.bat` and
+`build-installer.bat` call that entrypoint before their existing modes, so the
+resolver and frozen-lockfile logic remain shared.
+
+The manifest records Node.js `24.15.0` x64/arm64 canonical URLs and SHA-256
+digests, vendored Yarn Classic `1.21.1`, the Visual Studio Build Tools 2022 C++
+workload, and the exact frozen Yarn arguments. Preparation is user-scoped where
+the upstream installer supports it, keeps signing disabled, and does not accept
+or write credentials.
+
+Verification boundary: this lane intentionally ran no tests, lint, type checks,
+builds, packaging, downloads, installation, runtime interaction, or captures.
+The next owner must exercise cold and warm caches, confirm both Node hashes, and
+verify that silent mode never prompts before treating the feature as verified.
+
 ## Five-day public guidance notice — 2026-08-21
 
 Added a compact, public-safe README banner summarizing the latest shared
