@@ -1,0 +1,100 @@
+.attention-accommodation-runtime {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(420px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.attention-time-awareness,
+.attention-next-action,
+.attention-momentum-prompt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color, #d0d7de);
+  border-radius: 8px;
+  background: var(--background-color);
+  box-shadow: 0 3px 12px rgb(0 0 0 / 18%);
+  color: var(--text-color);
+  pointer-events: auto;
+}
+
+.attention-time-awareness {
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.attention-momentum-prompt button {
+  margin-left: auto;
+}
+
+.attention-accommodations-section {
+  max-width: 720px;
+}
+
+.attention-accommodation-row {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-color, #d0d7de);
+}
+
+.attention-accommodation-row:last-of-type {
+  border-bottom: 0;
+}
+
+.attention-accommodations-next-action,
+.attention-accommodations-momentum-defer {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.attention-accommodations-next-action input,
+.attention-accommodations-momentum-defer select {
+  min-height: 34px;
+  padding: 6px 8px;
+}
+
+#desktop-app-chrome[data-attention-low-stimulation='true'] *,
+#desktop-app-chrome[data-attention-low-stimulation='true'] *::before,
+#desktop-app-chrome[data-attention-low-stimulation='true'] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #desktop-app-chrome[data-attention-low-stimulation='true'] *,
+  #desktop-app-chrome[data-attention-low-stimulation='true'] *::before,
+  #desktop-app-chrome[data-attention-low-stimulation='true'] *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+#desktop-app-chrome[data-attention-focus='true']
+  [data-attention-region]:not([data-attention-active]) {
+  opacity: 0.76;
+  filter: saturate(0.8);
+}
+
+#desktop-app-chrome[data-attention-focus='true']
+  [data-attention-region][data-attention-active] {
+  opacity: 1;
+  filter: none;
+}
+
+@media (max-width: 640px) {
+  .attention-accommodation-runtime {
+    right: 8px;
+    bottom: 8px;
+    max-width: calc(100vw - 16px);
+  }
+}

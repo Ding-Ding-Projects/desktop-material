@@ -1,5 +1,10 @@
 # Design-system features / 設計系統功能
 
+- [Attention accommodations](attention-accommodations.md) — five independent,
+  off-by-default focus, low-stimulation, time-awareness, one-thing-at-a-time,
+  and momentum modes with local persistence, accessible controls, and honest
+  runtime status.
+
 - [The Material Design 3 shell](md3-shell.md) — the application chrome rewritten
   against `design/History MD3.dc.html`: eight destinations behind a navigation
   drawer, the 56px application header, the pane header with its breadcrumb and

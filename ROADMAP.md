@@ -2,6 +2,12 @@
 
 ## August 21 — universal-feature completeness registration
 
+- [ ] Ship and verify the five attention accommodations (Focus, Low
+  stimulation, Time awareness, One thing at a time, and Momentum) in the
+  built Windows app; implementation is present on the feature lane, while
+  tests, type checks, captures, and packaged interaction evidence remain
+  intentionally deferred from the ultra-speed lane.
+
 - [x] Document the hand-written feature-by-surface inventory contract and its
   independent evidence fields.
 - [x] Register the current missing universal-feature identifiers in the

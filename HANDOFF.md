@@ -1,5 +1,30 @@
 # Desktop Material — Active parity handoff
 
+## Attention accommodations — 2026-08-21
+
+The feature lane adds five independently persisted, off-by-default interface
+accommodations: Focus, Low stimulation, Time awareness, One thing at a time,
+and Momentum. It adds the Preferences page, settings search entries, command
+palette toggles, live root attributes/styles, runtime elapsed/activity facts,
+the bounded next-action field, and the dismissible inactivity prompt.
+
+Changed implementation records include:
+
+- `app/src/models/attention-accommodation.ts`
+- `app/src/ui/preferences/attention-accommodations.tsx`
+- `app/src/ui/attention/attention-accommodation-runtime.tsx`
+- `app/styles/ui/_attention-accommodations.scss`
+- `app/src/models/preferences.ts`, `app/src/ui/preferences/preferences.tsx`,
+  `app/src/ui/app.tsx`, and the settings/palette/teleport registries
+- `docs/features/design-system/attention-accommodations.md` and its category
+  index, plus the roadmap
+
+The explicit ultra-speed boundary for this lane was observed: no tests, lint,
+type checks, reviews, builds, captures, packaging, release work, commits,
+pushes, integration, or cleanup were performed. The owning integration lane
+must run its applicable checks against the final merged commit and update the
+roadmap and handoff with the resulting evidence.
+
 ## Five-day public guidance notice — 2026-08-21
 
 Added a compact, public-safe README banner summarizing the latest shared

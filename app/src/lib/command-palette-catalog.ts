@@ -259,6 +259,8 @@ export function preferencesPaletteEvent(tab: PreferencesTab): string {
       return 'palette:preferences-self-hosted-server'
     case PreferencesTab.AI:
       return 'palette:preferences-ai'
+    case PreferencesTab.Attention:
+      return 'palette:preferences-attention'
     default:
       return 'show-preferences'
   }
@@ -953,6 +955,71 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     control: { kind: 'toggle' },
     home: { kind: 'preferences', tab: PreferencesTab.Appearance },
   },
+  {
+    event: 'palette:set-attention-focus',
+    title: 'Focus accommodation',
+    group: 'App',
+    materialSymbol: 'visibility',
+    keywords: 'attention focus de-emphasize workspace 專注',
+    control: { kind: 'toggle' },
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Attention,
+      targetId: 'settingsAttentionFocus',
+    },
+  },
+  {
+    event: 'palette:set-attention-low-stimulation',
+    title: 'Low stimulation accommodation',
+    group: 'App',
+    materialSymbol: 'notifications_off',
+    keywords: 'attention motion colour color quiet reduced low stimulation 低刺激',
+    control: { kind: 'toggle' },
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Attention,
+      targetId: 'settingsAttentionLowStimulation',
+    },
+  },
+  {
+    event: 'palette:set-attention-time-awareness',
+    title: 'Time awareness accommodation',
+    group: 'App',
+    materialSymbol: 'schedule',
+    keywords: 'attention elapsed session activity time 時間感知',
+    control: { kind: 'toggle' },
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Attention,
+      targetId: 'settingsAttentionTimeAwareness',
+    },
+  },
+  {
+    event: 'palette:set-attention-one-thing',
+    title: 'One thing at a time accommodation',
+    group: 'App',
+    materialSymbol: 'subject',
+    keywords: 'attention next action current task one thing 一次一件事',
+    control: { kind: 'toggle' },
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Attention,
+      targetId: 'settingsAttentionOneThingAtATime',
+    },
+  },
+  {
+    event: 'palette:set-attention-momentum',
+    title: 'Momentum accommodation',
+    group: 'App',
+    materialSymbol: 'schedule',
+    keywords: 'attention inactivity prompt defer momentum 動力提示',
+    control: { kind: 'toggle' },
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Attention,
+      targetId: 'settingsAttentionMomentum',
+    },
+  },
 
   // Confirmations, notifications and the rest of the settings that are only
   // ever hunted for when something has already gone wrong.
@@ -1186,6 +1253,13 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     group: 'App',
     keywords: 'settings theme language font look',
     home: { kind: 'preferences', tab: PreferencesTab.Appearance },
+  },
+  {
+    event: 'palette:preferences-attention',
+    title: 'Preferences: Attention accommodations',
+    group: 'App',
+    keywords: 'settings attention focus low stimulation time awareness momentum next action 專注 調節',
+    home: { kind: 'preferences', tab: PreferencesTab.Attention },
   },
   {
     event: 'palette:school-mode',
