@@ -1,5 +1,33 @@
 # Desktop Material — Active parity handoff
 
+## Support Tickets Help route and authenticator history — 2026-08-21
+
+This lane adds the missing About/Help join for the existing local Support
+Tickets desk. The About dialog now dispatches `PopupType.SupportTickets` with
+`entryPoint: 'help'`, so the Help/About action opens the real desk rather than a
+dead or duplicate route.
+
+Authenticator settings now offers **View authenticator history** beside the
+authenticator list. It uses the existing `AuthenticatorStore.getHistorySource()`
+adapter and `VersionedStoreHistory`, keyed by the store repository path. The
+adapter only exposes entry metadata. Credential-vault records and generated
+codes never enter history, diffs, or exports. After undo, redo, or restore the
+settings view re-reads the document and vault; restored entries without a
+matching vault record remain visible but are reported as unable to produce a
+code.
+
+Changed files include `app/src/ui/about/about.tsx`, `app/src/ui/app.tsx`,
+`app/src/ui/about/about-test-dialog.tsx`,
+`app/src/ui/preferences/authenticator-settings.tsx`, the English and Cantonese
+catalog entries in `app/src/lib/i18n-resources.ts`, the focused wiring test
+`app/test/unit/authenticator-history-wiring-test.ts`, and the related feature
+documentation, roadmap, and changelog records.
+
+Evidence boundary: tests, reviews, builds, packaging, runtime interaction, and
+captures were intentionally not run in the Yum Leung Cha lane. The focused
+wiring test is prepared for the later verification pass. The changelog entry is
+pending its final integration commit identifier.
+
 ## Five-day public guidance notice — 2026-08-21
 
 Added a compact, public-safe README banner summarizing the latest shared

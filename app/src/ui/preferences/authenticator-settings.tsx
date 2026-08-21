@@ -27,6 +27,7 @@ import {
   Md3AuthenticatorView,
 } from '../md3/md3-authenticator-view'
 import { IMd3RegistrationResult } from '../md3/md3-authenticator-registration'
+import { VersionedStoreHistory } from '../version-history'
 
 /**
  * Settings → Advanced → the app's own authenticator.
@@ -61,9 +62,11 @@ function createFactorId(): string {
 
 interface IAuthenticatorPreferencesState {
   readonly open: boolean
+  readonly historyOpen: boolean
   /** `null` until the store has been created and read once. */
   readonly document: IAuthenticatorDocument | null
   readonly secrets: ReadonlyMap<string, Uint8Array>
+  readonly secretsLoading: boolean
   /** The exact failure, when the store or its folder could not be opened. */
   readonly error: string | null
 }
@@ -98,8 +101,10 @@ export class AuthenticatorPreferences extends React.Component<
     super(props)
     this.state = {
       open: false,
+      historyOpen: false,
       document: null,
       secrets: new Map(),
+      secretsLoading: false,
       error: null,
     }
   }
@@ -134,6 +139,13 @@ export class AuthenticatorPreferences extends React.Component<
   }
 
   private onDismissed = () => this.setState({ open: false })
+
+  private onOpenHistory = () => {
+    this.setState({ historyOpen: true })
+    void this.load()
+  }
+
+  private onHistoryDismissed = () => this.setState({ historyOpen: false })
 
   /**
    * Open the store, read the list, then read each secret out of the vault.
@@ -170,6 +182,9 @@ export class AuthenticatorPreferences extends React.Component<
 
   private async loadSecrets(entries: ReadonlyArray<IAuthenticatorEntry>) {
     const read = this.props.readSecret ?? (id => readAuthenticatorSecret(id))
+    if (this.mounted) {
+      this.setState({ secretsLoading: true })
+    }
     const secrets = new Map<string, Uint8Array>()
     for (const entry of entries) {
       try {
@@ -183,7 +198,7 @@ export class AuthenticatorPreferences extends React.Component<
       }
     }
     if (this.mounted) {
-      this.setState({ secrets })
+      this.setState({ secrets, secretsLoading: false })
     }
   }
 
@@ -356,6 +371,62 @@ export class AuthenticatorPreferences extends React.Component<
     )
   }
 
+  private renderHistory() {
+    if (!this.state.historyOpen) {
+      return null
+    }
+
+    if (this.store === null) {
+      return (
+        <p className="settings-description" role="status">
+          {this.state.error === null
+            ? this.t('authenticatorSettings.history.loading')
+            : this.t('authenticatorSettings.unavailable', {
+                error: this.state.error,
+              })}
+        </p>
+      )
+    }
+
+    const source = this.store.getHistorySource()
+    return (
+      <VersionedStoreHistory
+        className="authenticator-history-dialog"
+        title={this.t('authenticatorSettings.history.title')}
+        timelineLabel={this.t('authenticatorSettings.history.timeline')}
+        description={this.historyDescription()}
+        emptyTitle={this.t('authenticatorSettings.history.emptyTitle')}
+        emptyDescription={this.t(
+          'authenticatorSettings.history.emptyDescription'
+        )}
+        source={source}
+        sourceKey={this.store.getRepositoryPath()}
+        onStoreMutated={() => this.load()}
+        onDismissed={this.onHistoryDismissed}
+      />
+    )
+  }
+
+  private missingSecretCount(): number {
+    if (this.state.document === null || this.state.secretsLoading) {
+      return 0
+    }
+    return this.state.document.entries.filter(
+      entry => !this.state.secrets.has(entry.id)
+    ).length
+  }
+
+  private historyDescription(): string {
+    const missing = this.missingSecretCount()
+    const description = this.t('authenticatorSettings.history.description')
+    return missing === 0
+      ? description
+      : `${description} ${this.t(
+          'authenticatorSettings.history.missingSecrets',
+          { count: String(missing) }
+        )}`
+  }
+
   public render() {
     return (
       <div
@@ -371,6 +442,14 @@ export class AuthenticatorPreferences extends React.Component<
           aria-expanded={this.state.open}
         >
           {this.t('authenticatorSettings.manage')}
+        </button>
+        <button
+          type="button"
+          className="authenticator-history-open"
+          onClick={this.onOpenHistory}
+          aria-expanded={this.state.historyOpen}
+        >
+          {this.t('authenticatorSettings.history.open')}
         </button>
         <details className="authenticator-explanation">
           <summary>
@@ -388,7 +467,15 @@ export class AuthenticatorPreferences extends React.Component<
           </p>
         </details>
         {this.renderProvenance()}
+        {this.missingSecretCount() > 0 ? (
+          <p className="settings-description" role="status">
+            {this.t('authenticatorSettings.history.missingSecrets', {
+              count: String(this.missingSecretCount()),
+            })}
+          </p>
+        ) : null}
         {this.renderList()}
+        {this.renderHistory()}
       </div>
     )
   }

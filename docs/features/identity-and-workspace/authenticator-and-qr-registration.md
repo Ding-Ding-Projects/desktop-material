@@ -126,6 +126,29 @@ requests, and a silent one to a time server would be exactly that.
 未對過就直接講「未驗證」，唔會扮冇事。呢度特登冇去對時伺服器攞時間——因為呢個 App 唔
 會喺執行期發任何網絡請求。
 
+### Git-backed authenticator history / Git-backed 驗證器歷史
+
+Advanced settings exposes **View authenticator history** beside the authenticator
+list. It opens the existing `VersionedStoreHistory` surface over the
+`AuthenticatorStore` repository, so registration, edits, grouping, ordering,
+deletion, undo, redo, and restore remain append-only and inspectable.
+
+The history source contains entry metadata only. The credential-vault secret is
+never read into the history adapter, diff, export, or commit subject. A restore
+re-reads the restored document from the vault before the settings view reports
+it complete. If a restored entry has no matching vault record, the row remains
+visible but cannot produce a code and the settings surface says how many such
+records are unavailable; it never renders an empty code as though restoration
+had succeeded completely.
+
+驗證器清單旁邊有 **睇驗證器歷史記錄**，會打開同一個
+`VersionedStoreHistory` 畫面，讀 `AuthenticatorStore` 自己嘅 Git 記錄。登記、編輯、
+分組、排序、刪除、undo、redo 同還原都係追加式，唔會改寫舊記錄。
+
+歷史記錄只包含帳戶資料，唔會將憑證保險箱嘅密鑰帶入 adapter、diff、匯出或者 commit
+標題。還原之後會重新讀返憑證保險箱；如果還原返嚟嘅帳戶冇相應記錄，帳戶仍然顯示，
+但會清楚講佢暫時出唔到密碼，唔會扮成完整還原。
+
 ## Configuration / 設定
 
 | Setting | Default | Provenance |

@@ -58,6 +58,8 @@ interface IAboutProps {
 
   /** Opens the in-app changelog viewer over every recorded release. */
   readonly onShowChangelog: () => void
+  /** Opens the local Support Tickets recovery desk from Help/About. */
+  readonly onShowSupportTickets: () => void
   readonly onQuitAndInstall: () => void
 
   readonly updateState: IUpdateState
@@ -375,6 +377,11 @@ export class About extends React.Component<IAboutProps, IAboutState> {
           {this.renderUpdateButton()}
           {this.renderBetaLink()}
           <div className="terms-and-license-container">
+            <p className="no-padding terms-and-license">
+              <LinkButton onClick={this.props.onShowSupportTickets}>
+                {t('about.supportTickets')}
+              </LinkButton>
+            </p>
             <p className="no-padding terms-and-license">
               <LinkButton onClick={this.props.onShowTermsAndConditions}>
                 Terms and Conditions

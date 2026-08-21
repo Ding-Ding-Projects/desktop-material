@@ -3206,6 +3206,13 @@ export class App extends React.Component<IAppProps, IAppState> {
     this.props.dispatcher.showPopup({ type: PopupType.Changelog })
   }
 
+  private showSupportTickets = () => {
+    this.props.dispatcher.showPopup({
+      type: PopupType.SupportTickets,
+      entryPoint: 'help',
+    })
+  }
+
   /**
    * Open the offline documentation browser, optionally on one article.
    *
@@ -5523,6 +5530,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             onShowAcknowledgements={this.showAcknowledgements}
             onShowTermsAndConditions={this.showTermsAndConditions}
             onShowChangelog={this.showChangelog}
+            onShowSupportTickets={this.showSupportTickets}
             updateState={this.state.updateState}
             onQuitAndInstall={this.onQuitAndInstall}
           />
@@ -6481,6 +6489,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             onShowChangelog={this.showChangelog}
             onShowAcknowledgements={this.showAcknowledgements}
             onShowTermsAndConditions={this.showTermsAndConditions}
+            onShowSupportTickets={this.showSupportTickets}
           />
         )
       case PopupType.TestCLIAction:

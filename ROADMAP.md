@@ -1,5 +1,18 @@
 # Desktop Material roadmap
 
+## August 21 — Support Tickets Help route and authenticator history
+
+- [x] Wire the About/Help Support Tickets action to the existing desk with
+  `entryPoint: 'help'`; keep the route local and fictional.
+- [x] Expose `AuthenticatorStore` Git-backed metadata history through the shared
+  version-history surface, without placing credential-vault material in history.
+- [x] Re-read the credential vault after restore and report restored entries
+  whose vault records are missing instead of presenting an empty code as a
+  successful restoration.
+- [ ] Run the focused wiring tests and built-artifact interaction after the
+  ultra-speed lane; this lane intentionally did not run tests, builds, or
+  captures.
+
 ## August 21 — universal-feature completeness registration
 
 - [x] Document the hand-written feature-by-surface inventory contract and its
