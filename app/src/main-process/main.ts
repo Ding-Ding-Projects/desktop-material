@@ -177,6 +177,10 @@ import {
   agentSetupCommandRunner,
   registerAgentSetupCommandRunnerIpc,
 } from './agent-setup-command-runner'
+import {
+  inspectLocalFileForConversion,
+  preflightFileConverterStorage,
+} from './file-converter'
 
 app.setAppLogsPath()
 enableSourceMaps()
@@ -1984,6 +1988,20 @@ app.on('ready', () => {
       getAppWindowFromWebContents(event.sender)?.showOpenDialogMultiple(
         options
       ) ?? []
+  )
+
+  /**
+   * File conversion performs every byte inspection in the privileged process.
+   * The renderer receives bounded format metadata only, never source bytes.
+   */
+  ipcMain.handle('file-converter-inspect-source', async (_event, path: string) =>
+    inspectLocalFileForConversion(path)
+  )
+
+  ipcMain.handle(
+    'file-converter-preflight-storage',
+    async (_event, destinationPath: string, requiredBytes: number) =>
+      preflightFileConverterStorage(destinationPath, requiredBytes)
   )
 
   /**

@@ -1902,6 +1902,32 @@ export type TranslationKey =
   | 'ollama.authenticationDescription'
   | 'ollama.modelsSyncDescription'
   | 'ollama.modelsEmpty'
+  | 'fileConverter.title'
+  | 'fileConverter.subtitle'
+  | 'fileConverter.sourceFile'
+  | 'fileConverter.browseSource'
+  | 'fileConverter.sourceEmpty'
+  | 'fileConverter.sourceUnsupported'
+  | 'fileConverter.adapterCatalog'
+  | 'fileConverter.searchAdapters'
+  | 'fileConverter.targetFormat'
+  | 'fileConverter.conversionOptions'
+  | 'fileConverter.convert'
+  | 'fileConverter.converting'
+  | 'fileConverter.cancel'
+  | 'fileConverter.queue'
+  | 'fileConverter.queued'
+  | 'fileConverter.completed'
+  | 'fileConverter.skipped'
+  | 'fileConverter.failed'
+  | 'fileConverter.sourceUnchanged'
+  | 'fileConverter.outputPath'
+  | 'fileConverter.noNetwork'
+  | 'fileConverter.unavailableAdapter'
+  | 'fileConverter.lossWarning'
+  | 'fileConverter.reviewConversion'
+  | 'fileConverter.progress'
+  | 'fileConverter.status'
   | 'ollama.manager.openAction'
   | 'ollama.manager.backAction'
   | 'ollama.manager.title'
@@ -8052,6 +8078,36 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Installed Ollama models will be synchronized from the model manager after you add this provider.',
   'ollama.modelsEmpty':
     'No models synchronized yet. Add this provider, then open its model manager.',
+  'fileConverter.title': 'Local file converter',
+  'fileConverter.subtitle':
+    'Inspect a local file, choose a supported conversion, and keep the source unchanged.',
+  'fileConverter.sourceFile': 'Source file',
+  'fileConverter.browseSource': 'Browse for file',
+  'fileConverter.sourceEmpty': 'Choose a local file to see compatible conversions.',
+  'fileConverter.sourceUnsupported':
+    'This file type is not supported by an installed converter.',
+  'fileConverter.adapterCatalog': 'Conversion catalog',
+  'fileConverter.searchAdapters': 'Search conversion formats',
+  'fileConverter.targetFormat': 'Target format',
+  'fileConverter.conversionOptions': 'Conversion options',
+  'fileConverter.convert': 'Convert file',
+  'fileConverter.converting': 'Converting…',
+  'fileConverter.cancel': 'Cancel conversion',
+  'fileConverter.queue': 'Conversion queue',
+  'fileConverter.queued': 'Queued',
+  'fileConverter.completed': 'Converted',
+  'fileConverter.skipped': 'Skipped',
+  'fileConverter.failed': 'Failed',
+  'fileConverter.sourceUnchanged': 'The original file is never changed.',
+  'fileConverter.outputPath': 'Output location',
+  'fileConverter.noNetwork': 'Conversion runs locally and does not upload this file.',
+  'fileConverter.unavailableAdapter':
+    'This conversion is unavailable because its required local adapter is not installed.',
+  'fileConverter.lossWarning':
+    'This conversion can change or omit data. Review the effect before converting.',
+  'fileConverter.reviewConversion': 'Review conversion',
+  'fileConverter.progress': 'Conversion progress',
+  'fileConverter.status': 'Conversion status',
   'ollama.manager.openAction': 'Manage models',
   'ollama.manager.backAction': 'Back to providers',
   'ollama.manager.title': 'Ollama model manager',
@@ -14960,6 +15016,32 @@ export const cantoneseTranslations: Readonly<
     '加咗呢個供應商之後，模型管理員會同步已安裝嘅 Ollama 模型。',
   'ollama.modelsEmpty':
     '未同步任何模型。加咗呢個供應商之後，再開啟佢嘅模型管理員。',
+  'fileConverter.title': '本機檔案轉換器',
+  'fileConverter.subtitle': '睇本機檔案、揀支援嘅轉換，同時保持原始檔唔變。',
+  'fileConverter.sourceFile': '來源檔案',
+  'fileConverter.browseSource': '瀏覽揀檔案',
+  'fileConverter.sourceEmpty': '揀一個本機檔案，就會見到相容嘅轉換。',
+  'fileConverter.sourceUnsupported': '已安裝嘅轉換器未支援呢種檔案類型。',
+  'fileConverter.adapterCatalog': '轉換目錄',
+  'fileConverter.searchAdapters': '搜尋轉換格式',
+  'fileConverter.targetFormat': '目標格式',
+  'fileConverter.conversionOptions': '轉換選項',
+  'fileConverter.convert': '轉換檔案',
+  'fileConverter.converting': '轉換緊…',
+  'fileConverter.cancel': '取消轉換',
+  'fileConverter.queue': '轉換佇列',
+  'fileConverter.queued': '排隊中',
+  'fileConverter.completed': '已轉換',
+  'fileConverter.skipped': '已略過',
+  'fileConverter.failed': '失敗',
+  'fileConverter.sourceUnchanged': '原始檔案永遠唔會改。',
+  'fileConverter.outputPath': '輸出位置',
+  'fileConverter.noNetwork': '轉換喺本機做，唔會上載呢個檔案。',
+  'fileConverter.unavailableAdapter': '呢個轉換用唔到，因為需要嘅本機 adapter 未安裝。',
+  'fileConverter.lossWarning': '呢個轉換可能改變或者漏咗資料；轉換之前請先覆核影響。',
+  'fileConverter.reviewConversion': '覆核轉換',
+  'fileConverter.progress': '轉換進度',
+  'fileConverter.status': '轉換狀態',
   'ollama.manager.openAction': '管理模型',
   'ollama.manager.backAction': '返去供應商',
   'ollama.manager.title': 'Ollama 模型管理員',

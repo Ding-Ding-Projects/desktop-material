@@ -1,5 +1,22 @@
 # Desktop Material — Active parity handoff
 
+## Local file-converter foundation — 2026-08-21
+
+The converter lane now exposes **Repository tools → Local file converter**
+through the existing frozen tools surface. It has a categorized eight-category
+adapter registry, bounded byte-signature inspection in the main process, a
+persisted renderer queue, pause/resume and final-outcome clearing controls, and
+a storage-preflight/atomic-output publication foundation for future bundled
+adapters. All current adapters remain visibly unavailable: this application
+declares no bundled offline PDF, image, audio, video, archive, structured-data,
+text, or binary-encoding engine.
+
+No conversion executes yet: the queue accurately records unavailable sources
+instead of inventing a target or an outcome. Destination selection, overwrite
+confirmation, adapter packaging, paged durable queue persistence, offline
+docs-bundle regeneration, tests, type checking, built artifact interaction, and
+capture evidence remain required before completion.
+
 ## Appearance locks disable their targets — 2026-08-21
 
 The appearance-lock gate now keeps a locked target behaviorally disabled for

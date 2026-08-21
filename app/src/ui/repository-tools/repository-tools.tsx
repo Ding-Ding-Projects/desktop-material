@@ -83,6 +83,7 @@ import {
 import { teleportAnchor } from '../../lib/teleport-targets'
 import { GitflowManager } from './gitflow'
 import { RepositoryCommitRewrite } from './commit-rewrite'
+import { FileConverter } from './file-converter'
 
 const MaxOutputBytes = 4 * 1024 * 1024
 type RepositoryToolResultID =
@@ -167,6 +168,7 @@ export type RepositoryToolsHubToolID =
   | 'cheap-lfs'
   | 'gitflow'
   | 'interactive-rebase'
+  | 'file-converter'
 
 type RepositoryToolsHubCategory =
   | RepositoryToolCategory
@@ -354,6 +356,14 @@ const UnsortedHubEntries: ReadonlyArray<IRepositoryToolsHubEntry> = [
       'Fetch older commits when this repository was cloned with only part of its history.',
     category: 'Commits & history',
     icon: octicons.unfold,
+  },
+  {
+    id: 'file-converter',
+    title: 'Local file converter',
+    description:
+      'Inspect locally selected source bytes, keep a durable bounded queue, and show every bundled or unavailable conversion adapter honestly.',
+    category: 'Share & transfer',
+    icon: octicons.fileDiff,
   },
   {
     id: 'export-artifacts',
@@ -1977,6 +1987,10 @@ export class RepositoryTools extends React.Component<
     )
   }
 
+  private renderFileConverter() {
+    return <FileConverter />
+  }
+
   private renderGitHubProjects() {
     const projects = this.props.githubProjects
     if (projects === undefined) {
@@ -2819,6 +2833,7 @@ export class RepositoryTools extends React.Component<
         {selected === 'submodule-manager' && this.renderSubmoduleManager()}
         {selected === 'subtree-manager' && this.renderSubtreeManager()}
         {selected === 'cheap-lfs' && this.renderCheapLfs()}
+        {selected === 'file-converter' && this.renderFileConverter()}
         {selected === 'tag-lifecycle' && this.renderTagLifecycle()}
         {selected === 'github-projects' && this.renderGitHubProjects()}
         {selected === 'github-api-functions' && this.renderGitHubAPIFunctions()}

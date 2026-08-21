@@ -12,6 +12,10 @@ import { URLActionType } from './parse-app-url'
 import { Architecture } from './get-architecture'
 import { EndpointToken } from './endpoint-token'
 import { PathType } from '../ui/lib/app-proxy'
+import {
+  IFileConverterStoragePreflight,
+  IFileSignatureInspection,
+} from './file-converter'
 import { ThemeSource } from '../ui/lib/theme-source'
 import { DesktopNotificationPermission } from 'desktop-notifications'
 import { NotificationCallback } from 'desktop-notifications'
@@ -450,6 +454,13 @@ export type RequestResponseChannels = {
   'show-open-dialog-multiple': (
     options: Electron.OpenDialogOptions
   ) => Promise<ReadonlyArray<string>>
+  'file-converter-inspect-source': (
+    path: string
+  ) => Promise<IFileSignatureInspection>
+  'file-converter-preflight-storage': (
+    destinationPath: string,
+    requiredBytes: number
+  ) => Promise<IFileConverterStoragePreflight>
   'is-window-maximized': () => Promise<boolean>
   'get-apple-action-on-double-click': () => Promise<Electron.AppleActionOnDoubleClickPref>
   'should-use-dark-colors': () => Promise<boolean>

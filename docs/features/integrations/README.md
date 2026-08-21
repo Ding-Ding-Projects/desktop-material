@@ -43,6 +43,9 @@ Desktop Material 嘅整合功能將 Git 工作流程接上作業系統、編輯�
 - [Broad editor support](broad-editor-support.md)
 - [Copilot commit-message controls](copilot-commit-message-controls.md)
 - [Ollama model manager](ollama-model-manager.md)
+- [Local file converter](local-file-converter.md) — a local-only conversion
+  foundation that keeps the source unchanged, exposes only bundled adapters,
+  and records pending runtime and built-artifact proof.
 - [Repository-bound GitHub API functions](github-api-functions.md)
 - [GitLab merge requests](gitlab-merge-request.md)
 - [Repository Releases dashboard](repository-releases-dashboard.md)
@@ -72,6 +75,8 @@ Desktop Material 嘅整合功能將 Git 工作流程接上作業系統、編輯�
 - [廣泛編輯器支援](broad-editor-support.md)
 - [Copilot commit 訊息控制](copilot-commit-message-controls.md)
 - [Ollama 模型管理員](ollama-model-manager.md)
+- [本機檔案轉換器](local-file-converter.md) — 本機限定嘅轉換基礎，保持原始檔唔變，
+  淨係顯示隨附嘅 adapter，並記錄待辦嘅 runtime 同已建置程式證明。
 - [綁儲存庫嘅 GitHub API 功能](github-api-functions.md)
 - [GitLab merge request](gitlab-merge-request.md)
 - [儲存庫 Releases 儀表板](repository-releases-dashboard.md)
