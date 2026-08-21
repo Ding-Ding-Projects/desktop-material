@@ -48,10 +48,12 @@ mock.module('../../../../src/main-process/build-run/elevated-runner', {
 })
 
 let BuildRunner: typeof import('../../../../src/main-process/build-run/runner').BuildRunner
+let shouldDetachRunCommand: typeof import('../../../../src/main-process/build-run/runner').shouldDetachRunCommand
 
 before(async () => {
-  BuildRunner = (await import('../../../../src/main-process/build-run/runner'))
-    .BuildRunner
+  const runner = await import('../../../../src/main-process/build-run/runner')
+  BuildRunner = runner.BuildRunner
+  shouldDetachRunCommand = runner.shouldDetachRunCommand
 })
 
 function plan(runId: string): IBuildRunPlan {
@@ -85,6 +87,33 @@ function sender(): WebContents {
 }
 
 describe('BuildRunner shutdown', () => {
+  it('detaches only a Windows dotnet run stage', () => {
+    const dotnetRun = {
+      exe: 'dotnet',
+      args: ['run', '--project', 'Sample.csproj'],
+      label: 'dotnet run (Sample)',
+    }
+    assert.equal(shouldDetachRunCommand('run', dotnetRun, 'win32'), true)
+    assert.equal(shouldDetachRunCommand('build', dotnetRun, 'win32'), false)
+    assert.equal(shouldDetachRunCommand('run', dotnetRun, 'linux'), false)
+    assert.equal(
+      shouldDetachRunCommand(
+        'run',
+        { ...dotnetRun, args: ['build', 'Sample.csproj'] },
+        'win32'
+      ),
+      false
+    )
+    assert.equal(
+      shouldDetachRunCommand(
+        'run',
+        { ...dotnetRun, exe: 'dotnet.exe' },
+        'win32'
+      ),
+      true
+    )
+  })
+
   it('does not resolve cancel until the elevated process reports completion', async () => {
     pendingRuns.length = 0
     const runner = new BuildRunner()

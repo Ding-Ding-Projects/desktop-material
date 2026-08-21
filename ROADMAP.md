@@ -596,6 +596,10 @@ hosted CI and installer-release proof remain open gates.
 
 ## July 30 local conflict/CI repair and background progress — **Implemented locally; push and hosted verification pending**
 
+- [x] Launch a Windows `.NET` profile's final `dotnet run` application in an
+  independent process so it remains open when Desktop Material closes, while
+  keeping toolchain, restore, and build stages supervised.
+
 Conflict dialogs and failed Actions runs now open bounded Codex/OpenCode tasks,
 Build & Run carries elapsed/ETA progress and stays hidden while work continues,
 and Cheap LFS restore details collapse without hiding the live header. All five

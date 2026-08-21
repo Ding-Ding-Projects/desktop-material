@@ -16,6 +16,11 @@ automatically, and shorten long lines visually.
 - **Truncate long lines** is disabled by default. When enabled, each long line
   is displayed on one row with an ellipsis. This is a visual mode only: the full
   line stays in the log and **Copy all output** still copies the complete text.
+- On Windows, a `.NET` profile's `dotnet run` application is launched as an
+  independent process after the build succeeds. Closing Desktop Material does
+  not close that application. Install, restore, and build commands remain
+  supervised finite stages; only the final `dotnet run` application is
+  detached.
 
 Auto-scroll and visual truncation are stored as device-local application
 preferences and survive closing and reopening the panel. They are not committed
@@ -51,3 +56,11 @@ ellipsis rule. Localization checks cover English, Cantonese, and bilingual
 composition. The focused Build & Run UI, style, and localization checkpoint
 passed 42/42 tests; the combined changed-surface gate passed 165/165 across 18
 suites.
+
+The Windows `.NET` lifetime regression in
+`runner-shutdown-test.ts` verifies that only a run-stage `dotnet run` command is
+detached. A disposable real `dotnet run` web application also remained alive
+for eight seconds after its Node launcher exited; the probe process tree was
+then terminated by its recorded PID. Production compilation completed
+successfully at implementation commit
+`9c7781aea90ab2799716202a45c6d077fd072a5d`.

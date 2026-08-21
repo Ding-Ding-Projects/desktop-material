@@ -1,6 +1,7 @@
 {
   "releases": {
     "4.0.0": [
+      "[Fixed] Closing Desktop Material no longer closes an application launched by a Windows .NET Build and Run profile; the final dotnet run process is independent while restore and build stages remain supervised - 9c7781aea90ab2799716202a45c6d077fd072a5d",
       "[Fixed] The MD3 application-header account avatar now has focused regression coverage for shared account-switcher routing, separate header and rail expanded state, and focus-return anchoring - #195",
       "[Added] Desktop Material leaves beta. Releases are plain numbered versions on the production channel, starting at 4.0.0, with no -beta or -material suffix",
       "[Fixed] History no longer keeps every commit it has ever loaded in memory. The commit cache holds twenty pages, evicts the least recently used entries, and reloads an evicted commit on demand - 20ba942e79c9b84f8e87b5629cda7ce21a11583c",
