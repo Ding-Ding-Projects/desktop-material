@@ -10639,7 +10639,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     if (
-      mergedAny &&
+      (mergedAny || options.forceMatDay) &&
       !signal.aborted &&
       this.isTemporaryRepositoryActive(repository)
     ) {
@@ -10649,6 +10649,28 @@ export class AppStore extends TypedBaseStore<IAppState> {
       })
       await this._push(repository)
       this.updateMergeAllState(repository, { pushed: true })
+    }
+
+    if (options.forceMatDay && !signal.aborted) {
+      for (const candidate of candidates) {
+        const resultIndex = results.findIndex(
+          result =>
+            result.branch === candidate.branch.name &&
+            (result.status === 'merged' || result.status === 'up-to-date')
+        )
+        if (resultIndex === -1) {
+          continue
+        }
+        const cleaned = await this.cleanupMergeAllCandidate(
+          repository,
+          candidate,
+          results[resultIndex]
+        )
+        results = results.map((result, index) =>
+          index === resultIndex ? cleaned : result
+        )
+        this.updateMergeAllState(repository, { results })
+      }
     }
 
     this.updateMergeAllState(repository, {
@@ -10773,6 +10795,17 @@ export class AppStore extends TypedBaseStore<IAppState> {
       }
       completedStatus = status
 
+      if (options.forceMatDay) {
+        return {
+          ...base,
+          status,
+          detail:
+            status === 'merged'
+              ? 'Merged; cleanup is waiting for the default branch push.'
+              : 'Already up to date; cleanup is waiting for default branch push proof.',
+        }
+      }
+
       if (signal.aborted || !this.isTemporaryRepositoryActive(repository)) {
         throw new Error('Merge all cancelled before cleanup.')
       }
@@ -10832,6 +10865,58 @@ export class AppStore extends TypedBaseStore<IAppState> {
         ...base,
         status: 'failed',
         detail: error instanceof Error ? error.message : String(error),
+      }
+    }
+  }
+
+  private async cleanupMergeAllCandidate(
+    repository: Repository,
+    candidate: IMergeAllCandidate,
+    result: IMergeAllResult
+  ): Promise<IMergeAllResult> {
+    const base = {
+      branch: candidate.branch.name,
+      ...(candidate.worktree ? { path: candidate.worktree.path } : {}),
+      status: result.status,
+    }
+    try {
+      this.updateMergeAllState(repository, {
+        phase: 'cleaning',
+        currentBranch: candidate.branch.name,
+      })
+      if (candidate.worktree !== undefined) {
+        await this.withTemporaryRepositoryMutationGuard(repository, () =>
+          removeWorktree(repository.path, candidate.worktree!.path, false)
+        )
+        await this._refreshWorktrees(repository)
+      }
+      const [deletion] = await this._deleteReviewedBranches(repository, [
+        {
+          name: candidate.branch.name,
+          expectedSha: candidate.branch.tip.sha,
+        },
+      ])
+      if (deletion?.status !== 'deleted') {
+        return {
+          ...base,
+          detail: `The default branch was pushed, but cleanup was not applied: ${
+            deletion?.detail ?? 'The exact branch tip could not be verified.'
+          }`,
+        }
+      }
+      return {
+        ...base,
+        detail:
+          result.status === 'merged'
+            ? 'Merged, pushed, proved, cleaned up, and deleted.'
+            : 'Already up to date; pushed, proved, cleaned up, and deleted.',
+      }
+    } catch (error) {
+      return {
+        ...base,
+        detail: `The default branch was pushed, but cleanup failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       }
     }
   }
