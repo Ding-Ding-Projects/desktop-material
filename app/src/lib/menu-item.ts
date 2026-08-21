@@ -4,7 +4,7 @@ import { invokeContextualMenu } from '../ui/main-process-proxy'
 import './context-menu-pointer'
 
 /** An octicon-style symbol descriptor rendered before a menu item's label. */
-import { personalizeText } from './i18n'
+import { personalizeText, t } from './i18n'
 
 export interface IMenuItemIcon {
   readonly p: string[]
@@ -166,7 +166,7 @@ export async function showContextualMenu(
       menuItems = [
         ...rawItems,
         {
-          label: 'Lock this element…',
+          label: t('md3.locks.menu.lockElement'),
           accelerator: 'CmdOrCtrl+Shift+L',
           action: () =>
             announceAppearanceLockCreation(

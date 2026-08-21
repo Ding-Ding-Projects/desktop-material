@@ -393,7 +393,7 @@ describe('every rendered element joins the toy-lock boundary', () => {
       'utf8'
     )
     assert.match(menu, /consumeAppearanceLockContextMenuTarget\(/)
-    assert.match(menu, /Lock this element…/)
+    assert.match(menu, /md3\.locks\.menu\.lockElement/)
   })
 
   it('offers Lock this element from context-menu and keyboard routes', async () => {

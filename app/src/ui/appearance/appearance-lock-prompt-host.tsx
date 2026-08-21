@@ -14,6 +14,7 @@ import {
 } from './appearance-lock-gate'
 import { resolveApplicationDataFolder } from '../../lib/support-ticket-recovery'
 import { getPath } from '../main-process-proxy'
+import { t } from '../../lib/i18n'
 
 /**
  * The prompt a blocked element opens.
@@ -186,7 +187,7 @@ export class AppearanceLockPromptHost extends React.Component<
             aria-keyshortcuts="Control+Shift+L"
             onClick={this.openCreationSetup}
           >
-            Lock this element…
+            {t('md3.locks.menu.lockElement')}
           </button>
           <button type="button" role="menuitem" onClick={this.dismiss}>
             Cancel

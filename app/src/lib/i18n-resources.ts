@@ -5149,6 +5149,7 @@ export type TranslationKey =
   | 'md3.locks.unlock.success'
   | 'md3.locks.unlock.lockAgain'
   | 'md3.locks.unlock.minutesLabel'
+  | 'md3.locks.menu.lockElement'
   | 'md3.locks.menu.lockTab'
   | 'md3.locks.menu.lockGroup'
   | 'md3.locks.menu.editLock'
@@ -12111,6 +12112,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'md3.locks.unlock.success': 'Unlocked {label}.',
   'md3.locks.unlock.lockAgain': 'Lock again',
   'md3.locks.unlock.minutesLabel': 'Minutes',
+  'md3.locks.menu.lockElement': 'Lock this element…',
   'md3.locks.menu.lockTab': 'Lock this tab…',
   'md3.locks.menu.lockGroup': 'Lock this group…',
   'md3.locks.menu.editLock': 'Edit this lock…',
@@ -18826,6 +18828,7 @@ export const cantoneseTranslations: Readonly<
   'md3.locks.unlock.success': '{label} 開咗。',
   'md3.locks.unlock.lockAgain': '再鎖返',
   'md3.locks.unlock.minutesLabel': '幾多分鐘',
+  'md3.locks.menu.lockElement': '鎖住呢個元素…',
   'md3.locks.menu.lockTab': '鎖住呢個分頁…',
   'md3.locks.menu.lockGroup': '鎖住呢個群組…',
   'md3.locks.menu.editLock': '改呢把鎖…',

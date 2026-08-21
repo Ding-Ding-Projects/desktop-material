@@ -46,6 +46,23 @@ const registrations = new Map<string, IAppearanceElementRegistration>()
 const elementIds = new WeakMap<Element, string>()
 let observer: MutationObserver | null = null
 let installed = false
+let registryChangeScheduled = false
+
+function notifyRegistryChanged(): void {
+  if (typeof window === 'undefined' || registryChangeScheduled) {
+    return
+  }
+  registryChangeScheduled = true
+  const flush = () => {
+    registryChangeScheduled = false
+    window.dispatchEvent(new Event(AppearanceElementRegistryChangedEvent))
+  }
+  if (typeof queueMicrotask === 'function') {
+    queueMicrotask(flush)
+  } else {
+    void Promise.resolve().then(flush)
+  }
+}
 
 function bounded(value: string, maximum: number): string {
   return value.trim().slice(0, maximum)
@@ -175,7 +192,7 @@ function isIgnoredInfrastructure(element: Element): boolean {
   // locked; only this lock infrastructure is exempt from discovery.
   return (
     element.closest(
-      '.md3-lock-prompt, .md3-lock-setup-dialog, .appearance-lock-form'
+      '.md3-lock-prompt, .md3-lock-setup, .md3-lock-setup-dialog, .appearance-lock-form'
     ) !== null
   )
 }
@@ -225,6 +242,9 @@ export function registerAppearanceElement(
     element.setAttribute(AppearanceLockTargetAttribute, targetId)
     element.setAttribute(AppearanceAutoLockTargetAttribute, 'true')
     element.setAttribute('data-md3-element-id', targetId)
+  } else if (options.targetId !== undefined) {
+    element.setAttribute(AppearanceLockTargetAttribute, targetId)
+    element.removeAttribute(AppearanceAutoLockTargetAttribute)
   }
 
   const registration: IAppearanceElementRegistration = {
@@ -235,9 +255,7 @@ export function registerAppearanceElement(
     source,
   }
   registrations.set(targetId, registration)
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new Event(AppearanceElementRegistryChangedEvent))
-  }
+  notifyRegistryChanged()
   return registration
 }
 
