@@ -2522,6 +2522,18 @@ export type TranslationKey =
   | 'palette.setSoundNarratorVoice'
   | 'settings.soundNarratorVoiceTitle'
   | 'settings.soundNarratorVoiceDescription'
+  | 'settings.soundNarratorEnglishVoiceLabel'
+  | 'settings.soundNarratorCantoneseVoiceLabel'
+  | 'settings.soundNarratorChooseAutomatically'
+  | 'settings.soundNarratorNetworkVoiceOption'
+  | 'settings.soundNarratorVoiceMissingOption'
+  | 'settings.soundNarratorVoiceAutomaticStatus'
+  | 'settings.soundNarratorVoiceInstalledStatus'
+  | 'settings.soundNarratorVoiceNetworkStatus'
+  | 'settings.soundNarratorVoiceMissingStatus'
+  | 'settings.soundNarratorVoiceNoneStatus'
+  | 'settings.soundNarratorRateLabel'
+  | 'settings.soundNarratorPitchLabel'
   | 'settings.personalVocabularyTitle'
   | 'settings.personalVocabularyDescription'
   | 'palette.setPersonalVocabulary'
@@ -8741,6 +8753,24 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settings.soundNarratorVoiceTitle': 'Narrator voice',
   'settings.soundNarratorVoiceDescription':
     'Choose which installed voice reads English and which reads Cantonese, or let the app pick the closest match.',
+  'settings.soundNarratorEnglishVoiceLabel': 'English narrator voice',
+  'settings.soundNarratorCantoneseVoiceLabel': 'Cantonese narrator voice',
+  'settings.soundNarratorChooseAutomatically': 'Choose automatically',
+  'settings.soundNarratorNetworkVoiceOption': 'network voice',
+  'settings.soundNarratorVoiceMissingOption':
+    '{uri} — not installed on this computer',
+  'settings.soundNarratorVoiceAutomaticStatus':
+    'Chosen automatically: the closest match this computer has for the language being spoken.',
+  'settings.soundNarratorVoiceInstalledStatus':
+    '{voice} ({lang}), installed on this computer.',
+  'settings.soundNarratorVoiceNetworkStatus':
+    '{voice} ({lang}). This voice is provided over the network and will not speak while you are offline.',
+  'settings.soundNarratorVoiceMissingStatus':
+    'The voice this was set to ({uri}) is not installed on this computer, so the narrator is falling back to the closest match. Your choice has been kept in case the voice comes back.',
+  'settings.soundNarratorVoiceNoneStatus':
+    'This computer has no voice installed that can read this language. The narrator will stay silent for it until one is added.',
+  'settings.soundNarratorRateLabel': 'Speaking rate',
+  'settings.soundNarratorPitchLabel': 'Voice pitch',
   'settings.personalVocabularyTitle': 'Personal vocabulary file',
   'settings.personalVocabularyDescription':
     'Load a local JSON file that renames the words this app shows you. Nothing is uploaded.',
@@ -15552,6 +15582,24 @@ export const cantoneseTranslations: Readonly<
   'settings.soundNarratorVoiceTitle': '旁白把聲',
   'settings.soundNarratorVoiceDescription':
     '揀邊把聲讀英文、邊把聲讀廣東話，唔揀就由個 app 幫你搵最啱嗰把。',
+  'settings.soundNarratorEnglishVoiceLabel': '英文旁白把聲',
+  'settings.soundNarratorCantoneseVoiceLabel': '廣東話旁白把聲',
+  'settings.soundNarratorChooseAutomatically': '由個 app 自己揀',
+  'settings.soundNarratorNetworkVoiceOption': '網絡聲音',
+  'settings.soundNarratorVoiceMissingOption':
+    '{uri} — 呢部電腦冇裝呢把聲',
+  'settings.soundNarratorVoiceAutomaticStatus':
+    '由個 app 自己揀：用呢部電腦最啱讀而家語言嗰把聲。',
+  'settings.soundNarratorVoiceInstalledStatus':
+    '{voice}（{lang}），已經裝喺呢部電腦。',
+  'settings.soundNarratorVoiceNetworkStatus':
+    '{voice}（{lang}）。呢把聲由網絡提供，冇網絡就唔會出聲。',
+  'settings.soundNarratorVoiceMissingStatus':
+    '之前揀嗰把聲（{uri}）而家冇裝喺呢部電腦，所以旁白會暫時用最接近嗰把聲。你揀過嘅選擇會保留，等佢返嚟。',
+  'settings.soundNarratorVoiceNoneStatus':
+    '呢部電腦冇裝任何可以讀呢種語言嘅聲音。加返一把之前，旁白會保持靜音。',
+  'settings.soundNarratorRateLabel': '講嘢速度',
+  'settings.soundNarratorPitchLabel': '聲線音高',
   'settings.personalVocabularyTitle': '個人字典檔案',
   'settings.personalVocabularyDescription':
     '載入一個本機 JSON 檔，換走呢個 app 顯示嘅字眼。 唔會上載去任何地方。',

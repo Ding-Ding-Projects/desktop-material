@@ -1,5 +1,20 @@
 # Desktop Material roadmap
 
+## August 21 — narrator voice controls restored
+
+- [ ] Restore the Sound pane's two runtime voice pickers (English and
+  Cantonese), with **Choose automatically** as the empty persisted choice,
+  stable `voiceURI` persistence, and honest local/network/missing/no-voice
+  status copy.
+- [ ] Expose the persisted 0.5–2.0 speaking-rate and 0.0–2.0 pitch controls,
+  with bounded values and localized labels.
+- [ ] Keep the settings-search and command-palette routes aimed at the live
+  narrator control group, and refresh the picker after `voiceschanged` while
+  unsubscribing on unmount.
+- [ ] Run the focused tests, lint, type checks, built-artifact interaction,
+  capture, and review gates during the integration pass; this implementation
+  lane intentionally ran none of them.
+
 ## August 21 — universal-feature completeness registration
 
 - [x] Document the hand-written feature-by-surface inventory contract and its

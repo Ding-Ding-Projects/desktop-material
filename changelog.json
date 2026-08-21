@@ -1,6 +1,7 @@
 {
   "releases": {
     "4.0.0": [
+      "[Fixed] Restored the Sound preferences narrator controls: separate runtime English and Cantonese voice pickers, honest local/network/missing/no-voice status, late voice-list refresh, and bounded speaking-rate and pitch sliders. Focused verification remains deferred to the owning integration lane; the final commit reference must be added when that lane lands.",
       "[Added] Added a dated README notice summarizing the latest shared contributor guidance: a hand-written completeness inventory, evidence links across implementation and documentation, and explicit separation of source/release receipts from runtime or visual verification. The notice remains visible through 2026-08-26 and may be removed afterwards; this is documentation-only and adds no application or verification evidence.",
       "[Added] Registered the hand-written universal-feature completeness inventory contract. This records coverage metadata only and does not claim that the listed features are implemented or verified; the ultra-speed pass intentionally skipped tests, reviews, and captures.",
       "[Fixed] Merge all worktrees now relocates a clean default-branch checkout automatically instead of stopping when another worktree owns it, and the explicit Force Mat Day option preserves recoverable dirty work before integration - 9367475ded052f348decb33b77993f49323645c7",

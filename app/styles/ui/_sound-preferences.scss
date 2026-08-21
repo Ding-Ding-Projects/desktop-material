@@ -37,6 +37,29 @@
     }
   }
 
+  .sound-voice-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 10px 0;
+    min-width: 0;
+
+    label {
+      font-weight: var(--font-weight-medium);
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    select {
+      width: 100%;
+      max-width: 420px;
+      min-height: 40px;
+    }
+
+    .settings-description {
+      margin: 0;
+    }
+  }
+
   .sound-slider-row {
     display: flex;
     align-items: center;

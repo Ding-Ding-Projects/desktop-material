@@ -8,6 +8,27 @@ app.
 
 ---
 
+## Settings controls
+
+The Sound pane exposes two independent pickers: one for English and one for
+Cantonese. Both start at **Choose automatically**, enumerate the voices that
+the platform actually reports, and keep a selected `voiceURI` when that voice
+temporarily disappears. The status beneath each picker distinguishes an
+installed local voice, a network-backed voice that is unavailable offline, a
+missing previously selected voice, and a machine with no compatible voice.
+
+Speaking rate (0.5–2.0) and pitch (0.0–2.0) are separate persisted sliders;
+`1.0` is the platform's normal value for both. The range is bounded before it
+reaches `SpeechSynthesisUtterance`, so malformed stored values cannot create an
+unbounded or unusable narrator setting. The voice group is reachable from the
+Sound settings search result and the command palette, and the pickers refresh
+when the platform fires `voiceschanged` and unsubscribe when the pane unmounts.
+
+The current ultra-speed implementation lane intentionally did not run tests,
+lint, type checks, reviews, captures, or builds. Those checks remain an
+integration responsibility and are not implied by this source or documentation
+change.
+
 ## Why it is selectable at all
 
 It used to pick its own: first exact locale match, then first language-family

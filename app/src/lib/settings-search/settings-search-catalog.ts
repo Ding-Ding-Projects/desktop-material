@@ -960,6 +960,7 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
         '旁白',
         '語音',
       ],
+      teleportTargetId: 'settingsSoundNarratorVoice',
     },
     {
       id: 'sound-recorded-narration',
