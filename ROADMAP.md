@@ -1,5 +1,24 @@
 # Desktop Material roadmap
 
+## August 22 — shared Material control conformance sweep
+
+- [x] Sweep every renderer surface for raw `button`/`input`/`select`/`textarea`
+  elements bypassing the shared layer; convert them to the shared Material
+  primitives with every prop, handler and aria attribute preserved.
+- [x] Convert the lock-creation menu items, seven-zip export selects, Jira
+  deployment select, bulk-actions cancel button, notification/banner/changelog
+  buttons, clone filter chips and checkboxes to the shared components.
+- [x] Give the shared Button an `ariaKeyshortcuts` prop so menu items keep
+  announcing their keyboard shortcuts after conversion.
+- [x] Add cascade-safe padding/hover overrides for the tab-style toggle squares
+  so shared-button chrome cannot collapse them or repaint the selected state.
+- [x] Keep the sha-hint Copy button on its deliberate inverse-surface styling;
+  its conversion was a false positive and is reverted.
+- [x] Prove it: strict typecheck clean, focused suites green (two failures
+  proven identical at HEAD before the change), and built-artifact captures of
+  the fixed lock-creation menu, sound settings selects and changelog viewer
+  through the repository capture harness.
+
 ## August 21 — credential wait ladder
 
 - [x] Mount the bounded wait-recovery ladder in the existing anchored

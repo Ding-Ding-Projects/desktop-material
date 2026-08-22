@@ -1,5 +1,38 @@
 # Desktop Material — Active parity handoff
 
+## Remaining plain HTML controls converted to shared Material primitives — 2026-08-22
+
+A six-lane fleet sweep classified every raw `button`/`input`/`select`/`textarea`
+in `app/src/ui` and converted the bypassing ones to the shared primitives
+(`Button`, `TextBox`, `Select`, `Checkbox`, `RadioButton`) with every prop,
+handler and aria attribute preserved — 44 files touched, integration commit
+`0d04ec40f5`. The lock-creation menu items (previously bare Windows chrome),
+seven-zip export selects, Jira deployment select, bulk-actions cancel button
+and clone filter controls are the loudest conversions. The shared `Button`
+gained an `ariaKeyshortcuts` prop; tab-style toggle squares received
+cascade-safe padding/hover overrides; the sha-hint Copy button keeps its
+deliberate inverse-surface styling after its conversion was judged a false
+positive and reverted. The frozen application shell was not changed; every
+conversion is control-level per the "Material Design 3 for individual controls
+and dialogs" boundary.
+
+Verification: strict typecheck clean (`npx tsc --noEmit -p tsconfig.json`);
+focused suites green — repository-bulk-actions 22/22 (its disabled assertion
+now checks the app-wide `aria-disabled` contract), tab-style-editor,
+stash-manager and cheap-lfs suites passing. Two failures in provider-triage
+(7/8) and accounts (3/5) were proven pre-existing by re-running both against
+the HEAD versions of their components: identical failures before this change.
+Built-artifact captures through `script/capture-app.js` at this commit show the
+fixed lock-creation menu (driven via Ctrl+Shift+L on a repository tab), sound
+settings with its converted selects, and the changelog viewer.
+
+Known gaps recorded by the sweep verifiers, deliberately left for follow-up:
+`TextBox` lacks `maxLength`/number-type/id props so some stash/tag text inputs
+stay raw-but-token-styled via `_material-shell.scss`; `RadioButton` lacks a
+`name` prop so grouped radios keep native semantics under global M3 styling;
+signing replacement-key `TextBox` dropped `autoComplete="off"` because the
+interface does not expose it.
+
 ## Personal vocabulary controls use the shared Material primitives — 2026-08-21
 
 The personal-vocabulary settings control now keeps its semantic local JSON file
