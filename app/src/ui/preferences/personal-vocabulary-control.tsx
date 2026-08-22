@@ -235,7 +235,7 @@ export class PersonalVocabularyControl extends React.Component<
               type="button"
               dataVerification="personal-vocabulary-clear"
               onClick={this.onClear}
-              title={this.text('settings.personalVocabularyClearTitle')}
+              tooltip={this.text('settings.personalVocabularyClearTitle')}
             >
               {this.text('settings.personalVocabularyClear')}
             </Button>

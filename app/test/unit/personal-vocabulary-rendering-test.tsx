@@ -175,7 +175,9 @@ describe('personal vocabulary reaches typed React boundaries', () => {
     setActivePersonalVocabulary(null)
     const view = render(<PersonalVocabularyControl />)
     const { container } = view
-    const input = container.querySelector('input[type="file"]')
+    const input = container.querySelector<HTMLInputElement>(
+      'input[type="file"]'
+    )
     assert.ok(input)
     assert.ok(container.textContent?.includes('Choose a vocabulary file'))
     const chooseButton = container.querySelector<HTMLButtonElement>(
