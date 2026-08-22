@@ -416,7 +416,7 @@ export class RepositoryTab extends React.Component<
         style={frameStyle}
         data-tab-id={tab.id}
         data-context-menu-owner="repository-tab-commands"
-        {...appearanceLockTargetProps(`repository-tab:${tab.id}`)}
+        {...appearanceLockTargetProps(`repository-tab:${tab.id}`, 'tab')}
         role="tab"
         aria-selected={isActive}
         aria-label={`${accessibleLabel}${
@@ -475,6 +475,7 @@ export class RepositoryTab extends React.Component<
           data-customization-surface="tab-title"
           data-customization-label={`${this.label} tab title`}
           data-customization-scope="tab"
+          {...appearanceLockTargetProps(`repository-tab:${tab.id}`)}
           tabIndex={-1}
           onContextMenu={this.onLabelContextMenu}
         >

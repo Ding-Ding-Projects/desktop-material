@@ -642,14 +642,19 @@ export class RepositoryTabStrip extends React.Component<
       return
     }
 
-    guardAppearanceActivation(`repository-tab:${tab.id}`, anchor, () => {
-      const repository = this.repositoryForTab(tab)
-      if (repository !== null) {
-        this.props.dispatcher.selectRepository(repository)
-      }
-      this.props.tabsStore.activateTab(tab.id)
-      this.scrollTabIntoView(tab.id)
-    })
+    guardAppearanceActivation(
+      `repository-tab:${tab.id}`,
+      anchor,
+      () => {
+        const repository = this.repositoryForTab(tab)
+        if (repository !== null) {
+          this.props.dispatcher.selectRepository(repository)
+        }
+        this.props.tabsStore.activateTab(tab.id)
+        this.scrollTabIntoView(tab.id)
+      },
+      'tab'
+    )
   }
 
   private scrollTabIntoView(tabId: string) {
@@ -909,7 +914,12 @@ export class RepositoryTabStrip extends React.Component<
     const { tabs } = this.state.tabs
     const index = tabs.findIndex(t => t.id === tab.id)
     const guardAction = (action: () => void) => () =>
-      guardAppearanceActivation(`repository-tab:${tab.id}`, anchor, action)
+      guardAppearanceActivation(
+        `repository-tab:${tab.id}`,
+        anchor,
+        action,
+        'tab'
+      )
 
     showContextualMenu([
       {

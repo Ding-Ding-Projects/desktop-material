@@ -2,6 +2,7 @@ import {
   IMd3ActiveUnlock,
   IMd3Lock,
   Md3LockSurfaceKind,
+  Md3LockSurfaceKinds,
   isMd3UnlockActive,
   isTargetLocked,
   locksForTarget,
@@ -21,6 +22,9 @@ import {
   uninstallAppearanceElementInstrumentation,
 } from './appearance-lock-element-registry'
 export { AppearanceLockTargetAttribute } from './appearance-lock-element-registry'
+
+/** Optional lock-surface kind for targets such as tabs and tab groups. */
+export const AppearanceLockTargetKindAttribute = 'data-md3-lock-kind'
 
 /**
  * A lock on an element's appearance also locks the element.
@@ -71,6 +75,7 @@ export interface IAppearanceLockBlockedDetail {
 
 export interface IAppearanceLockTargetResolution {
   readonly targetId: string
+  readonly targetKind: Md3LockSurfaceKind
   readonly anchor: HTMLElement
 }
 
@@ -100,10 +105,20 @@ export interface IAppearanceLockTargetSemantics {
  * out of sync with the `lockTargetId` the editor was given — both come from
  * the same expression at the same call site.
  */
-export function appearanceLockTargetProps(targetId: string) {
-  const semantics = appearanceLockTargetSemantics(targetId)
+export function appearanceLockTargetProps(
+  targetId: string,
+  targetKind: Md3LockSurfaceKind = 'appearanceElement'
+) {
+  const semantics = appearanceLockTargetSemantics(
+    targetId,
+    Date.now(),
+    targetKind
+  )
   const props: Record<string, string> = {
     [AppearanceLockTargetAttribute]: targetId,
+  }
+  if (targetKind !== 'appearanceElement') {
+    props[AppearanceLockTargetKindAttribute] = targetKind
   }
   if (semantics['aria-disabled'] !== undefined) {
     props['aria-disabled'] = semantics['aria-disabled']
@@ -124,9 +139,10 @@ export function appearanceLockTargetProps(targetId: string) {
  */
 export function appearanceLockTargetSemantics(
   targetId: string,
-  now: number = Date.now()
+  now: number = Date.now(),
+  targetKind: Md3LockSurfaceKind = 'appearanceElement'
 ): IAppearanceLockTargetSemantics {
-  const locked = isAppearanceTargetBlocked(targetId, now)
+  const locked = isMd3TargetBlocked(targetKind, targetId, now)
   return {
     'aria-disabled': locked ? 'true' : undefined,
     'data-md3-locked': locked ? 'true' : undefined,
@@ -210,6 +226,15 @@ export function firstLockedAppearanceLock(
   )
 }
 
+/** Return the first credential still required for an exact surface kind. */
+export function firstLockedTargetLock(
+  targetKind: Md3LockSurfaceKind,
+  targetId: string,
+  now: number = Date.now()
+): IMd3Lock | null {
+  return firstLockedAppearanceLock(targetId, now, targetKind)
+}
+
 /**
  * Whether activating this target should be stopped right now.
  *
@@ -221,15 +246,23 @@ export function isAppearanceTargetBlocked(
   targetId: string,
   now: number = Date.now()
 ): boolean {
+  return isMd3TargetBlocked('appearanceElement', targetId, now)
+}
+
+/** Whether any lock blocks one exact surface-kind and target-id pair. */
+export function isMd3TargetBlocked(
+  targetKind: Md3LockSurfaceKind,
+  targetId: string,
+  now: number = Date.now()
+): boolean {
   const locks = readMd3Locks()
-  if (!isTargetLocked(locks, 'appearanceElement', targetId)) {
+  if (!isTargetLocked(locks, targetKind, targetId)) {
     return false
   }
 
   return !locks
     .filter(
-      lock =>
-        lock.target.kind === 'appearanceElement' && lock.target.id === targetId
+      lock => lock.target.kind === targetKind && lock.target.id === targetId
     )
     .every(lock => isMd3UnlockActive(unlocks.get(lock.id), now))
 }
@@ -262,10 +295,15 @@ export function resolveAppearanceLockTargets(
 
   const resolutions: IAppearanceLockTargetResolution[] = []
   const seen = new Set<string>()
-  const add = (targetId: string, anchor: HTMLElement) => {
-    if (targetId !== '' && !seen.has(targetId)) {
-      seen.add(targetId)
-      resolutions.push({ targetId, anchor })
+  const add = (
+    targetId: string,
+    anchor: HTMLElement,
+    targetKind: Md3LockSurfaceKind = readTargetKind(anchor)
+  ) => {
+    const key = `${targetKind}:${targetId}`
+    if (targetId !== '' && !seen.has(key)) {
+      seen.add(key)
+      resolutions.push({ targetId, targetKind, anchor })
     }
   }
 
@@ -319,7 +357,7 @@ export function resolveAppearanceLockTargets(
   for (const [selector, elementId] of ProfileAppearanceOwnerSelectors) {
     const anchor = node.closest(selector)
     if (anchor instanceof HTMLElement) {
-      add(profileAppearanceLockTargetId(elementId), anchor)
+      add(profileAppearanceLockTargetId(elementId), anchor, 'appearanceElement')
     }
   }
 
@@ -362,6 +400,7 @@ export function resolveAppearanceLockCreationTarget(
       if (targetId !== null && targetId !== '') {
         return {
           targetId,
+          targetKind: readTargetKind(current),
           anchor: current,
         }
       }
@@ -369,6 +408,13 @@ export function resolveAppearanceLockCreationTarget(
     current = current.parentElement
   }
   return resolveAppearanceLockTargets(node)[0] ?? null
+}
+
+function readTargetKind(element: Element): Md3LockSurfaceKind {
+  const raw = element.getAttribute(AppearanceLockTargetKindAttribute)
+  return raw !== null && Md3LockSurfaceKinds.includes(raw as Md3LockSurfaceKind)
+    ? (raw as Md3LockSurfaceKind)
+    : 'appearanceElement'
 }
 
 /**
@@ -380,7 +426,7 @@ export function resolveAppearanceLockCreationTarget(
 function gate(event: Event): boolean {
   const resolved = resolveAppearanceLockTargets(event.target)
   const blocked = resolved.find(target =>
-    isAppearanceTargetBlocked(target.targetId)
+    isMd3TargetBlocked(target.targetKind, target.targetId)
   )
   if (blocked === undefined) {
     return false
@@ -392,7 +438,11 @@ function gate(event: Event): boolean {
   event.preventDefault()
   event.stopPropagation()
   event.stopImmediatePropagation()
-  announceAppearanceLockBlocked(blocked.targetId, blocked.anchor)
+  announceAppearanceLockBlocked(
+    blocked.targetId,
+    blocked.anchor,
+    blocked.targetKind
+  )
   return true
 }
 
@@ -455,16 +505,22 @@ export function consumeAppearanceLockContextMenuTarget(): IAppearanceLockCreatio
 export function guardAppearanceActivation(
   targetId: string,
   anchor: HTMLElement,
-  activate: () => void
+  activate: () => void,
+  targetKind: Md3LockSurfaceKind = 'appearanceElement'
 ): boolean {
   const blockedTarget = [
-    { targetId, anchor },
+    { targetId, anchor, targetKind },
     ...resolveAppearanceLockTargets(anchor).filter(
-      target => target.targetId !== targetId
+      target =>
+        target.targetId !== targetId || target.targetKind !== targetKind
     ),
-  ].find(target => isAppearanceTargetBlocked(target.targetId))
+  ].find(target => isMd3TargetBlocked(target.targetKind, target.targetId))
   if (blockedTarget !== undefined) {
-    announceAppearanceLockBlocked(blockedTarget.targetId, blockedTarget.anchor)
+    announceAppearanceLockBlocked(
+      blockedTarget.targetId,
+      blockedTarget.anchor,
+      blockedTarget.targetKind
+    )
     return false
   }
   activate()
@@ -482,10 +538,14 @@ export function guardAppearanceElementActivation(
     return true
   }
   const blockedTarget = resolved.find(target =>
-    isAppearanceTargetBlocked(target.targetId)
+    isMd3TargetBlocked(target.targetKind, target.targetId)
   )
   if (blockedTarget !== undefined) {
-    announceAppearanceLockBlocked(blockedTarget.targetId, blockedTarget.anchor)
+    announceAppearanceLockBlocked(
+      blockedTarget.targetId,
+      blockedTarget.anchor,
+      blockedTarget.targetKind
+    )
     return false
   }
   activate()
@@ -532,7 +592,7 @@ export function refreshAppearanceLockSemantics(): void {
       continue
     }
     const locked = resolved.some(target =>
-      isAppearanceTargetBlocked(target.targetId)
+      isMd3TargetBlocked(target.targetKind, target.targetId)
     )
     if (!locked) {
       element.removeAttribute('aria-disabled')
@@ -675,7 +735,11 @@ const onKeyDown = (event: KeyboardEvent) => {
     if (target === null) {
       return
     }
-    if (resolved.some(entry => isAppearanceTargetBlocked(entry.targetId))) {
+    if (
+      resolved.some(entry =>
+        isMd3TargetBlocked(entry.targetKind, entry.targetId)
+      )
+    ) {
       gate(event)
       return
     }
@@ -706,7 +770,11 @@ const onKeyDown = (event: KeyboardEvent) => {
     )
     return
   }
-  if (!resolved.some(target => isAppearanceTargetBlocked(target.targetId))) {
+  if (
+    !resolved.some(target =>
+      isMd3TargetBlocked(target.targetKind, target.targetId)
+    )
+  ) {
     return
   }
 
@@ -727,7 +795,11 @@ const onKeyDown = (event: KeyboardEvent) => {
 
 const onKeyUp = (event: KeyboardEvent) => {
   const resolved = resolveAppearanceLockTargets(event.target)
-  if (!resolved.some(target => isAppearanceTargetBlocked(target.targetId))) {
+  if (
+    !resolved.some(target =>
+      isMd3TargetBlocked(target.targetKind, target.targetId)
+    )
+  ) {
     return
   }
   const anchor = resolved[0]?.anchor

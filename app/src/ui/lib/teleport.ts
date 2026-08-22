@@ -4,7 +4,7 @@ import {
 } from '../../lib/teleport-targets'
 import {
   announceAppearanceLockBlocked,
-  isAppearanceTargetBlocked,
+  isMd3TargetBlocked,
   resolveAppearanceLockTargets,
 } from '../appearance/appearance-lock-gate'
 
@@ -116,11 +116,15 @@ export async function teleportTo(
   // here and leave the target behaviorally closed. The prompt host owns the
   // anchored unlock UI and restores focus after cancellation/failure.
   const lockedTarget = resolveAppearanceLockTargets(target).find(candidate =>
-    isAppearanceTargetBlocked(candidate.targetId)
+    isMd3TargetBlocked(candidate.targetKind, candidate.targetId)
   )
   if (lockedTarget !== undefined) {
     lockedTarget.anchor.focus({ preventScroll: true })
-    announceAppearanceLockBlocked(lockedTarget.targetId, lockedTarget.anchor)
+    announceAppearanceLockBlocked(
+      lockedTarget.targetId,
+      lockedTarget.anchor,
+      lockedTarget.targetKind
+    )
     return true
   }
 
