@@ -2823,3 +2823,83 @@
     width: 100px;
   }
 }
+
+#preferences {
+  .personal-vocabulary-control {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-half);
+    min-width: 0;
+
+    .personal-vocabulary-label {
+      min-width: 0;
+      color: var(--md-sys-color-on-surface);
+      font-weight: var(--font-weight-semibold);
+    }
+
+    .personal-vocabulary-actions {
+      display: flex;
+      align-items: stretch;
+      flex-wrap: wrap;
+      gap: var(--spacing-half);
+      min-width: 0;
+    }
+
+    .personal-vocabulary-file-input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .personal-vocabulary-actions > .button-component {
+      flex: 1 1 180px;
+      min-width: min(180px, 100%);
+      max-width: 100%;
+      min-height: 44px;
+      height: auto;
+      overflow-wrap: anywhere;
+      white-space: normal;
+    }
+
+    .personal-vocabulary-control .settings-description {
+      margin: 0;
+    }
+
+    details {
+      min-width: 0;
+
+      summary {
+        overflow-wrap: anywhere;
+      }
+    }
+  }
+
+  @container preferences-pane (max-width: 520px) {
+    .personal-vocabulary-actions {
+      flex-direction: column;
+
+      > .button-component {
+        width: 100%;
+        min-width: 0;
+        flex-basis: auto;
+      }
+    }
+  }
+}
+
+@media (min-resolution: 192dpi) {
+  #preferences .personal-vocabulary-actions {
+    gap: var(--spacing);
+
+    > .button-component {
+      min-height: 44px;
+    }
+  }
+}

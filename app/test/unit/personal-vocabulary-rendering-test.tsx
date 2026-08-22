@@ -178,7 +178,20 @@ describe('personal vocabulary reaches typed React boundaries', () => {
     const input = container.querySelector('input[type="file"]')
     assert.ok(input)
     assert.ok(container.textContent?.includes('Choose a vocabulary file'))
-    assert.equal(container.querySelector('button'), null)
+    const chooseButton = container.querySelector<HTMLButtonElement>(
+      '[data-verification="personal-vocabulary-choose-file"]'
+    )
+    assert.ok(chooseButton)
+    assert.ok(chooseButton.classList.contains('button-component'))
+    assert.equal(input.getAttribute('aria-hidden'), 'true')
+    assert.equal(input.getAttribute('tabindex'), '-1')
+
+    let pickerOpened = false
+    input.click = () => {
+      pickerOpened = true
+    }
+    fireEvent.click(chooseButton)
+    assert.equal(pickerOpened, true)
 
     const validFile = new File(
       [
@@ -191,7 +204,13 @@ describe('personal vocabulary reaches typed React boundaries', () => {
       { type: 'application/json' }
     )
     fireEvent.change(input, { target: { files: [validFile] } })
-    await waitFor(() => assert.ok(container.querySelector('button')))
+    await waitFor(() =>
+      assert.ok(
+        container.querySelector(
+          '[data-verification="personal-vocabulary-clear"]'
+        )
+      )
+    )
 
     const invalidFile = new File(['{'], 'invalid.json', {
       type: 'application/json',
@@ -203,7 +222,11 @@ describe('personal vocabulary reaches typed React boundaries', () => {
           'That vocabulary file was not accepted. Nothing has been changed.'
         )
       )
-      assert.ok(container.querySelector('button'))
+      assert.ok(
+        container.querySelector(
+          '[data-verification="personal-vocabulary-clear"]'
+        )
+      )
     })
     assert.equal(
       personalizeTextBoundary({
@@ -245,7 +268,11 @@ describe('personal vocabulary reaches typed React boundaries', () => {
       assert.ok(
         !container.textContent?.includes('private path must not appear')
       )
-      assert.ok(container.querySelector('button'))
+      assert.ok(
+        container.querySelector(
+          '[data-verification="personal-vocabulary-clear"]'
+        )
+      )
     })
     assert.equal(
       personalizeTextBoundary({
@@ -255,14 +282,23 @@ describe('personal vocabulary reaches typed React boundaries', () => {
       'replacement-token'
     )
 
-    fireEvent.click(container.querySelector('button')!)
+    fireEvent.click(
+      container.querySelector(
+        '[data-verification="personal-vocabulary-clear"]'
+      )!
+    )
     await waitFor(() => {
       assert.ok(
         container.textContent?.includes(
           'No vocabulary file is loaded. Every surface is rendering its original wording.'
         )
       )
-      assert.equal(container.querySelector('button'), null)
+      assert.equal(
+        container.querySelector(
+          '[data-verification="personal-vocabulary-clear"]'
+        ),
+        null
+      )
     })
   })
 
