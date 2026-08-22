@@ -49,11 +49,19 @@ polite live regions, and rejection copy follow the active language mode. A rejec
 replacement keeps the last valid vocabulary active and keeps **Clear and
 restore original wording** available; only a deliberate clear removes it.
 
-![Settings → Appearance showing the Personal vocabulary section: a "Choose a vocabulary file" picker reading "No file chosen", and beneath it "No vocabulary file is loaded. Every surface is rendering its original wording." A collapsed "What this file looks like" disclosure sits below. No clear button is shown, because there is nothing to clear.](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/personal-vocabulary.png)
+![Settings → Appearance showing the Personal vocabulary section in the no-file state: the chooser is a styled Material control, the clear action is absent because there is nothing to clear, and the original-wording status is visible.](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/personal-vocabulary-material-controls-20260821.png)
 
-Captured from the built application through `script/capture-app.js`. This is the
-state before any file exists, which is the state the control has to be good at:
-present, discoverable, and saying plainly that nothing has been changed.
+![Settings → Appearance showing the Personal vocabulary section after a local file is loaded: the chooser and the Clear and restore original wording action are both styled Material controls, with the loaded term count visible.](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/personal-vocabulary-material-controls-loaded-20260821.png)
+
+These captures come from the real unpackaged Windows build at commit
+`9e388ba21523db559199d4d0b90ed530b8331b4c`, launched on an isolated hidden
+desktop through the approved Lowlevel MCP route. The final window captures are
+`960×660`; the no-file PNG SHA-256 is
+`03F16A83F886AC90CD33C9F7D124EB7EBD0533EA211A44ADCD45528A0D6F03FA`, and the
+loaded-state PNG SHA-256 is
+`E303EAE7C4D6428B56903F5853880782E16E1EF6EC987F57FAE2F0C41475464F`.
+The local fixture was cleared again after the loaded-state interaction, proving
+that the clear route restores the original wording state.
 
 ## The file
 

@@ -187,6 +187,8 @@
 
 - [x] Restore the canonical `schemaVersion`/`entries` upload contract while preserving legacy local-cache reads.
 - [x] Prove more than the former 46-entry payload is accepted and fully applied from dynamic file data.
+- [x] Render the chooser and clear actions through the shared Material `Button` primitive while retaining the semantic local file input and responsive narrow/high-scale layout.
+- [x] Capture no-file, loaded, and cleared states from the real unpackaged Windows build at commit `9e388ba21523db559199d4d0b90ed530b8331b4c`; focused control coverage is 14/14.
 
 Updated: **August 13, 2026**
 

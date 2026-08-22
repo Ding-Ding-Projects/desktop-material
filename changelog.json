@@ -1,6 +1,7 @@
 {
   "releases": {
     "4.0.0": [
+      "[Fixed] Personal vocabulary settings now render the local file chooser and the Clear and restore original wording action through the shared Material button primitive while keeping the semantic file input, responsive wrapping, and clear behavior - 9e388ba21523db559199d4d0b90ed530b8331b4c",
       "[Added] Added a bounded wait-recovery ladder to the existing anchored password/OTP lock prompt. It appears only after a real throttled credential attempt, uses expiring single-use main-process challenges, starts at arithmetic sums in School mode, and clears only the retry deadline; credential entry, failure escalation, and authentication remain separate.",
       "[Improved] Replaced the obsolete MD3-shell screenshot inventory with a current frozen-renderer ledger mapped to 26 real source boundaries. Every current row remains explicitly pending until packaged Windows evidence is captured; historical gallery frames are not treated as current proof.",
       "[Added] Ollama chat sessions now persist bounded system prompts and generation controls, retry the most recent user turn without rewriting history, copy a redacted text-only export, and fail closed on attachments unless the installed model declares vision capability. The model manager also records bounded batch-pull queue, recovery-state, and allowlisted harness-profile foundations; exhaustive catalog, hardware-fit, launcher, localization, and built-artifact proof remain pending.",

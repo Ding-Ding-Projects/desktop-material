@@ -214,7 +214,8 @@ promoted.
 | `material-history-view-tabs-list.png` | Built History Commit list tab with its real tab strip and selected state |
 | `material-history-view-tabs-graph.png` | Built History Graph tab with its real tab strip and ancestry graph |
 | `material-settings.png` | Global Settings with browser-style tabs, close actions, search, and overflow |
-| `personal-vocabulary.png` | Personal vocabulary upload on Settings then Appearance, in its no-file state |
+| `personal-vocabulary-material-controls-20260821.png` | Personal vocabulary upload on Settings then Appearance, in its no-file state with the styled chooser |
+| `personal-vocabulary-material-controls-loaded-20260821.png` | Personal vocabulary upload on Settings then Appearance, loaded state with the styled clear action |
 | `narrator-voice-pickers.png` | Per-language narrator voice pickers showing an automatic choice and a language with no installed voice |
 | `branches-sheet.png` | Branches side sheet with its tab strip, filter, branch list and merge footer at their real sizes |
 | `auto-updater-current-source-ready.png` | Current-source production UI after a genuine Electron/Squirrel update-downloaded path with a disclosed inert verifier payload and no published-payload claim |
@@ -794,7 +795,9 @@ reachable without page-level horizontal clipping.
 
 ![History commit hover card showing an exact timestamp and relative age](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-hover-time.png)
 
-![Settings then Appearance showing the Personal vocabulary section: a Choose a vocabulary file picker reading No file chosen, and beneath it the sentence No vocabulary file is loaded, every surface is rendering its original wording](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/personal-vocabulary.png)
+![Settings then Appearance showing the Personal vocabulary section in its no-file state, with the styled chooser and original-wording status](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/personal-vocabulary-material-controls-20260821.png)
+
+![Settings then Appearance showing the Personal vocabulary section after a local file is loaded, with the styled chooser and Clear and restore original wording action](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/personal-vocabulary-material-controls-loaded-20260821.png)
 
 ![Settings then Sound showing both narrator voice pickers, English reporting that a voice was chosen automatically and Cantonese reporting that this computer has no voice installed that can read the language](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/narrator-voice-pickers.png)
 

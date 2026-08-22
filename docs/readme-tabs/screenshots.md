@@ -133,6 +133,18 @@ controls, and the active panel below the selected page.
 
 <sub>全域設定、倉庫設定同 Stash 管理員而家共用同一條似瀏覽器嘅分頁列；開新頁、關頁同搵滿瀉分頁都係同一套手勢。</sub>
 
+### Personal vocabulary controls — current built-artifact proof
+
+| No-file state | Loaded state |
+| --- | --- |
+| <img src="../assets/screenshots/personal-vocabulary-material-controls-20260821.png" alt="Settings Appearance personal vocabulary control in the no-file state with a styled chooser and original-wording status" width="420"><br><sub>960×660 · SHA-256 `03F16A83F886AC90CD33C9F7D124EB7EBD0533EA211A44ADCD45528A0D6F03FA`</sub> | <img src="../assets/screenshots/personal-vocabulary-material-controls-loaded-20260821.png" alt="Settings Appearance personal vocabulary control in the loaded state with styled chooser and clear action" width="420"><br><sub>960×660 · SHA-256 `E303EAE7C4D6428B56903F5853880782E16E1EF6EC987F57FAE2F0C41475464F`</sub> |
+
+These frames were captured from the real unpackaged Windows build at commit
+`9e388ba21523db559199d4d0b90ed530b8331b4c` through the approved hidden-desktop
+route. The loaded-state clear action was activated and the no-file state was
+captured again, so the two images cover both styled actions and their state
+transition.
+
 | Searchable Publish organization owner |
 | --- |
 | <img src="../assets/screenshots/material-publish-organization-picker.png" alt="Bilingual Publish repository dialog with a searchable organization owner listbox fully visible at narrow width" width="720"><br><sub>Personal or organization owner · fuzzy/substring/safe regex · non-collapsing contained list</sub> |

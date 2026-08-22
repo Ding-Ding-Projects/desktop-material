@@ -1,5 +1,32 @@
 # Desktop Material — Active parity handoff
 
+## Personal vocabulary controls use the shared Material primitives — 2026-08-21
+
+The personal-vocabulary settings control now keeps its semantic local JSON file
+input but renders the chooser and the clear action through the existing shared
+Material `Button` primitive. The hidden input is still keyboard and
+screen-reader reachable through the labelled chooser, while the two actions
+wrap cleanly at narrow preference-pane widths and at high display scale. The
+reverted application shell was not changed.
+
+Focused evidence: `app/test/unit/personal-vocabulary-rendering-test.tsx` and
+`app/test/unit/personal-vocabulary-ui-style-test.ts`, **14/14** passing. The
+production build completed successfully at commit
+`9e388ba21523db559199d4d0b90ed530b8331b4c` with
+`npx --no-install cross-env RELEASE_CHANNEL=development
+DESKTOP_SKIP_PACKAGE=1 yarn build:prod`.
+
+The real unpackaged Windows build was launched on an isolated hidden desktop
+through the approved Lowlevel MCP route. The no-file and loaded states were
+captured at `960×660`; the loaded-state clear action was activated and the
+original-wording state was captured again. The promoted images are
+`docs/assets/screenshots/personal-vocabulary-material-controls-20260821.png`
+and
+`docs/assets/screenshots/personal-vocabulary-material-controls-loaded-20260821.png`.
+The current remote CI runs for this commit remain unverified because the GitHub
+API returned HTTP 403 rate-limit responses while the runs were queued; no
+release is claimed for this UI repair.
+
 ## Credential wait ladder — 2026-08-21
 
 The bounded wait-recovery ladder is now mounted in the existing

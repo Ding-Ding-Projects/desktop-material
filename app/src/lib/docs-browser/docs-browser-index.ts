@@ -488,7 +488,7 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       category: 'integrations',
       title: 'Browser-extension download handoff',
       description:
-        'Desktop Material now owns the Windows desktop surfaces and bounded message contract for a browser-extension download handoff. It does not currently ship a browser extension or…',
+        'Desktop Material now owns the Windows desktop surfaces, a checked-in unpacked browser-extension entry, and a bounded native-messaging contract for a browser-extension download…',
       sourcePath: 'docs/features/integrations/browser-extension-downloads.md',
     },
     {
