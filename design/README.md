@@ -45,11 +45,13 @@ prototype is a \`--md-sys-*\` custom property lifted verbatim from
 
 ## Screenshots
 
-The original derived screenshots and editor thumbnail are intentionally omitted from this
-publishable source bundle. They contained synthetic account fixture labels baked into the image
-pixels; removing the derived images avoids publishing identity-like data. Open
-\`Desktop Material v2.dc.html\` to render the sanitized interactive prototype and capture fresh
-screenshots when needed.
+| | |
+| --- | --- |
+| ![Changes workspace, light](screenshots/workspace-changes-light.png) | ![Workspace, dark](screenshots/workspace-dark.png) |
+| ![Tab text styling](screenshots/tab-text-style.png) | ![Regex builder](screenshots/regex-builder.png) |
+| ![Settings history manager](screenshots/settings-history-manager.png) | ![Accounts settings, dark](screenshots/settings-accounts-dark.png) |
+
+Screenshots live in \`screenshots/\` — ready for the repository README, GitHub Pages, and the wiki.
 
 ## Token mapping
 
@@ -63,8 +65,9 @@ screenshots when needed.
 
 ## Notes
 
-- This prototype was produced in a design environment with no access to your git remote. The
-  source bundle is now tracked alongside the implementation milestones.
+- This prototype was produced in a design environment with no access to your git remote — it
+  cannot commit or push to \`origin/main\`. Commit this folder's contents (screenshots, docs,
+  README) to the repository yourself, alongside the implementation milestones.
 - Sample data (branches, commits, workflow runs, clone candidates) mirrors the real repository and
   its feature-expansion plan.
 - Upstream: GitHub Desktop (MIT). Feature parity references: desktop-plus (MIT).
