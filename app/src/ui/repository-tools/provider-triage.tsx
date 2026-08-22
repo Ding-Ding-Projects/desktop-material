@@ -15,6 +15,7 @@ import {
   AssociateProviderTriageAccount,
 } from '../../lib/stores/provider-triage-store'
 import { Button } from '../lib/button'
+import { Select } from '../lib/select'
 import { LinkButton } from '../lib/link-button'
 import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
 import { FilterModeControl } from '../lib/filter-mode-control'
@@ -305,7 +306,7 @@ export class RepositoryProviderTriage extends React.Component<
     return results.map(result => result.item)
   }
 
-  private onKindChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  private onKindChange = (event: React.FormEvent<HTMLSelectElement>) => {
     this.setState({
       filters: {
         ...this.state.filters,
@@ -314,7 +315,7 @@ export class RepositoryProviderTriage extends React.Component<
     })
   }
 
-  private onBucketChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  private onBucketChange = (event: React.FormEvent<HTMLSelectElement>) => {
     this.setState({
       filters: {
         ...this.state.filters,
@@ -323,7 +324,7 @@ export class RepositoryProviderTriage extends React.Component<
     })
   }
 
-  private onSortChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  private onSortChange = (event: React.FormEvent<HTMLSelectElement>) => {
     this.setState({
       filters: {
         ...this.state.filters,
@@ -587,32 +588,32 @@ export class RepositoryProviderTriage extends React.Component<
             </div>
             <label>
               <span>Work item type</span>
-              <select value={filters.kind} onChange={this.onKindChange}>
+              <Select value={filters.kind} onChange={this.onKindChange}>
                 <option value="all">Issues and pull requests</option>
                 <option value="issue">Issues</option>
                 <option value="pull-request">Pull requests</option>
-              </select>
+              </Select>
             </label>
             <label>
               <span>Attention</span>
-              <select value={filters.bucket} onChange={this.onBucketChange}>
+              <Select value={filters.bucket} onChange={this.onBucketChange}>
                 <option value="all">All open work</option>
                 <option value="assigned">Assigned to me</option>
                 <option value="authored">Authored by me</option>
                 <option value="review-requested">Review requested</option>
                 <option value="stale">Stale for 30 days</option>
                 <option value="recently-updated">Updated in 7 days</option>
-              </select>
+              </Select>
             </label>
             <label>
               <span>Sort</span>
-              <select value={filters.sort} onChange={this.onSortChange}>
+              <Select value={filters.sort} onChange={this.onSortChange}>
                 <option value="updated-descending">Recently updated</option>
                 <option value="updated-ascending">
                   Least recently updated
                 </option>
                 <option value="title">Title</option>
-              </select>
+              </Select>
             </label>
           </div>
 

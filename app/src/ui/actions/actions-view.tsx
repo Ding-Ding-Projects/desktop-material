@@ -26,6 +26,8 @@ import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
 import classNames from 'classnames'
 import { Select } from '../lib/select'
 import { Button } from '../lib/button'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
+import { TextBox } from '../lib/text-box'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import {
   persistFilterMode,
@@ -1096,8 +1098,8 @@ export class ActionsView extends React.Component<
   private onRunQueryPatternApply = (runQuery: string) =>
     this.setState({ runQuery })
 
-  private onRunQueryChange = (event: React.FormEvent<HTMLInputElement>) =>
-    this.setState({ runQuery: event.currentTarget.value })
+  private onRunQueryChanged = (runQuery: string) =>
+    this.setState({ runQuery })
 
   private openCatalog = () => {
     this.logController?.abort()
@@ -1245,7 +1247,7 @@ export class ActionsView extends React.Component<
   }
 
   private toggleAllVisibleRuns = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.FormEvent<HTMLInputElement>
   ) => {
     const checked = event.currentTarget.checked
     const visibleRuns = this.getFilteredRuns()
@@ -2074,37 +2076,34 @@ export class ActionsView extends React.Component<
             <span className="sr-only"> workflow runs</span>
           </span>
           <div className="actions-header-buttons">
-            <button
-              type="button"
+            <Button
               className={classNames('actions-icon-button', {
                 on: this.state.activeTab === 'workflows',
               })}
               onClick={this.toggleWorkflowManager}
-              aria-expanded={this.state.activeTab === 'workflows'}
-              aria-label="Manage workflows"
+              ariaExpanded={this.state.activeTab === 'workflows'}
+              ariaLabel="Manage workflows"
             >
               <Octicon symbol={octicons.workflow} />
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
               className="actions-icon-button"
-              ref={this.setRefreshButtonRef}
+              onButtonRef={this.setRefreshButtonRef}
               onClick={this.refresh}
               disabled={actions.loading || actions.runsLoadingMore}
-              aria-label="Refresh"
+              ariaLabel="Refresh"
             >
               <Octicon symbol={syncClockwise} />
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
               className="actions-run-workflow-button"
               onClick={this.openDispatch}
               disabled={!actions.workflows.some(x => x.state === 'active')}
-              aria-haspopup="dialog"
+              ariaHaspopup="dialog"
             >
               <Octicon symbol={octicons.play} />
               Run workflow
-            </button>
+            </Button>
           </div>
         </header>
         {this.renderRateLimit()}
@@ -2151,15 +2150,15 @@ export class ActionsView extends React.Component<
                 })}
               >
                 <Octicon symbol={octicons.search} />
-                <input
-                  data-search-surface-id="actions-runs"
+                <TextBox
+                  searchSurfaceId="actions-runs"
                   value={this.state.runQuery}
-                  onChange={this.onRunQueryChange}
+                  onValueChanged={this.onRunQueryChanged}
                   placeholder="Filter runs — try a branch, event, or actor…"
-                  spellCheck={false}
-                  aria-label="Filter workflow runs"
-                  aria-invalid={runQueryError !== null}
-                  aria-describedby={
+                  spellcheck={false}
+                  ariaLabel="Filter workflow runs"
+                  ariaInvalid={runQueryError !== null}
+                  ariaDescribedBy={
                     runQueryError === null
                       ? undefined
                       : 'actions-run-query-error'
@@ -2176,18 +2175,17 @@ export class ActionsView extends React.Component<
                   filterText={this.state.runQuery}
                   onRegexPatternApply={this.onRunQueryPatternApply}
                 />
-                <button
-                  type="button"
+                <Button
                   className={classNames('actions-search-toggle', {
                     on: this.state.filtersOpen,
                   })}
-                  aria-pressed={this.state.filtersOpen}
-                  aria-expanded={this.state.filtersOpen}
-                  aria-label="Search filters"
+                  ariaPressed={this.state.filtersOpen}
+                  ariaExpanded={this.state.filtersOpen}
+                  ariaLabel="Search filters"
                   onClick={this.toggleFilters}
                 >
                   <Octicon symbol={octicons.filter} />
-                </button>
+                </Button>
               </div>
               {runQueryError === null ? null : (
                 <p
@@ -2264,16 +2262,17 @@ export class ActionsView extends React.Component<
               aria-label="Bulk workflow run actions"
             >
               <label>
-                <input
-                  type="checkbox"
-                  checked={allVisibleSelected}
+                <Checkbox
+                  value={
+                    allVisibleSelected ? CheckboxValue.On : CheckboxValue.Off
+                  }
                   disabled={
                     filteredRuns.length === 0 ||
                     this.state.bulkRunBusy ||
                     this.state.busyRunId !== null
                   }
                   onChange={this.toggleAllVisibleRuns}
-                  aria-label="Select all visible workflow runs"
+                  ariaLabel="Select all visible workflow runs"
                 />
                 Select all visible
               </label>

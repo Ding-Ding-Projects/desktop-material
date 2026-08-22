@@ -367,7 +367,9 @@ describe('RepositoryBulkActions', () => {
       const cancel = screen.getByRole('button', {
         name: 'Stop after the current repository finishes',
       }) as HTMLButtonElement
-      assert.strictEqual(cancel.disabled, true)
+      // Shared Buttons model the disabled state via aria-disabled rather than
+      // the native attribute; click suppression lives in the component.
+      assert.strictEqual(cancel.getAttribute('aria-disabled'), 'true')
     })
 
     it('summarizes done, failed, skipped, and not-started once finished', () => {

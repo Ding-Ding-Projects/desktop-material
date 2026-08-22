@@ -13,6 +13,7 @@ import {
   TranslationVariables,
 } from '../../lib/i18n'
 import { LanguageMode } from '../../models/language-mode'
+import { Button } from '../lib/button'
 
 /**
  * Bulk repository actions for the repository picker: Fetch selected, Pull
@@ -372,18 +373,23 @@ export class RepositoryBulkActions extends React.Component<
         </div>
         <div className="repository-bulk-progress-actions">
           {finished ? (
-            <button type="button" onClick={this.props.onDismissRun}>
-              {this.localize('repositoryBulk.dismiss')}
-            </button>
-          ) : (
-            <button
+            <Button
               type="button"
+              inferTooltip={false}
+              onClick={this.props.onDismissRun}
+            >
+              {this.localize('repositoryBulk.dismiss')}
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              inferTooltip={false}
               disabled={cancelRequested}
-              aria-label={this.accessibleName('repositoryBulk.cancelAria')}
+              ariaLabel={this.accessibleName('repositoryBulk.cancelAria')}
               onClick={this.props.onCancelRun}
             >
               {this.localize('repositoryBulk.cancel')}
-            </button>
+            </Button>
           )}
         </div>
       </section>
@@ -428,16 +434,21 @@ export class RepositoryBulkActions extends React.Component<
           ))}
         </ul>
         <span className="repository-bulk-confirmation-actions">
-          <button type="button" onClick={this.props.onCancelRemoval}>
+          <Button
+            type="button"
+            inferTooltip={false}
+            onClick={this.props.onCancelRemoval}
+          >
             {this.localize('repositoryBulk.removeCancel')}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             className="danger"
+            inferTooltip={false}
             onClick={this.props.onConfirmRemoval}
           >
             {this.localize('repositoryBulk.removeConfirm')}
-          </button>
+          </Button>
         </span>
       </div>
     )

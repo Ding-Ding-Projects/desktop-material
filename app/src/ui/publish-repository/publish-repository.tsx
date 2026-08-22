@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { Account } from '../../models/account'
 import { API, IAPIOrganization } from '../../lib/api'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { TextBox } from '../lib/text-box'
 import { DialogContent } from '../dialog'
 import { Row } from '../lib/row'
@@ -187,14 +188,13 @@ export class PublishRepository extends React.Component<
         </Row>
 
         <Row>
-          <label>
-            <input
-              type="checkbox"
-              checked={this.props.settings.private}
-              onChange={this.onPrivateChange}
-            />
-            Keep this code private
-          </label>
+          <Checkbox
+            value={
+              this.props.settings.private ? CheckboxValue.On : CheckboxValue.Off
+            }
+            label="Keep this code private"
+            onChange={this.onPrivateChange}
+          />
         </Row>
 
         <PublishOrganizationPicker

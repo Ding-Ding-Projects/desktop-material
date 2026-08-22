@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
+import { Button } from '../lib/button'
 import classNames from 'classnames'
 
 interface IBannerProps {
@@ -39,9 +40,13 @@ export class Banner extends React.Component<IBannerProps, {}> {
 
     return (
       <div className="close">
-        <button onClick={onDismissed} aria-label="Dismiss this message">
+        <Button
+          onClick={onDismissed}
+          ariaLabel="Dismiss this message"
+          inferTooltip={false}
+        >
           <Octicon symbol={octicons.x} />
-        </button>
+        </Button>
       </div>
     )
   }

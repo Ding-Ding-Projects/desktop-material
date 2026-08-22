@@ -17,7 +17,10 @@ import {
   t,
   translate,
 } from '../../lib/i18n'
+import { Button } from '../lib/button'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { Select } from '../lib/select'
+import { TextArea } from '../lib/text-area'
 import { TextBox } from '../lib/text-box'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import {
@@ -378,26 +381,38 @@ export class WorkflowDispatchDialog extends React.Component<
     void this.loadDefinition()
   }
 
-  private onRefChipClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    const ref = event.currentTarget.dataset.ref
-    if (ref !== undefined) {
+  /** Chips carry their ref through a bound handler; the shared button has no data-* surface. */
+  private createRefChipClickHandler =
+    (ref: string) => (_event: React.MouseEvent<HTMLButtonElement>) => {
       this.setState({ ref })
     }
-  }
 
   private onRefSelectChange = (event: React.FormEvent<HTMLSelectElement>) =>
     this.setState({ ref: event.currentTarget.value })
 
-  private onInputChange = (
-    event: React.FormEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  private onInputChange = (event: React.FormEvent<HTMLSelectElement>) => {
     const input = event.currentTarget
-    const value =
-      input instanceof HTMLInputElement && input.type === 'checkbox'
-        ? String(input.checked)
-        : input.value
-    this.setState({ values: { ...this.state.values, [input.name]: value } })
+    this.setState({
+      values: { ...this.state.values, [input.name]: input.value },
+    })
   }
+
+  /** Choice inputs keep the shared select; booleans report through a bound handler. */
+  private onBooleanInputChange =
+    (inputName: string) => (event: React.FormEvent<HTMLInputElement>) =>
+      this.setState({
+        values: {
+          ...this.state.values,
+          [inputName]: String(event.currentTarget.checked),
+        },
+      })
+
+  /** Free-form inputs report their new value directly. */
+  private onTextInputChange =
+    (inputName: string) => (value: string) =>
+      this.setState({
+        values: { ...this.state.values, [inputName]: value },
+      })
 
   private onFreeformChange = (event: React.FormEvent<HTMLTextAreaElement>) =>
     this.setState({ freeform: event.currentTarget.value })
@@ -575,17 +590,15 @@ export class WorkflowDispatchDialog extends React.Component<
   private renderRefChip = (ref: string) => {
     const on = ref === this.state.ref
     return (
-      <button
+      <Button
         key={ref}
-        type="button"
         className={classNames('workflow-dispatch-chip', { on })}
-        aria-pressed={on}
-        aria-label={`Run on ref: ${ref}`}
-        data-ref={ref}
-        onClick={this.onRefChipClick}
+        ariaPressed={on}
+        ariaLabel={`Run on ref: ${ref}`}
+        onClick={this.createRefChipClickHandler(ref)}
       >
         {ref}
-      </button>
+      </Button>
     )
   }
 
@@ -599,28 +612,28 @@ export class WorkflowDispatchDialog extends React.Component<
         </span>
         {input.description && <small>{input.description}</small>}
         {input.type === 'choice' ? (
-          <select name={input.name} value={value} onChange={this.onInputChange}>
+          <Select
+            name={input.name}
+            value={value}
+            onChange={this.onInputChange}
+          >
             {input.options.map(option => (
               <option key={option} value={option}>
                 {option}
               </option>
             ))}
-          </select>
+          </Select>
         ) : input.type === 'boolean' ? (
-          <input
-            name={input.name}
-            type="checkbox"
-            checked={value === 'true'}
-            onChange={this.onInputChange}
+          <Checkbox
+            value={value === 'true' ? CheckboxValue.On : CheckboxValue.Off}
+            onChange={this.onBooleanInputChange(input.name)}
           />
         ) : (
-          <input
-            name={input.name}
-            type="text"
+          <TextBox
             value={value}
             required={input.required}
             placeholder={`Value for ${input.name}`}
-            onChange={this.onInputChange}
+            onValueChanged={this.onTextInputChange(input.name)}
           />
         )}
       </label>
@@ -655,14 +668,13 @@ export class WorkflowDispatchDialog extends React.Component<
         >
           <header className="workflow-dispatch-header">
             <h2 id="workflow-dispatch-title">Run workflow</h2>
-            <button
-              type="button"
+            <Button
               className="actions-icon-button workflow-dispatch-close"
               onClick={this.props.onDismissed}
-              aria-label="Close run workflow dialog"
+              ariaLabel="Close run workflow dialog"
             >
               <Octicon symbol={octicons.x} />
-            </button>
+            </Button>
           </header>
           {this.state.error && (
             <div className="actions-inline-error" role="alert">
@@ -718,7 +730,7 @@ export class WorkflowDispatchDialog extends React.Component<
                   {definition?.error?.message ??
                     'The workflow definition could not provide a generated form.'}
                 </small>
-                <textarea
+                <TextArea
                   value={this.state.freeform}
                   onChange={this.onFreeformChange}
                   placeholder={'environment=staging\ndry_run=false'}
@@ -726,7 +738,7 @@ export class WorkflowDispatchDialog extends React.Component<
               </label>
             )}
           </div>
-          <button
+          <Button
             type="submit"
             className="workflow-dispatch-run-button"
             disabled={
@@ -735,7 +747,7 @@ export class WorkflowDispatchDialog extends React.Component<
           >
             <Octicon symbol={octicons.play} />
             {submitting ? 'Starting…' : 'Run workflow'}
-          </button>
+          </Button>
         </form>
       </div>
     )

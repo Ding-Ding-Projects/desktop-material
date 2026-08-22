@@ -29,6 +29,9 @@ import { Repository } from '../../models/repository'
 import { Dispatcher } from '../dispatcher'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
+import { Button } from '../lib/button'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
+import { TextBox } from '../lib/text-box'
 import { GitHubNotificationListItem } from './github-notification-list-item'
 import { NotificationListItem } from './notification-list-item'
 import { FilterModeControl } from '../lib/filter-mode-control'
@@ -546,9 +549,9 @@ export class NotificationCentrePanel extends React.Component<
   private onSelectAll = () => this.selectFilter('all')
   private onSelectUnread = () => this.selectFilter('unread')
 
-  private onQueryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  private onQueryChange = (query: string) => {
     this.setState({
-      query: event.currentTarget.value,
+      query,
       selectedLocalIds: new Set<string>(),
       selectedGitHubIds: new Set<string>(),
       confirmingBulk: null,
@@ -1255,14 +1258,14 @@ export class NotificationCentrePanel extends React.Component<
         <div className="notification-centre-search-row">
           <label className="notification-centre-search">
             <span>Search</span>
-            <input
-              data-search-surface-id="notifications"
+            <TextBox
               type="search"
+              searchSurfaceId="notifications"
               value={this.state.query}
               disabled={this.state.bulkBusy}
-              aria-label={`Search ${this.state.source} notifications`}
+              ariaLabel={`Search ${this.state.source} notifications`}
               placeholder="Title, message, repository, or reason"
-              onChange={this.onQueryChange}
+              onValueChanged={this.onQueryChange}
             />
           </label>
           <FilterModeControl
@@ -1340,40 +1343,44 @@ export class NotificationCentrePanel extends React.Component<
           {selected.size} selected
         </span>
         <div className="notification-centre-bulk-actions">
-          <button
+          <Button
             type="button"
+            inferTooltip={false}
             disabled={disabled || !canMarkRead}
             onClick={this.onBulkMarkRead}
           >
             Mark read
-          </button>
+          </Button>
           {local ? (
-            <button
+            <Button
               type="button"
+              inferTooltip={false}
               disabled={disabled || !canMarkUnread}
               onClick={this.onBulkMarkUnread}
             >
               Mark unread
-            </button>
+            </Button>
           ) : null}
-          <button
+          <Button
             type="button"
             className="danger"
+            inferTooltip={false}
             disabled={disabled}
             onClick={local ? this.onRequestBulkDelete : this.onRequestBulkDone}
           >
             {local ? 'Delete selected' : 'Mark selected done'}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             className="clear-all"
+            inferTooltip={false}
             disabled={
               clearCount === 0 || busy || (!local && this.state.github.loading)
             }
             onClick={this.onRequestClearAll}
           >
             Clear all
-          </button>
+          </Button>
         </div>
         {this.renderBulkProgress()}
       </div>
@@ -1448,16 +1455,17 @@ export class NotificationCentrePanel extends React.Component<
               } done and removes them from the selected GitHub inbox. Any failures stay visible so you can retry.`}
         </span>
         <span className="notification-centre-confirmation-actions">
-          <button type="button" onClick={this.onCancelClearAll}>
+          <Button type="button" inferTooltip={false} onClick={this.onCancelClearAll}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             className="danger"
+            inferTooltip={false}
             onClick={this.onConfirmClearAll}
           >
             Clear all
-          </button>
+          </Button>
         </span>
       </div>
     )
@@ -1497,16 +1505,21 @@ export class NotificationCentrePanel extends React.Component<
               } from the selected GitHub inbox.`}
         </span>
         <span className="notification-centre-confirmation-actions">
-          <button type="button" onClick={this.onCancelBulkConfirmation}>
+          <Button
+            type="button"
+            inferTooltip={false}
+            onClick={this.onCancelBulkConfirmation}
+          >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             className="danger"
+            inferTooltip={false}
             onClick={local ? this.onConfirmBulkDelete : this.onConfirmBulkDone}
           >
             {local ? 'Delete selected' : 'Mark done'}
-          </button>
+          </Button>
         </span>
       </div>
     )
@@ -1651,15 +1664,13 @@ export class NotificationCentrePanel extends React.Component<
             )}
           </select>
         </label>
-        <label className="github-notifications-participating">
-          <input
-            type="checkbox"
-            checked={github.participating}
-            disabled={github.loading || accounts.length === 0}
-            onChange={this.onParticipatingChange}
-          />
-          Participating only
-        </label>
+        <Checkbox
+          className="github-notifications-participating"
+          label="Participating only"
+          value={github.participating ? CheckboxValue.On : CheckboxValue.Off}
+          disabled={github.loading || accounts.length === 0}
+          onChange={this.onParticipatingChange}
+        />
         <button
           type="button"
           className="github-notifications-refresh"
@@ -1690,9 +1701,9 @@ export class NotificationCentrePanel extends React.Component<
       >
         <Octicon symbol={octicons.alert} />
         <span>{error.message}</span>
-        <button type="button" onClick={this.onRefreshGitHub}>
+        <Button type="button" inferTooltip={false} onClick={this.onRefreshGitHub}>
           Try again
-        </button>
+        </Button>
       </div>
     )
   }
@@ -1717,18 +1728,23 @@ export class NotificationCentrePanel extends React.Component<
           This removes “{thread.subject.title}” from the selected GitHub inbox.
         </span>
         <span className="github-notification-confirmation-actions">
-          <button type="button" onClick={this.cancelDoneConfirmation}>
+          <Button
+            type="button"
+            inferTooltip={false}
+            onClick={this.cancelDoneConfirmation}
+          >
             Cancel
-          </button>
-          <button
-            ref={this.onDoneConfirmButtonRef}
+          </Button>
+          <Button
+            onButtonRef={this.onDoneConfirmButtonRef}
             type="button"
             className="danger"
+            inferTooltip={false}
             disabled={this.state.github.busyThreadId !== null}
             onClick={this.onConfirmDone}
           >
             Mark done
-          </button>
+          </Button>
         </span>
       </div>
     )

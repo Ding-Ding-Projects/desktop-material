@@ -12,6 +12,7 @@ import {
   validateNewAgentSession,
 } from '../../lib/agent-sessions'
 import { Button } from '../lib/button'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { MaterialSymbol } from '../lib/material-symbol'
 import { Select } from '../lib/select'
 import { TextArea } from '../lib/text-area'
@@ -276,11 +277,10 @@ export class NewAgentSessionForm extends React.Component<
 
     return (
       <div className="new-agent-session-options">
-        <button
-          type="button"
+        <Button
           className="new-agent-session-options-toggle"
-          aria-expanded={isOptionsExpanded}
-          aria-controls="new-agent-session-options-panel"
+          ariaExpanded={isOptionsExpanded}
+          ariaControls="new-agent-session-options-panel"
           onClick={this.onToggleOptions}
           disabled={this.props.isStarting}
         >
@@ -290,7 +290,7 @@ export class NewAgentSessionForm extends React.Component<
             size={18}
           />
           {t('agentSessions.options')}
-        </button>
+        </Button>
         <div
           id="new-agent-session-options-panel"
           className="new-agent-session-options-panel"
@@ -390,9 +390,8 @@ export class NewAgentSessionForm extends React.Component<
         <p role="status">{plan}</p>
         {retry.skippedCommandCount > 0 && (
           <label>
-            <input
-              type="checkbox"
-              checked={this.state.restartSetup}
+            <Checkbox
+              value={this.state.restartSetup ? CheckboxValue.On : CheckboxValue.Off}
               onChange={this.onRestartSetupChanged}
               disabled={this.props.isStarting}
             />

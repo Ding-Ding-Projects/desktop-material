@@ -10,6 +10,7 @@ import {
 import { Dispatcher } from '../dispatcher'
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { Button } from '../lib/button'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import {
@@ -363,14 +364,15 @@ export class PullAllDialog extends React.Component<
                 <p className="pull-all-review-note">
                   {this.localize('batchSync.mergeCleanupReview')}
                 </p>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={this.state.destructiveCleanupConfirmed}
-                    onChange={this.onDestructiveCleanupConfirmationChanged}
-                  />
-                  {this.localize('batchSync.mergeCleanupConfirm')}
-                </label>
+                <Checkbox
+                  value={
+                    this.state.destructiveCleanupConfirmed
+                      ? CheckboxValue.On
+                      : CheckboxValue.Off
+                  }
+                  label={this.localize('batchSync.mergeCleanupConfirm')}
+                  onChange={this.onDestructiveCleanupConfirmationChanged}
+                />
               </div>
             ) : null}
             <div className="pull-all-review-heading">

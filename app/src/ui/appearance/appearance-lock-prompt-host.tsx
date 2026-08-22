@@ -1,5 +1,6 @@
 import * as React from 'react'
 
+import { Button } from '../lib/button'
 import { Md3LockSetupDialog } from '../md3/md3-lock-setup-dialog'
 import {
   md3LockPromptPosition,
@@ -292,18 +293,20 @@ export class AppearanceLockPromptHost extends React.Component<
             left: creationPosition?.left ?? creation.anchorRect.left,
           }}
         >
-          <button
-            type="button"
+          {/* Shared Material buttons carrying the menuitem role; the raw
+              buttons here previously rendered with browser default chrome. */}
+          <Button
             role="menuitem"
-            aria-keyshortcuts="Control+Shift+L"
-            ref={this.setCreationFirstButton}
+            inferTooltip={false}
+            ariaKeyshortcuts="Control+Shift+L"
+            onButtonRef={this.setCreationFirstButton}
             onClick={this.openCreationSetup}
           >
             {t('md3.locks.menu.lockElement')}
-          </button>
-          <button type="button" role="menuitem" onClick={this.dismiss}>
+          </Button>
+          <Button role="menuitem" inferTooltip={false} onClick={this.dismiss}>
             {t('md3.locks.setup.cancel')}
-          </button>
+          </Button>
         </div>
       )
     }

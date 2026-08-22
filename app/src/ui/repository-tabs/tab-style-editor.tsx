@@ -38,6 +38,7 @@ import {
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import { InfiniteColorPicker } from '../appearance/infinite-color-picker'
+import { Button } from '../lib/button'
 
 interface ITabStyleEditorProps {
   readonly tab: IRepositoryTab
@@ -179,8 +180,10 @@ export class TabStyleEditor extends React.Component<
     this.props.onStyleChange({ ...this.style, ...patch })
   }
 
-  private onToggleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    switch (event.currentTarget.value) {
+  private onToggleClick = (
+    key: 'bold' | 'italic' | 'underline' | 'strikeThrough' | 'smallCaps'
+  ) => {
+    switch (key) {
       case 'bold':
         this.update({ bold: this.style.bold !== true })
         break
@@ -199,12 +202,12 @@ export class TabStyleEditor extends React.Component<
     }
   }
 
-  private onAlignClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    switch (event.currentTarget.value) {
+  private onAlignClick = (direction: 'left' | 'center' | 'right') => {
+    switch (direction) {
       case 'left':
       case 'center':
       case 'right':
-        this.update({ textAlign: event.currentTarget.value })
+        this.update({ textAlign: direction })
         break
     }
   }
@@ -285,11 +288,7 @@ export class TabStyleEditor extends React.Component<
   private onHighlightColorInput = (color: string) =>
     this.applyColor(color, 'backgroundColor')
 
-  private onUseDefaultColor = (event: React.MouseEvent<HTMLButtonElement>) => {
-    const target: TabColorTarget =
-      event.currentTarget.dataset.target === 'backgroundColor'
-        ? 'backgroundColor'
-        : 'color'
+  private onUseDefaultColor = (target: TabColorTarget) => {
     const next: {
       -readonly [Key in keyof ITabTitleStyle]: ITabTitleStyle[Key]
     } = { ...this.style }
@@ -307,23 +306,23 @@ export class TabStyleEditor extends React.Component<
     this.update({ characterSpacing: event.currentTarget.valueAsNumber })
   }
 
-  private onCaseClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    switch (event.currentTarget.value) {
+  private onCaseClick = (value: TabTextCase) => {
+    switch (value) {
       case 'normal':
       case 'uppercase':
       case 'lowercase':
       case 'capitalize':
-        this.update({ textCase: event.currentTarget.value })
+        this.update({ textCase: value })
         break
     }
   }
 
-  private onEffectClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    switch (event.currentTarget.value) {
+  private onEffectClick = (value: TabTextEffect) => {
+    switch (value) {
       case 'none':
       case 'soft-shadow':
       case 'strong-shadow':
-        this.update({ textEffect: event.currentTarget.value })
+        this.update({ textEffect: value })
         break
     }
   }
@@ -336,20 +335,19 @@ export class TabStyleEditor extends React.Component<
   ) {
     const active = this.style[key] === true
     return (
-      <button
+      <Button
         type="button"
         className={
           active
             ? `tab-style-toggle ${className} active`
             : `tab-style-toggle ${className}`
         }
-        value={key}
-        aria-pressed={active}
-        aria-label={ariaLabel}
-        onClick={this.onToggleClick}
+        ariaPressed={active}
+        ariaLabel={ariaLabel}
+        onClick={() => this.onToggleClick(key)}
       >
         {label}
-      </button>
+      </Button>
     )
   }
 
@@ -362,20 +360,19 @@ export class TabStyleEditor extends React.Component<
         ? 'tabs.style.alignCenterAria'
         : 'tabs.style.alignRightAria'
     return (
-      <button
+      <Button
         type="button"
         className={active ? 'tab-style-align active' : 'tab-style-align'}
-        value={direction}
-        aria-pressed={active}
-        aria-label={this.accessibleText(labelKey)}
-        onClick={this.onAlignClick}
+        ariaPressed={active}
+        ariaLabel={this.accessibleText(labelKey)}
+        onClick={() => this.onAlignClick(direction)}
       >
         <span className={`align-bars align-${direction}`}>
           <i />
           <i />
           <i />
         </span>
-      </button>
+      </Button>
     )
   }
 
@@ -534,28 +531,27 @@ export class TabStyleEditor extends React.Component<
             {this.text(labelKey)}
           </span>
           <div className="tab-style-color-actions">
-            <button
+            <Button
               type="button"
               className={
                 current === undefined
                   ? 'tab-style-clear-color active'
                   : 'tab-style-clear-color'
               }
-              data-target={target}
-              aria-label={this.accessibleText(
+              ariaLabel={this.accessibleText(
                 isHighlight
                   ? 'tabs.style.useDefaultBackgroundAria'
                   : 'tabs.style.useDefaultTextAria'
               )}
-              aria-pressed={current === undefined}
-              onClick={this.onUseDefaultColor}
+              ariaPressed={current === undefined}
+              onClick={() => this.onUseDefaultColor(target)}
             >
               {this.text(
                 isHighlight
                   ? 'tabs.style.noHighlight'
                   : 'tabs.style.defaultColor'
               )}
-            </button>
+            </Button>
             <InfiniteColorPicker
               id={`tab-style-${target}-infinite-color`}
               label={this.accessibleText(
@@ -597,16 +593,15 @@ export class TabStyleEditor extends React.Component<
   ) {
     const active = (this.style.textCase ?? 'normal') === value
     return (
-      <button
+      <Button
         type="button"
         className={active ? 'tab-style-choice active' : 'tab-style-choice'}
-        value={value}
-        aria-label={ariaLabel}
-        aria-pressed={active}
-        onClick={this.onCaseClick}
+        ariaLabel={ariaLabel}
+        ariaPressed={active}
+        onClick={() => this.onCaseClick(value)}
       >
         {label}
-      </button>
+      </Button>
     )
   }
 
@@ -617,16 +612,15 @@ export class TabStyleEditor extends React.Component<
   ) {
     const active = (this.style.textEffect ?? 'none') === value
     return (
-      <button
+      <Button
         type="button"
         className={active ? 'tab-style-choice active' : 'tab-style-choice'}
-        value={value}
-        aria-label={ariaLabel}
-        aria-pressed={active}
-        onClick={this.onEffectClick}
+        ariaLabel={ariaLabel}
+        ariaPressed={active}
+        onClick={() => this.onEffectClick(value)}
       >
         {label}
-      </button>
+      </Button>
     )
   }
 
@@ -675,24 +669,24 @@ export class TabStyleEditor extends React.Component<
           </h3>
           <div className="tab-style-header-actions">
             {this.props.onShowHistory !== undefined && (
-              <button
+              <Button
                 type="button"
                 className="tab-style-reset tab-style-history"
                 onClick={this.props.onShowHistory}
-                aria-label={this.accessibleText('tabs.style.historyAria')}
+                ariaLabel={this.accessibleText('tabs.style.historyAria')}
               >
                 <Octicon symbol={octicons.history} />
                 {this.text('tabs.style.history')}
-              </button>
+              </Button>
             )}
-            <button
+            <Button
               type="button"
               className="tab-style-reset"
               onClick={this.props.onReset}
-              aria-label={this.accessibleText('tabs.style.clearAria')}
+              ariaLabel={this.accessibleText('tabs.style.clearAria')}
             >
               {this.text('tabs.style.clear')}
-            </button>
+            </Button>
           </div>
         </div>
 

@@ -73,8 +73,7 @@ export class RepositoryListNameAppearanceEditor extends React.Component<IReposit
     this.patch({ fontSize: event.currentTarget.valueAsNumber })
   }
 
-  private onToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
-    const key = event.currentTarget.value as RepositoryNameBooleanStyle
+  private onToggle = (key: RepositoryNameBooleanStyle) => {
     this.patch({ [key]: this.props.value?.[key] !== true })
   }
 
@@ -96,17 +95,16 @@ export class RepositoryListNameAppearanceEditor extends React.Component<IReposit
   ): JSX.Element {
     const active = this.props.value?.[key] === true
     return (
-      <button
+      <Button
         type="button"
         className={classNames('tab-style-toggle', className, { active })}
-        value={key}
-        aria-label={label}
-        aria-pressed={active}
+        ariaLabel={label}
+        ariaPressed={active}
         disabled={this.props.disabled}
-        onClick={this.onToggle}
+        onClick={() => this.onToggle(key)}
       >
         {label[0]}
-      </button>
+      </Button>
     )
   }
 
@@ -209,18 +207,18 @@ export class RepositoryListNameAppearanceEditor extends React.Component<IReposit
           <div className="tab-style-colors-head">
             <span className="tab-style-colors-label">Text color</span>
             <div className="tab-style-color-actions">
-              <button
+              <Button
                 type="button"
                 className={classNames('tab-style-clear-color', {
                   active: selectedColor === undefined,
                 })}
-                aria-label="Inherit text color"
-                aria-pressed={selectedColor === undefined}
+                ariaLabel="Inherit text color"
+                ariaPressed={selectedColor === undefined}
                 disabled={this.props.disabled}
                 onClick={this.onInheritColor}
               >
                 Inherit
-              </button>
+              </Button>
               <InfiniteColorPicker
                 id="repository-list-name-custom-color"
                 label="Custom repository-name text color"

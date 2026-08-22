@@ -1,5 +1,6 @@
 import * as React from 'react'
 
+import { Button } from '../lib/button'
 import {
   getNumber,
   getStringArray,
@@ -578,13 +579,13 @@ export class InfiniteColorPicker extends React.Component<
                 {this.state.rainbow ? 'Animated rainbow' : serialized}
               </span>
             </div>
-            <button
+            <Button
               type="button"
-              aria-label="Close color picker"
+              ariaLabel="Close color picker"
               onClick={this.close}
             >
               Close
-            </button>
+            </Button>
           </header>
 
           <div className="infinite-color-picker-preview-row">
@@ -691,15 +692,16 @@ export class InfiniteColorPicker extends React.Component<
           {this.props.allowRainbow !== false && (
             <section className="infinite-color-picker-rainbow">
               <div>
-                <button
+                <Button
                   type="button"
+                  inferTooltip={false}
                   className={this.state.rainbow ? 'active' : undefined}
-                  aria-pressed={this.state.rainbow}
+                  ariaPressed={this.state.rainbow}
                   onClick={this.selectRainbow}
                 >
                   <span className="infinite-color-picker-rainbow-background" />
                   Animated rainbow
-                </button>
+                </Button>
                 <span>
                   Stored as a marker; CSS animates every rainbow surface
                   together.

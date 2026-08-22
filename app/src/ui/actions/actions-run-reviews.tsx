@@ -13,6 +13,7 @@ import {
 import { IAPIWorkflowRun } from '../../lib/api'
 import { Repository } from '../../models/repository'
 import { Button } from '../lib/button'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { LinkButton } from '../lib/link-button'
 import { ActionsConfirmationDialog } from './actions-confirmation-dialog'
 import { ActionsDeploymentReviewDialog } from './actions-deployment-review-dialog'
@@ -345,9 +346,8 @@ export class ActionsRunReviews extends React.Component<
             environment
           )}`}
         >
-          <input
-            type="checkbox"
-            checked={selected}
+          <Checkbox
+            value={selected ? CheckboxValue.On : CheckboxValue.Off}
             disabled={
               !environment.currentUserCanApprove || this.state.submitting
             }

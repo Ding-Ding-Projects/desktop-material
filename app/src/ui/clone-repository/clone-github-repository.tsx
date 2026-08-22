@@ -5,6 +5,7 @@ import { DialogContent } from '../dialog'
 import { TextBox } from '../lib/text-box'
 import { Row } from '../lib/row'
 import { Button } from '../lib/button'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { getHTMLURL, IAPIOrganization, IAPIRepository } from '../../lib/api'
 import { CloneableRepositoryFilterList } from './cloneable-repository-filter-list'
 import {
@@ -316,14 +317,8 @@ export class CloneGithubRepository extends React.PureComponent<
   private renderBatchModeContents = (mode: BatchCloneMode) =>
     mode === BatchCloneMode.Parallel ? 'Parallel' : 'One at a time'
 
-  private onVisibilityChipClick = (
-    event: React.MouseEvent<HTMLButtonElement>
-  ) => {
-    const key = event.currentTarget.dataset.visibility
-    const entry = VisibilityFilterLabels.find(value => value.key === key)
-    if (entry !== undefined) {
-      this.props.onVisibilityFilterChanged(entry.key)
-    }
+  private onVisibilityChipClick = (key: RepositoryVisibilityFilter) => {
+    this.props.onVisibilityFilterChanged(key)
   }
 
   private renderVisibilityChips() {
@@ -339,30 +334,24 @@ export class CloneGithubRepository extends React.PureComponent<
           {this.localize('clone.visibilityFilterLabel')}
         </span>
         {VisibilityFilterLabels.map(({ key, labelKey }) => (
-          <button
+          <Button
             type="button"
             key={key}
-            data-visibility={key}
             className={classNames('org-filter-chip', {
               selected: selected === key,
             })}
-            aria-pressed={selected === key}
-            onClick={this.onVisibilityChipClick}
+            ariaPressed={selected === key}
+            onClick={() => this.onVisibilityChipClick(key)}
           >
             {this.localize(labelKey)}
-          </button>
+          </Button>
         ))}
       </div>
     )
   }
 
-  private onLanguageChipClick = (
-    event: React.MouseEvent<HTMLButtonElement>
-  ) => {
-    const language = event.currentTarget.dataset.language
-    if (language !== undefined) {
-      this.props.onToggleLanguageFilter(language)
-    }
+  private onLanguageChipClick = (language: string) => {
+    this.props.onToggleLanguageFilter(language)
   }
 
   private renderLanguageChips() {
@@ -388,15 +377,14 @@ export class CloneGithubRepository extends React.PureComponent<
         {languages.map(language => {
           const selected = languageFilter.has(language)
           return (
-            <button
+            <Button
               type="button"
               key={language}
-              data-language={language}
               className={classNames('org-filter-chip', 'language-chip', {
                 selected,
               })}
-              aria-pressed={selected}
-              onClick={this.onLanguageChipClick}
+              ariaPressed={selected}
+              onClick={() => this.onLanguageChipClick(language)}
             >
               {selected && <MaterialSymbol name="check" size={14} />}
               <span
@@ -405,7 +393,7 @@ export class CloneGithubRepository extends React.PureComponent<
                 aria-hidden={true}
               />
               {language}
-            </button>
+            </Button>
           )
         })}
       </div>
@@ -436,13 +424,13 @@ export class CloneGithubRepository extends React.PureComponent<
 
     return (
       <div className="clone-repository-filter-disclosure">
-        <button
+        <Button
           type="button"
           className={classNames('clone-repository-filter-button', {
             active: activeCount > 0,
           })}
-          aria-expanded={filtersOpen}
-          aria-controls="clone-repository-metadata-filters"
+          ariaExpanded={filtersOpen}
+          ariaControls="clone-repository-metadata-filters"
           onClick={this.onToggleFilters}
         >
           <MaterialSymbol name="filter_list" size={18} />
@@ -454,7 +442,7 @@ export class CloneGithubRepository extends React.PureComponent<
             name="expand_more"
             size={18}
           />
-        </button>
+        </Button>
         {!filtersOpen && activeCount > 0 && (
           <span className="clone-repository-filter-status" role="status">
             {this.localize('clone.filters.activeCount', {
@@ -508,7 +496,7 @@ export class CloneGithubRepository extends React.PureComponent<
     )
   }
 
-  private onAutoCloneChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  private onAutoCloneChange = (event: React.FormEvent<HTMLInputElement>) => {
     this.props.onAutoCloneNewRepositoriesChanged(event.currentTarget.checked)
   }
 
@@ -521,9 +509,12 @@ export class CloneGithubRepository extends React.PureComponent<
           className="auto-clone-toggle"
           aria-label="Automatically clone new repositories. Runs in the background after this dialog closes and downloads new repositories into this base directory."
         >
-          <input
-            type="checkbox"
-            checked={this.props.autoCloneNewRepositories}
+          <Checkbox
+            value={
+              this.props.autoCloneNewRepositories
+                ? CheckboxValue.On
+                : CheckboxValue.Off
+            }
             onChange={this.onAutoCloneChange}
           />
           <span>

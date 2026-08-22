@@ -6,6 +6,7 @@ import {
   InteractiveRebaseActions,
 } from '../../lib/interactive-rebase/interactive-rebase-plan'
 import { createUniqueId, releaseUniqueId } from '../lib/id-pool'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
 
 export interface IInteractiveRebaseCommitLabelContext {
   readonly commitId: string
@@ -94,8 +95,6 @@ export class InteractiveRebaseEditor extends React.Component<
   private readonly confirmationHeadingId = `${this.instanceId}-confirmation-heading`
   private readonly rewriteWarningTitleId = `${this.instanceId}-rewrite-warning-title`
   private readonly pushedWarningTitleId = `${this.instanceId}-pushed-warning-title`
-  private readonly reviewConfirmationId = `${this.instanceId}-review-confirmation`
-  private readonly pushedConfirmationId = `${this.instanceId}-pushed-confirmation`
   private readonly executeReasonId = `${this.instanceId}-execute-reason`
 
   public constructor(props: IInteractiveRebaseEditorProps) {
@@ -176,13 +175,13 @@ export class InteractiveRebaseEditor extends React.Component<
   }
 
   private onReviewConfirmationChange = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.FormEvent<HTMLInputElement>
   ) => {
     this.setState({ reviewConfirmed: event.currentTarget.checked })
   }
 
   private onPushedHistoryConfirmationChange = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.FormEvent<HTMLInputElement>
   ) => {
     this.setState({ pushedHistoryConfirmed: event.currentTarget.checked })
   }
@@ -392,31 +391,25 @@ export class InteractiveRebaseEditor extends React.Component<
           >
             {labels.confirmationHeading}
           </legend>
-          <label
+          <Checkbox
             className="interactive-rebase-editor__confirmation"
-            htmlFor={this.reviewConfirmationId}
-          >
-            <input
-              checked={this.state.reviewConfirmed}
-              id={this.reviewConfirmationId}
-              onChange={this.onReviewConfirmationChange}
-              type="checkbox"
-            />
-            <span>{labels.reviewConfirmationLabel}</span>
-          </label>
+            value={
+              this.state.reviewConfirmed ? CheckboxValue.On : CheckboxValue.Off
+            }
+            onChange={this.onReviewConfirmationChange}
+            label={labels.reviewConfirmationLabel}
+          />
           {hasPushedReviewedCommits ? (
-            <label
+            <Checkbox
               className="interactive-rebase-editor__confirmation"
-              htmlFor={this.pushedConfirmationId}
-            >
-              <input
-                checked={this.state.pushedHistoryConfirmed}
-                id={this.pushedConfirmationId}
-                onChange={this.onPushedHistoryConfirmationChange}
-                type="checkbox"
-              />
-              <span>{labels.pushedHistoryConfirmationLabel}</span>
-            </label>
+              value={
+                this.state.pushedHistoryConfirmed
+                  ? CheckboxValue.On
+                  : CheckboxValue.Off
+              }
+              onChange={this.onPushedHistoryConfirmationChange}
+              label={labels.pushedHistoryConfirmationLabel}
+            />
           ) : null}
           {executeUnavailableReason === null ? null : (
             <p

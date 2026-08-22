@@ -8,6 +8,7 @@ import { ApplicationTheme } from '../lib/application-theme'
 import { getBoolean, setBoolean } from '../../lib/local-storage'
 import { Octicon, OcticonSymbol } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
+import { Button } from '../lib/button'
 
 /**
  * The localStorage key remembering that the compact first-run checklist has
@@ -199,7 +200,7 @@ export class FirstRunChecklist extends React.Component<
 
     return (
       <li key={item.key}>
-        <button type="button" className={className} onClick={item.onClick}>
+        <Button type="button" className={className} onClick={item.onClick}>
           <span className="first-run-checklist-item-icon" aria-hidden="true">
             <Octicon
               symbol={item.done ? octicons.checkCircleFill : item.icon}
@@ -211,7 +212,7 @@ export class FirstRunChecklist extends React.Component<
           <span className="sr-only">
             {item.done ? 'Completed' : 'Not completed yet'}
           </span>
-        </button>
+        </Button>
       </li>
     )
   }
@@ -251,21 +252,21 @@ export class FirstRunChecklist extends React.Component<
           </span>
         </div>
         <footer className="first-run-checklist-actions">
-          <button
+          <Button
             type="button"
             className="first-run-checklist-skip"
             onClick={this.onSkip}
           >
             Skip for now
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             className="first-run-checklist-start"
             onClick={this.onGetStarted}
-            ref={this.onPrimaryButtonRef}
+            onButtonRef={this.onPrimaryButtonRef}
           >
             Get started
-          </button>
+          </Button>
         </footer>
       </dialog>
     )

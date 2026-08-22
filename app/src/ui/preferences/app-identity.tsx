@@ -35,6 +35,7 @@ import { Octicon, OcticonSymbol } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { AppBrand } from '../window/app-brand'
 import { Button } from '../lib/button'
+import { RangeSlider } from '../lib/range-slider'
 import { Select } from '../lib/select'
 import { TextBox } from '../lib/text-box'
 import { InfiniteColorPicker } from '../appearance/infinite-color-picker'
@@ -265,45 +266,6 @@ export class AppIdentity extends React.Component<
 
   private onTextEffectChanged = (event: React.FormEvent<HTMLSelectElement>) => {
     this.update({ textEffect: event.currentTarget.value as AppNameTextEffect })
-  }
-
-  private onFontSizeChanged = (event: React.FormEvent<HTMLInputElement>) => {
-    this.update({ fontSize: parseFloat(event.currentTarget.value) })
-  }
-
-  private onCharacterSpacingChanged = (
-    event: React.FormEvent<HTMLInputElement>
-  ) => {
-    this.update({ characterSpacing: parseFloat(event.currentTarget.value) })
-  }
-
-  private onNumericSlider = (
-    key: 'logoSize' | 'logoInset' | 'logoRotation' | 'brandGap' | 'fontOpacity',
-    event: React.FormEvent<HTMLInputElement>
-  ) => {
-    this.update({ [key]: parseFloat(event.currentTarget.value) })
-  }
-
-  private onNumericSliderChanged = (
-    event: React.FormEvent<HTMLInputElement>
-  ) => {
-    switch (event.currentTarget.id) {
-      case 'app-identity-logo-size':
-        this.onNumericSlider('logoSize', event)
-        break
-      case 'app-identity-logo-inset':
-        this.onNumericSlider('logoInset', event)
-        break
-      case 'app-identity-logo-rotation':
-        this.onNumericSlider('logoRotation', event)
-        break
-      case 'app-identity-brand-gap':
-        this.onNumericSlider('brandGap', event)
-        break
-      case 'app-identity-name-opacity':
-        this.onNumericSlider('fontOpacity', event)
-        break
-    }
   }
 
   private onLogoColorChanged = (logoColor: string) => this.update({ logoColor })
@@ -590,66 +552,50 @@ export class AppIdentity extends React.Component<
           </div>
 
           <div className="app-identity-slider-grid app-identity-logo-sliders">
-            <label htmlFor="app-identity-logo-size">
-              <span>Logo size</span>
-              <strong>{identity.logoSize}px</strong>
-              <input
-                id="app-identity-logo-size"
-                type="range"
-                min={MinAppLogoSize}
-                max={MaxAppLogoSize}
-                step={1}
-                value={identity.logoSize}
-                aria-label="Logo size"
-                aria-valuetext={`${identity.logoSize} pixels`}
-                onChange={this.onNumericSliderChanged}
-              />
-            </label>
-            <label htmlFor="app-identity-logo-inset">
-              <span>Icon inset</span>
-              <strong>{identity.logoInset}px</strong>
-              <input
-                id="app-identity-logo-inset"
-                type="range"
-                min={MinAppLogoInset}
-                max={MaxAppLogoInset}
-                step={1}
-                value={identity.logoInset}
-                aria-label="Logo icon inset"
-                aria-valuetext={`${identity.logoInset} pixels`}
-                onChange={this.onNumericSliderChanged}
-              />
-            </label>
-            <label htmlFor="app-identity-logo-rotation">
-              <span>Logo rotation</span>
-              <strong>{identity.logoRotation}°</strong>
-              <input
-                id="app-identity-logo-rotation"
-                type="range"
-                min={MinAppLogoRotation}
-                max={MaxAppLogoRotation}
-                step={1}
-                value={identity.logoRotation}
-                aria-label="Logo rotation"
-                aria-valuetext={`${identity.logoRotation} degrees`}
-                onChange={this.onNumericSliderChanged}
-              />
-            </label>
-            <label htmlFor="app-identity-brand-gap">
-              <span>Logo and name gap</span>
-              <strong>{identity.brandGap}px</strong>
-              <input
-                id="app-identity-brand-gap"
-                type="range"
-                min={MinAppBrandGap}
-                max={MaxAppBrandGap}
-                step={1}
-                value={identity.brandGap}
-                aria-label="Logo and name gap"
-                aria-valuetext={`${identity.brandGap} pixels`}
-                onChange={this.onNumericSliderChanged}
-              />
-            </label>
+            <RangeSlider
+              id="app-identity-logo-size"
+              label="Logo size"
+              min={MinAppLogoSize}
+              max={MaxAppLogoSize}
+              step={1}
+              value={identity.logoSize}
+              valueText={`${identity.logoSize}px`}
+              ariaValueText={`${identity.logoSize} pixels`}
+              onChange={value => this.update({ logoSize: value })}
+            />
+            <RangeSlider
+              id="app-identity-logo-inset"
+              label="Icon inset"
+              min={MinAppLogoInset}
+              max={MaxAppLogoInset}
+              step={1}
+              value={identity.logoInset}
+              valueText={`${identity.logoInset}px`}
+              ariaValueText={`${identity.logoInset} pixels`}
+              onChange={value => this.update({ logoInset: value })}
+            />
+            <RangeSlider
+              id="app-identity-logo-rotation"
+              label="Logo rotation"
+              min={MinAppLogoRotation}
+              max={MaxAppLogoRotation}
+              step={1}
+              value={identity.logoRotation}
+              valueText={`${identity.logoRotation}°`}
+              ariaValueText={`${identity.logoRotation} degrees`}
+              onChange={value => this.update({ logoRotation: value })}
+            />
+            <RangeSlider
+              id="app-identity-brand-gap"
+              label="Logo and name gap"
+              min={MinAppBrandGap}
+              max={MaxAppBrandGap}
+              step={1}
+              value={identity.brandGap}
+              valueText={`${identity.brandGap}px`}
+              ariaValueText={`${identity.brandGap} pixels`}
+              onChange={value => this.update({ brandGap: value })}
+            />
           </div>
         </fieldset>
 
@@ -747,53 +693,41 @@ export class AppIdentity extends React.Component<
           </div>
 
           <div className="app-identity-slider-grid">
-            <label htmlFor="app-identity-font-size">
-              <span>Name size</span>
-              <strong>{identity.fontSize}px</strong>
-              <input
-                id="app-identity-font-size"
-                type="range"
-                min={MinAppNameFontSize}
-                max={MaxAppNameFontSize}
-                step={0.5}
-                value={identity.fontSize}
-                aria-label="Name size"
-                aria-valuetext={`${identity.fontSize} pixels`}
-                onChange={this.onFontSizeChanged}
-              />
-            </label>
-            <label htmlFor="app-identity-character-spacing">
-              <span>Character spacing</span>
-              <strong>{identity.characterSpacing}px</strong>
-              <input
-                id="app-identity-character-spacing"
-                type="range"
-                min={MinAppNameCharacterSpacing}
-                max={MaxAppNameCharacterSpacing}
-                step={0.25}
-                value={identity.characterSpacing}
-                aria-label="Character spacing"
-                aria-valuetext={`${identity.characterSpacing} pixels`}
-                onChange={this.onCharacterSpacingChanged}
-              />
-            </label>
-            <label htmlFor="app-identity-name-opacity">
-              <span>Name opacity</span>
-              <strong>{Math.round(identity.fontOpacity * 100)}%</strong>
-              <input
-                id="app-identity-name-opacity"
-                type="range"
-                min={MinAppNameOpacity}
-                max={MaxAppNameOpacity}
-                step={0.05}
-                value={identity.fontOpacity}
-                aria-label="App name opacity"
-                aria-valuetext={`${Math.round(
-                  identity.fontOpacity * 100
-                )} percent`}
-                onChange={this.onNumericSliderChanged}
-              />
-            </label>
+            <RangeSlider
+              id="app-identity-font-size"
+              label="Name size"
+              min={MinAppNameFontSize}
+              max={MaxAppNameFontSize}
+              step={0.5}
+              value={identity.fontSize}
+              valueText={`${identity.fontSize}px`}
+              ariaValueText={`${identity.fontSize} pixels`}
+              onChange={value => this.update({ fontSize: value })}
+            />
+            <RangeSlider
+              id="app-identity-character-spacing"
+              label="Character spacing"
+              min={MinAppNameCharacterSpacing}
+              max={MaxAppNameCharacterSpacing}
+              step={0.25}
+              value={identity.characterSpacing}
+              valueText={`${identity.characterSpacing}px`}
+              ariaValueText={`${identity.characterSpacing} pixels`}
+              onChange={value => this.update({ characterSpacing: value })}
+            />
+            <RangeSlider
+              id="app-identity-name-opacity"
+              label="Name opacity"
+              min={MinAppNameOpacity}
+              max={MaxAppNameOpacity}
+              step={0.05}
+              value={identity.fontOpacity}
+              valueText={`${Math.round(identity.fontOpacity * 100)}%`}
+              ariaValueText={`${Math.round(
+                identity.fontOpacity * 100
+              )} percent`}
+              onChange={value => this.update({ fontOpacity: value })}
+            />
           </div>
 
           <div className="app-identity-color-control app-identity-name-color">

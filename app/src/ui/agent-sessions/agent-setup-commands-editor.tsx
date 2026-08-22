@@ -12,7 +12,10 @@ import {
 } from '../../lib/agent-sessions'
 import { LanguageModeChangedEvent, t } from '../../lib/i18n'
 import { Button } from '../lib/button'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { MaterialSymbol } from '../lib/material-symbol'
+import { Select } from '../lib/select'
+import { TextBox } from '../lib/text-box'
 
 interface IAgentSetupCommandsEditorProps {
   readonly commands: ReadonlyArray<IAgentSetupCommand>
@@ -309,53 +312,43 @@ export class AgentSetupCommandsEditor extends React.Component<
             count: String(commandIndex + 1),
           })}
         </legend>
-        <label className="agent-setup-command-enabled">
-          <input
-            type="checkbox"
-            checked={command.enabled}
-            onChange={onEnabledChanged}
-          />
-          {t('agentSessions.setup.enabled')}
-        </label>
-        <label className="agent-setup-command-executable">
-          <span>{t('agentSessions.setup.executable')}</span>
-          <select value={command.executable} onChange={onExecutableChanged}>
-            {AgentSetupExecutableIds.map(executable => (
-              <option key={executable} value={executable}>
-                {executable}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Checkbox
+          className="agent-setup-command-enabled"
+          label={t('agentSessions.setup.enabled')}
+          value={command.enabled ? CheckboxValue.On : CheckboxValue.Off}
+          onChange={onEnabledChanged}
+        />
+        <Select
+          className="agent-setup-command-executable"
+          label={t('agentSessions.setup.executable')}
+          value={command.executable}
+          onChange={onExecutableChanged}
+        >
+          {AgentSetupExecutableIds.map(executable => (
+            <option key={executable} value={executable}>
+              {executable}
+            </option>
+          ))}
+        </Select>
         <div className="agent-setup-command-arguments">
           {command.args.map((argument, argumentIndex) => {
             const id = `agent-setup-${command.key}-argument-${argumentIndex}`
             const invalid = problems.some(
               problem => problem.argumentIndex === argumentIndex
             )
-            const onArgumentChanged = (
-              event: React.FormEvent<HTMLInputElement>
-            ) =>
-              this.onArgumentChanged(
-                commandIndex,
-                argumentIndex,
-                event.currentTarget.value
-              )
             const onRemoveArgument = () =>
               this.onRemoveArgument(commandIndex, argumentIndex)
             return (
               <div className="agent-setup-command-argument" key={id}>
-                <label htmlFor={id}>
-                  {t('agentSessions.setup.argumentLabel', {
+                <TextBox
+                  label={t('agentSessions.setup.argumentLabel', {
                     count: String(argumentIndex + 1),
                   })}
-                </label>
-                <input
-                  id={id}
-                  type="text"
                   value={argument}
-                  aria-invalid={invalid || undefined}
-                  onChange={onArgumentChanged}
+                  ariaInvalid={invalid}
+                  onValueChanged={value =>
+                    this.onArgumentChanged(commandIndex, argumentIndex, value)
+                  }
                 />
                 <Button
                   size="small"

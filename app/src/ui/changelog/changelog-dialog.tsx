@@ -3,6 +3,8 @@ import classNames from 'classnames'
 
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { Button } from '../lib/button'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
+import { TextBox } from '../lib/text-box'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { FilterModeControl } from '../lib/filter-mode-control'
@@ -105,7 +107,13 @@ export class ChangelogDialog extends React.Component<
   IChangelogDialogProps,
   IChangelogDialogState
 > {
-  private dateButtonRef = React.createRef<HTMLButtonElement>()
+  // The date-filter button is a shared Button now, so its element arrives via
+  // onButtonRef rather than React.createRef's read-only current.
+  private dateButtonRef: HTMLButtonElement | null = null
+
+  private setDateButtonRef = (element: HTMLButtonElement | null) => {
+    this.dateButtonRef = element
+  }
   private readonly today: Date
 
   public constructor(props: IChangelogDialogProps) {
@@ -170,8 +178,8 @@ export class ChangelogDialog extends React.Component<
     }))
   }
 
-  private onQueryChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
-    this.updateFilter({ query: event.target.value })
+  private onQueryChanged = (query: string) => {
+    this.updateFilter({ query })
   }
 
   private onModeChanged = (mode: FilterMode) => {
@@ -228,9 +236,9 @@ export class ChangelogDialog extends React.Component<
   }
 
   private onToggleIncludeUndated = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.FormEvent<HTMLInputElement>
   ) => {
-    this.updateFilter({ includeUndated: event.target.checked })
+    this.updateFilter({ includeUndated: event.currentTarget.checked })
   }
 
   private onResetFilters = () => {
@@ -375,20 +383,21 @@ export class ChangelogDialog extends React.Component<
 
     return (
       <>
-        <button
+        <Button
           type="button"
-          ref={this.dateButtonRef}
+          onButtonRef={this.setDateButtonRef}
           className={classNames('changelog-date-button', { active })}
-          aria-expanded={this.state.datePickerOpen}
-          aria-haspopup="dialog"
+          ariaExpanded={this.state.datePickerOpen}
+          ariaHaspopup="dialog"
+          inferTooltip={false}
           onClick={this.onToggleDatePicker}
         >
           <Octicon symbol={octicons.calendar} />
           {label}
-        </button>
+        </Button>
         {this.state.datePickerOpen && (
           <Popover
-            anchor={this.dateButtonRef.current}
+            anchor={this.dateButtonRef}
             anchorPosition={PopoverAnchorPosition.BottomLeft}
             onClickOutside={this.onCloseDatePicker}
             ariaLabelledby="changelog-date-picker-label"
@@ -410,14 +419,16 @@ export class ChangelogDialog extends React.Component<
               earliest={ChangelogSummary.oldestDate}
               latest={ChangelogSummary.newestDate}
             />
-            <label className="changelog-include-undated">
-              <input
-                type="checkbox"
-                checked={this.state.filter.includeUndated}
-                onChange={this.onToggleIncludeUndated}
-              />
-              {this.text('changelog.includeUndated')}
-            </label>
+            <Checkbox
+              className="changelog-include-undated"
+              value={
+                this.state.filter.includeUndated
+                  ? CheckboxValue.On
+                  : CheckboxValue.Off
+              }
+              label={this.text('changelog.includeUndated')}
+              onChange={this.onToggleIncludeUndated}
+            />
           </Popover>
         )}
       </>
@@ -510,14 +521,13 @@ export class ChangelogDialog extends React.Component<
           <div className="changelog-controls">
             <div className="changelog-search">
               <Octicon symbol={octicons.search} />
-              <input
-                data-search-surface-id={ChangelogSearchSurfaceId}
+              <TextBox
                 type="text"
+                searchSurfaceId={ChangelogSearchSurfaceId}
                 value={this.state.filter.query}
                 placeholder={this.text('changelog.searchPlaceholder')}
-                aria-label={this.accessibleText('changelog.searchLabel')}
-                spellCheck={false}
-                onChange={this.onQueryChanged}
+                ariaLabel={this.accessibleText('changelog.searchLabel')}
+                onValueChanged={this.onQueryChanged}
               />
               <FilterModeControl
                 searchSurfaceId={ChangelogSearchSurfaceId}
@@ -575,15 +585,16 @@ export class ChangelogDialog extends React.Component<
               shown.map(release => this.renderRelease(release))
             )}
             {remaining > 0 && (
-              <button
+              <Button
                 type="button"
                 className="changelog-show-more"
+                inferTooltip={false}
                 onClick={this.onShowMore}
               >
                 {this.text('changelog.showMore', {
                   count: String(Math.min(remaining, PageSize)),
                 })}
-              </button>
+              </Button>
             )}
           </div>
         </DialogContent>
@@ -605,20 +616,22 @@ export class ChangelogDialog extends React.Component<
               </Button>
               {this.state.exportMenuOpen && (
                 <div className="changelog-export-menu" role="menu">
-                  <button
+                  <Button
                     type="button"
                     role="menuitem"
+                    inferTooltip={false}
                     onClick={this.onExportMarkdown}
                   >
                     {this.text('changelog.exportMarkdown')}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
                     role="menuitem"
+                    inferTooltip={false}
                     onClick={this.onExportText}
                   >
                     {this.text('changelog.exportText')}
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>

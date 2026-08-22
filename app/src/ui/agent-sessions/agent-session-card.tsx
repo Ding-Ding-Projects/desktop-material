@@ -3,6 +3,7 @@ import classNames from 'classnames'
 
 import { IAgentSession } from '../../models/agent-session'
 import { IAgentSessionRow } from '../../lib/agent-sessions'
+import { Button } from '../lib/button'
 import { MaterialSymbol } from '../lib/material-symbol'
 import { TooltippedContent } from '../lib/tooltipped-content'
 import { AgentSessionChip } from './agent-session-chip'
@@ -117,17 +118,16 @@ export class AgentSessionCard extends React.Component<IAgentSessionCardProps> {
           <AgentSessionChip chip={chip} />
         </button>
         {session.runState === 'running' && this.props.onCancel !== undefined && (
-          <button
-            type="button"
+          <Button
             className="agent-session-stop"
-            aria-label={`${translateForAccessibleName('buildRun.stop')} — ${
+            ariaLabel={`${translateForAccessibleName('buildRun.stop')} — ${
               session.name
             }`}
             onClick={this.onCancel}
           >
             <MaterialSymbol name="cancel" size={18} />
             {t('buildRun.stop')}
-          </button>
+          </Button>
         )}
       </li>
     )

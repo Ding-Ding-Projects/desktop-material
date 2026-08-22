@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
+import { Button } from '../lib/button'
 import { TextBox } from '../lib/text-box'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import { FilterMode } from '../../lib/fuzzy-find'
@@ -124,16 +125,16 @@ function CheapLfsAssetTreeRow(props: ICheapLfsAssetTreeRowProps) {
     >
       <div className="cheap-lfs-asset-tree-row">
         {folder ? (
-          <button
+          <Button
             type="button"
             className="cheap-lfs-folder-disclosure"
-            aria-label={t(
+            ariaLabel={t(
               expanded
                 ? 'clone.cheapLfs.selectorCollapse'
                 : 'clone.cheapLfs.selectorExpand',
               { path: node.path }
             )}
-            aria-expanded={expanded}
+            ariaExpanded={expanded}
             onClick={onDisclosureClick}
             tabIndex={-1}
           >
@@ -141,7 +142,7 @@ function CheapLfsAssetTreeRow(props: ICheapLfsAssetTreeRowProps) {
               name={expanded ? 'keyboard_arrow_down' : 'expand_more'}
               size={18}
             />
-          </button>
+          </Button>
         ) : (
           <span className="cheap-lfs-file-indent" aria-hidden={true} />
         )}
@@ -488,12 +489,12 @@ export class CheapLfsAssetSelectorDialog extends React.Component<
                   count: String(count),
                 })}
               </span>
-              <button type="button" onClick={this.onSelectAll}>
+              <Button type="button" onClick={this.onSelectAll}>
                 {t('clone.cheapLfs.selectorSelectAll')}
-              </button>
-              <button type="button" onClick={this.onSelectNone}>
+              </Button>
+              <Button type="button" onClick={this.onSelectNone}>
                 {t('clone.cheapLfs.selectorSelectNone')}
-              </button>
+              </Button>
             </div>
           </div>
           <div className="cheap-lfs-asset-tree-scroll">

@@ -7,6 +7,7 @@ import {
 } from '../../lib/api'
 import { RelativeTime } from '../relative-time'
 import { Button } from '../lib/button'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { LinkButton } from '../lib/link-button'
 import { Octicon, OcticonSymbol } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
@@ -124,7 +125,7 @@ class RunListItem extends React.PureComponent<
 > {
   private selectButton: HTMLButtonElement | null = null
   private select = () => this.props.onSelect(this.props.run)
-  private toggleSelection = (event: React.ChangeEvent<HTMLInputElement>) =>
+  private toggleSelection = (event: React.FormEvent<HTMLInputElement>) =>
     this.props.onToggleSelection?.(this.props.run, event.currentTarget.checked)
   private setSelectButtonRef = (button: HTMLButtonElement | null) => {
     this.selectButton = button
@@ -191,21 +192,25 @@ class RunListItem extends React.PureComponent<
         >
           {this.props.onToggleSelection !== undefined && (
             <label className="actions-run-checkbox">
-              <input
-                type="checkbox"
-                checked={selectedRunIds.has(run.id)}
+              <Checkbox
+                value={
+                  selectedRunIds.has(run.id)
+                    ? CheckboxValue.On
+                    : CheckboxValue.Off
+                }
                 disabled={bulkBusy || busyRunId !== null}
                 onChange={this.toggleSelection}
-                aria-label={`Select workflow run ${run.run_number ?? run.id}`}
+                ariaLabel={`Select workflow run ${run.run_number ?? run.id}`}
               />
             </label>
           )}
-          <button
+          <Button
             type="button"
             className="actions-run-select"
-            ref={this.setSelectButtonRef}
+            inferTooltip={false}
+            onButtonRef={this.setSelectButtonRef}
             onClick={this.select}
-            aria-pressed={selectedRunId === run.id}
+            ariaPressed={selectedRunId === run.id}
           >
             <span
               className={classNames('actions-run-status-icon', glyph.className)}
@@ -236,7 +241,7 @@ class RunListItem extends React.PureComponent<
               </span>
             </span>
             <span className="actions-run-wf-chip">{workflowFile}</span>
-          </button>
+          </Button>
           <span className="actions-run-buttons">
             {active ? (
               <Button

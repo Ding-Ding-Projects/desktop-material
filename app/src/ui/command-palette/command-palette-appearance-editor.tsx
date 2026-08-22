@@ -1,6 +1,8 @@
 import * as React from 'react'
 import classNames from 'classnames'
 import { t, translateForAccessibleName } from '../../lib/i18n'
+import { Button } from '../lib/button'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { MaterialSymbol } from '../lib/material-symbol'
 import { teleportAnchor } from '../../lib/teleport-targets'
 import {
@@ -89,12 +91,12 @@ export class CommandPaletteAppearanceEditor extends React.Component<
     this.setState(previous => ({ open: !previous.open }))
   }
 
-  private onDensityChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
+  private onDensityChanged = (event: React.FormEvent<HTMLInputElement>) => {
     const density = event.currentTarget.value as CommandPaletteDensity
     this.props.onChange({ ...this.props.appearance, density })
   }
 
-  private onShowIconsChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
+  private onShowIconsChanged = (event: React.FormEvent<HTMLInputElement>) => {
     this.props.onChange({
       ...this.props.appearance,
       showIcons: event.currentTarget.checked,
@@ -102,7 +104,7 @@ export class CommandPaletteAppearanceEditor extends React.Component<
   }
 
   private onShowGroupsChanged = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.FormEvent<HTMLInputElement>
   ) => {
     this.props.onChange({
       ...this.props.appearance,
@@ -111,7 +113,7 @@ export class CommandPaletteAppearanceEditor extends React.Component<
   }
 
   private onShowKeywordsChanged = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.FormEvent<HTMLInputElement>
   ) => {
     this.props.onChange({
       ...this.props.appearance,
@@ -124,7 +126,7 @@ export class CommandPaletteAppearanceEditor extends React.Component<
   }
 
   private onRandomPerRepositoryChanged = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.FormEvent<HTMLInputElement>
   ) => {
     this.props.onChange({
       ...this.props.appearance,
@@ -233,28 +235,28 @@ export class CommandPaletteAppearanceEditor extends React.Component<
           >
             <h3>{t('commandPalette.appearanceHeading')}</h3>
             <fieldset className="command-palette-appearance-mode">
-              <label
+              <Checkbox
                 className="command-palette-appearance-check"
-                aria-label={`${translateForAccessibleName(
+                value={
+                  randomPerRepository ? CheckboxValue.On : CheckboxValue.Off
+                }
+                onChange={this.onRandomPerRepositoryChanged}
+                ariaLabel={`${translateForAccessibleName(
                   'commandPalette.randomPerRepository'
                 )}. ${translateForAccessibleName(
                   'commandPalette.randomPerRepositoryDescription'
                 )}`}
-              >
-                <input
-                  type="checkbox"
-                  checked={randomPerRepository}
-                  onChange={this.onRandomPerRepositoryChanged}
-                />
-                <span className="command-palette-appearance-option-copy">
-                  <span className="command-palette-appearance-option-label">
-                    {t('commandPalette.randomPerRepository')}
+                label={
+                  <span className="command-palette-appearance-option-copy">
+                    <span className="command-palette-appearance-option-label">
+                      {t('commandPalette.randomPerRepository')}
+                    </span>
+                    <span className="command-palette-appearance-option-description">
+                      {t('commandPalette.randomPerRepositoryDescription')}
+                    </span>
                   </span>
-                  <span className="command-palette-appearance-option-description">
-                    {t('commandPalette.randomPerRepositoryDescription')}
-                  </span>
-                </span>
-              </label>
+                }
+              />
             </fieldset>
             <fieldset>
               <legend>{t('commandPalette.paletteSize')}</legend>
@@ -294,38 +296,44 @@ export class CommandPaletteAppearanceEditor extends React.Component<
             </fieldset>
             <fieldset disabled={randomPerRepository}>
               <legend>{t('commandPalette.showInEachRow')}</legend>
-              <label className="command-palette-appearance-check">
-                <input
-                  type="checkbox"
-                  checked={displayedAppearance.showIcons}
-                  onChange={this.onShowIconsChanged}
-                />
-                <span>{t('commandPalette.icons')}</span>
-              </label>
-              <label className="command-palette-appearance-check">
-                <input
-                  type="checkbox"
-                  checked={displayedAppearance.showGroups}
-                  onChange={this.onShowGroupsChanged}
-                />
-                <span>{t('commandPalette.groupChips')}</span>
-              </label>
-              <label className="command-palette-appearance-check">
-                <input
-                  type="checkbox"
-                  checked={displayedAppearance.showKeywords}
-                  onChange={this.onShowKeywordsChanged}
-                />
-                <span>{t('commandPalette.keywordLine')}</span>
-              </label>
+              <Checkbox
+                className="command-palette-appearance-check"
+                value={
+                  displayedAppearance.showIcons
+                    ? CheckboxValue.On
+                    : CheckboxValue.Off
+                }
+                onChange={this.onShowIconsChanged}
+                label={t('commandPalette.icons')}
+              />
+              <Checkbox
+                className="command-palette-appearance-check"
+                value={
+                  displayedAppearance.showGroups
+                    ? CheckboxValue.On
+                    : CheckboxValue.Off
+                }
+                onChange={this.onShowGroupsChanged}
+                label={t('commandPalette.groupChips')}
+              />
+              <Checkbox
+                className="command-palette-appearance-check"
+                value={
+                  displayedAppearance.showKeywords
+                    ? CheckboxValue.On
+                    : CheckboxValue.Off
+                }
+                onChange={this.onShowKeywordsChanged}
+                label={t('commandPalette.keywordLine')}
+              />
             </fieldset>
-            <button
+            <Button
               type="button"
               className="command-palette-appearance-reset"
               onClick={this.onReset}
             >
               {t('commandPalette.resetDefaults')}
-            </button>
+            </Button>
           </div>
         )}
       </div>

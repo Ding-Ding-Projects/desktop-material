@@ -13,6 +13,9 @@ import {
 } from '../../models/stash-entry'
 import { AppFileStatusKind, WorkingDirectoryStatus } from '../../models/status'
 import { Button } from '../lib/button'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
+import { RangeSlider } from '../lib/range-slider'
+import { Select } from '../lib/select'
 import { Octicon, OcticonSymbolVariant } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import {
@@ -512,7 +515,7 @@ export class StashManager extends React.Component<
     })
 
   private onIncludeUntrackedChanged = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.FormEvent<HTMLInputElement>
   ) => this.setState({ includeUntracked: event.currentTarget.checked })
 
   private createStash = () => {
@@ -821,14 +824,13 @@ export class StashManager extends React.Component<
               { count: String(selectedCount) }
             )}
           </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={this.state.includeUntracked}
-              onChange={this.onIncludeUntrackedChanged}
-            />
-            {this.localized('stashManager.includeUntracked')}
-          </label>
+          <Checkbox
+            value={
+              this.state.includeUntracked ? CheckboxValue.On : CheckboxValue.Off
+            }
+            label={this.localized('stashManager.includeUntracked')}
+            onChange={this.onIncludeUntrackedChanged}
+          />
         </fieldset>
         <p className="stash-manager-caption">
           {this.localized('stashManager.selectedScopeCaption')}
@@ -1466,7 +1468,7 @@ export class StashManagerDialog extends React.Component<
   }
 
   private changeLanguageMode = (
-    event: React.ChangeEvent<HTMLSelectElement>
+    event: React.FormEvent<HTMLSelectElement>
   ) => {
     const languageMode = setLanguageModePreference(event.currentTarget.value)
     this.setState({ languageMode })
@@ -1715,61 +1717,50 @@ export class StashManagerDialog extends React.Component<
           ]
         )}
         {showLanguage ? (
-          <label>
-            {translate('appearance.languageMode', languageMode)}
-            <select value={languageMode} onChange={this.changeLanguageMode}>
-              <option value="english">
-                {translate('language.english', languageMode)}
-              </option>
-              <option value="cantonese">
-                {translate('language.cantonese', languageMode)}
-              </option>
-              <option value="bilingual">
-                {translate('language.bilingual', languageMode)}
-              </option>
-            </select>
-          </label>
+          <Select
+            label={translate('appearance.languageMode', languageMode)}
+            value={languageMode}
+            onChange={this.changeLanguageMode}
+          >
+            <option value="english">
+              {translate('language.english', languageMode)}
+            </option>
+            <option value="cantonese">
+              {translate('language.cantonese', languageMode)}
+            </option>
+            <option value="bilingual">
+              {translate('language.bilingual', languageMode)}
+            </option>
+          </Select>
         ) : null}
         <p className="stash-manager-caption">
           {translate('appearance.languageModeDescription', languageMode)}
         </p>
         {showEnglish ? (
-          <label>
-            {translate('appearance.englishPlayfulness', languageMode)}
-            <input
-              type="range"
-              min={1}
-              max={5}
-              step={1}
-              value={this.state.funnyLevelEnglish}
-              onChange={event =>
-                this.changeFunnyLevel(
-                  'funnyLevelEnglish',
-                  event.currentTarget.value
-                )
-              }
-            />
-            <output>{this.state.funnyLevelEnglish}</output>
-          </label>
+          <RangeSlider
+            id="stash-dialog-funny-level-english"
+            label={translate('appearance.englishPlayfulness', languageMode)}
+            value={this.state.funnyLevelEnglish}
+            min={1}
+            max={5}
+            step={1}
+            onChange={value =>
+              this.changeFunnyLevel('funnyLevelEnglish', String(value))
+            }
+          />
         ) : null}
         {showCantonese ? (
-          <label>
-            {translate('appearance.cantonesePlayfulness', languageMode)}
-            <input
-              type="range"
-              min={1}
-              max={5}
-              step={1}
-              value={this.state.funnyLevelCantonese}
-              onChange={event =>
-                this.changeFunnyLevel(
-                  'funnyLevelCantonese',
-                  event.currentTarget.value
-                )
-              }
-            />
-            <output>{this.state.funnyLevelCantonese}</output>
-          </label>
+          <RangeSlider
+            id="stash-dialog-funny-level-cantonese"
+            label={translate('appearance.cantonesePlayfulness', languageMode)}
+            value={this.state.funnyLevelCantonese}
+            min={1}
+            max={5}
+            step={1}
+            onChange={value =>
+              this.changeFunnyLevel('funnyLevelCantonese', String(value))
+            }
+          />
         ) : null}
         <Button
           className="stash-dialog-appearance-control"

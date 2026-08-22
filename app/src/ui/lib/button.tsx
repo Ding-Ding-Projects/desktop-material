@@ -142,6 +142,13 @@ export interface IButtonProps {
    */
   readonly ariaHidden?: boolean
 
+  /**
+   * Identifies the keyboard shortcut that activates this element, for menu
+   * items and other controls whose shortcut should be announced to assistive
+   * technology.
+   */
+  readonly ariaKeyshortcuts?: string
+
   /** If a button has a sentence type further description than it's label or
    * contents */
   readonly ariaDescribedBy?: string
@@ -295,6 +302,7 @@ export class Button extends React.Component<IButtonProps, {}> {
         aria-haspopup={this.props.ariaHaspopup}
         aria-pressed={this.props.ariaPressed}
         aria-hidden={this.props.ariaHidden}
+        aria-keyshortcuts={this.props.ariaKeyshortcuts}
         aria-controls={this.props.ariaControls}
         // Emitted only while busy: `aria-busy="false"` is the default state
         // and would only add noise to every control that can ever be busy.

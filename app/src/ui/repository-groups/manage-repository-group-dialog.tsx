@@ -8,6 +8,7 @@ import {
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
 import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
+import { Button } from '../lib/button'
 import { Dispatcher } from '../dispatcher'
 import { nameOf, Repository } from '../../models/repository'
 import { Repositoryish } from '../repositories-list/group-repositories'
@@ -430,14 +431,15 @@ export class ManageRepositoryGroupDialog extends React.Component<
         </DialogContent>
         <DialogFooter>
           {isEditing && (
-            <button
+            <Button
               type="button"
               className="repository-group-remove"
-              aria-label={this.accessibleText('repositoryGroups.removeAction')}
+              ariaLabel={this.accessibleText('repositoryGroups.removeAction')}
+              inferTooltip={false}
               onClick={this.onRemoveGroup}
             >
               {this.text('repositoryGroups.removeAction')}
-            </button>
+            </Button>
           )}
           <OkCancelButtonGroup
             okButtonText={this.text(

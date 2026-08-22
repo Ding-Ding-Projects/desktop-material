@@ -341,8 +341,8 @@ export class ActionsLocalRunDialog extends React.Component<
     })
   }
 
-  private onLogFilterChanged = (event: React.FormEvent<HTMLInputElement>) => {
-    this.setState({ logFilter: event.currentTarget.value })
+  private onLogFilterChanged = (logFilter: string) => {
+    this.setState({ logFilter })
   }
 
   private onLogFilterModeChanged = (logFilterMode: FilterMode) => {
@@ -746,14 +746,14 @@ export class ActionsLocalRunDialog extends React.Component<
 
     return (
       <div className="actions-local-run-log-search">
-        <input
+        <TextBox
           type="search"
-          data-search-surface-id="actions-local-run-log"
+          searchSurfaceId="actions-local-run-log"
           className="actions-local-run-log-filter-input"
           value={this.state.logFilter}
-          onChange={this.onLogFilterChanged}
+          onValueChanged={this.onLogFilterChanged}
           placeholder={t('actionsLocalRun.filterPlaceholder')}
-          aria-label={t('actionsLocalRun.filterLabel')}
+          ariaLabel={t('actionsLocalRun.filterLabel')}
         />
         <FilterModeControl
           searchSurfaceId="actions-local-run-log"

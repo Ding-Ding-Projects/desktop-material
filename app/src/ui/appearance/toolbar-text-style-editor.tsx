@@ -322,7 +322,7 @@ export class ToolbarTextStyleEditor extends React.Component<IToolbarTextStyleEdi
             onChange={this.onSizeChanged}
           />
           <output htmlFor="toolbar-typography-size">{size}px</output>
-          <button
+          <Button
             type="button"
             className="toolbar-typography-reset-field"
             disabled={this.props.value?.fontSize === undefined}
@@ -331,7 +331,7 @@ export class ToolbarTextStyleEditor extends React.Component<IToolbarTextStyleEdi
             {repositoryScoped
               ? t('appearance.toolbarInheritSize')
               : t('appearance.toolbarThemeSize')}
-          </button>
+          </Button>
         </div>
 
         <fieldset className="toolbar-typography-group">
@@ -383,7 +383,7 @@ export class ToolbarTextStyleEditor extends React.Component<IToolbarTextStyleEdi
             onChange={this.onSpacingChanged}
           />
           <output htmlFor="toolbar-typography-spacing">{spacing}px</output>
-          <button
+          <Button
             type="button"
             className="toolbar-typography-reset-field"
             disabled={this.props.value?.characterSpacing === undefined}
@@ -392,7 +392,7 @@ export class ToolbarTextStyleEditor extends React.Component<IToolbarTextStyleEdi
             {repositoryScoped
               ? t('appearance.toolbarInheritSpacing')
               : t('appearance.toolbarThemeSpacing')}
-          </button>
+          </Button>
         </div>
 
         <fieldset className="toolbar-typography-group">
@@ -422,7 +422,7 @@ export class ToolbarTextStyleEditor extends React.Component<IToolbarTextStyleEdi
         <fieldset className="toolbar-typography-group toolbar-typography-colors">
           <legend>{t('appearance.toolbarTextColor')}</legend>
           <div className="toolbar-typography-color-actions">
-            <button
+            <Button
               type="button"
               className="toolbar-typography-reset-field"
               disabled={this.props.value?.color === undefined}
@@ -431,7 +431,7 @@ export class ToolbarTextStyleEditor extends React.Component<IToolbarTextStyleEdi
               {repositoryScoped
                 ? t('appearance.toolbarInheritColor')
                 : t('appearance.toolbarThemeColor')}
-            </button>
+            </Button>
             <InfiniteColorPicker
               id="toolbar-typography-custom-color"
               label={t('appearance.toolbarCustomColor')}

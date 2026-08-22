@@ -13,6 +13,7 @@ import {
 import { Repository } from '../../models/repository'
 import { IFetchProgress, IPushProgress } from '../../models/progress'
 import { Button } from '../lib/button'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { OperationProgressRow } from '../lib/operation-progress-row'
 import {
   getPersistedLanguageMode,
@@ -762,19 +763,19 @@ export class TagLifecycleManager extends React.Component<
                 }
               />
             </label>
-            <label className="tag-lifecycle-check">
-              <input
-                type="checkbox"
-                checked={this.state.createSigned}
-                disabled={disabled}
-                onChange={event =>
-                  this.setState({ createSigned: event.currentTarget.checked })
-                }
-              />
-              {this.localized('tagLifecycle.signConfigured', {
+            <Checkbox
+              className="tag-lifecycle-check"
+              value={
+                this.state.createSigned ? CheckboxValue.On : CheckboxValue.Off
+              }
+              disabled={disabled}
+              label={this.localized('tagLifecycle.signConfigured', {
                 format: this.state.inventory?.signingFormat ?? 'OpenPGP',
               })}
-            </label>
+              onChange={event =>
+                this.setState({ createSigned: event.currentTarget.checked })
+              }
+            />
             <p className="tag-lifecycle-signing-status">
               {this.state.inventory?.signingConfigured === true
                 ? this.localized('tagLifecycle.signingConfigured')
@@ -863,17 +864,17 @@ export class TagLifecycleManager extends React.Component<
                 }
               />
             </label>
-            <label className="tag-lifecycle-check">
-              <input
-                type="checkbox"
-                checked={this.state.moveSigned}
-                disabled={disabled}
-                onChange={event =>
-                  this.setState({ moveSigned: event.currentTarget.checked })
-                }
-              />
-              {this.localized('tagLifecycle.signRecreated')}
-            </label>
+            <Checkbox
+              className="tag-lifecycle-check"
+              value={
+                this.state.moveSigned ? CheckboxValue.On : CheckboxValue.Off
+              }
+              disabled={disabled}
+              label={this.localized('tagLifecycle.signRecreated')}
+              onChange={event =>
+                this.setState({ moveSigned: event.currentTarget.checked })
+              }
+            />
           </>
         )}
         <div className="tag-lifecycle-actions">

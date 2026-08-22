@@ -1,5 +1,6 @@
 /* eslint-disable react/jsx-no-bind */
 import * as React from 'react'
+import { Select } from '../lib/select'
 import {
   IAIAdminPolicySettings,
   getExplicitRepositoryOverride,
@@ -31,7 +32,7 @@ export function AISecurityOverrides(props: IAISecurityOverridesProps) {
   )
   const effective = resolveRepositoryAIEligibility(settings, repositoryPath)
 
-  const onChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  const onChange = (event: React.FormEvent<HTMLSelectElement>) => {
     const { value } = event.currentTarget
     props.onOverrideChanged(
       value === 'inherit' ? null : (value as 'allow' | 'deny')
@@ -55,7 +56,7 @@ export function AISecurityOverrides(props: IAISecurityOverridesProps) {
       )}
       <label className="ai-security-override-row">
         <span>This repository</span>
-        <select value={explicitOverride ?? 'inherit'} onChange={onChange}>
+        <Select value={explicitOverride ?? 'inherit'} onChange={onChange}>
           <option value="inherit">
             Use global default (
             {settings.defaultRepositoryEligibility === 'allow'
@@ -65,7 +66,7 @@ export function AISecurityOverrides(props: IAISecurityOverridesProps) {
           </option>
           <option value="allow">Allowed</option>
           <option value="deny">Denied</option>
-        </select>
+        </Select>
       </label>
       <p className="settings-description">
         Currently {effective === 'allow' ? 'allowed' : 'denied'} for{' '}

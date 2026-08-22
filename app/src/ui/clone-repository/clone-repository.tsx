@@ -32,6 +32,7 @@ import { CloneGithubRepository } from './clone-github-repository'
 import { assertNever } from '../../lib/fatal-error'
 import { CallToAction } from '../lib/call-to-action'
 import { Button } from '../lib/button'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { IAccountRepositories } from '../../lib/stores/api-repositories-store'
 import { merge } from '../../lib/merge'
 import { ClickSource } from '../lib/list'
@@ -847,9 +848,10 @@ export class CloneRepository extends React.Component<
               className="clone-shallow-toggle"
               aria-label="Shallow clone. Current branch and recursive submodules"
             >
-              <input
-                type="checkbox"
-                checked={this.state.shallowClone}
+              <Checkbox
+                value={
+                  this.state.shallowClone ? CheckboxValue.On : CheckboxValue.Off
+                }
                 onChange={this.onShallowCloneChanged}
               />
               <span>
@@ -887,7 +889,7 @@ export class CloneRepository extends React.Component<
   }
 
   private onShallowCloneChanged = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.FormEvent<HTMLInputElement>
   ) => this.setState({ shallowClone: event.currentTarget.checked })
 
   private onCloneDepthChanged = (event: React.ChangeEvent<HTMLInputElement>) =>
@@ -979,9 +981,8 @@ export class CloneRepository extends React.Component<
             className="clone-shallow-toggle"
             aria-label="Provision a runner after this clone"
           >
-            <input
-              type="checkbox"
-              checked={enabled}
+            <Checkbox
+              value={enabled ? CheckboxValue.On : CheckboxValue.Off}
               onChange={this.onPostCloneRunnerEnabledChanged}
             />
             <span>
@@ -1024,9 +1025,12 @@ export class CloneRepository extends React.Component<
                 className="clone-shallow-toggle"
                 aria-label="I trust this repository's workflow authors"
               >
-                <input
-                  type="checkbox"
-                  checked={this.state.postCloneRunnerTrustConfirmed}
+                <Checkbox
+                  value={
+                    this.state.postCloneRunnerTrustConfirmed
+                      ? CheckboxValue.On
+                      : CheckboxValue.Off
+                  }
                   onChange={this.onPostCloneRunnerTrustChanged}
                 />
                 <span>
@@ -1050,7 +1054,7 @@ export class CloneRepository extends React.Component<
   }
 
   private onPostCloneRunnerEnabledChanged = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.FormEvent<HTMLInputElement>
   ) => {
     const enabled = event.currentTarget.checked
     this.setState(
@@ -1069,7 +1073,7 @@ export class CloneRepository extends React.Component<
   }
 
   private onPostCloneRunnerTrustChanged = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.FormEvent<HTMLInputElement>
   ) =>
     this.setState({
       postCloneRunnerTrustConfirmed: event.currentTarget.checked,

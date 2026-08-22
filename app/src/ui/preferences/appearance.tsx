@@ -7,6 +7,7 @@ import {
 import { Row } from '../lib/row'
 import { DialogContent } from '../dialog'
 import { RadioGroup } from '../lib/radio-group'
+import { RangeSlider } from '../lib/range-slider'
 import { Select } from '../lib/select'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { tabSizeDefault } from '../../lib/stores/app-store'
@@ -364,7 +365,7 @@ export class Appearance extends React.Component<
       | 'appearance.englishPlayfulness'
       | 'appearance.cantonesePlayfulness',
     value: number,
-    onChange: (event: React.FormEvent<HTMLInputElement>) => void
+    onChange: (value: number) => void
   ) {
     const languageMode = this.props.appearanceCustomization.languageMode
     const id = `appearance-playfulness-${language}`
@@ -383,23 +384,18 @@ export class Appearance extends React.Component<
             : 'settings-funny-cantonese'
         )}
       >
-        <div className="appearance-playfulness-label-row">
-          <label htmlFor={id}>{label}</label>
-          <output id={outputId} htmlFor={id} aria-live="polite">
-            {value}
-          </output>
-        </div>
-        <input
+        <RangeSlider
           id={id}
           className="appearance-playfulness-slider"
-          type="range"
+          label={label}
           min={1}
           max={5}
           step={1}
           value={value}
+          valueText={value.toString()}
+          ariaValueText={valueText}
+          ariaDescribedBy={`appearance-playfulness-description ${outputId}`}
           onChange={onChange}
-          aria-describedby={`appearance-playfulness-description ${outputId}`}
-          aria-valuetext={valueText}
         />
         <div className="appearance-playfulness-scale" aria-hidden={true}>
           <span>
@@ -413,23 +409,19 @@ export class Appearance extends React.Component<
     )
   }
 
-  private onEnglishFunnyLevelChanged = (
-    event: React.FormEvent<HTMLInputElement>
-  ) => {
-    this.updateFunnyLevel('funnyLevelEnglish', event.currentTarget.value)
+  private onEnglishFunnyLevelChanged = (value: number) => {
+    this.updateFunnyLevel('funnyLevelEnglish', value)
   }
 
-  private onCantoneseFunnyLevelChanged = (
-    event: React.FormEvent<HTMLInputElement>
-  ) => {
-    this.updateFunnyLevel('funnyLevelCantonese', event.currentTarget.value)
+  private onCantoneseFunnyLevelChanged = (value: number) => {
+    this.updateFunnyLevel('funnyLevelCantonese', value)
   }
 
   private updateFunnyLevel(
     key: 'funnyLevelEnglish' | 'funnyLevelCantonese',
-    rawValue: string
+    rawValue: number
   ) {
-    const value = clampFunnyLevel(Number(rawValue), 3)
+    const value = clampFunnyLevel(rawValue, 3)
     const settings: IAudioSystemSettings = {
       ...this.funnyLevelSettingsStore.getSettings(),
       [key]: value,

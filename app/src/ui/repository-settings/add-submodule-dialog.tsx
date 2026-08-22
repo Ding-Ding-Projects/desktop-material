@@ -44,6 +44,7 @@ import { Loading } from '../lib/loading'
 import { Row } from '../lib/row'
 import { TextBox } from '../lib/text-box'
 import { Select } from '../lib/select'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { TabBar } from '../tab-bar'
@@ -810,9 +811,8 @@ export class AddSubmoduleDialog extends React.Component<
     })
   }
 
-  private onBranchFilterChanged = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => this.setState({ branchFilter: event.currentTarget.value })
+  private onBranchFilterChanged = (value: string) =>
+    this.setState({ branchFilter: value })
 
   private onBranchFilterModeChanged = (branchFilterMode: FilterMode) => {
     persistFilterMode('add-submodule-branches', branchFilterMode)
@@ -1228,9 +1228,10 @@ export class AddSubmoduleDialog extends React.Component<
             ariaDescribedBy="add-submodule-remote-description-help"
           />
           <label className="add-submodule-create-private">
-            <input
-              type="checkbox"
-              checked={this.state.remotePrivate}
+            <Checkbox
+              value={
+                this.state.remotePrivate ? CheckboxValue.On : CheckboxValue.Off
+              }
               onChange={this.onRemotePrivateChanged}
             />
             <LocalizedText
@@ -1344,11 +1345,11 @@ export class AddSubmoduleDialog extends React.Component<
             />
           </span>
           <div className="add-submodule-branch-filter-field">
-            <input
-              data-search-surface-id="add-submodule-branches"
+            <TextBox
+              searchSurfaceId="add-submodule-branches"
               type="search"
               value={this.state.branchFilter}
-              onChange={this.onBranchFilterChanged}
+              onValueChanged={this.onBranchFilterChanged}
               placeholder={this.text('submodule.addBranchFilterLabel')}
             />
             <FilterModeControl

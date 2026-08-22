@@ -20,6 +20,7 @@ import { Row } from '../lib/row'
 import { DialogContent, DialogPreferredFocusClassName } from '../dialog'
 import { Avatar } from '../lib/avatar'
 import { CallToAction } from '../lib/call-to-action'
+import { Select } from '../lib/select'
 import { TextBox } from '../lib/text-box'
 import { PasswordTextBox } from '../lib/password-text-box'
 import {
@@ -204,23 +205,20 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
           onOpenInBrowser={this.props.onOpenInBrowser}
         />
         <div className="provider-sign-in-card">
-          <Row>
-            <label htmlFor="jira-mode-select">Jira deployment</label>
-            <select
-              id="jira-mode-select"
-              value={this.state.jiraMode}
-              disabled={loading}
-              onChange={this.onJiraModeChanged}
-            >
-              <option value="basic-email-token">
-                Jira Cloud (email + API token)
-              </option>
-              <option value="bearer-token">
-                Jira Data Center / Git Integration for Jira (personal access
-                token)
-              </option>
-            </select>
-          </Row>
+          <Select
+            label="Jira deployment"
+            value={this.state.jiraMode}
+            disabled={loading}
+            onChange={this.onJiraModeChanged}
+          >
+            <option value="basic-email-token">
+              Jira Cloud (email + API token)
+            </option>
+            <option value="bearer-token">
+              Jira Data Center / Git Integration for Jira (personal access
+              token)
+            </option>
+          </Select>
           <TextBox
             label="Jira server"
             placeholder="https://team.atlassian.net"
@@ -536,7 +534,7 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
     }
   }
 
-  private onJiraModeChanged = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  private onJiraModeChanged = (event: React.FormEvent<HTMLSelectElement>) => {
     this.setState({
       jiraMode: event.currentTarget.value as JiraAuthMode,
       jiraConnectedUser: null,

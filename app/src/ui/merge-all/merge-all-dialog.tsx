@@ -4,6 +4,7 @@ import { IMergeAllState, MergeAllMode } from '../../lib/automation/merge-all'
 import { Dispatcher } from '../dispatcher'
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { Button } from '../lib/button'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 
@@ -104,22 +105,24 @@ export class MergeAllDialog extends React.Component<
           </p>
           {!this.state.started && this.props.mode === 'worktrees' && (
             <div className="merge-all-options">
-              <label className="merge-all-checkpoint-option">
-                <input
-                  type="checkbox"
-                  checked={this.state.checkpointDirtyWorktrees}
-                  onChange={this.onCheckpointDirtyWorktreesChanged}
-                />
-                Commit, synchronize, and push dirty worktrees before merging
-              </label>
-              <label className="merge-all-checkpoint-option">
-                <input
-                  type="checkbox"
-                  checked={this.state.forceMatDay}
-                  onChange={this.onForceMatDayChanged}
-                />
-                Force Mat Day
-              </label>
+              <Checkbox
+                className="merge-all-checkpoint-option"
+                value={
+                  this.state.checkpointDirtyWorktrees
+                    ? CheckboxValue.On
+                    : CheckboxValue.Off
+                }
+                label="Commit, synchronize, and push dirty worktrees before merging"
+                onChange={this.onCheckpointDirtyWorktreesChanged}
+              />
+              <Checkbox
+                className="merge-all-checkpoint-option"
+                value={
+                  this.state.forceMatDay ? CheckboxValue.On : CheckboxValue.Off
+                }
+                label="Force Mat Day"
+                onChange={this.onForceMatDayChanged}
+              />
               <p className="merge-all-option-help">
                 Automatically preserve and publish recoverable work, relocate
                 the default branch from another worktree, merge, push, prove,

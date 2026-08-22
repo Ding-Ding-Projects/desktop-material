@@ -1,7 +1,9 @@
 /* eslint-disable react/jsx-no-bind */
 import * as React from 'react'
 import { DialogContent } from '../dialog'
+import { Button } from '../lib/button'
 import { MaterialSwitch } from '../lib/material-switch'
+import { Select } from '../lib/select'
 import { LocalizedText } from '../lib/localized-text'
 import {
   bilingualVariable,
@@ -32,6 +34,7 @@ import {
   SearchableSelect,
 } from '../lib/searchable-select'
 import { RangeSlider } from '../lib/range-slider'
+import { TextBox } from '../lib/text-box'
 import {
   INarratorVoice,
   NarratorVoiceLanguage,
@@ -307,7 +310,7 @@ export class SoundPreferences extends React.Component<
               sfxVolume => this.update({ sfxVolume })
             )}
           </div>
-          <button
+          <Button
             type="button"
             className="sound-preview-button"
             onClick={() => this.props.audioCueStore.previewCue('success')}
@@ -316,7 +319,7 @@ export class SoundPreferences extends React.Component<
               translationKey="settings.soundPreviewCue"
               languageMode={languageMode}
             />
-          </button>
+          </Button>
           {this.renderCueAudition()}
         </fieldset>
 
@@ -382,7 +385,7 @@ export class SoundPreferences extends React.Component<
               languageMode={languageMode}
             />
           </p>
-          <button
+          <Button
             type="button"
             className="sound-preview-button"
             onClick={() => this.props.audioCueStore.previewNarration('commit')}
@@ -391,7 +394,7 @@ export class SoundPreferences extends React.Component<
               translationKey="settings.soundPreviewNarration"
               languageMode={languageMode}
             />
-          </button>
+          </Button>
         </fieldset>
 
         <fieldset
@@ -524,12 +527,12 @@ export class SoundPreferences extends React.Component<
               aria-label={translate(family.headingKey, languageMode)}
             >
               {family.categories.map(({ category, labelKey }) => (
-                <button
+                <Button
                   key={category}
                   type="button"
                   className="sound-cue-button"
                   onClick={() => this.props.audioCueStore.previewCue(category)}
-                  aria-label={translate(
+                  ariaLabel={translate(
                     'settings.soundCuePlayLabel',
                     languageMode,
                     { cue: translatedVariable(labelKey) }
@@ -539,7 +542,7 @@ export class SoundPreferences extends React.Component<
                     translationKey={labelKey}
                     languageMode={languageMode}
                   />
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -591,27 +594,20 @@ export class SoundPreferences extends React.Component<
     onChange: (value: number) => void
   ) {
     const label = translate(labelKey, this.state.languageMode)
+    const percent = Math.round(value * 100)
     return (
-      <div className="sound-field-group">
-        <label htmlFor={id}>{label}</label>
-        <div className="sound-slider-row">
-          <input
-            id={id}
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={Math.round(value * 100)}
-            onChange={event =>
-              onChange(Number(event.currentTarget.value) / 100)
-            }
-            aria-valuetext={`${Math.round(value * 100)}%`}
-          />
-          <span className="sound-slider-value" aria-hidden={true}>
-            {Math.round(value * 100)}%
-          </span>
-        </div>
-      </div>
+      <RangeSlider
+        id={id}
+        className="sound-range-slider"
+        label={label}
+        min={0}
+        max={100}
+        step={1}
+        value={percent}
+        valueText={`${percent}%`}
+        ariaValueText={`${percent}%`}
+        onChange={percent => onChange(percent / 100)}
+      />
     )
   }
 
@@ -620,28 +616,20 @@ export class SoundPreferences extends React.Component<
     const label = translate('settings.soundTtsCooldownLabel', languageMode)
     const seconds = Math.round(settings.ttsCooldownMs / 1000)
     return (
-      <div className="sound-field-group">
-        <label htmlFor="sound-tts-cooldown">{label}</label>
-        <div className="sound-slider-row">
-          <input
-            id="sound-tts-cooldown"
-            type="range"
-            min={2}
-            max={60}
-            step={1}
-            value={seconds}
-            onChange={event =>
-              this.update({
-                ttsCooldownMs: Number(event.currentTarget.value) * 1000,
-              })
-            }
-            aria-valuetext={`${seconds}s`}
-          />
-          <span className="sound-slider-value" aria-hidden={true}>
-            {seconds}s
-          </span>
-        </div>
-      </div>
+      <RangeSlider
+        id="sound-tts-cooldown"
+        className="sound-range-slider"
+        label={label}
+        min={2}
+        max={60}
+        step={1}
+        value={seconds}
+        valueText={`${seconds}s`}
+        ariaValueText={`${seconds}s`}
+        onChange={nextSeconds =>
+          this.update({ ttsCooldownMs: nextSeconds * 1000 })
+        }
+      />
     )
   }
 
@@ -705,10 +693,9 @@ export class SoundPreferences extends React.Component<
     const hours = Array.from({ length: 24 }, (_, hour) => hour)
     return (
       <div className="sound-field-group">
-        <label htmlFor={id}>{label}</label>
-        <select
-          id={id}
-          value={value}
+        <Select
+          label={label}
+          value={value.toString()}
           onChange={event => onChange(Number(event.currentTarget.value))}
         >
           {hours.map(hour => (
@@ -716,7 +703,7 @@ export class SoundPreferences extends React.Component<
               {hour.toString().padStart(2, '0')}:00
             </option>
           ))}
-        </select>
+        </Select>
       </div>
     )
   }
@@ -796,23 +783,19 @@ export class SoundPreferences extends React.Component<
           className="sound-field-group"
           {...teleportAnchor('settings-sound-music-track')}
         >
-          <label htmlFor="sound-music-track">
-            {translate('settings.soundMusicRepoLabel', languageMode, {
-              repository: bilingualVariable(repository.name, repository.name),
-            })}
-          </label>
           <div className="sound-music-row">
-            <input
-              id="sound-music-track"
-              type="text"
-              readOnly={true}
+            <TextBox
+              label={translate('settings.soundMusicRepoLabel', languageMode, {
+                repository: bilingualVariable(repository.name, repository.name),
+              })}
               value={customTrack}
+              readOnly={true}
               placeholder={translate(
                 'settings.soundMusicNoTrack',
                 languageMode
               )}
             />
-            <button
+            <Button
               type="button"
               className="sound-tonal-button"
               onClick={this.chooseTrack}
@@ -821,12 +804,12 @@ export class SoundPreferences extends React.Component<
                 translationKey="settings.soundMusicChoose"
                 languageMode={languageMode}
               />
-            </button>
+            </Button>
           </div>
         </div>
 
         <div className="sound-theme-actions">
-          <button
+          <Button
             type="button"
             className="sound-text-button"
             onClick={this.previewTheme}
@@ -835,8 +818,8 @@ export class SoundPreferences extends React.Component<
               translationKey="settings.soundThemePreview"
               languageMode={languageMode}
             />
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             className="sound-text-button"
             onClick={this.muteHere}
@@ -846,8 +829,8 @@ export class SoundPreferences extends React.Component<
               translationKey="settings.soundThemeMute"
               languageMode={languageMode}
             />
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             className="sound-text-button"
             onClick={this.useTheme}
@@ -857,7 +840,7 @@ export class SoundPreferences extends React.Component<
               translationKey="settings.soundThemeUseTheme"
               languageMode={languageMode}
             />
-          </button>
+          </Button>
         </div>
       </div>
     )

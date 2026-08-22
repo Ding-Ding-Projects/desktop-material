@@ -6,7 +6,10 @@ import {
   showSaveDialog,
 } from '../main-process-proxy'
 import { Button } from '../lib/button'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { FilterModeControl } from '../lib/filter-mode-control'
+import { RadioButton } from '../lib/radio-button'
+import { Select } from '../lib/select'
 import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
 import {
   persistFilterMode,
@@ -241,33 +244,31 @@ export class StashExportPanel extends React.Component<
         disabled={this.state.busy}
       >
         <legend>{this.localized('stashManager.sevenZipOptionsHeading')}</legend>
-        <label>
-          {this.localized('stashManager.sevenZipMethod')}
-          <select
-            value={options.method}
-            onChange={event =>
-              this.updateSevenZip(
-                'method',
-                event.currentTarget.value as StashSevenZipMethod
-              )
-            }
-          >
-            {(
-              [
-                'Copy',
-                'Deflate',
-                'BZip2',
-                'LZMA',
-                'LZMA2',
-                'PPMd',
-              ] as ReadonlyArray<StashSevenZipMethod>
-            ).map(method => (
-              <option key={method} value={method}>
-                {method}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Select
+          label={translateForAccessibleName('stashManager.sevenZipMethod')}
+          value={options.method}
+          onChange={event =>
+            this.updateSevenZip(
+              'method',
+              event.currentTarget.value as StashSevenZipMethod
+            )
+          }
+        >
+          {(
+            [
+              'Copy',
+              'Deflate',
+              'BZip2',
+              'LZMA',
+              'LZMA2',
+              'PPMd',
+            ] as ReadonlyArray<StashSevenZipMethod>
+          ).map(method => (
+            <option key={method} value={method}>
+              {method}
+            </option>
+          ))}
+        </Select>
         <label>
           {this.localized('stashManager.sevenZipLevel')}
           <input
@@ -280,40 +281,35 @@ export class StashExportPanel extends React.Component<
             }
           />
         </label>
-        <label>
-          {this.localized('stashManager.sevenZipDictionary')}
-          <select
-            value={options.dictionary}
-            onChange={event =>
-              this.updateSevenZip('dictionary', event.currentTarget.value)
-            }
-          >
-            {['4m', '16m', '64m', '256m', '1g'].map(value => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          {this.localized('stashManager.sevenZipMatchFinder')}
-          <select
-            value={options.matchFinder}
-            onChange={event =>
-              this.updateSevenZip(
-                'matchFinder',
-                event.currentTarget
-                  .value as IStashSevenZipOptions['matchFinder']
-              )
-            }
-          >
-            {(['BT2', 'BT3', 'BT4', 'HC4'] as const).map(value => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Select
+          label={translateForAccessibleName('stashManager.sevenZipDictionary')}
+          value={options.dictionary}
+          onChange={event =>
+            this.updateSevenZip('dictionary', event.currentTarget.value)
+          }
+        >
+          {['4m', '16m', '64m', '256m', '1g'].map(value => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </Select>
+        <Select
+          label={translateForAccessibleName('stashManager.sevenZipMatchFinder')}
+          value={options.matchFinder}
+          onChange={event =>
+            this.updateSevenZip(
+              'matchFinder',
+              event.currentTarget.value as IStashSevenZipOptions['matchFinder']
+            )
+          }
+        >
+          {(['BT2', 'BT3', 'BT4', 'HC4'] as const).map(value => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </Select>
         <label>
           {this.localized('stashManager.sevenZipFastBytes')}
           <input
@@ -329,21 +325,19 @@ export class StashExportPanel extends React.Component<
             }
           />
         </label>
-        <label>
-          {this.localized('stashManager.sevenZipThreads')}
-          <select
-            value={options.threads}
-            onChange={event =>
-              this.updateSevenZip('threads', event.currentTarget.value)
-            }
-          >
-            {['on', '1', '2', '4', '8'].map(value => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Select
+          label={translateForAccessibleName('stashManager.sevenZipThreads')}
+          value={options.threads}
+          onChange={event =>
+            this.updateSevenZip('threads', event.currentTarget.value)
+          }
+        >
+          {['on', '1', '2', '4', '8'].map(value => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </Select>
         <label>
           {this.localized('stashManager.sevenZipSplitVolumes')}
           <input
@@ -355,16 +349,13 @@ export class StashExportPanel extends React.Component<
             }
           />
         </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={options.solid}
-            onChange={event =>
-              this.updateSevenZip('solid', event.currentTarget.checked)
-            }
-          />
-          {this.localized('stashManager.sevenZipSolid')}
-        </label>
+        <Checkbox
+          value={options.solid ? CheckboxValue.On : CheckboxValue.Off}
+          label={this.localized('stashManager.sevenZipSolid')}
+          onChange={event =>
+            this.updateSevenZip('solid', event.currentTarget.checked)
+          }
+        />
         <label>
           {this.localized('stashManager.sevenZipPassword')}
           <input
@@ -376,17 +367,14 @@ export class StashExportPanel extends React.Component<
             }
           />
         </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={options.encryptHeaders}
-            disabled={!options.password}
-            onChange={event =>
-              this.updateSevenZip('encryptHeaders', event.currentTarget.checked)
-            }
-          />
-          {this.localized('stashManager.sevenZipEncryptHeaders')}
-        </label>
+        <Checkbox
+          value={options.encryptHeaders ? CheckboxValue.On : CheckboxValue.Off}
+          disabled={!options.password}
+          label={this.localized('stashManager.sevenZipEncryptHeaders')}
+          onChange={event =>
+            this.updateSevenZip('encryptHeaders', event.currentTarget.checked)
+          }
+        />
       </fieldset>
     )
   }
@@ -480,30 +468,24 @@ export class StashExportPanel extends React.Component<
         ) : null}
         <fieldset className="stash-export-format" disabled={this.state.busy}>
           <legend>{this.localized('stashManager.exportFormatLabel')}</legend>
-          <label>
-            <input
-              type="radio"
-              checked={this.state.format === 'directory'}
-              onChange={() => this.setState({ format: 'directory' })}
-            />
-            {this.localized('stashManager.exportDirectory')}
-          </label>
-          <label>
-            <input
-              type="radio"
-              checked={this.state.format === 'zip'}
-              onChange={() => this.setState({ format: 'zip' })}
-            />
-            ZIP
-          </label>
-          <label>
-            <input
-              type="radio"
-              checked={this.state.format === '7z'}
-              onChange={() => this.setState({ format: '7z' })}
-            />
-            7z
-          </label>
+          <RadioButton
+            value="directory"
+            checked={this.state.format === 'directory'}
+            onSelected={() => this.setState({ format: 'directory' })}
+            label={this.localized('stashManager.exportDirectory')}
+          />
+          <RadioButton
+            value="zip"
+            checked={this.state.format === 'zip'}
+            onSelected={() => this.setState({ format: 'zip' })}
+            label="ZIP"
+          />
+          <RadioButton
+            value="7z"
+            checked={this.state.format === '7z'}
+            onSelected={() => this.setState({ format: '7z' })}
+            label="7z"
+          />
         </fieldset>
         {this.state.format === '7z' ? this.renderSevenZipOptions() : null}
         <p className="stash-manager-caption">

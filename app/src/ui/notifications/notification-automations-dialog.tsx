@@ -20,6 +20,11 @@ import { Repository } from '../../models/repository'
 import { Dialog, DialogContent, DialogError, DialogFooter } from '../dialog'
 import { Dispatcher } from '../dispatcher'
 import { Button } from '../lib/button'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
+import { MaterialSwitch } from '../lib/material-switch'
+import { Select } from '../lib/select'
+import { TextBox } from '../lib/text-box'
+import { TextArea } from '../lib/text-area'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import { RegexBuilder } from '../lib/regex-builder/regex-builder'
 import { Octicon } from '../octicons'
@@ -213,8 +218,8 @@ export class NotificationAutomationsDialog extends React.Component<
     return { rules: results.map(match => match.item), regexError }
   }
 
-  private onQueryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({ query: event.currentTarget.value })
+  private onQueryChange = (query: string) => {
+    this.setState({ query })
   }
 
   private onQueryModeChange = (queryMode: FilterMode) => {
@@ -294,11 +299,11 @@ export class NotificationAutomationsDialog extends React.Component<
     )
   }
 
-  private onNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    this.updateDraft({ name: event.currentTarget.value })
+  private onNameChange = (name: string) => {
+    this.updateDraft({ name })
   }
 
-  private onKindModeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  private onKindModeChange = (event: React.FormEvent<HTMLSelectElement>) => {
     this.updateDraft({
       kindMode: event.currentTarget.value as TriggerKindMode,
     })
@@ -333,25 +338,25 @@ export class NotificationAutomationsDialog extends React.Component<
   }
 
   private onActionTypeChange = (
-    event: React.ChangeEvent<HTMLSelectElement>
+    event: React.FormEvent<HTMLSelectElement>
   ) => {
     this.updateDraft({
       actionType: event.currentTarget.value as AutomationActionType,
     })
   }
 
-  private onUrlChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    this.updateDraft({ url: event.currentTarget.value })
+  private onUrlChange = (url: string) => {
+    this.updateDraft({ url })
   }
 
   private onBodyTemplateChange = (
-    event: React.ChangeEvent<HTMLTextAreaElement>
+    event: React.FormEvent<HTMLTextAreaElement>
   ) => {
     this.updateDraft({ bodyTemplate: event.currentTarget.value })
   }
 
-  private onExeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    this.updateDraft({ exe: event.currentTarget.value })
+  private onExeChange = (exe: string) => {
+    this.updateDraft({ exe })
   }
 
   private onArgChange = (index: number, value: string) => {
@@ -522,15 +527,17 @@ export class NotificationAutomationsDialog extends React.Component<
         <div className="notification-automations-filter-bar">
           <label className="notification-automations-search">
             <span>Search</span>
-            <input
-              data-search-surface-id="notification-automations"
+            <TextBox
               type="search"
+              searchSurfaceId="notification-automations"
               value={this.state.query}
-              aria-label="Search automations by name"
-              aria-invalid={regexError !== null}
-              aria-describedby={regexError === null ? undefined : queryErrorId}
+              ariaLabel="Search automations by name"
+              ariaInvalid={regexError !== null}
+              ariaDescribedBy={
+                regexError === null ? undefined : queryErrorId
+              }
               placeholder="Automation name"
-              onChange={this.onQueryChange}
+              onValueChanged={this.onQueryChange}
             />
           </label>
           <FilterModeControl
@@ -597,25 +604,20 @@ export class NotificationAutomationsDialog extends React.Component<
           armed: rule.enabled,
         })}
       >
-        <label className="notification-automation-arm">
-          <input
-            type="checkbox"
-            role="switch"
-            checked={rule.enabled}
-            aria-describedby={
-              titlePatternError === null ? undefined : patternStatusId
-            }
-            aria-label={
-              rule.enabled
-                ? `Disarm automation: ${rule.name}`
-                : `Arm automation: ${rule.name}`
-            }
-            // eslint-disable-next-line react/jsx-no-bind
-            onChange={event =>
-              this.onToggleRuleEnabled(rule, event.currentTarget.checked)
-            }
-          />
-        </label>
+        <MaterialSwitch
+          className="notification-automation-arm"
+          checked={rule.enabled}
+          ariaDescribedBy={
+            titlePatternError === null ? undefined : patternStatusId
+          }
+          ariaLabel={
+            rule.enabled
+              ? `Disarm automation: ${rule.name}`
+              : `Arm automation: ${rule.name}`
+          }
+          // eslint-disable-next-line react/jsx-no-bind
+          onChange={checked => this.onToggleRuleEnabled(rule, checked)}
+        />
         <div className="notification-automation-body">
           <span className="notification-automation-name">{rule.name}</span>
           <span className="notification-automation-summary">
@@ -674,10 +676,10 @@ export class NotificationAutomationsDialog extends React.Component<
         <legend>Trigger</legend>
         <label className="notification-automations-field">
           <span>Notification kinds</span>
-          <select value={draft.kindMode} onChange={this.onKindModeChange}>
+          <Select value={draft.kindMode} onChange={this.onKindModeChange}>
             <option value="all">Any kind</option>
             <option value="selected">Only selected kinds</option>
-          </select>
+          </Select>
         </label>
         {draft.kindMode === 'selected' ? (
           <div
@@ -686,17 +688,18 @@ export class NotificationAutomationsDialog extends React.Component<
             aria-label="Notification kinds"
           >
             {allKinds.map(kind => (
-              <label key={kind} className="notification-automations-kind">
-                <input
-                  type="checkbox"
-                  checked={draft.kinds.has(kind)}
-                  // eslint-disable-next-line react/jsx-no-bind
-                  onChange={event =>
-                    this.onKindToggle(kind, event.currentTarget.checked)
-                  }
-                />
-                <span>{kindLabels[kind]}</span>
-              </label>
+              <Checkbox
+                key={kind}
+                className="notification-automations-kind"
+                label={<span>{kindLabels[kind]}</span>}
+                value={
+                  draft.kinds.has(kind) ? CheckboxValue.On : CheckboxValue.Off
+                }
+                // eslint-disable-next-line react/jsx-no-bind
+                onChange={event =>
+                  this.onKindToggle(kind, event.currentTarget.checked)
+                }
+              />
             ))}
           </div>
         ) : null}
@@ -760,13 +763,13 @@ export class NotificationAutomationsDialog extends React.Component<
       <>
         <label className="notification-automations-field">
           <span>Webhook URL</span>
-          <input
+          <TextBox
             type="text"
             value={draft.url}
             placeholder="https://example.com/hook"
-            aria-label="Webhook URL"
-            aria-invalid={urlError !== null}
-            onChange={this.onUrlChange}
+            ariaLabel="Webhook URL"
+            ariaInvalid={urlError !== null}
+            onValueChanged={this.onUrlChange}
           />
           {urlError !== null ? (
             <small
@@ -784,10 +787,10 @@ export class NotificationAutomationsDialog extends React.Component<
         </label>
         <label className="notification-automations-field">
           <span>Body template</span>
-          <textarea
+          <TextArea
             value={draft.bodyTemplate}
             rows={5}
-            aria-label="Webhook body template"
+            ariaLabel="Webhook body template"
             onChange={this.onBodyTemplateChange}
           />
           <small className="notification-automations-legend">
@@ -809,12 +812,12 @@ export class NotificationAutomationsDialog extends React.Component<
       <>
         <label className="notification-automations-field">
           <span>Executable</span>
-          <input
+          <TextBox
             type="text"
             value={draft.exe}
             placeholder="notify-send"
-            aria-label="Command executable"
-            onChange={this.onExeChange}
+            ariaLabel="Command executable"
+            onValueChanged={this.onExeChange}
           />
         </label>
         <div
@@ -825,15 +828,13 @@ export class NotificationAutomationsDialog extends React.Component<
           <span className="notification-automations-args-label">Arguments</span>
           {draft.argTemplates.map((arg, index) => (
             <div key={index} className="notification-automations-arg-row">
-              <input
+              <TextBox
                 type="text"
                 value={arg}
-                aria-label={`Argument ${index + 1}`}
+                ariaLabel={`Argument ${index + 1}`}
                 placeholder="--title={title}"
                 // eslint-disable-next-line react/jsx-no-bind
-                onChange={event =>
-                  this.onArgChange(index, event.currentTarget.value)
-                }
+                onValueChanged={value => this.onArgChange(index, value)}
               />
               {/* eslint-disable-next-line react/jsx-no-bind */}
               <Button type="button" onClick={() => this.onRemoveArg(index)}>
@@ -867,12 +868,12 @@ export class NotificationAutomationsDialog extends React.Component<
         <h2>{draft.isNew ? 'New automation' : 'Edit automation'}</h2>
         <label className="notification-automations-field">
           <span>Name</span>
-          <input
+          <TextBox
             type="text"
             value={draft.name}
             autoFocus={true}
-            aria-label="Automation name"
-            onChange={this.onNameChange}
+            ariaLabel="Automation name"
+            onValueChanged={this.onNameChange}
           />
         </label>
         {this.renderTrigger(draft)}
@@ -880,10 +881,10 @@ export class NotificationAutomationsDialog extends React.Component<
           <legend>Action</legend>
           <label className="notification-automations-field">
             <span>Type</span>
-            <select value={draft.actionType} onChange={this.onActionTypeChange}>
+            <Select value={draft.actionType} onChange={this.onActionTypeChange}>
               <option value="webhook">Webhook (HTTP POST)</option>
               <option value="command">Local command</option>
-            </select>
+            </Select>
           </label>
           {draft.actionType === 'webhook'
             ? this.renderWebhookAction(draft)

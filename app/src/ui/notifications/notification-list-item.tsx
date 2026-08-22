@@ -8,6 +8,7 @@ import {
   NotificationCentreKind,
 } from '../../models/notification-centre'
 import { IMenuItem, showContextualMenu } from '../../lib/menu-item'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { personalizeText } from '../../lib/i18n'
 import { PersonalVocabularyChangedEvent } from '../../lib/personal-vocabulary'
 import {
@@ -109,7 +110,7 @@ export class NotificationListItem extends React.PureComponent<INotificationListI
     this.props.onDelete(this.props.entry)
   }
 
-  private onToggleSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+  private onToggleSelected = (event: React.FormEvent<HTMLInputElement>) => {
     event.stopPropagation()
     this.props.onToggleSelected(this.props.entry, event.currentTarget.checked)
   }
@@ -142,15 +143,13 @@ export class NotificationListItem extends React.PureComponent<INotificationListI
 
     return (
       <li className={className} onContextMenu={this.onContextMenu}>
-        <label className="notification-item-selection">
-          <input
-            type="checkbox"
-            checked={selected}
-            disabled={selectionDisabled}
-            aria-label={`${personalizeText('Select notification:')} ${title}`}
-            onChange={this.onToggleSelected}
-          />
-        </label>
+        <Checkbox
+          className="notification-item-selection"
+          value={selected ? CheckboxValue.On : CheckboxValue.Off}
+          disabled={selectionDisabled}
+          ariaLabel={`${personalizeText('Select notification:')} ${title}`}
+          onChange={this.onToggleSelected}
+        />
         <button
           type="button"
           className="notification-item-activate"

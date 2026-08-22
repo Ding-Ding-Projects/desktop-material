@@ -32,6 +32,9 @@ import {
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import { Button } from '../lib/button'
+import { Select } from '../lib/select'
+import { TextBox } from '../lib/text-box'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
 
 const MaximumInspectionOutput = 64 * 1024
 
@@ -901,7 +904,7 @@ export class RepositorySigning extends React.Component<
     })
   }
 
-  private onScopeChanged = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  private onScopeChanged = (event: React.FormEvent<HTMLSelectElement>) => {
     const scope = event.currentTarget.value as RepositorySigningScope
     const editable = this.editableConfigForScope(scope)
     this.setState({
@@ -915,7 +918,7 @@ export class RepositorySigning extends React.Component<
     })
   }
 
-  private onFormatChanged = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  private onFormatChanged = (event: React.FormEvent<HTMLSelectElement>) => {
     this.setState({
       format: event.currentTarget.value as RepositorySigningFormat,
       signingKey: '',
@@ -923,20 +926,20 @@ export class RepositorySigning extends React.Component<
     })
   }
 
-  private onKeyChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({ signingKey: event.currentTarget.value, error: null })
+  private onKeyChanged = (value: string) => {
+    this.setState({ signingKey: value, error: null })
   }
 
-  private onCommitChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
+  private onCommitChanged = (event: React.FormEvent<HTMLInputElement>) => {
     this.setState({ commitSigning: event.currentTarget.checked, error: null })
   }
 
-  private onTagChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
+  private onTagChanged = (event: React.FormEvent<HTMLInputElement>) => {
     this.setState({ tagSigning: event.currentTarget.checked, error: null })
   }
 
   private onSelectedTagChanged = (
-    event: React.ChangeEvent<HTMLSelectElement>
+    event: React.FormEvent<HTMLSelectElement>
   ) => {
     this.setState({ selectedTag: event.currentTarget.value, error: null })
   }
@@ -1006,11 +1009,8 @@ export class RepositorySigning extends React.Component<
     }
     return (
       <div className="repository-admin-form">
-        <label htmlFor="repository-signing-scope">
-          {this.text('repositorySigning.scopeLabel')}
-        </label>
-        <select
-          id="repository-signing-scope"
+        <Select
+          label={this.text('repositorySigning.scopeLabel')}
           value={this.state.scope}
           disabled={this.props.disabled}
           onChange={this.onScopeChanged}
@@ -1021,12 +1021,9 @@ export class RepositorySigning extends React.Component<
           <option value="global">
             {this.text('repositorySigning.scope.global')}
           </option>
-        </select>
-        <label htmlFor="repository-signing-format">
-          {this.text('repositorySigning.formatLabel')}
-        </label>
-        <select
-          id="repository-signing-format"
+        </Select>
+        <Select
+          label={this.text('repositorySigning.formatLabel')}
           value={this.state.format}
           disabled={this.props.disabled}
           onChange={this.onFormatChanged}
@@ -1034,36 +1031,31 @@ export class RepositorySigning extends React.Component<
           <option value="openpgp">OpenPGP</option>
           <option value="ssh">SSH</option>
           <option value="x509">X.509</option>
-        </select>
-        <label htmlFor="repository-signing-key">
-          {this.text('repositorySigning.replacementKeyLabel')}
-        </label>
-        <input
-          id="repository-signing-key"
-          type="text"
-          autoComplete="off"
-          spellCheck={false}
+        </Select>
+        <TextBox
+          label={this.text('repositorySigning.replacementKeyLabel')}
+          spellcheck={false}
           value={this.state.signingKey}
           disabled={this.props.disabled}
-          aria-describedby="repository-signing-key-help"
-          onChange={this.onKeyChanged}
+          ariaDescribedBy="repository-signing-key-help"
+          onValueChanged={this.onKeyChanged}
         />
         <p id="repository-signing-key-help" className="repository-admin-help">
           {this.text('repositorySigning.replacementKeyHelp')}
         </p>
         <label className="repository-admin-check">
-          <input
-            type="checkbox"
-            checked={this.state.commitSigning}
+          <Checkbox
+            value={
+              this.state.commitSigning ? CheckboxValue.On : CheckboxValue.Off
+            }
             disabled={this.props.disabled}
             onChange={this.onCommitChanged}
           />
           {this.text('repositorySigning.signCommits')}
         </label>
         <label className="repository-admin-check">
-          <input
-            type="checkbox"
-            checked={this.state.tagSigning}
+          <Checkbox
+            value={this.state.tagSigning ? CheckboxValue.On : CheckboxValue.Off}
             disabled={this.props.disabled}
             onChange={this.onTagChanged}
           />
@@ -1178,11 +1170,8 @@ export class RepositorySigning extends React.Component<
         </div>
         {this.state.tags.length > 0 && (
           <div className="repository-admin-inline-form">
-            <label htmlFor="repository-signing-tag">
-              {this.text('repositorySigning.annotatedTag')}
-            </label>
-            <select
-              id="repository-signing-tag"
+            <Select
+              label={this.text('repositorySigning.annotatedTag')}
               value={this.state.selectedTag}
               disabled={this.props.disabled || this.runId !== null}
               onChange={this.onSelectedTagChanged}
@@ -1192,7 +1181,7 @@ export class RepositorySigning extends React.Component<
                   {tag.name}
                 </option>
               ))}
-            </select>
+            </Select>
             <Button
               disabled={this.props.disabled || this.runId !== null}
               onClick={this.onVerifyTag}

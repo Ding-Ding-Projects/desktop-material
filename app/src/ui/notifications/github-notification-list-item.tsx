@@ -4,6 +4,7 @@ import classNames from 'classnames'
 import { IAPINotificationThread } from '../../lib/api'
 import { Octicon, OcticonSymbol } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { RelativeTime } from '../relative-time'
 
 interface IGitHubNotificationListItemProps {
@@ -64,7 +65,7 @@ export class GitHubNotificationListItem extends React.PureComponent<IGitHubNotif
     this.props.onRequestDone(this.props.thread, event.currentTarget)
   }
 
-  private onToggleSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+  private onToggleSelected = (event: React.FormEvent<HTMLInputElement>) => {
     event.stopPropagation()
     this.props.onToggleSelected(this.props.thread, event.currentTarget.checked)
   }
@@ -78,15 +79,13 @@ export class GitHubNotificationListItem extends React.PureComponent<IGitHubNotif
           selected,
         })}
       >
-        <label className="notification-item-selection">
-          <input
-            type="checkbox"
-            checked={selected}
-            disabled={selectionDisabled || busy}
-            aria-label={`Select GitHub notification: ${thread.subject.title}`}
-            onChange={this.onToggleSelected}
-          />
-        </label>
+        <Checkbox
+          className="notification-item-selection"
+          value={selected ? CheckboxValue.On : CheckboxValue.Off}
+          disabled={selectionDisabled || busy}
+          ariaLabel={`Select GitHub notification: ${thread.subject.title}`}
+          onChange={this.onToggleSelected}
+        />
         <button
           type="button"
           className="notification-item-activate"
