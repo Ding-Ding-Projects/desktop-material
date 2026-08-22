@@ -23,9 +23,17 @@ original-wording state was captured again. The promoted images are
 `docs/assets/screenshots/personal-vocabulary-material-controls-20260821.png`
 and
 `docs/assets/screenshots/personal-vocabulary-material-controls-loaded-20260821.png`.
-The current remote CI runs for this commit remain unverified because the GitHub
-API returned HTTP 403 rate-limit responses while the runs were queued; no
-release is claimed for this UI repair.
+Remote verification is now complete for this commit: CI Linux run
+`32548378587`, CI Windows run `32548378603` (x64 and arm64), and Pages run
+`32548378593` all completed successfully. Express release run `32549736818`
+published non-draft release
+[`v4.0.127901`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.127901),
+targeting this exact commit. The six uploaded assets are the x64 ZIP, the two
+full packages, the setup EXE, the setup MSI, and `RELEASES`; unauthenticated
+HEAD requests returned HTTP 200 with the recorded sizes. Release timing was
+`2026-08-22T03:44:04Z` → `2026-08-22T04:25:34Z` (`00:41:30`). The release notes
+record code name `Chicken Soup Dumplings · 雞湯小籠包` and the CI line-count
+table for this commit.
 
 ## Credential wait ladder — 2026-08-21
 
