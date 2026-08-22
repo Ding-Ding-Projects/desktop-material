@@ -17,6 +17,7 @@ import {
   type TranslationKey,
   type TranslationVariables,
 } from '../../lib/i18n'
+import { Button } from '../lib/button'
 
 /**
  * Where the user uploads their own vocabulary file.
@@ -60,6 +61,7 @@ export class PersonalVocabularyControl extends React.Component<
 > {
   private readonly inputId = 'personal-vocabulary-file'
   private readonly statusId = 'personal-vocabulary-status'
+  private readonly fileInputRef = React.createRef<HTMLInputElement>()
   private activeVocabulary: IPersonalVocabulary | null
 
   public constructor(props: IPersonalVocabularyControlProps) {
@@ -141,6 +143,10 @@ export class PersonalVocabularyControl extends React.Component<
     this.props.onChanged?.(null)
   }
 
+  private openFilePicker = () => {
+    this.fileInputRef.current?.click()
+  }
+
   private renderStatus() {
     const { status } = this.state
     switch (status.kind) {
@@ -192,17 +198,31 @@ export class PersonalVocabularyControl extends React.Component<
     const loaded = this.activeVocabulary !== null
     return (
       <div className="personal-vocabulary-control">
-        <label htmlFor={this.inputId}>
-          {this.text('settings.personalVocabularyChooseFile')}
-        </label>
-        <input
-          id={this.inputId}
-          type="file"
-          accept="application/json,.json"
-          aria-describedby={this.statusId}
-          onChange={this.onFileChosen}
-        />
-        {/*
+        <div className="personal-vocabulary-label">
+          <label htmlFor={this.inputId}>
+            {this.text('settings.personalVocabularyChooseFile')}
+          </label>
+        </div>
+        <div className="personal-vocabulary-actions">
+          <input
+            ref={this.fileInputRef}
+            id={this.inputId}
+            className="personal-vocabulary-file-input"
+            type="file"
+            accept="application/json,.json"
+            tabIndex={-1}
+            aria-hidden={true}
+            onChange={this.onFileChosen}
+          />
+          <Button
+            type="button"
+            dataVerification="personal-vocabulary-choose-file"
+            ariaDescribedBy={this.statusId}
+            onClick={this.openFilePicker}
+          >
+            {this.text('settings.personalVocabularyChooseFile')}
+          </Button>
+          {/*
           Absent rather than disabled. A disabled text button has no container
           and no border, so "Nothing to clear" rendered as a line of stray grey
           text floating between two controls — it read as a caption nobody had
@@ -210,15 +230,17 @@ export class PersonalVocabularyControl extends React.Component<
           reporting is already stated, in words, by the status line directly
           below it.
         */}
-        {loaded ? (
-          <button
-            type="button"
-            onClick={this.onClear}
-            title={this.text('settings.personalVocabularyClearTitle')}
-          >
-            {this.text('settings.personalVocabularyClear')}
-          </button>
-        ) : null}
+          {loaded ? (
+            <Button
+              type="button"
+              dataVerification="personal-vocabulary-clear"
+              onClick={this.onClear}
+              title={this.text('settings.personalVocabularyClearTitle')}
+            >
+              {this.text('settings.personalVocabularyClear')}
+            </Button>
+          ) : null}
+        </div>
         {this.renderStatus()}
         <details>
           <summary>
