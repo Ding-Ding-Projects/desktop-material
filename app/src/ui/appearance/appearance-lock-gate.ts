@@ -1,6 +1,7 @@
 import {
   IMd3ActiveUnlock,
   IMd3Lock,
+  IMd3LockTarget,
   isMd3UnlockActive,
   isTargetLocked,
   locksForTarget,
@@ -46,11 +47,15 @@ import {
 /** The attribute an element carries so the gate can recognise it. */
 export const AppearanceLockTargetAttribute = 'data-md3-lock-target'
 
+/** Optional target-kind attribute for non-appearance locks. */
+export const AppearanceLockTargetKindAttribute = 'data-md3-lock-kind'
+
 /** Raised when a locked element is activated. The shell opens the prompt. */
 export const AppearanceLockBlockedEvent = 'desktop-material-lock-blocked'
 
 export interface IAppearanceLockBlockedDetail {
   readonly targetId: string
+  readonly targetKind: IMd3LockTarget['kind']
   /** The element that was activated, so the prompt can anchor to it. */
   readonly anchor: HTMLElement
 }
@@ -68,10 +73,16 @@ export interface IAppearanceLockTargetSemantics {
  * out of sync with the `lockTargetId` the editor was given — both come from
  * the same expression at the same call site.
  */
-export function appearanceLockTargetProps(targetId: string) {
-  const semantics = appearanceLockTargetSemantics(targetId)
+export function appearanceLockTargetProps(
+  targetId: string,
+  targetKind: IMd3LockTarget['kind'] = 'appearanceElement'
+) {
+  const semantics = appearanceLockTargetSemantics(targetId, targetKind)
   const props: Record<string, string> = {
     [AppearanceLockTargetAttribute]: targetId,
+  }
+  if (targetKind !== 'appearanceElement') {
+    props[AppearanceLockTargetKindAttribute] = targetKind
   }
   if (semantics['aria-disabled'] !== undefined) {
     props['aria-disabled'] = semantics['aria-disabled']
@@ -93,9 +104,10 @@ export function appearanceLockTargetProps(targetId: string) {
  */
 export function appearanceLockTargetSemantics(
   targetId: string,
+  targetKind: IMd3LockTarget['kind'] = 'appearanceElement',
   now: number = Date.now()
 ): IAppearanceLockTargetSemantics {
-  const locked = isAppearanceTargetBlocked(targetId, now)
+  const locked = isMd3TargetBlocked(targetKind, targetId, now)
   return {
     'aria-disabled': locked ? 'true' : undefined,
     'data-md3-locked': locked ? 'true' : undefined,
@@ -131,8 +143,17 @@ export function firstLockedAppearanceLock(
   targetId: string,
   now: number = Date.now()
 ): IMd3Lock | null {
+  return firstLockedTargetLock('appearanceElement', targetId, now)
+}
+
+/** Return the first credential still required for any lockable target kind. */
+export function firstLockedTargetLock(
+  targetKind: IMd3LockTarget['kind'],
+  targetId: string,
+  now: number = Date.now()
+): IMd3Lock | null {
   return (
-    locksForTarget(readMd3Locks(), 'appearanceElement', targetId).find(
+    locksForTarget(readMd3Locks(), targetKind, targetId).find(
       lock => !isMd3UnlockActive(unlocks.get(lock.id), now)
     ) ?? null
   )
@@ -149,15 +170,23 @@ export function isAppearanceTargetBlocked(
   targetId: string,
   now: number = Date.now()
 ): boolean {
+  return isMd3TargetBlocked('appearanceElement', targetId, now)
+}
+
+/** Whether any lock of the supplied kind blocks the exact target. */
+export function isMd3TargetBlocked(
+  targetKind: IMd3LockTarget['kind'],
+  targetId: string,
+  now: number = Date.now()
+): boolean {
   const locks = readMd3Locks()
-  if (!isTargetLocked(locks, 'appearanceElement', targetId)) {
+  if (!isTargetLocked(locks, targetKind, targetId)) {
     return false
   }
 
   return !locks
     .filter(
-      lock =>
-        lock.target.kind === 'appearanceElement' && lock.target.id === targetId
+      lock => lock.target.kind === targetKind && lock.target.id === targetId
     )
     .every(lock => isMd3UnlockActive(unlocks.get(lock.id), now))
 }
@@ -168,9 +197,11 @@ export function isAppearanceTargetBlocked(
  * activation, so the walk starts at the event target rather than at the
  * element the handler happens to be bound to.
  */
-export function resolveAppearanceLockTarget(
-  node: EventTarget | null
-): { targetId: string; anchor: HTMLElement } | null {
+export function resolveAppearanceLockTarget(node: EventTarget | null): {
+  targetId: string
+  targetKind: IMd3LockTarget['kind']
+  anchor: HTMLElement
+} | null {
   if (!(node instanceof Element)) {
     return null
   }
@@ -182,7 +213,11 @@ export function resolveAppearanceLockTarget(
   if (owner instanceof HTMLElement) {
     const targetId = owner.getAttribute(AppearanceLockTargetAttribute)
     if (targetId !== null && targetId !== '') {
-      return { targetId, anchor: owner }
+      return {
+        targetId,
+        targetKind: readTargetKind(owner),
+        anchor: owner,
+      }
     }
   }
 
@@ -195,11 +230,76 @@ export function resolveAppearanceLockTarget(
   for (const [selector, elementId] of ProfileAppearanceOwnerSelectors) {
     const anchor = node.closest(selector)
     if (anchor instanceof HTMLElement) {
-      return { targetId: profileAppearanceLockTargetId(elementId), anchor }
+      return {
+        targetId: profileAppearanceLockTargetId(elementId),
+        targetKind: 'appearanceElement',
+        anchor,
+      }
     }
   }
 
   return null
+}
+
+function readTargetKind(element: Element): IMd3LockTarget['kind'] {
+  const raw = element.getAttribute(AppearanceLockTargetKindAttribute)
+  return raw === 'tab' ||
+    raw === 'tabGroup' ||
+    raw === 'appearanceProperty' ||
+    raw === 'appearancePreset' ||
+    raw === 'appearanceElement'
+    ? raw
+    : 'appearanceElement'
+}
+
+/** Resolve every nested target from the event node out to its owners. */
+export function resolveAppearanceLockTargets(
+  node: EventTarget | null
+): ReadonlyArray<{
+  targetId: string
+  targetKind: IMd3LockTarget['kind']
+  anchor: HTMLElement
+}> {
+  if (!(node instanceof Element)) {
+    return []
+  }
+
+  const targets: Array<{
+    targetId: string
+    targetKind: IMd3LockTarget['kind']
+    anchor: HTMLElement
+  }> = []
+  let current: Element | null = node
+  while (current !== null) {
+    if (current instanceof HTMLElement) {
+      const targetId = current.getAttribute(AppearanceLockTargetAttribute)
+      if (targetId !== null && targetId !== '') {
+        targets.push({
+          targetId,
+          targetKind: readTargetKind(current),
+          anchor: current,
+        })
+      }
+    }
+    current = current.parentElement
+  }
+
+  for (const [selector, elementId] of ProfileAppearanceOwnerSelectors) {
+    const anchor = node.closest(selector)
+    if (anchor instanceof HTMLElement) {
+      const targetId = profileAppearanceLockTargetId(elementId)
+      if (
+        !targets.some(
+          target =>
+            target.targetId === targetId &&
+            target.targetKind === 'appearanceElement'
+        )
+      ) {
+        targets.push({ targetId, targetKind: 'appearanceElement', anchor })
+      }
+    }
+  }
+  return targets
 }
 
 /**
@@ -209,8 +309,10 @@ export function resolveAppearanceLockTarget(
  * between "no lock here" and "handled".
  */
 function gate(event: Event): boolean {
-  const resolved = resolveAppearanceLockTarget(event.target)
-  if (resolved === null || !isAppearanceTargetBlocked(resolved.targetId)) {
+  const resolved = resolveAppearanceLockTargets(event.target).find(target =>
+    isMd3TargetBlocked(target.targetKind, target.targetId)
+  )
+  if (resolved === undefined) {
     return false
   }
 
@@ -220,17 +322,26 @@ function gate(event: Event): boolean {
   event.preventDefault()
   event.stopPropagation()
   event.stopImmediatePropagation()
-  announceAppearanceLockBlocked(resolved.targetId, resolved.anchor)
+  announceAppearanceLockBlocked(
+    resolved.targetId,
+    resolved.anchor,
+    resolved.targetKind
+  )
   return true
 }
 
 /** Announce one blocked activation to the mounted prompt host. */
 export function announceAppearanceLockBlocked(
   targetId: string,
-  anchor: HTMLElement
+  anchor: HTMLElement,
+  targetKind: IMd3LockTarget['kind'] = 'appearanceElement'
 ): void {
   refreshAppearanceLockSemantics()
-  const detail: IAppearanceLockBlockedDetail = { targetId, anchor }
+  const detail: IAppearanceLockBlockedDetail = {
+    targetId,
+    targetKind,
+    anchor,
+  }
   window.dispatchEvent(new CustomEvent(AppearanceLockBlockedEvent, { detail }))
 }
 
@@ -246,10 +357,11 @@ export function announceAppearanceLockBlocked(
 export function guardAppearanceActivation(
   targetId: string,
   anchor: HTMLElement,
-  activate: () => void
+  activate: () => void,
+  targetKind: IMd3LockTarget['kind'] = 'appearanceElement'
 ): boolean {
-  if (isAppearanceTargetBlocked(targetId)) {
-    announceAppearanceLockBlocked(targetId, anchor)
+  if (isMd3TargetBlocked(targetKind, targetId)) {
+    announceAppearanceLockBlocked(targetId, anchor, targetKind)
     return false
   }
   activate()
@@ -266,7 +378,12 @@ export function guardAppearanceElementActivation(
     activate()
     return true
   }
-  return guardAppearanceActivation(resolved.targetId, resolved.anchor, activate)
+  return guardAppearanceActivation(
+    resolved.targetId,
+    resolved.anchor,
+    activate,
+    resolved.targetKind
+  )
 }
 
 /**
@@ -295,7 +412,12 @@ export function refreshAppearanceLockSemantics(): void {
     if (targetId === null || targetId === undefined || targetId.length === 0) {
       continue
     }
-    const semantics = appearanceLockTargetSemantics(targetId)
+    const semantics = appearanceLockTargetSemantics(
+      targetId,
+      element.hasAttribute(AppearanceLockTargetKindAttribute)
+        ? readTargetKind(element)
+        : resolved?.targetKind ?? 'appearanceElement'
+    )
     if (semantics['aria-disabled'] === undefined) {
       element.removeAttribute('aria-disabled')
     } else {
@@ -310,6 +432,14 @@ export function refreshAppearanceLockSemantics(): void {
 }
 
 const onPointer = (event: Event) => {
+  gate(event)
+}
+
+const onDoubleClick = (event: Event) => {
+  gate(event)
+}
+
+const onContextMenu = (event: Event) => {
   gate(event)
 }
 
@@ -336,6 +466,8 @@ export function installAppearanceLockGate(): void {
   // several do — would otherwise have already acted by the time click arrived.
   document.addEventListener('pointerdown', onPointer, true)
   document.addEventListener('click', onPointer, true)
+  document.addEventListener('dblclick', onDoubleClick, true)
+  document.addEventListener('contextmenu', onContextMenu, true)
   document.addEventListener('keydown', onKeyDown, true)
   window.addEventListener(Md3LocksChangedEvent, refreshAppearanceLockSemantics)
   refreshAppearanceLockSemantics()
@@ -346,6 +478,11 @@ export function uninstallAppearanceLockGate(): void {
   installed = false
   document.removeEventListener('pointerdown', onPointer, true)
   document.removeEventListener('click', onPointer, true)
+  document.removeEventListener('dblclick', onDoubleClick, true)
+  document.removeEventListener('contextmenu', onContextMenu, true)
   document.removeEventListener('keydown', onKeyDown, true)
-  window.removeEventListener(Md3LocksChangedEvent, refreshAppearanceLockSemantics)
+  window.removeEventListener(
+    Md3LocksChangedEvent,
+    refreshAppearanceLockSemantics
+  )
 }

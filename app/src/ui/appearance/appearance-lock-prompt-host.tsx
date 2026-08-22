@@ -1,14 +1,11 @@
 import * as React from 'react'
 
 import { Md3LockUnlockPrompt } from '../md3/md3-lock-unlock-prompt'
-import {
-  IMd3ActiveUnlock,
-  IMd3Lock,
-} from '../../lib/md3-locks'
+import { IMd3ActiveUnlock, IMd3Lock } from '../../lib/md3-locks'
 import {
   AppearanceLockBlockedEvent,
   IAppearanceLockBlockedDetail,
-  firstLockedAppearanceLock,
+  firstLockedTargetLock,
   refreshAppearanceLockSemantics,
   recordAppearanceUnlock,
 } from './appearance-lock-gate'
@@ -85,7 +82,7 @@ export class AppearanceLockPromptHost extends React.Component<
     // The first still-closed lock on that element. Two locks are two answers,
     // so the user is asked for them one at a time rather than being shown a
     // form with two fields and no explanation of why.
-    const lock = firstLockedAppearanceLock(detail.targetId)
+    const lock = firstLockedTargetLock(detail.targetKind, detail.targetId)
     if (lock === null) {
       return
     }

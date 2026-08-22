@@ -7,12 +7,16 @@ import '../helpers/ui/setup'
 import {
   AppearanceLockBlockedEvent,
   AppearanceLockTargetAttribute,
+  AppearanceLockTargetKindAttribute,
   appearanceLockTargetProps,
   clearAppearanceUnlocks,
   installAppearanceLockGate,
   isAppearanceTargetBlocked,
+  isMd3TargetBlocked,
+  guardAppearanceActivation,
   recordAppearanceUnlock,
   resolveAppearanceLockTarget,
+  resolveAppearanceLockTargets,
   uninstallAppearanceLockGate,
 } from '../../src/ui/appearance/appearance-lock-gate'
 import {
@@ -33,9 +37,12 @@ import { DefaultMd3UnlockDuration } from '../../src/lib/md3-locks/lock-model'
  * not quietly broken by the guard.
  */
 
-const lockElement = (targetId: string) =>
+const lockElement = (
+  targetId: string,
+  kind: 'appearanceElement' | 'tab' | 'tabGroup' = 'appearanceElement'
+) =>
   addMd3Lock({
-    target: { kind: 'appearanceElement', id: targetId, label: targetId },
+    target: { kind, id: targetId, label: targetId },
     factor: 'password',
     unlockDuration: DefaultMd3UnlockDuration,
     lockOnLaunch: true,
@@ -97,6 +104,36 @@ describe('whether an element is blocked', () => {
   it('does not confuse one element lock for another', () => {
     lockElement('button-a')
     assert.strictEqual(isAppearanceTargetBlocked('button-b'), false)
+  })
+
+  it('enforces the lock kind as part of the target identity', () => {
+    lockElement('same-id', 'tab')
+    assert.strictEqual(isMd3TargetBlocked('tab', 'same-id'), true)
+    assert.strictEqual(
+      isMd3TargetBlocked('appearanceElement', 'same-id'),
+      false
+    )
+  })
+
+  it('supports independently credentialed tab and appearance locks', () => {
+    const tab = lockElement('same-id', 'tab')
+    const appearance = lockElement('same-id')
+    recordAppearanceUnlock({
+      lockId: tab.id,
+      kind: 'session',
+      expiresAt: null,
+    })
+    assert.strictEqual(isMd3TargetBlocked('tab', 'same-id'), false)
+    assert.strictEqual(isMd3TargetBlocked('appearanceElement', 'same-id'), true)
+    recordAppearanceUnlock({
+      lockId: appearance.id,
+      kind: 'session',
+      expiresAt: null,
+    })
+    assert.strictEqual(
+      isMd3TargetBlocked('appearanceElement', 'same-id'),
+      false
+    )
   })
 })
 
@@ -277,6 +314,26 @@ describe('the gate stopping an activation', () => {
     }
   })
 
+  it('stops a synthetic context-menu activation', () => {
+    let contextActivations = 0
+    target.addEventListener('contextmenu', () => contextActivations++)
+    lockElement('gated')
+    target.dispatchEvent(
+      new MouseEvent('contextmenu', { bubbles: true, cancelable: true })
+    )
+    assert.strictEqual(contextActivations, 0)
+  })
+
+  it('stops double-click activation', () => {
+    let doubleActivations = 0
+    target.addEventListener('dblclick', () => doubleActivations++)
+    lockElement('gated')
+    target.dispatchEvent(
+      new MouseEvent('dblclick', { bubbles: true, cancelable: true })
+    )
+    assert.strictEqual(doubleActivations, 0)
+  })
+
   it('stops a later capture listener on the document too', () => {
     // `stopPropagation` alone would be enough to keep the target's own handler
     // from running, so this is the case that makes `stopImmediatePropagation`
@@ -306,6 +363,49 @@ describe('elements advertise their lock target', () => {
     assert.deepStrictEqual(appearanceLockTargetProps('x'), {
       [AppearanceLockTargetAttribute]: 'x',
     })
+  })
+
+  it('stamps non-appearance kinds without changing the default shape', () => {
+    assert.deepStrictEqual(appearanceLockTargetProps('tab-7', 'tab'), {
+      [AppearanceLockTargetAttribute]: 'tab-7',
+      [AppearanceLockTargetKindAttribute]: 'tab',
+    })
+  })
+
+  it('resolves nested targets so an outer lock cannot be bypassed', () => {
+    const outer = document.createElement('div')
+    outer.setAttribute(AppearanceLockTargetAttribute, 'tab-7')
+    outer.setAttribute(AppearanceLockTargetKindAttribute, 'tab')
+    const inner = document.createElement('button')
+    inner.setAttribute(AppearanceLockTargetAttribute, 'tab-title-7')
+    outer.appendChild(inner)
+    document.body.appendChild(outer)
+    assert.deepStrictEqual(
+      resolveAppearanceLockTargets(inner)
+        .slice(0, 2)
+        .map(target => ({
+          targetId: target.targetId,
+          targetKind: target.targetKind,
+        })),
+      [
+        { targetId: 'tab-title-7', targetKind: 'appearanceElement' },
+        { targetId: 'tab-7', targetKind: 'tab' },
+      ]
+    )
+    outer.remove()
+  })
+
+  it('guards a direct callback using the explicit target kind', () => {
+    const anchor = document.createElement('button')
+    document.body.appendChild(anchor)
+    lockElement('tab-7', 'tab')
+    let activations = 0
+    assert.strictEqual(
+      guardAppearanceActivation('tab-7', anchor, () => activations++, 'tab'),
+      false
+    )
+    assert.strictEqual(activations, 0)
+    anchor.remove()
   })
 
   it('is stamped by every surface that offers an appearance lock', () => {

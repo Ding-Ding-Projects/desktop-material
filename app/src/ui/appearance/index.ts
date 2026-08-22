@@ -63,19 +63,23 @@ export type {
 export {
   AppearanceLockBlockedEvent,
   AppearanceLockTargetAttribute,
+  AppearanceLockTargetKindAttribute,
   announceAppearanceLockBlocked,
   appearanceLockTargetProps,
   appearanceLockTargetSemantics,
   clearAppearanceUnlocks,
   firstLockedAppearanceLock,
+  firstLockedTargetLock,
   forgetAppearanceUnlock,
   guardAppearanceActivation,
   guardAppearanceElementActivation,
   installAppearanceLockGate,
   isAppearanceTargetBlocked,
+  isMd3TargetBlocked,
   recordAppearanceUnlock,
   refreshAppearanceLockSemantics,
   resolveAppearanceLockTarget,
+  resolveAppearanceLockTargets,
   uninstallAppearanceLockGate,
 } from './appearance-lock-gate'
 export type { IAppearanceLockBlockedDetail } from './appearance-lock-gate'
