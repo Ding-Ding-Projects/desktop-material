@@ -14,7 +14,6 @@ import {
   installAppearanceLockGate,
   isAppearanceTargetBlocked,
   isMd3TargetBlocked,
-  guardAppearanceActivation,
   recordAppearanceUnlock,
   resolveAppearanceLockTarget,
   resolveAppearanceLockTargets,
