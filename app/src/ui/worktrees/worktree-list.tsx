@@ -33,6 +33,7 @@ interface IWorktreeListProps {
   readonly onCreateNewWorktree?: () => void
   readonly onMergeWorktree?: (branch: Branch) => void
   readonly onMergeAllWorktrees?: () => void
+  readonly onCheckoutAllBranchesAsWorktrees?: () => void
   readonly renderAdministration?: () => React.ReactNode
   readonly onWorktreeContextMenu?: (
     worktree: WorktreeEntry,
@@ -135,6 +136,16 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
               >
                 {__DARWIN__ ? 'New Worktree' : 'New worktree'}
               </Button>
+              {this.props.onCheckoutAllBranchesAsWorktrees && (
+                <Button
+                  className="checkout-all-branches-worktrees-button"
+                  onClick={this.props.onCheckoutAllBranchesAsWorktrees}
+                >
+                  {__DARWIN__
+                    ? 'All Branches as Worktrees…'
+                    : 'All branches as worktrees…'}
+                </Button>
+              )}
               {this.props.onMergeAllWorktrees && (
                 <Button
                   className="merge-all-worktrees-button"

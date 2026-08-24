@@ -559,6 +559,10 @@ import {
   getRepositoryType,
   RepositoryType,
   addWorktree,
+  checkoutBranchesAsWorktrees,
+  IBranchWorktreeCandidate,
+  IBranchWorktreeProgress,
+  IBranchWorktreeResult,
   listWorktrees,
   listWorktreesFromGitDir,
   removeWorktree,
@@ -1026,10 +1030,7 @@ import {
 } from '../appearance-customization'
 import type { ElementAppearanceCoordinator } from './element-appearance-coordinator'
 import { ScheduledSettingsRuntime } from '../scheduled-settings'
-import {
-  isSchoolModeEnabled,
-  SchoolModeChangedEvent,
-} from '../school-mode'
+import { isSchoolModeEnabled, SchoolModeChangedEvent } from '../school-mode'
 import {
   fetchHomeAssistantState,
   fetchScheduledSettingsAPI,
@@ -15843,6 +15844,32 @@ export class AppStore extends TypedBaseStore<IAppState> {
     return this.withTemporaryRepositoryMutationGuard(repository, () =>
       addWorktree(repository, worktreePath, options)
     )
+  }
+
+  /**
+   * Check every selected branch out into its own linked worktree beneath the
+   * repository's worktree container.
+   *
+   * This shouldn't be called directly. See 'Dispatcher'.
+   */
+  public async _checkoutBranchesAsWorktrees(
+    repository: Repository,
+    candidates: ReadonlyArray<IBranchWorktreeCandidate>,
+    onProgress?: (progress: IBranchWorktreeProgress) => void
+  ): Promise<ReadonlyArray<IBranchWorktreeResult>> {
+    const results = await this.withTemporaryRepositoryMutationGuard(
+      repository,
+      () => checkoutBranchesAsWorktrees(repository, candidates, onProgress)
+    )
+
+    const created = results.filter(result => result.error === undefined).length
+    for (let i = 0; i < created; i++) {
+      this.statsStore.increment('worktreeCreatedCount')
+    }
+
+    await this._refreshWorktrees(repository)
+
+    return results
   }
 
   /** This shouldn't be called directly. See 'Dispatcher'. */

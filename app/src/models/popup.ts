@@ -206,6 +206,7 @@ export enum PopupType {
   HookFailed = 'HookFailed',
   CommitProgress = 'CommitProgress',
   AddWorktree = 'AddWorktree',
+  CheckoutBranchesAsWorktrees = 'CheckoutBranchesAsWorktrees',
   RenameWorktree = 'RenameWorktree',
   DeleteWorktree = 'DeleteWorktree',
   EditCopilotBYOKProvider = 'EditCopilotBYOKProvider',
@@ -880,6 +881,12 @@ export type PopupDetail =
        * worktree from commit).
        */
       commitish?: string
+    }
+  | {
+      type: PopupType.CheckoutBranchesAsWorktrees
+      repository: Repository
+      /** Set when the dialog follows a clone rather than a manual request. */
+      fromClone?: boolean
     }
   | {
       type: PopupType.RenameWorktree

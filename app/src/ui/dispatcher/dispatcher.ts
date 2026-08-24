@@ -77,6 +77,9 @@ import {
   ITagRefReview,
   ITagPushReview,
   IRepositoryShallowHistoryFetchRequest,
+  IBranchWorktreeCandidate,
+  IBranchWorktreeProgress,
+  IBranchWorktreeResult,
 } from '../../lib/git'
 import { isGitOnPath } from '../../lib/is-git-on-path'
 import {
@@ -2331,6 +2334,14 @@ export class Dispatcher {
           type: PopupType.ChooseForkSettings,
           repository: addedRepository,
         })
+      } else if (options?.checkoutAllBranchesAsWorktrees === true) {
+        // The clone brought every branch down but checked one out; offer the
+        // rest as worktrees while the user is still looking at the repository.
+        this.showPopup({
+          type: PopupType.CheckoutBranchesAsWorktrees,
+          repository: addedRepository,
+          fromClone: true,
+        })
       }
 
       return addedRepository
@@ -2764,6 +2775,25 @@ export class Dispatcher {
     }
   ): Promise<void> {
     return this.appStore._addWorktree(repository, worktreePath, options)
+  }
+
+  /**
+   * Check every selected branch out into its own linked worktree beneath the
+   * repository's worktree container, reporting each branch as it is created.
+   *
+   * A branch that fails never stops the rest; the returned results say which
+   * branches did and did not make it.
+   */
+  public checkoutBranchesAsWorktrees(
+    repository: Repository,
+    candidates: ReadonlyArray<IBranchWorktreeCandidate>,
+    onProgress?: (progress: IBranchWorktreeProgress) => void
+  ): Promise<ReadonlyArray<IBranchWorktreeResult>> {
+    return this.appStore._checkoutBranchesAsWorktrees(
+      repository,
+      candidates,
+      onProgress
+    )
   }
 
   /** Lock or unlock one exact registered linked worktree. */

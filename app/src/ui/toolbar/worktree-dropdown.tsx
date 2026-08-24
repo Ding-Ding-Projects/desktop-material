@@ -117,6 +117,14 @@ export class WorktreeDropdown extends React.Component<
     })
   }
 
+  private onCheckoutAllBranchesAsWorktrees = () => {
+    this.props.dispatcher.closeFoldout(FoldoutType.Worktree)
+    this.props.dispatcher.showPopup({
+      type: PopupType.CheckoutBranchesAsWorktrees,
+      repository: this.props.repository,
+    })
+  }
+
   private onMergeAllWorktrees = () => {
     this.props.dispatcher.closeFoldout(FoldoutType.Worktree)
     this.props.dispatcher.showPopup({
@@ -193,6 +201,7 @@ export class WorktreeDropdown extends React.Component<
         canCreateNewWorktree={true}
         onCreateNewWorktree={this.onCreateNewWorktree}
         onMergeAllWorktrees={this.onMergeAllWorktrees}
+        onCheckoutAllBranchesAsWorktrees={this.onCheckoutAllBranchesAsWorktrees}
         onWorktreeContextMenu={this.onWorktreeContextMenu}
         renderAdministration={this.renderAdministration}
       />

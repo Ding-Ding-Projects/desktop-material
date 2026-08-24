@@ -77,6 +77,7 @@ import {
 } from '../../lib/cheap-lfs/clone-inventory-probe'
 import { createCheapLfsCloneSelection } from '../../lib/cheap-lfs/clone-inventory'
 import { CollapsibleSection } from '../lib/collapsible-section'
+import { BranchWorktreeContainerName } from '../../lib/git/branch-worktrees'
 import {
   getCheapLfsCloneSelectionIdentity,
   ICheapLfsCloneSelection,
@@ -259,6 +260,12 @@ interface ICloneRepositoryState {
   /** User-entered shallow history depth, parsed only at the clone boundary. */
   readonly cloneDepth: string
 
+  /**
+   * Whether the clone should be followed by checking every branch out into its
+   * own worktree, all of them inside one container directory.
+   */
+  readonly checkoutAllBranchesAsWorktrees: boolean
+
   /** Whether newly discovered repositories should be cloned automatically. */
   readonly autoCloneNewRepositories: boolean
 
@@ -438,6 +445,7 @@ export class CloneRepository extends React.Component<
       batchMode: BatchCloneMode.Parallel,
       shallowClone: false,
       cloneDepth: '1',
+      checkoutAllBranchesAsWorktrees: false,
       autoCloneNewRepositories: false,
       postCloneRunnerPlatform: null,
       postCloneRunnerTrustConfirmed: false,
@@ -882,15 +890,65 @@ export class CloneRepository extends React.Component<
             </small>
           </div>
         </CollapsibleSection>
+        <CollapsibleSection
+          elementId="clone-worktree-options"
+          repositoryKey={undefined}
+          label="Worktree options"
+          ariaLabel="Clone worktree options"
+          defaultExpanded={false}
+          summary={
+            this.state.checkoutAllBranchesAsWorktrees
+              ? 'Every branch as a worktree'
+              : 'One working directory'
+          }
+        >
+          <div className="clone-worktree-options">
+            <label
+              className="clone-worktrees-toggle"
+              aria-label="Check out every branch as a worktree in a subfolder of the repository"
+            >
+              <Checkbox
+                value={
+                  this.state.checkoutAllBranchesAsWorktrees
+                    ? CheckboxValue.On
+                    : CheckboxValue.Off
+                }
+                onChange={this.onCheckoutAllBranchesAsWorktreesChanged}
+              />
+              <span>
+                <strong>Check out all branches as worktrees</strong>
+                <small>
+                  Each branch gets its own worktree under{' '}
+                  {BranchWorktreeContainerName} inside the repository, so
+                  nothing extra lands beside your other repositories. You pick
+                  the branches once the clone finishes.
+                </small>
+              </span>
+            </label>
+            {this.state.checkoutAllBranchesAsWorktrees &&
+              this.state.shallowClone && (
+                <small role="status">
+                  A shallow clone still fetches every branch for this, so the
+                  clone will not be limited to the default branch.
+                </small>
+              )}
+          </div>
+        </CollapsibleSection>
         {this.renderPostCloneRunnerProvisioning()}
         <OkCancelButtonGroup okButtonText="Clone" okButtonDisabled={disabled} />
       </DialogFooter>
     )
   }
 
-  private onShallowCloneChanged = (
+  private onCheckoutAllBranchesAsWorktreesChanged = (
     event: React.FormEvent<HTMLInputElement>
-  ) => this.setState({ shallowClone: event.currentTarget.checked })
+  ) =>
+    this.setState({
+      checkoutAllBranchesAsWorktrees: event.currentTarget.checked,
+    })
+
+  private onShallowCloneChanged = (event: React.FormEvent<HTMLInputElement>) =>
+    this.setState({ shallowClone: event.currentTarget.checked })
 
   private onCloneDepthChanged = (event: React.ChangeEvent<HTMLInputElement>) =>
     this.setState({ cloneDepth: event.currentTarget.value })
@@ -2430,11 +2488,15 @@ export class CloneRepository extends React.Component<
       ? normalizeCloneDepth(this.state.cloneDepth)
       : undefined
     const postCloneRunnerProvisioning = this.getPostCloneRunnerProvisioning()
+    const { checkoutAllBranchesAsWorktrees } = this.state
     this.props.dispatcher.clone(url, path, {
       defaultBranch,
       ...(accountKey !== undefined ? { accountKey } : {}),
       depth,
-      singleBranch: depth !== undefined,
+      // A worktree per branch needs every branch, so the shallow clone stays
+      // shallow but never narrows to a single branch.
+      singleBranch: depth !== undefined && !checkoutAllBranchesAsWorktrees,
+      checkoutAllBranchesAsWorktrees,
       shallowSubmodules: depth !== undefined,
       ...(cheapLfsSelection === undefined ? {} : { cheapLfsSelection }),
       ...(postCloneRunnerProvisioning === undefined

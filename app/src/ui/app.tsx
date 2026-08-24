@@ -471,6 +471,7 @@ import {
 import { HookFailed } from './hook-failed/hook-failed'
 import { CommitProgress } from './commit-progress/commit-progress'
 import { AddWorktreeDialog } from './worktrees/add-worktree-dialog'
+import { CheckoutBranchesAsWorktreesDialog } from './worktrees/checkout-branches-worktrees-dialog'
 import { RenameWorktreeDialog } from './worktrees/rename-worktree-dialog'
 import { DeleteWorktreeDialog } from './worktrees/delete-worktree-dialog'
 import { DeleteWorktreeFailedDialog } from './worktrees/delete-worktree-failed-dialog'
@@ -3592,14 +3593,16 @@ export class App extends React.Component<IAppProps, IAppState> {
       this.agentRunnerAvailability = availability
       this.forceUpdate()
     })
-    void getStatusHubStatus().then(status => {
-      if (this.mounted) {
-        this.agentSessionLiveStore.setStatusHubStatus(status)
-      }
-    }).catch(() => {
-      // The store already holds an explicit local-only fallback. Never turn an
-      // IPC failure into a misleading connected status.
-    })
+    void getStatusHubStatus()
+      .then(status => {
+        if (this.mounted) {
+          this.agentSessionLiveStore.setStatusHubStatus(status)
+        }
+      })
+      .catch(() => {
+        // The store already holds an explicit local-only fallback. Never turn an
+        // IPC failure into a misleading connected status.
+      })
     // componentDidMount is the first committed shell. Reveal the hidden native
     // window here: requestAnimationFrame can be throttled while that window is
     // hidden, and optional startup work must not own its visibility.
@@ -6756,6 +6759,25 @@ export class App extends React.Component<IAppProps, IAppState> {
           />
         )
       }
+      case PopupType.CheckoutBranchesAsWorktrees: {
+        if (popup.repository instanceof SubmoduleRepository) {
+          return null
+        }
+        const allBranches =
+          this.state.selectedState?.type === SelectionType.Repository
+            ? this.state.selectedState.state.branchesState.allBranches
+            : []
+        return (
+          <CheckoutBranchesAsWorktreesDialog
+            key="checkout-branches-as-worktrees"
+            repository={popup.repository}
+            dispatcher={this.props.dispatcher}
+            allBranches={allBranches}
+            fromClone={popup.fromClone}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      }
       case PopupType.RenameWorktree: {
         return (
           <RenameWorktreeDialog
@@ -9084,6 +9106,13 @@ export class App extends React.Component<IAppProps, IAppState> {
       this.showWorktrees()
     }
 
+    const onCheckoutBranchesAsWorktrees = (repository: Repository) => {
+      this.props.dispatcher.showPopup({
+        type: PopupType.CheckoutBranchesAsWorktrees,
+        repository,
+      })
+    }
+
     const items = generateRepositoryListContextMenu({
       accounts: this.state.accounts,
       onRemoveRepository: this.removeRepository,
@@ -9102,6 +9131,9 @@ export class App extends React.Component<IAppProps, IAppState> {
       onTransferRepository: this.transferRepository,
       onOpenInNewWindow: this.openRepositoryInNewWindow,
       onCreateWorktree: enableWorktreeSupport() ? onCreateWorktree : undefined,
+      onCheckoutBranchesAsWorktrees: enableWorktreeSupport()
+        ? onCheckoutBranchesAsWorktrees
+        : undefined,
       onShowWorktrees: enableWorktreeSupport() ? onShowWorktrees : undefined,
       repository: repository,
       shellLabel: this.state.useCustomShell

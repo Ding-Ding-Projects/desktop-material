@@ -31,6 +31,12 @@ export type CloneOptions = {
   /** Apply the shallow-history limit to recursively cloned submodules. */
   readonly shallowSubmodules?: boolean
   /**
+   * Check every branch of the fresh clone out into its own linked worktree,
+   * all of them under one container directory inside the repository. The
+   * branches are chosen in a dialog once the clone has landed.
+   */
+  readonly checkoutAllBranchesAsWorktrees?: boolean
+  /**
    * Optional manifest-bound Cheap LFS allowlist captured before clone.
    * Post-clone materialization must validate it against committed pointers.
    */

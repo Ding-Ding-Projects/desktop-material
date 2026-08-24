@@ -32,6 +32,7 @@ interface IRepositoryListItemContextMenuConfig {
   onChangeRepositoryGroupName: (repository: Repository) => void
   onRemoveRepositoryGroupName: (repository: Repository) => void
   onCreateWorktree?: (repository: Repository) => void
+  onCheckoutBranchesAsWorktrees?: (repository: Repository) => void
   onShowWorktrees?: (repository: Repository) => void
   isPinned?: boolean
   onPinRepository?: (repository: Repository) => void
@@ -240,13 +241,22 @@ const buildAliasMenuItems = (
 const buildWorktreeMenuItems = (
   config: IRepositoryListItemContextMenuConfig
 ): ReadonlyArray<IMenuItem> => {
-  const { repository, onCreateWorktree, onShowWorktrees } = config
+  const {
+    repository,
+    onCreateWorktree,
+    onCheckoutBranchesAsWorktrees,
+    onShowWorktrees,
+  } = config
 
   if (!(repository instanceof Repository)) {
     return []
   }
 
-  if (onCreateWorktree === undefined && onShowWorktrees === undefined) {
+  if (
+    onCreateWorktree === undefined &&
+    onShowWorktrees === undefined &&
+    onCheckoutBranchesAsWorktrees === undefined
+  ) {
     return []
   }
 
@@ -265,6 +275,15 @@ const buildWorktreeMenuItems = (
       label: __DARWIN__ ? 'New Worktree…' : 'New worktree…',
       action: () => onCreateWorktree(repository),
       accelerator: menuAccelerator('create-worktree'),
+    })
+  }
+
+  if (onCheckoutBranchesAsWorktrees !== undefined) {
+    items.push({
+      label: __DARWIN__
+        ? 'Check Out All Branches as Worktrees…'
+        : 'Check out all branches as worktrees…',
+      action: () => onCheckoutBranchesAsWorktrees(repository),
     })
   }
 

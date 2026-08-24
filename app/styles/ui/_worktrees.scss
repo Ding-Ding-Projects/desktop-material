@@ -214,3 +214,92 @@
     }
   }
 }
+
+#checkout-branches-as-worktrees {
+  .dialog-content {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    // Tall enough that the search, the chips, and a useful number of branches
+    // are all on screen at once; the list itself is what scrolls.
+    height: 460px;
+    width: 100%;
+  }
+
+  .branch-worktrees-summary {
+    margin: 0 0 var(--spacing);
+    color: var(--text-secondary-color);
+    font-size: var(--font-size-sm);
+  }
+
+  .branch-worktrees-list {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .branch-worktrees-selection-actions {
+    display: flex;
+    flex-shrink: 0;
+    gap: var(--spacing-half);
+    margin-left: var(--spacing-half);
+  }
+
+  .branch-worktree-row {
+    align-items: center;
+    display: flex;
+    gap: var(--spacing-half);
+    min-width: 0;
+    overflow: hidden;
+    width: 100%;
+
+    .checkbox {
+      display: flex;
+      flex-shrink: 0;
+    }
+
+    .branch-worktree-icon {
+      flex-shrink: 0;
+      color: var(--text-secondary-color);
+    }
+
+    .branch-worktree-detail {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .branch-worktree-name {
+      @include ellipsis;
+    }
+
+    .branch-worktree-path {
+      @include ellipsis;
+      color: var(--text-secondary-color);
+      font-size: var(--font-size-sm);
+    }
+
+    .branch-worktree-remote {
+      margin-right: var(--spacing-third);
+      text-transform: uppercase;
+      font-size: var(--font-size-xs);
+    }
+  }
+
+  .branch-worktrees-progress {
+    flex-shrink: 0;
+    padding-top: var(--spacing-half);
+    color: var(--text-secondary-color);
+    font-size: var(--font-size-sm);
+  }
+
+  .branch-worktrees-failures {
+    margin: var(--spacing-half) 0 0;
+    padding-left: var(--spacing);
+  }
+
+  .branch-worktrees-count {
+    color: var(--text-secondary-color);
+    font-size: var(--font-size-sm);
+    margin-right: auto;
+  }
+}

@@ -1244,6 +1244,9 @@ export class RepositoriesList extends React.Component<
       onCreateWorktree: enableWorktreeSupport()
         ? this.onCreateWorktree
         : undefined,
+      onCheckoutBranchesAsWorktrees: enableWorktreeSupport()
+        ? this.onCheckoutBranchesAsWorktrees
+        : undefined,
       onShowWorktrees: enableWorktreeSupport()
         ? this.onShowWorktrees
         : undefined,
@@ -1986,6 +1989,16 @@ export class RepositoriesList extends React.Component<
   private onCreateWorktree = (repository: Repository) => {
     this.props.dispatcher.showPopup({
       type: PopupType.AddWorktree,
+      repository,
+    })
+  }
+
+  private onCheckoutBranchesAsWorktrees = (repository: Repository) => {
+    // The dialog reads the branches of the repository it is given, so the
+    // repository has to be the selected one before it opens.
+    this.props.dispatcher.selectRepository(repository)
+    this.props.dispatcher.showPopup({
+      type: PopupType.CheckoutBranchesAsWorktrees,
       repository,
     })
   }
