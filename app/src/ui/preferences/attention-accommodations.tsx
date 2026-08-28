@@ -213,6 +213,11 @@ export class AttentionAccommodations extends React.Component<
     mode: (typeof Modes)[number]
   ): JSX.Element {
     const descriptionId = `attention-${mode.id}-description`
+    const handleModeChange = (
+      event: React.ChangeEvent<HTMLInputElement>
+    ): void => {
+      this.onModeChanged(mode.id, event.currentTarget.checked)
+    }
     return (
       <div
         key={mode.id}
@@ -226,9 +231,7 @@ export class AttentionAccommodations extends React.Component<
               ? CheckboxValue.On
               : CheckboxValue.Off
           }
-          onChange={event =>
-            this.onModeChanged(mode.id, event.currentTarget.checked)
-          }
+          onChange={handleModeChange}
           ariaDescribedBy={descriptionId}
         />
         <p id={descriptionId} className="settings-description">

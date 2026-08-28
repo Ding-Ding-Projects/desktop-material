@@ -143,11 +143,20 @@ export class FileConverter extends React.Component<
 
   private renderAdapterCatalog() {
     return (
-      <div className="file-converter-catalog" aria-label="Local file conversion adapters">
+      <div
+        className="file-converter-catalog"
+        role="region"
+        aria-label="Local file conversion adapters"
+      >
         {FileConverterCategories.map(category => {
           const adapters = FileConverterAdapterRegistry.filter(adapter => adapter.category === category)
           return (
-            <section className="file-converter-category" key={category} aria-label={category}>
+            <section
+              className="file-converter-category"
+              key={category}
+              role="region"
+              aria-label={category}
+            >
               <h3>{category}</h3>
               {adapters.map(adapter => (
                 <article className="file-converter-adapter" key={adapter.id}>
@@ -160,7 +169,11 @@ export class FileConverter extends React.Component<
                       {adapter.unavailableReason}
                     </p>
                   </div>
-                  <span className="file-converter-state" aria-label="Unavailable">
+                  <span
+                    className="file-converter-state"
+                    role="note"
+                    aria-label="Unavailable"
+                  >
                     Unavailable
                   </span>
                 </article>

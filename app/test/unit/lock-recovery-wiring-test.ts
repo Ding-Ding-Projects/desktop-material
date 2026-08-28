@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
-import * as Fs from 'node:fs'
+import * as FsAsync from 'node:fs/promises'
 import * as Path from 'node:path'
 
 /**
@@ -17,10 +17,14 @@ import * as Path from 'node:path'
 
 const repoRoot = Path.resolve(__dirname, '..', '..', '..')
 
-function read(relative: string): string {
+async function read(relative: string): Promise<string> {
   const absolute = Path.join(repoRoot, relative)
-  assert.equal(Fs.existsSync(absolute), true, `${relative} does not exist`)
-  return Fs.readFileSync(absolute, 'utf8')
+  try {
+    await FsAsync.access(absolute)
+  } catch {
+    throw new Error(`${relative} does not exist`)
+  }
+  return FsAsync.readFile(absolute, 'utf8')
 }
 
 /** Lines that are real code rather than a comment. */
@@ -32,16 +36,16 @@ function codeLines(source: string): ReadonlyArray<string> {
 }
 
 describe('the lock recovery desk is reachable', () => {
-  it('startup installs the Support Tickets route', () => {
-    const lines = codeLines(read('app/src/ui/index.tsx'))
+  it('startup installs the Support Tickets route', async () => {
+    const lines = codeLines(await read('app/src/ui/index.tsx'))
     assert.ok(
       lines.some(line => line.startsWith('setMd3LockSupportTicketsRoute(')),
       'index.tsx no longer installs the route, so the "Forgotten your password?" link reports the desk as unavailable'
     )
   })
 
-  it('the app renders the desk for its popup type', () => {
-    const source = read('app/src/ui/app.tsx')
+  it('the app renders the desk for its popup type', async () => {
+    const source = await read('app/src/ui/app.tsx')
     assert.ok(
       source.includes('case PopupType.SupportTickets:'),
       'app.tsx has no case for the Support Tickets popup, so nothing renders when it is opened'
@@ -52,16 +56,16 @@ describe('the lock recovery desk is reachable', () => {
     )
   })
 
-  it('the palette command has a handler', () => {
-    const source = read('app/src/ui/app.tsx')
+  it('the palette command has a handler', async () => {
+    const source = await read('app/src/ui/app.tsx')
     assert.ok(
       source.includes("case 'palette:support-tickets':"),
       'the palette lists this command; without a case, choosing it does nothing'
     )
   })
 
-  it('the popup type carries the entry point the desk requires', () => {
-    const source = read('app/src/models/popup.ts')
+  it('the popup type carries the entry point the desk requires', async () => {
+    const source = await read('app/src/models/popup.ts')
     assert.ok(source.includes('SupportTickets ='), 'popup type missing')
     assert.ok(
       source.includes('entryPoint: SupportTicketEntryPoint'),

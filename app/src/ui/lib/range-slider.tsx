@@ -39,6 +39,11 @@ export function RangeSlider({
   onChange,
 }: IRangeSliderProps) {
   const outputId = `${id}-value`
+  const handleValueChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) =>
+      onChange(Number(event.currentTarget.value)),
+    [onChange]
+  )
   return (
     <div className={classNames('range-slider-component', className)}>
       <div className="range-slider-label-row">
@@ -57,7 +62,7 @@ export function RangeSlider({
         disabled={disabled}
         aria-describedby={ariaDescribedBy}
         aria-valuetext={personalizeOptionalText(ariaValueText)}
-        onChange={event => onChange(Number(event.currentTarget.value))}
+        onChange={handleValueChange}
       />
     </div>
   )

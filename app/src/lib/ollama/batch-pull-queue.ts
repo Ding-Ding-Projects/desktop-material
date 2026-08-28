@@ -61,10 +61,10 @@ export function reconcileOllamaBatchPullQueue(
         const model = value.trim()
         return model === '' ? [] : [model]
       }
-      if (typeof value !== 'object' || value === null) return []
+      if (typeof value !== 'object' || value === null) {return []}
       const record = value as Record<string, unknown>
       const name = typeof record.name === 'string' ? record.name : record.model
-      if (typeof name !== 'string' || name.trim() === '') return []
+      if (typeof name !== 'string' || name.trim() === '') {return []}
       return [name.trim()]
     })
   )
@@ -104,7 +104,7 @@ export async function runOllamaBatchPullQueue(
     document = { ...document, items }
     const snapshot = document
     const attempt = persistenceTail.then(async () => {
-      if (persistenceFailed) throw persistenceError
+      if (persistenceFailed) {throw persistenceError}
       await persist(snapshot)
     })
     const observed = attempt.catch(error => {
@@ -122,9 +122,9 @@ export async function runOllamaBatchPullQueue(
     update: (item: IOllamaBatchPullItem) => IOllamaBatchPullItem
   ) => {
     const index = document.items.findIndex(item => item.id === id)
-    if (index < 0) return Promise.resolve()
+    if (index < 0) {return Promise.resolve()}
     const current = document.items[index]
-    if (current === undefined) return Promise.resolve()
+    if (current === undefined) {return Promise.resolve()}
     return write(
       document.items.map((item, itemIndex) =>
         itemIndex === index ? update(current) : item
@@ -136,9 +136,9 @@ export async function runOllamaBatchPullQueue(
   const worker = async () => {
     while (!signal?.aborted) {
       const index = nextIndex()
-      if (index < 0) return
+      if (index < 0) {return}
       const current = document.items[index]
-      if (current === undefined) return
+      if (current === undefined) {return}
       await updateItem(current.id, item => ({
         ...item,
         state: 'pulling',
@@ -152,7 +152,7 @@ export async function runOllamaBatchPullQueue(
           onProgress: progress => {
             progressTail = progressTail.then(() => {
               const live = document.items.find(item => item.id === current.id)
-              if (live?.state !== 'pulling') return
+              if (live?.state !== 'pulling') {return}
               return updateItem(current.id, item => ({
                 ...item,
                 progress,
@@ -187,7 +187,7 @@ export async function runOllamaBatchPullQueue(
             ? error.message.slice(0, 512)
             : 'Ollama pull failed.',
         }))
-        if (signal?.aborted) return
+        if (signal?.aborted) {return}
       }
     }
   }
@@ -217,7 +217,7 @@ export function normalizeOllamaBatchPullQueue(
   const seen = new Set<string>()
   const items = Array.isArray(source.items)
     ? source.items.slice(0, MaxOllamaBatchPullItems).flatMap(raw => {
-        if (typeof raw !== 'object' || raw === null) return []
+        if (typeof raw !== 'object' || raw === null) {return []}
         const item = raw as Record<string, unknown>
         const id = typeof item.id === 'string' ? item.id.trim() : ''
         const model = typeof item.model === 'string' ? item.model.trim() : ''
@@ -232,7 +232,7 @@ export function normalizeOllamaBatchPullQueue(
             String(state)
           )
         )
-          return []
+          {return []}
         seen.add(id)
         // A process cannot prove a previous stream survived restart; reconcile it.
         const recoveredState =

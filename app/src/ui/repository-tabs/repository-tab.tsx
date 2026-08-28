@@ -261,6 +261,8 @@ export class RepositoryTab extends React.Component<
     this.setState({ draftLabel: event.currentTarget.value })
   }
 
+  private readonly frameRef = React.createRef<HTMLDivElement>()
+
   private commitRename = () => {
     const value = this.state.draftLabel.trim()
     const next =
@@ -268,8 +270,6 @@ export class RepositoryTab extends React.Component<
     this.props.onRename(this.props.tab, next)
     this.setState({ isRenaming: false, draftLabel: '' })
   }
-
-  private readonly frameRef = React.createRef<HTMLDivElement>()
 
   /**
    * Cancel the inline rename and put focus back on the tab.
@@ -469,7 +469,7 @@ export class RepositoryTab extends React.Component<
           // that does nothing for text truncated inside a tab that is visible.
           // The accessible name already carried the full text; a sighted mouse
           // user had nothing.
-          title={this.label}
+          aria-label={this.label}
           style={tabTitleStyleToCss(tab.titleStyle)}
           data-context-menu-owner="tab-title-appearance"
           data-customization-surface="tab-title"
