@@ -2329,19 +2329,28 @@ export class Dispatcher {
         options?.postCloneRunnerProvisioning
       )
 
-      if (isRepositoryWithForkedGitHubRepository(addedRepository)) {
-        this.showPopup({
-          type: PopupType.ChooseForkSettings,
-          repository: addedRepository,
-        })
-      } else if (options?.checkoutAllBranchesAsWorktrees === true) {
+      const showCheckoutBranchesAsWorktrees = () => {
+        if (options?.checkoutAllBranchesAsWorktrees !== true) {
+          return
+        }
+
         // The clone brought every branch down but checked one out; offer the
         // rest as worktrees while the user is still looking at the repository.
-        this.showPopup({
+        void this.showPopup({
           type: PopupType.CheckoutBranchesAsWorktrees,
           repository: addedRepository,
           fromClone: true,
         })
+      }
+
+      if (isRepositoryWithForkedGitHubRepository(addedRepository)) {
+        this.showPopup({
+          type: PopupType.ChooseForkSettings,
+          repository: addedRepository,
+          onRemoved: showCheckoutBranchesAsWorktrees,
+        })
+      } else {
+        showCheckoutBranchesAsWorktrees()
       }
 
       return addedRepository

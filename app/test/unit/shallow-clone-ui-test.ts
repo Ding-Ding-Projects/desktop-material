@@ -72,4 +72,34 @@ describe('guided shallow clone UI contracts', () => {
       /selected GitHub repository no longer matches the cloned remote/
     )
   })
+
+  it('shows fork settings before the requested post-clone worktree dialog', () => {
+    const dispatcher = read('app/src/ui/dispatcher/dispatcher.ts')
+    const callback = dispatcher.indexOf(
+      'const showCheckoutBranchesAsWorktrees = () => {'
+    )
+    const worktreePopup = dispatcher.indexOf(
+      'type: PopupType.CheckoutBranchesAsWorktrees',
+      callback
+    )
+    const forkPopup = dispatcher.indexOf(
+      'type: PopupType.ChooseForkSettings',
+      worktreePopup
+    )
+    const queuedAfterFork = dispatcher.indexOf(
+      'onRemoved: showCheckoutBranchesAsWorktrees',
+      forkPopup
+    )
+
+    assert(callback >= 0)
+    assert(worktreePopup > callback)
+    assert(forkPopup > worktreePopup)
+    assert(queuedAfterFork > forkPopup)
+    assert.equal(
+      dispatcher.includes(
+        '} else if (options?.checkoutAllBranchesAsWorktrees === true) {'
+      ),
+      false
+    )
+  })
 })
