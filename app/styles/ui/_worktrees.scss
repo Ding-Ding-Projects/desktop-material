@@ -152,6 +152,26 @@
     flex-shrink: 0;
   }
 
+  .worktree-list-actions {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: var(--spacing-half);
+    width: 100%;
+
+    > .button-component {
+      justify-content: center;
+      width: 100%;
+      white-space: normal;
+    }
+  }
+
+  .new-worktree-button,
+  .checkout-all-branches-worktrees-button,
+  .merge-all-worktrees-button {
+    min-width: 0;
+    flex-shrink: 0;
+  }
+
   .no-items-found {
     padding: var(--spacing);
     text-align: center;
@@ -252,7 +272,7 @@
     overflow: hidden;
     width: 100%;
 
-    .checkbox {
+    .branch-worktree-checkbox {
       display: flex;
       flex-shrink: 0;
     }

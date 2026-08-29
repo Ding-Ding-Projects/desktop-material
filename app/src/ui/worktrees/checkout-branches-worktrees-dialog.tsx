@@ -25,7 +25,7 @@ import {
 } from '../../lib/git/branch-worktrees'
 import { IListFilter } from '../lib/filter-list-mode'
 
-const RowHeight = 40
+const RowHeight = 48
 
 interface IBranchWorktreeListItem extends IFilterListItem {
   readonly id: string
@@ -109,7 +109,7 @@ interface IBranchWorktreeRowProps {
  * virtualized list.
  */
 class BranchWorktreeRow extends React.PureComponent<IBranchWorktreeRowProps> {
-  private onCheckboxClick = (event: React.MouseEvent<HTMLSpanElement>) => {
+  private onCheckboxClick = (event: React.MouseEvent<HTMLInputElement>) => {
     // The row itself toggles too; without this the checkbox would toggle twice.
     event.stopPropagation()
   }
@@ -123,17 +123,13 @@ class BranchWorktreeRow extends React.PureComponent<IBranchWorktreeRowProps> {
 
     return (
       <div className="branch-worktree-row">
-        <span
-          className="checkbox"
-          role="presentation"
+        <Checkbox
+          className="branch-worktree-checkbox"
+          value={checked ? CheckboxValue.On : CheckboxValue.Off}
           onClick={this.onCheckboxClick}
-        >
-          <Checkbox
-            value={checked ? CheckboxValue.On : CheckboxValue.Off}
-            onChange={this.onCheckboxChange}
-            ariaLabel={`Check out ${candidate.branchName} as a worktree`}
-          />
-        </span>
+          onChange={this.onCheckboxChange}
+          ariaLabel={`Check out ${candidate.branchName} as a worktree`}
+        />
         <Octicon className="branch-worktree-icon" symbol={octicons.gitBranch} />
         <div className="branch-worktree-detail">
           <div className="branch-worktree-name">
@@ -283,17 +279,24 @@ export class CheckoutBranchesAsWorktreesDialog extends React.Component<
     this.setState({ filterText })
 
   private onSelectAllVisible = () =>
-    this.setState(state => ({
-      selectedBranches: new Set([
-        ...state.selectedBranches,
-        ...state.visibleBranches,
-      ]),
-    }))
+    this.setState(state => {
+      const branches =
+        state.filterText.trim().length === 0 && state.plan !== null
+          ? state.plan.candidates.map(candidate => candidate.branchName)
+          : state.visibleBranches
+      return {
+        selectedBranches: new Set([...state.selectedBranches, ...branches]),
+      }
+    })
 
   private onSelectNoneVisible = () =>
     this.setState(state => {
       const selectedBranches = new Set(state.selectedBranches)
-      for (const branchName of state.visibleBranches) {
+      const branches =
+        state.filterText.trim().length === 0 && state.plan !== null
+          ? state.plan.candidates.map(candidate => candidate.branchName)
+          : state.visibleBranches
+      for (const branchName of branches) {
         selectedBranches.delete(branchName)
       }
       return { selectedBranches }
@@ -352,23 +355,21 @@ export class CheckoutBranchesAsWorktreesDialog extends React.Component<
 
     // Some branches are now checked out and some are not, so the dialog stays
     // open naming the ones that failed rather than reporting a flat success.
-    this.setState({
+    const attempted = results.map(result => result.branchName)
+    this.setState(prev => ({
       creating: false,
       progress: null,
       failures,
-      plan: this.removeSucceeded(
-        results.map(r => r.branchName),
-        failures
-      ),
+      plan: this.removeSucceeded(prev.plan, attempted, failures),
       selectedBranches: new Set(failures.map(f => f.branchName)),
-    })
+    }))
   }
 
   private removeSucceeded(
+    plan: IBranchWorktreePlan | null,
     attempted: ReadonlyArray<string>,
     failures: ReadonlyArray<{ readonly branchName: string }>
   ): IBranchWorktreePlan | null {
-    const { plan } = this.state
     if (plan === null) {
       return null
     }
@@ -399,12 +400,19 @@ export class CheckoutBranchesAsWorktreesDialog extends React.Component<
     </div>
   )
 
-  private renderPostFilter = () => (
-    <div className="branch-worktrees-selection-actions">
-      <Button onClick={this.onSelectAllVisible}>Select all</Button>
-      <Button onClick={this.onSelectNoneVisible}>Select none</Button>
-    </div>
-  )
+  private renderPostFilter = () => {
+    const filtered = this.state.filterText.trim().length > 0
+    return (
+      <div className="branch-worktrees-selection-actions">
+        <Button onClick={this.onSelectAllVisible}>
+          {filtered ? 'Select shown' : 'Select all'}
+        </Button>
+        <Button onClick={this.onSelectNoneVisible}>
+          {filtered ? 'Deselect shown' : 'Select none'}
+        </Button>
+      </div>
+    )
+  }
 
   private renderNoItems = () => (
     <div className="no-items-found">No branches match this search</div>
@@ -549,8 +557,8 @@ export class CheckoutBranchesAsWorktreesDialog extends React.Component<
         {this.renderContent()}
         <DialogFooter>
           <div className="branch-worktrees-count" role="status">
-            {selectedCount} of {total} {total === 1 ? 'branch' : 'branches'}{' '}
-            selected
+            {selectedCount} of {total}{' '}
+            {selectedCount === 1 ? 'branch' : 'branches'} selected
           </div>
           <OkCancelButtonGroup
             okButtonText={__DARWIN__ ? 'Create Worktrees' : 'Create worktrees'}

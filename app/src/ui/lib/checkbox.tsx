@@ -23,6 +23,9 @@ interface ICheckboxProps {
   /** The function to call on value change. */
   readonly onChange?: (event: React.FormEvent<HTMLInputElement>) => void
 
+  /** Called when the native checkbox input is clicked. */
+  readonly onClick?: (event: React.MouseEvent<HTMLInputElement>) => void
+
   /** The tab index of the input element. */
   readonly tabIndex?: number
 
@@ -128,6 +131,7 @@ export class Checkbox extends React.Component<ICheckboxProps, ICheckboxState> {
           id={this.state.inputId}
           tabIndex={this.props.tabIndex}
           type="checkbox"
+          onClick={this.props.onClick}
           onChange={this.onChange}
           onDoubleClick={this.onDoubleClick}
           ref={this.onInputRef}

@@ -114,15 +114,21 @@ describe('control primitives', () => {
 
   it('renders checkbox labels, mixed state, and change wiring', () => {
     let changed = 0
+    let clicked = 0
 
     function onChange() {
       changed++
+    }
+
+    function onClick() {
+      clicked++
     }
 
     const view = render(
       <Checkbox
         label="Enable feature"
         value={CheckboxValue.Mixed}
+        onClick={onClick}
         onChange={onChange}
       />
     )
@@ -137,11 +143,13 @@ describe('control primitives', () => {
     fireEvent.click(checkbox)
 
     assert.equal(changed, 1)
+    assert.equal(clicked, 1)
 
     view.rerender(
       <Checkbox
         label="Enable feature"
         value={CheckboxValue.Off}
+        onClick={onClick}
         onChange={onChange}
       />
     )
