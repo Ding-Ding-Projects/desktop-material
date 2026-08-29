@@ -470,7 +470,7 @@ dialog.clone-repository {
   .clone-shallow-toggle {
     cursor: pointer;
 
-    > input {
+    .checkbox-component input {
       width: 18px;
       height: 18px;
       flex: none;
@@ -480,6 +480,60 @@ dialog.clone-repository {
     > span {
       display: flex;
       flex-direction: column;
+    }
+
+    small {
+      color: var(--md-sys-color-on-surface-variant);
+    }
+  }
+
+  .clone-worktree-options {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: center;
+    gap: 8px 14px;
+    padding: 10px 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
+    background: var(--md-sys-color-surface-container);
+
+    > small {
+      min-width: 0;
+      color: var(--md-sys-color-on-surface-variant);
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .clone-worktrees-toggle {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 9px;
+    cursor: pointer;
+
+    input {
+      width: 18px;
+      height: 18px;
+      flex: none;
+      margin: 0;
+    }
+
+    > label {
+      display: flex;
+      min-width: 0;
+      flex: 1;
+    }
+
+    > label > span {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+    }
+
+    strong,
+    small {
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
 
     small {

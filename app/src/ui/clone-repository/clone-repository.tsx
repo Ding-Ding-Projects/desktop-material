@@ -903,28 +903,26 @@ export class CloneRepository extends React.Component<
           }
         >
           <div className="clone-worktree-options">
-            <label
+            <Checkbox
               className="clone-worktrees-toggle"
-              aria-label="Check out every branch as a worktree in a subfolder of the repository"
-            >
-              <Checkbox
-                value={
-                  this.state.checkoutAllBranchesAsWorktrees
-                    ? CheckboxValue.On
-                    : CheckboxValue.Off
-                }
-                onChange={this.onCheckoutAllBranchesAsWorktreesChanged}
-              />
-              <span>
-                <strong>Check out all branches as worktrees</strong>
-                <small>
-                  Each branch gets its own worktree under{' '}
-                  {BranchWorktreeContainerName} inside the repository, so
-                  nothing extra lands beside your other repositories. You pick
-                  the branches once the clone finishes.
-                </small>
-              </span>
-            </label>
+              label={
+                <span>
+                  <strong>Check out all branches as worktrees</strong>
+                  <small>
+                    Each branch gets its own worktree under{' '}
+                    {BranchWorktreeContainerName} inside the repository, so
+                    nothing extra lands beside your other repositories. You pick
+                    the branches once the clone finishes.
+                  </small>
+                </span>
+              }
+              value={
+                this.state.checkoutAllBranchesAsWorktrees
+                  ? CheckboxValue.On
+                  : CheckboxValue.Off
+              }
+              onChange={this.onCheckoutAllBranchesAsWorktreesChanged}
+            />
             {this.state.checkoutAllBranchesAsWorktrees &&
               this.state.shallowClone && (
                 <small role="status">
