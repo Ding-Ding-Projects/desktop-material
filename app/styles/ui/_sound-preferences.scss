@@ -65,26 +65,6 @@
     }
   }
 
-  .sound-slider-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    input[type='range'] {
-      flex: 1 1 auto;
-      min-width: 0;
-      accent-color: var(--md-sys-color-primary);
-    }
-  }
-
-  .sound-slider-value {
-    flex: none;
-    min-width: 44px;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-    color: var(--md-sys-color-on-surface-variant);
-  }
-
   .sound-range-slider {
     margin: 10px 0;
     min-width: 0;
@@ -124,10 +104,15 @@
     align-items: center;
     gap: 8px;
 
-    input[type='text'] {
+    .text-box-component {
       flex: 1 1 220px;
       min-width: 0;
     }
+  }
+
+  .sound-music-label {
+    font-weight: var(--font-weight-medium);
+    color: var(--md-sys-color-on-surface-variant);
   }
 
   .sound-preview-button,

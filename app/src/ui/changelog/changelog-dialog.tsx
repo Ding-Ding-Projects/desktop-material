@@ -527,6 +527,7 @@ export class ChangelogDialog extends React.Component<
                 value={this.state.filter.query}
                 placeholder={this.text('changelog.searchPlaceholder')}
                 ariaLabel={this.accessibleText('changelog.searchLabel')}
+                spellcheck={false}
                 onValueChanged={this.onQueryChanged}
               />
               <FilterModeControl

@@ -38,22 +38,29 @@
       fill: currentColor;
     }
 
-    input {
+    .text-box-component {
       flex: 1;
       min-width: 0;
       border: 0;
       background: transparent;
-      color: var(--md-sys-color-on-surface);
-      font-size: 13px;
-      outline: none;
 
-      &::placeholder {
-        color: var(--md-sys-color-on-surface-variant);
+      input {
+        width: 100%;
+        min-width: 0;
+        border: 0;
+        background: transparent;
+        color: var(--md-sys-color-on-surface);
+        font-size: 13px;
+        outline: none;
+
+        &::placeholder {
+          color: var(--md-sys-color-on-surface-variant);
+        }
       }
     }
   }
 
-  .changelog-date-button {
+  .changelog-date-button.button-component {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -249,7 +256,7 @@
     text-align: center;
   }
 
-  .changelog-show-more {
+  .changelog-show-more.button-component {
     align-self: center;
     min-height: 36px;
     padding: 6px 20px;

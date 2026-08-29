@@ -8,6 +8,9 @@ import {
 } from '../../lib/personal-vocabulary-rendering'
 
 interface ISelectProps {
+  /** Optional stable id for callers that need to address the select directly. */
+  readonly id?: string
+
   /** Form name used to identify this select in shared change handlers. */
   readonly name?: string
 
@@ -60,7 +63,7 @@ export class Select extends React.Component<ISelectProps, ISelectState> {
 
   private renderLabel() {
     const label = personalizeOptionalText(this.props.label)
-    const inputId = this.state.inputId
+    const inputId = this.props.id ?? this.state.inputId
 
     return label ? <label htmlFor={inputId}>{label}</label> : null
   }
@@ -72,7 +75,7 @@ export class Select extends React.Component<ISelectProps, ISelectState> {
         <div className="select-input">
           <select
             name={this.props.name}
-            id={this.state.inputId}
+            id={this.props.id ?? this.state.inputId}
             onChange={this.props.onChange}
             value={this.props.value}
             defaultValue={this.props.defaultValue}

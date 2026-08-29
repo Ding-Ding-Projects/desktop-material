@@ -249,7 +249,12 @@ describe('control primitives', () => {
     }
 
     render(
-      <Select label="Default branch" value="main" onChange={onChange}>
+      <Select
+        id="default-branch-select"
+        label="Default branch"
+        value="main"
+        onChange={onChange}
+      >
         <option value="main">main</option>
         <option value="release">release</option>
       </Select>
@@ -260,6 +265,7 @@ describe('control primitives', () => {
     }) as HTMLSelectElement
 
     assert.equal(select.value, 'main')
+    assert.equal(select.id, 'default-branch-select')
 
     fireEvent.change(select, { target: { value: 'release' } })
 

@@ -694,6 +694,7 @@ export class SoundPreferences extends React.Component<
     return (
       <div className="sound-field-group">
         <Select
+          id={id}
           label={label}
           value={value.toString()}
           onChange={event => onChange(Number(event.currentTarget.value))}
@@ -745,6 +746,9 @@ export class SoundPreferences extends React.Component<
       : isCustom
       ? 'settings.soundThemeStateCustom'
       : 'settings.soundThemeStateTheme'
+    const trackLabel = translate('settings.soundMusicRepoLabel', languageMode, {
+      repository: bilingualVariable(repository.name, repository.name),
+    })
 
     return (
       <div className="sound-theme">
@@ -783,11 +787,12 @@ export class SoundPreferences extends React.Component<
           className="sound-field-group"
           {...teleportAnchor('settings-sound-music-track')}
         >
+          <span className="sound-music-label" id="sound-music-track-label">
+            {trackLabel}
+          </span>
           <div className="sound-music-row">
             <TextBox
-              label={translate('settings.soundMusicRepoLabel', languageMode, {
-                repository: bilingualVariable(repository.name, repository.name),
-              })}
+              ariaLabelledBy="sound-music-track-label"
               value={customTrack}
               readOnly={true}
               placeholder={translate(
