@@ -587,6 +587,8 @@
 
     .image-container {
       position: relative;
+      // Keep both overlapping image layers in one stable compositor.
+      transform: translate3d(0, 0, 0);
 
       .image-diff-previous,
       .image-diff-current {
