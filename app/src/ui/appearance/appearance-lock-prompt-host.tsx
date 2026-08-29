@@ -108,10 +108,10 @@ export class AppearanceLockPromptHost extends React.Component<
   }
 
   public componentDidUpdate(
-    previousProps: IAppearanceLockPromptHostProps,
+    prevProps: IAppearanceLockPromptHostProps,
     previousState: IAppearanceLockPromptHostState
   ) {
-    void previousProps
+    void prevProps
     if (
       this.state.creation !== null &&
       this.state.creationMenu &&
@@ -283,7 +283,7 @@ export class AppearanceLockPromptHost extends React.Component<
       return (
         <div
           className="md3-lock-setup md3-lock-creation-menu"
-          role="menu"
+          role="menubar"
           aria-label={t('md3.locks.menu.elementCommands')}
           ref={this.setCreationMenuNode}
           onKeyDown={this.onCreationMenuKeyDown}

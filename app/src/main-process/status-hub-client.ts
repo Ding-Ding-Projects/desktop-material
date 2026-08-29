@@ -21,7 +21,7 @@ export interface IStatusHubClientConfiguration {
 }
 
 function normalizeEndpoint(value: string | null): URL | null {
-  if (value === null) return null
+  if (value === null) {return null}
   try {
     const url = new URL(value)
     return url.protocol === 'https:' || url.hostname === '127.0.0.1'
@@ -61,7 +61,7 @@ export class StatusHubClient {
   }
 
   public async getStatus(): Promise<IStatusHubStatus> {
-    if (this.endpoint === null) return LocalStatusHubFallback
+    if (this.endpoint === null) {return LocalStatusHubFallback}
     const authorization = await this.configuration.getAuthorization()
     if (authorization === null) {
       return {
@@ -81,9 +81,9 @@ export class StatusHubClient {
 
   public async publish(projection: IStatusHubSessionProjection): Promise<IStatusHubStatus> {
     const status = await this.getStatus()
-    if (status.connection !== 'connected' || this.endpoint === null) return status
+    if (status.connection !== 'connected' || this.endpoint === null) {return status}
     const authorization = await this.configuration.getAuthorization()
-    if (authorization === null) return { ...status, connection: 'authentication-unavailable' }
+    if (authorization === null) {return { ...status, connection: 'authentication-unavailable' }}
     try {
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), StatusHubRequestTimeoutMs)
@@ -91,7 +91,7 @@ export class StatusHubClient {
         method: 'PUT', headers: { authorization, 'content-type': 'application/json' },
         body: JSON.stringify(projection), signal: controller.signal,
       }).finally(() => clearTimeout(timeout))
-      if (!response.ok) throw new Error(`Status Hub returned HTTP ${response.status}.`)
+      if (!response.ok) {throw new Error(`Status Hub returned HTTP ${response.status}.`)}
       await readBoundedJSON(response)
       return { ...status, lastUpdatedAt: this.now() }
     } catch {
@@ -105,14 +105,14 @@ export class StatusHubClient {
       return { replies: [], nextCursor: cursor, deliveryConfirmed: false }
     }
     const authorization = await this.configuration.getAuthorization()
-    if (authorization === null) return { replies: [], nextCursor: cursor, deliveryConfirmed: false }
+    if (authorization === null) {return { replies: [], nextCursor: cursor, deliveryConfirmed: false }}
     const url = new URL(`/api/agent/sessions/${encodeURIComponent(sessionId)}/replies`, this.endpoint)
-    if (cursor !== null) url.searchParams.set('cursor', cursor)
+    if (cursor !== null) {url.searchParams.set('cursor', cursor)}
     try {
       const response = await this.request(url, { headers: { authorization } })
-      if (!response.ok) return { replies: [], nextCursor: cursor, deliveryConfirmed: false }
+      if (!response.ok) {return { replies: [], nextCursor: cursor, deliveryConfirmed: false }}
       const value = await readBoundedJSON(response)
-      if (!isRecord(value) || !Array.isArray(value.replies)) return { replies: [], nextCursor: cursor, deliveryConfirmed: false }
+      if (!isRecord(value) || !Array.isArray(value.replies)) {return { replies: [], nextCursor: cursor, deliveryConfirmed: false }}
       const replies = value.replies.filter(isRecord).flatMap(reply =>
         typeof reply.id === 'string' && typeof reply.questionId === 'string' && typeof reply.text === 'string' && typeof reply.receivedAt === 'number'
           ? [{ id: reply.id, questionId: reply.questionId, text: reply.text, receivedAt: reply.receivedAt }]
