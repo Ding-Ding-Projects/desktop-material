@@ -53,14 +53,8 @@ observed labels, dimensions, byte count, and SHA-256.
 ## Boundaries
 
 - `Desktop Material v2.dc.html` reuses the existing 16-route deterministic
-  capture registry. `History MD3.dc.html` has a separate hand-written registry
-  for all eight destinations, major dialog/detail/builder/toast/progress/empty
-  states, and every reachable menu overlay. `Desktop Material.dc.html` opens in
-  its source-default state.
-- The History source defines a compose menu specification that no source-owned
-  click or context-menu action can open. The list receipt reports it as
-  unreachable instead of injecting component state or pretending it is a
-  selectable screen.
+  capture registry. `Desktop Material.dc.html` opens in its source-default
+  state. These are the only two tracked design documents.
 - This tool produces reference images. It does not claim that the production
   application matches them and it does not perform image comparison.
 - Output overwrite is deliberately refused. Use a new output path for every

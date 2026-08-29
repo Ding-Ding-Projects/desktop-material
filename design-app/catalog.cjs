@@ -4,7 +4,6 @@ const crypto = require('node:crypto')
 const fs = require('node:fs')
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
-const { HistoryRoutes, UnreachableHistoryStates } = require('./scenarios.cjs')
 
 const RepoRoot = path.resolve(__dirname, '..')
 const DesignRoot = path.join(RepoRoot, 'design')
@@ -90,13 +89,7 @@ function routes() {
     expectedDrawerWidth: null,
     settleMs: 1100,
   }))
-  return [
-    ...canonicalRoutes,
-    ...HistoryRoutes.map(route => ({
-      ...route,
-      source: 'hand-written-history-registry',
-    })),
-  ]
+  return canonicalRoutes
 }
 
 function routeSummary(route) {
@@ -114,7 +107,7 @@ function catalogReceipt() {
     canonicalReference: CanonicalReference,
     references,
     stateRoutes,
-    unreachableStates: UnreachableHistoryStates,
+    unreachableStates: [],
     defaults: {
       reference: CanonicalReference,
       state: 'workspace-changes-light',

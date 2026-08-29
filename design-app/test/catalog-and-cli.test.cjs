@@ -27,26 +27,11 @@ const ExpectedRoutes = [
   'clone-dialog-v2',
 ]
 
-const ExpectedHistoryDestinations = [
-  'history-history',
-  'history-changes',
-  'history-branches',
-  'history-actions',
-  'history-inbox',
-  'history-terminal',
-  'history-agents',
-  'history-repositories',
-]
-
-test('catalog discovers only the three tracked design documents with exact identity', () => {
+test('catalog discovers only the two tracked design documents with exact identity', () => {
   const references = catalog.listReferences()
   assert.deepEqual(
     references.map(item => item.id),
-    [
-      'Desktop Material v2.dc.html',
-      'Desktop Material.dc.html',
-      'History MD3.dc.html',
-    ]
+    ['Desktop Material v2.dc.html', 'Desktop Material.dc.html']
   )
   for (const reference of references) {
     assert.ok(reference.bytes > 1000)
@@ -78,43 +63,22 @@ test('state registry is the exact existing capture-driver route set', () => {
   }
 })
 
-test('History registry covers every destination, major state, and reachable menu', () => {
+test('the older design document opens only in its source-default state', () => {
   const receipt = catalog.catalogReceipt()
-  const history = receipt.stateRoutes.filter(
-    item => item.reference === 'History MD3.dc.html'
-  )
-  for (const destination of ExpectedHistoryDestinations) {
-    assert.ok(
-      history.some(item => item.name === destination),
-      destination
-    )
-  }
-  for (const major of [
-    'history-detail-sheet',
-    'history-compose-dialog',
-    'history-regex-builder',
-    'history-toast-fetch',
-    'history-collapsed-drawer',
-    'history-progress-fetch',
-    'history-empty',
-    'history-repositories-empty',
-  ]) {
-    assert.ok(
-      history.some(item => item.name === major),
-      major
-    )
-  }
-  assert.equal(
-    history.filter(item => item.name.startsWith('history-menu-')).length,
-    22
-  )
-  assert.deepEqual(receipt.unreachableStates, [
-    {
-      name: 'history-menu-compose',
-      reason:
-        "menuSpec() defines overlay 'compose', but the source exposes no click or context-menu action that opens it.",
-    },
+  const selected = catalog.parseArguments([
+    '--reference',
+    'Desktop Material.dc.html',
   ])
+
+  assert.equal(selected.state, 'default')
+  assert.equal(selected.route, null)
+  assert.equal(
+    receipt.stateRoutes.every(
+      route => route.reference === catalog.CanonicalReference
+    ),
+    true
+  )
+  assert.deepEqual(receipt.unreachableStates, [])
 })
 
 test('runtime load replaces remote runtime resources in memory and never changes source', () => {
@@ -166,7 +130,7 @@ test('CLI rejects ambiguous, unsafe, or unsupported selections', () => {
     () =>
       catalog.parseArguments([
         '--reference',
-        'History MD3.dc.html',
+        'Desktop Material.dc.html',
         '--state',
         'regex-builder',
       ]),
