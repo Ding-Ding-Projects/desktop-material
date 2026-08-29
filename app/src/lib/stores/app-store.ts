@@ -15863,9 +15863,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     )
 
     const created = results.filter(result => result.error === undefined).length
-    for (let i = 0; i < created; i++) {
-      this.statsStore.increment('worktreeCreatedCount')
-    }
+    await this.statsStore.increment('worktreeCreatedCount', created)
 
     await this._refreshWorktrees(repository)
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import * as Path from 'path'
-import { readFile } from 'fs/promises'
+import { mkdir, readFile, rm } from 'fs/promises'
 import { describe, it } from 'node:test'
 import { exec } from 'dugite'
 
@@ -66,6 +66,10 @@ describe('git/branch-worktrees', () => {
 
     it('escapes a reserved device name', () => {
       assert.strictEqual(worktreeDirectoryNameForBranch('con'), 'con-')
+      assert.strictEqual(worktreeDirectoryNameForBranch('com1'), 'com1-')
+      assert.strictEqual(worktreeDirectoryNameForBranch('lpt9'), 'lpt9-')
+      assert.strictEqual(worktreeDirectoryNameForBranch('com0'), 'com0')
+      assert.strictEqual(worktreeDirectoryNameForBranch('lpt0'), 'lpt0')
     })
 
     it('never produces an empty directory name', () => {
@@ -174,6 +178,44 @@ describe('git/branch-worktrees', () => {
 
       assert.strictEqual(plan.candidates.length, 1)
       assert.strictEqual(plan.candidates[0].remoteName, 'origin')
+      assert.deepStrictEqual(plan.skipped, [
+        { branchName: 'feature', reason: 'duplicate-remote' },
+      ])
+    })
+
+    it('skips a later branch whose directory equals or nests with an earlier one', () => {
+      const nested = planBranchWorktrees(
+        repositoryPath,
+        [localBranch('feature'), localBranch('feature/thing')],
+        []
+      )
+      const sanitized = planBranchWorktrees(
+        repositoryPath,
+        [localBranch('fix|thing'), localBranch('fix<thing')],
+        []
+      )
+
+      assert.deepStrictEqual(
+        nested.candidates.map(candidate => candidate.branchName),
+        ['feature']
+      )
+      assert.deepStrictEqual(nested.skipped, [
+        {
+          branchName: 'feature/thing',
+          reason: 'directory-conflict',
+          existingPath: getBranchWorktreePath(repositoryPath, 'feature'),
+          conflictingBranchName: 'feature',
+        },
+      ])
+      assert.deepStrictEqual(
+        sanitized.candidates.map(candidate => candidate.branchName),
+        ['fix|thing']
+      )
+      assert.strictEqual(sanitized.skipped[0].reason, 'directory-conflict')
+      assert.strictEqual(
+        sanitized.skipped[0].conflictingBranchName,
+        'fix|thing'
+      )
     })
   })
 
@@ -270,6 +312,35 @@ describe('git/branch-worktrees', () => {
 
       const paths = (await listWorktrees(repo)).map(w => w.path)
       assert(paths.includes(getBranchWorktreePath(repo.path, 'feature-a')))
+    })
+
+    it('continues when the local exclude file cannot be updated', async t => {
+      const repo = await setupEmptyRepository(t, 'main')
+      await makeCommit(repo, {
+        entries: [{ path: 'README', contents: 'hello' }],
+      })
+      await exec(['branch', 'feature-a'], repo.path)
+
+      const excludePath = Path.join(repo.path, '.git', 'info', 'exclude')
+      await rm(excludePath, { force: true })
+      await mkdir(excludePath)
+
+      const results = await checkoutBranchesAsWorktrees(repo, [
+        {
+          branchName: 'feature-a',
+          path: getBranchWorktreePath(repo.path, 'feature-a'),
+          commitish: 'feature-a',
+          sha: 'e'.repeat(40),
+        },
+      ])
+
+      assert.strictEqual(results.length, 1)
+      assert.strictEqual(results[0].error, undefined)
+      assert(
+        (await listWorktrees(repo))
+          .map(worktree => worktree.path)
+          .includes(getBranchWorktreePath(repo.path, 'feature-a'))
+      )
     })
   })
 })

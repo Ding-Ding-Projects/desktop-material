@@ -22,7 +22,7 @@ const InvalidPathCharacters = /[<>:"\\|?*\u0000-\u001f]/g
 
 /** Device names Windows refuses to use as a path component. */
 const ReservedWindowsNames =
-  /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³])(\..*)?$/i
+  /^(con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])(\..*)?$/i
 
 /** The absolute path of the container holding a repository's branch worktrees. */
 export function getBranchWorktreeContainerPath(repositoryPath: string): string {
@@ -33,9 +33,10 @@ export function getBranchWorktreeContainerPath(repositoryPath: string): string {
  * The directory name a branch is checked out into, relative to the container.
  *
  * A branch name is a path already (`feature/thing`), so it keeps its shape on
- * disk; only the characters a file system cannot represent are replaced. Git
- * forbids a branch named both `feature` and `feature/thing` in one repository,
- * so nesting cannot collide with a branch of its own.
+ * disk; only the characters a file system cannot represent are replaced.
+ * Different refs can still map to the same or nested paths after sanitizing or
+ * under a ref storage backend that permits both `feature` and `feature/thing`,
+ * so planning checks every candidate path before it is offered.
  */
 export function worktreeDirectoryNameForBranch(branchName: string): string {
   const segments = branchName
@@ -72,6 +73,10 @@ export type BranchWorktreeSkipReason =
   | 'already-checked-out'
   /** A remote branch whose local branch is covered by another candidate */
   | 'shadowed-by-local'
+  /** A remote branch already represented by the same branch from another remote */
+  | 'duplicate-remote'
+  /** The planned directory equals, contains, or is contained by an earlier one */
+  | 'directory-conflict'
 
 /** One branch that can be checked out into a worktree of its own. */
 export interface IBranchWorktreeCandidate {
@@ -100,6 +105,8 @@ export interface ISkippedBranchWorktree {
   readonly reason: BranchWorktreeSkipReason
   /** Where the branch is already checked out, when that is the reason. */
   readonly existingPath?: string
+  /** The earlier candidate whose planned directory conflicts with this branch. */
+  readonly conflictingBranchName?: string
 }
 
 /** The branches that can, and cannot, be checked out as worktrees. */
@@ -110,6 +117,16 @@ export interface IBranchWorktreePlan {
 
 function shortBranchName(ref: string): string {
   return ref.replace(/^refs\/heads\//, '')
+}
+
+function plannedPathsConflict(first: string, second: string): boolean {
+  const left = Path.resolve(first).toLocaleLowerCase('en-US')
+  const right = Path.resolve(second).toLocaleLowerCase('en-US')
+  return (
+    left === right ||
+    left.startsWith(`${right}${Path.sep}`) ||
+    right.startsWith(`${left}${Path.sep}`)
+  )
 }
 
 /**
@@ -155,6 +172,9 @@ export function planBranchWorktrees(
     }
 
     if (seen.has(branchName)) {
+      if (isRemote) {
+        skipped.push({ branchName, reason: 'duplicate-remote' })
+      }
       continue
     }
     seen.add(branchName)
@@ -169,9 +189,23 @@ export function planBranchWorktrees(
       continue
     }
 
+    const path = getBranchWorktreePath(repositoryPath, branchName)
+    const conflictingCandidate = candidates.find(candidate =>
+      plannedPathsConflict(candidate.path, path)
+    )
+    if (conflictingCandidate !== undefined) {
+      skipped.push({
+        branchName,
+        reason: 'directory-conflict',
+        existingPath: conflictingCandidate.path,
+        conflictingBranchName: conflictingCandidate.branchName,
+      })
+      continue
+    }
+
     candidates.push({
       branchName,
-      path: getBranchWorktreePath(repositoryPath, branchName),
+      path,
       sha: branch.tip.sha,
       ...(isRemote
         ? {
@@ -268,7 +302,14 @@ export async function checkoutBranchesAsWorktrees(
     return []
   }
 
-  await excludeBranchWorktreeContainer(repository)
+  try {
+    await excludeBranchWorktreeContainer(repository)
+  } catch (error) {
+    log.warn(
+      'Unable to exclude the branch worktree container. Checkout will continue.',
+      error
+    )
+  }
 
   const results = new Array<IBranchWorktreeResult>()
   let value = 0

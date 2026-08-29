@@ -423,6 +423,15 @@ export class CheckoutBranchesAsWorktreesDialog extends React.Component<
     const alreadyCheckedOut = plan.skipped.filter(
       s => s.reason === 'already-checked-out'
     ).length
+    const shadowedByLocal = plan.skipped.filter(
+      s => s.reason === 'shadowed-by-local'
+    ).length
+    const duplicateRemote = plan.skipped.filter(
+      s => s.reason === 'duplicate-remote'
+    ).length
+    const directoryConflicts = plan.skipped.filter(
+      s => s.reason === 'directory-conflict'
+    ).length
 
     return (
       <p className="branch-worktrees-summary">
@@ -437,6 +446,32 @@ export class CheckoutBranchesAsWorktreesDialog extends React.Component<
             {alreadyCheckedOut}{' '}
             {alreadyCheckedOut === 1 ? 'branch is' : 'branches are'} already
             checked out and {alreadyCheckedOut === 1 ? 'is' : 'are'} not listed.
+          </>
+        )}
+        {shadowedByLocal > 0 && (
+          <>
+            {' '}
+            {shadowedByLocal} remote{' '}
+            {shadowedByLocal === 1 ? 'branch matches' : 'branches match'} a
+            local branch and {shadowedByLocal === 1 ? 'is' : 'are'} not listed
+            twice.
+          </>
+        )}
+        {duplicateRemote > 0 && (
+          <>
+            {' '}
+            {duplicateRemote} duplicate remote{' '}
+            {duplicateRemote === 1 ? 'branch is' : 'branches are'} not listed
+            twice.
+          </>
+        )}
+        {directoryConflicts > 0 && (
+          <>
+            {' '}
+            {directoryConflicts}{' '}
+            {directoryConflicts === 1 ? 'branch needs' : 'branches need'} a
+            directory that overlaps an earlier branch and{' '}
+            {directoryConflicts === 1 ? 'is' : 'are'} not listed.
           </>
         )}
       </p>
