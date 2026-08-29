@@ -158,6 +158,12 @@ describe('Tag lifecycle manager', () => {
     assert.ok(screen.getByText(/Remote not loaded/))
     assert.equal(screen.queryByText('remote-only'), null)
 
+    const filter = screen.getByRole('searchbox', { name: 'Filter tags' })
+    assert.ok(filter.closest('.text-box-component'))
+    fireEvent.change(filter, { target: { value: 'missing-tag' } })
+    assert.equal(screen.queryByText('release'), null)
+    fireEvent.change(filter, { target: { value: '' } })
+
     fireEvent.click(screen.getByRole('button', { name: 'Load remote' }))
     await screen.findByText('remote-only')
     assert.deepEqual(dispatcher.inventoryRequests, [false, true])

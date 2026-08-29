@@ -219,9 +219,14 @@
   gap: 6px;
   align-items: center;
 
-  > input {
+  .text-box-component {
     min-width: 80px;
     flex: 1 1 auto;
+
+    input {
+      width: 100%;
+      min-width: 0;
+    }
   }
 
   .filter-mode-control {

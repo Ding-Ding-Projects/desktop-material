@@ -15,6 +15,7 @@ import { IFetchProgress, IPushProgress } from '../../models/progress'
 import { Button } from '../lib/button'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { OperationProgressRow } from '../lib/operation-progress-row'
+import { TextBox } from '../lib/text-box'
 import {
   getPersistedLanguageMode,
   LanguageModeChangedEvent,
@@ -1153,13 +1154,12 @@ export class TagLifecycleManager extends React.Component<
             <label>
               {this.localized('tagLifecycle.filterLabel')}
               <div className="tag-lifecycle-filter-field">
-                <input
-                  data-search-surface-id="tag-lifecycle-inventory"
+                <TextBox
+                  searchSurfaceId={TagLifecycleFilterListId}
                   type="search"
                   value={this.state.filter}
-                  onChange={event =>
-                    this.setState({ filter: event.currentTarget.value })
-                  }
+                  ariaLabel={this.accessibleText('tagLifecycle.filterLabel')}
+                  onValueChanged={filter => this.setState({ filter })}
                 />
                 <FilterModeControl
                   searchSurfaceId="tag-lifecycle-inventory"
