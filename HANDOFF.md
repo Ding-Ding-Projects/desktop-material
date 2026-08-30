@@ -10843,3 +10843,66 @@ The compatibility policy is deliberate: user-facing files must use
 `schemaVersion`, while legacy cache entries using `version` are still read so
 existing data does not disappear. The UI change uses only the repository's
 existing Material primitives and does not introduce a new style file.
+
+
+## 2026-08-29 scoped UI bug audit, WP1 through WP8
+
+### Scope and commits
+
+The task branch `claude/ui-bugs-audit-plan-t1kohh` contains eight implementation
+commits, one per requested work package:
+
+1. `61ec069509` aligns the shape and motion tokens.
+2. `3834ed481a` repairs TextBox and Button layout regressions.
+3. `e7b942a0da` restores the clone history/worktree option cards and checkbox
+   naming.
+4. `4b23040dd6` repairs the checkout-all-branches dialog and narrow worktree
+   action layout.
+5. `e0445967c8` hardens branch-worktree planning and non-fatal exclude handling.
+6. `c62a99936b` preserves both post-fork dialogs in the requested order.
+7. `3f51c56fcc` removes the deleted design History routes without restoring the
+   deleted reference file.
+8. `d0ce8b885e` converts only the requested tag-lifecycle search input.
+
+The task does not change `app/src/ui/app.tsx`, `app/package.json`,
+`app/yarn.lock`, any retired shell file, personal-vocabulary parsing, workflow
+configuration, or commit-graph rebuilding. The unrelated linked worktree at
+`feature/personal-vocabulary-ui-repair-20260822` remains unmodified and dirty.
+
+### Verification
+
+- TypeScript no-emit passed.
+- Design-app passed 9 of 9 tests and reports two design source documents and 16
+  routes.
+- Focused suites passed WP2 63, WP3 24, WP4 34, WP5 29, WP6 9, and WP8 9
+  tests.
+- The broad task and `main` suites both account for 1,065 of 1,065 files. The
+  task reports 9,141 tests and `main` reports 9,138. All task failures belong to
+  55 unchanged test files; rerunning those files on `main` reproduces the same
+  55 files, 91 failure locations apart from one diagnostic line offset, and 151
+  normalized failure titles.
+- Repository-wide source lint remains red with 271 existing diagnostics.
+  Changed-path ESLint reports five on the task and the same five plus one
+  obsolete wrapping-label diagnostic on `main`.
+- The required development-channel unpackaged build passed in 354.52 seconds.
+  The production-channel capture build passed in 388.50 seconds.
+- Real built-app acceptance passed at 100% and 125% display scale. The complete
+  images and receipt are in
+  `docs/verification/ui-bugs-audit-plan-t1kohh/`.
+
+The 125% run records the platform's physical quantization honestly: the
+1,550×907 client reports a 1,240×726 CSS viewport at DPR 1.25. The dialog stays
+inside that viewport with exact 48px virtual rows, separate name/path lines,
+accessible shared checkboxes, correct unfiltered/filtered labels, and preserved
+hidden selections.
+
+### Remaining closeout after this evidence snapshot
+
+- Run `build.bat /s` and `build-installer.bat /s` through the supported root
+  scripts and retain the unsigned installer receipt.
+- Fast-forward this completed task into `main`, push without force, and verify
+  the exact remote SHA.
+- Verify the resulting Windows build, installer release, release timing, line
+  counts, assets, unsigned setup, and Pages deployment.
+- Remove only this task branch and linked worktree after remote ancestry proof.
+  Do not touch the unrelated dirty personal-vocabulary worktree.

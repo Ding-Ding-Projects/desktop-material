@@ -1,0 +1,201 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "commit": "d0ce8b885e365893ccbce0135c596cf5b9569f61",
+    "branch": "claude/ui-bugs-audit-plan-t1kohh",
+    "remote": "https://github.com/Ding-Ding-Projects/desktop-material.git"
+  },
+  "builds": [
+    {
+      "purpose": "required reproducible build",
+      "command": "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+      "clientOk": true,
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 354.52,
+      "outMainSha256": "864109257edc0520f585aea28bd68996fd85f22ef0f20d9dcbac0ef2e8619fa1"
+    },
+    {
+      "purpose": "production-channel capture build",
+      "command": "npx --no-install cross-env RELEASE_CHANNEL=production DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+      "clientOk": true,
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 388.5,
+      "outMainBytes": 4630229,
+      "outMainSha256": "ffebecdf23afbca48d5a6e0d162e5426c4275d6ec1d57ab02f78a364ca28dffa",
+      "developmentExtensionInstallerPresent": false
+    }
+  ],
+  "runtime": {
+    "electronBytes": 226577920,
+    "electronSha256": "082d352efc6a9f5882354ee4096ae0b40b78bc6c8e52fc5084f3df9254c613ff",
+    "theme": "light",
+    "language": "english"
+  },
+  "fixture": {
+    "name": "worktree-scale-proof",
+    "commit": "8b4bf1647b2f445fc5b815d4d4479c954912b33d",
+    "candidateBranches": [
+      "feature/alpha",
+      "feature/beta",
+      "fix/gamma",
+      "release/delta",
+      "remote-only/epsilon",
+      "remote-only/zeta"
+    ],
+    "alreadyCheckedOut": ["main"]
+  },
+  "isolation": {
+    "requiredTargetCount": 1,
+    "acceptedTargetType": "page",
+    "expectedUrlSuffix": "/out/index.html#lc=CA&ws=primary",
+    "loopbackWebSocket": true,
+    "rejectedDevelopmentLaunches": 2,
+    "rejectedTargetTypes": ["page", "service_worker", "service_worker"],
+    "interactionOnRejectedLaunches": false,
+    "captureOnRejectedLaunches": false
+  },
+  "baseline": {
+    "main": {
+      "files": 1065,
+      "reportedTests": 9138,
+      "exitCode": 1
+    },
+    "task": {
+      "files": 1065,
+      "reportedTests": 9141,
+      "exitCode": 1,
+      "failingFiles": 55,
+      "failureLocations": 91,
+      "normalizedFailureTitles": 151
+    },
+    "mainFocusedComparison": {
+      "files": 55,
+      "reportedTests": 543,
+      "failingFiles": 55,
+      "failureLocations": 91,
+      "normalizedFailureTitles": 151
+    },
+    "taskOnlyFailureTitles": 0,
+    "taskChangedFailingFiles": 0,
+    "changedPathEslintDiagnostics": {
+      "main": 6,
+      "task": 5
+    }
+  },
+  "runs": [
+    {
+      "displayScale": 1,
+      "devicePixelRatio": 1,
+      "zoomFactor": 1,
+      "requestedCssViewport": { "width": 1240, "height": 725 },
+      "actualCssViewport": { "width": 1240, "height": 725 },
+      "physicalClient": { "width": 1240, "height": 725 },
+      "dialog": {
+        "left": 8,
+        "right": 1232,
+        "width": 1224,
+        "withinViewport": true,
+        "horizontalOverflow": false
+      },
+      "row": {
+        "slotHeight": 48,
+        "contentHeight": 34.5,
+        "twoLine": true,
+        "contained": true
+      },
+      "checkbox": {
+        "width": 18,
+        "height": 18,
+        "wrapperClass": "checkbox-component branch-worktree-checkbox",
+        "accessibleName": "Check out feature/alpha as a worktree"
+      },
+      "captures": [
+        {
+          "file": "checkout-branches-unfiltered-100pct.png",
+          "state": "unfiltered",
+          "bytes": 70935,
+          "sha256": "383aabc8510ca85779a8146aec2822343057092e908fccd6dbdbfb2ce9ea4fad"
+        },
+        {
+          "file": "checkout-branches-filtered-100pct.png",
+          "state": "filtered",
+          "bytes": 60396,
+          "sha256": "f8c71a89b1c6d3165ca8f0d276beb8612bec4e831f87ff17baacb79999e13b68"
+        }
+      ]
+    },
+    {
+      "displayScale": 1.25,
+      "devicePixelRatio": 1.25,
+      "zoomFactor": 1,
+      "requestedCssViewport": { "width": 1240, "height": 725 },
+      "actualCssViewport": { "width": 1240, "height": 726 },
+      "physicalClient": { "width": 1550, "height": 907 },
+      "quantizationNote": "725 CSS pixels map to 906.25 physical pixels and the frameless Windows client encloses them in 907 pixels",
+      "dialog": {
+        "left": 8,
+        "right": 1232,
+        "width": 1224,
+        "withinViewport": true,
+        "horizontalOverflow": false
+      },
+      "row": {
+        "slotHeight": 48,
+        "contentHeight": 34.5,
+        "twoLine": true,
+        "contained": true
+      },
+      "checkbox": {
+        "width": 18,
+        "height": 18,
+        "wrapperClass": "checkbox-component branch-worktree-checkbox",
+        "accessibleName": "Check out feature/alpha as a worktree"
+      },
+      "captures": [
+        {
+          "file": "checkout-branches-unfiltered-125pct.png",
+          "state": "unfiltered",
+          "bytes": 90415,
+          "sha256": "5f7bd1fcd08aaf8ebfbbd10e9bc1bf341a36bc40f704ad7394127a2b09cdae2c"
+        },
+        {
+          "file": "checkout-branches-filtered-125pct.png",
+          "state": "filtered",
+          "bytes": 78331,
+          "sha256": "0c4951637a1fe3da60729fb88eecb8827da62c02ef4d3c72e32b5da9a42e449a"
+        }
+      ]
+    }
+  ],
+  "selectionBehavior": {
+    "unfilteredLabels": ["Select all", "Select none"],
+    "unfilteredSelectNone": "0 of 6 branches selected",
+    "unfilteredSelectAll": "6 of 6 branches selected",
+    "filter": "feature",
+    "filteredVisibleBranches": ["feature/alpha", "feature/beta"],
+    "filteredLabels": ["Select shown", "Deselect shown"],
+    "filteredDeselectShown": "4 of 6 branches selected",
+    "hiddenBranchesStayedSelected": true,
+    "filteredSelectShownRestored": "6 of 6 branches selected"
+  },
+  "interactionRoutes": {
+    "launchCaptureAndLifecycle": "cheap Lowlevel loopback endpoint",
+    "physicalDimensionProof": "Lowlevel screenshot(hwnd, client_only)",
+    "textEntry": "Lowlevel type_text with background HWND target",
+    "measurements": "exact isolated page CDP target",
+    "appNativeFallbacks": [
+      "window.resizeTo after Lowlevel resize_window could not resolve a hidden-desktop HWND",
+      "HTMLElement.click for Chromium overlay buttons after background HWND click dismissed the overlay"
+    ]
+  },
+  "cleanup": {
+    "appProcessesClosed": true,
+    "desktopsClosed": true,
+    "remainingOwnedDesktopWindows": 0,
+    "taskLowlevelServerStopped": true,
+    "ownedRunRootRemoved": true,
+    "debugCapturesPublished": false
+  }
+}

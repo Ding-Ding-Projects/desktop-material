@@ -2128,3 +2128,28 @@ present:
 - [Run manifests](.codex/run-manifests/) — exact milestone commands and capture
   records.
 - [Feature gallery](docs/wiki/Feature-Gallery.md) — user-facing screenshot index.
+
+## August 29, 2026 UI bug audit closeout
+
+- [x] WP1: align the large corner and missing motion tokens with the checked-in
+  design reference.
+- [x] WP2: repair TextBox and Button wrapper regressions in changelog and sound
+  preferences.
+- [x] WP3: restore clone shallow and worktree option card layout and accessible
+  checkbox naming.
+- [x] WP4: repair filtered selection, two-line rows, shared checkboxes, footer
+  counts, functional state updates, and narrow worktree actions.
+- [x] WP5: report duplicate/shadowed branches, correct reserved names, detect
+  planned path conflicts, retain non-fatal exclude warnings, and batch the
+  statistics increment.
+- [x] WP6: show fork settings and then preserve the requested worktree checkout
+  dialog.
+- [x] WP7: remove stale History design routes and keep the two-document design
+  catalog truthful.
+- [x] WP8: convert only the tag-lifecycle search input to the shared TextBox.
+- [x] Compare broad task and `main` failures and prove there is no task-only
+  failure title or changed failing test file.
+- [x] Capture and inspect the real checkout-all-branches dialog at 100% and 125%
+  display scale, unfiltered and filtered.
+- [ ] Integrate the evidence commit into `main` and verify the resulting release
+  and Pages deployment.
