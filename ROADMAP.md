@@ -2131,6 +2131,8 @@ present:
 
 ## August 29, 2026 UI bug audit closeout
 
+<!-- markdownlint-disable MD004 -->
+
 - [x] WP1: align the large corner and missing motion tokens with the checked-in
   design reference.
 - [x] WP2: repair TextBox and Button wrapper regressions in changelog and sound
@@ -2165,3 +2167,5 @@ present:
 - [ ] Record the final remote proof in the task's external issue or Discussion.
   A later documentation commit would itself trigger another release, so this
   repository checklist intentionally leaves that proof external.
+
+<!-- markdownlint-enable MD004 -->

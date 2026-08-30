@@ -10867,11 +10867,11 @@ implementation commits, one per requested work package:
 A ninth closeout commit is directly related to the user-requested issue-summary
 workflow repair:
 
-9. `8eca3f3ff3` routes issue summaries through
-   `actions/ai-inference@v2` and GitHub Models. It changes only
-   `.github/workflows/summary.yml` with 5 insertions and 14 deletions, removes
-   the Copilot CLI installation and rejected `COPILOT_GITHUB_TOKEN` chain, and
-   retains the existing issue-comment step.
+**9.** `8eca3f3ff3` routes issue summaries through
+`actions/ai-inference@v2` and GitHub Models. It changes only
+`.github/workflows/summary.yml` with 5 insertions and 14 deletions, removes the
+Copilot CLI installation and rejected `COPILOT_GITHUB_TOKEN` chain, and retains
+the existing issue-comment step.
 
 The eight UI implementation commits do not change `app/src/ui/app.tsx`,
 `app/package.json`, `app/yarn.lock`, any retired shell file,
@@ -10913,27 +10913,27 @@ hidden selections.
 
 ### Build, integration, and remote snapshot
 
-- `build.bat /s` exited 0 in `00:08:05` at application commit `151634ed9c`.
-- `build-installer.bat /s` exited 0 in `00:12:18`. The generated unsigned Setup
+* `build.bat /s` exited 0 in `00:08:05` at application commit `151634ed9c`.
+* `build-installer.bat /s` exited 0 in `00:12:18`. The generated unsigned Setup
   executable has SHA-256
   `299287b595ab63ff1b78a0581f37774336a4efbf78516067049a7b7c2d85e6f8`; the
   generated MSI has SHA-256
   `41093c3643d83d20c690c54e8b66bd83d382f03a1a08eb5570d7b8e2dd8f673d`.
-- `main` and `claude/ui-bugs-audit-plan-t1kohh` were fast-forwarded and pushed
+* `main` and `claude/ui-bugs-audit-plan-t1kohh` were fast-forwarded and pushed
   at `8eca3f3ff3b60003f5bc50151168da05c356a8e8`. Direct remote ref reads and the
   fetched tracking refs matched that exact commit.
-- CI Linux run
+* CI Linux run
   [33333868419](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/33333868419),
   Deploy Pages run
   [33333868440](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/33333868440),
   and Cheap LFS cloud compression run
   [33333868432](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/33333868432)
   completed successfully at `8eca3f3ff3`.
-- CI Windows run
+* CI Windows run
   [33333868428](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/33333868428)
   remained in progress at this snapshot, so the final release and its Windows
   assets remained pending verification.
-- Final remote proof must be recorded in the task's external issue or
+* Final remote proof must be recorded in the task's external issue or
   Discussion. Any later documentation commit would itself trigger another
   release, so adding a post-release receipt here would create a newer release
   target and immediately make the claimed final receipt stale.
