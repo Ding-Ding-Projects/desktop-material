@@ -10849,8 +10849,8 @@ existing Material primitives and does not introduce a new style file.
 
 ### Scope and commits
 
-The task branch `claude/ui-bugs-audit-plan-t1kohh` contains eight implementation
-commits, one per requested work package:
+The task branch `claude/ui-bugs-audit-plan-t1kohh` contains eight UI
+implementation commits, one per requested work package:
 
 1. `61ec069509` aligns the shape and motion tokens.
 2. `3834ed481a` repairs TextBox and Button layout regressions.
@@ -10864,9 +10864,20 @@ commits, one per requested work package:
    deleted reference file.
 8. `d0ce8b885e` converts only the requested tag-lifecycle search input.
 
-The task does not change `app/src/ui/app.tsx`, `app/package.json`,
-`app/yarn.lock`, any retired shell file, personal-vocabulary parsing, workflow
-configuration, or commit-graph rebuilding. The unrelated linked worktree at
+A ninth closeout commit is directly related to the user-requested issue-summary
+workflow repair:
+
+9. `8eca3f3ff3` routes issue summaries through
+   `actions/ai-inference@v2` and GitHub Models. It changes only
+   `.github/workflows/summary.yml` with 5 insertions and 14 deletions, removes
+   the Copilot CLI installation and rejected `COPILOT_GITHUB_TOKEN` chain, and
+   retains the existing issue-comment step.
+
+The eight UI implementation commits do not change `app/src/ui/app.tsx`,
+`app/package.json`, `app/yarn.lock`, any retired shell file,
+personal-vocabulary parsing, or commit-graph rebuilding. Closeout commit
+`8eca3f3ff3` does change workflow configuration, but only in the one file named
+above. The unrelated linked worktree at
 `feature/personal-vocabulary-ui-repair-20260822` remains unmodified and dirty.
 
 ### Verification
@@ -10889,6 +10900,10 @@ configuration, or commit-graph rebuilding. The unrelated linked worktree at
 - Real built-app acceptance passed at 100% and 125% display scale. The complete
   images and receipt are in
   `docs/verification/ui-bugs-audit-plan-t1kohh/`.
+- The summary workflow repair passed `git diff --check`, focused
+  `actionlint -shellcheck=`, and six exact assertions covering the v2 action,
+  qualified model, `models: read`, absence of the Copilot provider, removal of
+  the Copilot CLI install, and removal of the Copilot token environment.
 
 The 125% run records the platform's physical quantization honestly: the
 1,550×907 client reports a 1,240×726 CSS viewport at DPR 1.25. The dialog stays
@@ -10896,13 +10911,37 @@ inside that viewport with exact 48px virtual rows, separate name/path lines,
 accessible shared checkboxes, correct unfiltered/filtered labels, and preserved
 hidden selections.
 
+### Build, integration, and remote snapshot
+
+- `build.bat /s` exited 0 in `00:08:05` at application commit `151634ed9c`.
+- `build-installer.bat /s` exited 0 in `00:12:18`. The generated unsigned Setup
+  executable has SHA-256
+  `299287b595ab63ff1b78a0581f37774336a4efbf78516067049a7b7c2d85e6f8`; the
+  generated MSI has SHA-256
+  `41093c3643d83d20c690c54e8b66bd83d382f03a1a08eb5570d7b8e2dd8f673d`.
+- `main` and `claude/ui-bugs-audit-plan-t1kohh` were fast-forwarded and pushed
+  at `8eca3f3ff3b60003f5bc50151168da05c356a8e8`. Direct remote ref reads and the
+  fetched tracking refs matched that exact commit.
+- CI Linux run
+  [33333868419](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/33333868419),
+  Deploy Pages run
+  [33333868440](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/33333868440),
+  and Cheap LFS cloud compression run
+  [33333868432](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/33333868432)
+  completed successfully at `8eca3f3ff3`.
+- CI Windows run
+  [33333868428](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/33333868428)
+  remained in progress at this snapshot, so the final release and its Windows
+  assets remained pending verification.
+- Final remote proof must be recorded in the task's external issue or
+  Discussion. Any later documentation commit would itself trigger another
+  release, so adding a post-release receipt here would create a newer release
+  target and immediately make the claimed final receipt stale.
+
 ### Remaining closeout after this evidence snapshot
 
-- Run `build.bat /s` and `build-installer.bat /s` through the supported root
-  scripts and retain the unsigned installer receipt.
-- Fast-forward this completed task into `main`, push without force, and verify
-  the exact remote SHA.
-- Verify the resulting Windows build, installer release, release timing, line
-  counts, assets, unsigned setup, and Pages deployment.
+- Wait for CI Windows run `33333868428`, then verify the resulting installer
+  release, release timing, line counts, assets, and unsigned Setup executable.
+- Record that final remote proof externally for the reason stated above.
 - Remove only this task branch and linked worktree after remote ancestry proof.
   Do not touch the unrelated dirty personal-vocabulary worktree.

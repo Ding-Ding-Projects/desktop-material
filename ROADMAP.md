@@ -2151,5 +2151,17 @@ present:
   failure title or changed failing test file.
 - [x] Capture and inspect the real checkout-all-branches dialog at 100% and 125%
   display scale, unfiltered and filtered.
-- [ ] Integrate the evidence commit into `main` and verify the resulting release
-  and Pages deployment.
+- [x] Repair the issue-summary workflow in `8eca3f3ff3` with a one-file
+  `summary.yml` change; focused `actionlint`, `git diff --check`, and six exact
+  workflow assertions passed.
+- [x] Run `build.bat /s` and `build-installer.bat /s`; both exited 0, and the
+  unsigned Setup executable and MSI hashes are recorded in `HANDOFF.md`.
+- [x] Fast-forward and push `main` and
+  `claude/ui-bugs-audit-plan-t1kohh` at `8eca3f3ff3`; direct remote refs matched.
+- [x] Verify CI Linux `33333868419`, Deploy Pages `33333868440`, and Cheap LFS
+  `33333868432`; all completed successfully at `8eca3f3ff3`.
+- [ ] Verify CI Windows `33333868428` and the final release, including timing,
+  line counts, assets, and unsigned Setup evidence.
+- [ ] Record the final remote proof in the task's external issue or Discussion.
+  A later documentation commit would itself trigger another release, so this
+  repository checklist intentionally leaves that proof external.
