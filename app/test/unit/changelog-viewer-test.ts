@@ -431,9 +431,7 @@ describe('changelog export', () => {
       version: '1.8.0-beta1',
       date: null,
       time: null,
-      entries: [
-        { category: null, text: 'An older change', commit: null },
-      ],
+      entries: [{ category: null, text: 'An older change', commit: null }],
     },
   ]
 

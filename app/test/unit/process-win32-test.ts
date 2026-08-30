@@ -68,7 +68,11 @@ describe('process/win32', () => {
         // The child may exit exactly at the timeout boundary.
       }
       const cleanup = await settlesWithin(execution, 2_000)
-      assert.notEqual(cleanup.kind, 'timeout', 'blocked child did not terminate')
+      assert.notEqual(
+        cleanup.kind,
+        'timeout',
+        'blocked child did not terminate'
+      )
     }
 
     if (outcome.kind === 'timeout') {

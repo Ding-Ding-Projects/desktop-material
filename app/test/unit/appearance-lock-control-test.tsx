@@ -106,8 +106,10 @@ const savePasswordLock = (password: string) => {
 
 /** An alert with real text, which is how the component reports a refusal. */
 const alerted = () =>
-  ((screen.queryByRole('alert')?.textContent ?? '') +
-    (screen.queryByRole('status')?.textContent ?? '')).length > 0
+  (
+    (screen.queryByRole('alert')?.textContent ?? '') +
+    (screen.queryByRole('status')?.textContent ?? '')
+  ).length > 0
 
 describe('appearance lock control', () => {
   it('delegates creation to the shared password-or-authenticator setup', () => {

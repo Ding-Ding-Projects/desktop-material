@@ -28,7 +28,11 @@ class MemoryStorage implements Pick<Storage, 'getItem' | 'setItem'> {
 describe('local file converter foundation', () => {
   it('lists every required category and never enables an unbundled adapter', () => {
     assert.deepEqual(
-      [...new Set(FileConverterAdapterRegistry.map(adapter => adapter.category))],
+      [
+        ...new Set(
+          FileConverterAdapterRegistry.map(adapter => adapter.category)
+        ),
+      ],
       FileConverterCategories
     )
     for (const adapter of FileConverterAdapterRegistry) {
@@ -43,7 +47,10 @@ describe('local file converter foundation', () => {
   it('rejects corrupt queue metadata instead of partially applying it', () => {
     const storage = new MemoryStorage()
     storage.setRaw(FileConverterQueueStorageKey, '{not-json')
-    assert.deepEqual(readFileConverterQueueState(storage), createEmptyFileConverterQueueState())
+    assert.deepEqual(
+      readFileConverterQueueState(storage),
+      createEmptyFileConverterQueueState()
+    )
   })
 
   it('persists only queue metadata and its bounded scheduler configuration', () => {

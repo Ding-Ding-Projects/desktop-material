@@ -4,7 +4,15 @@
   "title": "Desktop Material deterministic visual-diff receipt",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "tool", "tuple", "inputs", "comparison", "diff", "immutableInputsVerified"],
+  "required": [
+    "schemaVersion",
+    "tool",
+    "tuple",
+    "inputs",
+    "comparison",
+    "diff",
+    "immutableInputsVerified"
+  ],
   "properties": {
     "schemaVersion": { "const": 1 },
     "tool": {
@@ -39,7 +47,13 @@
         "layout": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["labels", "padding", "gap", "headerHeight", "headerToImageGap"],
+          "required": [
+            "labels",
+            "padding",
+            "gap",
+            "headerHeight",
+            "headerToImageGap"
+          ],
           "properties": {
             "labels": {
               "type": "object",
@@ -53,7 +67,11 @@
             "padding": { "type": "integer", "minimum": 0, "maximum": 512 },
             "gap": { "type": "integer", "minimum": 0, "maximum": 512 },
             "headerHeight": { "type": "integer", "minimum": 0, "maximum": 512 },
-            "headerToImageGap": { "type": "integer", "minimum": 0, "maximum": 512 }
+            "headerToImageGap": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 512
+            }
           }
         }
       }
@@ -61,7 +79,15 @@
     "diff": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["comparedPixelCount", "differentPixelCount", "differentPixelFraction", "differentPixelRatio", "changedBounds", "totalAbsoluteChannelDelta", "maximumChannelDelta"],
+      "required": [
+        "comparedPixelCount",
+        "differentPixelCount",
+        "differentPixelFraction",
+        "differentPixelRatio",
+        "changedBounds",
+        "totalAbsoluteChannelDelta",
+        "maximumChannelDelta"
+      ],
       "properties": {
         "comparedPixelCount": { "type": "integer", "minimum": 1 },
         "differentPixelCount": { "type": "integer", "minimum": 0 },
@@ -94,7 +120,11 @@
           ]
         },
         "totalAbsoluteChannelDelta": { "type": "integer", "minimum": 0 },
-        "maximumChannelDelta": { "type": "integer", "minimum": 0, "maximum": 255 }
+        "maximumChannelDelta": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        }
       }
     },
     "immutableInputsVerified": { "const": true }
@@ -103,7 +133,16 @@
     "captureTuple": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["referenceFile", "referenceRoute", "productionRoute", "state", "theme", "viewportWidth", "viewportHeight", "scale"],
+      "required": [
+        "referenceFile",
+        "referenceRoute",
+        "productionRoute",
+        "state",
+        "theme",
+        "viewportWidth",
+        "viewportHeight",
+        "scale"
+      ],
       "properties": {
         "referenceFile": { "$ref": "#/$defs/relativePath" },
         "referenceRoute": { "$ref": "#/$defs/id" },
@@ -111,14 +150,26 @@
         "state": { "$ref": "#/$defs/id" },
         "theme": { "enum": ["light", "dark"] },
         "viewportWidth": { "type": "integer", "minimum": 160, "maximum": 8192 },
-        "viewportHeight": { "type": "integer", "minimum": 160, "maximum": 8192 },
+        "viewportHeight": {
+          "type": "integer",
+          "minimum": 160,
+          "maximum": 8192
+        },
         "scale": { "type": "number", "minimum": 0.5, "maximum": 4 }
       }
     },
     "input": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["path", "bytes", "sha256", "width", "height", "bitDepth", "colorType"],
+      "required": [
+        "path",
+        "bytes",
+        "sha256",
+        "width",
+        "height",
+        "bitDepth",
+        "colorType"
+      ],
       "properties": {
         "path": { "$ref": "#/$defs/path" },
         "bytes": { "type": "integer", "minimum": 1, "maximum": 67108864 },
@@ -129,9 +180,24 @@
         "colorType": { "enum": [2, 6] }
       }
     },
-    "id": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$" },
-    "path": { "type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^[^\\u0000-\\u001f\\u007f]+$" },
-    "relativePath": { "type": "string", "minLength": 1, "maxLength": 1024, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[^\\u0000-\\u001f\\u007f]+$" },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048,
+      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[^\\u0000-\\u001f\\u007f]+$"
+    },
     "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
   }
 }

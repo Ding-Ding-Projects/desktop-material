@@ -4,13 +4,26 @@
   "title": "Desktop Material fail-closed design-parity evidence inventory",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "fixtureOnly", "inventoryId", "routeCatalogSha256", "expectedReferenceRouteCount", "referenceRoutes", "unreachableStates", "screens"],
+  "required": [
+    "schemaVersion",
+    "fixtureOnly",
+    "inventoryId",
+    "routeCatalogSha256",
+    "expectedReferenceRouteCount",
+    "referenceRoutes",
+    "unreachableStates",
+    "screens"
+  ],
   "properties": {
     "schemaVersion": { "const": 1 },
     "fixtureOnly": { "type": "boolean" },
     "inventoryId": { "$ref": "#/$defs/id" },
     "routeCatalogSha256": { "$ref": "#/$defs/sha256" },
-    "expectedReferenceRouteCount": { "type": "integer", "minimum": 1, "maximum": 500 },
+    "expectedReferenceRouteCount": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 500
+    },
     "referenceRoutes": {
       "type": "array",
       "minItems": 1,
@@ -35,7 +48,13 @@
     "screen": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "captureTuple", "material3Audit", "evidence", "intentionalDeviations"],
+      "required": [
+        "id",
+        "captureTuple",
+        "material3Audit",
+        "evidence",
+        "intentionalDeviations"
+      ],
       "properties": {
         "id": { "$ref": "#/$defs/id" },
         "captureTuple": { "$ref": "#/$defs/captureTuple" },
@@ -43,7 +62,12 @@
         "evidence": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["referenceCapture", "productionCapture", "comparison", "visualDiffReceipt"],
+          "required": [
+            "referenceCapture",
+            "productionCapture",
+            "comparison",
+            "visualDiffReceipt"
+          ],
           "properties": {
             "referenceCapture": { "$ref": "#/$defs/artifact" },
             "productionCapture": { "$ref": "#/$defs/artifact" },
@@ -62,7 +86,16 @@
     "captureTuple": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["referenceFile", "referenceRoute", "productionRoute", "state", "theme", "viewportWidth", "viewportHeight", "scale"],
+      "required": [
+        "referenceFile",
+        "referenceRoute",
+        "productionRoute",
+        "state",
+        "theme",
+        "viewportWidth",
+        "viewportHeight",
+        "scale"
+      ],
       "properties": {
         "referenceFile": { "$ref": "#/$defs/relativePath" },
         "referenceRoute": { "$ref": "#/$defs/id" },
@@ -70,7 +103,11 @@
         "state": { "$ref": "#/$defs/id" },
         "theme": { "enum": ["light", "dark"] },
         "viewportWidth": { "type": "integer", "minimum": 160, "maximum": 8192 },
-        "viewportHeight": { "type": "integer", "minimum": 160, "maximum": 8192 },
+        "viewportHeight": {
+          "type": "integer",
+          "minimum": 160,
+          "maximum": 8192
+        },
         "scale": { "type": "number", "minimum": 0.5, "maximum": 4 }
       }
     },
@@ -92,7 +129,23 @@
             "additionalProperties": false,
             "required": ["category", "primitive", "status", "notes"],
             "properties": {
-              "category": { "enum": ["buttons", "fields", "menus", "tabs", "dialogs", "navigation", "switches", "selection-controls", "typography", "shape", "elevation", "state-layers", "motion"] },
+              "category": {
+                "enum": [
+                  "buttons",
+                  "fields",
+                  "menus",
+                  "tabs",
+                  "dialogs",
+                  "navigation",
+                  "switches",
+                  "selection-controls",
+                  "typography",
+                  "shape",
+                  "elevation",
+                  "state-layers",
+                  "motion"
+                ]
+              },
               "primitive": { "$ref": "#/$defs/id" },
               "status": { "const": "pass" },
               "notes": { "type": "string", "minLength": 1, "maxLength": 1024 }
@@ -134,7 +187,14 @@
     "reviewedUnreachable": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "referenceFile", "referenceRoute", "reason", "reviewedBy", "reviewedAt"],
+      "required": [
+        "id",
+        "referenceFile",
+        "referenceRoute",
+        "reason",
+        "reviewedBy",
+        "reviewedAt"
+      ],
       "properties": {
         "id": { "$ref": "#/$defs/id" },
         "referenceFile": { "$ref": "#/$defs/relativePath" },
@@ -144,8 +204,18 @@
         "reviewedAt": { "$ref": "#/$defs/timestamp" }
       }
     },
-    "id": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$" },
-    "relativePath": { "type": "string", "minLength": 1, "maxLength": 1024, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[^\\u0000-\\u001f\\u007f]+$" },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[^\\u0000-\\u001f\\u007f]+$"
+    },
     "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "timestamp": { "type": "string", "format": "date-time" }
   }

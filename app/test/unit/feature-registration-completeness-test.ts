@@ -19,7 +19,7 @@ const evidenceDimensions = [
   'realCapture',
 ] as const
 
-type EvidenceDimension = (typeof evidenceDimensions)[number]
+type EvidenceDimension = typeof evidenceDimensions[number]
 
 interface CanonicalFeature {
   id: string
@@ -83,7 +83,9 @@ function validateInventoryShape(
     seen.add(feature.id)
   }
   if (inventoryDigest(inventory) !== canonicalDigest) {
-    errors.push('canonical feature rows were removed, renamed, reordered, or added without review')
+    errors.push(
+      'canonical feature rows were removed, renamed, reordered, or added without review'
+    )
   }
   return errors
 }
@@ -94,9 +96,12 @@ function validateEvidenceManifestShape(
   canonicalDigest: string
 ): Array<string> {
   const errors: Array<string> = []
-  if (manifest.schemaVersion !== 2) errors.push('unsupported evidence manifest schema')
+  if (manifest.schemaVersion !== 2)
+    errors.push('unsupported evidence manifest schema')
   if (manifest.canonicalFeatureDigest !== canonicalDigest) {
-    errors.push('evidence manifest canonical feature digest does not match inventory')
+    errors.push(
+      'evidence manifest canonical feature digest does not match inventory'
+    )
   }
   if (
     JSON.stringify(manifest.dimensions) !==
@@ -111,7 +116,9 @@ function validateEvidenceManifestShape(
   }
   const manifestIds = manifest.features.map(feature => feature?.id)
   if (JSON.stringify(manifestIds) !== JSON.stringify(canonicalIds)) {
-    errors.push('evidence manifest feature ids do not exactly match canonical inventory order')
+    errors.push(
+      'evidence manifest feature ids do not exactly match canonical inventory order'
+    )
   }
 
   const seen = new Set<string>()
@@ -120,27 +127,42 @@ function validateEvidenceManifestShape(
     if (seen.has(id)) errors.push(`duplicate evidence feature id: ${id}`)
     seen.add(id)
 
-    if (!feature || typeof feature.evidence !== 'object' || feature.evidence === null) {
+    if (
+      !feature ||
+      typeof feature.evidence !== 'object' ||
+      feature.evidence === null
+    ) {
       errors.push(`${id} is missing its evidence record`)
       continue
     }
 
     const actualDimensions = Object.keys(feature.evidence).sort()
     const expectedDimensions = [...evidenceDimensions].sort()
-    if (JSON.stringify(actualDimensions) !== JSON.stringify(expectedDimensions)) {
-      errors.push(`${id} does not enumerate every required evidence dimension exactly once`)
+    if (
+      JSON.stringify(actualDimensions) !== JSON.stringify(expectedDimensions)
+    ) {
+      errors.push(
+        `${id} does not enumerate every required evidence dimension exactly once`
+      )
     }
 
     for (const dimension of evidenceDimensions) {
       const records = feature.evidence[dimension]
       if (!Array.isArray(records) || records.length === 0) {
-        errors.push(`${id}/${dimension} must contain at least one evidence record`)
+        errors.push(
+          `${id}/${dimension} must contain at least one evidence record`
+        )
         continue
       }
 
       records.forEach((record, recordIndex) => {
-        if (!record || !['present', 'pending', 'blocked'].includes(record.status)) {
-          errors.push(`${id}/${dimension} record ${recordIndex} has an invalid status`)
+        if (
+          !record ||
+          !['present', 'pending', 'blocked'].includes(record.status)
+        ) {
+          errors.push(
+            `${id}/${dimension} record ${recordIndex} has an invalid status`
+          )
           return
         }
 
@@ -165,7 +187,9 @@ function validateEvidenceManifestShape(
           typeof record.reason !== 'string' ||
           record.reason.trim().length === 0
         ) {
-          errors.push(`${id}/${dimension} ${record.status} record ${recordIndex} needs a reason`)
+          errors.push(
+            `${id}/${dimension} ${record.status} record ${recordIndex} needs a reason`
+          )
         }
 
         if (
@@ -173,7 +197,9 @@ function validateEvidenceManifestShape(
           (!Array.isArray(record.paths) ||
             record.paths.some(path => typeof path !== 'string'))
         ) {
-          errors.push(`${id}/${dimension} record ${recordIndex} has invalid paths`)
+          errors.push(
+            `${id}/${dimension} record ${recordIndex} has invalid paths`
+          )
         }
       })
     }
@@ -188,7 +214,9 @@ function validateEvidenceCompletion(
   const errors: Array<string> = []
   for (const feature of manifest.features) {
     for (const dimension of evidenceDimensions) {
-      for (const [recordIndex, record] of feature.evidence[dimension].entries()) {
+      for (const [recordIndex, record] of feature.evidence[
+        dimension
+      ].entries()) {
         const prefix = `${feature.id}/${dimension} record ${recordIndex}`
         if (record.status === 'pending' || record.status === 'blocked') {
           errors.push(`${prefix} is ${record.status}: ${record.reason}`)
@@ -273,7 +301,9 @@ describe('public feature registration completeness', () => {
     for (const feature of inventory.features) {
       const removed = {
         ...inventory,
-        features: inventory.features.filter(candidate => candidate.id !== feature.id)
+        features: inventory.features.filter(
+          candidate => candidate.id !== feature.id
+        ),
       }
       assert.equal(
         validateInventoryShape(removed, manifest.canonicalFeatureDigest).some(
@@ -285,7 +315,9 @@ describe('public feature registration completeness', () => {
 
       for (const dimension of evidenceDimensions) {
         const mutated = structuredClone(manifest)
-        const row = mutated.features.find(candidate => candidate.id === feature.id)
+        const row = mutated.features.find(
+          candidate => candidate.id === feature.id
+        )
         assert.ok(row)
         row.evidence[dimension] = []
         assert.ok(
@@ -294,7 +326,9 @@ describe('public feature registration completeness', () => {
             inventory.features,
             manifest.canonicalFeatureDigest
           ).some(error =>
-            error.includes(`${feature.id}/${dimension} must contain at least one`)
+            error.includes(
+              `${feature.id}/${dimension} must contain at least one`
+            )
           ),
           `${feature.id}/${dimension} record removal did not turn the contract red`
         )
@@ -308,9 +342,10 @@ describe('public feature registration completeness', () => {
         if (firstRecord.status === 'present') {
           firstRecord.paths = [`missing/${feature.id}/${dimension}.evidence`]
           assert.ok(
-            validateEvidenceCompletion(evidenceMutation, root).some(error =>
-              error.includes(`${feature.id}/${dimension}`) &&
-              error.includes('claims missing evidence path')
+            validateEvidenceCompletion(evidenceMutation, root).some(
+              error =>
+                error.includes(`${feature.id}/${dimension}`) &&
+                error.includes('claims missing evidence path')
             ),
             `${feature.id}/${dimension} path mutation did not turn completion red`
           )
@@ -321,9 +356,11 @@ describe('public feature registration completeness', () => {
               evidenceMutation,
               inventory.features,
               manifest.canonicalFeatureDigest
-            ).some(error =>
-              error.includes(`${feature.id}/${dimension} ${firstRecord.status}`) &&
-              error.includes('needs a reason')
+            ).some(
+              error =>
+                error.includes(
+                  `${feature.id}/${dimension} ${firstRecord.status}`
+                ) && error.includes('needs a reason')
             ),
             `${feature.id}/${dimension} pending-reason mutation did not turn the contract red`
           )

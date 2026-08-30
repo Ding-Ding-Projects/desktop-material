@@ -10,7 +10,14 @@ import {
 
 describe('Ollama chat options', () => {
   it('falls back from invalid generation parameters instead of forwarding them', () => {
-    assert.deepEqual(normalizeOllamaChatParameters({ temperature: 10, topP: -1, numPredict: 0 }), DefaultOllamaChatParameters)
+    assert.deepEqual(
+      normalizeOllamaChatParameters({
+        temperature: 10,
+        topP: -1,
+        numPredict: 0,
+      }),
+      DefaultOllamaChatParameters
+    )
   })
 
   it('requires an explicit declared vision capability for attachments', () => {

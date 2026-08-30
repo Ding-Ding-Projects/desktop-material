@@ -15,10 +15,7 @@ describe('LogStore write recovery coverage', () => {
       source,
       /^import \{\n  enqueueRecoveringLogWrite,\n  recoverFailedLogWrite,\n\} from '\.\/log-write-chain'$/m
     )
-    assert.match(
-      source,
-      /^\s*this\.writeChain = enqueueRecoveringLogWrite\($/m
-    )
+    assert.match(source, /^\s*this\.writeChain = enqueueRecoveringLogWrite\($/m)
     assert.doesNotMatch(source, /^\s*\.catch\(\(\) => undefined\)$/m)
     assert.doesNotMatch(
       source,

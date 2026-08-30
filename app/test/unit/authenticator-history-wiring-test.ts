@@ -17,10 +17,7 @@ describe('authenticator history wiring', () => {
     assert.match(settings, /<VersionedStoreHistory/)
     assert.match(settings, /sourceKey=\{this\.store\.getRepositoryPath\(\)\}/)
     assert.match(settings, /onStoreMutated=\{\(\) => this\.load\(\)\}/)
-    assert.match(
-      settings,
-      /history\.missingSecrets/
-    )
+    assert.match(settings, /history\.missingSecrets/)
     assert.match(
       settings,
       /!this\.state\.secrets\.has\(entry\.id\)/,

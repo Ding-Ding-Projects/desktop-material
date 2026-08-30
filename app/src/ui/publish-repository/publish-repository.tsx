@@ -103,10 +103,7 @@ export class PublishRepository extends React.Component<
       if (this.isMounted && requestId === this.organizationRequestId) {
         this.setState({
           orgs: [],
-          orgsError:
-            error instanceof Error
-              ? error
-              : new Error(String(error)),
+          orgsError: error instanceof Error ? error : new Error(String(error)),
         })
       }
     }
@@ -224,10 +221,7 @@ export class PublishRepository extends React.Component<
                 this.state.languageMode
               )}
             >
-              {translate(
-                'publish.organization.retry',
-                this.state.languageMode
-              )}
+              {translate('publish.organization.retry', this.state.languageMode)}
             </Button>
           </div>
         )}
