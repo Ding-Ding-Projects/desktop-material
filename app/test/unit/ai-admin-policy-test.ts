@@ -37,7 +37,10 @@ describe('AI administrator policy', () => {
         repositoryOverrides: {},
       }),
     ]) {
-      assert.deepStrictEqual(parseAIAdminPolicySettings(raw), failClosedSettings)
+      assert.deepStrictEqual(
+        parseAIAdminPolicySettings(raw),
+        failClosedSettings
+      )
     }
 
     assert.deepStrictEqual(

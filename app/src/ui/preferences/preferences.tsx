@@ -445,10 +445,7 @@ export class Preferences extends React.Component<
       LanguageModeChangedEvent,
       this.onLanguageModeChanged
     )
-    window.removeEventListener(
-      SchoolModeChangedEvent,
-      this.onSchoolModeChanged
-    )
+    window.removeEventListener(SchoolModeChangedEvent, this.onSchoolModeChanged)
   }
 
   private onLanguageModeChanged = () => {

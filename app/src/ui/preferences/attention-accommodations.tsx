@@ -65,8 +65,7 @@ const Modes: ReadonlyArray<{
     cantonese: '一次一件事',
     description:
       'Keeps one user-chosen next action visible so it survives a context switch.',
-    descriptionCantonese:
-      '保留一件由你揀嘅下一步，轉咗 context 都唔會消失。',
+    descriptionCantonese: '保留一件由你揀嘅下一步，轉咗 context 都唔會消失。',
   },
   {
     id: 'momentum',
@@ -79,7 +78,9 @@ const Modes: ReadonlyArray<{
   },
 ]
 
-const ModeTargets: Readonly<Record<AttentionAccommodationMode, TeleportTargetId>> = {
+const ModeTargets: Readonly<
+  Record<AttentionAccommodationMode, TeleportTargetId>
+> = {
   focus: 'settingsAttentionFocus',
   lowStimulation: 'settingsAttentionLowStimulation',
   timeAwareness: 'settingsAttentionTimeAwareness',
@@ -209,9 +210,7 @@ export class AttentionAccommodations extends React.Component<
     )
   }
 
-  private renderMode(
-    mode: (typeof Modes)[number]
-  ): JSX.Element {
+  private renderMode(mode: typeof Modes[number]): JSX.Element {
     const descriptionId = `attention-${mode.id}-description`
     return (
       <div
@@ -250,7 +249,9 @@ export class AttentionAccommodations extends React.Component<
     mode: AttentionAccommodationMode,
     enabled: boolean
   ) => {
-    this.setState({ preferences: setAttentionAccommodationEnabled(mode, enabled) })
+    this.setState({
+      preferences: setAttentionAccommodationEnabled(mode, enabled),
+    })
   }
 
   private onNextActionChanged = (value: string) => {

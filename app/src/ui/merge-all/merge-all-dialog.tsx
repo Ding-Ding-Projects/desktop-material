@@ -66,9 +66,7 @@ export class MergeAllDialog extends React.Component<
     this.setState({ checkpointDirtyWorktrees: event.currentTarget.checked })
   }
 
-  private onForceMatDayChanged = (
-    event: React.FormEvent<HTMLInputElement>
-  ) => {
+  private onForceMatDayChanged = (event: React.FormEvent<HTMLInputElement>) => {
     const forceMatDay = event.currentTarget.checked
     this.setState({
       forceMatDay,

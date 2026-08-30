@@ -88,14 +88,12 @@
   }
 }
 
-#desktop-app-chrome[data-attention-focus='true']
-  [data-attention-region]:not([data-attention-active]) {
+#desktop-app-chrome[data-attention-focus='true'] [data-attention-region]:not([data-attention-active]) {
   opacity: 0.76;
   filter: saturate(0.8);
 }
 
-#desktop-app-chrome[data-attention-focus='true']
-  [data-attention-region][data-attention-active] {
+#desktop-app-chrome[data-attention-focus='true'] [data-attention-region][data-attention-active] {
   opacity: 1;
   filter: none;
 }

@@ -2,7 +2,10 @@ import * as React from 'react'
 import { Button } from '../lib/button'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
-import { showOpenDialogMultiple, inspectFileConverterSource } from '../main-process-proxy'
+import {
+  showOpenDialogMultiple,
+  inspectFileConverterSource,
+} from '../main-process-proxy'
 import { t } from '../../lib/i18n'
 import {
   FileConverterAdapterRegistry,
@@ -88,33 +91,40 @@ export class FileConverter extends React.Component<
     this.setState({ loading: true, error: null })
     try {
       const paths = await this.chooseSources()
-      const inspections = await Promise.all(paths.map(path => this.inspectSource(path)))
+      const inspections = await Promise.all(
+        paths.map(path => this.inspectSource(path))
+      )
       const now = new Date().toISOString()
-      const items = inspections.map((signature, index): IFileConverterQueueItem => {
-        const compatible = FileConverterAdapterRegistry.find(
-          adapter =>
-            adapter.availability === 'available' &&
-            signature.category !== null &&
-            adapter.category === signature.category
-        )
-        return {
-          id: `${now}-${index}-${signature.path}`,
-          sourcePath: signature.path,
-          destinationPath: null,
-          adapterId: compatible?.id ?? null,
-          signature,
-          status: compatible === undefined ? 'skipped' : 'queued',
-          progress: 0,
-          outcome:
-            compatible === undefined
-              ? 'No compatible bundled offline adapter is available for this source.'
-              : null,
-          createdAt: now,
-          updatedAt: now,
+      const items = inspections.map(
+        (signature, index): IFileConverterQueueItem => {
+          const compatible = FileConverterAdapterRegistry.find(
+            adapter =>
+              adapter.availability === 'available' &&
+              signature.category !== null &&
+              adapter.category === signature.category
+          )
+          return {
+            id: `${now}-${index}-${signature.path}`,
+            sourcePath: signature.path,
+            destinationPath: null,
+            adapterId: compatible?.id ?? null,
+            signature,
+            status: compatible === undefined ? 'skipped' : 'queued',
+            progress: 0,
+            outcome:
+              compatible === undefined
+                ? 'No compatible bundled offline adapter is available for this source.'
+                : null,
+            createdAt: now,
+            updatedAt: now,
+          }
         }
-      })
+      )
       if (items.length > 0) {
-        this.saveQueue({ ...this.state.queue, items: [...this.state.queue.items, ...items] })
+        this.saveQueue({
+          ...this.state.queue,
+          items: [...this.state.queue.items, ...items],
+        })
       }
     } catch (error) {
       this.setState({
@@ -136,31 +146,45 @@ export class FileConverter extends React.Component<
     this.saveQueue({
       ...this.state.queue,
       items: this.state.queue.items.filter(
-        item => !['converted', 'skipped', 'cancelled', 'failed'].includes(item.status)
+        item =>
+          !['converted', 'skipped', 'cancelled', 'failed'].includes(item.status)
       ),
     })
   }
 
   private renderAdapterCatalog() {
     return (
-      <div className="file-converter-catalog" aria-label="Local file conversion adapters">
+      <div
+        className="file-converter-catalog"
+        aria-label="Local file conversion adapters"
+      >
         {FileConverterCategories.map(category => {
-          const adapters = FileConverterAdapterRegistry.filter(adapter => adapter.category === category)
+          const adapters = FileConverterAdapterRegistry.filter(
+            adapter => adapter.category === category
+          )
           return (
-            <section className="file-converter-category" key={category} aria-label={category}>
+            <section
+              className="file-converter-category"
+              key={category}
+              aria-label={category}
+            >
               <h3>{category}</h3>
               {adapters.map(adapter => (
                 <article className="file-converter-adapter" key={adapter.id}>
                   <div>
                     <strong>{adapter.title}</strong>
                     <p>
-                      {adapter.sourceFormats.join(', ')} → {adapter.targetFormats.join(', ')}
+                      {adapter.sourceFormats.join(', ')} →{' '}
+                      {adapter.targetFormats.join(', ')}
                     </p>
                     <p className="file-converter-unavailable" role="status">
                       {adapter.unavailableReason}
                     </p>
                   </div>
-                  <span className="file-converter-state" aria-label="Unavailable">
+                  <span
+                    className="file-converter-state"
+                    aria-label="Unavailable"
+                  >
                     Unavailable
                   </span>
                 </article>
@@ -177,7 +201,8 @@ export class FileConverter extends React.Component<
       <div>
         <strong>{item.sourcePath}</strong>
         <span>
-          Detected: {item.signature.format.toUpperCase()} · {item.signature.byteLength.toLocaleString()} bytes
+          Detected: {item.signature.format.toUpperCase()} ·{' '}
+          {item.signature.byteLength.toLocaleString()} bytes
         </span>
         {item.outcome !== null && <span>{item.outcome}</span>}
       </div>
@@ -193,7 +218,10 @@ export class FileConverter extends React.Component<
       ['converted', 'skipped', 'cancelled', 'failed'].includes(item.status)
     )
     return (
-      <section className="file-converter" aria-labelledby="file-converter-title">
+      <section
+        className="file-converter"
+        aria-labelledby="file-converter-title"
+      >
         <header className="file-converter-heading">
           <span className="file-converter-icon" aria-hidden="true">
             <Octicon symbol={octicons.fileDiff} />
@@ -207,24 +235,52 @@ export class FileConverter extends React.Component<
         </header>
 
         <div className="file-converter-actions">
-          <Button onClick={this.onAddSources} disabled={loading} ariaBusy={loading}>
-            {loading ? t('fileConverter.converting') : t('fileConverter.browseSource')}
+          <Button
+            onClick={this.onAddSources}
+            disabled={loading}
+            ariaBusy={loading}
+          >
+            {loading
+              ? t('fileConverter.converting')
+              : t('fileConverter.browseSource')}
           </Button>
           <Button onClick={this.onPauseToggle} ariaPressed={queue.paused}>
             {queue.paused ? 'Resume queue' : 'Pause queue'}
           </Button>
-          {hasFinalItems && <Button onClick={this.onClearCompleted}>Clear finished items</Button>}
+          {hasFinalItems && (
+            <Button onClick={this.onClearCompleted}>
+              Clear finished items
+            </Button>
+          )}
         </div>
-        {error !== null && <p className="file-converter-error" role="alert">{error}</p>}
-        {persistenceWarning !== null && <p className="file-converter-error" role="status">{persistenceWarning}</p>}
+        {error !== null && (
+          <p className="file-converter-error" role="alert">
+            {error}
+          </p>
+        )}
+        {persistenceWarning !== null && (
+          <p className="file-converter-error" role="status">
+            {persistenceWarning}
+          </p>
+        )}
 
-        <section className="file-converter-queue" aria-labelledby="file-converter-queue-title">
+        <section
+          className="file-converter-queue"
+          aria-labelledby="file-converter-queue-title"
+        >
           <div className="file-converter-section-heading">
             <h3 id="file-converter-queue-title">{t('fileConverter.queue')}</h3>
-            <span>{queue.items.length} item{queue.items.length === 1 ? '' : 's'} · {queue.paused ? 'paused' : 'ready'}</span>
+            <span>
+              {queue.items.length} item{queue.items.length === 1 ? '' : 's'} ·{' '}
+              {queue.paused ? 'paused' : 'ready'}
+            </span>
           </div>
           {queue.items.length === 0 ? (
-            <p className="file-converter-empty">{t('fileConverter.sourceEmpty')} No file is copied, uploaded, or converted until a compatible bundled adapter is available and a destination is reviewed.</p>
+            <p className="file-converter-empty">
+              {t('fileConverter.sourceEmpty')} No file is copied, uploaded, or
+              converted until a compatible bundled adapter is available and a
+              destination is reviewed.
+            </p>
           ) : (
             <ul>{queue.items.map(this.renderQueueItem)}</ul>
           )}

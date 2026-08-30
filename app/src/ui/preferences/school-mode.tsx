@@ -65,10 +65,7 @@ export class SchoolModePreferences extends React.Component<
   }
 
   public componentWillUnmount() {
-    window.removeEventListener(
-      SchoolModeChangedEvent,
-      this.onSchoolModeChanged
-    )
+    window.removeEventListener(SchoolModeChangedEvent, this.onSchoolModeChanged)
   }
 
   private onSchoolModeChanged = () => {

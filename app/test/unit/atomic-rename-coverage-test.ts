@@ -89,7 +89,11 @@ describe('files that publish user state retry their rename', () => {
     const end = source.indexOf('\nfunction serializeMarker(', start)
 
     assert.notEqual(start, -1, 'replaceStagingMarker must remain declared')
-    assert.notEqual(end, -1, 'replaceStagingMarker must retain an exact boundary')
+    assert.notEqual(
+      end,
+      -1,
+      'replaceStagingMarker must retain an exact boundary'
+    )
 
     const replacement = source.slice(start, end)
     assert.ok(
