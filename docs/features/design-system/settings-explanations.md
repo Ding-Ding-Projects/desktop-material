@@ -27,7 +27,7 @@ visual disclosure remains collapsed.
 
 ## Current hand-written inventory
 
-The current implementation slice covers 189 controls:
+The current implementation slice covers 191 controls:
 
 | Area | Settings |
 | --- | --- |
@@ -41,6 +41,7 @@ The current implementation slice covers 189 controls:
 | Agent access | Access mode, server enabled, runtime credential, mobile-site URL, optional HTTPS gateway |
 | Copilot | Commit-message model, conflict-resolution model, automatic conflict use |
 | Git | Author name/email, default branch, effective identity, hook environment/shell/cache |
+| Global ignore | Managed excludes-file state and non-empty pattern count without repeating the private path |
 | Notifications | High-signal desktop notifications and acknowledgement-only error presentation |
 | Ollama | Runtime provider selection and trusted loopback setup endpoint |
 | Attention accommodations | Focus, Low stimulation, Time awareness, One thing at a time, Momentum, Next action, Momentum defer interval |
@@ -133,7 +134,7 @@ machine-readable provenance categories, compiled-versus-stored accessibility,
 advanced, AI-policy, Appearance, application-identity, agent-access, Copilot, Git, prompts, Sound, scheduled settings, and attention state, runtime-only
 account/reference forms, defer and first-run OpenSSH provenance, managed
 main-process server configuration, endpoint provenance, write-only credential
-and one-time-link provenance, all 189 inventory IDs, and the deliberate red
+and one-time-link provenance, all 191 inventory IDs, and the deliberate red
 inventory mutation.
 
 Built-artifact interaction and capture evidence remain pending until the

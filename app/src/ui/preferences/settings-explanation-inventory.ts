@@ -110,6 +110,8 @@ export const ImplementedSettingExplanationIds = [
   'git-hook-environment-enabled',
   'git-hook-environment-shell',
   'git-show-commit-identity',
+  'global-ignore-path',
+  'global-ignore-rules',
   'notifications-enabled',
   'notifications-error-presentation',
   'ollama-endpoint',
