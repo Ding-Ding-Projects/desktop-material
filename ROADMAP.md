@@ -25,10 +25,13 @@
 - [x] Run the committed root build path to a real unsigned runnable output,
   retain both the transient first-attempt crash and successful retry, and
   promote implementation, manifest, focused-Chut, and built-output evidence.
-- [x] Verify all five attention accommodations with six focused model/UI tests,
+- [x] Verify all five attention accommodations with seven focused model/UI tests,
   including exact missing-mode rejection, safe persistence coercion, independent
   controls, settings-search and command-palette registration, bilingual labels,
   and factual duration formatting; packaged interaction and captures stay open.
+- [x] Drive Status Hub and all five attention modes in exact production builds
+  on cheap-Lowlevel hidden desktops, repair two compact Status Hub layout
+  defects plus the Focus hidden-overlay defect, and promote current captures.
 - [x] Persist the unlock-ladder rolling-hour allowance across restart with a
   bounded timestamp-only file, serialized atomic writes, and malformed-state
   refusal.

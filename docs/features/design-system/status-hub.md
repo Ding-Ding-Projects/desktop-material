@@ -70,5 +70,17 @@ unsafe endpoint refusal, header-injection refusal, and malformed-file refusal.
 `status-hub-owner-settings-test.tsx` verifies credential-free loading, write-only
 replacement, immediate field clearing, bilingual controls, and vault clearing.
 The existing client, panel, IPC, settings-search, command-palette, and TypeScript
-checks remain green. Packaged runtime interaction and current captures remain
-pending and are not implied by these source-level checks.
+checks remain green. The exact
+`74159be0d9d4da10254ad18873496bb9bd1f5928` production build was driven
+on a cheap-Lowlevel hidden Windows desktop with an isolated profile and
+disposable repository. **Check connection** reached the real main-process
+client and displayed the honest local-only result. Two compact-layout defects
+were found and repaired before acceptance: first the result was under the
+fixed footer, then the result pushed the action row under it. The accepted
+layout keeps the result in the credential-help live region before the
+write-only field, with every action fully visible at a 960x660 client area.
+Release packaging remains pending.
+
+### Current built capture
+
+![Status Hub owner settings with the local-only result and complete action row](../../assets/screenshots/status-hub-owner-settings.png)

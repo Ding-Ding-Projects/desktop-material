@@ -656,14 +656,28 @@
         ],
         "builtArtifactInteraction": [
           {
-            "status": "pending",
-            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+            "status": "present",
+            "paths": [
+              ".codex/run-manifests/2026-08-31-status-hub-attention-headless.md",
+              "docs/assets/screenshots/attention-focus.png",
+              "docs/assets/screenshots/preferences-attention.png",
+              "docs/assets/screenshots/attention-one-thing.png"
+            ],
+            "note": "The exact 74159be0d9 build was driven on a cheap-Lowlevel hidden desktop: every mode was enabled, conditional controls were reached by keyboard, the Time awareness card rendered live facts, and a restart proved Focus kept the hidden repository-drop overlay invisible."
           }
         ],
         "realCapture": [
           {
-            "status": "pending",
-            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "docs/assets/screenshots/preferences-attention.png",
+              "docs/assets/screenshots/attention-focus.png",
+              "docs/assets/screenshots/attention-low-stimulation.png",
+              "docs/assets/screenshots/attention-time-awareness.png",
+              "docs/assets/screenshots/attention-one-thing.png",
+              "docs/assets/screenshots/attention-momentum.png"
+            ],
+            "note": "Original-resolution 960x660 captures show all five enabled settings, next-action and defer controls, and the repaired Focus workspace without the normally hidden drop overlay."
           }
         ]
       }
@@ -2433,14 +2447,22 @@
         ],
         "builtArtifactInteraction": [
           {
-            "status": "pending",
-            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+            "status": "present",
+            "paths": [
+              ".codex/run-manifests/2026-08-31-status-hub-attention-headless.md",
+              "docs/assets/screenshots/status-hub-owner-settings.png"
+            ],
+            "note": "The exact 74159be0d9 build was driven through Settings > Integrations and Check connection; the main-process local-only result rendered in the credential-help live region while every action remained fully above the fixed footer."
           }
         ],
         "realCapture": [
           {
-            "status": "pending",
-            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "docs/assets/screenshots/status-hub-owner-settings.png",
+              "docs/assets/screenshots/material-status-hub-owner-settings-20260831.png"
+            ],
+            "note": "The accepted privacy-safe 960x660 frame shows the endpoint, write-only authorization field, local-only connection result, and complete save/check/clear controls."
           }
         ]
       }

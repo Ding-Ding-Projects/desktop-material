@@ -117,6 +117,20 @@ TypeScript is clean. This moves Status Hub persistence to present. Together
 with the durable unlock-ladder allowance, the ledger now holds 131 present and
 303 pending records. Packaged interaction and current captures remain pending.
 
+The cheap-Lowlevel built-interaction pass advanced through five exact production
+builds because the real 960x660 renderer exposed three source defects that unit
+tests had not shown. Status Hub first placed its result below the fixed footer,
+then pushed the action row under it; the accepted layout keeps the result in the
+credential-help live region before the write-only field, with all actions fully
+visible. Persisted Focus assigned inactive opacity to the normally hidden
+repository-drop overlay and started without an active workspace region; the
+accepted implementation excludes hidden overlays and selects a deterministic
+real region. The final accepted build is
+`74159be0d9d4da10254ad18873496bb9bd1f5928`. Seven current capture-ledger rows
+are now captured and twenty remain pending. Status Hub and attention each gain
+built-interaction and real-capture evidence, moving the universal ledger to 135
+present and 299 pending. Release packaging remains pending.
+
 ## Remaining plain HTML controls converted to shared Material primitives — 2026-08-22
 
 A six-lane fleet sweep classified every raw `button`/`input`/`select`/`textarea`
