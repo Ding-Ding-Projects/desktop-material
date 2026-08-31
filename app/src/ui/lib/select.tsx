@@ -29,6 +29,9 @@ interface ISelectProps {
   /** Whether or not the select control is disabled. False by default. */
   readonly disabled?: boolean
 
+  /** Ids of the elements that describe this select in more detail. */
+  readonly ariaDescribedBy?: string
+
   /** Called when the user changes the selected valued. */
   readonly onChange?: (event: React.FormEvent<HTMLSelectElement>) => void
 }
@@ -80,6 +83,7 @@ export class Select extends React.Component<ISelectProps, ISelectState> {
             value={this.props.value}
             defaultValue={this.props.defaultValue}
             disabled={this.props.disabled}
+            aria-describedby={this.props.ariaDescribedBy}
           >
             {personalizeReactNode(this.props.children)}
           </select>

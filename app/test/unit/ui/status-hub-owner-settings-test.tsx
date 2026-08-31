@@ -76,6 +76,20 @@ describe('Status Hub owner settings', () => {
     )
     assert.match(view.container.textContent ?? '', /credential vault/)
     assert.doesNotMatch(view.container.textContent ?? '', /stored-secret/)
+    assert.ok(
+      screen.getByText(
+        'A choice is stored in application data. Current value: https://status.example.test/. Shipped value: not configured.'
+      )
+    )
+    assert.ok(
+      screen.getByText(
+        'A value is stored in the operating-system credential vault. The value is never read back into this field. Shipped value: none.'
+      )
+    )
+    assert.equal(
+      screen.getByLabelText('HTTPS endpoint').getAttribute('aria-describedby'),
+      'status-hub-endpoint-setting-explanation status-hub-endpoint-setting-provenance'
+    )
 
     fireEvent.click(screen.getByRole('button', { name: 'Check connection' }))
     await waitFor(() =>
@@ -106,6 +120,12 @@ describe('Status Hub owner settings', () => {
       assert.equal(
         (screen.getByLabelText('HTTPS endpoint') as HTMLInputElement).disabled,
         false
+      )
+    )
+
+    assert.ok(
+      screen.getByText(
+        'No choice is stored in application data. Current and shipped value: not configured.'
       )
     )
 

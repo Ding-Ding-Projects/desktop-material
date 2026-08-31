@@ -14,11 +14,16 @@ import {
 } from '../main-process-proxy'
 import { Button } from '../lib/button'
 import { TextBox } from '../lib/text-box'
+import {
+  SettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 
 interface IStatusHubOwnerSettingsState {
   readonly endpoint: string
   readonly authorizationDraft: string
   readonly authorizationPresent: boolean
+  readonly endpointStored: boolean
   readonly busy: boolean
   readonly message: string | null
   readonly error: string | null
@@ -46,6 +51,7 @@ export class StatusHubOwnerSettings extends React.Component<
       endpoint: '',
       authorizationDraft: '',
       authorizationPresent: false,
+      endpointStored: false,
       busy: true,
       message: null,
       error: null,
@@ -93,41 +99,71 @@ export class StatusHubOwnerSettings extends React.Component<
           label={localize('HTTPS endpoint', 'HTTPS endpoint')}
           value={this.state.endpoint}
           disabled={this.state.busy}
-          ariaDescribedBy="status-hub-endpoint-help"
+          ariaDescribedBy={
+            settingExplanationDescriptionIds('status-hub-endpoint')
+              .ariaDescribedBy
+          }
           onValueChanged={endpoint => this.setState({ endpoint })}
         />
-        <p id="status-hub-endpoint-help" className="settings-description">
-          {localize(
-            'Use HTTPS. An explicit 127.0.0.1 address is accepted for local development.',
-            '請用 HTTPS。本機開發可以用明確嘅 127.0.0.1 地址。'
+        <SettingExplanation
+          settingId="status-hub-endpoint"
+          summary={localize('What this setting changes', '呢個設定會改咩')}
+          explanation={localize(
+            'Selects the owner-operated Status Hub endpoint. Use HTTPS; an explicit 127.0.0.1 address is accepted for local development.',
+            '揀由擁有人管理嘅 Status Hub endpoint。請用 HTTPS；本機開發可以用明確嘅 127.0.0.1 地址。'
           )}
-        </p>
-        <p
-          id="status-hub-authorization-help"
-          className="settings-description"
-          role="status"
-          aria-live="polite"
-        >
-          {status}{' '}
-          {localize(
-            'Leave the authorization field empty to keep the stored value unchanged.',
-            '授權欄留空會保留現有資料。'
+          source={
+            this.state.endpointStored ? 'stored-choice' : 'compiled-default'
+          }
+          provenance={localize(
+            this.state.endpointStored
+              ? `A choice is stored in application data. Current value: ${this.state.endpoint}. Shipped value: not configured.`
+              : 'No choice is stored in application data. Current and shipped value: not configured.',
+            this.state.endpointStored
+              ? `程式資料記錄咗選擇。目前值：${this.state.endpoint}。出廠值：未設定。`
+              : '程式資料未記錄選擇。目前值同出廠值：未設定。'
           )}
-          {this.state.busy && <> {localize('Working…', '處理中…')}</>}
-          {!this.state.busy && this.state.message && (
-            <> {this.state.message}</>
-          )}
-        </p>
+        />
         <TextBox
           type="password"
           label={localize('Replace authorization', '更換授權資料')}
           value={this.state.authorizationDraft}
           disabled={this.state.busy}
-          ariaDescribedBy="status-hub-authorization-help"
+          ariaDescribedBy={
+            settingExplanationDescriptionIds(
+              'status-hub-authorization-replacement'
+            ).ariaDescribedBy
+          }
           onValueChanged={authorizationDraft =>
             this.setState({ authorizationDraft })
           }
         />
+        <SettingExplanation
+          settingId="status-hub-authorization-replacement"
+          summary={localize('What this setting changes', '呢個設定會改咩')}
+          explanation={localize(
+            'Replaces the write-only authorization value in the operating-system credential vault. Leaving this field empty keeps the stored value unchanged.',
+            '更換作業系統憑證保險箱入面只寫不讀嘅授權資料。欄位留空會保留現有資料。'
+          )}
+          source={
+            this.state.authorizationPresent
+              ? 'credential-vault'
+              : 'compiled-default'
+          }
+          provenance={localize(
+            this.state.authorizationPresent
+              ? 'A value is stored in the operating-system credential vault. The value is never read back into this field. Shipped value: none.'
+              : 'No value is stored in the operating-system credential vault. Current and shipped value: none.',
+            this.state.authorizationPresent
+              ? '作業系統憑證保險箱已經有儲存值；個值永遠唔會讀返入呢個欄位。出廠值：冇。'
+              : '作業系統憑證保險箱未有儲存值。目前值同出廠值：冇。'
+          )}
+        />
+        <p className="settings-description" role="status" aria-live="polite">
+          {status}
+          {this.state.busy && <> {localize('Working…', '處理中…')}</>}
+          {!this.state.busy && this.state.message && <> {this.state.message}</>}
+        </p>
         {this.state.error !== null && (
           <p className="settings-error" role="alert">
             {this.state.error}
@@ -168,6 +204,7 @@ export class StatusHubOwnerSettings extends React.Component<
       endpoint: configuration.endpoint ?? '',
       authorizationDraft: '',
       authorizationPresent: configuration.authorizationPresent,
+      endpointStored: configuration.endpoint !== null,
       busy: false,
       error: null,
     })

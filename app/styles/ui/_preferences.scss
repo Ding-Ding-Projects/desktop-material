@@ -2903,3 +2903,31 @@
     }
   }
 }
+.setting-explanation {
+  margin: var(--spacing-half, 4px) 0 var(--spacing, 8px);
+  color: var(--text-secondary-color);
+
+  &__details {
+    border-radius: var(--border-radius, 6px);
+
+    summary {
+      min-height: 32px;
+      display: inline-flex;
+      align-items: center;
+      cursor: pointer;
+      color: var(--text-color);
+      font-weight: var(--font-weight-semibold, 600);
+    }
+
+    p {
+      margin: var(--spacing-half, 4px) 0;
+      max-width: 72ch;
+    }
+  }
+
+  &__provenance {
+    margin: var(--spacing-half, 4px) 0 0;
+    max-width: 72ch;
+    font-size: var(--font-size-sm, 12px);
+  }
+}

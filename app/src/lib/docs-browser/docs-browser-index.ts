@@ -271,6 +271,14 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       sourcePath: 'docs/features/design-system/school-mode.md',
     },
     {
+      id: 'design-system/settings-explanations',
+      category: 'design-system',
+      title: 'Progressive settings explanations and provenance',
+      description:
+        'Desktop Material is adding one shared presentation contract for settings: every setting needs a full behavioral explanation behind progressive disclosure and a factual…',
+      sourcePath: 'docs/features/design-system/settings-explanations.md',
+    },
+    {
       id: 'design-system/sfx-event-mapping',
       category: 'design-system',
       title: 'Distinct sound-effect event mapping',
@@ -1445,7 +1453,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'design-system',
     label: 'Design System',
-    count: 27,
+    count: 28,
   },
   {
     name: 'identity-and-workspace',
@@ -1485,4 +1493,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 167
+export const DocsBrowserArticleCount = 168

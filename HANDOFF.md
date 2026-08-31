@@ -11080,3 +11080,45 @@ hidden selections.
 - Record that final remote proof externally for the reason stated above.
 - Remove only this task branch and linked worktree after remote ancestry proof.
   Do not touch the unrelated dirty personal-vocabulary worktree.
+
+## 2026-08-31 progressive settings-explanation foundation
+
+### Scope
+
+The current universal-feature task added a shared progressive explanation and
+provenance component without changing the frozen application shell. The first
+hand-written inventory covers eleven settings across Accessibility, Attention
+accommodations, and Status Hub.
+
+### Implemented behavior
+
+- Every covered control points `aria-describedby` at stable explanation and
+  provenance IDs.
+- The native disclosure remains collapsed by default while assistive
+  technology receives both descriptions.
+- Attention provenance distinguishes a missing local-storage key from an
+  explicitly saved all-off profile.
+- Accessibility provenance distinguishes the shipped-on link underline and
+  diff check-mark values from explicit stored choices.
+- Status Hub provenance distinguishes an unconfigured endpoint, stored
+  application-data endpoint, absent authorization, and presence-only
+  credential-vault state without reading a credential back into the renderer.
+- The Momentum defer interval is reported honestly as runtime-only rather than
+  pretending it persists.
+
+### Verification
+
+- TypeScript no-emit passed.
+- Fourteen focused tests passed across the shared component, accessibility,
+  attention, and Status Hub.
+- Documentation-bundle coverage passed with 168 bundled feature articles.
+- Changelog validation and `git diff --check` passed.
+
+### Remaining work
+
+The `settings-explanations` canonical feature remains pending. Sixty standard
+Checkbox, Select, and TextBox controls under `app/src/ui/preferences/` still
+lack an explicit description binding, and custom settings controls need their
+own hand-written audit. Those controls still require localized behavioral
+copy, exact current/source/shipped-value provenance, focused tests, built
+interaction, and real capture evidence before the feature row can be promoted.

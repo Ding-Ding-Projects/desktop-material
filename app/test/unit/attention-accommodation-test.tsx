@@ -7,6 +7,7 @@ import {
   coerceAttentionAccommodationPreferences,
   DefaultAttentionAccommodationPreferences,
   formatAttentionElapsed,
+  getAttentionAccommodationProvenance,
   readAttentionAccommodationPreferences,
   setAttentionAccommodationEnabled,
   setAttentionNextAction,
@@ -73,6 +74,7 @@ describe('attention accommodations', () => {
   })
 
   it('persists each mode independently and keeps the bounded next action', () => {
+    assert.equal(getAttentionAccommodationProvenance(), 'compiled-default')
     setAttentionAccommodationEnabled('focus', true)
     setAttentionAccommodationEnabled('momentum', true)
     setAttentionNextAction('  Review the selected changes  ')
@@ -83,6 +85,7 @@ describe('attention accommodations', () => {
     assert.equal(value.enabled.timeAwareness, false)
     assert.equal(value.nextAction, 'Review the selected changes')
     assert.ok(value.lastChangedAt > 0)
+    assert.equal(getAttentionAccommodationProvenance(), 'stored-choice')
   })
 
   it('registers every mode in settings search and the command palette', () => {
@@ -131,6 +134,17 @@ describe('attention accommodations', () => {
       assert.ok(control.getAttribute('aria-describedby'))
     }
 
+    assert.equal(
+      screen.getAllByText('What this setting changes').length,
+      ExpectedModes.length
+    )
+    assert.equal(
+      screen.getAllByText(
+        'No choice is recorded on this computer. Current and shipped value: off.'
+      ).length,
+      ExpectedModes.length
+    )
+
     assert.equal(screen.queryByLabelText('Next action'), null)
     assert.equal(screen.queryByLabelText('Prompt defer interval'), null)
 
@@ -140,7 +154,17 @@ describe('attention accommodations', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: 'Momentum' }))
 
     assert.ok(screen.getByLabelText('Next action'))
-    assert.ok(screen.getByLabelText('Prompt defer interval'))
+    const interval = screen.getByLabelText('Prompt defer interval')
+    assert.ok(interval)
+    assert.match(
+      interval.getAttribute('aria-describedby') ?? '',
+      /attention-momentum-defer-interval-setting-explanation/
+    )
+    assert.ok(
+      screen.getByText(
+        'This value is temporary for the current settings session. Current value: 30 minutes. Shipped value: 30 minutes.'
+      )
+    )
   })
 
   it('renders the full bilingual labels without changing duration facts', () => {

@@ -38,6 +38,12 @@
 - [x] Add searchable owner-configurable Status Hub endpoint/vault settings with
   a bounded atomic endpoint file, write-only credential-vault authorization,
   live connection checks, and replace/clear controls.
+- [x] Add the shared progressive settings-explanation component, stable
+  accessible-description IDs, truthful compiled/stored/runtime/vault source
+  categories, and the first exact eleven-control hand-written inventory.
+- [ ] Extend progressive explanations and exact current/source/shipped-value
+  provenance to every remaining settings control before promoting the
+  `settings-explanations` feature row.
 - [x] Add focused renderer and terminal regression tests plus categorized
   feature documentation.
 - [ ] Extend the same action contract to every remaining consequential native
