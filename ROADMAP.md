@@ -19,6 +19,9 @@
   metadata plus red-then-green coverage to all 131 HTML pages.
 - [x] Verify and promote Status Hub transport/UI plus unlock-ladder
   implementation, documentation, localization, and focused-test evidence.
+- [x] Verify the isolated provider-Markdown renderer and promote desktop,
+  terminal, static-page, documentation, localization, lifecycle, and focused
+  Chut evidence.
 - [ ] Persist the unlock-ladder rolling-hour allowance across restart and add
   owner-configurable Status Hub endpoint/vault settings before either feature
   can satisfy its persistence evidence.

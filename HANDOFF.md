@@ -74,6 +74,15 @@ unrelated assertions: a removed transcript region and a null-versus-empty form
 expectation. Those failures do not occur in the new focused Status Hub tests
 and were not changed or reclassified by this milestone.
 
+The provider-authored markup audit adds a dedicated feature article and passes
+23 focused tests across the sandboxed renderer lifecycle, release-note empty
+and formatted states, offline documentation wiring, localization, search,
+bulk/export behavior, and exact-article routing. Five evidence records move to
+present for the desktop sandboxed iframe, terminal-native Markdown, and static
+page/offline bundle equivalents. Built-application interaction and current
+capture remain pending. The ledger now holds 120 present and 314 pending
+records.
+
 ## Remaining plain HTML controls converted to shared Material primitives — 2026-08-22
 
 A six-lane fleet sweep classified every raw `button`/`input`/`select`/`textarea`

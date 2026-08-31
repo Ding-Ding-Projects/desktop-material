@@ -2283,32 +2283,53 @@
       "evidence": {
         "implementation": [
           {
-            "status": "pending",
-            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+            "status": "present",
+            "paths": [
+              "app/src/ui/lib/sandboxed-markdown.tsx",
+              "tui/src/desktop_material_tui/ui/screens/github.py",
+              "script/generate-docs-browser-bundle.mjs"
+            ],
+            "note": "The desktop uses one sanitized sandboxed iframe renderer, the terminal uses local Textual Markdown, and documentation is rendered statically and bundled offline."
           }
         ],
         "documentation": [
           {
-            "status": "pending",
-            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "docs/features/design-system/provider-markup-renderer.md"
+            ],
+            "note": "The article documents behavior, configuration, failure recovery, isolation, security, and all three surface equivalents."
           }
         ],
         "localization": [
           {
-            "status": "pending",
-            "reason": "Localization evidence was not independently inspected or verified in this pass."
+            "status": "present",
+            "paths": [
+              "app/src/ui/lib/sandboxed-markdown.tsx",
+              "app/src/lib/i18n-resources.ts"
+            ],
+            "note": "Provider content stays exact while every owning surface supplies localized labels and factual empty states through the shared catalog."
           }
         ],
         "persistence": [
           {
-            "status": "pending",
-            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+            "status": "present",
+            "paths": [
+              "app/src/ui/lib/sandboxed-markdown.tsx",
+              "docs/features/design-system/provider-markup-renderer.md"
+            ],
+            "note": "The renderer owns no provider-content persistence; owning features persist their source records, while render generations and iframe state are deliberately ephemeral."
           }
         ],
         "focusedTest": [
           {
-            "status": "pending",
-            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "app/test/unit/ui/sandboxed-markdown-lifecycle-test.tsx",
+              "app/test/unit/release-notes-markdown-contract-test.ts",
+              "app/test/unit/docs-browser-wiring-test.ts"
+            ],
+            "note": "Focused coverage proves lifecycle ownership, cancellation, real release-note consumers, and offline documentation wiring."
           }
         ],
         "builtArtifactInteraction": [

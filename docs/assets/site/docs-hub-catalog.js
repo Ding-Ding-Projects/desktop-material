@@ -308,6 +308,13 @@
       d: 'A local JSON file that renames the words this app shows you. Load it from Settings → Appearance → Personal vocabulary. Nothing ships with it, nothing is uploaded, and until you…',
     },
     {
+      t: 'Isolated provider-authored markup rendering',
+      h: 'features/design-system/provider-markup-renderer.html',
+      s: 'features/design-system/provider-markup-renderer.md',
+      c: 'features',
+      d: 'Provider-authored Markdown is rendered as formatted content rather than printed as source text. One shared renderer serves release notes, pull request content, comments,…',
+    },
+    {
       t: 'Design-system features / 設計系統功能',
       h: 'features/design-system/',
       s: 'features/design-system/README.md',

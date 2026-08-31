@@ -7,6 +7,9 @@
 - [Shared-link preview graphic](shared-link-embed.md) — generate the root and
   served product image from a real built capture, keep both copies
   byte-identical, and serve complete static Open Graph metadata on every page.
+- [Isolated provider-authored markup rendering](provider-markup-renderer.md) —
+  sanitize and format provider Markdown in one sandboxed renderer, with
+  terminal-native and static-page equivalents.
 
 - [The Material Design 3 shell](md3-shell.md) — the application chrome rewritten
   against `design/History MD3.dc.html`: eight destinations behind a navigation

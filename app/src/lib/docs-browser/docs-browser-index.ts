@@ -240,6 +240,14 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       sourcePath: 'docs/features/design-system/personal-vocabulary.md',
     },
     {
+      id: 'design-system/provider-markup-renderer',
+      category: 'design-system',
+      title: 'Isolated provider-authored markup rendering',
+      description:
+        'Provider-authored Markdown is rendered as formatted content rather than printed as source text. One shared renderer serves release notes, pull request content, comments,…',
+      sourcePath: 'docs/features/design-system/provider-markup-renderer.md',
+    },
+    {
       id: 'design-system/README',
       category: 'design-system',
       title: 'Design-system features / 設計系統功能',
@@ -1437,7 +1445,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'design-system',
     label: 'Design System',
-    count: 26,
+    count: 27,
   },
   {
     name: 'identity-and-workspace',
@@ -1477,4 +1485,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 166
+export const DocsBrowserArticleCount = 167
