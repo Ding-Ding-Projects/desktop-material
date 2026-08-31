@@ -119,6 +119,15 @@ export class StatusHubOwnerSettings extends React.Component<
             '留空會保留現有資料。'
           )}
         </p>
+        <p className="settings-description" role="status" aria-live="polite">
+          {this.state.busy && localize('Working…', '處理中…')}
+          {!this.state.busy && this.state.message}
+        </p>
+        {this.state.error !== null && (
+          <p className="settings-error" role="alert">
+            {this.state.error}
+          </p>
+        )}
         <div className="status-hub-owner-actions">
           <Button type="button" disabled={this.state.busy} onClick={this.save}>
             {localize('Save Status Hub settings', '儲存 Status Hub 設定')}
@@ -134,15 +143,6 @@ export class StatusHubOwnerSettings extends React.Component<
             {localize('Clear stored authorization', '清除已儲存授權資料')}
           </Button>
         </div>
-        <p className="settings-description" role="status" aria-live="polite">
-          {this.state.busy && localize('Working…', '處理中…')}
-          {!this.state.busy && this.state.message}
-        </p>
-        {this.state.error !== null && (
-          <p className="settings-error" role="alert">
-            {this.state.error}
-          </p>
-        )}
       </fieldset>
     )
   }

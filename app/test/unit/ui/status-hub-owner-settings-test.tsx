@@ -76,6 +76,28 @@ describe('Status Hub owner settings', () => {
     )
     assert.match(view.container.textContent ?? '', /credential vault/)
     assert.doesNotMatch(view.container.textContent ?? '', /stored-secret/)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Check connection' }))
+    await waitFor(() =>
+      assert.ok(
+        screen.getByText(
+          'Status Hub is available through the main-process boundary.'
+        )
+      )
+    )
+    const status = screen.getByRole('status')
+    const actions = screen
+      .getByRole('button', { name: 'Save Status Hub settings' })
+      .closest('.status-hub-owner-actions')
+    assert.ok(actions)
+    assert.equal(
+      Boolean(
+        status.compareDocumentPosition(actions) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+      ),
+      true,
+      'the connection result must render before the action row and fixed footer'
+    )
   })
 
   it('saves a replacement without leaving it in the rendered field', async () => {
