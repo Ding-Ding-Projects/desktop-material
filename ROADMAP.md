@@ -40,7 +40,7 @@
   live connection checks, and replace/clear controls.
 - [x] Add the shared progressive settings-explanation component, stable
   accessible-description IDs, truthful compiled/stored/runtime/vault source
-  categories, and the first exact 59-control hand-written inventory.
+  categories, and the first exact 69-control hand-written inventory.
 - [ ] Extend progressive explanations and exact current/source/shipped-value
   provenance to every remaining settings control before promoting the
   `settings-explanations` feature row.

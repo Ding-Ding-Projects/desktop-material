@@ -27,7 +27,7 @@ visual disclosure remains collapsed.
 
 ## Current hand-written inventory
 
-The first implementation slice covers 59 controls:
+The first implementation slice covers 69 controls:
 
 | Area | Settings |
 | --- | --- |
@@ -36,6 +36,7 @@ The first implementation slice covers 59 controls:
 | Accessibility | Underline links, diff check marks |
 | Advanced | Automatic account switching, repository status indicators, usage reporting, verbose logging, Git Credential Manager, large-repository detection, large-repository repack, browser open mode, system OpenSSH |
 | AI policy | Master boundary, two provider permissions, default repository eligibility |
+| Appearance | Dialog emoji, language, auto-fit scale, date/time/number formats, absolute dates, diff tab size, recent repositories, branch-name visibility |
 | Copilot | Commit-message model, conflict-resolution model, automatic conflict use |
 | Attention accommodations | Focus, Low stimulation, Time awareness, One thing at a time, Momentum, Next action, Momentum defer interval |
 | Prompts | Ten confirmation switches, uncommitted-change branch-switch strategy, commit-length warning |
@@ -116,10 +117,10 @@ Focused coverage lives in:
 
 The focused slice verifies collapsed disclosure, stable description IDs,
 machine-readable provenance categories, compiled-versus-stored accessibility,
-advanced, AI-policy, Copilot, prompts, and attention state, runtime-only
+advanced, AI-policy, Appearance, Copilot, prompts, and attention state, runtime-only
 account/reference forms, defer and first-run OpenSSH provenance, managed
 main-process server configuration, endpoint provenance, write-only credential
-and one-time-link provenance, all 59 inventory IDs, and the deliberate red
+and one-time-link provenance, all 69 inventory IDs, and the deliberate red
 inventory mutation.
 
 Built-artifact interaction and capture evidence remain pending until the
@@ -147,6 +148,6 @@ Desktop Material 正加入一套共用設定呈現合約：每個設定都要有
 控制項嘅 `aria-describedby` 會同時指住說明同來源，所以視覺上收埋咗說明，輔助技術
 仍然收到完整資料。
 
-第一批手寫清單有五十九個控制項：十一個帳戶欄位、六個 issue reference 欄位、連結底線、diff 剔號、九個進階設定、四個 AI 政策控制項、三個 Copilot 設定、十二個提示設定、三個自寄伺服器設定、五個專注調節、下一步、動力提示延後時間、Status Hub
+第一批手寫清單有六十九個控制項：十一個帳戶欄位、六個 issue reference 欄位、連結底線、diff 剔號、九個進階設定、四個 AI 政策控制項、十個外觀設定、三個 Copilot 設定、十二個提示設定、三個自寄伺服器設定、五個專注調節、下一步、動力提示延後時間、Status Hub
 endpoint 同只寫不讀嘅授權更換欄。測試會刻意由清單移除一項，確認會變紅，還原先再
 驗證綠色。目前只係基礎切片，未完成嘅控制項同已建置程式證據仍然唔會當完成。

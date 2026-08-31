@@ -11087,8 +11087,8 @@ hidden selections.
 
 The current universal-feature task added a shared progressive explanation and
 provenance component without changing the frozen application shell. The first
-hand-written inventory covers 59 settings across Accounts, issue references,
-Accessibility, Advanced, AI policy, Copilot, Prompts, self-hosted server setup,
+hand-written inventory covers 69 settings across Accounts, issue references,
+Accessibility, Advanced, AI policy, Appearance, Copilot, Prompts, self-hosted server setup,
 Attention accommodations, and Status Hub.
 
 ### Implemented behavior
@@ -11116,6 +11116,9 @@ Attention accommodations, and Status Hub.
   Trello scope/item fields as transient link inputs.
 - Copilot provenance covers both model choices and automatic conflict use,
   with dropdown buttons pointing at both explanation IDs.
+- Appearance provenance covers dialog emoji, language, auto-fit scale,
+  formatting patterns, absolute dates, diff tab size, recent repositories, and
+  branch-name visibility.
 - Self-hosted server provenance covers the managed public origin, transient
   SAML metadata, and generated one-time join link without repeating the link.
 - Status Hub provenance distinguishes an unconfigured endpoint, stored
@@ -11127,14 +11130,14 @@ Attention accommodations, and Status Hub.
 ### Verification
 
 - TypeScript no-emit passed.
-- Seventy-five focused tests passed across eight focused files covering the shared component, accessibility,
+- One hundred three focused tests passed across ten focused files covering the shared component, accessibility,
   Advanced settings, attention, and Status Hub.
 - Documentation-bundle coverage passed with 168 bundled feature articles.
 - Changelog validation and `git diff --check` passed.
 
 ### Remaining work
 
-The `settings-explanations` canonical feature remains pending. Thirty-three standard
+The `settings-explanations` canonical feature remains pending. Twenty-three standard
 Checkbox, Select, and TextBox controls under `app/src/ui/preferences/` still
 lack an explicit description binding, and custom settings controls need their
 own hand-written audit. Those controls still require localized behavioral

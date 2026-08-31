@@ -125,3 +125,40 @@ export function BooleanSettingExplanation(
     />
   )
 }
+
+export interface ISelectionSettingExplanationProps {
+  readonly settingId: string
+  readonly explanationEnglish: string
+  readonly explanationCantonese: string
+  readonly currentEnglish: string
+  readonly currentCantonese: string
+  readonly shippedEnglish: string
+  readonly shippedCantonese: string
+  readonly storageKey: string
+}
+
+/** Shared localized provenance for persisted selections and text values. */
+export function SelectionSettingExplanation(
+  props: ISelectionSettingExplanationProps
+): JSX.Element {
+  const stored = hasStoredChoice(props.storageKey)
+  return (
+    <SettingExplanation
+      settingId={props.settingId}
+      summary={localize('What this setting changes', '呢個設定會改咩')}
+      explanation={localize(
+        props.explanationEnglish,
+        props.explanationCantonese
+      )}
+      source={stored ? 'stored-choice' : 'compiled-default'}
+      provenance={localize(
+        stored
+          ? `A choice is recorded on this computer. Current value: ${props.currentEnglish}. Shipped value: ${props.shippedEnglish}.`
+          : `No choice is recorded on this computer. Current and shipped value: ${props.shippedEnglish}.`,
+        stored
+          ? `呢部電腦記錄咗選擇。目前值：${props.currentCantonese}。出廠值：${props.shippedCantonese}。`
+          : `呢部電腦未記錄選擇。目前值同出廠值：${props.shippedCantonese}。`
+      )}
+    />
+  )
+}

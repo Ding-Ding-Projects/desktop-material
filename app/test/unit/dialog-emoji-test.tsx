@@ -441,35 +441,35 @@ describe('dialog emoji settings entry', () => {
 
   it('states the default provenance before a choice is recorded', () => {
     const view = renderAppearance('english')
-    const provenance = view.container.querySelector('#dialog-emoji-provenance')
+    const provenance = view.container.querySelector(
+      '#appearance-dialog-emoji-setting-provenance'
+    )
     assert.ok(provenance !== null)
     assert.equal(
       provenance!.textContent,
-      translate('dialogEmoji.provenanceDefault', 'english', {
-        value: translate('dialogEmoji.stateOn', 'english'),
-      })
+      'No choice is recorded on this computer. Current and shipped value: on.'
     )
     // "default" is never the word shown; the real value is.
-    assert.ok(provenance!.textContent!.includes('shown'))
+    assert.ok(provenance!.textContent!.includes('on'))
   })
 
   it('states the recorded provenance once a choice exists', () => {
     setShowDialogEmoji(false)
     const view = renderAppearance('english')
-    const provenance = view.container.querySelector('#dialog-emoji-provenance')
+    const provenance = view.container.querySelector(
+      '#appearance-dialog-emoji-setting-provenance'
+    )
     assert.ok(provenance !== null)
     assert.equal(
       provenance!.textContent,
-      translate('dialogEmoji.provenanceStored', 'english', {
-        value: translate('dialogEmoji.stateOff', 'english'),
-      })
+      'A choice is recorded on this computer. Current value: off. Shipped value: on.'
     )
   })
 
   it('keeps the explanation behind progressive disclosure', () => {
     const view = renderAppearance('english')
     const details = view.container.querySelector(
-      'details.appearance-dialog-emoji-explanation'
+      '[data-setting-explanation-id="appearance-dialog-emoji"] details.setting-explanation__details'
     )
     assert.ok(details !== null)
     assert.equal(details!.hasAttribute('open'), false)
