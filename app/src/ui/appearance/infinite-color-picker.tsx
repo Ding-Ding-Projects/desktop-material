@@ -126,6 +126,7 @@ export interface IInfiniteColorPickerProps {
   readonly allowRainbow?: boolean
   readonly swatches?: ReadonlyArray<string>
   readonly contrastAgainst?: string
+  readonly ariaDescribedBy?: string
   readonly onChange: (value: string) => void
 }
 
@@ -782,6 +783,7 @@ export class InfiniteColorPicker extends React.Component<
           aria-haspopup="dialog"
           aria-expanded={this.state.open}
           aria-label={`${this.props.label} picker`}
+          aria-describedby={this.props.ariaDescribedBy}
           ref={this.triggerRef}
           onClick={this.toggle}
         >
@@ -803,6 +805,7 @@ export class InfiniteColorPicker extends React.Component<
           type="text"
           value={this.state.entry}
           aria-label={this.props.label}
+          aria-describedby={this.props.ariaDescribedBy}
           onChange={this.onEntryChange}
           onBlur={this.onEntryBlur}
           disabled={this.props.disabled}

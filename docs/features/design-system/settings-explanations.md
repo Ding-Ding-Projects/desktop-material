@@ -27,7 +27,7 @@ visual disclosure remains collapsed.
 
 ## Current hand-written inventory
 
-The current implementation slice covers 122 controls:
+The current implementation slice covers 141 controls:
 
 | Area | Settings |
 | --- | --- |
@@ -37,7 +37,7 @@ The current implementation slice covers 122 controls:
 | Advanced | Automatic account switching, repository status indicators, usage reporting, verbose logging, Git Credential Manager, large-repository detection, large-repository repack, browser open mode, system OpenSSH |
 | AI policy | Master boundary, two provider permissions, default repository eligibility |
 | Appearance | Dialog emoji, language, auto-fit scale, date/time/number formats, absolute dates, diff tab size, recent repositories, branch-name visibility |
-| Application identity | Custom logo image, logo shape/border/shadow, name font/weight/width/case/effect/highlight |
+| Application identity | Display name, logo choice/visibility/image, logo shape/border/shadow/colors/geometry, name font/weight/width/case/effect/highlight, five format toggles, name size/spacing/opacity/colors |
 | Agent access | Access mode, server enabled |
 | Copilot | Commit-message model, conflict-resolution model, automatic conflict use |
 | Git | Author name/email, default branch, effective identity, hook environment/shell/cache |
@@ -125,7 +125,7 @@ machine-readable provenance categories, compiled-versus-stored accessibility,
 advanced, AI-policy, Appearance, application-identity, agent-access, Copilot, Git, prompts, Sound, scheduled settings, and attention state, runtime-only
 account/reference forms, defer and first-run OpenSSH provenance, managed
 main-process server configuration, endpoint provenance, write-only credential
-and one-time-link provenance, all 122 inventory IDs, and the deliberate red
+and one-time-link provenance, all 141 inventory IDs, and the deliberate red
 inventory mutation.
 
 Built-artifact interaction and capture evidence remain pending until the

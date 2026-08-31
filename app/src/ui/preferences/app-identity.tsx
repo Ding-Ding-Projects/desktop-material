@@ -398,6 +398,10 @@ export class AppIdentity extends React.Component<
         className="app-identity-format-button"
         ariaLabel={label}
         ariaPressed={this.props.value[key] as boolean}
+        ariaDescribedBy={
+          settingExplanationDescriptionIds(`app-identity-${key}`)
+            .ariaDescribedBy
+        }
         onClick={this.onFormatToggle}
       >
         <span aria-hidden={true}>{shortLabel}</span>
@@ -443,7 +447,10 @@ export class AppIdentity extends React.Component<
             label="App name"
             value={this.state.draftName}
             required={true}
-            ariaDescribedBy="app-identity-name-help"
+            ariaDescribedBy={`app-identity-name-help ${
+              settingExplanationDescriptionIds('app-identity-display-name')
+                .ariaDescribedBy
+            }`}
             onFocus={this.onNameFocused}
             onValueChanged={this.onNameChanged}
             onBlur={this.onNameBlurred}
@@ -454,6 +461,13 @@ export class AppIdentity extends React.Component<
           >
             {this.state.nameError ?? 'Shown in the title bar and window title.'}
           </p>
+          {this.renderSelectionExplanation(
+            'app-identity-display-name',
+            'Changes the name shown in the title bar, window title, and application notifications without changing installed identity or data locations.',
+            '更改標題列、視窗標題同應用程式通知顯示嘅名稱，但唔會改安裝身份或者資料位置。',
+            identity.displayName,
+            DefaultAppIdentityCustomization.displayName
+          )}
         </div>
 
         <fieldset className="app-identity-fieldset">
@@ -466,6 +480,10 @@ export class AppIdentity extends React.Component<
                 type="button"
                 className="app-identity-logo-choice"
                 ariaPressed={identity.logo === choice.value}
+                ariaDescribedBy={
+                  settingExplanationDescriptionIds('app-identity-logo-choice')
+                    .ariaDescribedBy
+                }
                 onClick={this.onLogoChoiceClicked}
               >
                 <span
@@ -482,14 +500,32 @@ export class AppIdentity extends React.Component<
               </Button>
             ))}
           </div>
+          {this.renderSelectionExplanation(
+            'app-identity-logo-choice',
+            'Chooses the shipped or validated custom mark displayed beside the application name.',
+            '揀顯示喺應用程式名稱旁邊嘅隨附標誌或者已驗證自訂標誌。',
+            identity.logo,
+            DefaultAppIdentityCustomization.logo
+          )}
           <Button
             type="button"
             className="app-identity-visibility-toggle"
             ariaPressed={identity.showLogo}
+            ariaDescribedBy={
+              settingExplanationDescriptionIds('app-identity-show-logo')
+                .ariaDescribedBy
+            }
             onClick={this.onLogoVisibilityClicked}
           >
             Show logo in title bar
           </Button>
+          {this.renderSelectionExplanation(
+            'app-identity-show-logo',
+            'Controls whether the selected application mark appears beside the display name.',
+            '控制所選應用程式標誌係咪顯示喺名稱旁邊。',
+            identity.showLogo ? 'on' : 'off',
+            DefaultAppIdentityCustomization.showLogo ? 'on' : 'off'
+          )}
 
           <div className="app-identity-logo-controls">
             <div className="app-identity-file-control">
@@ -600,6 +636,10 @@ export class AppIdentity extends React.Component<
                   id="app-identity-logo-color"
                   value={identity.logoColor ?? '#0969da'}
                   label="Logo color"
+                  ariaDescribedBy={
+                    settingExplanationDescriptionIds('app-identity-logo-color')
+                      .ariaDescribedBy
+                  }
                   onChange={this.onLogoColorChanged}
                 />
                 <Button
@@ -610,6 +650,13 @@ export class AppIdentity extends React.Component<
                   Use theme color
                 </Button>
               </div>
+              {this.renderSelectionExplanation(
+                'app-identity-logo-color',
+                'Chooses a custom logo foreground color, or leaves the logo on its live theme color.',
+                '揀自訂 logo 前景色，或者保留使用即時主題顏色。',
+                identity.logoColor ?? 'theme color',
+                DefaultAppIdentityCustomization.logoColor ?? 'theme color'
+              )}
             </div>
 
             <div className="app-identity-color-control">
@@ -621,6 +668,11 @@ export class AppIdentity extends React.Component<
                   id="app-identity-logo-border-color"
                   value={identity.logoBorderColor ?? '#8c959f'}
                   label="Logo border color"
+                  ariaDescribedBy={
+                    settingExplanationDescriptionIds(
+                      'app-identity-logo-border-color'
+                    ).ariaDescribedBy
+                  }
                   onChange={this.onLogoBorderColorChanged}
                 />
                 <Button
@@ -631,6 +683,13 @@ export class AppIdentity extends React.Component<
                   Use theme color
                 </Button>
               </div>
+              {this.renderSelectionExplanation(
+                'app-identity-logo-border-color',
+                'Chooses a custom border color for the logo, or leaves the border on its live theme color.',
+                '揀自訂 logo 邊框顏色，或者保留使用即時主題顏色。',
+                identity.logoBorderColor ?? 'theme color',
+                DefaultAppIdentityCustomization.logoBorderColor ?? 'theme color'
+              )}
             </div>
           </div>
 
@@ -644,6 +703,10 @@ export class AppIdentity extends React.Component<
               value={identity.logoSize}
               valueText={`${identity.logoSize}px`}
               ariaValueText={`${identity.logoSize} pixels`}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('app-identity-logo-size')
+                  .ariaDescribedBy
+              }
               onChange={value => this.update({ logoSize: value })}
             />
             <RangeSlider
@@ -655,6 +718,10 @@ export class AppIdentity extends React.Component<
               value={identity.logoInset}
               valueText={`${identity.logoInset}px`}
               ariaValueText={`${identity.logoInset} pixels`}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('app-identity-logo-inset')
+                  .ariaDescribedBy
+              }
               onChange={value => this.update({ logoInset: value })}
             />
             <RangeSlider
@@ -666,6 +733,10 @@ export class AppIdentity extends React.Component<
               value={identity.logoRotation}
               valueText={`${identity.logoRotation}°`}
               ariaValueText={`${identity.logoRotation} degrees`}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('app-identity-logo-rotation')
+                  .ariaDescribedBy
+              }
               onChange={value => this.update({ logoRotation: value })}
             />
             <RangeSlider
@@ -677,9 +748,41 @@ export class AppIdentity extends React.Component<
               value={identity.brandGap}
               valueText={`${identity.brandGap}px`}
               ariaValueText={`${identity.brandGap} pixels`}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('app-identity-brand-gap')
+                  .ariaDescribedBy
+              }
               onChange={value => this.update({ brandGap: value })}
             />
           </div>
+          {this.renderSelectionExplanation(
+            'app-identity-logo-size',
+            'Sets the rendered logo box size in pixels across the title bar and previews.',
+            '設定標題列同預覽入面 logo 方框嘅像素大小。',
+            `${identity.logoSize}px`,
+            `${DefaultAppIdentityCustomization.logoSize}px`
+          )}
+          {this.renderSelectionExplanation(
+            'app-identity-logo-inset',
+            'Sets the internal spacing between the logo artwork and its outer shape.',
+            '設定 logo 圖案同外圍形狀之間嘅內距。',
+            `${identity.logoInset}px`,
+            `${DefaultAppIdentityCustomization.logoInset}px`
+          )}
+          {this.renderSelectionExplanation(
+            'app-identity-logo-rotation',
+            'Rotates the logo artwork without rotating its outer shape or changing the source image.',
+            '旋轉 logo 圖案，但唔旋轉外圍形狀亦唔改來源圖片。',
+            `${identity.logoRotation} degrees`,
+            `${DefaultAppIdentityCustomization.logoRotation} degrees`
+          )}
+          {this.renderSelectionExplanation(
+            'app-identity-brand-gap',
+            'Sets the pixel gap between the logo and application display name.',
+            '設定 logo 同應用程式顯示名稱之間嘅像素距離。',
+            `${identity.brandGap}px`,
+            `${DefaultAppIdentityCustomization.brandGap}px`
+          )}
         </fieldset>
 
         <fieldset className="app-identity-fieldset">
@@ -840,6 +943,41 @@ export class AppIdentity extends React.Component<
               Clear name formatting
             </Button>
           </div>
+          {this.renderSelectionExplanation(
+            'app-identity-bold',
+            'Applies an additional bold treatment to the application display name.',
+            '為應用程式顯示名稱加上額外粗體效果。',
+            identity.bold ? 'on' : 'off',
+            DefaultAppIdentityCustomization.bold ? 'on' : 'off'
+          )}
+          {this.renderSelectionExplanation(
+            'app-identity-italic',
+            'Applies an italic treatment to the application display name.',
+            '為應用程式顯示名稱加上斜體效果。',
+            identity.italic ? 'on' : 'off',
+            DefaultAppIdentityCustomization.italic ? 'on' : 'off'
+          )}
+          {this.renderSelectionExplanation(
+            'app-identity-underline',
+            'Draws an underline beneath the application display name.',
+            '喺應用程式顯示名稱下面畫底線。',
+            identity.underline ? 'on' : 'off',
+            DefaultAppIdentityCustomization.underline ? 'on' : 'off'
+          )}
+          {this.renderSelectionExplanation(
+            'app-identity-strikeThrough',
+            'Draws a line through the application display name.',
+            '喺應用程式顯示名稱中間畫刪除線。',
+            identity.strikeThrough ? 'on' : 'off',
+            DefaultAppIdentityCustomization.strikeThrough ? 'on' : 'off'
+          )}
+          {this.renderSelectionExplanation(
+            'app-identity-smallCaps',
+            'Uses small-cap styling for lowercase letters in the application display name.',
+            '將應用程式顯示名稱嘅細階英文字母用小型大寫樣式顯示。',
+            identity.smallCaps ? 'on' : 'off',
+            DefaultAppIdentityCustomization.smallCaps ? 'on' : 'off'
+          )}
 
           <div className="app-identity-slider-grid">
             <RangeSlider
@@ -851,6 +989,10 @@ export class AppIdentity extends React.Component<
               value={identity.fontSize}
               valueText={`${identity.fontSize}px`}
               ariaValueText={`${identity.fontSize} pixels`}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('app-identity-font-size')
+                  .ariaDescribedBy
+              }
               onChange={value => this.update({ fontSize: value })}
             />
             <RangeSlider
@@ -862,6 +1004,11 @@ export class AppIdentity extends React.Component<
               value={identity.characterSpacing}
               valueText={`${identity.characterSpacing}px`}
               ariaValueText={`${identity.characterSpacing} pixels`}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds(
+                  'app-identity-character-spacing'
+                ).ariaDescribedBy
+              }
               onChange={value => this.update({ characterSpacing: value })}
             />
             <RangeSlider
@@ -875,9 +1022,34 @@ export class AppIdentity extends React.Component<
               ariaValueText={`${Math.round(
                 identity.fontOpacity * 100
               )} percent`}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('app-identity-name-opacity')
+                  .ariaDescribedBy
+              }
               onChange={value => this.update({ fontOpacity: value })}
             />
           </div>
+          {this.renderSelectionExplanation(
+            'app-identity-font-size',
+            'Sets the application display-name size in pixels.',
+            '設定應用程式顯示名稱嘅像素大小。',
+            `${identity.fontSize}px`,
+            `${DefaultAppIdentityCustomization.fontSize}px`
+          )}
+          {this.renderSelectionExplanation(
+            'app-identity-character-spacing',
+            'Adds or removes horizontal spacing between display-name characters.',
+            '增加或者減少顯示名稱字元之間嘅橫向距離。',
+            `${identity.characterSpacing}px`,
+            `${DefaultAppIdentityCustomization.characterSpacing}px`
+          )}
+          {this.renderSelectionExplanation(
+            'app-identity-name-opacity',
+            'Sets the display-name opacity without changing its selected color.',
+            '設定顯示名稱透明度，但唔改所選顏色。',
+            `${Math.round(identity.fontOpacity * 100)}%`,
+            `${Math.round(DefaultAppIdentityCustomization.fontOpacity * 100)}%`
+          )}
 
           <div className="app-identity-color-control app-identity-name-color">
             <label htmlFor="app-identity-name-color">Name color</label>
@@ -886,6 +1058,10 @@ export class AppIdentity extends React.Component<
                 id="app-identity-name-color"
                 value={identity.fontColor ?? '#24292f'}
                 label="App name color"
+                ariaDescribedBy={
+                  settingExplanationDescriptionIds('app-identity-name-color')
+                    .ariaDescribedBy
+                }
                 onChange={this.onFontColorChanged}
               />
               <Button
@@ -896,6 +1072,13 @@ export class AppIdentity extends React.Component<
                 Use theme color
               </Button>
             </div>
+            {this.renderSelectionExplanation(
+              'app-identity-name-color',
+              'Chooses a custom display-name color, or leaves the name on its live theme color.',
+              '揀自訂顯示名稱顏色，或者保留使用即時主題顏色。',
+              identity.fontColor ?? 'theme color',
+              DefaultAppIdentityCustomization.fontColor ?? 'theme color'
+            )}
           </div>
           <div className="app-identity-color-control app-identity-name-color">
             <label htmlFor="app-identity-highlight-color">
@@ -906,6 +1089,11 @@ export class AppIdentity extends React.Component<
                 id="app-identity-highlight-color"
                 value={identity.highlightColor ?? '#dbeafe'}
                 label="App name highlight color"
+                ariaDescribedBy={
+                  settingExplanationDescriptionIds(
+                    'app-identity-highlight-color'
+                  ).ariaDescribedBy
+                }
                 onChange={this.onHighlightColorChanged}
               />
               <Button
@@ -916,6 +1104,13 @@ export class AppIdentity extends React.Component<
                 Use theme color
               </Button>
             </div>
+            {this.renderSelectionExplanation(
+              'app-identity-highlight-color',
+              'Chooses a custom background color for the selected name-highlight shape, or uses the live theme color.',
+              '揀所選名稱底色形狀嘅自訂背景顏色，或者使用即時主題顏色。',
+              identity.highlightColor ?? 'theme color',
+              DefaultAppIdentityCustomization.highlightColor ?? 'theme color'
+            )}
           </div>
         </fieldset>
 
