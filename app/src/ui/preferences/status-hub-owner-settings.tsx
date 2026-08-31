@@ -112,16 +112,23 @@ export class StatusHubOwnerSettings extends React.Component<
             this.setState({ authorizationDraft })
           }
         />
-        <p id="status-hub-authorization-help" className="settings-description">
+        <p
+          id="status-hub-authorization-help"
+          className="settings-description"
+          role="status"
+          aria-live="polite"
+        >
           {status}{' '}
           {localize(
             'Leave this field empty to keep the stored value unchanged.',
             '留空會保留現有資料。'
           )}
-        </p>
-        <p className="settings-description" role="status" aria-live="polite">
-          {this.state.busy && localize('Working…', '處理中…')}
-          {!this.state.busy && this.state.message}
+          {this.state.busy && (
+            <> {localize('Working…', '處理中…')}</>
+          )}
+          {!this.state.busy && this.state.message && (
+            <> {this.state.message}</>
+          )}
         </p>
         {this.state.error !== null && (
           <p className="settings-error" role="alert">

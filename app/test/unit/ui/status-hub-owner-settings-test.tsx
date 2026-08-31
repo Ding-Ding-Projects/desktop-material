@@ -79,10 +79,9 @@ describe('Status Hub owner settings', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Check connection' }))
     await waitFor(() =>
-      assert.ok(
-        screen.getByText(
-          'Status Hub is available through the main-process boundary.'
-        )
+      assert.match(
+        screen.getByRole('status').textContent ?? '',
+        /Status Hub is available through the main-process boundary\./
       )
     )
     const status = screen.getByRole('status')
@@ -151,10 +150,9 @@ describe('Status Hub owner settings', () => {
     fireEvent.click(clear)
 
     await waitFor(() =>
-      assert.ok(
-        screen.getByText(
-          'Stored Status Hub authorization cleared. · 已清除 Status Hub 授權資料。'
-        )
+      assert.match(
+        screen.getByRole('status').textContent ?? '',
+        /Stored Status Hub authorization cleared\. · 已清除 Status Hub 授權資料。/
       )
     )
     assert.equal(configuration.authorizationPresent, false)
