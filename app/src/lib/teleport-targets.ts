@@ -68,6 +68,7 @@ export const TeleportTargetSelectors = {
   settingsWindowsOpenSSH: '[data-teleport-target="settings-windows-openssh"]',
   settingsExternalEditor: '[data-teleport-target="settings-external-editor"]',
   settingsShell: '[data-teleport-target="settings-shell"]',
+  settingsStatusHub: '[data-teleport-target="settings-status-hub"]',
 
   // Attention accommodations
   settingsAttentionFocus:

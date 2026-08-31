@@ -2376,10 +2376,12 @@
             "paths": [
               "app/src/models/status-hub.ts",
               "app/src/main-process/status-hub-client.ts",
+              "app/src/main-process/status-hub-configuration-store.ts",
               "app/src/ui/agent-sessions/agent-sessions-panel.tsx",
+              "app/src/ui/preferences/status-hub-owner-settings.tsx",
               "app/src/main-process/main.ts"
             ],
-            "note": "The typed projection, main-process transport boundary, IPC routes, and honest local/connected renderer states are implemented; owner endpoint and vault configuration remain a separate persistence gap."
+            "note": "The typed projection, main-process transport, owner endpoint and vault configuration, IPC routes, searchable settings surface, and honest local/connected renderer states are implemented."
           }
         ],
         "documentation": [
@@ -2397,15 +2399,24 @@
             "paths": [
               "app/src/lib/i18n-resources.ts",
               "app/src/ui/agent-sessions/agent-sessions-panel.tsx",
-              "app/test/unit/ui/status-hub-panel-test.tsx"
+              "app/src/ui/preferences/status-hub-owner-settings.tsx",
+              "app/test/unit/ui/status-hub-panel-test.tsx",
+              "app/test/unit/ui/status-hub-owner-settings-test.tsx"
             ],
-            "note": "Connected, authorization-unavailable, delivery-unconfirmed, and local-only states resolve through the shared language catalog and focused renderer test."
+            "note": "Connection states, owner endpoint/vault controls, save/check/clear actions, and factual status copy cover English, Cantonese, and bilingual rendering through the shared catalog and focused UI tests."
           }
         ],
         "persistence": [
           {
-            "status": "pending",
-            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+            "status": "present",
+            "paths": [
+              "app/src/main-process/status-hub-configuration-store.ts",
+              "app/src/main-process/main.ts",
+              "app/src/ui/preferences/status-hub-owner-settings.tsx",
+              "app/test/unit/status-hub-configuration-store-test.ts",
+              "app/test/unit/ui/status-hub-owner-settings-test.tsx"
+            ],
+            "note": "A bounded versioned endpoint file is atomically stored below userData while authorization remains write-only in the operating-system credential vault; restart, preserve, replace, clear, unsafe-input, and malformed-file paths are verified."
           }
         ],
         "focusedTest": [
@@ -2413,9 +2424,11 @@
             "status": "present",
             "paths": [
               "app/test/unit/status-hub-client-test.ts",
-              "app/test/unit/ui/status-hub-panel-test.tsx"
+              "app/test/unit/status-hub-configuration-store-test.ts",
+              "app/test/unit/ui/status-hub-panel-test.tsx",
+              "app/test/unit/ui/status-hub-owner-settings-test.tsx"
             ],
-            "note": "Focused tests cover endpoint validation, missing authorization, bounded publishing, malformed/oversized/refused responses, reply filtering, delivery confirmation, and every renderer connection state."
+            "note": "Focused tests cover endpoint validation, vault persistence, write-only authorization, restart reload, preserve/replace/clear actions, unsafe and malformed input, bounded publishing, reply filtering, delivery confirmation, bilingual controls, and every renderer connection state."
           }
         ],
         "builtArtifactInteraction": [

@@ -958,6 +958,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
   {
     event: 'palette:set-attention-focus',
     title: 'Focus accommodation',
+    titleKey: 'settingsSearch.entry.attentionFocus.title',
     group: 'App',
     materialSymbol: 'visibility',
     keywords: 'attention focus de-emphasize workspace 專注',
@@ -971,6 +972,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
   {
     event: 'palette:set-attention-low-stimulation',
     title: 'Low stimulation accommodation',
+    titleKey: 'settingsSearch.entry.attentionLowStimulation.title',
     group: 'App',
     materialSymbol: 'notifications_off',
     keywords: 'attention motion colour color quiet reduced low stimulation 低刺激',
@@ -984,6 +986,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
   {
     event: 'palette:set-attention-time-awareness',
     title: 'Time awareness accommodation',
+    titleKey: 'settingsSearch.entry.attentionTimeAwareness.title',
     group: 'App',
     materialSymbol: 'schedule',
     keywords: 'attention elapsed session activity time 時間感知',
@@ -997,6 +1000,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
   {
     event: 'palette:set-attention-one-thing',
     title: 'One thing at a time accommodation',
+    titleKey: 'settingsSearch.entry.attentionOneThing.title',
     group: 'App',
     materialSymbol: 'subject',
     keywords: 'attention next action current task one thing 一次一件事',
@@ -1010,6 +1014,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
   {
     event: 'palette:set-attention-momentum',
     title: 'Momentum accommodation',
+    titleKey: 'settingsSearch.entry.attentionMomentum.title',
     group: 'App',
     materialSymbol: 'schedule',
     keywords: 'attention inactivity prompt defer momentum 動力提示',
@@ -2258,6 +2263,18 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
       kind: 'preferences',
       tab: PreferencesTab.Integrations,
       targetId: 'settingsCustomIntegration',
+    },
+  },
+  {
+    event: 'palette:status-hub',
+    title: 'Status Hub owner settings',
+    titleKey: 'palette.statusHub',
+    group: 'App',
+    keywords: 'authorization credential endpoint hub status',
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Integrations,
+      targetId: 'settingsStatusHub',
     },
   },
   {

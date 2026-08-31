@@ -178,7 +178,11 @@ import {
   agentSetupCommandRunner,
   registerAgentSetupCommandRunnerIpc,
 } from './agent-setup-command-runner'
-import { createUnconfiguredStatusHubClient } from './status-hub-client'
+import {
+  createUnconfiguredStatusHubClient,
+  StatusHubClient,
+} from './status-hub-client'
+import { StatusHubConfigurationStore } from './status-hub-configuration-store'
 import {
   inspectLocalFileForConversion,
   preflightFileConverterStorage,
@@ -195,7 +199,8 @@ let updateInstallTerminalInProgress = false
 const profileRepositoryLocks = new ProfileRepositoryLockRegistry()
 // Until the owner supplies an endpoint and OS-vault credential through the
 // Status Hub owner surface, IPC reports the explicit local-only fallback.
-const statusHubClient = createUnconfiguredStatusHubClient()
+let statusHubClient = createUnconfiguredStatusHubClient()
+let statusHubConfigurationStore: StatusHubConfigurationStore | null = null
 interface IProfileRepositoryLockSenderState {
   documentId: number
   destroyed: boolean
@@ -1163,6 +1168,13 @@ app.on('ready', () => {
   }
 
   readyTime = now() - launchTime
+  statusHubConfigurationStore = new StatusHubConfigurationStore(
+    Path.join(app.getPath('userData'), 'status-hub', 'configuration.json')
+  )
+  statusHubClient = new StatusHubClient({
+    getEndpoint: () => statusHubConfigurationStore!.readEndpoint(),
+    getAuthorization: () => statusHubConfigurationStore!.getAuthorization(),
+  })
 
   possibleProtocols.forEach(protocol => setAsDefaultProtocolClient(protocol))
 
@@ -1237,6 +1249,15 @@ app.on('ready', () => {
     fetchScheduledSettingsAPI(endpoint)
   )
   ipcMain.handle('get-status-hub-status', async () => statusHubClient.getStatus())
+  ipcMain.handle('get-status-hub-configuration', async () =>
+    statusHubConfigurationStore!.get()
+  )
+  ipcMain.handle('set-status-hub-configuration', async (_event, update) =>
+    statusHubConfigurationStore!.set(update)
+  )
+  ipcMain.handle('clear-status-hub-authorization', async () =>
+    statusHubConfigurationStore!.clearAuthorization()
+  )
   ipcMain.handle('publish-status-hub-session', async (_event, projection) =>
     statusHubClient.publish(projection)
   )

@@ -107,6 +107,16 @@ record the verified source-level boundary. Five evidence records move to
 present; packaged interaction and current capture remain pending. The ledger
 now holds 129 present and 305 pending records.
 
+Status Hub now has an owner configuration surface under Integrations. The
+endpoint persists in a bounded, versioned, atomically replaced application-data
+file; authorization remains write-only in the operating-system credential vault
+and is never returned through IPC. Settings search and the command palette both
+land on the exact endpoint and authorization controls. Twenty focused
+configuration/client/UI/IPC tests and 47 settings-search/palette tests pass;
+TypeScript is clean. This moves Status Hub persistence to present. Together
+with the durable unlock-ladder allowance, the ledger now holds 131 present and
+303 pending records. Packaged interaction and current captures remain pending.
+
 ## Remaining plain HTML controls converted to shared Material primitives — 2026-08-22
 
 A six-lane fleet sweep classified every raw `button`/`input`/`select`/`textarea`

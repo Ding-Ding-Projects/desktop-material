@@ -588,6 +588,18 @@ export const runAgentSetupCommands = invokeProxy('run-agent-setup-commands', 1)
 
 /** Main-process-confirmed status; credentials and Discord bridge state stay private. */
 export const getStatusHubStatus = invokeProxy('get-status-hub-status', 0)
+export const getStatusHubConfiguration = invokeProxy(
+  'get-status-hub-configuration',
+  0
+)
+export const setStatusHubConfiguration = invokeProxy(
+  'set-status-hub-configuration',
+  1
+)
+export const clearStatusHubAuthorization = invokeProxy(
+  'clear-status-hub-authorization',
+  0
+)
 export const publishStatusHubSession = invokeProxy(
   'publish-status-hub-session',
   1

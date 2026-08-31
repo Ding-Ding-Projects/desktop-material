@@ -28,6 +28,7 @@ import {
 import { isModernContextMenuActionable } from '../../lib/shell-extension-package'
 import { BrowserExtensionIntegrationAvailability } from '../../lib/browser-extension-download'
 import { BrowserExtensionDownloadIntegrationStatus } from '../browser-extension-download/browser-extension-download-surfaces'
+import { StatusHubOwnerSettings } from './status-hub-owner-settings'
 
 const CustomIntegrationValue = 'other'
 const BranchPresetScriptDocumentationUrl =
@@ -830,6 +831,7 @@ export class Integrations extends React.Component<
           {this.renderSelectedShell()}
           {this.state.useCustomShell && this.renderCustomShell()}
         </div>
+        <StatusHubOwnerSettings />
         {this.renderBrowserExtensionDownloads()}
         {this.renderWindowsContextMenu()}
         {enableCustomIntegration() && (

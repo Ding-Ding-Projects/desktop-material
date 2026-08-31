@@ -1,0 +1,140 @@
+import assert from 'node:assert/strict'
+import { afterEach, describe, it, mock } from 'node:test'
+import * as React from 'react'
+
+import { LanguageModeStorageKey } from '../../../src/lib/language-preference'
+import {
+  IStatusHubOwnerConfiguration,
+  IStatusHubOwnerConfigurationUpdate,
+} from '../../../src/models/status-hub'
+import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
+
+let configuration: IStatusHubOwnerConfiguration = {
+  endpoint: null,
+  authorizationPresent: false,
+}
+let savedUpdate: IStatusHubOwnerConfigurationUpdate | null = null
+
+mock.module('../../../src/ui/main-process-proxy', {
+  namedExports: {
+    getStatusHubConfiguration: async () => configuration,
+    setStatusHubConfiguration: async (
+      update: IStatusHubOwnerConfigurationUpdate
+    ) => {
+      savedUpdate = update
+      configuration = {
+        endpoint: update.endpoint,
+        authorizationPresent:
+          update.authorization !== undefined ||
+          configuration.authorizationPresent,
+      }
+      return configuration
+    },
+    clearStatusHubAuthorization: async () => {
+      configuration = { ...configuration, authorizationPresent: false }
+      return configuration
+    },
+    getStatusHubStatus: async () => ({
+      connection: 'connected' as const,
+      stableURL: configuration.endpoint,
+      message: 'Status Hub is available through the main-process boundary.',
+      lastUpdatedAt: 10,
+    }),
+  },
+})
+
+async function getComponent() {
+  return (await import('../../../src/ui/preferences/status-hub-owner-settings'))
+    .StatusHubOwnerSettings
+}
+
+afterEach(() => {
+  configuration = { endpoint: null, authorizationPresent: false }
+  savedUpdate = null
+  localStorage.removeItem(LanguageModeStorageKey)
+})
+
+describe('Status Hub owner settings', () => {
+  it('loads credential-free state and never renders a stored value', async () => {
+    configuration = {
+      endpoint: 'https://status.example.test/',
+      authorizationPresent: true,
+    }
+    const StatusHubOwnerSettings = await getComponent()
+    const view = render(<StatusHubOwnerSettings />)
+
+    await waitFor(() =>
+      assert.equal(
+        (screen.getByLabelText('HTTPS endpoint') as HTMLInputElement).value,
+        'https://status.example.test/'
+      )
+    )
+    assert.equal(
+      (screen.getByLabelText('Replace authorization') as HTMLInputElement)
+        .value,
+      ''
+    )
+    assert.match(view.container.textContent ?? '', /credential vault/)
+    assert.doesNotMatch(view.container.textContent ?? '', /stored-secret/)
+  })
+
+  it('saves a replacement without leaving it in the rendered field', async () => {
+    const StatusHubOwnerSettings = await getComponent()
+    const view = render(<StatusHubOwnerSettings />)
+    await waitFor(() =>
+      assert.equal(
+        (screen.getByLabelText('HTTPS endpoint') as HTMLInputElement).disabled,
+        false
+      )
+    )
+
+    fireEvent.change(screen.getByLabelText('HTTPS endpoint'), {
+      target: { value: 'https://status.example.test/' },
+    })
+    fireEvent.change(screen.getByLabelText('Replace authorization'), {
+      target: { value: 'new-authorization-value' },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Save Status Hub settings' })
+    )
+
+    await waitFor(() => assert.ok(savedUpdate))
+    assert.deepEqual(savedUpdate, {
+      endpoint: 'https://status.example.test/',
+      authorization: 'new-authorization-value',
+    })
+    assert.equal(
+      (screen.getByLabelText('Replace authorization') as HTMLInputElement)
+        .value,
+      ''
+    )
+    assert.doesNotMatch(
+      view.container.textContent ?? '',
+      /new-authorization-value/
+    )
+  })
+
+  it('clears vault state and renders bilingual controls', async () => {
+    localStorage.setItem(LanguageModeStorageKey, 'bilingual')
+    configuration = {
+      endpoint: 'https://status.example.test/',
+      authorizationPresent: true,
+    }
+    const StatusHubOwnerSettings = await getComponent()
+    render(<StatusHubOwnerSettings />)
+
+    const clear = await screen.findByRole('button', {
+      name: 'Clear stored authorization · 清除已儲存授權資料',
+    })
+    fireEvent.click(clear)
+
+    await waitFor(() =>
+      assert.ok(
+        screen.getByText(
+          'Stored Status Hub authorization cleared. · 已清除 Status Hub 授權資料。'
+        )
+      )
+    )
+    assert.equal(configuration.authorizationPresent, false)
+  })
+})

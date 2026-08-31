@@ -32,8 +32,9 @@
 - [x] Persist the unlock-ladder rolling-hour allowance across restart with a
   bounded timestamp-only file, serialized atomic writes, and malformed-state
   refusal.
-- [ ] Add owner-configurable Status Hub endpoint/vault settings before that
-  feature can satisfy its persistence evidence.
+- [x] Add searchable owner-configurable Status Hub endpoint/vault settings with
+  a bounded atomic endpoint file, write-only credential-vault authorization,
+  live connection checks, and replace/clear controls.
 - [x] Add focused renderer and terminal regression tests plus categorized
   feature documentation.
 - [ ] Extend the same action contract to every remaining consequential native

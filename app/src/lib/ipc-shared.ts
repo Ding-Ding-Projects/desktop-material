@@ -145,6 +145,8 @@ import {
   IScheduledSettingsValue,
 } from '../models/scheduled-settings'
 import {
+  IStatusHubOwnerConfiguration,
+  IStatusHubOwnerConfigurationUpdate,
   IStatusHubReplyPollResult,
   IStatusHubSessionProjection,
   IStatusHubStatus,
@@ -344,6 +346,14 @@ export type RequestResponseChannels = {
   ) => Promise<IUnlockLadderServiceResult>
   /** Main-process-only Status Hub state; no credential crosses this boundary. */
   'get-status-hub-status': () => Promise<IStatusHubStatus>
+  /** Read credential-free owner configuration from the main process. */
+  'get-status-hub-configuration': () => Promise<IStatusHubOwnerConfiguration>
+  /** Persist an endpoint and optionally replace the OS-vault authorization. */
+  'set-status-hub-configuration': (
+    update: IStatusHubOwnerConfigurationUpdate
+  ) => Promise<IStatusHubOwnerConfiguration>
+  /** Remove the OS-vault authorization without returning it to the renderer. */
+  'clear-status-hub-authorization': () => Promise<IStatusHubOwnerConfiguration>
   /** Publish an evidence-backed agent-session projection through the main process. */
   'publish-status-hub-session': (
     projection: IStatusHubSessionProjection

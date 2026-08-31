@@ -21,7 +21,13 @@ const projection: IStatusHubSessionProjection = {
 
 describe('StatusHubClient', () => {
   it('uses an honest local fallback for absent or unsafe endpoints', async () => {
-    for (const endpoint of [null, 'http://example.com', 'not a URL']) {
+    for (const endpoint of [
+      null,
+      'http://example.com',
+      'ftp://127.0.0.1/status',
+      'https://user:password@status.example.test',
+      'not a URL',
+    ]) {
       const client = new StatusHubClient({
         endpoint,
         getAuthorization: async () => 'unused',
@@ -62,6 +68,7 @@ describe('StatusHubClient', () => {
     assert.equal(calls.length, 1)
     assert.equal(calls[0].url, 'https://status.example.test/api/agent/sessions')
     assert.equal(calls[0].init.method, 'PUT')
+    assert.equal(calls[0].init.redirect, 'error')
     assert.equal(
       (calls[0].init.headers as Record<string, string>).authorization,
       'Bearer fixture'

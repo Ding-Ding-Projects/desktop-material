@@ -17,6 +17,27 @@ When no owner endpoint or credential is configured, the Agents surface says it
 is using local session state only. This fallback is intentional and remains
 truthful while the app is offline.
 
+## Owner configuration
+
+**Settings → Integrations → Status Hub** provides the owner controls directly
+in the application. The endpoint field accepts HTTPS, plus an explicit
+`127.0.0.1` URL for local development. The authorization field is write-only:
+leaving it empty preserves the existing vault value, entering a value replaces
+it, and **Clear stored authorization** removes it without changing the endpoint.
+**Check connection** reads the live main-process status and reports the real
+connected, local-only, unavailable, or authentication-unavailable result.
+
+The versioned endpoint file lives below the application user-data directory at
+`status-hub/configuration.json`. It is bounded to 4 KiB and written atomically
+through a unique temporary file plus the shared Windows rename-retry boundary.
+Authorization is stored separately in the operating-system credential vault
+under a stable owner account key. Renderer reads return only `endpoint` and
+`authorizationPresent`; no IPC response can return the stored value.
+
+The settings surface is indexed by Settings search and the command palette,
+teleports to the exact controls, supports English, Cantonese, and bilingual
+labels, and clears the password field immediately after a successful save.
+
 ## Security boundary
 
 Only the Electron main process performs Hub networking. Renderer IPC carries a
@@ -38,9 +59,16 @@ confirmed only after the authenticated Hub inbox poll reports confirmation.
 | Request timeout or refusal | Explicit unavailable status; local fleet remains usable |
 | Oversized or malformed response | Rejected before it reaches the renderer |
 | Reply poll lacks delivery confirmation | No delivered claim is shown |
+| Invalid endpoint or header injection | Save is refused; prior configuration remains active |
+| Malformed or oversized configuration file | Read is refused rather than falling back to an invented configuration |
 
 ## Verification
 
-This Yum Leung Cha lane intentionally did not run focused tests, packaging,
-runtime interaction, or captures. The evidence inventory records implementation
-and documentation paths while those verification dimensions remain pending.
+`status-hub-configuration-store-test.ts` verifies endpoint-only persistence,
+vault-only authorization, restart reload, preserve/replace/clear behavior,
+unsafe endpoint refusal, header-injection refusal, and malformed-file refusal.
+`status-hub-owner-settings-test.tsx` verifies credential-free loading, write-only
+replacement, immediate field clearing, bilingual controls, and vault clearing.
+The existing client, panel, IPC, settings-search, command-palette, and TypeScript
+checks remain green. Packaged runtime interaction and current captures remain
+pending and are not implied by these source-level checks.
