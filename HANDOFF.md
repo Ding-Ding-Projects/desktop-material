@@ -83,6 +83,20 @@ page/offline bundle equivalents. Built-application interaction and current
 capture remain pending. The ledger now holds 120 present and 314 pending
 records.
 
+The root build bootstrap was exercised through `build.bat /s` against
+`c2f0fb6de969329628bc3dd60feef2dfe994d3fb`. The first attempt exited with a
+non-deterministic Windows access violation after `00:02:31`; the unchanged
+retry completed in `00:06:04`. The resulting unsigned executable is
+226,564,608 bytes with SHA-256
+`428ad7c72c1ea56ec82a2b39366c797f493705b6788bd182d57ee7a5c32ebf37`.
+The renderer is 13,391,015 bytes with SHA-256
+`7dcb8cf57ae561fccb8eacfe721d2b1008a8c9610a47e9ab7c5a5c5dd0b6a4a6`.
+Sixteen root-build contract tests pass. The full receipt keeps both attempts,
+output hashes, duration, unsigned state, and the skipped local shell-extension
+toolchain boundary. Four build-bootstrap evidence records move to present; its
+localized-output and real-capture rows remain pending. The ledger now holds
+124 present and 310 pending records.
+
 ## Remaining plain HTML controls converted to shared Material primitives — 2026-08-22
 
 A six-lane fleet sweep classified every raw `button`/`input`/`select`/`textarea`

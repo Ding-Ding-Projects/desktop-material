@@ -3231,8 +3231,15 @@
       "evidence": {
         "implementation": [
           {
-            "status": "pending",
-            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+            "status": "present",
+            "paths": [
+              "build.bat",
+              "build-installer.bat",
+              "download-dependencies.bat",
+              "script/build-windows.ps1",
+              "script/windows-dependency-manifest.json"
+            ],
+            "note": "The root entrypoints share one pinned dependency-first implementation with silent mode, interactive-only elevation, runnable build, installer sequencing, and unsigned output verification."
           }
         ],
         "documentation": [
@@ -3252,20 +3259,30 @@
         ],
         "persistence": [
           {
-            "status": "pending",
-            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+            "status": "present",
+            "paths": [
+              "script/windows-dependency-manifest.json",
+              "script/build-windows.ps1"
+            ],
+            "note": "Pinned versions and digests are committed, while verified warm dependency/native outputs are reused without changing the manifest."
           }
         ],
         "focusedTest": [
           {
-            "status": "pending",
-            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "script/build-windows-contract-test.mjs"
+            ],
+            "note": "Sixteen focused root-build contract tests passed on 2026-08-31."
           }
         ],
         "builtArtifactInteraction": [
           {
-            "status": "pending",
-            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "docs/verification/build-bootstrap-2026-08-31.md"
+            ],
+            "note": "The committed root build completed against c2f0fb6de969329628bc3dd60feef2dfe994d3fb and recorded exact output sizes, hashes, unsigned state, duration, and the preceding transient access violation."
           }
         ],
         "realCapture": [

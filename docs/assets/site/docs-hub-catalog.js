@@ -1736,6 +1736,13 @@
       d: 'Run ID: bug-hunt-20260728-final',
     },
     {
+      t: 'Root build bootstrap verification, 2026-08-31',
+      h: 'verification/build-bootstrap-2026-08-31.html',
+      s: 'verification/build-bootstrap-2026-08-31.md',
+      c: 'verification',
+      d: "The repository's committed build.bat /s path was run from the isolated task worktree at commit c2f0fb6de969329628bc3dd60feef2dfe994d3fb. The command ran its own dependency…",
+    },
+    {
       t: 'Cheap LFS Bambu build cloud, clone, and batching acceptance — 2026-07-23',
       h: 'verification/cheap-lfs-bambu-build-2026-07-23.html',
       s: 'verification/cheap-lfs-bambu-build-2026-07-23.md',

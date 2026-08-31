@@ -22,6 +22,9 @@
 - [x] Verify the isolated provider-Markdown renderer and promote desktop,
   terminal, static-page, documentation, localization, lifecycle, and focused
   Chut evidence.
+- [x] Run the committed root build path to a real unsigned runnable output,
+  retain both the transient first-attempt crash and successful retry, and
+  promote implementation, manifest, focused-Chut, and built-output evidence.
 - [ ] Persist the unlock-ladder rolling-hour allowance across restart and add
   owner-configurable Status Hub endpoint/vault settings before either feature
   can satisfy its persistence evidence.
