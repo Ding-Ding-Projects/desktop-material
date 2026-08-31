@@ -78,6 +78,7 @@ export const ImplementedSettingExplanationIds = [
   'automation-auto-commit-push-interval',
   'automation-auto-pull-enabled',
   'automation-auto-pull-interval',
+  'authenticator-manager',
   'appearance-auto-fit-zoom',
   'appearance-branch-sort',
   'appearance-date-format',
@@ -188,6 +189,7 @@ export const ImplementedSettingExplanationIds = [
   'sound-tts-volume',
   'status-hub-endpoint',
   'status-hub-authorization-replacement',
+  'surface-locks-manager',
 ] as const
 
 export type ImplementedSettingExplanationId =

@@ -27,7 +27,7 @@ visual disclosure remains collapsed.
 
 ## Current hand-written inventory
 
-The current implementation slice covers 181 controls:
+The current implementation slice covers 183 controls:
 
 | Area | Settings |
 | --- | --- |
@@ -45,6 +45,7 @@ The current implementation slice covers 181 controls:
 | Ollama | Runtime provider selection and trusted loopback setup endpoint |
 | Attention accommodations | Focus, Low stimulation, Time awareness, One thing at a time, Momentum, Next action, Momentum defer interval |
 | Automation | Global commit-and-push and pull switches/intervals, plus four repeated per-account override fields mapped to conceptual inventory rows |
+| Local managers | Authenticator and surface-lock manager entry points with factual recorded-entry counts |
 | Prompts | Ten confirmation switches, uncommitted-change branch-switch strategy, commit-length warning |
 | Clone queue | Repeated per-account automatic-clone switch, privacy-safe base-directory state, and clone mode |
 | Self-hosted server | Public origin, optional SAML metadata, generated one-time join link |
@@ -130,7 +131,7 @@ machine-readable provenance categories, compiled-versus-stored accessibility,
 advanced, AI-policy, Appearance, application-identity, agent-access, Copilot, Git, prompts, Sound, scheduled settings, and attention state, runtime-only
 account/reference forms, defer and first-run OpenSSH provenance, managed
 main-process server configuration, endpoint provenance, write-only credential
-and one-time-link provenance, all 181 inventory IDs, and the deliberate red
+and one-time-link provenance, all 183 inventory IDs, and the deliberate red
 inventory mutation.
 
 Built-artifact interaction and capture evidence remain pending until the

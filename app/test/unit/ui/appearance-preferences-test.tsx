@@ -129,6 +129,7 @@ describe('Appearance preferences', () => {
       'appearance-auto-fit-zoom',
       'appearance-theme',
       'appearance-branch-sort',
+      'surface-locks-manager',
       'appearance-tab-size',
       'appearance-show-recent-repositories',
       'appearance-show-branch-name',

@@ -193,6 +193,7 @@ describe('Advanced preferences disclosure rows', () => {
       'advanced-large-repository-auto-detect',
       'advanced-large-repository-auto-repack',
       'advanced-browser-open-mode',
+      'authenticator-manager',
     ]
 
     for (const id of expected) {
