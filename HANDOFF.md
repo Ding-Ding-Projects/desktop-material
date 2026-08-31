@@ -11087,7 +11087,7 @@ hidden selections.
 
 The current universal-feature task added a shared progressive explanation and
 provenance component without changing the frozen application shell. The first
- hand-written inventory covers 141 settings across Accounts, issue references,
+ hand-written inventory covers 146 settings across Accounts, issue references,
 Accessibility, Advanced, AI policy, Appearance and application identity, agent access, Git, Copilot, Sound, Prompts, self-hosted server setup,
  Attention accommodations, and Status Hub.
 
@@ -11117,8 +11117,9 @@ Accessibility, Advanced, AI policy, Appearance and application identity, agent a
 - Copilot provenance covers both model choices and automatic conflict use,
   with dropdown buttons pointing at both explanation IDs.
 - Appearance provenance covers dialog emoji, language, auto-fit scale,
-  formatting patterns, absolute dates, diff tab size, recent repositories, and
-  branch-name visibility.
+  both playfulness levels, base scale, theme, branch sorting, formatting
+  patterns, absolute dates, diff tab size, recent repositories, and branch-name
+  visibility.
 - Application-identity provenance covers the custom logo image plus logo and
   display-name typography selectors, plus every logo/name color, geometry,
   opacity, visibility, and format control without repeating a local image path.

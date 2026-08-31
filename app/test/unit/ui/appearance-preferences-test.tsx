@@ -123,7 +123,12 @@ describe('Appearance preferences', () => {
     const requiredExplanationIds = [
       'appearance-dialog-emoji',
       'appearance-language-mode',
+      'appearance-funny-english',
+      'appearance-funny-cantonese',
+      'appearance-ui-scale',
       'appearance-auto-fit-zoom',
+      'appearance-theme',
+      'appearance-branch-sort',
       'appearance-tab-size',
       'appearance-show-recent-repositories',
       'appearance-show-branch-name',

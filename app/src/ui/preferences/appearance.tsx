@@ -1,6 +1,7 @@
 import * as React from 'react'
 import {
   ApplicationTheme,
+  applicationThemeKey,
   supportsSystemThemeChanges,
   getCurrentlyAppliedTheme,
 } from '../lib/application-theme'
@@ -12,10 +13,12 @@ import { Select } from '../lib/select'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import {
   autoFitZoomEnabledKey,
+  branchSortOrderKey,
   showBranchNameInRepoListKey,
   showRecentRepositoriesKey,
   tabSizeDefault,
   tabSizeKey,
+  zoomFactorKey,
 } from '../../lib/stores/app-store'
 import { enableFormattingPreferences } from '../../lib/feature-flag'
 import {
@@ -36,7 +39,10 @@ import {
 } from '../../models/formatting-preferences'
 import { formatNumber } from '../../lib/format-number'
 import { assertNever } from '../../lib/fatal-error'
-import { BranchSortOrder } from '../../models/branch-sort-order'
+import {
+  BranchSortOrder,
+  DefaultBranchSortOrder,
+} from '../../models/branch-sort-order'
 import {
   defaultShowBranchNameInRepoListSetting,
   ShowBranchNameInRepoListSetting,
@@ -55,6 +61,7 @@ import {
 } from '../../lib/funny-level-text'
 import {
   clampFunnyLevel,
+  AudioSettingsStorageKey,
   IAudioSystemSettings,
 } from '../../lib/audio/audio-settings'
 import {
@@ -400,6 +407,7 @@ export class Appearance extends React.Component<
     const languageMode = this.props.appearanceCustomization.languageMode
     const id = `appearance-playfulness-${language}`
     const outputId = `${id}-value`
+    const settingId = `appearance-funny-${language}`
     const label = translate(labelKey, languageMode)
     const valueText = translate('appearance.playfulnessValue', languageMode, {
       value: value.toString(),
@@ -424,7 +432,9 @@ export class Appearance extends React.Component<
           value={value}
           valueText={value.toString()}
           ariaValueText={valueText}
-          ariaDescribedBy={`appearance-playfulness-description ${outputId}`}
+          ariaDescribedBy={`appearance-playfulness-description ${outputId} ${
+            settingExplanationDescriptionIds(settingId).ariaDescribedBy
+          }`}
           onChange={onChange}
         />
         <div className="appearance-playfulness-scale" aria-hidden={true}>
@@ -435,6 +445,18 @@ export class Appearance extends React.Component<
             {translate('appearance.playfulnessMaximum', languageMode)}
           </span>
         </div>
+        <SelectionSettingExplanation
+          settingId={settingId}
+          explanationEnglish={`Sets the ${language} playfulness level used to style every message category without changing its facts.`}
+          explanationCantonese={`設定${
+            language === 'english' ? '英文' : '廣東話'
+          }搞笑程度，用嚟調整所有訊息類別嘅語氣，但唔會改事實。`}
+          currentEnglish={value.toString()}
+          currentCantonese={value.toString()}
+          shippedEnglish="5"
+          shippedCantonese="5"
+          storageKey={AudioSettingsStorageKey}
+        />
       </div>
     )
   }
@@ -669,6 +691,10 @@ export class Appearance extends React.Component<
               value={percent}
               aria-labelledby="scaling-heading"
               aria-valuetext={`${percent}%`}
+              aria-describedby={
+                settingExplanationDescriptionIds('appearance-ui-scale')
+                  .ariaDescribedBy
+              }
               onChange={this.onZoomSliderChanged}
             />
             <Octicon
@@ -680,6 +706,16 @@ export class Appearance extends React.Component<
               {percent}%
             </span>
           </div>
+          <SelectionSettingExplanation
+            settingId="appearance-ui-scale"
+            explanationEnglish="Sets the preferred base interface scale from 50% to 200%. Auto-fit may temporarily reduce the effective scale without changing this value."
+            explanationCantonese="設定 50% 至 200% 嘅偏好基礎介面比例；自動配合可以暫時降低有效比例，但唔會改呢個值。"
+            currentEnglish={`${percent}%`}
+            currentCantonese={`${percent}%`}
+            shippedEnglish="100%"
+            shippedCantonese="100%"
+            storageKey={zoomFactorKey}
+          />
 
           <div {...teleportAnchor('settings-auto-fit-zoom')}>
             <Checkbox
@@ -744,11 +780,24 @@ export class Appearance extends React.Component<
 
         <RadioGroup<ApplicationTheme>
           ariaLabelledBy="theme-heading"
+          ariaDescribedBy={
+            settingExplanationDescriptionIds('appearance-theme').ariaDescribedBy
+          }
           className="theme-selector"
           selectedKey={selectedTheme}
           radioButtonKeys={themes}
           onSelectionChanged={this.onSelectedThemeChanged}
           renderRadioButtonLabelContents={this.renderThemeSwatch}
+        />
+        <SelectionSettingExplanation
+          settingId="appearance-theme"
+          explanationEnglish="Chooses a light theme, a dark theme, or automatic matching to the operating-system theme."
+          explanationCantonese="揀淺色、深色，或者自動跟隨作業系統主題。"
+          currentEnglish={selectedTheme}
+          currentCantonese={selectedTheme}
+          shippedEnglish={ApplicationTheme.System}
+          shippedCantonese={ApplicationTheme.System}
+          storageKey={applicationThemeKey}
         />
       </div>
     )
@@ -1019,6 +1068,10 @@ export class Appearance extends React.Component<
         <h2 id="branch-sort-order-heading">Sort branches</h2>
         <RadioGroup<BranchSortOrder>
           ariaLabelledBy="branch-sort-order-heading"
+          ariaDescribedBy={
+            settingExplanationDescriptionIds('appearance-branch-sort')
+              .ariaDescribedBy
+          }
           selectedKey={this.props.branchSortOrder}
           radioButtonKeys={[
             BranchSortOrder.LastModified,
@@ -1026,6 +1079,16 @@ export class Appearance extends React.Component<
           ]}
           onSelectionChanged={this.onBranchSortOrderChanged}
           renderRadioButtonLabelContents={this.renderBranchSortOptionLabel}
+        />
+        <SelectionSettingExplanation
+          settingId="appearance-branch-sort"
+          explanationEnglish="Chooses whether branch lists are ordered by recent activity or alphabetically."
+          explanationCantonese="揀分支清單按最近活動定係字母次序排列。"
+          currentEnglish={this.props.branchSortOrder}
+          currentCantonese={this.props.branchSortOrder}
+          shippedEnglish={DefaultBranchSortOrder}
+          shippedCantonese={DefaultBranchSortOrder}
+          storageKey={branchSortOrderKey}
         />
       </div>
     )

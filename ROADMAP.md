@@ -40,10 +40,11 @@
   live connection checks, and replace/clear controls.
 - [x] Add the shared progressive settings-explanation component, stable
   accessible-description IDs, truthful compiled/stored/runtime/vault source
-  categories, and the current exact 141-control hand-written inventory,
+  categories, and the current exact 146-control hand-written inventory,
   including every standard scheduled-settings control and repeated weekday or
   appearance-value instance, plus every application-identity selector, color,
-  slider, and format toggle.
+  slider, and format toggle, together with the theme, base-scale, branch-sort,
+  and two playfulness controls.
 - [ ] Extend progressive explanations and exact current/source/shipped-value
   provenance to every remaining settings control before promoting the
   `settings-explanations` feature row.
