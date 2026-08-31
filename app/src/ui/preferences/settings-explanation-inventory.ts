@@ -114,6 +114,7 @@ export const ImplementedSettingExplanationIds = [
   'notifications-error-presentation',
   'ollama-endpoint',
   'ollama-provider-selection',
+  'personal-vocabulary-file',
   'attention-one-thing-at-a-time',
   'attention-momentum',
   'attention-next-action',

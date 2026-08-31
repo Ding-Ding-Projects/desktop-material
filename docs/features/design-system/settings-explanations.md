@@ -27,7 +27,7 @@ visual disclosure remains collapsed.
 
 ## Current hand-written inventory
 
-The current implementation slice covers 183 controls:
+The current implementation slice covers 184 controls:
 
 | Area | Settings |
 | --- | --- |
@@ -47,6 +47,7 @@ The current implementation slice covers 183 controls:
 | Automation | Global commit-and-push and pull switches/intervals, plus four repeated per-account override fields mapped to conceptual inventory rows |
 | Local managers | Authenticator and surface-lock manager entry points with factual recorded-entry counts |
 | Prompts | Ten confirmation switches, uncommitted-change branch-switch strategy, commit-length warning |
+| Personal vocabulary | Local-only validated file/cache state without source path or mapping disclosure |
 | Clone queue | Repeated per-account automatic-clone switch, privacy-safe base-directory state, and clone mode |
 | Self-hosted server | Public origin, optional SAML metadata, generated one-time join link |
 | Scheduled settings | Rule label/enabled state, dates, times, every-day/weekday scope, source type, API endpoint, Home Assistant URL/entity/credential, language, theme, feature highlighting, and fifteen appearance values |
@@ -131,7 +132,7 @@ machine-readable provenance categories, compiled-versus-stored accessibility,
 advanced, AI-policy, Appearance, application-identity, agent-access, Copilot, Git, prompts, Sound, scheduled settings, and attention state, runtime-only
 account/reference forms, defer and first-run OpenSSH provenance, managed
 main-process server configuration, endpoint provenance, write-only credential
-and one-time-link provenance, all 183 inventory IDs, and the deliberate red
+and one-time-link provenance, all 184 inventory IDs, and the deliberate red
 inventory mutation.
 
 Built-artifact interaction and capture evidence remain pending until the

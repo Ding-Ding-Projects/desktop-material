@@ -44,12 +44,12 @@ export interface IPersonalVocabularyBoundaryAnchor {
 export const PersonalVocabularyBoundaryAnchors = {
   'visible-text-children': {
     file: 'app/src/ui/lib/button.tsx',
-    line: 261,
+    line: 296,
     text: 'const children = personalizeReactNode(this.props.children)',
   },
   'accessible-name': {
     file: 'app/src/ui/lib/button.tsx',
-    line: 262,
+    line: 297,
     text: 'const hostTextProps = personalizeHostTextProps({',
   },
   'title-and-tooltip': {
@@ -84,12 +84,12 @@ export const PersonalVocabularyBoundaryAnchors = {
   },
   'notification-copy': {
     file: 'app/src/ui/notifications/notification-list-item.tsx',
-    line: 98,
+    line: 99,
     text: 'private onPersonalVocabularyChanged = () => this.forceUpdate()',
   },
   'notification-content-boundary': {
     file: 'app/src/ui/notifications/notification-list-item.tsx',
-    line: 136,
+    line: 137,
     text: 'const title = personalizeTextBoundary(titleBoundary)',
   },
   'aria-live-copy': {
@@ -99,12 +99,12 @@ export const PersonalVocabularyBoundaryAnchors = {
   },
   'repository-selector': {
     file: 'app/src/ui/app.tsx',
-    line: 9042,
+    line: 9064,
     text: 'preserveTitleFromPersonalVocabulary={repository !== null}',
   },
   'worktree-selector': {
     file: 'app/src/ui/toolbar/worktree-dropdown.tsx',
-    line: 235,
+    line: 244,
     text: 'preserveTitleFromPersonalVocabulary={true}',
   },
   'branch-selector': {
