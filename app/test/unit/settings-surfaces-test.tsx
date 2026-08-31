@@ -11,6 +11,8 @@ import {
   IAutomationSettingsState,
 } from '../../src/lib/automation/automation-settings'
 import { Default as DefaultShell } from '../../src/lib/shells'
+import { Account } from '../../src/models/account'
+import { getDotComAPIEndpoint } from '../../src/lib/api'
 import {
   cantoneseTranslations,
   englishTranslations,
@@ -75,6 +77,15 @@ describe('Automation preferences switch + interval chips', () => {
       name: 'Automatically commit and push',
     })
     assert.equal(toggle.getAttribute('aria-checked'), 'false')
+    for (const id of [
+      'automation-auto-commit-push-enabled',
+      'automation-auto-pull-enabled',
+    ]) {
+      assert.ok(
+        view.container.querySelector(`[data-setting-explanation-id="${id}"]`),
+        `missing setting explanation ${id}`
+      )
+    }
     fireEvent.click(toggle)
     assert.equal(changes.length, 1)
     assert.equal(changes[0].global.autoCommitPushEnabled, true)
@@ -96,6 +107,11 @@ describe('Automation preferences switch + interval chips', () => {
     // Only the enabled commit toggle exposes an interval group.
     assert.equal(view.getAllByRole('radiogroup').length, 1)
     assert.equal(view.getAllByRole('radio').length, 4)
+    assert.ok(
+      view.container.querySelector(
+        '[data-setting-explanation-id="automation-auto-commit-push-interval"]'
+      )
+    )
     assert.equal(
       view.getByRole('radio', { name: '30 min' }).getAttribute('aria-checked'),
       'true'
@@ -123,6 +139,46 @@ describe('Automation preferences switch + interval chips', () => {
     fireEvent.click(view.getByRole('radio', { name: '15 min' }))
     assert.equal(changes.length, 1)
     assert.equal(changes[0].global.autoCommitPushInterval, 15)
+  })
+
+  it('maps repeated account overrides to exact conceptual inventory rows', () => {
+    const account = new Account(
+      'octocat',
+      getDotComAPIEndpoint(),
+      'token',
+      [],
+      '',
+      1,
+      'Octo Cat',
+      'free'
+    )
+    const view = render(
+      <AutomationPreferences
+        accounts={[account]}
+        settings={automationState({})}
+        onSettingsChanged={() => undefined}
+      />
+    )
+
+    for (const id of [
+      'automation-account-auto-commit-push-enabled',
+      'automation-account-auto-commit-push-interval',
+      'automation-account-auto-pull-enabled',
+      'automation-account-auto-pull-interval',
+    ]) {
+      assert.equal(
+        view.container.querySelectorAll(`[data-setting-explanation-id="${id}"]`)
+          .length,
+        1,
+        `missing account override explanation ${id}`
+      )
+    }
+    assert.match(
+      screen
+        .getByLabelText('Commit and push')
+        .getAttribute('aria-describedby') ?? '',
+      /automation-account-commit-enabled-setting-explanation/
+    )
   })
 })
 

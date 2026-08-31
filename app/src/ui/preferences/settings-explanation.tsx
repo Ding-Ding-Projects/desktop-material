@@ -77,6 +77,7 @@ export function SettingExplanation(
 
 export interface IBooleanSettingExplanationProps {
   readonly settingId: string
+  readonly inventoryId?: string
   readonly explanationEnglish: string
   readonly explanationCantonese: string
   readonly value: boolean
@@ -115,6 +116,7 @@ export function BooleanSettingExplanation(
   return (
     <SettingExplanation
       settingId={props.settingId}
+      inventoryId={props.inventoryId}
       summary={localize('What this setting changes', '呢個設定會改咩')}
       explanation={localize(
         props.explanationEnglish,
@@ -135,6 +137,7 @@ export function BooleanSettingExplanation(
 
 export interface ISelectionSettingExplanationProps {
   readonly settingId: string
+  readonly inventoryId?: string
   readonly explanationEnglish: string
   readonly explanationCantonese: string
   readonly currentEnglish: string
@@ -152,6 +155,7 @@ export function SelectionSettingExplanation(
   return (
     <SettingExplanation
       settingId={props.settingId}
+      inventoryId={props.inventoryId}
       summary={localize('What this setting changes', '呢個設定會改咩')}
       explanation={localize(
         props.explanationEnglish,
