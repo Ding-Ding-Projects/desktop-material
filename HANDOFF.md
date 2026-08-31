@@ -11087,7 +11087,7 @@ hidden selections.
 
 The current universal-feature task added a shared progressive explanation and
 provenance component without changing the frozen application shell. The first
- hand-written inventory covers 156 settings across Accounts, issue references,
+ hand-written inventory covers 171 settings across Accounts, issue references,
 Accessibility, Advanced, AI policy, Appearance and application identity, agent access, Git, Copilot, Sound, Prompts, self-hosted server setup,
  Attention accommodations, and Status Hub.
 
@@ -11132,8 +11132,10 @@ Accessibility, Advanced, AI policy, Appearance and application identity, agent a
   switch and the acknowledgement-only error-presentation choice.
 - Git provenance covers global author identity, default branch, effective
   identity display, and hook environment settings.
-- Sound provenance covers both quiet-hours boundaries and repository music
-  selection without repeating a custom path.
+- Sound provenance covers the full global audio system, effects, narrator,
+  recorded narration, both voice choices, rate, pitch, cooldown, music,
+  quiet-hours and reduced-motion controls, plus repository music selection
+  without repeating a custom path.
 - Self-hosted server provenance covers the managed public origin, transient
   SAML metadata, and generated one-time join link without repeating the link.
 - Scheduled-settings provenance covers every standard rule, date/time,
