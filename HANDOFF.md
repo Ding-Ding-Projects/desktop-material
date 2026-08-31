@@ -36,6 +36,16 @@ present and 333 pending evidence records, and the terminal parity ledger begins
 with 49 adapted, 62 partial, 97 not-yet-available, and two terminal-owned rows.
 Those figures are baselines, not completion claims.
 
+The third milestone adds
+`app/test/fixtures/feature-completeness/canonical-surfaces.json` and its focused
+`surface-feature-completeness-test.ts`. All 62 canonical feature IDs are
+repeated explicitly for the Windows desktop, Linux terminal, and documentation
+families. The live inventory currently resolves to 299 popup/teleport routes,
+13 terminal screen modules, and 131 HTML pages. The focused test passes and its
+content-aware mutations prove that removing a feature, route, or source
+inventory turns it red. This is an accountability map only; it does not close
+any pending evidence record in `evidence-paths.json`.
+
 ## Remaining plain HTML controls converted to shared Material primitives — 2026-08-22
 
 A six-lane fleet sweep classified every raw `button`/`input`/`select`/`textarea`

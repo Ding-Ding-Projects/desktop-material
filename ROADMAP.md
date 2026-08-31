@@ -11,6 +11,9 @@
   repository, GitHub, Cheap LFS, and advanced-tool action surfaces through it.
 - [x] Load the shared action coordinator on every generated documentation page
   and protect documentation-hub and screenshot-page clipboard promises.
+- [x] Add a fail-closed feature-by-surface inventory covering all 62 canonical
+  IDs, 299 desktop routes, 13 terminal screens, and 131 HTML pages, with
+  deliberate feature/route/source removal regressions.
 - [x] Add focused renderer and terminal regression tests plus categorized
   feature documentation.
 - [ ] Extend the same action contract to every remaining consequential native
