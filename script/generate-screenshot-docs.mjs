@@ -622,6 +622,7 @@ function renderPayload(payload) {
 
 function renderShell(options) {
   const scripts = [
+    '../assets/site/docs-action-flight.js',
     '../assets/site/docs-color.js',
     '../assets/site/docs-color-picker.js',
     '../assets/site/docs-regex-job.js',

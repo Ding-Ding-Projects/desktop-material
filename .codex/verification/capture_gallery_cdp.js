@@ -9361,7 +9361,7 @@ scene('merge-all', async () => {
     `document.querySelector('#merge-all input[type="checkbox"]') !== null`,
     'Merge all worktrees options'
   )
-  await clickText('Force Mat Day')
+  await clickText('Preserve dirty worktrees before merge')
   await waitFor(
     `(() => {
       const dialog = document.querySelector('#merge-all')
@@ -9373,7 +9373,7 @@ scene('merge-all', async () => {
         rect.top >= 0 && rect.right <= innerWidth && rect.bottom <= innerHeight &&
         dialog.textContent?.includes('Unsafe or unproved work is always retained.') === true
     })()`,
-    'Force Mat Day checked, bounded, and safety copy visible'
+    'Dirty-worktree preservation checked, bounded, and safety copy visible'
   )
   await parkPointer()
   await capture('material-worktree-force-mat-day')

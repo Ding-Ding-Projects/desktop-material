@@ -22,6 +22,15 @@ terminal tests, clean TypeScript compilation, clean focused mypy, and clean
 focused ruff. No built-application interaction, screenshot, package, release,
 or complete universal-feature verdict is claimed yet.
 
+The second milestone adds `docs-action-flight.js` before the controller on the
+main documentation hub and all 130 generated screenshot pages. Hub and gallery
+clipboard promises now share the same exact-key behavior and accessible busy
+state. Three focused page tests and the 61-test capture-plan contract are
+green. Regenerating the pages exposed and repaired two stale evidence-source
+records: the two current personal-vocabulary captures now replace one retired
+plan ID, and the missing dirty-worktree preservation screenshot is explicitly deferred in
+the capture plan and wiki instead of rendering a broken image.
+
 The broader task remains open. The current universal inventory begins with 101
 present and 333 pending evidence records, and the terminal parity ledger begins
 with 49 adapted, 62 partial, 97 not-yet-available, and two terminal-owned rows.
@@ -503,7 +512,7 @@ checked out in another clean worktree. It transfers the default branch to the
 active worktree, removes a redundant linked owner, and continues the existing
 merge, non-force push, exact-tip deletion, and worktree cleanup sequence.
 
-An explicit **Force Mat Day** checkbox enables the existing preservation path
+An explicit **Preserve dirty worktrees before merge** checkbox enables the existing preservation path
 for recoverable dirty worktrees: fetch, fast-forward-only pull, commit, and
 push occur before merge. Unsafe work remains retained. Focused candidate and
 renderer coverage passes 4/4; exact-file ESLint and `git diff --check` pass.

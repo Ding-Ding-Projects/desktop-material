@@ -15,7 +15,7 @@ Object.assign(globalThis, { ResizeObserver: DialogResizeObserver })
 Object.assign(window, { ResizeObserver: DialogResizeObserver })
 
 describe('MergeAllDialog', () => {
-  it('passes the explicit Force Mat Day choice with checkpoint preservation', () => {
+  it('passes the explicit dirty-worktree preservation choice', () => {
     let received: unknown = null
     const dispatcher = {
       mergeAllIntoDefaultBranch: (
@@ -41,7 +41,10 @@ describe('MergeAllDialog', () => {
     )
 
     fireEvent.click(
-      screen.getByRole('checkbox', { name: 'Force Mat Day', hidden: true })
+      screen.getByRole('checkbox', {
+        name: 'Preserve dirty worktrees before merge',
+        hidden: true,
+      })
     )
     fireEvent.click(
       screen.getByRole('button', { name: 'Start merge all', hidden: true })

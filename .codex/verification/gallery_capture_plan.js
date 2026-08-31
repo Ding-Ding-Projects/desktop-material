@@ -18,6 +18,7 @@ const CanonicalCandidateCount = 69
 const DeferredCanonicalOutputs = Object.freeze([
   'material-cheap-lfs-preparing',
   'material-repositories-sheet',
+  'material-worktree-force-mat-day',
 ])
 const DeferredSpecialistOutputs = Object.freeze([])
 const RetainedHistoricalEvidence = Object.freeze({
@@ -478,11 +479,18 @@ const SpecialistCaptureEntries = Object.freeze([
       'Open the built repository stash manager in the isolated production profile and preserve its centered Material dialog with Manage, Export, History, and Appearance and voice tabs at the reviewed capture size.',
   },
   {
-    output: 'personal-vocabulary',
-    scene: 'personal-vocabulary',
+    output: 'personal-vocabulary-material-controls-20260821',
+    scene: 'personal-vocabulary-no-file',
     batch: 'windows-personal-vocabulary',
     interaction:
       'Open Settings from the application menu, select Appearance, scroll the Personal vocabulary section into view and drop focus, so the frame is the control in its no-file state rather than mid-hover.',
+  },
+  {
+    output: 'personal-vocabulary-material-controls-loaded-20260821',
+    scene: 'personal-vocabulary-loaded',
+    batch: 'windows-personal-vocabulary',
+    interaction:
+      'After the no-file capture, choose the current valid local personal-vocabulary JSON through the real file picker, keep the private payload out of the capture and logs, and preserve the loaded state with its Clear and restore original wording action visible.',
   },
   {
     output: 'narrator-voice-pickers',

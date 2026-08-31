@@ -22,6 +22,7 @@ const WorkerPath = join(SiteRoot, 'docs-hub-regex-worker.js')
 
 const indexSource = readFileSync(IndexPath, 'utf8')
 const scriptSources = [
+  'docs-action-flight.js',
   'docs-hub-strings.js',
   'docs-hub-catalog.js',
   'docs-regex-job.js',

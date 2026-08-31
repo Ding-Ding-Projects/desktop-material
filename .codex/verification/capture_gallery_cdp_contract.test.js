@@ -812,11 +812,11 @@ test('merge-all capture preserves main and cleans only its evidence branch', () 
     '`refs/remotes/origin/${ready.defaultBranch}`',
     'startingBranch !== ready.featureBranch',
     "capture('material-worktree-force-mat-day')",
-    "clickText('Force Mat Day')",
+    "clickText('Preserve dirty worktrees before merge')",
     'checks.length !== 2',
     'checks.every(check => check instanceof HTMLInputElement && check.checked)',
     "dialog.textContent?.includes('Unsafe or unproved work is always retained.')",
-    'Force Mat Day checked, bounded, and safety copy visible',
+    'Dirty-worktree preservation checked, bounded, and safety copy visible',
     'rows.length !== 1',
     "'gallery/merge-all-evidence'",
     "textContent?.trim() === 'up-to-date'",
@@ -832,9 +832,10 @@ test('merge-all capture preserves main and cleans only its evidence branch', () 
     assert.ok(mergeAll.includes(contract), `merge-all gate misses ${contract}`)
   }
   assert.ok(
-    mergeAll.indexOf('Force Mat Day checked, bounded, and safety copy visible') <
-      mergeAll.indexOf("capture('material-worktree-force-mat-day')"),
-    'the Force Mat Day semantic and geometry gate must run before capture'
+    mergeAll.indexOf(
+      'Dirty-worktree preservation checked, bounded, and safety copy visible'
+    ) < mergeAll.indexOf("capture('material-worktree-force-mat-day')"),
+    'the dirty-worktree preservation semantic and geometry gate must run before capture'
   )
   assert.ok(
     mergeAll.indexOf('single safe Merge All result') <
@@ -917,12 +918,13 @@ test('canonical and promoted specialist batches own all 96 published images exac
   assert.deepEqual(DeferredCanonicalOutputs, [
     'material-cheap-lfs-preparing',
     'material-repositories-sheet',
+    'material-worktree-force-mat-day',
   ])
   assert.deepEqual(DeferredSpecialistOutputs, [])
-  assert.equal(publishedCanonical.length, 67)
-  assert.equal(specialistOutputs.length, 29)
-  assert.equal(new Set(specialistOutputs).size, 29)
-  assert.equal(publishedSpecialistOutputs.length, 29)
+  assert.equal(publishedCanonical.length, 66)
+  assert.equal(specialistOutputs.length, 30)
+  assert.equal(new Set(specialistOutputs).size, 30)
+  assert.equal(publishedSpecialistOutputs.length, 30)
   assert.ok(specialistOutputs.includes('auto-updater-current-source-ready'))
   assert.ok(specialistOutputs.includes('material-publish-organization-picker'))
   assert.ok(!specialistOutputs.includes('auto-updater-update-ready'))

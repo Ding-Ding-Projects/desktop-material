@@ -624,17 +624,19 @@
       navigator.clipboard !== undefined &&
       typeof navigator.clipboard.writeText === 'function'
     ) {
-      navigator.clipboard.writeText(value).then(
+      return navigator.clipboard.writeText(value).then(
         function () {
           toast(t('copied'), 'info')
+          return true
         },
         function () {
           toast(t('copyFailed'), 'error')
+          return false
         }
       )
-      return
     }
     toast(t('copyFailed'), 'error')
+    return Promise.resolve(false)
   }
 
   // ---------------------------------------------------------- regex helpers
@@ -1342,7 +1344,18 @@
         var id = event.currentTarget.getAttribute('data-copy-target')
         var source = document.getElementById(id)
         if (source !== null) {
-          copyText(source.textContent.trim())
+          var copy = function () {
+            return copyText(source.textContent.trim())
+          }
+          if (window.DesktopMaterialActionFlight !== undefined) {
+            void window.DesktopMaterialActionFlight.run(
+              'copy:' + id,
+              event.currentTarget,
+              copy
+            )
+          } else {
+            void copy()
+          }
         }
       })
     }

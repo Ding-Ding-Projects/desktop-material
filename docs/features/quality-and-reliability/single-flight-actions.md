@@ -27,6 +27,13 @@ initiating button is disabled before the worker starts, another press for the
 same action ID is ignored, and the button is restored when the worker settles.
 Synchronous terminal actions release immediately.
 
+Every generated documentation page loads the shared `docs-action-flight.js`
+module before its page controller. Clipboard actions on the documentation hub
+and screenshot pages use one key per source or capture command, publish
+`aria-busy` and `aria-disabled` while the browser clipboard promise is pending,
+and reopen after either result. Pages without the module retain their existing
+copy path rather than presenting an inert control.
+
 Existing operation-level protections remain important. External editor and
 file-manager launches, destructive operations, Git mutations, uploads,
 downloads, installers, and release actions can have several entry paths. Those
@@ -74,6 +81,11 @@ Focused terminal tests cover exact action claims, repeated Textual button
 presses during a worker, button restoration after completion, and synchronous
 repeatability. The real built-application interaction and capture records are
 tracked separately in the universal-feature completeness inventory.
+
+Documentation tests execute the real page module in jsdom and cover duplicate
+promise suppression, independent and synchronous keys, rejection, throw
+release, and busy semantics. The screenshot-page generator asserts one current
+script entry across all generated pages.
 
 ## Suggested articles
 

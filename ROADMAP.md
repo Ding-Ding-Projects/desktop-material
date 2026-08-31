@@ -9,6 +9,8 @@
   icon and text buttons, and toolbar buttons without changing the frozen shell.
 - [x] Add the equivalent Textual worker coordinator and route the primary
   repository, GitHub, Cheap LFS, and advanced-tool action surfaces through it.
+- [x] Load the shared action coordinator on every generated documentation page
+  and protect documentation-hub and screenshot-page clipboard promises.
 - [x] Add focused renderer and terminal regression tests plus categorized
   feature documentation.
 - [ ] Extend the same action contract to every remaining consequential native
@@ -212,7 +214,7 @@
 
 - [x] Move a clean default-branch checkout from another worktree automatically
   instead of failing the entire merge-all operation.
-- [x] Add the explicit **Force Mat Day** option, with checkpoint, synchronization,
+- [x] Add the explicit **Preserve dirty worktrees before merge** option, with checkpoint, synchronization,
   and publication of recoverable dirty worktrees before merge and cleanup.
 - [x] Retain locked, divergent, unpublished, stale, or otherwise unproved work;
   no forced push or forced worktree removal is introduced.
