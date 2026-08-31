@@ -15,6 +15,10 @@ import { CommandPaletteCatalog } from '../../src/lib/command-palette-catalog'
 import { LanguageModeStorageKey } from '../../src/lib/language-preference'
 import { SettingsSearchCatalog } from '../../src/lib/settings-search/settings-search-catalog'
 import { AttentionAccommodations } from '../../src/ui/preferences/attention-accommodations'
+import {
+  attentionRegionForTarget,
+  collectAttentionRegions,
+} from '../../src/ui/attention/attention-accommodation-runtime'
 import { fireEvent, render, screen } from '../helpers/ui/render'
 
 const ExpectedModes = [
@@ -155,5 +159,26 @@ describe('attention accommodations', () => {
     )
     assert.equal(formatAttentionElapsed(65_000), '1m 5s')
     assert.equal(formatAttentionElapsed(3_661_000), '1h 1m')
+  })
+
+  it('keeps hidden overlays out of Focus and resolves descendants to real regions', () => {
+    const contents = document.createElement('main')
+    const workspace = document.createElement('section')
+    workspace.id = 'repository'
+    const button = document.createElement('button')
+    workspace.append(button)
+    const dropOverlay = document.createElement('div')
+    dropOverlay.className = 'repository-drop-overlay'
+    const runtime = document.createElement('div')
+    runtime.dataset.attentionRuntime = 'true'
+    contents.append(workspace, dropOverlay, runtime)
+
+    const regions = collectAttentionRegions(contents)
+    assert.deepEqual(regions, [workspace])
+    assert.equal(workspace.dataset.attentionRegion, 'true')
+    assert.equal(dropOverlay.hasAttribute('data-attention-region'), false)
+    assert.equal(runtime.hasAttribute('data-attention-region'), false)
+    assert.equal(attentionRegionForTarget(regions, button), workspace)
+    assert.equal(attentionRegionForTarget(regions, dropOverlay), null)
   })
 })
