@@ -247,12 +247,35 @@ describe('settings tab docking', () => {
     const select = view.getByRole('combobox', {
       name: 'Settings tab position',
     }) as HTMLSelectElement
+    assert.ok(
+      view.container.querySelector(
+        '[data-setting-explanation-id="settings-tab-dock-preferences"]'
+      )
+    )
+    assert.equal(
+      select.getAttribute('aria-describedby'),
+      'settings-tab-dock-preferences-description settings-tab-dock-preferences-setting-explanation settings-tab-dock-preferences-setting-provenance'
+    )
     assert.deepStrictEqual(
       Array.from(select.options).map(option => option.value),
       ['left', 'top', 'bottom', 'right']
     )
     fireEvent.change(select, { target: { value: 'right' } })
     assert.deepStrictEqual(changes, ['right'])
+    view.unmount()
+
+    const repositoryView = render(
+      <SettingsTabDockControl
+        strip="repository-settings"
+        position="left"
+        onChange={() => undefined}
+      />
+    )
+    assert.ok(
+      repositoryView.container.querySelector(
+        '[data-setting-explanation-id="settings-tab-dock-repository-settings"]'
+      )
+    )
   })
 })
 

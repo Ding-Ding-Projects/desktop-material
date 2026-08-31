@@ -27,7 +27,7 @@ visual disclosure remains collapsed.
 
 ## Current hand-written inventory
 
-The current implementation slice covers 177 controls:
+The current implementation slice covers 179 controls:
 
 | Area | Settings |
 | --- | --- |
@@ -48,6 +48,7 @@ The current implementation slice covers 177 controls:
 | Clone queue | Repeated per-account automatic-clone switch, privacy-safe base-directory state, and clone mode |
 | Self-hosted server | Public origin, optional SAML metadata, generated one-time join link |
 | Scheduled settings | Rule label/enabled state, dates, times, every-day/weekday scope, source type, API endpoint, Home Assistant URL/entity/credential, language, theme, feature highlighting, and fifteen appearance values |
+| Settings navigation | Preferences and repository-settings tab-strip dock positions |
 | Sound | Master, effects, narrator, recorded narration, both voice choices, rate, pitch, cooldown, music, quiet-hours and reduced-motion switches, three volumes, quiet-hours start/end, repository music track |
 | Status Hub | HTTPS endpoint, write-only authorization replacement |
 
@@ -128,7 +129,7 @@ machine-readable provenance categories, compiled-versus-stored accessibility,
 advanced, AI-policy, Appearance, application-identity, agent-access, Copilot, Git, prompts, Sound, scheduled settings, and attention state, runtime-only
 account/reference forms, defer and first-run OpenSSH provenance, managed
 main-process server configuration, endpoint provenance, write-only credential
-and one-time-link provenance, all 177 inventory IDs, and the deliberate red
+and one-time-link provenance, all 179 inventory IDs, and the deliberate red
 inventory mutation.
 
 Built-artifact interaction and capture evidence remain pending until the

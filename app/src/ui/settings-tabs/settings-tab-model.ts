@@ -31,7 +31,9 @@ export const DefaultSettingsTabDockPosition: SettingsTabDockPosition = 'left'
 
 const DockPositionKeyPrefix = 'settings-tab-dock-position'
 
-function dockPositionKey(strip: SettingsTabStripId): string {
+export function settingsTabDockPositionStorageKey(
+  strip: SettingsTabStripId
+): string {
   return `${DockPositionKeyPrefix}.${strip}`
 }
 
@@ -59,7 +61,7 @@ export function getSettingsTabDockPosition(
 ): SettingsTabDockPosition {
   try {
     return normalizeSettingsTabDockPosition(
-      localStorage.getItem(dockPositionKey(strip))
+      localStorage.getItem(settingsTabDockPositionStorageKey(strip))
     )
   } catch (e) {
     log.warn(
@@ -77,7 +79,7 @@ export function setSettingsTabDockPosition(
 ): void {
   try {
     localStorage.setItem(
-      dockPositionKey(strip),
+      settingsTabDockPositionStorageKey(strip),
       normalizeSettingsTabDockPosition(position)
     )
   } catch (e) {

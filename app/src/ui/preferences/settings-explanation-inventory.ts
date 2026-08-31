@@ -133,6 +133,8 @@ export const ImplementedSettingExplanationIds = [
   'self-hosted-server-join-url',
   'self-hosted-server-public-origin',
   'self-hosted-server-saml-metadata',
+  'settings-tab-dock-preferences',
+  'settings-tab-dock-repository-settings',
   'scheduled-all-days',
   'scheduled-api-endpoint',
   'scheduled-appearance-accentPalette',

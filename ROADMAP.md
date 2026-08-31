@@ -40,7 +40,7 @@
   live connection checks, and replace/clear controls.
 - [x] Add the shared progressive settings-explanation component, stable
   accessible-description IDs, truthful compiled/stored/runtime/vault source
-  categories, and the current exact 177-control hand-written inventory,
+  categories, and the current exact 179-control hand-written inventory,
   including every standard scheduled-settings control and repeated weekday or
   appearance-value instance, plus every application-identity selector, color,
   slider, and format toggle, together with the theme, base-scale, branch-sort,
@@ -52,6 +52,10 @@
   are also mapped to exact conceptual rows.
   Agent access additionally covers its runtime credential without secret
   characterization, plus the mobile-site and optional HTTPS gateway URLs.
+  Both settings tab strips now report their independently stored dock position.
+- [x] Restore the visible heading in the searchable settings-page picker; the
+  existing accessibility test had been red because the title was screen-reader
+  only and no longer sat inside the Material panel header.
 - [ ] Extend progressive explanations and exact current/source/shipped-value
   provenance to every remaining settings control before promoting the
   `settings-explanations` feature row.

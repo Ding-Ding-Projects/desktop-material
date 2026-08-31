@@ -11087,7 +11087,7 @@ hidden selections.
 
 The current universal-feature task added a shared progressive explanation and
 provenance component without changing the frozen application shell. The first
- hand-written inventory covers 177 settings across Accounts, issue references,
+ hand-written inventory covers 179 settings across Accounts, issue references,
 Accessibility, Advanced, AI policy, Appearance and application identity, agent access, Git, Copilot, Sound, Prompts, self-hosted server setup,
  Attention accommodations, and Status Hub.
 
@@ -11132,6 +11132,10 @@ Accessibility, Advanced, AI policy, Appearance and application identity, agent a
   switch and the acknowledgement-only error-presentation choice.
 - Clone-queue provenance covers every repeated account switch, selected-folder
   state, and parallel/sequential mode without repeating the private directory.
+- Settings-navigation provenance covers the independently persisted Preferences
+  and Repository Settings tab-strip dock positions.
+- The searchable settings-page picker again renders its title in a visible
+  Material panel header. The focused 43-test strip batch now passes completely.
 - Git provenance covers global author identity, default branch, effective
   identity display, and hook environment settings.
 - Sound provenance covers the full global audio system, effects, narrator,
