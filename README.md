@@ -8,6 +8,8 @@
 
 # Desktop Material
 
+![Desktop Material title beside the real repository changes workspace](social-preview.png)
+
 > **Contributor notice — visible through August 26, 2026:** The shared engineering guidance has
 > been updated with a hand-written completeness inventory for user-facing capabilities, explicit
 > links between implementation, documentation, localization, tests, built-artifact interactions,

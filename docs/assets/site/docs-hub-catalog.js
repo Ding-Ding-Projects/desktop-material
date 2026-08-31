@@ -336,6 +336,13 @@
       d: 'Builds on the audio system to give each meaningful app event its own recognizable sound effect instead of routing everything through the shared commit / auto-commit cue. It…',
     },
     {
+      t: 'Shared-link preview graphic',
+      h: 'features/design-system/shared-link-embed.html',
+      s: 'features/design-system/shared-link-embed.md',
+      c: 'features',
+      d: 'Desktop Material publishes one product-specific social preview at the repository root and one byte-identical served copy for the documentation site. The image shows the real…',
+    },
+    {
       t: 'Status Hub projection',
       h: 'features/design-system/status-hub.html',
       s: 'features/design-system/status-hub.md',

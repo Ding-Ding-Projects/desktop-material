@@ -639,6 +639,30 @@ function renderShell(options) {
     <title>${escapeHtml(options.title)}</title>
     <meta name="description" content="${escapeHtml(options.description)}" />
     <meta name="color-scheme" content="light dark" />
+    <meta property="og:title" content="${escapeHtml(options.title)}" />
+    <meta property="og:description" content="${escapeHtml(
+      options.description
+    )}" />
+    <meta
+      property="og:url"
+      content="https://ding-ding-projects.github.io/desktop-material/screenshots/${escapeHtml(
+        options.page
+      )}"
+    />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="Desktop Material" />
+    <meta
+      property="og:image"
+      content="https://ding-ding-projects.github.io/desktop-material/assets/social-preview.png"
+    />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="640" />
+    <meta
+      property="og:image:alt"
+      content="Desktop Material title beside the real repository changes workspace"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#12161c" />
     <link rel="stylesheet" href="../assets/site/docs-hub.css" />
     <link rel="stylesheet" href="../assets/site/docs-color-picker.css" />
     <!--
@@ -1420,6 +1444,7 @@ ${renderNav(previous, next)}
 
   return {
     html: renderShell({
+      page: entry.page,
       title: `${heading} · Desktop Material screenshots`,
       description: description,
       main: main,
@@ -1592,6 +1617,7 @@ ${groupSections}
       </section>`
 
   return renderShell({
+    page: 'index.html',
     isIndex: true,
     payload: {
       single: false,

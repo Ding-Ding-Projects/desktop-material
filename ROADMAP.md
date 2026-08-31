@@ -14,6 +14,9 @@
 - [x] Add a fail-closed feature-by-surface inventory covering all 62 canonical
   IDs, 299 desktop routes, 13 terminal screens, and 131 HTML pages, with
   deliberate feature/route/source removal regressions.
+- [x] Generate a 1280×640 root social preview from a real built-surface capture,
+  keep the served copy byte-identical, and add complete static Open Graph
+  metadata plus red-then-green coverage to all 131 HTML pages.
 - [x] Add focused renderer and terminal regression tests plus categorized
   feature documentation.
 - [ ] Extend the same action contract to every remaining consequential native

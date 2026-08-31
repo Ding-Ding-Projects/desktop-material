@@ -271,6 +271,14 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       sourcePath: 'docs/features/design-system/sfx-event-mapping.md',
     },
     {
+      id: 'design-system/shared-link-embed',
+      category: 'design-system',
+      title: 'Shared-link preview graphic',
+      description:
+        'Desktop Material publishes one product-specific social preview at the repository root and one byte-identical served copy for the documentation site. The image shows the real…',
+      sourcePath: 'docs/features/design-system/shared-link-embed.md',
+    },
+    {
       id: 'design-system/status-hub',
       category: 'design-system',
       title: 'Status Hub projection',
@@ -1429,7 +1437,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'design-system',
     label: 'Design System',
-    count: 25,
+    count: 26,
   },
   {
     name: 'identity-and-workspace',
@@ -1469,4 +1477,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 165
+export const DocsBrowserArticleCount = 166

@@ -4,6 +4,9 @@
   off-by-default focus, low-stimulation, time-awareness, one-thing-at-a-time,
   and momentum modes with local persistence, accessible controls, and honest
   runtime status.
+- [Shared-link preview graphic](shared-link-embed.md) — generate the root and
+  served product image from a real built capture, keep both copies
+  byte-identical, and serve complete static Open Graph metadata on every page.
 
 - [The Material Design 3 shell](md3-shell.md) — the application chrome rewritten
   against `design/History MD3.dc.html`: eight destinations behind a navigation

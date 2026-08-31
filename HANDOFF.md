@@ -46,6 +46,17 @@ content-aware mutations prove that removing a feature, route, or source
 inventory turns it red. This is an accountability map only; it does not close
 any pending evidence record in `evidence-paths.json`.
 
+The shared-link preview implementation is now present locally. The committed
+PowerShell generator renders the 1280×640 root `social-preview.png` from the
+real `material-workspace-changes.png` capture, copies byte-identical bytes to
+`docs/assets/social-preview.png`, and verifies their SHA-256 equality. The hub
+and all 130 generated screenshot pages carry complete static Open Graph,
+large-card, image-size, alternative-text, and theme metadata. The focused test
+passes for all 131 HTML pages and deliberately removes every required metadata
+boundary. Six shared-link evidence records move from pending to present;
+built-site interaction remains pending until the deployed HTTPS response and
+anonymous image fetch are verified.
+
 ## Remaining plain HTML controls converted to shared Material primitives — 2026-08-22
 
 A six-lane fleet sweep classified every raw `button`/`input`/`select`/`textarea`
