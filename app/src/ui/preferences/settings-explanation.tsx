@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { getPersistedLanguageMode } from '../../lib/i18n'
 
 export type SettingValueProvenance =
   | 'compiled-default'
@@ -63,5 +64,63 @@ export function SettingExplanation(
         {props.provenance}
       </p>
     </div>
+  )
+}
+
+export interface IBooleanSettingExplanationProps {
+  readonly settingId: string
+  readonly explanationEnglish: string
+  readonly explanationCantonese: string
+  readonly value: boolean
+  readonly shippedValue: boolean
+  readonly storageKey: string
+}
+
+function localize(english: string, cantonese: string): string {
+  switch (getPersistedLanguageMode()) {
+    case 'cantonese':
+      return cantonese
+    case 'bilingual':
+      return `${english} · ${cantonese}`
+    default:
+      return english
+  }
+}
+
+function hasStoredChoice(key: string): boolean {
+  try {
+    return localStorage.getItem(key) !== null
+  } catch {
+    return false
+  }
+}
+
+/** Shared localized provenance for ordinary persisted boolean settings. */
+export function BooleanSettingExplanation(
+  props: IBooleanSettingExplanationProps
+): JSX.Element {
+  const stored = hasStoredChoice(props.storageKey)
+  const currentEnglish = props.value ? 'on' : 'off'
+  const currentCantonese = props.value ? '開' : '關'
+  const shippedEnglish = props.shippedValue ? 'on' : 'off'
+  const shippedCantonese = props.shippedValue ? '開' : '關'
+  return (
+    <SettingExplanation
+      settingId={props.settingId}
+      summary={localize('What this setting changes', '呢個設定會改咩')}
+      explanation={localize(
+        props.explanationEnglish,
+        props.explanationCantonese
+      )}
+      source={stored ? 'stored-choice' : 'compiled-default'}
+      provenance={localize(
+        stored
+          ? `A choice is recorded on this computer. Current value: ${currentEnglish}. Shipped value: ${shippedEnglish}.`
+          : `No choice is recorded on this computer. Current and shipped value: ${shippedEnglish}.`,
+        stored
+          ? `呢部電腦記錄咗選擇。目前值：${currentCantonese}。出廠值：${shippedCantonese}。`
+          : `呢部電腦未記錄選擇。目前值同出廠值：${shippedCantonese}。`
+      )}
+    />
   )
 }

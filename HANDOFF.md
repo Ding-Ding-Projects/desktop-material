@@ -11087,8 +11087,8 @@ hidden selections.
 
 The current universal-feature task added a shared progressive explanation and
 provenance component without changing the frozen application shell. The first
-hand-written inventory covers twenty settings across Accessibility, Advanced,
-Attention accommodations, and Status Hub.
+hand-written inventory covers 32 settings across Accessibility, Advanced,
+Prompts, Attention accommodations, and Status Hub.
 
 ### Implemented behavior
 
@@ -11104,6 +11104,8 @@ Attention accommodations, and Status Hub.
   indicators, usage reporting, verbose logging, Git Credential Manager,
   large-repository detection and repack, browser-open mode, and the contextual
   first-run OpenSSH default.
+- Prompts provenance covers ten confirmation switches, the uncommitted-change
+  branch-switch strategy, and the commit-length warning.
 - Status Hub provenance distinguishes an unconfigured endpoint, stored
   application-data endpoint, absent authorization, and presence-only
   credential-vault state without reading a credential back into the renderer.
@@ -11113,14 +11115,14 @@ Attention accommodations, and Status Hub.
 ### Verification
 
 - TypeScript no-emit passed.
-- Twenty-five focused tests passed across the shared component, accessibility,
+- Twenty-six focused tests passed across the shared component, accessibility,
   Advanced settings, attention, and Status Hub.
 - Documentation-bundle coverage passed with 168 bundled feature articles.
 - Changelog validation and `git diff --check` passed.
 
 ### Remaining work
 
-The `settings-explanations` canonical feature remains pending. Fifty-eight standard
+The `settings-explanations` canonical feature remains pending. Forty-seven standard
 Checkbox, Select, and TextBox controls under `app/src/ui/preferences/` still
 lack an explicit description binding, and custom settings controls need their
 own hand-written audit. Those controls still require localized behavioral

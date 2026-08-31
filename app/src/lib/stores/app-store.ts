@@ -1102,33 +1102,34 @@ const defaultPushPullButtonWidth: number = 230
 const pushPullButtonWidthConfigKey: string = 'push-pull-button-width'
 
 const askToMoveToApplicationsFolderDefault: boolean = true
-const confirmRepoRemovalDefault: boolean = true
+export const confirmRepoRemovalDefault: boolean = true
 const showCommitLengthWarningDefault: boolean = false
-const confirmDiscardChangesDefault: boolean = true
-const confirmDiscardChangesPermanentlyDefault: boolean = true
-const confirmDiscardStashDefault: boolean = true
-const confirmCheckoutCommitDefault: boolean = true
-const askForConfirmationOnForcePushDefault = true
-const confirmUndoCommitDefault: boolean = true
-const confirmCommitFilteredChangesDefault: boolean = true
-const confirmCommitMessageOverrideDefault: boolean = true
-const confirmWorktreeRemovalDefault: boolean = true
+export const confirmDiscardChangesDefault: boolean = true
+export const confirmDiscardChangesPermanentlyDefault: boolean = true
+export const confirmDiscardStashDefault: boolean = true
+export const confirmCheckoutCommitDefault: boolean = true
+export const askForConfirmationOnForcePushDefault = true
+export const confirmUndoCommitDefault: boolean = true
+export const confirmCommitFilteredChangesDefault: boolean = true
+export const confirmCommitMessageOverrideDefault: boolean = true
+export const confirmWorktreeRemovalDefault: boolean = true
 const askToMoveToApplicationsFolderKey: string = 'askToMoveToApplicationsFolder'
-const confirmRepoRemovalKey: string = 'confirmRepoRemoval'
-const showCommitLengthWarningKey: string = 'showCommitLengthWarning'
-const confirmDiscardChangesKey: string = 'confirmDiscardChanges'
-const confirmDiscardStashKey: string = 'confirmDiscardStash'
-const confirmCheckoutCommitKey: string = 'confirmCheckoutCommit'
-const confirmDiscardChangesPermanentlyKey: string =
+export const confirmRepoRemovalKey: string = 'confirmRepoRemoval'
+export const showCommitLengthWarningKey: string = 'showCommitLengthWarning'
+export const confirmDiscardChangesKey: string = 'confirmDiscardChanges'
+export const confirmDiscardStashKey: string = 'confirmDiscardStash'
+export const confirmCheckoutCommitKey: string = 'confirmCheckoutCommit'
+export const confirmDiscardChangesPermanentlyKey: string =
   'confirmDiscardChangesPermanentlyKey'
-const confirmForcePushKey: string = 'confirmForcePush'
-const confirmUndoCommitKey: string = 'confirmUndoCommit'
-const confirmCommitFilteredChangesKey: string =
+export const confirmForcePushKey: string = 'confirmForcePush'
+export const confirmUndoCommitKey: string = 'confirmUndoCommit'
+export const confirmCommitFilteredChangesKey: string =
   'confirmCommitFilteredChangesKey'
-const confirmCommitMessageOverrideKey: string = 'confirmCommitMessageOverride'
-const confirmWorktreeRemovalKey: string = 'confirmWorktreeRemoval'
+export const confirmCommitMessageOverrideKey: string =
+  'confirmCommitMessageOverride'
+export const confirmWorktreeRemovalKey: string = 'confirmWorktreeRemoval'
 
-const uncommittedChangesStrategyKey = 'uncommittedChangesStrategyKind'
+export const uncommittedChangesStrategyKey = 'uncommittedChangesStrategyKind'
 
 const externalEditorKey: string = 'externalEditor'
 
