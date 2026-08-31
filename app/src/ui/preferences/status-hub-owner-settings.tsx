@@ -102,6 +102,22 @@ export class StatusHubOwnerSettings extends React.Component<
             '請用 HTTPS。本機開發可以用明確嘅 127.0.0.1 地址。'
           )}
         </p>
+        <p
+          id="status-hub-authorization-help"
+          className="settings-description"
+          role="status"
+          aria-live="polite"
+        >
+          {status}{' '}
+          {localize(
+            'Leave the authorization field empty to keep the stored value unchanged.',
+            '授權欄留空會保留現有資料。'
+          )}
+          {this.state.busy && <> {localize('Working…', '處理中…')}</>}
+          {!this.state.busy && this.state.message && (
+            <> {this.state.message}</>
+          )}
+        </p>
         <TextBox
           type="password"
           label={localize('Replace authorization', '更換授權資料')}
@@ -112,24 +128,6 @@ export class StatusHubOwnerSettings extends React.Component<
             this.setState({ authorizationDraft })
           }
         />
-        <p
-          id="status-hub-authorization-help"
-          className="settings-description"
-          role="status"
-          aria-live="polite"
-        >
-          {status}{' '}
-          {localize(
-            'Leave this field empty to keep the stored value unchanged.',
-            '留空會保留現有資料。'
-          )}
-          {this.state.busy && (
-            <> {localize('Working…', '處理中…')}</>
-          )}
-          {!this.state.busy && this.state.message && (
-            <> {this.state.message}</>
-          )}
-        </p>
         {this.state.error !== null && (
           <p className="settings-error" role="alert">
             {this.state.error}
