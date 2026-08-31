@@ -92,6 +92,7 @@ describe('setting explanation', () => {
     const view = render(
       <SettingExplanation
         settingId="example-setting"
+        inventoryId="example-inventory-row"
         summary="What this setting changes"
         explanation="Changes the example behavior without changing saved documents."
         provenance="No choice is recorded. Current and shipped value: off."
@@ -106,9 +107,15 @@ describe('setting explanation', () => {
     assert.equal(details.open, false)
     assert.equal(
       view.container
-        .querySelector('[data-setting-explanation-id="example-setting"]')
+        .querySelector('[data-setting-explanation-id="example-inventory-row"]')
         ?.getAttribute('data-setting-provenance'),
       'compiled-default'
+    )
+    assert.equal(
+      view.container
+        .querySelector('[data-setting-explanation-id="example-inventory-row"]')
+        ?.getAttribute('data-setting-instance-id'),
+      'example-setting'
     )
     assert.equal(
       view.container.querySelector(`#${ids.explanationId}`)?.textContent,

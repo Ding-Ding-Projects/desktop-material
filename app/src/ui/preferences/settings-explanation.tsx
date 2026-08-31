@@ -11,6 +11,12 @@ export type SettingValueProvenance =
 export interface ISettingExplanationProps {
   /** Stable setting identity used by the hand-written completeness inventory. */
   readonly settingId: string
+  /**
+   * Optional conceptual identity for repeated controls. The setting id stays
+   * unique for DOM references while this value links every repeated instance
+   * to one hand-written inventory row.
+   */
+  readonly inventoryId?: string
   /** Localized progressive-disclosure label. */
   readonly summary: string
   /** Localized explanation of the setting's actual behavior. */
@@ -54,7 +60,8 @@ export function SettingExplanation(
   return (
     <div
       className="setting-explanation"
-      data-setting-explanation-id={props.settingId}
+      data-setting-explanation-id={props.inventoryId ?? props.settingId}
+      data-setting-instance-id={props.settingId}
       data-setting-provenance={props.source}
     >
       <details className="setting-explanation__details">

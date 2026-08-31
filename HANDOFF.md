@@ -11087,9 +11087,9 @@ hidden selections.
 
 The current universal-feature task added a shared progressive explanation and
 provenance component without changing the frozen application shell. The first
-hand-written inventory covers 91 settings across Accounts, issue references,
+ hand-written inventory covers 122 settings across Accounts, issue references,
 Accessibility, Advanced, AI policy, Appearance and application identity, agent access, Git, Copilot, Sound, Prompts, self-hosted server setup,
-Attention accommodations, and Status Hub.
+ Attention accommodations, and Status Hub.
 
 ### Implemented behavior
 
@@ -11129,6 +11129,11 @@ Attention accommodations, and Status Hub.
   selection without repeating a custom path.
 - Self-hosted server provenance covers the managed public origin, transient
   SAML metadata, and generated one-time join link without repeating the link.
+- Scheduled-settings provenance covers every standard rule, date/time,
+  weekday, source, endpoint, Home Assistant, language, theme, and appearance
+  control. Repeated rule instances keep unique accessible-description IDs while
+  linking to one exact conceptual inventory row; credential provenance remains
+  presence-only.
 - Status Hub provenance distinguishes an unconfigured endpoint, stored
   application-data endpoint, absent authorization, and presence-only
   credential-vault state without reading a credential back into the renderer.
@@ -11138,16 +11143,17 @@ Attention accommodations, and Status Hub.
 ### Verification
 
 - TypeScript no-emit passed.
-- One hundred twenty-three focused tests passed across fifteen focused files covering the shared component, accessibility,
-  Advanced settings, attention, and Status Hub.
+- One hundred eight focused tests passed across thirteen selected files covering
+  the shared component, scheduled settings, accessibility, Advanced settings,
+  attention, and Status Hub.
 - Documentation-bundle coverage passed with 168 bundled feature articles.
 - Changelog validation and `git diff --check` passed.
 
 ### Remaining work
 
-The `settings-explanations` canonical feature remains pending. Ten standard
-Checkbox, Select, and TextBox controls under `app/src/ui/preferences/` still
-lack an explicit description binding, and custom settings controls need their
-own hand-written audit. Those controls still require localized behavioral
-copy, exact current/source/shipped-value provenance, focused tests, built
-interaction, and real capture evidence before the feature row can be promoted.
+The `settings-explanations` canonical feature remains pending. Every standard
+Checkbox, Select, and TextBox control under `app/src/ui/preferences/` now has an
+explicit description binding, while custom settings controls still need their
+own hand-written audit. Those controls still require localized behavioral copy,
+exact current/source/shipped-value provenance, focused tests, built interaction,
+and real capture evidence before the feature row can be promoted.

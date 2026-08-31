@@ -27,7 +27,7 @@ visual disclosure remains collapsed.
 
 ## Current hand-written inventory
 
-The first implementation slice covers 91 controls:
+The current implementation slice covers 122 controls:
 
 | Area | Settings |
 | --- | --- |
@@ -44,6 +44,7 @@ The first implementation slice covers 91 controls:
 | Attention accommodations | Focus, Low stimulation, Time awareness, One thing at a time, Momentum, Next action, Momentum defer interval |
 | Prompts | Ten confirmation switches, uncommitted-change branch-switch strategy, commit-length warning |
 | Self-hosted server | Public origin, optional SAML metadata, generated one-time join link |
+| Scheduled settings | Rule label/enabled state, dates, times, every-day/weekday scope, source type, API endpoint, Home Assistant URL/entity/credential, language, theme, feature highlighting, and fifteen appearance values |
 | Sound | Quiet-hours start/end, repository music track |
 | Status Hub | HTTPS endpoint, write-only authorization replacement |
 
@@ -121,10 +122,10 @@ Focused coverage lives in:
 
 The focused slice verifies collapsed disclosure, stable description IDs,
 machine-readable provenance categories, compiled-versus-stored accessibility,
-advanced, AI-policy, Appearance, application-identity, agent-access, Copilot, Git, prompts, Sound, and attention state, runtime-only
+advanced, AI-policy, Appearance, application-identity, agent-access, Copilot, Git, prompts, Sound, scheduled settings, and attention state, runtime-only
 account/reference forms, defer and first-run OpenSSH provenance, managed
 main-process server configuration, endpoint provenance, write-only credential
-and one-time-link provenance, all 91 inventory IDs, and the deliberate red
+and one-time-link provenance, all 122 inventory IDs, and the deliberate red
 inventory mutation.
 
 Built-artifact interaction and capture evidence remain pending until the
