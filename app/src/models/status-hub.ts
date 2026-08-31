@@ -9,7 +9,11 @@ export type StatusHubConnectionState =
   | 'authentication-unavailable'
   | 'delivery-unconfirmed'
 
-export type StatusHubEvidenceState = 'verified' | 'running' | 'unrun' | 'blocked'
+export type StatusHubEvidenceState =
+  | 'verified'
+  | 'running'
+  | 'unrun'
+  | 'blocked'
 
 export interface IStatusHubEvidence {
   readonly id: string
@@ -60,6 +64,7 @@ export interface IStatusHubStatus {
 export const LocalStatusHubFallback: IStatusHubStatus = Object.freeze({
   connection: 'unavailable',
   stableURL: null,
-  message: 'Status Hub is unavailable; this app is showing local session state only.',
+  message:
+    'Status Hub is unavailable; this app is showing local session state only.',
   lastUpdatedAt: null,
 })

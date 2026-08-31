@@ -2330,20 +2330,34 @@
       "evidence": {
         "implementation": [
           {
-            "status": "pending",
-            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+            "status": "present",
+            "paths": [
+              "app/src/models/status-hub.ts",
+              "app/src/main-process/status-hub-client.ts",
+              "app/src/ui/agent-sessions/agent-sessions-panel.tsx",
+              "app/src/main-process/main.ts"
+            ],
+            "note": "The typed projection, main-process transport boundary, IPC routes, and honest local/connected renderer states are implemented; owner endpoint and vault configuration remain a separate persistence gap."
           }
         ],
         "documentation": [
           {
-            "status": "pending",
-            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "docs/features/design-system/status-hub.md"
+            ],
+            "note": "The article documents projection, authorization, reply confirmation, local fallback, privacy, and remaining configuration boundaries."
           }
         ],
         "localization": [
           {
-            "status": "pending",
-            "reason": "Localization evidence was not independently inspected or verified in this pass."
+            "status": "present",
+            "paths": [
+              "app/src/lib/i18n-resources.ts",
+              "app/src/ui/agent-sessions/agent-sessions-panel.tsx",
+              "app/test/unit/ui/status-hub-panel-test.tsx"
+            ],
+            "note": "Connected, authorization-unavailable, delivery-unconfirmed, and local-only states resolve through the shared language catalog and focused renderer test."
           }
         ],
         "persistence": [
@@ -2354,8 +2368,12 @@
         ],
         "focusedTest": [
           {
-            "status": "pending",
-            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "app/test/unit/status-hub-client-test.ts",
+              "app/test/unit/ui/status-hub-panel-test.tsx"
+            ],
+            "note": "Focused tests cover endpoint validation, missing authorization, bounded publishing, malformed/oversized/refused responses, reply filtering, delivery confirmation, and every renderer connection state."
           }
         ],
         "builtArtifactInteraction": [
@@ -2485,20 +2503,33 @@
       "evidence": {
         "implementation": [
           {
-            "status": "pending",
-            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+            "status": "present",
+            "paths": [
+              "app/src/models/unlock-ladder.ts",
+              "app/src/main-process/unlock-ladder.ts",
+              "app/src/main-process/unlock-ladder-ipc.ts",
+              "app/src/ui/unlock-ladder/unlock-ladder.tsx"
+            ],
+            "note": "Server-graded single-use challenges, wait-only outcomes, all ladder rungs, School-mode start behavior, and renderer interaction are implemented; durable rolling-budget persistence remains open."
           }
         ],
         "documentation": [
           {
-            "status": "pending",
-            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "docs/features/design-system/unlock-ladder.md"
+            ],
+            "note": "The article records wait-only safety, attempt budget, challenge grading, rungs, School mode, accessibility, and verification."
           }
         ],
         "localization": [
           {
-            "status": "pending",
-            "reason": "Localization evidence was not independently inspected or verified in this pass."
+            "status": "present",
+            "paths": [
+              "app/src/ui/unlock-ladder/unlock-ladder-localization.ts",
+              "app/src/ui/unlock-ladder/unlock-ladder.tsx"
+            ],
+            "note": "Every rung and factual safety state has English and Cantonese copy across the supported tone bands."
           }
         ],
         "persistence": [
@@ -2509,8 +2540,11 @@
         ],
         "focusedTest": [
           {
-            "status": "pending",
-            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "app/test/unit/unlock-ladder-test.ts"
+            ],
+            "note": "Five focused tests pass for School-mode start, rolling cap, wrong-answer escalation, nonce consumption, no authentication, no attempt refund, and wait-deadline clearing."
           }
         ],
         "builtArtifactInteraction": [

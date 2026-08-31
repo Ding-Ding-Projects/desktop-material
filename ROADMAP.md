@@ -17,6 +17,11 @@
 - [x] Generate a 1280×640 root social preview from a real built-surface capture,
   keep the served copy byte-identical, and add complete static Open Graph
   metadata plus red-then-green coverage to all 131 HTML pages.
+- [x] Verify and promote Status Hub transport/UI plus unlock-ladder
+  implementation, documentation, localization, and focused-test evidence.
+- [ ] Persist the unlock-ladder rolling-hour allowance across restart and add
+  owner-configurable Status Hub endpoint/vault settings before either feature
+  can satisfy its persistence evidence.
 - [x] Add focused renderer and terminal regression tests plus categorized
   feature documentation.
 - [ ] Extend the same action contract to every remaining consequential native

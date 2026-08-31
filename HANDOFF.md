@@ -57,6 +57,23 @@ boundary. Six shared-link evidence records move from pending to present;
 built-site interaction remains pending until the deployed HTTPS response and
 anonymous image fetch are verified.
 
+The Status Hub and unlock-ladder audit adds nine new focused tests and confirms
+the existing five ladder model tests. Status Hub now has focused client and UI
+coverage for endpoint validation, missing authorization, bounded publish
+responses, reply filtering, delivery confirmation, and all four rendered
+connection states. The ladder tests prove School-mode start behavior, the
+rolling cap, nonce consumption, no authentication, no attempt refund, and
+wait-only recovery. Eight evidence records move from pending to present. Their
+persistence rows remain pending: the Hub still needs owner-configurable
+endpoint/vault settings, and the ladder's rolling-hour allowance is currently
+process-memory-only. The total evidence baseline is now 115 present and 319
+pending.
+
+The broader `agent-sessions-panel-test.tsx` remains baseline red in two
+unrelated assertions: a removed transcript region and a null-versus-empty form
+expectation. Those failures do not occur in the new focused Status Hub tests
+and were not changed or reclassified by this milestone.
+
 ## Remaining plain HTML controls converted to shared Material primitives — 2026-08-22
 
 A six-lane fleet sweep classified every raw `button`/`input`/`select`/`textarea`
