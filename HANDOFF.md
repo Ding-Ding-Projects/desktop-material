@@ -11087,8 +11087,8 @@ hidden selections.
 
 The current universal-feature task added a shared progressive explanation and
 provenance component without changing the frozen application shell. The first
-hand-written inventory covers 81 settings across Accounts, issue references,
-Accessibility, Advanced, AI policy, Appearance, agent access, Git, Copilot, Sound, Prompts, self-hosted server setup,
+hand-written inventory covers 91 settings across Accounts, issue references,
+Accessibility, Advanced, AI policy, Appearance and application identity, agent access, Git, Copilot, Sound, Prompts, self-hosted server setup,
 Attention accommodations, and Status Hub.
 
 ### Implemented behavior
@@ -11119,6 +11119,8 @@ Attention accommodations, and Status Hub.
 - Appearance provenance covers dialog emoji, language, auto-fit scale,
   formatting patterns, absolute dates, diff tab size, recent repositories, and
   branch-name visibility.
+- Application-identity provenance covers the custom logo image plus logo and
+  display-name typography selectors without repeating a local image path.
 - Agent-access provenance covers the managed access mode and server-enabled
   state.
 - Git provenance covers global author identity, default branch, effective
@@ -11136,14 +11138,14 @@ Attention accommodations, and Status Hub.
 ### Verification
 
 - TypeScript no-emit passed.
-- One hundred fourteen focused tests passed across thirteen focused files covering the shared component, accessibility,
+- One hundred twenty-three focused tests passed across fifteen focused files covering the shared component, accessibility,
   Advanced settings, attention, and Status Hub.
 - Documentation-bundle coverage passed with 168 bundled feature articles.
 - Changelog validation and `git diff --check` passed.
 
 ### Remaining work
 
-The `settings-explanations` canonical feature remains pending. Twenty standard
+The `settings-explanations` canonical feature remains pending. Ten standard
 Checkbox, Select, and TextBox controls under `app/src/ui/preferences/` still
 lack an explicit description binding, and custom settings controls need their
 own hand-written audit. Those controls still require localized behavioral

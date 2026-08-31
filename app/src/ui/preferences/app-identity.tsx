@@ -39,6 +39,12 @@ import { RangeSlider } from '../lib/range-slider'
 import { Select } from '../lib/select'
 import { TextBox } from '../lib/text-box'
 import { InfiniteColorPicker } from '../appearance/infinite-color-picker'
+import { getPersistedLanguageMode } from '../../lib/i18n'
+import { AppearanceCustomizationStorageKey } from '../../lib/appearance-customization'
+import {
+  SelectionSettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 
 interface IAppIdentityProps {
   readonly value: IAppIdentityCustomization
@@ -134,6 +140,38 @@ export class AppIdentity extends React.Component<
   IAppIdentityProps,
   IAppIdentityState
 > {
+  private localize(english: string, cantonese: string): string {
+    switch (getPersistedLanguageMode()) {
+      case 'cantonese':
+        return cantonese
+      case 'bilingual':
+        return `${english} · ${cantonese}`
+      default:
+        return english
+    }
+  }
+
+  private renderSelectionExplanation(
+    settingId: string,
+    explanationEnglish: string,
+    explanationCantonese: string,
+    current: string,
+    shipped: string
+  ): JSX.Element {
+    return (
+      <SelectionSettingExplanation
+        settingId={settingId}
+        explanationEnglish={explanationEnglish}
+        explanationCantonese={explanationCantonese}
+        currentEnglish={current}
+        currentCantonese={current}
+        shippedEnglish={shipped}
+        shippedCantonese={shipped}
+        storageKey={AppearanceCustomizationStorageKey}
+      />
+    )
+  }
+
   private isEditingName = false
   private currentValue: IAppIdentityCustomization
 
@@ -456,10 +494,22 @@ export class AppIdentity extends React.Component<
           <div className="app-identity-logo-controls">
             <div className="app-identity-file-control">
               <TextBox
-                label="Custom logo image"
+                label={this.localize('Custom logo image', '自訂 logo 圖片')}
                 value={identity.customLogoPath ?? 'No image selected'}
                 readOnly={true}
+                ariaDescribedBy={
+                  settingExplanationDescriptionIds(
+                    'app-identity-custom-logo-image'
+                  ).ariaDescribedBy
+                }
               />
+              {this.renderSelectionExplanation(
+                'app-identity-custom-logo-image',
+                'Shows whether a validated local custom logo image is selected. The source path remains local and is not copied into exports or telemetry.',
+                '顯示有冇揀到已驗證本機自訂 logo 圖片；來源路徑只留喺本機，唔會複製去匯出或者 telemetry。',
+                identity.customLogoPath === null ? 'none selected' : 'selected',
+                'none selected'
+              )}
               <div className="app-identity-file-actions">
                 <Button type="button" onClick={this.onChooseCustomLogo}>
                   Choose image…
@@ -475,9 +525,13 @@ export class AppIdentity extends React.Component<
             </div>
 
             <Select
-              label="Logo shape"
+              label={this.localize('Logo shape', 'Logo 形狀')}
               value={identity.logoShape}
               onChange={this.onLogoShapeChanged}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('app-identity-logo-shape')
+                  .ariaDescribedBy
+              }
             >
               {logoShapeLabels.map(option => (
                 <option key={option.value} value={option.value}>
@@ -485,11 +539,22 @@ export class AppIdentity extends React.Component<
                 </option>
               ))}
             </Select>
+            {this.renderSelectionExplanation(
+              'app-identity-logo-shape',
+              'Chooses the clipping shape applied to the app logo in the title bar and previews.',
+              '揀標題列同預覽入面應用程式 logo 使用嘅裁切形狀。',
+              identity.logoShape,
+              DefaultAppIdentityCustomization.logoShape
+            )}
 
             <Select
-              label="Logo border"
+              label={this.localize('Logo border', 'Logo 邊框')}
               value={identity.logoBorder}
               onChange={this.onLogoBorderChanged}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('app-identity-logo-border')
+                  .ariaDescribedBy
+              }
             >
               {logoBorderLabels.map(option => (
                 <option key={option.value} value={option.value}>
@@ -497,11 +562,22 @@ export class AppIdentity extends React.Component<
                 </option>
               ))}
             </Select>
+            {this.renderSelectionExplanation(
+              'app-identity-logo-border',
+              'Chooses the visual border strength around the app logo.',
+              '揀應用程式 logo 外圍邊框嘅視覺強度。',
+              identity.logoBorder,
+              DefaultAppIdentityCustomization.logoBorder
+            )}
 
             <Select
-              label="Logo shadow"
+              label={this.localize('Logo shadow', 'Logo 陰影')}
               value={identity.logoShadow}
               onChange={this.onLogoShadowChanged}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('app-identity-logo-shadow')
+                  .ariaDescribedBy
+              }
             >
               {logoShadowLabels.map(option => (
                 <option key={option.value} value={option.value}>
@@ -509,6 +585,13 @@ export class AppIdentity extends React.Component<
                 </option>
               ))}
             </Select>
+            {this.renderSelectionExplanation(
+              'app-identity-logo-shadow',
+              'Chooses the shadow treatment behind the app logo.',
+              '揀應用程式 logo 後面嘅陰影效果。',
+              identity.logoShadow,
+              DefaultAppIdentityCustomization.logoShadow
+            )}
 
             <div className="app-identity-color-control">
               <label htmlFor="app-identity-logo-color">Logo color</label>
@@ -565,7 +648,7 @@ export class AppIdentity extends React.Component<
             />
             <RangeSlider
               id="app-identity-logo-inset"
-              label="Icon inset"
+              label="Logo icon inset"
               min={MinAppLogoInset}
               max={MaxAppLogoInset}
               step={1}
@@ -603,9 +686,13 @@ export class AppIdentity extends React.Component<
           <legend>Name typography</legend>
           <div className="app-identity-typography-grid">
             <Select
-              label="Font"
+              label={this.localize('Font', '字型')}
               value={identity.fontFamily}
               onChange={this.onFontFamilyChanged}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('app-identity-font-family')
+                  .ariaDescribedBy
+              }
             >
               {customFont !== null && (
                 <option value={customFont}>{customFont}</option>
@@ -616,10 +703,21 @@ export class AppIdentity extends React.Component<
                 </option>
               ))}
             </Select>
+            {this.renderSelectionExplanation(
+              'app-identity-font-family',
+              'Chooses the typeface used by the application display name.',
+              '揀應用程式顯示名稱使用嘅字型。',
+              identity.fontFamily,
+              DefaultAppIdentityCustomization.fontFamily
+            )}
             <Select
-              label="Weight"
+              label={this.localize('Weight', '字重')}
               value={identity.fontWeight.toString()}
               onChange={this.onFontWeightChanged}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('app-identity-font-weight')
+                  .ariaDescribedBy
+              }
             >
               <option value="400">Regular</option>
               <option value="500">Medium</option>
@@ -627,10 +725,21 @@ export class AppIdentity extends React.Component<
               <option value="700">Bold</option>
               <option value="800">Extra bold</option>
             </Select>
+            {this.renderSelectionExplanation(
+              'app-identity-font-weight',
+              'Chooses the numeric font weight used by the application display name.',
+              '揀應用程式顯示名稱使用嘅數值字重。',
+              identity.fontWeight.toString(),
+              DefaultAppIdentityCustomization.fontWeight.toString()
+            )}
             <Select
-              label="Font width"
+              label={this.localize('Font width', '字型寬度')}
               value={identity.fontWidth}
               onChange={this.onFontWidthChanged}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('app-identity-font-width')
+                  .ariaDescribedBy
+              }
             >
               {fontWidthLabels.map(option => (
                 <option key={option.value} value={option.value}>
@@ -638,10 +747,21 @@ export class AppIdentity extends React.Component<
                 </option>
               ))}
             </Select>
+            {this.renderSelectionExplanation(
+              'app-identity-font-width',
+              'Chooses condensed, normal, or expanded letter width for the application display name.',
+              '揀應用程式顯示名稱使用窄身、正常或者闊身字寬。',
+              identity.fontWidth,
+              DefaultAppIdentityCustomization.fontWidth
+            )}
             <Select
-              label="Letter case"
+              label={this.localize('Letter case', '英文字母大小寫')}
               value={identity.textCase}
               onChange={this.onTextCaseChanged}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('app-identity-letter-case')
+                  .ariaDescribedBy
+              }
             >
               {textCaseLabels.map(option => (
                 <option key={option.value} value={option.value}>
@@ -649,10 +769,21 @@ export class AppIdentity extends React.Component<
                 </option>
               ))}
             </Select>
+            {this.renderSelectionExplanation(
+              'app-identity-letter-case',
+              'Transforms the displayed application name to the selected capitalization without changing stable application identity.',
+              '將顯示嘅應用程式名稱轉成所選大小寫，但唔會改穩定應用程式身分。',
+              identity.textCase,
+              DefaultAppIdentityCustomization.textCase
+            )}
             <Select
-              label="Text effect"
+              label={this.localize('Text effect', '文字效果')}
               value={identity.textEffect}
               onChange={this.onTextEffectChanged}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('app-identity-text-effect')
+                  .ariaDescribedBy
+              }
             >
               {textEffectLabels.map(option => (
                 <option key={option.value} value={option.value}>
@@ -660,10 +791,21 @@ export class AppIdentity extends React.Component<
                 </option>
               ))}
             </Select>
+            {this.renderSelectionExplanation(
+              'app-identity-text-effect',
+              'Chooses the shadow, glow, emboss, or plain effect applied to the display name.',
+              '揀顯示名稱使用陰影、發光、浮雕或者普通效果。',
+              identity.textEffect,
+              DefaultAppIdentityCustomization.textEffect
+            )}
             <Select
-              label="Name highlight"
+              label={this.localize('Name highlight', '名稱底色')}
               value={identity.highlightStyle}
               onChange={this.onHighlightChanged}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('app-identity-highlight')
+                  .ariaDescribedBy
+              }
             >
               {highlightLabels.map(option => (
                 <option key={option.value} value={option.value}>
@@ -671,6 +813,13 @@ export class AppIdentity extends React.Component<
                 </option>
               ))}
             </Select>
+            {this.renderSelectionExplanation(
+              'app-identity-highlight',
+              'Chooses whether the display name has no highlight, a soft rectangle, or a pill background.',
+              '揀顯示名稱冇底色、用柔和長方形，定係藥丸形背景。',
+              identity.highlightStyle,
+              DefaultAppIdentityCustomization.highlightStyle
+            )}
           </div>
 
           <div
@@ -717,7 +866,7 @@ export class AppIdentity extends React.Component<
             />
             <RangeSlider
               id="app-identity-name-opacity"
-              label="Name opacity"
+              label="App name opacity"
               min={MinAppNameOpacity}
               max={MaxAppNameOpacity}
               step={0.05}

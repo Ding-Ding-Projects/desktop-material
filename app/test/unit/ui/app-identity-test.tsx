@@ -10,7 +10,7 @@ import { fireEvent, render, screen } from '../../helpers/ui/render'
 
 describe('AppIdentity', () => {
   it('exposes the complete labelled identity editor and live preview', () => {
-    render(
+    const view = render(
       <AppIdentity
         value={DefaultAppIdentityCustomization}
         onChange={() => {}}
@@ -42,6 +42,24 @@ describe('AppIdentity', () => {
     assert.ok(screen.getByRole('button', { name: 'Underline' }))
     assert.ok(screen.getByRole('button', { name: 'Strikethrough' }))
     assert.ok(screen.getByRole('button', { name: 'Small caps' }))
+    for (const id of [
+      'app-identity-custom-logo-image',
+      'app-identity-logo-shape',
+      'app-identity-logo-border',
+      'app-identity-logo-shadow',
+      'app-identity-font-family',
+      'app-identity-font-weight',
+      'app-identity-font-width',
+      'app-identity-letter-case',
+      'app-identity-text-effect',
+      'app-identity-highlight',
+    ]) {
+      const explanation = view.container.querySelector(
+        `[data-setting-explanation-id="${id}"]`
+      )
+      assert.ok(explanation, `missing setting explanation ${id}`)
+      assert.ok(explanation.querySelector('.setting-explanation__provenance'))
+    }
   })
 
   it('reports valid live changes and does not apply a blank name', () => {
