@@ -46,6 +46,15 @@ import { TabBar } from '../tab-bar'
 import { CopilotModelSelectionInfo } from './copilot-model-selection-info'
 import type { Model } from '@github/copilot-sdk/dist/generated/rpc'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import {
+  alwaysUseCopilotForConflictResolutionKey,
+  selectedCopilotModelsKey,
+} from '../../lib/stores/app-store'
+import {
+  BooleanSettingExplanation,
+  SettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 
 interface ICopilotPreferencesProps {
   readonly selectedCopilotModels: CopilotModelSelections
@@ -92,6 +101,24 @@ export class CopilotPreferences extends React.Component<
   ICopilotPreferencesProps,
   ICopilotPreferencesState
 > {
+  private localize(english: string, cantonese: string): string {
+    switch (this.state.languageMode) {
+      case 'cantonese':
+        return cantonese
+      case 'bilingual':
+        return `${english} · ${cantonese}`
+      default:
+        return english
+    }
+  }
+
+  private hasStoredModelSelection(): boolean {
+    try {
+      return localStorage.getItem(selectedCopilotModelsKey) !== null
+    } catch {
+      return false
+    }
+  }
   public constructor(props: ICopilotPreferencesProps) {
     super(props)
     this.state = {
@@ -408,17 +435,31 @@ export class CopilotPreferences extends React.Component<
             </p>
             <div {...teleportAnchor('settings-copilot-always-conflicts')}>
               <Checkbox
-                label={
+                label={this.localize(
                   __DARWIN__
                     ? 'Always Use Copilot When Conflicts Are Detected'
-                    : 'Always use Copilot when conflicts are detected'
-                }
+                    : 'Always use Copilot when conflicts are detected',
+                  '偵測到衝突時一律使用 Copilot'
+                )}
                 value={
                   this.props.alwaysUseCopilotForConflictResolution
                     ? CheckboxValue.On
                     : CheckboxValue.Off
                 }
                 onChange={this.onAlwaysUseCopilotForConflictResolutionChanged}
+                ariaDescribedBy={
+                  settingExplanationDescriptionIds(
+                    'copilot-always-resolve-conflicts'
+                  ).ariaDescribedBy
+                }
+              />
+              <BooleanSettingExplanation
+                settingId="copilot-always-resolve-conflicts"
+                explanationEnglish="Automatically starts the configured Copilot conflict-resolution flow when conflicts are detected. Turning it off keeps the manual action available."
+                explanationCantonese="偵測到衝突時自動開始已設定嘅 Copilot 衝突解決流程。閂咗仍然可以手動開始。"
+                value={this.props.alwaysUseCopilotForConflictResolution}
+                shippedValue={false}
+                storageKey={alwaysUseCopilotForConflictResolutionKey}
               />
             </div>
           </>
@@ -446,6 +487,12 @@ export class CopilotPreferences extends React.Component<
       copilotModels,
       value
     )
+    const settingId =
+      feature === 'commit-message-generation'
+        ? 'copilot-commit-message-model'
+        : 'copilot-conflict-resolution-model'
+    const ids = settingExplanationDescriptionIds(settingId)
+    const currentModel = selectionInfo?.name ?? value
 
     return (
       <>
@@ -456,6 +503,32 @@ export class CopilotPreferences extends React.Component<
           value={value}
           onChange={onChange}
           maxHeight={maxHeight}
+          ariaDescribedBy={ids.ariaDescribedBy}
+        />
+        <SettingExplanation
+          settingId={settingId}
+          summary={this.localize('What this setting changes', '呢個設定會改咩')}
+          explanation={this.localize(
+            feature === 'commit-message-generation'
+              ? 'Chooses the model used for future generated commit messages. It does not rewrite an existing message until the user runs generation.'
+              : 'Chooses the model used for future Copilot conflict-resolution requests. It does not change an operation already in progress.',
+            feature === 'commit-message-generation'
+              ? '揀之後產生提交訊息使用嘅模型；用戶未開始產生之前，唔會改寫現有訊息。'
+              : '揀之後 Copilot 衝突解決請求使用嘅模型；唔會改變已經進行中嘅操作。'
+          )}
+          source={
+            this.hasStoredModelSelection()
+              ? 'stored-choice'
+              : 'compiled-default'
+          }
+          provenance={this.localize(
+            this.hasStoredModelSelection()
+              ? `A choice is recorded on this computer. Current value: ${currentModel}. Shipped value: ${DefaultCopilotModel}.`
+              : `No choice is recorded on this computer. Current and shipped value: ${DefaultCopilotModel}.`,
+            this.hasStoredModelSelection()
+              ? `呢部電腦記錄咗選擇。目前值：${currentModel}。出廠值：${DefaultCopilotModel}。`
+              : `呢部電腦未記錄選擇。目前值同出廠值：${DefaultCopilotModel}。`
+          )}
         />
         {selectionInfo === null ? null : (
           <CopilotModelSelectionInfo

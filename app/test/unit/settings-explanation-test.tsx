@@ -40,6 +40,7 @@ import {
   resetAIAdminPolicySettingsCache,
 } from '../../src/lib/ai-admin-policy'
 import { Accounts } from '../../src/ui/preferences/accounts'
+import { IssueTrackerReference } from '../../src/ui/preferences/issue-tracker-reference'
 
 const PromptStorageKeys = [
   confirmCheckoutCommitKey,
@@ -340,6 +341,55 @@ describe('setting explanation', () => {
         provenance.textContent ?? '',
         /glpat-|personal access|member token|app password/i
       )
+    }
+  })
+
+  it('covers every issue-reference field with provider-specific transient provenance', () => {
+    localStorage.setItem(LanguageModeStorageKey, 'bilingual')
+    const view = render(
+      <>
+        <IssueTrackerReference
+          provider="jira-cloud"
+          endpoint="https://jira.example.test"
+          accountId="account-1"
+          connected={true}
+          onOpenInBrowser={async () => true}
+        />
+        <IssueTrackerReference
+          provider="jira-data-center"
+          endpoint="https://jira-dc.example.test"
+          accountId="account-2"
+          connected={true}
+          onOpenInBrowser={async () => true}
+        />
+        <IssueTrackerReference
+          provider="trello"
+          endpoint="https://api.trello.com"
+          accountId="account-3"
+          connected={true}
+          onOpenInBrowser={async () => true}
+        />
+      </>
+    )
+
+    assert.equal(
+      view.container.querySelectorAll(
+        '[data-setting-explanation-id^="issue-reference-"]'
+      ).length,
+      6
+    )
+    assert.equal(
+      screen
+        .getByLabelText('Board ID · Board ID')
+        .getAttribute('aria-describedby'),
+      'issue-reference-trello-scope-setting-explanation issue-reference-trello-scope-setting-provenance'
+    )
+    for (const row of Array.from(
+      view.container.querySelectorAll(
+        '[data-setting-explanation-id^="issue-reference-"]'
+      )
+    )) {
+      assert.equal(row.getAttribute('data-setting-provenance'), 'runtime-only')
     }
   })
 })

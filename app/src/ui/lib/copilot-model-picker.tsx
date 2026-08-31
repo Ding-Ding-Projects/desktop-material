@@ -20,6 +20,7 @@ interface ICopilotModelPickerProps {
   readonly value: string
   readonly onChange: (value: string) => void
   readonly maxHeight?: number
+  readonly ariaDescribedBy?: string
 }
 
 interface ICopilotModelPickerState {
@@ -463,6 +464,7 @@ export class CopilotModelPicker extends React.Component<
         contentTitle="Choose a model"
         buttonContent={this.renderButtonContent(buttonItem)}
         buttonAriaLabel={buttonAriaLabel}
+        ariaDescribedBy={this.props.ariaDescribedBy}
         decoration={PopoverDecoration.Bordered}
         label={this.props.label}
         maxHeight={this.props.maxHeight}

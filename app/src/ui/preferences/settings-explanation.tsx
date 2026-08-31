@@ -6,6 +6,7 @@ export type SettingValueProvenance =
   | 'stored-choice'
   | 'runtime-only'
   | 'credential-vault'
+  | 'main-process-config'
 
 export interface ISettingExplanationProps {
   /** Stable setting identity used by the hand-written completeness inventory. */

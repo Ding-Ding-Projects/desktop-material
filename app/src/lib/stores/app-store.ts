@@ -1205,12 +1205,12 @@ const copilotConflictResolutionDisclaimerLastSeenKey =
 const copilotConflictResolutionClickCountKey =
   'copilot-conflict-resolution-button-clicked'
 
-const alwaysUseCopilotForConflictResolutionKey =
+export const alwaysUseCopilotForConflictResolutionKey =
   'always-use-copilot-for-conflict-resolution'
 
 export const showChangesFilterKey = 'show-changes-filter'
 
-const selectedCopilotModelsKey = 'selected-copilot-models'
+export const selectedCopilotModelsKey = 'selected-copilot-models'
 export const showChangesFilterDefault = true
 
 interface IScheduledAutomationFence {

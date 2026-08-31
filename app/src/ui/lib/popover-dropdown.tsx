@@ -21,6 +21,7 @@ interface IPopoverDropdownProps {
   readonly contentTitle: string
   readonly buttonContent: JSX.Element | string
   readonly buttonAriaLabel?: string
+  readonly ariaDescribedBy?: string
   readonly closeButtonAriaLabel?: string
   readonly decoration?: PopoverDecoration
   readonly label?: string
@@ -233,6 +234,7 @@ export class PopoverDropdown extends React.Component<
           ariaHaspopup="dialog"
           ariaControls={ariaControls}
           ariaLabel={this.props.buttonAriaLabel}
+          ariaDescribedBy={this.props.ariaDescribedBy}
         >
           <div className="button-content">{buttonContent}</div>
           <Octicon symbol={octicons.triangleDown} />

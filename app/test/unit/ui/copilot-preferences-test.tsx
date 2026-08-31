@@ -31,6 +31,10 @@ import {
   LanguageModeStorageKey,
   setLanguageModePreference,
 } from '../../../src/lib/language-preference'
+import {
+  alwaysUseCopilotForConflictResolutionKey,
+  selectedCopilotModelsKey,
+} from '../../../src/lib/stores/app-store'
 
 interface IAccountOptions {
   readonly isCopilotDesktopEnabled?: boolean
@@ -258,6 +262,8 @@ beforeEach(() => {
   if (typeof window !== 'undefined') {
     Object.assign(window, { ResizeObserver: TestListResizeObserver })
   }
+  localStorage.removeItem(alwaysUseCopilotForConflictResolutionKey)
+  localStorage.removeItem(selectedCopilotModelsKey)
 })
 
 afterEach(() => {
@@ -1241,6 +1247,39 @@ describe('CopilotPreferences', () => {
   })
 
   describe('conflict resolution model picker', () => {
+    it('renders exact behavior and provenance for both models and automatic conflict use', () => {
+      const view = render(<CopilotPreferences {...defaults()} />)
+      const expected = [
+        'copilot-commit-message-model',
+        'copilot-conflict-resolution-model',
+        'copilot-always-resolve-conflicts',
+      ]
+      for (const id of expected) {
+        assert.ok(
+          view.container.querySelector(`[data-setting-explanation-id="${id}"]`),
+          `missing setting explanation ${id}`
+        )
+      }
+
+      const buttons = getModelPickerButtons(view.container)
+      assert.strictEqual(
+        buttons[0].getAttribute('aria-describedby'),
+        'copilot-commit-message-model-setting-explanation copilot-commit-message-model-setting-provenance'
+      )
+      assert.strictEqual(
+        buttons[1].getAttribute('aria-describedby'),
+        'copilot-conflict-resolution-model-setting-explanation copilot-conflict-resolution-model-setting-provenance'
+      )
+      assert.strictEqual(
+        screen
+          .getByRole('checkbox', {
+            name: 'Always use Copilot when conflicts are detected',
+          })
+          .getAttribute('aria-describedby'),
+        'copilot-always-resolve-conflicts-setting-explanation copilot-always-resolve-conflicts-setting-provenance'
+      )
+    })
+
     it('renders both pickers', () => {
       const view = render(<CopilotPreferences {...defaults()} />)
       assert.strictEqual(getModelPickerButtons(view.container).length, 2)
