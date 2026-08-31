@@ -515,7 +515,7 @@
       h: 'features/integrations/browser-extension-downloads.html',
       s: 'features/integrations/browser-extension-downloads.md',
       c: 'features',
-      d: 'Desktop Material now owns the Windows desktop surfaces and bounded message contract for a browser-extension download handoff. It does not currently ship a browser extension or…',
+      d: 'Desktop Material now owns the Windows desktop surfaces, a checked-in unpacked browser-extension entry, and a bounded native-messaging contract for a browser-extension download…',
     },
     {
       t: 'Build & Run output controls',
@@ -908,6 +908,13 @@
       s: 'features/quality-and-reliability/root-renderer-resource-lifecycle.md',
       c: 'features',
       d: 'The root App owns every long-lived renderer subscription and polling timer it starts. Store, updater, drag-manager, and IPC listeners are collected in one CompositeDisposable;…',
+    },
+    {
+      t: 'Single-flight user actions',
+      h: 'features/quality-and-reliability/single-flight-actions.html',
+      s: 'features/quality-and-reliability/single-flight-actions.md',
+      c: 'features',
+      d: 'Desktop Material prevents a rapid double-click, repeated Enter or Space key, or a second control from starting the same consequential asynchronous action twice. The protection…',
     },
     {
       t: 'Supply-chain and CI hardening',
@@ -2021,6 +2028,13 @@
       s: 'verification/tab-groups-command-palette-2026-07-22.md',
       c: 'verification',
       d: 'This receipt records local acceptance for the persistent tab-group and rich command-palette continuation. It does not claim a commit, remote publication, CI, Pages, wiki, or…',
+    },
+    {
+      t: 'UI bug audit closeout evidence',
+      h: 'verification/ui-bugs-audit-plan-t1kohh/',
+      s: 'verification/ui-bugs-audit-plan-t1kohh/README.md',
+      c: 'verification',
+      d: 'Date: 2026-08-29',
     },
     {
       t: 'UI design audit cleanup ledger',

@@ -4,13 +4,19 @@ import classNames from 'classnames'
 import { Tooltip } from './tooltip'
 import { createObservableRef } from './observable-ref'
 import { getButtonHint } from './button'
+import { singleFlightActions } from '../../lib/single-flight-action'
+
+let nextLinkButtonActionId = 0
 
 interface ILinkButtonProps {
   /** A URI to open on click. */
   readonly uri?: string
 
   /** A function to call on click. */
-  readonly onClick?: () => void
+  readonly onClick?: () => void | PromiseLike<unknown>
+
+  /** Coordinate alternate controls which start the same consequential action. */
+  readonly activationKey?: string
 
   /** A function to call when mouse is hovered over */
   readonly onMouseOver?: () => void
@@ -41,10 +47,26 @@ interface ILinkButtonProps {
  */
 export class LinkButton extends React.Component<ILinkButtonProps, {}> {
   private readonly anchorRef = createObservableRef<HTMLAnchorElement>()
+  private readonly instanceActivationKey = `link-button:${++nextLinkButtonActionId}`
+  private unsubscribeFromAction: (() => void) | null = null
+
+  public componentDidMount() {
+    this.subscribeToAction()
+  }
+
+  public componentDidUpdate(previousProps: ILinkButtonProps) {
+    if (previousProps.activationKey !== this.props.activationKey) {
+      this.subscribeToAction()
+    }
+  }
+
+  public componentWillUnmount() {
+    this.unsubscribeFromAction?.()
+  }
 
   public render() {
     const href = this.props.uri || ''
-    const disabled = this.props.disabled === true
+    const disabled = this.props.disabled === true || this.isActionActive
     /**
      * If this component is to open something external like a link, it should
      * have the role of link as is default by the <a> tag. If this component is
@@ -73,6 +95,7 @@ export class LinkButton extends React.Component<ILinkButtonProps, {}> {
         tabIndex={disabled ? -1 : this.props.tabIndex}
         aria-label={this.props.ariaLabel}
         aria-disabled={disabled || undefined}
+        aria-busy={this.isActionActive || undefined}
         role={role}
       >
         {tooltip && (
@@ -91,18 +114,40 @@ export class LinkButton extends React.Component<ILinkButtonProps, {}> {
   private onClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault()
 
-    if (this.props.disabled) {
+    if (this.props.disabled || this.isActionActive) {
       return
     }
 
     const uri = this.props.uri
     if (uri) {
-      shell.openExternal(uri)
+      const onClick = this.props.onClick
+      void singleFlightActions.run(this.activationKey, () => {
+        const opened = shell.openExternal(uri)
+        const clicked = onClick?.()
+        return Promise.all([opened, clicked])
+      })
+      return
     }
 
     const onClick = this.props.onClick
     if (onClick) {
-      onClick()
+      void singleFlightActions.run(this.activationKey, onClick)
     }
+  }
+
+  private get activationKey() {
+    return this.props.activationKey ?? this.instanceActivationKey
+  }
+
+  private get isActionActive() {
+    return singleFlightActions.isActive(this.activationKey)
+  }
+
+  private subscribeToAction() {
+    this.unsubscribeFromAction?.()
+    this.unsubscribeFromAction = singleFlightActions.subscribe(
+      this.activationKey,
+      () => this.forceUpdate()
+    )
   }
 }

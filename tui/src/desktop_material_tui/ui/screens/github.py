@@ -25,6 +25,7 @@ from textual.widgets import (
 )
 
 from ...application.search import RegexFlags, SearchMode, SearchService
+from ..action_flight import single_flight_actions
 from ..widgets.responsive_layout import ResponsiveFormRow, ScrollableToolbar
 from ..widgets.search_bar import SearchBar, SearchState
 from .dialogs import DecisionDialog
@@ -2478,4 +2479,7 @@ class GitHubPane(Vertical):
         }
         action = actions.get(event.button.id or "")
         if action:
-            action()
+            button_id = event.button.id or "unknown"
+            single_flight_actions.start(
+                self, event.button, f"github:{button_id}", action
+            )

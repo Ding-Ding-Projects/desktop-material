@@ -49,6 +49,7 @@ from ...infrastructure.git.advanced import (
     PullPreview,
     RebasePreview,
 )
+from ..action_flight import single_flight_actions
 from ..widgets.png_picture import (
     MAX_PNG_BYTES,
     decode_png_bytes,
@@ -706,20 +707,20 @@ class ChangesPane(RepositoryPane):
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         button_id = event.button.id
-        if button_id == "changes-refresh":
-            self.reload()
-        elif button_id == "commit-author-refresh":
-            self._load_effective_author()
-        elif button_id == "commit-suggest-offline":
-            self._suggest_commit_message()
-        elif button_id == "changes-stage":
-            self._stage()
-        elif button_id == "changes-unstage":
-            self._unstage()
-        elif button_id == "changes-discard":
-            self._confirm_discard()
-        elif button_id in {"commit-submit", "commit-push"}:
-            self._commit(push=button_id == "commit-push")
+        actions: dict[str, Callable[[], object]] = {
+            "changes-refresh": self.reload,
+            "commit-author-refresh": self._load_effective_author,
+            "commit-suggest-offline": self._suggest_commit_message,
+            "changes-stage": self._stage,
+            "changes-unstage": self._unstage,
+            "changes-discard": self._confirm_discard,
+            "commit-submit": lambda: self._commit(push=False),
+            "commit-push": lambda: self._commit(push=True),
+        }
+        if button_id is not None and (action := actions.get(button_id)) is not None:
+            single_flight_actions.start(
+                self, event.button, f"changes:{button_id}", action
+            )
 
     @work(exclusive=True, group="commit-author")
     async def _load_effective_author(self) -> None:
@@ -1105,15 +1106,20 @@ class HistoryPane(RepositoryPane):
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         button_id = event.button.id
-        if button_id == "history-refresh":
-            self.reload()
-        elif button_id == "history-load-more":
-            self._load_more_history()
-        elif button_id == "history-file":
-            self._load_file_history()
-        elif button_id == "history-blame":
-            self._load_blame()
-        elif button_id == "history-copy":
+        immediate: dict[str, Callable[[], object]] = {
+            "history-refresh": self.reload,
+            "history-load-more": self._load_more_history,
+            "history-file": self._load_file_history,
+            "history-blame": self._load_blame,
+        }
+        if button_id is not None and (
+            immediate_action := immediate.get(button_id)
+        ) is not None:
+            single_flight_actions.start(
+                self, event.button, f"history:{button_id}", immediate_action
+            )
+            return
+        if button_id == "history-copy":
             commit = self._selected_commit()
             if commit is not None:
                 oid = str(_value(commit, "oid", _value(commit, "sha", "")))
@@ -1656,7 +1662,9 @@ class BranchesPane(RepositoryPane):
         elif button_id == "branches-rebase":
             self._prepare_rebase_preview()
         elif button_id == "branch-create":
-            self._create_branch()
+            single_flight_actions.start(
+                self, event.button, "branches:create", self._create_branch
+            )
         elif button_id == "branch-rename":
             branch = self._selected()
             if branch is None:
@@ -1670,9 +1678,19 @@ class BranchesPane(RepositoryPane):
                 return
             name = str(_value(branch, "name", ""))
             if button_id == "branches-checkout":
-                self._checkout(name)
+                single_flight_actions.start(
+                    self,
+                    event.button,
+                    f"branches:checkout:{name}",
+                    lambda: self._checkout(name),
+                )
             elif button_id == "branches-merge":
-                self._preview_merge(name)
+                single_flight_actions.start(
+                    self,
+                    event.button,
+                    f"branches:merge-preview:{name}",
+                    lambda: self._preview_merge(name),
+                )
             else:
                 self._confirm_delete(name)
 
@@ -2243,11 +2261,26 @@ class StashesPane(RepositoryPane):
             ref = str(_value(stash, "ref", ""))
             oid = str(_value(stash, "oid", ""))
             if button_id == "stashes-apply":
-                self._apply(ref, oid, pop=False)
+                single_flight_actions.start(
+                    self,
+                    event.button,
+                    f"stashes:apply:{oid}",
+                    lambda: self._apply(ref, oid, pop=False),
+                )
             elif button_id == "stashes-pop":
-                self._apply(ref, oid, pop=True)
+                single_flight_actions.start(
+                    self,
+                    event.button,
+                    f"stashes:pop:{oid}",
+                    lambda: self._apply(ref, oid, pop=True),
+                )
             elif button_id == "stashes-branch":
-                self._branch_from(ref, oid)
+                single_flight_actions.start(
+                    self,
+                    event.button,
+                    f"stashes:branch:{oid}",
+                    lambda: self._branch_from(ref, oid),
+                )
             else:
                 self._confirm_drop(ref, oid)
 
@@ -2509,7 +2542,9 @@ class RepositoryToolsPane(RepositoryPane):
             if callable(opener):
                 opener()
         elif event.button.id == "tag-create":
-            self._create_tag()
+            single_flight_actions.start(
+                self, event.button, "tools:create-tag", self._create_tag
+            )
         elif event.button.id == "tag-delete":
             tag = self._selected_tag()
             if tag is None:

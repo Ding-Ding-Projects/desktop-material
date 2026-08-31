@@ -25,13 +25,7 @@
  * lets controls in unrelated parts of the tree report `aria-busy`.
  */
 
-import {
-  claimInFlight,
-  EmptyInFlightGuard,
-  InFlightGuardState,
-  isInFlight,
-  releaseInFlight,
-} from './cheap-lfs/in-flight-guard'
+import { SingleFlightActionRegistry } from './single-flight-action'
 
 /** The kinds of "hand this path to something outside the app" action. */
 export type ExternalOpenKind =
@@ -60,84 +54,10 @@ export function externalOpenTarget(
 }
 
 /** An observable registry of the external opens currently in flight. */
-export class ExternalOpenGuard {
-  private state: InFlightGuardState = EmptyInFlightGuard
-  private readonly listeners = new Set<() => void>()
-
+export class ExternalOpenGuard extends SingleFlightActionRegistry {
   /** Is an open for this exact target still starting? */
   public isOpening(target: string): boolean {
-    return isInFlight(this.state, target)
-  }
-
-  /**
-   * Observe claim and release so a control can render `aria-busy` while its own
-   * target is opening. Returns the unsubscribe function.
-   */
-  public subscribe(listener: () => void): () => void {
-    this.listeners.add(listener)
-    return () => {
-      this.listeners.delete(listener)
-    }
-  }
-
-  /**
-   * Claim `target` and run `work`.
-   *
-   * The claim is taken synchronously, so a second call for the same target made
-   * before the first one settles does nothing at all and resolves to
-   * `undefined` — one gesture, one process. Calls for different targets are
-   * independent. A synchronous throw from `work` propagates unchanged (and
-   * releases the claim) so guarding a call cannot alter its error handling.
-   */
-  public run<T>(
-    target: string,
-    work: () => T | PromiseLike<T>
-  ): Promise<T | undefined> {
-    const claim = claimInFlight(this.state, target)
-    if (!claim.accepted) {
-      return Promise.resolve(undefined)
-    }
-    this.setState(claim.state)
-
-    let started: T | PromiseLike<T>
-    try {
-      started = work()
-    } catch (error) {
-      this.release(target)
-      throw error
-    }
-
-    return Promise.resolve(started).then(
-      value => {
-        this.release(target)
-        return value
-      },
-      error => {
-        this.release(target)
-        throw error
-      }
-    )
-  }
-
-  private release(target: string) {
-    this.setState(releaseInFlight(this.state, target))
-  }
-
-  private setState(next: InFlightGuardState) {
-    // `claimInFlight`/`releaseInFlight` return the guard they were given when
-    // nothing changed, so identity is enough to skip a pointless notification.
-    if (next === this.state) {
-      return
-    }
-    this.state = next
-    // Copy first: a listener is allowed to unsubscribe while being notified.
-    for (const listener of Array.from(this.listeners)) {
-      try {
-        listener()
-      } catch (error) {
-        log.error('External open guard listener failed', error)
-      }
-    }
+    return this.isActive(target)
   }
 }
 

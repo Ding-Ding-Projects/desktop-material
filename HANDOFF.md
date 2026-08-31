@@ -1,5 +1,32 @@
 # Desktop Material — Active parity handoff
 
+## Repeated-action safety and canonical completion in progress — 2026-08-30
+
+Issue #215 and Discussion #216 track a new task on
+`codex/complete-universal-features-single-flight`, based on
+`83c91f6964cc1799fcc7e1d4fcd23f90e5e017f6`.
+
+The first milestone adds a renderer-wide `SingleFlightActionRegistry`. Shared
+buttons, callback links, forms, Material icon/text controls, and toolbar
+buttons claim synchronously, expose busy semantics while a returned promise is
+pending, release on every settlement path, and release synchronous handlers
+before returning. Separate controls can share one semantic `activationKey`.
+The existing external-open guard now reuses this registry.
+
+The Linux terminal edition has the corresponding `SingleFlightActions`
+coordinator around Textual workers. The main toolbar/settings/notification
+actions and the GitHub workspace are routed through it, with additional
+repository, Cheap LFS, and advanced-tool routes in progress. The focused
+evidence currently consists of 21 passing renderer tests, three passing
+terminal tests, clean TypeScript compilation, clean focused mypy, and clean
+focused ruff. No built-application interaction, screenshot, package, release,
+or complete universal-feature verdict is claimed yet.
+
+The broader task remains open. The current universal inventory begins with 101
+present and 333 pending evidence records, and the terminal parity ledger begins
+with 49 adapted, 62 partial, 97 not-yet-available, and two terminal-owned rows.
+Those figures are baselines, not completion claims.
+
 ## Remaining plain HTML controls converted to shared Material primitives — 2026-08-22
 
 A six-lane fleet sweep classified every raw `button`/`input`/`select`/`textarea`

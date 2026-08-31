@@ -23,6 +23,10 @@ contracts that span more than one user workflow.
 
 ## Features / 功能
 
+- [Single-flight user actions](single-flight-actions.md) — synchronously claim
+  consequential asynchronous controls before their callback runs, keep the
+  claim for the returned promise, and leave synchronous repeatable controls
+  unchanged.
 - [No-op renderer update
   suppression](no-op-render-update-suppression.md) — prevent an already-closed
   History branch list from emitting a second global app-state update and root

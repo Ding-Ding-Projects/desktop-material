@@ -1,5 +1,24 @@
 # Desktop Material roadmap
 
+## August 30 — repeated-action safety and canonical feature completion
+
+- [x] Add a renderer-wide synchronous single-flight registry with exact action
+  keys, promise-lifetime release, immediate synchronous release, and
+  target-scoped subscriptions.
+- [x] Apply the registry to shared buttons, link-style buttons, forms, Material
+  icon and text buttons, and toolbar buttons without changing the frozen shell.
+- [x] Add the equivalent Textual worker coordinator and route the primary
+  repository, GitHub, Cheap LFS, and advanced-tool action surfaces through it.
+- [x] Add focused renderer and terminal regression tests plus categorized
+  feature documentation.
+- [ ] Extend the same action contract to every remaining consequential native
+  control and alternate shortcut/menu entry path.
+- [ ] Complete every pending canonical feature and all seven evidence
+  dimensions across the Windows desktop, Linux terminal, and documentation
+  surfaces.
+- [ ] Exercise and capture every completed feature from the real built
+  artifacts, then package and verify both delivery surfaces and the live site.
+
 ## August 22 — shared Material control conformance sweep
 
 - [x] Sweep every renderer surface for raw `button`/`input`/`select`/`textarea`

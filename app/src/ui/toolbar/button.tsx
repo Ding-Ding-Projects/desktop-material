@@ -45,7 +45,12 @@ export interface IToolbarButtonProps {
    * An optional event handler for when the button is activated
    * by a pointer event or by hitting space/enter while focused.
    */
-  readonly onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void
+  readonly onClick?: (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => void | PromiseLike<unknown>
+
+  /** Coordinate alternate controls which start the same async action. */
+  readonly activationKey?: string
 
   /**
    * An optional event handler for when the button's context menu
@@ -161,7 +166,7 @@ export class ToolbarButton extends React.Component<IToolbarButtonProps, {}> {
 
   private onClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (this.props.onClick) {
-      this.props.onClick(event)
+      return this.props.onClick(event)
     }
   }
 
@@ -251,6 +256,7 @@ export class ToolbarButton extends React.Component<IToolbarButtonProps, {}> {
         )}
         <Button
           onClick={this.onClick}
+          activationKey={this.props.activationKey}
           onContextMenu={this.props.onContextMenu}
           ref={this.onButtonRef}
           onButtonRef={this.props.onButtonRef}

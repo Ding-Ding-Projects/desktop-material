@@ -42,6 +42,7 @@ from ...infrastructure.git.advanced import (
     SubmoduleRecord,
     WorktreeRecord,
 )
+from ..action_flight import single_flight_actions
 from ..widgets.responsive_layout import ScrollableToolbar
 from .dialogs import DecisionDialog
 from .repository_panes import RepositoryPane
@@ -587,6 +588,32 @@ class AdvancedPane(RepositoryPane):
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         button_id = event.button.id
+        actions: dict[str, Callable[[], object]] = {
+            "worktree-add": self._add_worktree,
+            "worktree-lock": self._lock_worktree,
+            "worktree-unlock": self._unlock_worktree,
+            "worktree-move": self._move_worktree,
+            "worktree-rename": self._rename_worktree,
+            "worktree-repair": self._repair_worktrees,
+            "submodule-update": self._update_submodules,
+            "submodule-sync": self._sync_submodules,
+            "batch-review": self._review_batch_sync,
+            "merge-all-review": self._review_merge_all,
+            "failure-diagnose": self._diagnose_failure,
+            "advanced-run-build": lambda: self._run_workspace_command(
+                "Build", "#advanced-build-command"
+            ),
+            "advanced-run-app": lambda: self._run_workspace_command(
+                "Run", "#advanced-run-command"
+            ),
+            "advanced-save-commands": self._save_commands,
+            "advanced-open-terminal": self._open_terminal,
+        }
+        if button_id is not None and (action := actions.get(button_id)) is not None:
+            single_flight_actions.start(
+                self, event.button, f"advanced:{button_id}", action
+            )
+            return
         if button_id in {
             "advanced-refresh",
             "submodule-refresh",
@@ -594,26 +621,10 @@ class AdvancedPane(RepositoryPane):
             "recovery-refresh",
         }:
             self.reload()
-        elif button_id == "worktree-add":
-            self._add_worktree()
-        elif button_id == "worktree-lock":
-            self._lock_worktree()
-        elif button_id == "worktree-unlock":
-            self._unlock_worktree()
-        elif button_id == "worktree-move":
-            self._move_worktree()
-        elif button_id == "worktree-rename":
-            self._rename_worktree()
-        elif button_id == "worktree-repair":
-            self._repair_worktrees()
         elif button_id == "worktree-remove":
             self._confirm_remove_worktree()
         elif button_id == "worktree-prune":
             self._confirm_prune_worktrees()
-        elif button_id == "submodule-update":
-            self._update_submodules()
-        elif button_id == "submodule-sync":
-            self._sync_submodules()
         elif button_id == "submodule-deinit":
             self._confirm_deinit_submodule()
         elif button_id == "sparse-apply":
@@ -622,26 +633,12 @@ class AdvancedPane(RepositoryPane):
             self._confirm_sparse_disable()
         elif button_id == "reflog-copy":
             self._copy_reflog_hash()
-        elif button_id == "batch-review":
-            self._review_batch_sync()
         elif button_id == "batch-cancel":
             self.batch_cancellation.set()
             self.app.notify(
                 "Cancellation requested; running Git commands finish, queued repositories stop.",
                 title="Batch sync",
             )
-        elif button_id == "merge-all-review":
-            self._review_merge_all()
-        elif button_id == "failure-diagnose":
-            self._diagnose_failure()
-        elif button_id == "advanced-run-build":
-            self._run_workspace_command("Build", "#advanced-build-command")
-        elif button_id == "advanced-run-app":
-            self._run_workspace_command("Run", "#advanced-run-command")
-        elif button_id == "advanced-save-commands":
-            self._save_commands()
-        elif button_id == "advanced-open-terminal":
-            self._open_terminal()
         elif button_id == "advanced-clear-output":
             self.query_one("#advanced-command-output", TextArea).text = ""
 

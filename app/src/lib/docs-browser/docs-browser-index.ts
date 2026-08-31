@@ -956,6 +956,15 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
         'docs/features/quality-and-reliability/root-renderer-resource-lifecycle.md',
     },
     {
+      id: 'quality-and-reliability/single-flight-actions',
+      category: 'quality-and-reliability',
+      title: 'Single-flight user actions',
+      description:
+        'Desktop Material prevents a rapid double-click, repeated Enter or Space key, or a second control from starting the same consequential asynchronous action twice. The protection…',
+      sourcePath:
+        'docs/features/quality-and-reliability/single-flight-actions.md',
+    },
+    {
       id: 'quality-and-reliability/supply-chain-and-ci-hardening',
       category: 'quality-and-reliability',
       title: 'Supply-chain and CI hardening',
@@ -1440,7 +1449,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'quality-and-reliability',
     label: 'Quality And Reliability',
-    count: 15,
+    count: 16,
   },
   {
     name: 'repository-management',
@@ -1460,4 +1469,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 164
+export const DocsBrowserArticleCount = 165
