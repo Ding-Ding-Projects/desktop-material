@@ -33,6 +33,13 @@ import {
   uncommittedChangesStrategyKey,
 } from '../../src/lib/stores/app-store'
 import { defaultUncommittedChangesStrategy } from '../../src/models/uncommitted-changes-strategy'
+import { AIPreferences } from '../../src/ui/preferences/ai'
+import {
+  AIAdminPolicySettingsStorageKey,
+  DefaultAIAdminPolicySettings,
+  resetAIAdminPolicySettingsCache,
+} from '../../src/lib/ai-admin-policy'
+import { Accounts } from '../../src/ui/preferences/accounts'
 
 const PromptStorageKeys = [
   confirmCheckoutCommitKey,
@@ -56,6 +63,8 @@ afterEach(() => {
   for (const key of PromptStorageKeys) {
     localStorage.removeItem(key)
   }
+  localStorage.removeItem(AIAdminPolicySettingsStorageKey)
+  resetAIAdminPolicySettingsCache()
 })
 
 describe('setting explanation', () => {
@@ -247,5 +256,90 @@ describe('setting explanation', () => {
         'A choice is recorded on this computer. Current value: off. Shipped value: on. · 呢部電腦記錄咗選擇。目前值：關。出廠值：開。'
       )
     )
+  })
+
+  it('covers the AI master, provider, and repository-default controls', () => {
+    const initial = render(<AIPreferences />)
+    assert.equal(
+      initial.container.querySelectorAll('[data-setting-explanation-id^="ai-"]')
+        .length,
+      4
+    )
+    assert.ok(
+      screen.getByRole('checkbox', {
+        name: 'Allow AI features to send diffs and file contents',
+      })
+    )
+    assert.equal(
+      initial.container
+        .querySelector('[data-setting-explanation-id="ai-master-switch"]')
+        ?.getAttribute('data-setting-provenance'),
+      'compiled-default'
+    )
+    initial.unmount()
+
+    localStorage.setItem(
+      AIAdminPolicySettingsStorageKey,
+      JSON.stringify({
+        ...DefaultAIAdminPolicySettings,
+        aiFeaturesEnabled: false,
+        defaultRepositoryEligibility: 'deny',
+      })
+    )
+    localStorage.setItem(LanguageModeStorageKey, 'bilingual')
+    resetAIAdminPolicySettingsCache()
+    const stored = render(<AIPreferences />)
+    assert.ok(
+      screen.getByRole('checkbox', {
+        name: 'Allow AI features to send diffs and file contents · 允許 AI 功能傳送 diff 同檔案內容',
+      })
+    )
+    assert.equal(
+      stored.container
+        .querySelector(
+          '[data-setting-explanation-id="ai-default-repository-eligibility"]'
+        )
+        ?.getAttribute('data-setting-provenance'),
+      'stored-choice'
+    )
+    assert.ok(
+      screen.getByText(
+        'A choice is recorded on this computer. Current value: deny. Shipped value: allow. · 呢部電腦記錄咗選擇。目前值：拒絕。出廠值：允許。'
+      )
+    )
+  })
+
+  it('covers account sign-in fields without characterizing secret values', () => {
+    localStorage.setItem(LanguageModeStorageKey, 'bilingual')
+    const view = render(
+      <Accounts
+        accounts={[]}
+        onDotComSignIn={() => undefined}
+        onEnterpriseSignIn={() => undefined}
+        onProviderSignIn={async () => {
+          throw new Error('not used by this rendering test')
+        }}
+        onLogout={() => undefined}
+        onMakeActive={() => undefined}
+        onOpenInBrowser={async () => true}
+      />
+    )
+
+    assert.equal(
+      view.container.querySelectorAll(
+        '[data-setting-explanation-id^="accounts-"]'
+      ).length,
+      11
+    )
+    assert.ok(screen.getByLabelText('Jira deployment · Jira 部署'))
+    assert.ok(screen.getByLabelText('Username · 用戶名'))
+    for (const provenance of Array.from(
+      view.container.querySelectorAll('.setting-explanation__provenance')
+    )) {
+      assert.doesNotMatch(
+        provenance.textContent ?? '',
+        /glpat-|personal access|member token|app password/i
+      )
+    }
   })
 })

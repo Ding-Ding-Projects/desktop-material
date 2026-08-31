@@ -40,6 +40,21 @@ import {
 } from '../../lib/issue-trackers/trello-client'
 import { getIssueTrackerAuthErrorMessage } from '../../lib/issue-trackers/issue-tracker-auth-error'
 import { IssueTrackerReference } from './issue-tracker-reference'
+import { getPersistedLanguageMode } from '../../lib/i18n'
+import {
+  SettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
+
+interface ITransientAccountSettingExplanation {
+  readonly id: string
+  readonly explanationEnglish: string
+  readonly explanationCantonese: string
+  readonly currentEnglish: string
+  readonly currentCantonese: string
+  readonly shippedEnglish: string
+  readonly shippedCantonese: string
+}
 
 interface IAccountsProps {
   readonly accounts: ReadonlyArray<Account>
@@ -91,6 +106,46 @@ enum SignInType {
 }
 
 export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
+  private localize(english: string, cantonese: string): string {
+    switch (getPersistedLanguageMode()) {
+      case 'cantonese':
+        return cantonese
+      case 'bilingual':
+        return `${english} · ${cantonese}`
+      default:
+        return english
+    }
+  }
+
+  private enteredState(value: string): {
+    readonly english: string
+    readonly cantonese: string
+  } {
+    return value.length === 0
+      ? { english: 'empty', cantonese: '空白' }
+      : { english: 'entered for this sign-in', cantonese: '今次登入已輸入' }
+  }
+
+  private renderTransientExplanation(
+    value: ITransientAccountSettingExplanation
+  ): JSX.Element {
+    return (
+      <SettingExplanation
+        settingId={value.id}
+        summary={this.localize('What this setting changes', '呢個設定會改咩')}
+        explanation={this.localize(
+          value.explanationEnglish,
+          value.explanationCantonese
+        )}
+        source="runtime-only"
+        provenance={this.localize(
+          `This value is temporary for the current sign-in form. Current value: ${value.currentEnglish}. Shipped value: ${value.shippedEnglish}.`,
+          `呢個值只喺目前登入表格暫時使用。目前值：${value.currentCantonese}。出廠值：${value.shippedCantonese}。`
+        )}
+      />
+    )
+  }
+
   public state: IAccountsState = {
     // The design's static mock defaults this field to the example placeholder
     // domain ('https://gitlab.example.com'), but here the value is a real,
@@ -206,10 +261,14 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
         />
         <div className="provider-sign-in-card">
           <Select
-            label="Jira deployment"
+            label={this.localize('Jira deployment', 'Jira 部署')}
             value={this.state.jiraMode}
             disabled={loading}
             onChange={this.onJiraModeChanged}
+            ariaDescribedBy={
+              settingExplanationDescriptionIds('accounts-jira-deployment')
+                .ariaDescribedBy
+            }
           >
             <option value="basic-email-token">
               Jira Cloud (email + API token)
@@ -219,29 +278,97 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
               token)
             </option>
           </Select>
+          {this.renderTransientExplanation({
+            id: 'accounts-jira-deployment',
+            explanationEnglish:
+              'Chooses the Jira authentication flow: Cloud uses an account email and API token; Data Center and Git Integration for Jira use bearer authorization.',
+            explanationCantonese:
+              '揀 Jira 驗證流程：Cloud 用帳戶電郵同 API token；Data Center 同 Git Integration for Jira 用 bearer 授權。',
+            currentEnglish:
+              this.state.jiraMode === 'basic-email-token'
+                ? 'Jira Cloud'
+                : 'Jira Data Center / Git Integration for Jira',
+            currentCantonese:
+              this.state.jiraMode === 'basic-email-token'
+                ? 'Jira Cloud'
+                : 'Jira Data Center／Git Integration for Jira',
+            shippedEnglish: 'Jira Cloud',
+            shippedCantonese: 'Jira Cloud',
+          })}
           <TextBox
-            label="Jira server"
+            label={this.localize('Jira server', 'Jira 伺服器')}
             placeholder="https://team.atlassian.net"
             value={this.state.jiraEndpoint}
             disabled={loading}
             onValueChanged={this.onJiraEndpointChanged}
+            ariaDescribedBy={
+              settingExplanationDescriptionIds('accounts-jira-server')
+                .ariaDescribedBy
+            }
           />
+          {this.renderTransientExplanation({
+            id: 'accounts-jira-server',
+            explanationEnglish:
+              'Selects the HTTPS Jira host used for the connection and issue links.',
+            explanationCantonese: '揀連線同 issue 連結使用嘅 HTTPS Jira host。',
+            currentEnglish: this.state.jiraEndpoint,
+            currentCantonese: this.state.jiraEndpoint,
+            shippedEnglish: 'https://team.atlassian.net',
+            shippedCantonese: 'https://team.atlassian.net',
+          })}
           {isCloud && (
-            <TextBox
-              label="Account email"
-              placeholder="you@example.com"
-              value={this.state.jiraEmail}
-              disabled={loading}
-              onValueChanged={this.onJiraEmailChanged}
-            />
+            <>
+              <TextBox
+                label={this.localize('Account email', '帳戶電郵')}
+                placeholder="you@example.com"
+                value={this.state.jiraEmail}
+                disabled={loading}
+                onValueChanged={this.onJiraEmailChanged}
+                ariaDescribedBy={
+                  settingExplanationDescriptionIds('accounts-jira-email')
+                    .ariaDescribedBy
+                }
+              />
+              {this.renderTransientExplanation({
+                id: 'accounts-jira-email',
+                explanationEnglish:
+                  'Provides the Jira Cloud account identity paired with the write-only API token for this sign-in attempt.',
+                explanationCantonese:
+                  '提供今次登入嘗試入面，同只寫不讀 API token 配對嘅 Jira Cloud 帳戶身分。',
+                currentEnglish: this.enteredState(this.state.jiraEmail.trim())
+                  .english,
+                currentCantonese: this.enteredState(this.state.jiraEmail.trim())
+                  .cantonese,
+                shippedEnglish: 'empty',
+                shippedCantonese: '空白',
+              })}
+            </>
           )}
           <PasswordTextBox
-            label={isCloud ? 'API token' : 'Personal access token'}
+            label={this.localize(
+              isCloud ? 'API token' : 'Personal access token',
+              isCloud ? 'API token' : 'Personal access token'
+            )}
             placeholder={isCloud ? 'Jira API token' : 'Jira PAT'}
             value={this.state.jiraToken}
             disabled={loading}
             onValueChanged={this.onJiraTokenChanged}
+            ariaDescribedBy={
+              settingExplanationDescriptionIds('accounts-jira-authorization')
+                .ariaDescribedBy
+            }
           />
+          {this.renderTransientExplanation({
+            id: 'accounts-jira-authorization',
+            explanationEnglish:
+              'Supplies the write-only Jira authorization for this sign-in attempt. The explanation reports only whether a value was entered and never characterizes it.',
+            explanationCantonese:
+              '提供今次登入嘗試嘅只寫不讀 Jira 授權資料。說明只會報告有冇輸入，永遠唔會描述個值。',
+            currentEnglish: this.enteredState(this.state.jiraToken).english,
+            currentCantonese: this.enteredState(this.state.jiraToken).cantonese,
+            shippedEnglish: 'empty',
+            shippedCantonese: '空白',
+          })}
           <Button
             onClick={this.connectJira}
             disabled={
@@ -307,26 +434,74 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
         />
         <div className="provider-sign-in-card">
           <TextBox
-            label="Trello API server"
+            label={this.localize('Trello API server', 'Trello API 伺服器')}
             placeholder="https://api.trello.com"
             value={this.state.trelloEndpoint}
             disabled={loading}
             onValueChanged={this.onTrelloEndpointChanged}
+            ariaDescribedBy={
+              settingExplanationDescriptionIds('accounts-trello-server')
+                .ariaDescribedBy
+            }
           />
+          {this.renderTransientExplanation({
+            id: 'accounts-trello-server',
+            explanationEnglish:
+              'Selects the HTTPS Trello API host used for account verification and card links.',
+            explanationCantonese:
+              '揀帳戶驗證同卡片連結使用嘅 HTTPS Trello API host。',
+            currentEnglish: this.state.trelloEndpoint,
+            currentCantonese: this.state.trelloEndpoint,
+            shippedEnglish: 'https://api.trello.com',
+            shippedCantonese: 'https://api.trello.com',
+          })}
           <TextBox
-            label="API key"
+            label={this.localize('API key', 'API key')}
             placeholder="Trello application key"
             value={this.state.trelloKey}
             disabled={loading}
             onValueChanged={this.onTrelloKeyChanged}
+            ariaDescribedBy={
+              settingExplanationDescriptionIds('accounts-trello-api-key')
+                .ariaDescribedBy
+            }
           />
+          {this.renderTransientExplanation({
+            id: 'accounts-trello-api-key',
+            explanationEnglish:
+              'Provides the Trello application key paired with the write-only member token for this connection attempt.',
+            explanationCantonese:
+              '提供今次連線嘗試入面，同只寫不讀 member token 配對嘅 Trello application key。',
+            currentEnglish: this.enteredState(this.state.trelloKey.trim())
+              .english,
+            currentCantonese: this.enteredState(this.state.trelloKey.trim())
+              .cantonese,
+            shippedEnglish: 'empty',
+            shippedCantonese: '空白',
+          })}
           <PasswordTextBox
-            label="Token"
+            label={this.localize('Token', 'Token')}
             placeholder="Trello member token"
             value={this.state.trelloToken}
             disabled={loading}
             onValueChanged={this.onTrelloTokenChanged}
+            ariaDescribedBy={
+              settingExplanationDescriptionIds('accounts-trello-authorization')
+                .ariaDescribedBy
+            }
           />
+          {this.renderTransientExplanation({
+            id: 'accounts-trello-authorization',
+            explanationEnglish:
+              'Supplies the write-only Trello member authorization for this connection attempt. The explanation reports only whether a value was entered.',
+            explanationCantonese:
+              '提供今次連線嘗試嘅只寫不讀 Trello member 授權資料。說明只會報告有冇輸入。',
+            currentEnglish: this.enteredState(this.state.trelloToken).english,
+            currentCantonese: this.enteredState(this.state.trelloToken)
+              .cantonese,
+            shippedEnglish: 'empty',
+            shippedCantonese: '空白',
+          })}
           <Button
             onClick={this.connectTrello}
             disabled={
@@ -373,22 +548,56 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
         <div className="provider-sign-in-card gitlab-sign-in-card">
           <TextBox
             className="gitlab-mono-field"
-            label="GitLab server URL"
+            label={this.localize('GitLab server URL', 'GitLab 伺服器 URL')}
             placeholder="https://gitlab.example.com"
             value={this.state.gitLabEndpoint}
             disabled={loading}
             onValueChanged={this.onGitLabEndpointChanged}
+            ariaDescribedBy={
+              settingExplanationDescriptionIds('accounts-gitlab-server')
+                .ariaDescribedBy
+            }
           />
+          {this.renderTransientExplanation({
+            id: 'accounts-gitlab-server',
+            explanationEnglish:
+              'Selects gitlab.com or a self-hosted GitLab HTTPS endpoint for this sign-in attempt.',
+            explanationCantonese:
+              '為今次登入嘗試揀 gitlab.com 或者自寄 GitLab HTTPS endpoint。',
+            currentEnglish: this.state.gitLabEndpoint,
+            currentCantonese: this.state.gitLabEndpoint,
+            shippedEnglish: 'https://gitlab.com',
+            shippedCantonese: 'https://gitlab.com',
+          })}
           <PasswordTextBox
             className="gitlab-mono-field"
-            label="Personal access token"
+            label={this.localize(
+              'Personal access token',
+              'Personal access token'
+            )}
             // Mirrors the design's masked token placeholder: a "glpat-"
             // prefix followed by 16 bullet characters (U+2022).
             placeholder={`glpat-${'•'.repeat(16)}`}
             value={this.state.gitLabToken}
             disabled={loading}
             onValueChanged={this.onGitLabTokenChanged}
+            ariaDescribedBy={
+              settingExplanationDescriptionIds('accounts-gitlab-authorization')
+                .ariaDescribedBy
+            }
           />
+          {this.renderTransientExplanation({
+            id: 'accounts-gitlab-authorization',
+            explanationEnglish:
+              'Supplies write-only GitLab authorization for this sign-in attempt. The explanation reports only whether a value was entered.',
+            explanationCantonese:
+              '提供今次登入嘗試嘅只寫不讀 GitLab 授權資料。說明只會報告有冇輸入。',
+            currentEnglish: this.enteredState(this.state.gitLabToken).english,
+            currentCantonese: this.enteredState(this.state.gitLabToken)
+              .cantonese,
+            shippedEnglish: 'empty',
+            shippedCantonese: '空白',
+          })}
           <Button
             onClick={this.signInToGitLab}
             disabled={
@@ -426,19 +635,56 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
         </div>
         <div className="provider-sign-in-card">
           <TextBox
-            label="Username"
+            label={this.localize('Username', '用戶名')}
             placeholder="Bitbucket username"
             value={this.state.bitbucketUsername}
             disabled={loading}
             onValueChanged={this.onBitbucketUsernameChanged}
+            ariaDescribedBy={
+              settingExplanationDescriptionIds('accounts-bitbucket-username')
+                .ariaDescribedBy
+            }
           />
+          {this.renderTransientExplanation({
+            id: 'accounts-bitbucket-username',
+            explanationEnglish:
+              'Provides the Bitbucket Cloud username paired with the write-only app password for this sign-in attempt.',
+            explanationCantonese:
+              '提供今次登入嘗試入面，同只寫不讀 app password 配對嘅 Bitbucket Cloud 用戶名。',
+            currentEnglish: this.enteredState(
+              this.state.bitbucketUsername.trim()
+            ).english,
+            currentCantonese: this.enteredState(
+              this.state.bitbucketUsername.trim()
+            ).cantonese,
+            shippedEnglish: 'empty',
+            shippedCantonese: '空白',
+          })}
           <PasswordTextBox
-            label="App password"
+            label={this.localize('App password', 'App password')}
             placeholder="Bitbucket app password"
             value={this.state.bitbucketAppPassword}
             disabled={loading}
             onValueChanged={this.onBitbucketAppPasswordChanged}
+            ariaDescribedBy={
+              settingExplanationDescriptionIds(
+                'accounts-bitbucket-authorization'
+              ).ariaDescribedBy
+            }
           />
+          {this.renderTransientExplanation({
+            id: 'accounts-bitbucket-authorization',
+            explanationEnglish:
+              'Supplies the write-only Bitbucket app password for this sign-in attempt. The explanation reports only whether a value was entered.',
+            explanationCantonese:
+              '提供今次登入嘗試嘅只寫不讀 Bitbucket app password。說明只會報告有冇輸入。',
+            currentEnglish: this.enteredState(this.state.bitbucketAppPassword)
+              .english,
+            currentCantonese: this.enteredState(this.state.bitbucketAppPassword)
+              .cantonese,
+            shippedEnglish: 'empty',
+            shippedCantonese: '空白',
+          })}
           <Button
             onClick={this.signInToBitbucket}
             disabled={
