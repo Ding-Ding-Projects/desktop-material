@@ -27,6 +27,7 @@ import { LocalizedText } from '../lib/localized-text'
 import { teleportAnchor } from '../../lib/teleport-targets'
 import {
   BooleanSettingExplanation,
+  SelectionSettingExplanation,
   SettingExplanation,
   settingExplanationDescriptionIds,
 } from './settings-explanation'
@@ -307,7 +308,11 @@ export class AgentAccess extends React.Component<
                   value={token}
                   readOnly={true}
                   autoComplete="off"
-                  aria-describedby="agent-token-help"
+                  aria-describedby={`agent-token-help ${
+                    settingExplanationDescriptionIds(
+                      'agent-access-desktop-token'
+                    ).ariaDescribedBy
+                  }`}
                 />
                 <button
                   type="button"
@@ -337,6 +342,22 @@ export class AgentAccess extends React.Component<
                 Keep this desktop token private. Paired-device tokens are stored
                 separately in the OS credential vault.
               </p>
+              <SettingExplanation
+                settingId="agent-access-desktop-token"
+                summary={translate(
+                  'dialogEmoji.explanationSummary',
+                  this.state.languageMode
+                )}
+                explanation={this.localize(
+                  'Provides the runtime-generated bearer credential used by local command clients. Reveal and copy remain explicit actions.',
+                  '提供本地命令客戶端使用嘅執行期 bearer 憑證；顯示同複製仍然係明確動作。'
+                )}
+                provenance={this.localize(
+                  'Source: operating-system credential vault. Credential content and characteristics are intentionally omitted; the shipped state generates a new value only while the server is enabled.',
+                  '來源：作業系統憑證庫。憑證內容同特徵刻意省略；出廠狀態只會喺伺服器開啟期間產生新值。'
+                )}
+                source="credential-vault"
+              />
               <button
                 type="button"
                 className="agent-tonal-button"
@@ -398,6 +419,10 @@ export class AgentAccess extends React.Component<
           id="agent-remote-site-url"
           type="url"
           value={this.state.siteURLInput}
+          aria-describedby={
+            settingExplanationDescriptionIds('agent-access-site-url')
+              .ariaDescribedBy
+          }
           onChange={this.onSiteURLChanged}
           disabled={this.state.busy}
           spellCheck={false}
@@ -407,6 +432,16 @@ export class AgentAccess extends React.Component<
           selected LAN IPv4 address in the QR code. A deployed HTTPS site can be
           entered instead.
         </p>
+        <SelectionSettingExplanation
+          settingId="agent-access-site-url"
+          explanationEnglish="Sets the base URL encoded into pairing pages for the mobile connection surface."
+          explanationCantonese="設定流動連線配對頁面編碼使用嘅基本網址。"
+          currentEnglish={this.state.siteURLInput}
+          currentCantonese={this.state.siteURLInput}
+          shippedEnglish={DefaultAgentRemoteSiteURL}
+          shippedCantonese={DefaultAgentRemoteSiteURL}
+          storageKey={AgentServerSiteURLStorageKey}
+        />
 
         <label htmlFor="agent-gateway-url">
           HTTPS agent gateway <span>Optional</span>
@@ -415,6 +450,10 @@ export class AgentAccess extends React.Component<
           id="agent-gateway-url"
           type="url"
           value={this.state.gatewayURLInput}
+          aria-describedby={
+            settingExplanationDescriptionIds('agent-access-gateway-url')
+              .ariaDescribedBy
+          }
           onChange={this.onGatewayURLChanged}
           disabled={this.state.busy}
           placeholder="https://agent.example.test"
@@ -425,6 +464,16 @@ export class AgentAccess extends React.Component<
           the displayed LAN host. The gateway is used as the QR agent URL;
           Desktop Material still listens on the private LAN address below.
         </p>
+        <SelectionSettingExplanation
+          settingId="agent-access-gateway-url"
+          explanationEnglish="Sets the optional HTTPS gateway used as the command URL in pairing output while the local server keeps listening on its private-LAN address."
+          explanationCantonese="設定配對輸出用嘅可選 HTTPS gateway 命令網址，而本地伺服器仍然喺私人 LAN 地址監聽。"
+          currentEnglish={this.state.gatewayURLInput || 'empty'}
+          currentCantonese={this.state.gatewayURLInput || '留空'}
+          shippedEnglish="empty"
+          shippedCantonese="留空"
+          storageKey={AgentServerGatewayURLStorageKey}
+        />
 
         <button
           type="button"

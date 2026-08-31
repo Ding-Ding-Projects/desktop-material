@@ -27,7 +27,7 @@ visual disclosure remains collapsed.
 
 ## Current hand-written inventory
 
-The current implementation slice covers 174 controls:
+The current implementation slice covers 177 controls:
 
 | Area | Settings |
 | --- | --- |
@@ -38,7 +38,7 @@ The current implementation slice covers 174 controls:
 | AI policy | Master boundary, two provider permissions, default repository eligibility |
 | Appearance | Dialog emoji, language, both playfulness levels, base scale, auto-fit scale, theme, branch sorting, date/time/number formats, absolute dates, diff tab size, recent repositories, branch-name visibility |
 | Application identity | Display name, logo choice/visibility/image, logo shape/border/shadow/colors/geometry, name font/weight/width/case/effect/highlight, five format toggles, name size/spacing/opacity/colors |
-| Agent access | Access mode, server enabled |
+| Agent access | Access mode, server enabled, runtime credential, mobile-site URL, optional HTTPS gateway |
 | Copilot | Commit-message model, conflict-resolution model, automatic conflict use |
 | Git | Author name/email, default branch, effective identity, hook environment/shell/cache |
 | Notifications | High-signal desktop notifications and acknowledgement-only error presentation |
@@ -128,7 +128,7 @@ machine-readable provenance categories, compiled-versus-stored accessibility,
 advanced, AI-policy, Appearance, application-identity, agent-access, Copilot, Git, prompts, Sound, scheduled settings, and attention state, runtime-only
 account/reference forms, defer and first-run OpenSSH provenance, managed
 main-process server configuration, endpoint provenance, write-only credential
-and one-time-link provenance, all 174 inventory IDs, and the deliberate red
+and one-time-link provenance, all 177 inventory IDs, and the deliberate red
 inventory mutation.
 
 Built-artifact interaction and capture evidence remain pending until the

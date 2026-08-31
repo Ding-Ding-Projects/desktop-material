@@ -31,6 +31,12 @@ describe('Agent access preferences', () => {
     assert.match(markup, /data-setting-explanation-id="agent-access-enabled"/)
     assert.match(
       markup,
+      /data-setting-explanation-id="agent-access-desktop-token"/
+    )
+    assert.match(source, /settingId="agent-access-site-url"/)
+    assert.match(source, /settingId="agent-access-gateway-url"/)
+    assert.match(
+      markup,
       /aria-describedby="agent-access-mode-setting-explanation agent-access-mode-setting-provenance"/
     )
   })
