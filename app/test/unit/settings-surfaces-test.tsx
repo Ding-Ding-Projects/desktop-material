@@ -127,6 +127,42 @@ describe('Automation preferences switch + interval chips', () => {
 })
 
 describe('Advanced preferences disclosure rows', () => {
+  it('renders progressive explanations and exact source lines for every unconditional standard setting', () => {
+    const view = render(<Advanced {...advancedProps} />)
+    const expected = [
+      'advanced-auto-switch-account',
+      'advanced-repository-indicators',
+      'advanced-verbose-logging',
+      'advanced-external-credential-helper',
+      'advanced-large-repository-auto-detect',
+      'advanced-large-repository-auto-repack',
+      'advanced-browser-open-mode',
+    ]
+
+    for (const id of expected) {
+      const explanation = view.container.querySelector(
+        `[data-setting-explanation-id="${id}"]`
+      )
+      assert.ok(explanation, `missing setting explanation ${id}`)
+      assert.equal(
+        explanation.querySelector('details')?.hasAttribute('open'),
+        false
+      )
+      assert.match(
+        explanation.querySelector('.setting-explanation__provenance')
+          ?.textContent ?? '',
+        /Current|current|shipped/
+      )
+    }
+
+    assert.equal(
+      view
+        .getByRole('radiogroup', { name: 'Open web links' })
+        .getAttribute('aria-describedby'),
+      'advanced-browser-open-mode-setting-explanation advanced-browser-open-mode-setting-provenance'
+    )
+  })
+
   it('always renders the usage-stats and credential-storage disclosures', () => {
     const view = render(<Advanced {...advancedProps} />)
 

@@ -11087,8 +11087,8 @@ hidden selections.
 
 The current universal-feature task added a shared progressive explanation and
 provenance component without changing the frozen application shell. The first
-hand-written inventory covers eleven settings across Accessibility, Attention
-accommodations, and Status Hub.
+hand-written inventory covers twenty settings across Accessibility, Advanced,
+Attention accommodations, and Status Hub.
 
 ### Implemented behavior
 
@@ -11100,6 +11100,10 @@ accommodations, and Status Hub.
   explicitly saved all-off profile.
 - Accessibility provenance distinguishes the shipped-on link underline and
   diff check-mark values from explicit stored choices.
+- Advanced provenance covers automatic account switching, repository status
+  indicators, usage reporting, verbose logging, Git Credential Manager,
+  large-repository detection and repack, browser-open mode, and the contextual
+  first-run OpenSSH default.
 - Status Hub provenance distinguishes an unconfigured endpoint, stored
   application-data endpoint, absent authorization, and presence-only
   credential-vault state without reading a credential back into the renderer.
@@ -11109,14 +11113,14 @@ accommodations, and Status Hub.
 ### Verification
 
 - TypeScript no-emit passed.
-- Fourteen focused tests passed across the shared component, accessibility,
-  attention, and Status Hub.
+- Twenty-five focused tests passed across the shared component, accessibility,
+  Advanced settings, attention, and Status Hub.
 - Documentation-bundle coverage passed with 168 bundled feature articles.
 - Changelog validation and `git diff --check` passed.
 
 ### Remaining work
 
-The `settings-explanations` canonical feature remains pending. Sixty standard
+The `settings-explanations` canonical feature remains pending. Fifty-eight standard
 Checkbox, Select, and TextBox controls under `app/src/ui/preferences/` still
 lack an explicit description binding, and custom settings controls need their
 own hand-written audit. Those controls still require localized behavioral

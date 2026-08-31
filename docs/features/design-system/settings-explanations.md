@@ -27,11 +27,12 @@ visual disclosure remains collapsed.
 
 ## Current hand-written inventory
 
-The first implementation slice covers eleven controls:
+The first implementation slice covers twenty controls:
 
 | Area | Settings |
 | --- | --- |
 | Accessibility | Underline links, diff check marks |
+| Advanced | Automatic account switching, repository status indicators, usage reporting, verbose logging, Git Credential Manager, large-repository detection, large-repository repack, browser open mode, system OpenSSH |
 | Attention accommodations | Focus, Low stimulation, Time awareness, One thing at a time, Momentum, Next action, Momentum defer interval |
 | Status Hub | HTTPS endpoint, write-only authorization replacement |
 
@@ -108,10 +109,10 @@ Focused coverage lives in:
 - `app/test/unit/ui/status-hub-owner-settings-test.tsx`.
 
 The focused slice verifies collapsed disclosure, stable description IDs,
-machine-readable provenance categories, compiled-versus-stored accessibility
-and attention state, runtime-only defer provenance, endpoint provenance,
-write-only credential provenance, all eleven inventory IDs, and the deliberate
-red inventory mutation.
+machine-readable provenance categories, compiled-versus-stored accessibility,
+advanced, and attention state, runtime-only defer and first-run OpenSSH
+provenance, endpoint provenance, write-only credential provenance, all twenty
+inventory IDs, and the deliberate red inventory mutation.
 
 Built-artifact interaction and capture evidence remain pending until the
 complete settings inventory is implemented. Source-only verification is not
@@ -138,6 +139,6 @@ Desktop Material 正加入一套共用設定呈現合約：每個設定都要有
 控制項嘅 `aria-describedby` 會同時指住說明同來源，所以視覺上收埋咗說明，輔助技術
 仍然收到完整資料。
 
-第一批手寫清單有十一個控制項：連結底線、diff 剔號、五個專注調節、下一步、動力提示延後時間、Status Hub
+第一批手寫清單有二十個控制項：連結底線、diff 剔號、九個進階設定、五個專注調節、下一步、動力提示延後時間、Status Hub
 endpoint 同只寫不讀嘅授權更換欄。測試會刻意由清單移除一項，確認會變紅，還原先再
 驗證綠色。目前只係基礎切片，未完成嘅控制項同已建置程式證據仍然唔會當完成。

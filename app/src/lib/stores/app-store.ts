@@ -1153,9 +1153,9 @@ const shellKey = 'shell'
 
 const showRecentRepositoriesKey = 'show-recent-repositories'
 const showBranchNameInRepoListKey = 'show-branch-name-in-repo-list'
-const repositoryIndicatorsEnabledKey = 'enable-repository-indicators'
+export const repositoryIndicatorsEnabledKey = 'enable-repository-indicators'
 const branchSortOrderKey = 'branch-sort-order'
-const verboseLoggingKey = 'verboseLogging'
+export const verboseLoggingKey = 'verboseLogging'
 
 // background fetching should occur hourly when Desktop is active, but this
 // lower interval ensures user interactions like switching repositories and

@@ -68,7 +68,7 @@ export const SamplesURL = 'https://desktop.github.com/usage-data/'
 const LastDailyStatsReportKey = 'last-daily-stats-report'
 
 /** The localStorage key for whether the user has opted out. */
-const StatsOptOutKey = 'stats-opt-out'
+export const StatsOptOutKey = 'stats-opt-out'
 
 /** Have we successfully sent the stats opt-in? */
 const HasSentOptInPingKey = 'has-sent-stats-opt-in-ping'
