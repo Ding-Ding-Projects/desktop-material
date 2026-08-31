@@ -29,9 +29,11 @@
   including exact missing-mode rejection, safe persistence coercion, independent
   controls, settings-search and command-palette registration, bilingual labels,
   and factual duration formatting; packaged interaction and captures stay open.
-- [ ] Persist the unlock-ladder rolling-hour allowance across restart and add
-  owner-configurable Status Hub endpoint/vault settings before either feature
-  can satisfy its persistence evidence.
+- [x] Persist the unlock-ladder rolling-hour allowance across restart with a
+  bounded timestamp-only file, serialized atomic writes, and malformed-state
+  refusal.
+- [ ] Add owner-configurable Status Hub endpoint/vault settings before that
+  feature can satisfy its persistence evidence.
 - [x] Add focused renderer and terminal regression tests plus categorized
   feature documentation.
 - [ ] Extend the same action contract to every remaining consequential native

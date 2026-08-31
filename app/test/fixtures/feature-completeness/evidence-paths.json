@@ -2549,10 +2549,11 @@
             "paths": [
               "app/src/models/unlock-ladder.ts",
               "app/src/main-process/unlock-ladder.ts",
+              "app/src/main-process/unlock-ladder-allowance-store.ts",
               "app/src/main-process/unlock-ladder-ipc.ts",
               "app/src/ui/unlock-ladder/unlock-ladder.tsx"
             ],
-            "note": "Server-graded single-use challenges, wait-only outcomes, all ladder rungs, School-mode start behavior, and renderer interaction are implemented; durable rolling-budget persistence remains open."
+            "note": "Server-graded single-use challenges, wait-only outcomes, all ladder rungs, School-mode start behavior, durable serialized rolling-budget persistence, and renderer interaction are implemented."
           }
         ],
         "documentation": [
@@ -2576,8 +2577,13 @@
         ],
         "persistence": [
           {
-            "status": "pending",
-            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+            "status": "present",
+            "paths": [
+              "app/src/main-process/unlock-ladder-allowance-store.ts",
+              "app/src/main-process/unlock-ladder-ipc.ts",
+              "app/test/unit/unlock-ladder-test.ts"
+            ],
+            "note": "The application reloads a bounded versioned timestamp-only file from userData, atomically serializes simultaneous spends, prunes the rolling window, and fails closed on malformed state."
           }
         ],
         "focusedTest": [
@@ -2586,7 +2592,7 @@
             "paths": [
               "app/test/unit/unlock-ladder-test.ts"
             ],
-            "note": "Five focused tests pass for School-mode start, rolling cap, wrong-answer escalation, nonce consumption, no authentication, no attempt refund, and wait-deadline clearing."
+            "note": "Eight focused tests pass for School-mode start, rolling cap, wrong-answer escalation, nonce consumption, no authentication, no attempt refund, wait-deadline clearing, restart persistence, serialized concurrent spending, and malformed-file refusal."
           }
         ],
         "builtArtifactInteraction": [

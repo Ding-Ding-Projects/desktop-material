@@ -63,11 +63,11 @@ coverage for endpoint validation, missing authorization, bounded publish
 responses, reply filtering, delivery confirmation, and all four rendered
 connection states. The ladder tests prove School-mode start behavior, the
 rolling cap, nonce consumption, no authentication, no attempt refund, and
-wait-only recovery. Eight evidence records move from pending to present. Their
-persistence rows remain pending: the Hub still needs owner-configurable
-endpoint/vault settings, and the ladder's rolling-hour allowance is currently
-process-memory-only. The total evidence baseline is now 115 present and 319
-pending.
+wait-only recovery. Eight evidence records move from pending to present. The
+Hub still needs owner-configurable endpoint/vault settings. A later milestone
+adds durable timestamp-only persistence for the ladder's rolling-hour
+allowance. The total evidence baseline at this earlier milestone was 115
+present and 319 pending.
 
 The broader `agent-sessions-panel-test.tsx` remains baseline red in two
 unrelated assertions: a removed transcript region and a null-versus-empty form
@@ -191,9 +191,13 @@ count remains, the attempt budget is not refunded, and the prompt returns to its
 ordinary credential field. The ladder result cannot create an unlock, session,
 cookie, or authenticated state.
 
-Focused evidence: `app/test/unit/unlock-ladder-test.ts`, 5/5 tests passing. The
-packaged Windows interaction and screenshots remain pending because the approved
-cheap headless route was not run in this lane.
+Focused evidence: `app/test/unit/unlock-ladder-test.ts`, 8/8 tests passing. The
+main process now persists a bounded, versioned, timestamp-only allowance below
+the application user-data directory. A new process reloads the same rolling
+hour, simultaneous spends serialize so only three land, and malformed state
+leaves the wait intact. No credential, attempt count, answer, or authentication
+state enters the file. The packaged Windows interaction and screenshots remain
+pending because the approved cheap headless route was not run in this lane.
 
 ## Current frozen-renderer capture ledger — 2026-08-21
 
