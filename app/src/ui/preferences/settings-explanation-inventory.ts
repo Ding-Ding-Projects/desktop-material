@@ -106,6 +106,8 @@ export const ImplementedSettingExplanationIds = [
   'git-hook-environment-enabled',
   'git-hook-environment-shell',
   'git-show-commit-identity',
+  'notifications-enabled',
+  'notifications-error-presentation',
   'attention-one-thing-at-a-time',
   'attention-momentum',
   'attention-next-action',
