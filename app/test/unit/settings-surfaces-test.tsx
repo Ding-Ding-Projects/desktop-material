@@ -317,6 +317,24 @@ describe('Integrations application cards', () => {
     })
     assert.match(editorButton.textContent ?? '', /Visual Studio Code/)
     assert.match(editorButton.textContent ?? '', /unfold_more/)
+    for (const id of ['integrations-external-editor', 'integrations-shell']) {
+      assert.ok(
+        view.container.querySelector(`[data-setting-explanation-id="${id}"]`),
+        `missing setting explanation ${id}`
+      )
+    }
+    if (__WIN32__) {
+      for (const id of [
+        'integrations-context-menu-opencode',
+        'integrations-context-menu-desktop-material',
+        'integrations-context-menu-modern',
+      ]) {
+        assert.ok(
+          view.container.querySelector(`[data-setting-explanation-id="${id}"]`),
+          `missing setting explanation ${id}`
+        )
+      }
+    }
     // No native <select> remains in the applications cards section.
     const cards = view.container.querySelector('.integration-application-cards')
     assert.ok(cards !== null)
@@ -342,6 +360,32 @@ describe('Integrations application cards', () => {
     fireEvent.click(atom)
 
     await waitFor(() => assert.deepEqual(dispatched, ['Atom']))
+  })
+
+  it('covers every custom integration path and argument field', () => {
+    const view = render(
+      <Integrations
+        {...integrationProps}
+        useCustomEditor={true}
+        useCustomShell={true}
+        branchPresetScript={{ path: 'C:\\preset.exe', arguments: '' }}
+        onSelectedEditorChanged={() => undefined}
+      />
+    )
+
+    for (const id of [
+      'custom-editor-path',
+      'custom-editor-arguments',
+      'custom-shell-path',
+      'custom-shell-arguments',
+      'branch-preset-script-path',
+      'branch-preset-script-arguments',
+    ]) {
+      assert.ok(
+        view.container.querySelector(`[data-setting-explanation-id="${id}"]`),
+        `missing setting explanation ${id}`
+      )
+    }
   })
 })
 

@@ -4,7 +4,11 @@ import { DialogContent } from '../dialog'
 import { LinkButton } from '../lib/link-button'
 import { Row } from '../../ui/lib/row'
 import { MaterialSymbol } from '../lib/material-symbol'
-import { Shell, parse as parseShell } from '../../lib/shells'
+import {
+  Default as DefaultShell,
+  Shell,
+  parse as parseShell,
+} from '../../lib/shells'
 import { suggestedExternalEditor } from '../../lib/editors/shared'
 import { CustomIntegrationForm } from './custom-integration-form'
 import { ICustomIntegration } from '../../lib/custom-integration'
@@ -29,6 +33,18 @@ import { isModernContextMenuActionable } from '../../lib/shell-extension-package
 import { BrowserExtensionIntegrationAvailability } from '../../lib/browser-extension-download'
 import { BrowserExtensionDownloadIntegrationStatus } from '../browser-extension-download/browser-extension-download-surfaces'
 import { StatusHubOwnerSettings } from './status-hub-owner-settings'
+import {
+  branchPresetScriptKey,
+  customEditorKey,
+  customShellKey,
+  externalEditorKey,
+  shellKey,
+} from '../../lib/stores/app-store'
+import {
+  SelectionSettingExplanation,
+  SettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 
 const CustomIntegrationValue = 'other'
 const BranchPresetScriptDocumentationUrl =
@@ -88,6 +104,17 @@ export class Integrations extends React.Component<
 > {
   private customEditorFormRef = React.createRef<CustomIntegrationForm>()
   private customShellFormRef = React.createRef<CustomIntegrationForm>()
+
+  private localizeText(english: string, cantonese: string): string {
+    switch (this.state.languageMode) {
+      case 'cantonese':
+        return cantonese
+      case 'bilingual':
+        return `${english} · ${cantonese}`
+      default:
+        return english
+    }
+  }
 
   public constructor(props: IIntegrationsPreferencesProps) {
     super(props)
@@ -244,34 +271,58 @@ export class Integrations extends React.Component<
     readonly menuAriaLabel: string
     readonly disabled: boolean
     readonly onOpenMenu: () => void
+    readonly settingId: string
+    readonly currentValue: string
+    readonly shippedValue: string
+    readonly storageKey: string
+    readonly explanationEnglish: string
+    readonly explanationCantonese: string
   }) {
     // The icon doubles as the teleport identity: the palette's "external
     // editor" and "shell" rows land on these cards.
     const anchor =
       config.icon === 'code' ? 'settings-external-editor' : 'settings-shell'
     return (
-      <div className="integration-application-card" {...teleportAnchor(anchor)}>
-        <span className="preference-disclosure-icon">
-          <MaterialSymbol name={config.icon} size={21} />
-        </span>
-        <span className="preference-disclosure-text">
-          <span className="preference-disclosure-title">{config.title}</span>
-          <span className="preference-disclosure-subtitle">
-            {config.subtitle}
-          </span>
-        </span>
-        <button
-          type="button"
-          className="integration-application-menu-button"
-          aria-haspopup="menu"
-          aria-label={config.menuAriaLabel}
-          disabled={config.disabled}
-          onClick={config.onOpenMenu}
+      <>
+        <div
+          className="integration-application-card"
+          {...teleportAnchor(anchor)}
         >
-          {config.buttonLabel}
-          <MaterialSymbol name="unfold_more" size={18} />
-        </button>
-      </div>
+          <span className="preference-disclosure-icon">
+            <MaterialSymbol name={config.icon} size={21} />
+          </span>
+          <span className="preference-disclosure-text">
+            <span className="preference-disclosure-title">{config.title}</span>
+            <span className="preference-disclosure-subtitle">
+              {config.subtitle}
+            </span>
+          </span>
+          <button
+            type="button"
+            className="integration-application-menu-button"
+            aria-haspopup="menu"
+            aria-label={config.menuAriaLabel}
+            aria-describedby={
+              settingExplanationDescriptionIds(config.settingId).ariaDescribedBy
+            }
+            disabled={config.disabled}
+            onClick={config.onOpenMenu}
+          >
+            {config.buttonLabel}
+            <MaterialSymbol name="unfold_more" size={18} />
+          </button>
+        </div>
+        <SelectionSettingExplanation
+          settingId={config.settingId}
+          explanationEnglish={config.explanationEnglish}
+          explanationCantonese={config.explanationCantonese}
+          currentEnglish={config.currentValue}
+          currentCantonese={config.currentValue}
+          shippedEnglish={config.shippedValue}
+          shippedCantonese={config.shippedValue}
+          storageKey={config.storageKey}
+        />
+      </>
     )
   }
 
@@ -304,6 +355,14 @@ export class Integrations extends React.Component<
       menuAriaLabel: `${purpose}: ${currentLabel}`,
       disabled: !hasChoices,
       onOpenMenu: this.onOpenEditorMenu,
+      settingId: 'integrations-external-editor',
+      currentValue: currentLabel,
+      shippedValue: 'automatic first detected editor',
+      storageKey: externalEditorKey,
+      explanationEnglish:
+        'Chooses the detected or custom external editor used to open exported files and project folders.',
+      explanationCantonese:
+        '揀用嚟開啟匯出檔案同專案資料夾嘅已偵測或者自訂外部編輯器。',
     })
   }
 
@@ -361,6 +420,7 @@ export class Integrations extends React.Component<
           ref={this.customEditorFormRef}
           path={this.state.customEditor.path ?? ''}
           arguments={this.state.customEditor.arguments}
+          storageKey={customEditorKey}
           onPathChanged={this.onCustomEditorPathChanged}
           onArgumentsChanged={this.onCustomEditorArgumentsChanged}
         />
@@ -411,6 +471,13 @@ export class Integrations extends React.Component<
       menuAriaLabel: `${purpose}: ${currentLabel}`,
       disabled: !hasChoices,
       onOpenMenu: this.onOpenShellMenu,
+      settingId: 'integrations-shell',
+      currentValue: currentLabel,
+      shippedValue: DefaultShell,
+      storageKey: shellKey,
+      explanationEnglish:
+        'Chooses the detected or custom shell used by terminal and command integrations.',
+      explanationCantonese: '揀終端同命令整合使用嘅已偵測或者自訂 shell。',
     })
   }
 
@@ -448,6 +515,7 @@ export class Integrations extends React.Component<
           ref={this.customShellFormRef}
           path={this.state.customShell.path}
           arguments={this.state.customShell.arguments}
+          storageKey={customShellKey}
           onPathChanged={this.onCustomShellPathChanged}
           onArgumentsChanged={this.onCustomShellArgumentsChanged}
         />
@@ -502,6 +570,7 @@ export class Integrations extends React.Component<
           id="branch-preset-script"
           path={this.state.branchPresetScript.path}
           arguments={this.state.branchPresetScript.arguments}
+          storageKey={branchPresetScriptKey}
           hideArgumentsWhenPathEmpty={true}
           allowEmptyPath={true}
           requireTargetPathArgument={false}
@@ -615,6 +684,10 @@ export class Integrations extends React.Component<
     const entry = contextMenu?.entries.find(candidate => candidate.id === id)
     const unavailable = entry?.unavailableReason ?? null
     const descriptionId = `context-menu-${id}-description`
+    const settingId =
+      id === 'open-with-opencode'
+        ? 'integrations-context-menu-opencode'
+        : 'integrations-context-menu-desktop-material'
 
     // `outdated` means the verb is present but does not match this install.
     // It renders as on — because Explorer really does show it — with a repair
@@ -639,7 +712,9 @@ export class Integrations extends React.Component<
             contextMenuBusyId !== null ||
             (unavailable !== null && !checked)
           }
-          ariaDescribedBy={descriptionId}
+          ariaDescribedBy={`${descriptionId} ${
+            settingExplanationDescriptionIds(settingId).ariaDescribedBy
+          }`}
         />
         <p id={descriptionId} className="settings-description">
           {translate(descriptionKey, languageMode)}
@@ -659,6 +734,20 @@ export class Integrations extends React.Component<
             <> {translate('settings.contextMenuNeedsRepair', languageMode)}</>
           )}
         </p>
+        <SettingExplanation
+          settingId={settingId}
+          summary={translate('dialogEmoji.explanationSummary', languageMode)}
+          explanation={translate(descriptionKey, languageMode)}
+          provenance={this.localizeText(
+            `Current registry value: ${
+              entry?.state ?? 'not read'
+            }. Shipped value: not installed. Source: live Explorer registration.`,
+            `目前登錄值：${
+              entry?.state ?? '未讀取'
+            }。出廠值：未安裝。來源：即時 Explorer 登記。`
+          )}
+          source="main-process-config"
+        />
       </div>
     )
   }
@@ -703,6 +792,7 @@ export class Integrations extends React.Component<
     const mode = contextMenu?.mode ?? null
     const blocker = contextMenu?.modernBlocker ?? null
     const descriptionId = 'context-menu-modern-description'
+    const settingId = 'integrations-context-menu-modern'
 
     const blockerText =
       blocker === 'requires-windows-11'
@@ -741,7 +831,9 @@ export class Integrations extends React.Component<
             // current install.
             (!isModernContextMenuActionable(blocker) && mode !== 'modern')
           }
-          ariaDescribedBy={descriptionId}
+          ariaDescribedBy={`${descriptionId} ${
+            settingExplanationDescriptionIds(settingId).ariaDescribedBy
+          }`}
         />
         <p id={descriptionId} className="settings-description">
           {translate('settings.contextMenuModernDescription', languageMode)}
@@ -750,6 +842,23 @@ export class Integrations extends React.Component<
           {translate('settings.contextMenuPlacementNote', languageMode)}
           {blockerText !== null && <> {blockerText}</>}
         </p>
+        <SettingExplanation
+          settingId={settingId}
+          summary={translate('dialogEmoji.explanationSummary', languageMode)}
+          explanation={translate(
+            'settings.contextMenuModernDescription',
+            languageMode
+          )}
+          provenance={this.localizeText(
+            `Current registered mode: ${
+              mode ?? 'not read'
+            }. Shipped value: not installed. Source: live Explorer registration.`,
+            `目前已登記模式：${
+              mode ?? '未讀取'
+            }。出廠值：未安裝。來源：即時 Explorer 登記。`
+          )}
+          source="main-process-config"
+        />
         {modeText !== null && (
           <p className="settings-description context-menu-mode" role="status">
             {modeText}

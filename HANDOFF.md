@@ -11087,7 +11087,7 @@ hidden selections.
 
 The current universal-feature task added a shared progressive explanation and
 provenance component without changing the frozen application shell. The first
- hand-written inventory covers 191 settings across Accounts, issue references,
+ hand-written inventory covers 202 settings across Accounts, issue references,
 Accessibility, Advanced, AI policy, Appearance and application identity, agent access, Git, Copilot, Sound, Prompts, self-hosted server setup,
  Attention accommodations, and Status Hub.
 
@@ -11150,6 +11150,9 @@ Accessibility, Advanced, AI policy, Appearance and application identity, agent a
 - Global-ignore provenance distinguishes unconfigured, configured existing,
   and configured new files without repeating the private path, and reports the
   current non-empty pattern count separately.
+- Integration provenance covers external editor and shell selection, all six
+  custom executable/argument fields, and the three live Explorer registration
+  controls. Private paths and argument contents are not repeated.
 - Git provenance covers global author identity, default branch, effective
   identity display, and hook environment settings.
 - Sound provenance covers the full global audio system, effects, narrator,
@@ -11172,17 +11175,17 @@ Accessibility, Advanced, AI policy, Appearance and application identity, agent a
 ### Verification
 
 - TypeScript no-emit passed.
-- One hundred eight focused tests passed across thirteen selected files covering
-  the shared component, scheduled settings, accessibility, Advanced settings,
-  attention, and Status Hub.
+- One hundred eighty-four focused tests passed across twenty-one selected files
+  covering the shared component and every direct settings surface.
 - Documentation-bundle coverage passed with 168 bundled feature articles.
 - Changelog validation and `git diff --check` passed.
 
 ### Remaining work
 
-The `settings-explanations` canonical feature remains pending. Every standard
-Checkbox, Select, and TextBox control under `app/src/ui/preferences/` now has an
-explicit description binding, while custom settings controls still need their
-own hand-written audit. Those controls still require localized behavioral copy,
-exact current/source/shipped-value provenance, focused tests, built interaction,
-and real capture evidence before the feature row can be promoted.
+The `settings-explanations` canonical feature remains pending only on built
+interaction and real capture evidence. Every direct Preferences and settings
+navigation control now has localized behavioral copy, exact
+current/source/shipped-value provenance, an explicit accessible-description
+binding, a hand-written inventory row, and focused source proof. Entry-specific
+controls inside the authenticator, locks, and Ollama managers remain governed
+by those managers' own feature inventories rather than duplicated here.

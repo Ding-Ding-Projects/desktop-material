@@ -27,12 +27,13 @@ visual disclosure remains collapsed.
 
 ## Current hand-written inventory
 
-The current implementation slice covers 191 controls:
+The current implementation slice covers 202 controls:
 
 | Area | Settings |
 | --- | --- |
 | Accounts | Jira deployment/server/email/authorization, Trello server/key/authorization, GitLab server/authorization, Bitbucket username/authorization |
 | Issue references | Jira Cloud project/item, Jira Data Center project/item, Trello board/card |
+| Integrations | External editor and shell choices, six custom path/argument fields, and three Explorer registration controls |
 | Accessibility | Underline links, diff check marks |
 | Advanced | Automatic account switching, repository status indicators, usage reporting, verbose logging, Git Credential Manager, large-repository detection, large-repository repack, browser open mode, system OpenSSH |
 | AI policy | Master boundary, two provider permissions, default repository eligibility |
@@ -129,17 +130,24 @@ Focused coverage lives in:
 - `app/test/unit/attention-accommodation-test.tsx`; and
 - `app/test/unit/ui/status-hub-owner-settings-test.tsx`.
 
-The focused slice verifies collapsed disclosure, stable description IDs,
+The current focused batch passes 184 tests across 21 files. It verifies
+collapsed disclosure, stable description IDs,
 machine-readable provenance categories, compiled-versus-stored accessibility,
 advanced, AI-policy, Appearance, application-identity, agent-access, Copilot, Git, prompts, Sound, scheduled settings, and attention state, runtime-only
 account/reference forms, defer and first-run OpenSSH provenance, managed
 main-process server configuration, endpoint provenance, write-only credential
-and one-time-link provenance, all 191 inventory IDs, and the deliberate red
+and one-time-link provenance, all 202 inventory IDs, and the deliberate red
 inventory mutation.
 
-Built-artifact interaction and capture evidence remain pending until the
-complete settings inventory is implemented. Source-only verification is not
-promoted as complete feature evidence.
+Every direct control in the Preferences and settings-navigation surfaces is now
+represented by the hand-written inventory. Entry-specific controls inside the
+authenticator, locks, and Ollama managers remain governed by their own feature
+inventories rather than being duplicated as top-level settings rows.
+
+TypeScript no-emit, changelog validation, the 168-article offline documentation
+bundle, and added-public-prose scanning also pass. Built-artifact interaction
+and capture evidence remain pending. Source-only
+verification is not promoted as complete feature evidence.
 
 ## Suggested articles
 

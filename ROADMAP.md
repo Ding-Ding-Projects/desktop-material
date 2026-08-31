@@ -40,7 +40,7 @@
   live connection checks, and replace/clear controls.
 - [x] Add the shared progressive settings-explanation component, stable
   accessible-description IDs, truthful compiled/stored/runtime/vault source
-  categories, and the current exact 191-control hand-written inventory,
+  categories, and the current exact 202-control hand-written inventory,
   including every standard scheduled-settings control and repeated weekday or
   appearance-value instance, plus every application-identity selector, color,
   slider, and format toggle, together with the theme, base-scale, branch-sort,
@@ -67,9 +67,14 @@
   inputs, and credential-vault unlock input without rendering credential facts.
 - [x] Cover the managed global-ignore path state and pattern editor without
   repeating a private filesystem path in provenance copy.
-- [ ] Extend progressive explanations and exact current/source/shipped-value
+- [x] Extend progressive explanations and exact current/source/shipped-value
   provenance to every remaining settings control before promoting the
   `settings-explanations` feature row.
+- [x] Run the complete focused source batch: 184 tests across 21 files, full
+  TypeScript no-emit, changelog validation, 168 bundled documentation articles,
+  diff checking, and public-prose privacy scanning.
+- [x] Cover external-editor and shell selection, every custom executable and
+  argument field, and all three Explorer context-menu registration controls.
 - [x] Add focused renderer and terminal regression tests plus categorized
   feature documentation.
 - [ ] Extend the same action contract to every remaining consequential native

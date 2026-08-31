@@ -1133,7 +1133,7 @@ export const confirmWorktreeRemovalKey: string = 'confirmWorktreeRemoval'
 
 export const uncommittedChangesStrategyKey = 'uncommittedChangesStrategyKind'
 
-const externalEditorKey: string = 'externalEditor'
+export const externalEditorKey: string = 'externalEditor'
 
 const imageDiffTypeDefault = ImageDiffType.TwoUp
 const imageDiffTypeKey = 'image-diff-type'
@@ -1152,7 +1152,7 @@ const commitSpellcheckEnabledKey = 'commit-spellcheck-enabled'
 export const tabSizeDefault: number = 4
 export const tabSizeKey: string = 'tab-size'
 
-const shellKey = 'shell'
+export const shellKey = 'shell'
 
 export const showRecentRepositoriesKey = 'show-recent-repositories'
 export const showBranchNameInRepoListKey = 'show-branch-name-in-repo-list'
@@ -1183,11 +1183,11 @@ const pullRequestSuggestedNextActionKey =
   'pull-request-suggested-next-action-key'
 
 export const useCustomEditorKey = 'use-custom-editor'
-const customEditorKey = 'custom-editor'
+export const customEditorKey = 'custom-editor'
 
 export const useCustomShellKey = 'use-custom-shell'
-const customShellKey = 'custom-shell'
-const branchPresetScriptKey = 'branch-preset-script'
+export const customShellKey = 'custom-shell'
+export const branchPresetScriptKey = 'branch-preset-script'
 
 export const underlineLinksKey = 'underline-links'
 export const underlineLinksDefault = true
