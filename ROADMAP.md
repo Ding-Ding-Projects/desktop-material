@@ -40,7 +40,7 @@
   live connection checks, and replace/clear controls.
 - [x] Add the shared progressive settings-explanation component, stable
   accessible-description IDs, truthful compiled/stored/runtime/vault source
-  categories, and the current exact 184-control hand-written inventory,
+  categories, and the current exact 189-control hand-written inventory,
   including every standard scheduled-settings control and repeated weekday or
   appearance-value instance, plus every application-identity selector, color,
   slider, and format toggle, together with the theme, base-scale, branch-sort,
@@ -63,6 +63,8 @@
   counts and existing manager flows.
 - [x] Add privacy-safe personal-vocabulary file/cache provenance and repair all
   stale exact-line boundary anchors exposed by its focused negative regression.
+- [x] Cover School mode's shared name, enabled state, setup and confirmation
+  inputs, and credential-vault unlock input without rendering credential facts.
 - [ ] Extend progressive explanations and exact current/source/shipped-value
   provenance to every remaining settings control before promoting the
   `settings-explanations` feature row.

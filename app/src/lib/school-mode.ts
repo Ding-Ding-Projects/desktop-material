@@ -7,7 +7,7 @@ export const SchoolModeStorageKey = 'desktop-material-school-mode-v1'
 export const SchoolModeCredentialStorageKey =
   'desktop-material-school-mode-credential-v1'
 export const SchoolModeChangedEvent = 'desktop-material-school-mode-changed'
-const DefaultSchoolModeName = 'School mode'
+export const DefaultSchoolModeName = 'School mode'
 const MaximumSchoolModeNameLength = 80
 const MinimumSchoolModeCredentialLength = 4
 const MaximumSchoolModeCredentialLength = 128
