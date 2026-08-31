@@ -605,32 +605,53 @@
       "evidence": {
         "implementation": [
           {
-            "status": "pending",
-            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+            "status": "present",
+            "paths": [
+              "app/src/models/attention-accommodation.ts",
+              "app/src/ui/attention/attention-accommodation-runtime.tsx",
+              "app/src/ui/preferences/attention-accommodations.tsx",
+              "app/styles/ui/_attention-accommodations.scss"
+            ],
+            "note": "The five independent off-by-default modes are mounted at the app root and wired to live settings, runtime state, and existing shell regions without replacing the shell."
           }
         ],
         "documentation": [
           {
-            "status": "pending",
-            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "docs/features/design-system/attention-accommodations.md"
+            ],
+            "note": "The dedicated article documents behavior, persistence, privacy, accessibility, localization, failure boundaries, verification, and suggested articles."
           }
         ],
         "localization": [
           {
-            "status": "pending",
-            "reason": "Localization evidence was not independently inspected or verified in this pass."
+            "status": "present",
+            "paths": [
+              "app/src/ui/preferences/attention-accommodations.tsx",
+              "app/src/ui/attention/attention-accommodation-runtime.tsx",
+              "app/src/lib/i18n-resources.ts"
+            ],
+            "note": "Focused UI evidence covers English and bilingual labels, while settings-search catalog entries carry English and Cantonese resources."
           }
         ],
         "persistence": [
           {
-            "status": "pending",
-            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+            "status": "present",
+            "paths": [
+              "app/src/models/attention-accommodation.ts",
+              "app/test/unit/attention-accommodation-test.tsx"
+            ],
+            "note": "A versioned local record stores independent mode state, the bounded next action, defer timestamp, and last-change timestamp; corrupt values normalize to safe defaults."
           }
         ],
         "focusedTest": [
           {
-            "status": "pending",
-            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "app/test/unit/attention-accommodation-test.tsx"
+            ],
+            "note": "Six focused tests cover the exact five-mode inventory, deliberate missing-mode rejection, safe coercion, independent persistence, search/palette registration, accessible conditional controls, bilingual copy, and factual duration formatting."
           }
         ],
         "builtArtifactInteraction": [

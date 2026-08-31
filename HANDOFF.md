@@ -97,6 +97,16 @@ toolchain boundary. Four build-bootstrap evidence records move to present; its
 localized-output and real-capture rows remain pending. The ledger now holds
 124 present and 310 pending records.
 
+The attention-accommodation audit verifies the existing Windows desktop
+implementation rather than adding another shell. Six focused tests cover the
+exact five-mode inventory and deliberate missing-mode rejection, safe coercion,
+independent local persistence, settings-search and command-palette registration,
+accessible conditional controls, bilingual labels, and factual duration
+formatting. The dedicated article and regenerated 167-article offline bundle
+record the verified source-level boundary. Five evidence records move to
+present; packaged interaction and current capture remain pending. The ledger
+now holds 129 present and 305 pending records.
+
 ## Remaining plain HTML controls converted to shared Material primitives — 2026-08-22
 
 A six-lane fleet sweep classified every raw `button`/`input`/`select`/`textarea`

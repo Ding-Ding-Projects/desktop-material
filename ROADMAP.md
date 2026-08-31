@@ -25,6 +25,10 @@
 - [x] Run the committed root build path to a real unsigned runnable output,
   retain both the transient first-attempt crash and successful retry, and
   promote implementation, manifest, focused-Chut, and built-output evidence.
+- [x] Verify all five attention accommodations with six focused model/UI tests,
+  including exact missing-mode rejection, safe persistence coercion, independent
+  controls, settings-search and command-palette registration, bilingual labels,
+  and factual duration formatting; packaged interaction and captures stay open.
 - [ ] Persist the unlock-ladder rolling-hour allowance across restart and add
   owner-configurable Status Hub endpoint/vault settings before either feature
   can satisfy its persistence evidence.

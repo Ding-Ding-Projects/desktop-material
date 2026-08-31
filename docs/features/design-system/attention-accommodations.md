@@ -52,11 +52,13 @@ can be unavailable without preventing the app from starting.
 
 ## Verification status
 
-The implementation and settings/search/palette registration are present on the
-attention-accommodation feature lane. Tests, lint, type checks, packaged
-interactions, runtime captures, and release verification were intentionally not
-  run in the ultra-speed implementation lane; those checks remain with the owning
-integration lane.
+The implementation, local persistence, English/Cantonese/bilingual copy,
+settings search, command-palette registration, and focused unit/UI tests are
+verified in `app/test/unit/attention-accommodation-test.tsx`. The focused test
+also removes one required mode from a copy of the hand-written five-mode
+inventory and verifies that the exact inventory check rejects it before
+validating the restored list. Packaged interaction, runtime capture, and release
+verification remain pending and are not implied by this source-level evidence.
 
 ## Suggested articles
 
