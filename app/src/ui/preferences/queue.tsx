@@ -2,7 +2,10 @@
 import * as React from 'react'
 import { Account, getAccountKey } from '../../models/account'
 import { BatchCloneMode } from '../../models/batch-clone'
-import { getAutoClonePolicy } from '../../lib/stores/auto-clone-store'
+import {
+  AutoClonePoliciesStorageKey,
+  getAutoClonePolicy,
+} from '../../lib/stores/auto-clone-store'
 import {
   getPersistedLanguageMode,
   LanguageModeChangedEvent,
@@ -18,6 +21,10 @@ import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { showOpenDialog } from '../main-process-proxy'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import {
+  SelectionSettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 
 interface IQueuePreferencesProps {
   readonly accounts: ReadonlyArray<Account>
@@ -169,6 +176,9 @@ export class QueuePreferences extends React.Component<
     const statusKey = draft.enabled
       ? 'settings.queueEnabledStatus'
       : 'settings.queueDisabledStatus'
+    const enabledSettingId = `${controlId}-auto-clone-enabled`
+    const directorySettingId = `${controlId}-base-directory`
+    const modeSettingId = `${controlId}-mode-setting`
 
     return (
       <section
@@ -202,9 +212,22 @@ export class QueuePreferences extends React.Component<
             checked={draft.enabled}
             onChange={enabled => this.onEnabledChanged(account, enabled)}
             ariaLabelledBy={toggleTitleId}
-            ariaDescribedBy={descriptionId}
+            ariaDescribedBy={`${descriptionId} ${
+              settingExplanationDescriptionIds(enabledSettingId).ariaDescribedBy
+            }`}
           />
         </div>
+        <SelectionSettingExplanation
+          settingId={enabledSettingId}
+          inventoryId="queue-auto-clone-enabled"
+          explanationEnglish="Controls whether newly discovered repositories for this account are added to the durable clone queue."
+          explanationCantonese="控制呢個帳戶新發現嘅儲存庫係咪加入耐用 clone 佇列。"
+          currentEnglish={draft.enabled ? 'on' : 'off'}
+          currentCantonese={draft.enabled ? '開' : '關'}
+          shippedEnglish="off"
+          shippedCantonese="關"
+          storageKey={AutoClonePoliciesStorageKey}
+        />
 
         <div className="queue-field-group">
           <label htmlFor={`${controlId}-directory`}>
@@ -223,6 +246,10 @@ export class QueuePreferences extends React.Component<
                 'settings.queueDirectoryPlaceholder',
                 this.state.languageMode
               )}
+              aria-describedby={
+                settingExplanationDescriptionIds(directorySettingId)
+                  .ariaDescribedBy
+              }
             />
             <button
               type="button"
@@ -236,6 +263,21 @@ export class QueuePreferences extends React.Component<
               />
             </button>
           </div>
+          <SelectionSettingExplanation
+            settingId={directorySettingId}
+            inventoryId="queue-base-directory"
+            explanationEnglish="Chooses the local parent directory where this account's newly discovered repositories are cloned."
+            explanationCantonese="揀呢個帳戶新發現儲存庫 clone 去邊個本地父目錄。"
+            currentEnglish={
+              draft.baseDirectory.length > 0 ? 'selected' : 'empty'
+            }
+            currentCantonese={
+              draft.baseDirectory.length > 0 ? '已選擇' : '留空'
+            }
+            shippedEnglish="empty"
+            shippedCantonese="留空"
+            storageKey={AutoClonePoliciesStorageKey}
+          />
         </div>
 
         <div className="queue-field-group">
@@ -248,6 +290,9 @@ export class QueuePreferences extends React.Component<
           <select
             id={`${controlId}-mode`}
             value={draft.mode}
+            aria-describedby={
+              settingExplanationDescriptionIds(modeSettingId).ariaDescribedBy
+            }
             onChange={event => this.onModeChanged(account, event)}
           >
             <option value={BatchCloneMode.Parallel}>
@@ -260,6 +305,17 @@ export class QueuePreferences extends React.Component<
               )}
             </option>
           </select>
+          <SelectionSettingExplanation
+            settingId={modeSettingId}
+            inventoryId="queue-mode"
+            explanationEnglish="Chooses whether repositories for this account clone in bounded parallel work or one after another."
+            explanationCantonese="揀呢個帳戶嘅儲存庫用受限平行方式 clone，定係逐個進行。"
+            currentEnglish={draft.mode}
+            currentCantonese={draft.mode}
+            shippedEnglish={BatchCloneMode.Parallel}
+            shippedCantonese={BatchCloneMode.Parallel}
+            storageKey={AutoClonePoliciesStorageKey}
+          />
         </div>
 
         <div
