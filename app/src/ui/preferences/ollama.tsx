@@ -7,6 +7,7 @@ import {
 import {
   getPersistedLanguageMode,
   LanguageModeChangedEvent,
+  translate,
   type TranslationKey,
 } from '../../lib/i18n'
 import {
@@ -30,6 +31,10 @@ import { TextBox } from '../lib/text-box'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import {
+  SettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 
 /** The address a stock Ollama install listens on. */
 export const DefaultOllamaEndpoint = 'http://127.0.0.1:11434'
@@ -91,6 +96,17 @@ export class OllamaPreferences extends React.Component<
   IOllamaPreferencesState
 > {
   private isMounted_ = false
+
+  private localize(english: string, cantonese: string): string {
+    switch (this.state.languageMode) {
+      case 'cantonese':
+        return cantonese
+      case 'bilingual':
+        return `${english} · ${cantonese}`
+      default:
+        return english
+    }
+  }
 
   public constructor(props: IOllamaPreferencesProps) {
     super(props)
@@ -333,6 +349,10 @@ export class OllamaPreferences extends React.Component<
         <select
           id={ProviderSelectId}
           value={active?.id ?? ''}
+          aria-describedby={
+            settingExplanationDescriptionIds('ollama-provider-selection')
+              .ariaDescribedBy
+          }
           onChange={this.onSelectedProviderChanged}
         >
           {providers.map(provider => (
@@ -341,6 +361,26 @@ export class OllamaPreferences extends React.Component<
             </option>
           ))}
         </select>
+        <SettingExplanation
+          settingId="ollama-provider-selection"
+          summary={translate(
+            'dialogEmoji.explanationSummary',
+            this.state.languageMode
+          )}
+          explanation={this.localize(
+            'Chooses which configured local Ollama provider this tab manages for the current settings session.',
+            '揀呢個設定工作階段入面由呢個分頁管理邊個已設定本地 Ollama 供應方。'
+          )}
+          provenance={this.localize(
+            `Current runtime selection: ${
+              active?.name ?? 'none'
+            }. Shipped runtime selection: first configured provider. Provider records persist through the BYOK provider store.`,
+            `目前執行期選擇：${
+              active?.name ?? '無'
+            }。出廠執行期選擇：第一個已設定供應方。供應方紀錄由 BYOK 供應方儲存保留。`
+          )}
+          source="runtime-only"
+        />
       </div>
     )
   }
@@ -380,11 +420,14 @@ export class OllamaPreferences extends React.Component<
             onValueChanged={this.onEndpointChanged}
             onEnterPressed={this.onConnect}
             disabled={isConnecting}
-            ariaDescribedBy={
+            ariaDescribedBy={`${
               errorKey === null
                 ? EndpointHintId
                 : `${EndpointHintId} ${EndpointErrorId}`
-            }
+            } ${
+              settingExplanationDescriptionIds('ollama-endpoint')
+                .ariaDescribedBy
+            }`}
           />
           {/*
             Deliberately not disabled for an invalid endpoint: activating it
@@ -406,6 +449,19 @@ export class OllamaPreferences extends React.Component<
             />
           </Button>
         </div>
+        <SettingExplanation
+          settingId="ollama-endpoint"
+          summary={translate('dialogEmoji.explanationSummary', languageMode)}
+          explanation={this.localize(
+            'Sets the trusted loopback endpoint used to verify and create a local Ollama provider.',
+            '設定用嚟驗證同建立本地 Ollama 供應方嘅可信 loopback 端點。'
+          )}
+          provenance={this.localize(
+            `Current setup draft: ${endpoint}. Shipped setup draft: ${DefaultOllamaEndpoint}. A successful connection persists the endpoint in the created provider record.`,
+            `目前設定草稿：${endpoint}。出廠設定草稿：${DefaultOllamaEndpoint}。成功連線後，端點會儲存喺新建供應方紀錄。`
+          )}
+          source="runtime-only"
+        />
 
         <p className="ollama-tab-setup-hint" id={EndpointHintId}>
           <LocalizedText

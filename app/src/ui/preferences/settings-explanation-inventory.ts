@@ -111,6 +111,8 @@ export const ImplementedSettingExplanationIds = [
   'git-show-commit-identity',
   'notifications-enabled',
   'notifications-error-presentation',
+  'ollama-endpoint',
+  'ollama-provider-selection',
   'attention-one-thing-at-a-time',
   'attention-momentum',
   'attention-next-action',

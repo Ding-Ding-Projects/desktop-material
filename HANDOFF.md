@@ -11087,7 +11087,7 @@ hidden selections.
 
 The current universal-feature task added a shared progressive explanation and
 provenance component without changing the frozen application shell. The first
- hand-written inventory covers 179 settings across Accounts, issue references,
+ hand-written inventory covers 181 settings across Accounts, issue references,
 Accessibility, Advanced, AI policy, Appearance and application identity, agent access, Git, Copilot, Sound, Prompts, self-hosted server setup,
  Attention accommodations, and Status Hub.
 
@@ -11136,6 +11136,8 @@ Accessibility, Advanced, AI policy, Appearance and application identity, agent a
   and Repository Settings tab-strip dock positions.
 - The searchable settings-page picker again renders its title in a visible
   Material panel header. The focused 43-test strip batch now passes completely.
+- Ollama provenance covers the runtime provider selection and trusted loopback
+  endpoint draft, naming that persistence begins only after a successful save.
 - Git provenance covers global author identity, default branch, effective
   identity display, and hook environment settings.
 - Sound provenance covers the full global audio system, effects, narrator,

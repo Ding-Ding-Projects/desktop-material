@@ -109,7 +109,7 @@ describe('Ollama preferences tab', () => {
     })
 
     it('labels the endpoint field and describes it with the loopback hint', () => {
-      renderPane()
+      const { view } = renderPane()
 
       const input = screen.getByLabelText('Ollama endpoint')
       assert.equal(input.getAttribute('value'), DefaultOllamaEndpoint)
@@ -118,6 +118,12 @@ describe('Ollama preferences tab', () => {
       assert.ok(describedBy)
       const hint = document.getElementById(describedBy.split(' ')[0])
       assert.match(hint?.textContent ?? '', /Only loopback addresses/)
+      assert.ok(
+        view.container.querySelector(
+          '[data-setting-explanation-id="ollama-endpoint"]'
+        )
+      )
+      assert.match(describedBy, /ollama-endpoint-setting-explanation/)
     })
 
     it('treats a non-Ollama provider as unconfigured', () => {
@@ -282,7 +288,7 @@ describe('Ollama preferences tab', () => {
     })
 
     it('offers a labelled picker when several providers exist', async () => {
-      renderPane(
+      const { view } = renderPane(
         {
           byokProviders: [
             ollamaProvider(),
@@ -299,6 +305,11 @@ describe('Ollama preferences tab', () => {
       const picker = screen.getByLabelText('Ollama provider')
       assert.equal(picker.tagName, 'SELECT')
       assert.equal((picker as HTMLSelectElement).value, 'provider-1')
+      assert.ok(
+        view.container.querySelector(
+          '[data-setting-explanation-id="ollama-provider-selection"]'
+        )
+      )
 
       fireEvent.change(picker, { target: { value: 'provider-2' } })
       assert.equal((picker as HTMLSelectElement).value, 'provider-2')

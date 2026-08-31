@@ -40,7 +40,7 @@
   live connection checks, and replace/clear controls.
 - [x] Add the shared progressive settings-explanation component, stable
   accessible-description IDs, truthful compiled/stored/runtime/vault source
-  categories, and the current exact 179-control hand-written inventory,
+  categories, and the current exact 181-control hand-written inventory,
   including every standard scheduled-settings control and repeated weekday or
   appearance-value instance, plus every application-identity selector, color,
   slider, and format toggle, together with the theme, base-scale, branch-sort,
@@ -56,6 +56,8 @@
 - [x] Restore the visible heading in the searchable settings-page picker; the
   existing accessibility test had been red because the title was screen-reader
   only and no longer sat inside the Material panel header.
+- [x] Explain the Ollama runtime provider choice and trusted loopback endpoint
+  draft, including the successful-save persistence boundary.
 - [ ] Extend progressive explanations and exact current/source/shipped-value
   provenance to every remaining settings control before promoting the
   `settings-explanations` feature row.
