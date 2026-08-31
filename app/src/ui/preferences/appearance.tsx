@@ -45,7 +45,6 @@ import {
   DefaultAppearanceCustomization,
   IAppearanceCustomization,
 } from '../../models/appearance-customization'
-import { AppearanceCustomizationStorageKey } from '../../lib/appearance-customization'
 import { LanguageModeStorageKey } from '../../lib/language-preference'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
@@ -85,7 +84,6 @@ import {
 import {
   BooleanSettingExplanation,
   SelectionSettingExplanation,
-  SettingExplanation,
   settingExplanationDescriptionIds,
 } from './settings-explanation'
 

@@ -1,7 +1,6 @@
 import * as React from 'react'
 import { DialogContent } from '../dialog'
 import { RefNameTextBox } from '../lib/ref-name-text-box'
-import { Ref } from '../lib/ref'
 import { LinkButton } from '../lib/link-button'
 import { Account } from '../../models/account'
 import { GitConfigUserForm } from '../lib/git-config-user-form'
@@ -9,12 +8,27 @@ import { TabBar } from '../tab-bar'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { Select } from '../lib/select'
 import {
+  cacheHooksEnvKey,
+  defaultCacheHooksEnvValue,
+  defaultGitHookEnvShell,
+  defaultHooksEnvEnabledValue,
+  gitHookEnvShellKey,
+  hooksEnvEnabledKey,
   shellFriendlyNames,
   SupportedHooksEnvShell,
 } from '../../lib/hooks/config'
 import { GlobalIgnoreEditor } from './global-ignore'
 import { teleportAnchor } from '../../lib/teleport-targets'
 import { SSHKeyGenerator } from './ssh-key-generator'
+import { getPersistedLanguageMode } from '../../lib/i18n'
+import { ShowCommitAuthorInfoKey } from '../../models/commit-author-display'
+import { DefaultBranchInDesktop } from '../../lib/helpers/default-branch'
+import {
+  BooleanSettingExplanation,
+  SelectionSettingExplanation,
+  SettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 
 interface IGitProps {
   readonly name: string
@@ -52,6 +66,17 @@ const windowsShells: ReadonlyArray<SupportedHooksEnvShell> = [
 ]
 
 export class Git extends React.Component<IGitProps> {
+  private localize(english: string, cantonese: string): string {
+    switch (getPersistedLanguageMode()) {
+      case 'cantonese':
+        return cantonese
+      case 'bilingual':
+        return `${english} · ${cantonese}`
+      default:
+        return english
+    }
+  }
+
   private get selectedTabIndex() {
     return this.props.selectedTabIndex ?? 0
   }
@@ -89,29 +114,43 @@ export class Git extends React.Component<IGitProps> {
       <>
         <div {...teleportAnchor('settings-git-hook-env')}>
           <Checkbox
-            label="Load Git hook environment variables from shell"
-            ariaDescribedBy="git-hooks-env-description"
+            label={this.localize(
+              'Load Git hook environment variables from shell',
+              '由 shell 載入 Git hook 環境變數'
+            )}
+            ariaDescribedBy={
+              settingExplanationDescriptionIds('git-hook-environment-enabled')
+                .ariaDescribedBy
+            }
             value={
               this.props.enableGitHookEnv ? CheckboxValue.On : CheckboxValue.Off
             }
             onChange={this.onEnableGitHookEnvChanged}
           />
+          <BooleanSettingExplanation
+            settingId="git-hook-environment-enabled"
+            explanationEnglish="Loads environment variables from the selected shell before Git hooks run, for hooks that rely on version-manager or shell configuration."
+            explanationCantonese="Git hook 執行之前由所選 shell 載入環境變數，畀依賴版本管理器或者 shell 設定嘅 hook 使用。"
+            value={this.props.enableGitHookEnv}
+            shippedValue={defaultHooksEnvEnabledValue}
+            storageKey={hooksEnvEnabledKey}
+          />
         </div>
-        <p id="git-hooks-env-description" className="settings-description">
-          When enabled, GitHub Desktop will attempt to load environment
-          variables from your shell when executing Git hooks. This is useful if
-          your Git hooks depend on environment variables set in your shell
-          configuration files, a common practice for version managers such as
-          nvm, rbenv, asdf, etc.
-        </p>
 
         {this.props.enableGitHookEnv && __WIN32__ && (
           <div {...teleportAnchor('settings-git-hook-env-shell')}>
             <Select
               className="git-hook-shell-select"
-              label={'Shell to use when loading environment'}
+              label={this.localize(
+                'Shell to use when loading environment',
+                '載入環境時使用嘅 shell'
+              )}
               value={this.props.selectedShell}
               onChange={this.onSelectedShellChanged}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('git-hook-environment-shell')
+                  .ariaDescribedBy
+              }
             >
               {windowsShells
                 .map(s => ({ key: s, title: shellFriendlyNames[s] }))
@@ -121,6 +160,24 @@ export class Git extends React.Component<IGitProps> {
                   </option>
                 ))}
             </Select>
+            <SelectionSettingExplanation
+              settingId="git-hook-environment-shell"
+              explanationEnglish="Chooses the shell process used to obtain environment variables for Git hooks."
+              explanationCantonese="揀用邊個 shell process 為 Git hook 取得環境變數。"
+              currentEnglish={
+                shellFriendlyNames[
+                  this.props.selectedShell as SupportedHooksEnvShell
+                ] ?? this.props.selectedShell
+              }
+              currentCantonese={
+                shellFriendlyNames[
+                  this.props.selectedShell as SupportedHooksEnvShell
+                ] ?? this.props.selectedShell
+              }
+              shippedEnglish={shellFriendlyNames[defaultGitHookEnvShell]}
+              shippedCantonese={shellFriendlyNames[defaultGitHookEnvShell]}
+              storageKey={gitHookEnvShellKey}
+            />
           </div>
         )}
 
@@ -128,8 +185,14 @@ export class Git extends React.Component<IGitProps> {
           <>
             <div {...teleportAnchor('settings-git-hook-env-cache')}>
               <Checkbox
-                label="Cache Git hook environment variables"
-                ariaDescribedBy="git-hooks-cache-description"
+                label={this.localize(
+                  'Cache Git hook environment variables',
+                  '快取 Git hook 環境變數'
+                )}
+                ariaDescribedBy={
+                  settingExplanationDescriptionIds('git-hook-environment-cache')
+                    .ariaDescribedBy
+                }
                 onChange={this.onCacheGitHookEnvChanged}
                 value={
                   this.props.cacheGitHookEnv
@@ -137,14 +200,14 @@ export class Git extends React.Component<IGitProps> {
                     : CheckboxValue.Off
                 }
               />
-            </div>
-
-            <div
-              id="git-hooks-cache-description"
-              className="settings-description"
-            >
-              Cache hook environment variables to improve performance. Disable
-              if your hooks rely on frequently changing environment variables.
+              <BooleanSettingExplanation
+                settingId="git-hook-environment-cache"
+                explanationEnglish="Reuses the loaded hook environment to improve performance. Turn it off when hook variables change frequently."
+                explanationCantonese="重用已載入嘅 hook 環境以改善效能；hook 變數經常改就閂咗佢。"
+                value={this.props.cacheGitHookEnv}
+                shippedValue={defaultCacheHooksEnvValue}
+                storageKey={cacheHooksEnvKey}
+              />
             </div>
           </>
         )}
@@ -196,11 +259,61 @@ export class Git extends React.Component<IGitProps> {
           accounts={this.props.accounts}
           onEmailChanged={this.props.onEmailChanged}
           onNameChanged={this.props.onNameChanged}
+          nameAriaDescribedBy={
+            settingExplanationDescriptionIds('git-author-name').ariaDescribedBy
+          }
+          emailAriaDescribedBy={
+            settingExplanationDescriptionIds('git-author-email').ariaDescribedBy
+          }
+        />
+        <SettingExplanation
+          settingId="git-author-name"
+          summary={this.localize('What this setting changes', '呢個設定會改咩')}
+          explanation={this.localize(
+            'Sets the author name written to the global Git configuration and used for new commits unless a repository overrides it.',
+            '設定寫入全域 Git 設定嘅作者名稱；除非個別儲存庫覆寫，否則新提交會使用佢。'
+          )}
+          source="main-process-config"
+          provenance={this.localize(
+            `Current value from global Git configuration: ${
+              this.props.name.trim().length === 0
+                ? 'not configured'
+                : 'configured'
+            }. Shipped value: not configured.`,
+            `目前值來自全域 Git 設定：${
+              this.props.name.trim().length === 0 ? '未設定' : '已設定'
+            }。出廠值：未設定。`
+          )}
+        />
+        <SettingExplanation
+          settingId="git-author-email"
+          summary={this.localize('What this setting changes', '呢個設定會改咩')}
+          explanation={this.localize(
+            'Sets the author email written to the global Git configuration and used for new commits unless a repository overrides it.',
+            '設定寫入全域 Git 設定嘅作者電郵；除非個別儲存庫覆寫，否則新提交會使用佢。'
+          )}
+          source="main-process-config"
+          provenance={this.localize(
+            `Current value from global Git configuration: ${
+              this.props.email.trim().length === 0
+                ? 'not configured'
+                : 'configured'
+            }. Shipped value: not configured.`,
+            `目前值來自全域 Git 設定：${
+              this.props.email.trim().length === 0 ? '未設定' : '已設定'
+            }。出廠值：未設定。`
+          )}
         />
         <div {...teleportAnchor('settings-show-commit-identity')}>
           <Checkbox
-            label="Show effective identity and config source above commit message"
-            ariaDescribedBy="commit-author-info-description"
+            label={this.localize(
+              'Show effective identity and config source above commit message',
+              '喺提交訊息上面顯示有效身分同設定來源'
+            )}
+            ariaDescribedBy={
+              settingExplanationDescriptionIds('git-show-commit-identity')
+                .ariaDescribedBy
+            }
             value={
               this.props.showCommitAuthorInfo
                 ? CheckboxValue.On
@@ -208,11 +321,15 @@ export class Git extends React.Component<IGitProps> {
             }
             onChange={this.onShowCommitAuthorInfoChanged}
           />
+          <BooleanSettingExplanation
+            settingId="git-show-commit-identity"
+            explanationEnglish="Shows the effective author name, email, configuration scope, and winning configuration file above the commit message."
+            explanationCantonese="喺提交訊息上面顯示有效作者名稱、電郵、設定範圍同勝出嘅設定檔。"
+            value={this.props.showCommitAuthorInfo}
+            shippedValue={false}
+            storageKey={ShowCommitAuthorInfoKey}
+          />
         </div>
-        <p id="commit-author-info-description" className="settings-description">
-          Displays the name, email, Git config scope, and winning config file
-          before you commit.
-        </p>
         {this.renderEditGlobalGitConfigInfo()}
       </>
     )
@@ -232,15 +349,25 @@ export class Git extends React.Component<IGitProps> {
           initialValue={this.props.defaultBranch}
           onValueChange={this.props.onDefaultBranchChanged}
           ariaLabelledBy={'default-branch-heading'}
-          ariaDescribedBy="default-branch-description"
+          ariaDescribedBy={
+            settingExplanationDescriptionIds('git-default-branch-name')
+              .ariaDescribedBy
+          }
           warningMessageVerb="saved"
         />
-
-        <p id="default-branch-description" className="settings-description">
-          GitHub's default branch name is <Ref>main</Ref>. You may want to
-          change it due to different workflows, or because your integrations
-          still require the historical default branch name of <Ref>master</Ref>.
-        </p>
+        <SettingExplanation
+          settingId="git-default-branch-name"
+          summary={this.localize('What this setting changes', '呢個設定會改咩')}
+          explanation={this.localize(
+            'Sets init.defaultBranch in global Git configuration for repositories created later. Existing repositories are unchanged.',
+            '喺全域 Git 設定設定 init.defaultBranch，畀之後建立嘅儲存庫使用；現有儲存庫唔會改。'
+          )}
+          source="main-process-config"
+          provenance={this.localize(
+            `Current value from global Git configuration or the product fallback: ${this.props.defaultBranch}. Shipped value: ${DefaultBranchInDesktop}.`,
+            `目前值來自全域 Git 設定或者產品後備值：${this.props.defaultBranch}。出廠值：${DefaultBranchInDesktop}。`
+          )}
+        />
 
         {this.renderEditGlobalGitConfigInfo()}
       </div>

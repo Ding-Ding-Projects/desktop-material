@@ -1,6 +1,6 @@
 import { getBoolean, setBoolean } from '../lib/local-storage'
 
-const ShowCommitAuthorInfoKey = 'show-commit-author-info'
+export const ShowCommitAuthorInfoKey = 'show-commit-author-info'
 
 export const ShowCommitAuthorInfoChangedEvent =
   'desktop-material-show-commit-author-info-changed'

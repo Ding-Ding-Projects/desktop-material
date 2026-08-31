@@ -19,7 +19,9 @@ import { Repository } from '../../models/repository'
 import { showOpenDialog } from '../main-process-proxy'
 import { AudioCueStore } from '../../lib/audio/audio-cue-store'
 import {
+  AudioSettingsStorageKey,
   AudioCueCategory,
+  DefaultAudioSystemSettings,
   IAudioSystemSettings,
   MaxTtsPitch,
   MaxTtsRate,
@@ -43,6 +45,11 @@ import {
   readInstalledVoices,
   voicesForLanguage,
 } from '../../lib/audio/narrator-voices'
+import {
+  SelectionSettingExplanation,
+  SettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 
 /**
  * The auditionable sound-effect cues, grouped by their motif family so the
@@ -691,6 +698,13 @@ export class SoundPreferences extends React.Component<
   ) {
     const label = translate(labelKey, this.state.languageMode)
     const hours = Array.from({ length: 24 }, (_, hour) => hour)
+    const isStart = id.includes('start')
+    const settingId = isStart
+      ? 'sound-quiet-hours-start'
+      : 'sound-quiet-hours-end'
+    const shipped = isStart
+      ? DefaultAudioSystemSettings.quietHours.startHour
+      : DefaultAudioSystemSettings.quietHours.endHour
     return (
       <div className="sound-field-group">
         <Select
@@ -698,6 +712,9 @@ export class SoundPreferences extends React.Component<
           label={label}
           value={value.toString()}
           onChange={event => onChange(Number(event.currentTarget.value))}
+          ariaDescribedBy={
+            settingExplanationDescriptionIds(settingId).ariaDescribedBy
+          }
         >
           {hours.map(hour => (
             <option key={hour} value={hour}>
@@ -705,6 +722,24 @@ export class SoundPreferences extends React.Component<
             </option>
           ))}
         </Select>
+        <SelectionSettingExplanation
+          settingId={settingId}
+          explanationEnglish={
+            isStart
+              ? 'Chooses the local hour when quiet hours begin suppressing non-essential audio.'
+              : 'Chooses the local hour when quiet hours stop suppressing non-essential audio.'
+          }
+          explanationCantonese={
+            isStart
+              ? '揀安靜時段開始抑制非必要聲音嘅本地時間。'
+              : '揀安靜時段停止抑制非必要聲音嘅本地時間。'
+          }
+          currentEnglish={`${value.toString().padStart(2, '0')}:00`}
+          currentCantonese={`${value.toString().padStart(2, '0')}:00`}
+          shippedEnglish={`${shipped.toString().padStart(2, '0')}:00`}
+          shippedCantonese={`${shipped.toString().padStart(2, '0')}:00`}
+          storageKey={AudioSettingsStorageKey}
+        />
       </div>
     )
   }
@@ -746,6 +781,30 @@ export class SoundPreferences extends React.Component<
       : isCustom
       ? 'settings.soundThemeStateCustom'
       : 'settings.soundThemeStateTheme'
+    const currentTrackEnglish = isOff
+      ? 'off'
+      : isCustom
+      ? 'custom track selected'
+      : 'generated repository theme'
+    const currentTrackCantonese = isOff
+      ? '關'
+      : isCustom
+      ? '已揀自訂曲目'
+      : '已產生儲存庫主題'
+    const trackProvenanceEnglish =
+      repositoryOverride === null
+        ? 'No repository override is recorded. Current and shipped value: generated repository theme.'
+        : `A repository override is recorded. Current value: ${currentTrackEnglish}. Shipped value: generated repository theme.`
+    const trackProvenanceCantonese =
+      repositoryOverride === null
+        ? '未記錄逐儲存庫覆寫。目前值同出廠值：已產生儲存庫主題。'
+        : `已記錄逐儲存庫覆寫。目前值：${currentTrackCantonese}。出廠值：已產生儲存庫主題。`
+    const trackProvenance =
+      languageMode === 'cantonese'
+        ? trackProvenanceCantonese
+        : languageMode === 'bilingual'
+        ? `${trackProvenanceEnglish} · ${trackProvenanceCantonese}`
+        : trackProvenanceEnglish
     const trackLabel = translate('settings.soundMusicRepoLabel', languageMode, {
       repository: bilingualVariable(repository.name, repository.name),
     })
@@ -799,6 +858,10 @@ export class SoundPreferences extends React.Component<
                 'settings.soundMusicNoTrack',
                 languageMode
               )}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('sound-repository-track')
+                  .ariaDescribedBy
+              }
             />
             <Button
               type="button"
@@ -811,6 +874,18 @@ export class SoundPreferences extends React.Component<
               />
             </Button>
           </div>
+          <SettingExplanation
+            settingId="sound-repository-track"
+            summary={translate('dialogEmoji.explanationSummary', languageMode)}
+            explanation={translate(
+              'settings.soundThemeExplanation',
+              languageMode
+            )}
+            source={
+              repositoryOverride === null ? 'compiled-default' : 'stored-choice'
+            }
+            provenance={trackProvenance}
+          />
         </div>
 
         <div className="sound-theme-actions">

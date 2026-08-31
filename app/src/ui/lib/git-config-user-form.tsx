@@ -11,6 +11,18 @@ import { GitEmailNotFoundWarning } from './git-email-not-found-warning'
 import { getStealthEmailForAccount } from '../../lib/email'
 import memoizeOne from 'memoize-one'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import { getPersistedLanguageMode } from '../../lib/i18n'
+
+function localize(english: string, cantonese: string): string {
+  switch (getPersistedLanguageMode()) {
+    case 'cantonese':
+      return cantonese
+    case 'bilingual':
+      return `${english} · ${cantonese}`
+    default:
+      return english
+  }
+}
 
 const OtherEmailSelectValue = 'Other'
 
@@ -32,6 +44,8 @@ interface IGitConfigUserFormProps {
   readonly onEmailChanged: (email: string) => void
 
   readonly isLoadingGitConfig: boolean
+  readonly nameAriaDescribedBy?: string
+  readonly emailAriaDescribedBy?: string
 }
 
 interface IGitConfigUserFormState {
@@ -148,10 +162,11 @@ export class GitConfigUserForm extends React.Component<
         <div {...teleportAnchor('settings-git-author-name')}>
           <Row>
             <TextBox
-              label="Name"
+              label={localize('Name', '名稱')}
               value={this.props.name}
               disabled={this.props.disabled}
               onValueChanged={this.props.onNameChanged}
+              ariaDescribedBy={this.props.nameAriaDescribedBy}
             />
           </Row>
         </div>
@@ -186,12 +201,13 @@ export class GitConfigUserForm extends React.Component<
     return (
       <Row>
         <Select
-          label="Email"
+          label={localize('Email', '電郵')}
           value={
             this.state.emailIsOther ? OtherEmailSelectValue : this.props.email
           }
           disabled={this.props.disabled}
           onChange={this.onEmailSelectChange}
+          ariaDescribedBy={this.props.emailAriaDescribedBy}
         >
           {this.accountEmails.map(e => (
             <option key={e.email} value={e.email}>
@@ -199,7 +215,7 @@ export class GitConfigUserForm extends React.Component<
             </option>
           ))}
           <option key={OtherEmailSelectValue} value={OtherEmailSelectValue}>
-            {OtherEmailSelectValue}
+            {localize(OtherEmailSelectValue, '其他')}
           </option>
         </Select>
       </Row>
@@ -217,9 +233,9 @@ export class GitConfigUserForm extends React.Component<
     const label =
       this.state.emailIsOther && this.accountEmails.length > 0
         ? undefined
-        : 'Email'
+        : localize('Email', '電郵')
     // If there is not a label, provide a screen reader announcement.
-    const ariaLabel = label ? undefined : 'Email'
+    const ariaLabel = label ? undefined : localize('Email', '電郵')
 
     return (
       <Row>
@@ -231,7 +247,12 @@ export class GitConfigUserForm extends React.Component<
           disabled={this.props.disabled}
           onValueChanged={this.props.onEmailChanged}
           ariaLabel={ariaLabel}
-          ariaDescribedBy="git-email-not-found-warning-for-screen-readers"
+          ariaDescribedBy={[
+            'git-email-not-found-warning-for-screen-readers',
+            this.props.emailAriaDescribedBy,
+          ]
+            .filter((value): value is string => value !== undefined)
+            .join(' ')}
           ariaControls="git-email-not-found-warning-for-screen-readers"
         />
       </Row>

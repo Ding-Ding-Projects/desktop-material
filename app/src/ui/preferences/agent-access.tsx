@@ -25,6 +25,11 @@ import {
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import { LocalizedText } from '../lib/localized-text'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import {
+  BooleanSettingExplanation,
+  SettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 
 interface IAgentAccessProps {
   readonly openInBrowser: (url: string) => Promise<boolean>
@@ -52,6 +57,17 @@ function modeDescription(mode: AgentServerMode): string {
       return 'Private-LAN access with one-time pairing and per-device tokens.'
     case 'yolo-lan':
       return 'Authentication is disabled. Every existing command is exposed to the private LAN.'
+  }
+}
+
+function modeDescriptionCantonese(mode: AgentServerMode): string {
+  switch (mode) {
+    case 'local':
+      return '只限 loopback 存取，配隨機 bearer token。'
+    case 'paired-lan':
+      return '私人 LAN 存取，配一次性配對同逐裝置 token。'
+    case 'yolo-lan':
+      return '驗證已停用，所有現有命令都會向私人 LAN 開放。'
   }
 }
 
@@ -97,6 +113,16 @@ export class AgentAccess extends React.Component<
   IAgentAccessProps,
   IAgentAccessState
 > {
+  private localize(english: string, cantonese: string): string {
+    switch (this.state.languageMode) {
+      case 'cantonese':
+        return cantonese
+      case 'bilingual':
+        return `${english} · ${cantonese}`
+      default:
+        return english
+    }
+  }
   public constructor(props: IAgentAccessProps) {
     super(props)
     this.state = {
@@ -172,12 +198,35 @@ export class AgentAccess extends React.Component<
             value={mode}
             onChange={this.onModeChanged}
             disabled={busy}
+            aria-describedby={
+              settingExplanationDescriptionIds('agent-access-mode')
+                .ariaDescribedBy
+            }
           >
             <option value="local">Local only (recommended)</option>
             <option value="paired-lan">Paired LAN devices</option>
             <option value="yolo-lan">YOLO LAN — no authentication</option>
           </select>
-          <p>{modeDescription(mode)}</p>
+          <SettingExplanation
+            settingId="agent-access-mode"
+            summary={translate(
+              'dialogEmoji.explanationSummary',
+              this.state.languageMode
+            )}
+            explanation={this.localize(
+              modeDescription(mode),
+              modeDescriptionCantonese(mode)
+            )}
+            source="main-process-config"
+            provenance={this.localize(
+              mode === 'local'
+                ? 'Current value from the managed server configuration: local only. Shipped value: local only.'
+                : `Current value from the managed server configuration: ${mode}. Shipped value: local only.`,
+              mode === 'local'
+                ? '目前值來自受管理伺服器設定：只限本機。出廠值：只限本機。'
+                : `目前值來自受管理伺服器設定：${mode}。出廠值：只限本機。`
+            )}
+          />
 
           <div
             className="agent-toggle-row"
@@ -198,8 +247,20 @@ export class AgentAccess extends React.Component<
               value={enabled ? CheckboxValue.On : CheckboxValue.Off}
               onChange={this.onEnabledChanged}
               disabled={busy}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('agent-access-enabled')
+                  .ariaDescribedBy
+              }
             />
           </div>
+          <BooleanSettingExplanation
+            settingId="agent-access-enabled"
+            explanationEnglish="Starts or stops the local agent server using the selected access mode. The server remains off by default."
+            explanationCantonese="用所選存取模式啟動或者停止本機 agent server。伺服器預設保持關閉。"
+            value={enabled}
+            shippedValue={false}
+            storageKey="agent-server-enabled"
+          />
         </section>
 
         {unsafe && (

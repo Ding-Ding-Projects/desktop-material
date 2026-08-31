@@ -172,6 +172,14 @@ describe('Sound funny-level pointer', () => {
       screen.queryByRole('slider', { name: 'Cantonese playfulness' }),
       null
     )
+    for (const id of ['sound-quiet-hours-start', 'sound-quiet-hours-end']) {
+      assert.ok(
+        english.container.querySelector(
+          `[data-setting-explanation-id="${id}"]`
+        ),
+        `missing setting explanation ${id}`
+      )
+    }
     english.unmount()
 
     localStorage.setItem('language-mode-v1', 'cantonese')
