@@ -186,7 +186,23 @@ export type CopilotModelSelectionsByAccount = ReadonlyMap<
 >
 
 /** Quota snapshots returned by the Copilot SDK, keyed by quota type. */
-export type CopilotQuotaSnapshots = ReadonlyMap<string, AccountQuotaSnapshot>
+export interface ICopilotQuotaSnapshot extends AccountQuotaSnapshot {
+  readonly tokenBasedBilling: boolean
+}
+
+export type CopilotQuotaSnapshots = ReadonlyMap<string, ICopilotQuotaSnapshot>
+
+function normalizeCopilotQuotaSnapshot(
+  snapshot: AccountQuotaSnapshot | undefined
+): ICopilotQuotaSnapshot | null {
+  if (snapshot === undefined) return null
+  const tokenBasedBilling =
+    'tokenBasedBilling' in snapshot &&
+    typeof snapshot.tokenBasedBilling === 'boolean'
+      ? snapshot.tokenBasedBilling
+      : false
+  return { ...snapshot, tokenBasedBilling }
+}
 
 /** Copilot models keyed by account cache key. */
 export type CopilotModelsByAccount = ReadonlyMap<
@@ -204,6 +220,81 @@ export type CopilotQuotaStatesByAccount = ReadonlyMap<
   string,
   ICopilotQuotaSnapshotState
 >
+
+export const CopilotModelSelectionsByAccountStorageKey =
+  'selected-copilot-models-by-account'
+export const LegacyCopilotModelSelectionsStorageKey = 'selected-copilot-models'
+export const LegacySingleCopilotModelStorageKey = 'selected-copilot-model'
+
+export function readCopilotModelSelectionsByAccount(
+  storage: Pick<Storage, 'getItem'> = localStorage
+): CopilotModelSelectionsByAccount {
+  const raw = storage.getItem(CopilotModelSelectionsByAccountStorageKey)
+  if (raw === null) return new Map()
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      return new Map()
+    }
+    return new Map(
+      Object.entries(parsed).filter(
+        (entry): entry is [string, CopilotModelSelections] =>
+          typeof entry[1] === 'object' &&
+          entry[1] !== null &&
+          !Array.isArray(entry[1])
+      )
+    )
+  } catch {
+    return new Map()
+  }
+}
+
+export function writeCopilotModelSelectionsByAccount(
+  selections: CopilotModelSelectionsByAccount,
+  storage: Pick<Storage, 'setItem' | 'removeItem'> = localStorage
+): void {
+  if (selections.size === 0) {
+    storage.removeItem(CopilotModelSelectionsByAccountStorageKey)
+    return
+  }
+  storage.setItem(
+    CopilotModelSelectionsByAccountStorageKey,
+    JSON.stringify(Object.fromEntries(selections))
+  )
+}
+
+export function migrateCopilotModelSelectionsStorage(
+  accounts: ReadonlyArray<Account>,
+  storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> = localStorage
+): CopilotModelSelectionsByAccount {
+  const legacyRaw = storage.getItem(LegacyCopilotModelSelectionsStorageKey)
+  const single = storage.getItem(LegacySingleCopilotModelStorageKey)
+  let legacy: CopilotModelSelections = {}
+  if (legacyRaw !== null) {
+    try {
+      const parsed: unknown = JSON.parse(legacyRaw)
+      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        legacy = parsed as CopilotModelSelections
+      }
+    } catch {
+      legacy = {}
+    }
+  }
+  if (single !== null && legacy['commit-message-generation'] === undefined) {
+    legacy = { ...legacy, 'commit-message-generation': single }
+  }
+  const current = readCopilotModelSelectionsByAccount(storage)
+  const migrated =
+    Object.keys(legacy).length === 0
+      ? current
+      : migrateCopilotModelSelectionsToAccounts(legacy, current, accounts)
+  if (Object.keys(legacy).length > 0) {
+    writeCopilotModelSelectionsByAccount(migrated, storage)
+    storage.removeItem(LegacyCopilotModelSelectionsStorageKey)
+    storage.removeItem(LegacySingleCopilotModelStorageKey)
+  }
+  return migrated
+}
 
 /** Migrate one legacy selection set without overwriting account overrides. */
 export function migrateCopilotModelSelectionsToAccounts(
@@ -2322,7 +2413,7 @@ export class CopilotStore extends BaseStore {
     }
 
     this.quotaStates.set(key, {
-      status: 'loading',
+      status: cached === undefined ? 'loading' : 'stale',
       snapshots: this.quotaCaches.get(key)?.quotaSnapshots ?? null,
       fetchedAt: this.quotaCaches.get(key)?.cachedAt ?? null,
     })
@@ -2410,12 +2501,17 @@ export class CopilotStore extends BaseStore {
       .catch(e => {
         log.warn('CopilotStore: Failed to fetch and cache quota snapshots', e)
         const cached = this.quotaCaches.get(key)
-        this.quotaStates.set(key, {
-          status: cached === undefined ? 'error' : 'stale',
-          snapshots: cached?.quotaSnapshots ?? null,
-          fetchedAt: cached?.cachedAt ?? null,
-          message: e instanceof Error ? e.message : String(e),
-        })
+        if (
+          this.quotasInFlight.get(key) === fetchPromise &&
+          this.signedInAccountKeys.has(key)
+        ) {
+          this.quotaStates.set(key, {
+            status: cached === undefined ? 'error' : 'stale',
+            snapshots: cached?.quotaSnapshots ?? null,
+            fetchedAt: cached?.cachedAt ?? null,
+            message: e instanceof Error ? e.message : String(e),
+          })
+        }
         return cached?.quotaSnapshots ?? null
       })
     this.quotasInFlight.set(key, fetchPromise)
@@ -2457,12 +2553,12 @@ export class CopilotStore extends BaseStore {
       const result = await client.rpc.account.getQuota({
         gitHubToken: account.token,
       })
-      return new Map(
-        Object.entries(result.quotaSnapshots).filter(
-          (entry): entry is [string, AccountQuotaSnapshot] =>
-            entry[1] !== undefined
-        )
-      )
+      const snapshots = new Map<string, ICopilotQuotaSnapshot>()
+      for (const [key, snapshot] of Object.entries(result.quotaSnapshots)) {
+        const normalized = normalizeCopilotQuotaSnapshot(snapshot)
+        if (normalized !== null) snapshots.set(key, normalized)
+      }
+      return snapshots
     } finally {
       this.stopClient(client)
     }

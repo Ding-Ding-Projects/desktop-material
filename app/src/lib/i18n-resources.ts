@@ -5705,6 +5705,34 @@ export type TranslationKey =
   | 'md3.classicSection.cheapLfs'
   | 'md3.classicSection.launchpad'
   | 'md3.classicSection.historyGraph'
+  | 'copilot.accountUsage'
+  | 'copilot.configureModels'
+  | 'copilot.quotaLoading'
+  | 'copilot.quotaUnavailable'
+  | 'copilot.quotaStale'
+  | 'copilot.quotaError'
+  | 'copilot.quotaEmpty'
+  | 'copilot.quotaUsedOfAvailable'
+  | 'copilot.quotaResetUnavailable'
+  | 'copilot.quotaUpdated'
+  | 'copilot.quotaPercentUsed'
+  | 'copilot.quotaNoUsageLimit'
+  | 'copilot.accountOverview'
+  | 'copilot.quotaDetails'
+  | 'copilot.configureModelsAction'
+  | 'settingsSearch.entry.copilotAccountOverview.title'
+  | 'settingsSearch.entry.copilotAccountOverview.desc'
+  | 'settingsSearch.entry.copilotQuota.title'
+  | 'settingsSearch.entry.copilotQuota.desc'
+  | 'settingsSearch.entry.copilotConfigureModels.title'
+  | 'settingsSearch.entry.copilotConfigureModels.desc'
+  | 'palette.copilotAccountOverview'
+  | 'palette.copilotQuota'
+  | 'palette.copilotConfigureModels'
+  | 'copilot.quotaLead.plain'
+  | 'copilot.quotaLead.light'
+  | 'copilot.quotaLead.playful'
+  | 'copilot.quotaLead.maximum'
 
 /** Complete base catalog. Every missing locale entry falls back to this. */
 export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
@@ -8385,6 +8413,40 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settings.accountsTab': 'Accounts',
   'settings.integrationsTab': 'Integrations',
   'settings.copilotTab': 'Copilot',
+  'copilot.accountUsage': 'Copilot usage for {account}',
+  'copilot.configureModels': 'Configure models for {account}',
+  'copilot.quotaLoading': 'Loading Copilot usage…',
+  'copilot.quotaUnavailable': 'Copilot usage unavailable for this account.',
+  'copilot.quotaStale': 'Showing stale Copilot usage data.',
+  'copilot.quotaError': 'Copilot usage could not be loaded.',
+  'copilot.quotaEmpty': 'No Copilot usage data available yet.',
+  'copilot.quotaUsedOfAvailable':
+    '{used} used of {available} available · {reset}',
+  'copilot.quotaResetUnavailable': 'Reset date unavailable',
+  'copilot.quotaUpdated': 'Updated {timestamp}',
+  'copilot.quotaPercentUsed': '{percent}% used',
+  'copilot.quotaNoUsageLimit': 'No usage limit',
+  'copilot.accountOverview': 'Copilot account overview',
+  'copilot.quotaDetails': 'Copilot quota details',
+  'copilot.configureModelsAction': 'Configure Copilot models',
+  'settingsSearch.entry.copilotAccountOverview.title':
+    'Copilot account overview',
+  'settingsSearch.entry.copilotAccountOverview.desc':
+    'Review signed-in accounts and their Copilot settings.',
+  'settingsSearch.entry.copilotQuota.title': 'Copilot quota',
+  'settingsSearch.entry.copilotQuota.desc':
+    'Review available, used, reset, and freshness details per account.',
+  'settingsSearch.entry.copilotConfigureModels.title':
+    'Configure Copilot models',
+  'settingsSearch.entry.copilotConfigureModels.desc':
+    'Choose the Copilot model for the selected account.',
+  'palette.copilotAccountOverview': 'Copilot account overview',
+  'palette.copilotQuota': 'Copilot quota details',
+  'palette.copilotConfigureModels': 'Configure Copilot models',
+  'copilot.quotaLead.plain': 'Account usage details',
+  'copilot.quotaLead.light': 'Here is the account usage, behaving itself.',
+  'copilot.quotaLead.playful': 'The account usage ledger has arrived, wearing a tiny hat.',
+  'copilot.quotaLead.maximum': 'Behold the account usage ledger, bravely counting every request.',
   'settings.gitTab': 'Git',
   'settings.appearanceTab': 'Appearance',
   'settings.notificationsTab': 'Notifications',
@@ -15367,6 +15429,39 @@ export const cantoneseTranslations: Readonly<
   'settings.accountsTab': '帳戶',
   'settings.integrationsTab': '整合',
   'settings.copilotTab': 'Copilot',
+  'copilot.accountUsage': '{account} 嘅 Copilot 用量',
+  'copilot.configureModels': '設定 {account} 嘅模型',
+  'copilot.quotaLoading': '載入緊 Copilot 用量…',
+  'copilot.quotaUnavailable': '呢個帳戶暫時冇 Copilot 用量資料。',
+  'copilot.quotaStale': '而家顯示緊過期嘅 Copilot 用量資料。',
+  'copilot.quotaError': 'Copilot 用量未能載入。',
+  'copilot.quotaEmpty': '暫時未有 Copilot 用量資料。',
+  'copilot.quotaUsedOfAvailable':
+    '已用 {used}，總共 {available} · {reset}',
+  'copilot.quotaResetUnavailable': '未有重設日期資料',
+  'copilot.quotaUpdated': '更新於 {timestamp}',
+  'copilot.quotaPercentUsed': '已用 {percent}%',
+  'copilot.quotaNoUsageLimit': '冇用量上限',
+  'copilot.accountOverview': 'Copilot 帳戶總覽',
+  'copilot.quotaDetails': 'Copilot 配額詳情',
+  'copilot.configureModelsAction': '設定 Copilot 模型',
+  'settingsSearch.entry.copilotAccountOverview.title':
+    'Copilot 帳戶總覽',
+  'settingsSearch.entry.copilotAccountOverview.desc':
+    '睇返已登入帳戶同各自嘅 Copilot 設定。',
+  'settingsSearch.entry.copilotQuota.title': 'Copilot 配額',
+  'settingsSearch.entry.copilotQuota.desc':
+    '逐個帳戶睇可用、已用、重設同資料新鮮度。',
+  'settingsSearch.entry.copilotConfigureModels.title': '設定 Copilot 模型',
+  'settingsSearch.entry.copilotConfigureModels.desc':
+    '為揀咗嘅帳戶選 Copilot 模型。',
+  'palette.copilotAccountOverview': 'Copilot 帳戶總覽',
+  'palette.copilotQuota': 'Copilot 配額詳情',
+  'palette.copilotConfigureModels': '設定 Copilot 模型',
+  'copilot.quotaLead.plain': '帳戶用量詳情',
+  'copilot.quotaLead.light': '呢度係帳戶用量，今次乖乖哋報數。',
+  'copilot.quotaLead.playful': '帳戶用量本簿到場，仲戴咗頂細細帽。',
+  'copilot.quotaLead.maximum': '請睇帳戶用量本簿，逐個請求都勇敢咁數清楚。',
   'settings.gitTab': 'Git',
   'settings.appearanceTab': '外觀',
   'settings.notificationsTab': '通知',

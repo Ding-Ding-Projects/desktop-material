@@ -13,7 +13,10 @@ import {
   translate,
 } from '../../lib/i18n'
 import { createOllamaClient } from '../../lib/ollama'
-import { enableCopilotConflictResolution } from '../../lib/feature-flag'
+import {
+  enableCopilotConflictResolution,
+  enableCopilotSdkCommitMessageGeneration,
+} from '../../lib/feature-flag'
 import { isGHES } from '../../lib/endpoint-capabilities'
 import {
   DefaultCopilotModel,
@@ -25,7 +28,10 @@ import {
   type CopilotQuotaSnapshotsByAccount,
   type CopilotQuotaStatesByAccount,
 } from '../../lib/stores/copilot-store'
-import type { Account } from '../../models/account'
+import {
+  CopilotLicenseTypeNoAccess,
+  type Account,
+} from '../../models/account'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import {
   OllamaModelManager,
@@ -106,7 +112,6 @@ type CopilotAccessState =
   | 'desktop-disabled'
   | 'enabled'
 
-const CopilotLicenseTypeNoAccess = 'NO_ACCESS'
 export class CopilotPreferences extends React.Component<
   ICopilotPreferencesProps,
   ICopilotPreferencesState
@@ -291,9 +296,13 @@ export class CopilotPreferences extends React.Component<
                   key={getCopilotAccountCacheKey(account)}
                   account={account}
                   snapshots={
-                    this.props.copilotQuotaSnapshotsByAccount?.get(
+                    this.props.copilotQuotaSnapshotsByAccount?.has(
                       getCopilotAccountCacheKey(account)
-                    ) ?? null
+                    )
+                      ? this.props.copilotQuotaSnapshotsByAccount.get(
+                          getCopilotAccountCacheKey(account)
+                        ) ?? null
+                      : null
                   }
                   quotaState={this.props.copilotQuotaStatesByAccount?.get(
                     getCopilotAccountCacheKey(account)
@@ -417,6 +426,7 @@ export class CopilotPreferences extends React.Component<
     return this.props.accounts.filter(
       account =>
         !isGHES(account.endpoint) &&
+        enableCopilotSdkCommitMessageGeneration(account) &&
         account.isCopilotDesktopEnabled === true &&
         account.copilotLicenseType !== undefined &&
         account.copilotLicenseType !== CopilotLicenseTypeNoAccess
@@ -475,10 +485,11 @@ export class CopilotPreferences extends React.Component<
     const account = this.getActiveCopilotAccount()
     const accountKey =
       account === undefined ? null : getCopilotAccountCacheKey(account)
-    const copilotModels =
-      (accountKey !== null
-        ? this.props.copilotModelsByAccount?.get(accountKey)
-        : undefined) ?? this.props.copilotModels
+    const accountModels =
+      accountKey !== null && this.props.copilotModelsByAccount?.has(accountKey)
+        ? this.props.copilotModelsByAccount.get(accountKey) ?? null
+        : this.props.copilotModels
+    const copilotModels = accountModels
 
     if (copilotModels === null) {
       return <p>Loading available models…</p>
@@ -550,11 +561,13 @@ export class CopilotPreferences extends React.Component<
           <SnapshotCard
             account={account}
             snapshots={
-              this.props.copilotQuotaSnapshotsByAccount?.get(
+              this.props.copilotQuotaSnapshotsByAccount?.has(
                 getCopilotAccountCacheKey(account)
-              ) ??
-              this.props.copilotQuotaSnapshots ??
-              null
+              )
+                ? this.props.copilotQuotaSnapshotsByAccount.get(
+                    getCopilotAccountCacheKey(account)
+                  ) ?? null
+                : this.props.copilotQuotaSnapshots ?? null
             }
             quotaState={this.props.copilotQuotaStatesByAccount?.get(
               getCopilotAccountCacheKey(account)
@@ -574,12 +587,13 @@ export class CopilotPreferences extends React.Component<
   ): JSX.Element {
     const { byokProviders } = this.props
     const account = this.getActiveCopilotAccount()
+    const accountKey =
+      account === undefined ? null : getCopilotAccountCacheKey(account)
     const selectedCopilotModels =
-      (account === undefined
-        ? undefined
-        : this.props.selectedCopilotModelsByAccount?.get(
-            getCopilotAccountCacheKey(account)
-          )) ?? this.props.selectedCopilotModels
+      accountKey !== null &&
+      this.props.selectedCopilotModelsByAccount?.has(accountKey)
+        ? this.props.selectedCopilotModelsByAccount.get(accountKey) ?? {}
+        : this.props.selectedCopilotModels
 
     const rawSelection = selectedCopilotModels[feature] ?? null
     const value = this.resolveSelectionValue(

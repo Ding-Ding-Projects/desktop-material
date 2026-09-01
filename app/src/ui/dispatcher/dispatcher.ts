@@ -8059,7 +8059,13 @@ export class Dispatcher {
     feature: CopilotFeature,
     model: string | null
   ) {
-    return this.appStore._setSelectedCopilotModel(account, feature, model)
+    const result = this.appStore._setSelectedCopilotModel(
+      account,
+      feature,
+      model
+    )
+    this.profileStore.onAppStateChanged()
+    return result
   }
 
   /** Replace all per-feature Copilot model selections at once. */
@@ -8071,7 +8077,9 @@ export class Dispatcher {
   public setSelectedCopilotModelsByAccount(
     models: ReadonlyMap<string, CopilotModelSelections>
   ) {
-    return this.appStore._setSelectedCopilotModelsByAccount(models)
+    const result = this.appStore._setSelectedCopilotModelsByAccount(models)
+    this.profileStore.onAppStateChanged()
+    return result
   }
 
   public setAlwaysUseCopilotForConflictResolution(value: boolean): void {

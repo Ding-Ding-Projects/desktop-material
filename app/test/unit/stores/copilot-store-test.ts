@@ -21,6 +21,9 @@ import {
   getPreferredDefaultModel,
   getSupportedReasoningEffort,
   migrateCopilotModelSelectionsToAccounts,
+  migrateCopilotModelSelectionsStorage,
+  readCopilotModelSelectionsByAccount,
+  writeCopilotModelSelectionsByAccount,
   isCopilotConflictResolutionAbortError,
   runConflictResolutionTurn,
 } from '../../../src/lib/stores/copilot-store'
@@ -630,6 +633,7 @@ describe('Copilot account model and quota isolation', () => {
     const firstSnapshot = await store.getQuotaSnapshots(first)
     const secondSnapshot = await store.getQuotaSnapshots(second)
     assert.strictEqual(firstSnapshot?.get('chat')?.usedRequests, 25)
+    assert.strictEqual(firstSnapshot?.get('chat')?.tokenBasedBilling, false)
     assert.strictEqual(secondSnapshot?.size, 0)
     assert.strictEqual(store.getQuotaSnapshotState(second).status, 'available')
     assert.strictEqual(
@@ -654,6 +658,40 @@ describe('Copilot account model and quota isolation', () => {
     assert.strictEqual(
       store.getQuotaSnapshotState(account).status,
       'unavailable'
+    )
+  })
+
+  it('persists account selections idempotently and removes legacy keys after migration', () => {
+    const values = new Map<string, string>()
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+    }
+    const selections = new Map([
+      ['1:https://api.github.com', { 'commit-message-generation': 'auto' }],
+    ])
+    writeCopilotModelSelectionsByAccount(selections, storage)
+    const first = values.get('selected-copilot-models-by-account')
+    writeCopilotModelSelectionsByAccount(selections, storage)
+    assert.strictEqual(values.get('selected-copilot-models-by-account'), first)
+    assert.deepStrictEqual(
+      readCopilotModelSelectionsByAccount(storage).get('1:https://api.github.com'),
+      { 'commit-message-generation': 'auto' }
+    )
+    values.set(
+      'selected-copilot-models',
+      JSON.stringify({ 'conflict-resolution': 'legacy-conflict' })
+    )
+    migrateCopilotModelSelectionsStorage(
+      [makeAccount({ id: 1 }), makeAccount({ id: 2 })],
+      storage
+    )
+    assert.strictEqual(values.has('selected-copilot-models'), false)
+    assert.strictEqual(values.has('selected-copilot-model'), false)
+    assert.deepStrictEqual(
+      readCopilotModelSelectionsByAccount(storage).get('2:https://api.github.com'),
+      { 'conflict-resolution': 'legacy-conflict' }
     )
   })
 

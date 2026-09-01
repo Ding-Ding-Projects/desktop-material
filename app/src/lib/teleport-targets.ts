@@ -221,6 +221,11 @@ export const TeleportTargetSelectors = {
     '[data-teleport-target="settings-copilot-conflict-model"]',
   settingsCopilotAlwaysConflicts:
     '[data-teleport-target="settings-copilot-always-conflicts"]',
+  settingsCopilotAccountOverview:
+    '[data-teleport-target="settings-copilot-account-overview"]',
+  settingsCopilotQuota: '[data-teleport-target="settings-copilot-quota"]',
+  settingsCopilotConfigureModels:
+    '[data-teleport-target="settings-copilot-configure-models"]',
   settingsOllamaEndpoint: '[data-teleport-target="settings-ollama-endpoint"]',
   settingsAiMasterSwitch: '[data-teleport-target="settings-ai-master-switch"]',
 

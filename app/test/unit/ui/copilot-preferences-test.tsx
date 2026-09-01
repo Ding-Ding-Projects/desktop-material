@@ -19,6 +19,7 @@ import type { CopilotQuotaSnapshots } from '../../../src/lib/stores/copilot-stor
 import {
   DefaultCopilotModel,
   type CopilotFeature,
+  getCopilotAccountCacheKey,
 } from '../../../src/lib/stores/copilot-store'
 import {
   encodeModelKey,
@@ -63,7 +64,7 @@ function makeAccount(options: IAccountOptions = {}): Account {
     'free',
     'https://copilot-proxy.githubusercontent.com',
     isCopilotDesktopEnabled,
-    [],
+    ['desktop_enable_copilot_sdk_commit_message_generation'],
     copilotLicenseType
   )
 }
@@ -369,6 +370,24 @@ function getCostDetailsValue(container: HTMLElement, label: string): string {
 }
 
 describe('CopilotPreferences', () => {
+  it('does not fall back to global model or quota props for a known scoped account', () => {
+    const account = makeAccount({ id: 42 })
+    render(
+      <CopilotPreferences
+        {...defaults()}
+        accounts={[account]}
+        copilotModelsByAccount={
+          new Map([[getCopilotAccountCacheKey(account), null]])
+        }
+        copilotQuotaSnapshotsByAccount={
+          new Map([[getCopilotAccountCacheKey(account), null]])
+        }
+      />
+    )
+    assert.ok(screen.getByText('Loading available models…'))
+    assert.strictEqual(screen.queryByText('Auto'), null)
+  })
+
   it('exposes account identity and factual quota values accessibly', () => {
     render(
       <SnapshotCard
@@ -382,7 +401,7 @@ describe('CopilotPreferences', () => {
       />
     )
     assert.ok(screen.getByRole('region', { name: 'Copilot usage for mona' }))
-    assert.ok(screen.getByText('25 used of 100 available'))
+    assert.ok(screen.getByText(/25 used of 100 available/))
     assert.ok(screen.getByText(/Updated/))
   })
 

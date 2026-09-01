@@ -27,8 +27,17 @@ export function formatNumber(value: number, fmt?: INumberFormat): string {
   }
 
   const isNegative = value < 0
+  const maximumFractionDigits = Math.max(
+    0,
+    Math.min(6, fmt.maximumFractionDigits ?? 20)
+  )
   const abs = Math.abs(value)
-  const [intPart, decPart] = abs.toString().split('.')
+  const rounded =
+    maximumFractionDigits === 20
+      ? abs
+      : Math.round(abs * 10 ** maximumFractionDigits) /
+        10 ** maximumFractionDigits
+  const [intPart, decPart] = rounded.toString().split('.')
 
   // Insert a placeholder character for thousands groupings, then replace with
   // the configured separator. The regex matches positions that are followed by

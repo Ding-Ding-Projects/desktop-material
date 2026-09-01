@@ -1,7 +1,12 @@
 import * as React from 'react'
 import type { AccountQuotaSnapshot } from '@github/copilot-sdk/dist/generated/rpc'
 import type { Account } from '../../models/account'
+import { t } from '../../lib/i18n'
+import { tFunny } from '../../lib/funny-level-text'
+import { formatNumber } from '../../lib/format-number'
+import { getNumberFormatPreference } from '../../models/formatting-preferences'
 import { Button } from '../lib/button'
+import { teleportAnchor } from '../../lib/teleport-targets'
 import type {
   CopilotQuotaSnapshots,
   ICopilotQuotaSnapshotState,
@@ -15,17 +20,53 @@ export interface ISnapshotCardProps {
 }
 
 function formatPercent(snapshot: AccountQuotaSnapshot): string {
-  if (snapshot.isUnlimitedEntitlement) return 'No usage limit'
+  if (snapshot.isUnlimitedEntitlement) return '∞'
   const used = Math.max(0, Math.min(100, 100 - snapshot.remainingPercentage))
-  return `${Math.round(used)}% used`
+  return t('copilot.quotaPercentUsed', {
+    percent: formatNumber(Math.round(used), getNumberFormatPreference()),
+  })
+}
+
+function QuotaProgress({ snapshot }: { readonly snapshot: AccountQuotaSnapshot }) {
+  const used = snapshot.isUnlimitedEntitlement
+    ? 0
+    : Math.max(0, Math.min(100, 100 - snapshot.remainingPercentage))
+  return (
+    <div
+      role="progressbar"
+      aria-valuemin={snapshot.isUnlimitedEntitlement ? undefined : 0}
+      aria-valuemax={snapshot.isUnlimitedEntitlement ? undefined : 100}
+      aria-valuenow={snapshot.isUnlimitedEntitlement ? undefined : used}
+      aria-valuetext={
+        snapshot.isUnlimitedEntitlement
+          ? t('copilot.quotaNoUsageLimit')
+          : t('copilot.quotaPercentUsed', {
+              percent: formatNumber(
+                Math.round(used),
+                getNumberFormatPreference()
+              ),
+            })
+      }
+      aria-label={
+        snapshot.isUnlimitedEntitlement
+          ? t('copilot.quotaNoUsageLimit')
+          : t('copilot.quotaPercentUsed', {
+              percent: formatNumber(
+                Math.round(used),
+                getNumberFormatPreference()
+              ),
+            })
+      }
+    />
+  )
 }
 
 function formatReset(resetDate: string | undefined): string {
-  if (resetDate === undefined) return 'Reset date unavailable'
+  if (resetDate === undefined) return t('copilot.quotaResetUnavailable')
   const parsed = new Date(resetDate)
   return Number.isNaN(parsed.getTime())
-    ? 'Reset date unavailable'
-    : `Resets ${parsed.toLocaleString()}`
+    ? t('copilot.quotaResetUnavailable')
+    : parsed.toLocaleString()
 }
 
 export function SnapshotCard({
@@ -38,7 +79,8 @@ export function SnapshotCard({
   return (
     <section
       className="copilot-snapshot-card"
-      aria-label={`Copilot usage for ${account.login}`}
+      {...teleportAnchor('settings-copilot-account-overview')}
+      aria-label={t('copilot.accountUsage', { account: account.login })}
     >
       <header className="copilot-snapshot-account">
         <div>
@@ -47,40 +89,63 @@ export function SnapshotCard({
         </div>
         {onConfigureModels !== undefined && (
           <Button
+            {...teleportAnchor('settings-copilot-configure-models')}
             onClick={() => onConfigureModels(account)}
-            ariaLabel={`Configure models for ${account.login}`}
+            ariaLabel={t('copilot.configureModels', {
+              account: account.login,
+            })}
           >
-            Configure models…
+            {t('copilot.configureModels', { account: account.login })}
           </Button>
         )}
       </header>
-      {state === 'loading' && <p role="status">Loading Copilot usage…</p>}
+      <p className="copilot-quota-lead">{tFunny('copilot.quotaLead')}</p>
+      {state === 'loading' && <p role="status">{t('copilot.quotaLoading')}</p>}
       {state === 'unavailable' && (
-        <p role="status">Copilot usage unavailable for this account.</p>
+        <p role="status">{t('copilot.quotaUnavailable')}</p>
       )}
       {state === 'error' && (
-        <p role="alert">Copilot usage could not be loaded.</p>
+        <p role="alert">{t('copilot.quotaError')}</p>
       )}
       {state === 'stale' && (
-        <p role="status">Showing stale Copilot usage data.</p>
+        <p role="status">{t('copilot.quotaStale')}</p>
       )}
       {snapshots === null && state === undefined && (
-        <p role="status">Loading Copilot usage…</p>
+        <p role="status">{t('copilot.quotaLoading')}</p>
       )}
       {snapshots !== null && snapshots.size === 0 && (
-        <p role="status">No Copilot usage data available yet.</p>
+        <p role="status">{t('copilot.quotaEmpty')}</p>
       )}
       {snapshots !== null && snapshots.size > 0 && (
-        <ul>
+        <ul {...teleportAnchor('settings-copilot-quota')}>
           {[...snapshots.entries()].map(([key, snapshot]) => (
             <li key={key}>
               <span>{key}</span>
-              <strong>{formatPercent(snapshot)}</strong>
-              <span>
-                {snapshot.usedRequests} used of {snapshot.entitlementRequests}{' '}
-                available
-              </span>
-              <span>{formatReset(snapshot.resetDate)}</span>
+              <strong>
+                {snapshot.isUnlimitedEntitlement
+                  ? t('copilot.quotaUsedOfAvailable', {
+                      used: '0',
+                      available: t('copilot.quotaNoUsageLimit'),
+                      reset: t('copilot.quotaResetUnavailable'),
+                    })
+                  : formatPercent(snapshot)}
+              </strong>
+              <QuotaProgress snapshot={snapshot} />
+              {!snapshot.isUnlimitedEntitlement && (
+                <span>
+                  {t('copilot.quotaUsedOfAvailable', {
+                    used: formatNumber(
+                      snapshot.usedRequests,
+                      getNumberFormatPreference()
+                    ),
+                    available: formatNumber(
+                      snapshot.entitlementRequests,
+                      getNumberFormatPreference()
+                    ),
+                    reset: formatReset(snapshot.resetDate),
+                  })}
+                </span>
+              )}
             </li>
           ))}
         </ul>
@@ -88,7 +153,9 @@ export function SnapshotCard({
       {quotaState?.fetchedAt !== null &&
         quotaState?.fetchedAt !== undefined && (
           <small>
-            Updated {new Date(quotaState.fetchedAt).toLocaleString()}
+            {t('copilot.quotaUpdated', {
+              timestamp: new Date(quotaState.fetchedAt).toLocaleString(),
+            })}
           </small>
         )}
     </section>

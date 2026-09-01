@@ -33,6 +33,9 @@ import type {
   CopilotQuotaSnapshots,
   CopilotQuotaSnapshotsByAccount,
   CopilotQuotaStatesByAccount,
+  readCopilotModelSelectionsByAccount,
+  writeCopilotModelSelectionsByAccount,
+  migrateCopilotModelSelectionsStorage,
 } from './copilot-store'
 import {
   CommitMessageGenerationCancelledError,
@@ -1218,7 +1221,6 @@ const alwaysUseCopilotForConflictResolutionKey =
 export const showChangesFilterKey = 'show-changes-filter'
 
 const selectedCopilotModelsKey = 'selected-copilot-models'
-const selectedCopilotModelsByAccountKey = 'selected-copilot-models-by-account'
 export const showChangesFilterDefault = true
 
 interface IScheduledAutomationFence {
@@ -2041,10 +2043,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
     CopilotModelSelections
   > = new Map()
   private copilotModelsByAccount: CopilotModelsByAccount = new Map()
+  private readonly copilotModelsRequestGeneration = new Map<string, number>()
   private copilotQuotaSnapshots: CopilotQuotaSnapshots | null = null
   private copilotQuotaSnapshotsByAccount: CopilotQuotaSnapshotsByAccount =
     new Map()
   private copilotQuotaStatesByAccount: CopilotQuotaStatesByAccount = new Map()
+  private readonly copilotQuotaRequestGeneration = new Map<string, number>()
   private byokProviders: ReadonlyArray<IBYOKProvider> = []
 
   /** Mirror of the notification centre store's state (see NotificationCentreStore). */
@@ -27470,49 +27474,19 @@ export class AppStore extends TypedBaseStore<IAppState> {
     string,
     CopilotModelSelections
   > {
-    const raw = localStorage.getItem(selectedCopilotModelsByAccountKey)
-    if (raw === null) return new Map()
-    try {
-      const parsed: unknown = JSON.parse(raw)
-      if (typeof parsed !== 'object' || parsed === null) return new Map()
-      return new Map(
-        Object.entries(parsed).filter(
-          (entry): entry is [string, CopilotModelSelections] =>
-            typeof entry[1] === 'object' &&
-            entry[1] !== null &&
-            !Array.isArray(entry[1])
-        )
-      )
-    } catch {
-      return new Map()
-    }
+    return readCopilotModelSelectionsByAccount()
   }
 
   private saveCopilotModelSelectionsByAccount(): void {
-    if (this.selectedCopilotModelsByAccount.size === 0) {
-      localStorage.removeItem(selectedCopilotModelsByAccountKey)
-      return
-    }
-    localStorage.setItem(
-      selectedCopilotModelsByAccountKey,
-      JSON.stringify(Object.fromEntries(this.selectedCopilotModelsByAccount))
-    )
+    writeCopilotModelSelectionsByAccount(this.selectedCopilotModelsByAccount)
   }
 
   private migrateCopilotModelSelections(): void {
-    const legacy = this.selectedCopilotModels
-    if (Object.keys(legacy).length > 0 && this.accounts.length > 0) {
-      const migrated = new Map(this.selectedCopilotModelsByAccount)
-      for (const account of this.accounts) {
-        const key = getCopilotAccountCacheKey(account)
-        migrated.set(key, { ...legacy, ...migrated.get(key) })
-      }
-      this.selectedCopilotModelsByAccount = migrated
-      this.saveCopilotModelSelectionsByAccount()
-      this.selectedCopilotModels = {}
-      this.saveCopilotModelSelections()
-    }
-    localStorage.removeItem('selected-copilot-model')
+    const migrated = migrateCopilotModelSelectionsStorage(this.accounts)
+    this.selectedCopilotModelsByAccount = migrated
+    this.selectedCopilotModels = {}
+    this.saveCopilotModelSelections()
+    this.selectedCopilotModelsByAccount = migrated
   }
 
   private getSelectedCopilotModels(account: Account): CopilotModelSelections {
@@ -27546,8 +27520,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     const byAccount = new Map(this.copilotModelsByAccount)
     for (const account of accounts) {
+      const accountKey = getCopilotAccountCacheKey(account)
+      const generation =
+        (this.copilotModelsRequestGeneration.get(accountKey) ?? 0) + 1
+      this.copilotModelsRequestGeneration.set(accountKey, generation)
       const models = await this.copilotStore.listModels(account)
       if (
+        this.copilotModelsRequestGeneration.get(accountKey) !== generation ||
         !this.accounts.some(
           current =>
             getCopilotAccountCacheKey(current) ===
@@ -27557,7 +27536,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         continue
       }
       byAccount.set(
-        getCopilotAccountCacheKey(account),
+        accountKey,
         models === null ? null : [...models]
       )
     }
@@ -27584,17 +27563,22 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const byAccount = new Map(this.copilotQuotaSnapshotsByAccount)
     for (const account of accounts) {
       const accountKey = getCopilotAccountCacheKey(account)
-      byAccount.set(
-        accountKey,
-        await this.copilotStore.getQuotaSnapshots(account)
-      )
+      const generation =
+        (this.copilotQuotaRequestGeneration.get(accountKey) ?? 0) + 1
+      this.copilotQuotaRequestGeneration.set(accountKey, generation)
+      const snapshots = await this.copilotStore.getQuotaSnapshots(account)
       if (
+        this.copilotQuotaRequestGeneration.get(accountKey) !== generation ||
         !this.accounts.some(
           current => getCopilotAccountCacheKey(current) === accountKey
         )
       ) {
-        byAccount.delete(accountKey)
+        continue
       }
+      byAccount.set(
+        accountKey,
+        snapshots
+      )
     }
     this.copilotQuotaSnapshotsByAccount = byAccount
     this.copilotQuotaSnapshots =

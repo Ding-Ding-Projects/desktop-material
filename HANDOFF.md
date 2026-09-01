@@ -1,5 +1,34 @@
 # Desktop Material — Active parity handoff
 
+## Copilot account settings and quota — 2026-08-31
+
+The Copilot account lane is implemented on `task/copilot-account-quota-20260831`.
+Model choices, model lists, and quota snapshots are keyed by account id and
+endpoint. AppStore request generations and CopilotStore current-promise and
+sign-in checks reject late success and error responses after sign-out or
+re-authentication. Scoped `null` values remain loading or unavailable and do
+not fall back to another account.
+
+The Preferences surface includes account-specific model configuration and a
+quota card with provider-reported used, available, reset, and refresh-time
+values. It exposes loading, available, stale, unavailable, error, and unlimited
+states with accessible status and progress semantics. New copy is in the
+English and Cantonese catalogs, with a funny-level framing family. Account
+overview, quota, and model configuration are registered in settings search,
+command-palette entries, and teleport selectors.
+
+Persistence uses `selected-copilot-models-by-account`, migrates legacy global
+choices without overwriting account overrides, removes old keys after a
+successful migration, and records changes through the profile settings history
+registry. The new feature article is
+`docs/features/integrations/copilot-account-settings-and-quota.md`.
+
+Verification on the task branch: focused Copilot store and Preferences checks,
+number-format checks, settings-search checks, and root TypeScript no-emit all
+passed. The command-palette suite
+still has one unrelated pre-existing failure at `palette:set-attention-focus`.
+Packaged Windows capture evidence remains open for the next owner.
+
 ## Remaining plain HTML controls converted to shared Material primitives — 2026-08-22
 
 A six-lane fleet sweep classified every raw `button`/`input`/`select`/`textarea`

@@ -1,5 +1,19 @@
 # Desktop Material roadmap
 
+## August 31 — Copilot account settings and quota
+
+- [x] Keep Copilot model selections, model lists, and quota snapshots scoped to
+  the signed-in account, with sign-out pruning and stale-response fences.
+- [x] Show factual used, available, reset, and refresh-time values with
+  loading, available, stale, unavailable, error, and unlimited states.
+- [x] Localize the account and quota surface in English and Cantonese, with
+  funny-level framing, accessible progress semantics, settings search, and
+  command-palette registration.
+- [x] Record account-scoped model selection changes through profile settings
+  history and cover storage migration, idempotence, and legacy-key removal.
+- [ ] Capture the packaged Windows surface for account switching and quota
+  states through the approved headless route.
+
 ## August 22 — shared Material control conformance sweep
 
 - [x] Sweep every renderer surface for raw `button`/`input`/`select`/`textarea`
