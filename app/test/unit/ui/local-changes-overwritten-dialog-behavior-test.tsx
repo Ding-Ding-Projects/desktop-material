@@ -134,6 +134,22 @@ describe('local-changes rebase dismissal behavior', () => {
     )
   })
 
+  it('dismisses after a failed stash without retrying or closing the outer popup', async () => {
+    const events: string[] = []
+    renderDialog(action(RetryActionType.Rebase), events, false)
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /stash changes and continue/i })
+    )
+
+    await waitFor(() => assert.deepEqual(events, ['stash', 'dismiss']))
+    assert.equal(events.includes('retry'), false)
+    assert.equal(
+      events.includes(`close:${PopupType.MultiCommitOperation}`),
+      false
+    )
+  })
+
   it('uses the same route for Escape dismissal', () => {
     const events: string[] = []
     const { view } = renderDialog(action(RetryActionType.Rebase), events)
