@@ -380,6 +380,55 @@ describe('CopilotPreferences', () => {
     )
     assert.match(getCopilotAccountTargetSuffix(first), /^[a-zA-Z0-9_-]+$/)
   })
+
+  it('renders one deterministic generic target set plus unique account targets', () => {
+    const first = makeAccount({ id: 1, login: 'first' })
+    const second = makeAccount({ id: 2, login: 'second' })
+    const view = render(
+      <CopilotPreferences
+        {...defaults()}
+        accounts={[first, second]}
+        copilotModelsByAccount={
+          new Map([
+            [getCopilotAccountCacheKey(first), models],
+            [getCopilotAccountCacheKey(second), models],
+          ])
+        }
+        copilotQuotaSnapshotsByAccount={
+          new Map([
+            [getCopilotAccountCacheKey(first), null],
+            [getCopilotAccountCacheKey(second), null],
+          ])
+        }
+      />
+    )
+    assert.strictEqual(
+      view.container.querySelectorAll(
+        '[data-teleport-target="settings-copilot-account-overview"]'
+      ).length,
+      1
+    )
+    assert.strictEqual(
+      view.container.querySelectorAll(
+        '[data-teleport-target="settings-copilot-quota"]'
+      ).length,
+      1
+    )
+    assert.strictEqual(
+      view.container.querySelectorAll(
+        '[data-teleport-target="settings-copilot-configure-models"]'
+      ).length,
+      1
+    )
+    for (const account of [first, second]) {
+      const suffix = getCopilotAccountTargetSuffix(account)
+      assert.ok(
+        view.container.querySelector(
+          `[data-teleport-target="settings-copilot-account-overview-${suffix}"]`
+        )
+      )
+    }
+  })
   it('does not fall back to global model or quota props for a known scoped account', () => {
     const account = makeAccount({ id: 42 })
     render(

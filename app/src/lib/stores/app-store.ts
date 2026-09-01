@@ -27577,9 +27577,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
       this.copilotModelsByAccount = new Map(byAccount)
       this.emitUpdate()
     })
-    this.copilotModelsByAccount = byAccount
+    const currentModelsByAccount = this.copilotModelsByAccount
     this.copilotModels =
-      byAccount.get(getCopilotAccountCacheKey(accounts[0])) ?? null
+      currentModelsByAccount.get(getCopilotAccountCacheKey(accounts[0])) ?? null
     if (this.copilotModels !== null) this.scrubMissingCopilotModelSelections()
     this.emitUpdate()
   }
@@ -27631,9 +27631,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
       this.copilotQuotaSnapshotsByAccount = new Map(byAccount)
       this.emitUpdate()
     })
-    this.copilotQuotaSnapshotsByAccount = byAccount
+    const currentQuotaByAccount = this.copilotQuotaSnapshotsByAccount
     this.copilotQuotaSnapshots =
-      byAccount.get(getCopilotAccountCacheKey(accounts[0])) ?? null
+      currentQuotaByAccount.get(getCopilotAccountCacheKey(accounts[0])) ?? null
     this.emitUpdate()
   }
 

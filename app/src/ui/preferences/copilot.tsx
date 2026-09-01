@@ -285,11 +285,8 @@ export class CopilotPreferences extends React.Component<
       return (
         <DialogContent className="copilot-tab">
           <div className="copilot-tab-content">
-            <div
-              className="copilot-section copilot-account-snapshot-groups"
-              {...teleportAnchor('settings-copilot-account-overview')}
-            >
-              {accounts.map(account => (
+            <div className="copilot-section copilot-account-snapshot-groups">
+              {accounts.map((account, index) => (
                 <SnapshotCard
                   key={getCopilotAccountCacheKey(account)}
                   account={account}
@@ -305,6 +302,7 @@ export class CopilotPreferences extends React.Component<
                   quotaState={this.props.copilotQuotaStatesByAccount?.get(
                     getCopilotAccountCacheKey(account)
                   )}
+                  isDefaultAccount={index === 0}
                   onConfigureModels={this.onConfigureModels}
                 />
               ))}
@@ -563,6 +561,8 @@ export class CopilotPreferences extends React.Component<
             quotaState={this.props.copilotQuotaStatesByAccount?.get(
               getCopilotAccountCacheKey(account)
             )}
+            onConfigureModels={this.onConfigureModels}
+            isDefaultAccount
           />
         )}
       </>

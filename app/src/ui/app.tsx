@@ -6197,6 +6197,25 @@ export class App extends React.Component<IAppProps, IAppState> {
           return null
         }
 
+        const conflictAccount = getAccountForCopilotConflictResolution(
+          this.state.accounts,
+          popup.repository
+        )
+        const conflictAccountKey =
+          conflictAccount === null || conflictAccount === undefined
+            ? null
+            : `${conflictAccount.id}:${conflictAccount.endpoint}`
+        const conflictModels =
+          conflictAccountKey === null
+            ? null
+            : this.state.copilotModelsByAccount.get(conflictAccountKey) ?? null
+        const conflictSelection =
+          conflictAccountKey === null
+            ? null
+            : this.state.selectedCopilotModelsByAccount.get(
+                conflictAccountKey
+              )?.['conflict-resolution'] ?? null
+
         return (
           <MultiCommitOperation
             key="multi-commit-operation"
@@ -6215,28 +6234,8 @@ export class App extends React.Component<IAppProps, IAppState> {
               this.state.copilotConflictResolutionClickCount === 0
             }
             copilotConflictResolutionModel={getConflictResolutionModelDisplay(
-              (() => {
-                const account = getAccountForCopilotConflictResolution(
-                  this.state.accounts,
-                  popup.repository
-                )
-                return account === null || account === undefined
-                  ? null
-                  : this.state.selectedCopilotModelsByAccount.get(
-                      `${account.id}:${account.endpoint}`
-                    )?.['conflict-resolution'] ?? null
-              })(),
-              (() => {
-                const account = getAccountForCopilotConflictResolution(
-                  this.state.accounts,
-                  popup.repository
-                )
-                return account === null || account === undefined
-                  ? this.state.copilotModels
-                  : this.state.copilotModelsByAccount.get(
-                      `${account.id}:${account.endpoint}`
-                    ) ?? null
-              })(),
+              conflictSelection,
+              conflictModels,
               this.state.byokProviders
             )}
             openFileInExternalEditor={this.openFileInExternalEditor}

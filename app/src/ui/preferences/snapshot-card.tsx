@@ -17,6 +17,7 @@ export interface ISnapshotCardProps {
   readonly snapshots: CopilotQuotaSnapshots | null
   readonly quotaState?: ICopilotQuotaSnapshotState
   readonly onConfigureModels?: (account: Account) => void
+  readonly isDefaultAccount?: boolean
 }
 
 export function getCopilotAccountTargetSuffix(account: Account): string {
@@ -82,6 +83,7 @@ export function SnapshotCard({
   snapshots,
   quotaState,
   onConfigureModels,
+  isDefaultAccount = false,
 }: ISnapshotCardProps): JSX.Element {
   const state = quotaState?.status
   const overviewTarget = copilotAccountTeleportTarget(
@@ -105,24 +107,46 @@ export function SnapshotCard({
       data-teleport-target={overviewTarget}
       aria-label={t('copilot.accountUsage', { account: account.login })}
     >
+      <div
+        {...(isDefaultAccount
+          ? { 'data-teleport-target': 'settings-copilot-account-overview' }
+          : {})}
+      >
       <header className="copilot-snapshot-account">
         <div>
           <strong>@{account.login}</strong>
           <div>{account.friendlyEndpoint}</div>
         </div>
         {onConfigureModels !== undefined && (
-          <Button
-            data-teleport-target={configureTarget}
-            onClick={() => onConfigureModels(account)}
-            ariaLabel={t('copilot.configureModels', {
-              account: account.login,
-            })}
+          <span
+            {...(isDefaultAccount
+              ? {
+                  'data-teleport-target':
+                    'settings-copilot-configure-models',
+                }
+              : {})}
           >
-            {t('copilot.configureModels', { account: account.login })}
-          </Button>
+            <Button
+              data-teleport-target={configureTarget}
+              onClick={() => onConfigureModels(account)}
+              ariaLabel={t('copilot.configureModels', {
+                account: account.login,
+              })}
+            >
+              {t('copilot.configureModels', { account: account.login })}
+            </Button>
+          </span>
         )}
       </header>
-      <p className="copilot-quota-lead">{tFunny('copilot.quotaLead')}</p>
+      </div>
+      <p
+        className="copilot-quota-lead"
+        {...(isDefaultAccount
+          ? { 'data-teleport-target': 'settings-copilot-quota' }
+          : {})}
+      >
+        {tFunny('copilot.quotaLead')}
+      </p>
       {state === 'loading' && <p role="status">{t('copilot.quotaLoading')}</p>}
       {state === 'unavailable' && (
         <p role="status">{t('copilot.quotaUnavailable')}</p>
@@ -142,11 +166,7 @@ export function SnapshotCard({
               <span>{key}</span>
               <strong>
                 {snapshot.isUnlimitedEntitlement
-                  ? t('copilot.quotaUsedOfAvailable', {
-                      used: '0',
-                      available: t('copilot.quotaNoUsageLimit'),
-                      reset: t('copilot.quotaResetUnavailable'),
-                    })
+                  ? t('copilot.quotaUnlimited')
                   : formatPercent(snapshot)}
               </strong>
               <QuotaProgress snapshot={snapshot} />
