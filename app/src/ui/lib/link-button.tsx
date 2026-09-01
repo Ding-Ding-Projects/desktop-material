@@ -93,6 +93,7 @@ export class LinkButton extends React.Component<ILinkButtonProps, {}> {
           onBlur={this.props.onMouseOut}
           onClick={this.onClick}
           tabIndex={disabled ? -1 : this.props.tabIndex}
+          disabled={disabled}
           aria-label={this.props.ariaLabel}
           aria-disabled={disabled || undefined}
           aria-busy={this.isActionActive || undefined}

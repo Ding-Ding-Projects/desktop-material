@@ -187,6 +187,11 @@ describe('GitHub Packages view', () => {
           screen.getByText(longName).getAttribute('data-full-value'),
           longName
         )
+        assert.equal(screen.getByText(longName).getAttribute('tabindex'), '0')
+        assert.equal(
+          screen.getByText(longName).getAttribute('data-tooltip-target'),
+          'true'
+        )
       })
 
       fireEvent.click(
@@ -206,6 +211,7 @@ describe('GitHub Packages view', () => {
         screen.getByText(longVersion).getAttribute('data-full-value'),
         longVersion
       )
+      assert.equal(screen.getByText(longVersion).getAttribute('tabindex'), '0')
       assert.ok(
         screen.getByRole('button', {
           name: `Copy package version ${longVersion}`,

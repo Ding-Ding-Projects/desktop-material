@@ -4,9 +4,10 @@ import * as octicons from '../octicons/octicons.generated'
 import { Form } from './form'
 import { Button } from './button'
 import { DefaultAppDisplayName } from '../../models/app-identity'
+import { BrowserAuthenticationActionKey } from '../../lib/single-flight-action'
 
 /** Shared by the form submit and its submit button. */
-export const BrowserSignInActionKey = 'authentication:browser-sign-in'
+export const BrowserSignInActionKey = BrowserAuthenticationActionKey
 
 /** Text to let the user know their browser will send them back to the app */
 export const BrowserRedirectMessage = `Your browser will redirect you back to ${DefaultAppDisplayName} once you've signed in. If your browser asks for your permission to launch ${DefaultAppDisplayName} please allow it to.`

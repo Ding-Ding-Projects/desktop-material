@@ -1,4 +1,6 @@
 import assert from 'node:assert'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import * as React from 'react'
 import { describe, it } from 'node:test'
 
@@ -12,6 +14,29 @@ import {
 import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
 
 describe('single-flight activation controls', () => {
+  it('resets native action-button chrome while keeping both target types', async () => {
+    const stylesheet = await readFile(
+      join(process.cwd(), 'app', 'styles', '_material-shell.scss'),
+      'utf8'
+    )
+    assert.match(
+      stylesheet,
+      /button\.link-button-component\s*\{[\s\S]*appearance:\s*none;[\s\S]*background:\s*transparent;[\s\S]*border:\s*0;[\s\S]*font:\s*inherit;/
+    )
+
+    render(
+      <>
+        <LinkButton onClick={() => {}}>Action</LinkButton>
+        <LinkButton uri="https://example.com/docs">URI</LinkButton>
+      </>
+    )
+    assert.equal(
+      screen.getByRole('button', { name: 'Action' }).tagName,
+      'BUTTON'
+    )
+    assert.equal(screen.getByRole('link', { name: 'URI' }).tagName, 'A')
+  })
+
   it('allows one mixed pointer and keyboard activation until settle', async () => {
     let calls = 0
     let finish = () => {}
@@ -73,6 +98,23 @@ describe('single-flight activation controls', () => {
       'BUTTON'
     )
     assert.equal(screen.getByRole('link', { name: 'Docs' }).tagName, 'A')
+  })
+
+  it('uses native disabled semantics and blocks every action-only key route', () => {
+    let calls = 0
+    render(
+      <LinkButton disabled={true} onClick={() => calls++}>
+        Retry
+      </LinkButton>
+    )
+    const button = screen.getByRole('button', { name: 'Retry' })
+
+    assert.equal((button as HTMLButtonElement).disabled, true)
+    assert.equal(button.getAttribute('aria-disabled'), 'true')
+    fireEvent.click(button)
+    fireEvent.keyDown(button, { key: ' ' })
+    fireEvent.keyDown(button, { key: 'Enter' })
+    assert.equal(calls, 0)
   })
 
   it('shares the authentication key between submit and browser button', async () => {

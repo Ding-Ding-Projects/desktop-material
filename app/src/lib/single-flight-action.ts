@@ -8,6 +8,9 @@ import {
 
 type Listener = () => void
 
+/** Shared semantic target for every browser authentication entry point. */
+export const BrowserAuthenticationActionKey = 'authentication:browser-sign-in'
+
 /** Return true only for a value whose completion defines the action lifetime. */
 function isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T> {
   return (

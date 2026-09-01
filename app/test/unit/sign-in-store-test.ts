@@ -11,6 +11,10 @@ import { Account } from '../../src/models/account'
 import { getDotComAPIEndpoint } from '../../src/lib/api'
 import { InMemoryStore, AsyncInMemoryStore } from '../helpers/stores'
 import { IAppShellOpenExternalOptions, shell } from '../../src/lib/app-shell'
+import {
+  BrowserAuthenticationActionKey,
+  singleFlightActions,
+} from '../../src/lib/single-flight-action'
 
 function createAccountsStore(
   accounts: ReadonlyArray<Account> = []
@@ -231,6 +235,88 @@ describe('SignInStore', () => {
         await signInStore.authenticateWithBrowser()
 
         assert.deepEqual(capturedOptions, { intent: 'authentication' })
+      } finally {
+        signInStore.reset()
+        openExternal.mock.restore()
+      }
+    })
+
+    it('refuses duplicate launches before creating another OAuth state', async () => {
+      let finishLaunch = (_opened: boolean) => {}
+      let launchCount = 0
+      const launch = new Promise<boolean>(resolve => {
+        finishLaunch = resolve
+      })
+      const openExternal = mock.method(shell, 'openExternal', async () => {
+        launchCount++
+        return launch
+      })
+
+      try {
+        signInStore.beginDotComSignIn()
+        const first = signInStore.authenticateWithBrowser()
+        const firstState = signInStore.getState()
+        const second = signInStore.authenticateWithBrowser()
+
+        assert.equal(await second, undefined)
+        assert.equal(launchCount, 1)
+        assert.equal(
+          signInStore.getState()?.kind === SignInStep.Authentication
+            ? signInStore.getState()?.oauthState?.state
+            : undefined,
+          firstState?.kind === SignInStep.Authentication
+            ? firstState.oauthState?.state
+            : undefined
+        )
+        assert.equal(
+          singleFlightActions.isActive(BrowserAuthenticationActionKey),
+          true
+        )
+
+        finishLaunch(true)
+        await first
+        assert.equal(
+          singleFlightActions.isActive(BrowserAuthenticationActionKey),
+          false
+        )
+
+        const third = signInStore.authenticateWithBrowser()
+        assert.equal(await third, undefined)
+        assert.equal(launchCount, 1)
+      } finally {
+        signInStore.reset()
+        openExternal.mock.restore()
+      }
+    })
+
+    it('releases the launch claim after rejection and permits a later retry', async () => {
+      let rejectLaunch = (_error: Error) => {}
+      const rejectedLaunch = new Promise<boolean>((_resolve, reject) => {
+        rejectLaunch = reject
+      })
+      let launchCount = 0
+      const openExternal = mock.method(shell, 'openExternal', async () => {
+        launchCount++
+        if (launchCount === 1) {
+          return rejectedLaunch
+        }
+        return true
+      })
+
+      try {
+        signInStore.beginDotComSignIn()
+        const first = signInStore.authenticateWithBrowser()
+        rejectLaunch(new Error('browser launch rejected'))
+        await assert.rejects(first, /browser launch rejected/)
+        assert.equal(
+          singleFlightActions.isActive(BrowserAuthenticationActionKey),
+          false
+        )
+
+        signInStore.reset()
+        signInStore.beginDotComSignIn()
+        await signInStore.authenticateWithBrowser()
+        assert.equal(launchCount, 2)
       } finally {
         signInStore.reset()
         openExternal.mock.restore()

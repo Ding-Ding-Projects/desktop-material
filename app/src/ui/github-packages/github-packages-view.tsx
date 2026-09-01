@@ -84,6 +84,7 @@ class OverflowValue extends React.Component<IOverflowValueProps, {}> {
         ref={this.valueRef}
         className={this.props.className}
         aria-label={this.props.ariaLabel}
+        tabIndex={0}
         data-full-value={this.props.value}
       >
         {this.props.value}

@@ -28,6 +28,10 @@ import {
   exchangeSelfHostedOAuthCode,
   fetchSelfHostedOAuthUserInfo,
 } from '../self-hosted-server/oauth-sign-in'
+import {
+  BrowserAuthenticationActionKey,
+  singleFlightActions,
+} from '../single-flight-action'
 
 export interface ISignInOAuthCallbackServices {
   readonly requestOAuthToken: (
@@ -314,7 +318,24 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
    * This method must only be called when the store is in the authentication
    * step or an error will be thrown.
    */
-  public async authenticateWithBrowser() {
+  public authenticateWithBrowser() {
+    if (this.isBrowserAuthenticationActive()) {
+      return Promise.resolve(undefined)
+    }
+    return singleFlightActions.run(BrowserAuthenticationActionKey, () =>
+      this.authenticateWithBrowserOnce()
+    )
+  }
+
+  /** Whether an OAuth callback is already occupying the authentication step. */
+  public isBrowserAuthenticationActive(): boolean {
+    return (
+      this.state?.kind === SignInStep.Authentication &&
+      this.state.oauthState !== undefined
+    )
+  }
+
+  private async authenticateWithBrowserOnce() {
     const currentState = this.state
 
     if (
@@ -339,7 +360,8 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
       }
     )
 
-    return new Promise<Account>((resolve, reject) => {
+    let launchPromise = Promise.resolve()
+    const accountFlow = new Promise<Account>((resolve, reject) => {
       const { endpoint, resultCallback } = currentState
       log.info('[SignInStore] initializing OAuth flow')
       this.setState({
@@ -357,15 +379,16 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
           callbackResult,
         },
       })
-      void shell
+      launchPromise = shell
         .openExternal(getOAuthAuthorizationURL(endpoint, csrfToken), {
           intent: 'authentication',
         })
         .then(opened => {
           if (!opened) {
-            reject(new Error('The browser could not be opened for sign in.'))
+            throw new Error('The browser could not be opened for sign in.')
           }
-        }, reject)
+        })
+      void launchPromise.catch(reject)
     })
       .then(account => {
         if (!this.state || this.state.kind !== SignInStep.Authentication) {
@@ -397,7 +420,12 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
           this.state.oauthState?.state === csrfToken
         ) {
           log.info('[SignInStore] error with OAuth flow', e)
-          this.setState({ ...this.state, error: e, loading: false })
+          this.setState({
+            ...this.state,
+            error: e,
+            loading: false,
+            oauthState: undefined,
+          })
           settleOAuthCallback?.('failed')
         } else {
           log.info(`[SignInStore] OAuth error but session has changed: ${e}`)
@@ -405,6 +433,8 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
         }
         throw e
       })
+    void accountFlow.catch(() => {})
+    return launchPromise
   }
 
   public async resolveOAuthRequest(
