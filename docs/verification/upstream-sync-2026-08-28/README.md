@@ -195,11 +195,11 @@ architecture and define the intended implementation lane.
 | 092 | c57deba0e5f44fbba196678e464088ad946779d6 | Bump version and add changelog | release metadata | inapplicable because of platform/scope | REL, do not import upstream 3.6.x versioning into current 4.0.x. |
 | 093 | 893818aa4c8e7e6ba40701d8d95b36154e85f579 | Update 3.6.4 changelog | release metadata | inapplicable because of platform/scope | REL, historical changelog record only. |
 | 094 | ef9871e173d08bc32c03c57c97c084a1997af8b7 | Migrate to @electron/packager | packaging | reverted-history duplicate | PKG, duplicate of row 078, current packager path remains. |
-| 095 | e338f9b83e7b494c258a2700ac77028f526721e8 | Preserve legacy macOS icons with Packager 18 | packaging | reverted-history duplicate | MAC, duplicate of row 080, outside current Deen No scope. |
+| 095 | e338f9b83e7b494c258a2700ac77028f526721e8 | Preserve legacy macOS icons with Packager 18 | packaging | reverted-history duplicate | MAC, duplicate of row 080, outside current Windows scope. |
 | 096 | 6e5fa0e5d9ae4287b1cc3ffb966d36177d5753d7 | Pin cross-compiled Copilot packages to the lockfile | CI dependency | reverted-history duplicate | DEP and WF, duplicate of row 081. |
 | 097 | 28955b81295df6a3232857c15caba933bd7cd03b | Restore platform-specific packaging icons | packaging | reverted-history duplicate | PKG, duplicate of row 082. |
 | 098 | 8a555fe5ec2e14652d888f60569fb0c380d2805f | Bump postcss from 8.5.12 to 8.5.26 | dependency | review required | DEP, re-resolve current lockfile and verify package consumers. |
-| 099 | 6b4304f2c4e0e6bc65d44a70172ab1fbfd49ebc5 | Bump dompurify from 3.4.11 to 3.4.13 in /app | dependency | ported | DEP, local adaptation `1eed3b1a4d` is on this task jer and is not in `origin/main`; it is not an integrated equivalent yet. |
+| 099 | 6b4304f2c4e0e6bc65d44a70172ab1fbfd49ebc5 | Bump dompurify from 3.4.11 to 3.4.13 in /app | dependency | ported | DEP, local adaptation `1eed3b1a4d` is on this task branch and is not in `origin/main`; it is not an integrated equivalent yet. |
 | 100 | 9a91f5bd32b54d9f0cdad5181757b3f6f99de923 | Draft release 3.6.5-beta1 | release metadata | inapplicable because of platform/scope | REL, historical metadata only. |
 | 101 | 30651b4d1325078ce128ae7b075f39921cb45830 | Update changelog.json | changelog | inapplicable because of platform/scope | REL, preserve factual history without stale version replacement. |
 | 102 | 34abbfcb56d43c9c1053b07e00f8ace770d44499 | Upgrade gh-aw to v0.85.4 | workflow tooling | inapplicable because of platform/scope | WF, current workflow and no-remote-test policy must be reconciled first. |
