@@ -6,6 +6,7 @@ import {
   IBrowserExtensionDownloadExecutor,
 } from './browser-extension-download-queue'
 import { BrowserExtensionDownloadHandoff } from './browser-extension-download-handoff'
+import { encodeNativeMessagingFrame } from '../lib/browser-extension-native-messaging'
 import {
   IBrowserExtensionDownloadProgress,
   IBrowserExtensionDownloadRequest,
@@ -83,4 +84,27 @@ export function createBrowserExtensionDownloadRuntime(
     onDownloadRequested: request => queue.enqueue(request),
   })
   return { queue, handoff }
+}
+
+export function runBrowserExtensionNativeHost(
+  runtime: IBrowserExtensionDownloadRuntime
+): void {
+  let pending = Buffer.alloc(0)
+  process.stdin.on('data', chunk => {
+    pending = Buffer.concat([pending, chunk])
+    while (pending.byteLength >= 4) {
+      const payloadLength = pending.readUInt32LE(0)
+      const frameLength = 4 + payloadLength
+      if (pending.byteLength < frameLength) {
+        return
+      }
+      const frame = pending.subarray(0, frameLength)
+      pending = pending.subarray(frameLength)
+      const accepted = runtime.handoff.acceptNativeFrame(frame)
+      process.stdout.write(
+        Buffer.from(encodeNativeMessagingFrame({ accepted }))
+      )
+    }
+  })
+  process.stdin.resume()
 }

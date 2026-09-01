@@ -179,7 +179,10 @@ import {
   registerAgentSetupCommandRunnerIpc,
 } from './agent-setup-command-runner'
 import { createUnconfiguredStatusHubClient } from './status-hub-client'
-import { createBrowserExtensionDownloadRuntime } from './browser-extension-download-runtime'
+import {
+  createBrowserExtensionDownloadRuntime,
+  runBrowserExtensionNativeHost,
+} from './browser-extension-download-runtime'
 import {
   inspectLocalFileForConversion,
   preflightFileConverterStorage,
@@ -1172,7 +1175,13 @@ app.on('ready', () => {
 
   // A quick action opens only its own small window. Booting the full workspace
   // alongside it would erase the startup saving the feature exists for.
-  if (!handleQuickActionArguments(process.argv, launchTime)) {
+  const browserExtensionNativeHost = process.argv.includes(
+    '--browser-extension-native-host'
+  )
+  if (
+    !browserExtensionNativeHost &&
+    !handleQuickActionArguments(process.argv, launchTime)
+  ) {
     createWindow()
   }
 
@@ -1244,6 +1253,11 @@ app.on('ready', () => {
       }
     }
   )
+
+  if (browserExtensionNativeHost) {
+    runBrowserExtensionNativeHost(browserExtensionDownloadRuntime)
+    return
+  }
 
   ipcMain.handle('browser-extension-download-confirm', (_event, requestId) =>
     browserExtensionDownloadRuntime!.queue.confirm(requestId)
