@@ -134,6 +134,64 @@ function getWorkflowStepRun(
   return matches[0]?.run ?? ''
 }
 
+const requiredWindowsReleaseAssets = [
+  'RELEASES',
+  'GitHub Desktop-x64.zip',
+  'GitHubDesktopSetup-x64.exe',
+  'GitHubDesktopSetup-x64.msi',
+  'GitHubDesktop-${RELEASE_VERSION}-full.nupkg',
+  'GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg',
+] as const
+
+function trimShellToken(line: string): string {
+  let token = line.trim()
+  if (token.endsWith('\\')) {
+    token = token.slice(0, -1).trim()
+  }
+  return token.replace(/^['"]|['"]$/g, '')
+}
+
+function extractRequiredAssetNames(run: string): string[] {
+  const start = run.indexOf('required=(')
+  assert.notEqual(start, -1, 'required Windows asset array is missing')
+  const lines = run.slice(start).split(/\r?\n/)
+  const assets: string[] = []
+  for (const line of lines.slice(1)) {
+    const token = line.trim()
+    if (token === ')') {
+      break
+    }
+    if (token.length === 0) {
+      continue
+    }
+    const path = trimShellToken(token)
+    const prefix = 'release-payload/installers/'
+    assert.ok(path.startsWith(prefix), `unexpected release asset path: ${path}`)
+    assets.push(path.slice(prefix.length))
+  }
+  return assets
+}
+
+function extractExpectedAssetNames(run: string): string[] {
+  const marker = 'for expected in ' + '\\'
+  const start = run.indexOf(marker)
+  assert.notEqual(start, -1, 'expected Windows asset loop is missing')
+  const end = run.indexOf('; do', start)
+  assert.notEqual(end, -1, 'expected Windows asset loop is incomplete')
+  return run
+    .slice(start + marker.length, end)
+    .split(/\r?\n/)
+    .map(trimShellToken)
+    .filter(token => token.length > 0)
+}
+
+function assertExactWindowsReleaseAssets(
+  actual: readonly string[],
+  context: string
+): void {
+  assert.deepEqual(actual, requiredWindowsReleaseAssets, context)
+}
+
 function getActionStepRun(
   document: ICompositeActionDocument,
   expectedName: string
@@ -421,6 +479,64 @@ describe('Super Express Release workflow', () => {
       assert.match(source, /done < release-payload\/installers\/RELEASES/)
       assert.doesNotMatch(source, /cp dist\/RELEASES/)
       assert.doesNotMatch(source, /done < dist\/RELEASES/)
+    }
+  })
+
+  it('keeps the six exact Windows release assets consistent and fail-closed', () => {
+    const downloadedPayload = getWorkflowStepRun(
+      windowsWorkflowDocument,
+      'Verify downloaded Windows release payload'
+    )
+    const draftAssets = getWorkflowStepRun(
+      windowsWorkflowDocument,
+      'Verify draft target and assets before publication'
+    )
+    const publishedAssets = getWorkflowStepRun(
+      windowsWorkflowDocument,
+      'Verify published target and assets'
+    )
+
+    const lists = [
+      [
+        'downloaded payload',
+        extractRequiredAssetNames(downloadedPayload),
+      ],
+      ['draft release', extractExpectedAssetNames(draftAssets)],
+      ['published release', extractExpectedAssetNames(publishedAssets)],
+    ] as const
+
+    for (const [context, actual] of lists) {
+      assertExactWindowsReleaseAssets(actual, context)
+    }
+
+    assert.doesNotMatch(
+      windowsWorkflow,
+      /GitHub\.Desktop-x64\.zip/,
+      'Windows release workflow must use the actual ZIP asset name'
+    )
+
+    const mutations = [
+      ['GitHub Desktop-x64.zip', 'GitHub.Desktop-x64.zip'],
+      [
+        'GitHubDesktop-${RELEASE_VERSION}-full.nupkg',
+        'GitHubDesktop-${RELEASE_VERSION}-full-package.nupkg',
+      ],
+      [
+        'GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg',
+        'GitHubDesktop-${RELEASE_VERSION}-x64-package.nupkg',
+      ],
+    ] as const
+
+    for (const [expectedName, brokenName] of mutations) {
+      const brokenRun = downloadedPayload.replace(expectedName, brokenName)
+      assert.throws(
+        () =>
+          assertExactWindowsReleaseAssets(
+            extractRequiredAssetNames(brokenRun),
+            `broken asset ${brokenName}`
+          ),
+        `the semantic asset Chut must reject ${brokenName}`
+      )
     }
   })
 
