@@ -327,7 +327,9 @@ export const createHooksProxy = (
           })
           child.on('error', fail)
           child.stdin.on('error', fail)
+          child.stdout.on('error', fail)
           child.stderr.on('error', fail)
+          child.stdout.resume()
 
           // git-hook run takes care of ensuring we only get hook output on stderr
           // https://github.com/git/git/blob/4cf919bd7b946477798af5414a371b23fd68bf93/hook.c#L73C6-L73C22

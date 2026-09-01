@@ -1,6 +1,14 @@
 import assert from 'node:assert'
 import { describe, it, TestContext } from 'node:test'
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'fs/promises'
+import {
+  access,
+  chmod,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { Readable, Writable } from 'stream'
@@ -288,7 +296,7 @@ describe('hooks/hook-stdin-spool', () => {
       pending,
       (error: unknown) => error instanceof Error && error.name === 'AbortError'
     )
-    await assert.rejects(() => readFile(join(directory, 'stdin')))
+    await assert.rejects(() => access(directory))
   })
 
   it('lets the bundled Git run a stdin-reading pre-push hook', async t => {
