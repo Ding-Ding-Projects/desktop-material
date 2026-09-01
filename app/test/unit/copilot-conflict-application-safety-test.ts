@@ -377,6 +377,28 @@ describe('Copilot conflict application safety', () => {
     )
     assert.equal(deleteModify.reason, 'delete-modify-conflict')
 
+    const illegalTextAction = assessCopilotConflictApplication(
+      { ...resolution('src/file.ts'), resolutionAction: 'delete' },
+      file('src/file.ts'),
+      reviewedContent,
+      reviewedStageFingerprint
+    )
+    assert.equal(illegalTextAction.reason, 'illegal-resolution')
+
+    const allowedDeleteModifyAction = assessCopilotConflictApplication(
+      { ...resolution('src/file.ts'), resolutionAction: 'keep' },
+      file('src/file.ts', {
+        ...bothModifiedStatus,
+        entry: {
+          ...bothModifiedStatus.entry,
+          action: UnmergedEntrySummary.DeletedByThem,
+        },
+      }),
+      reviewedContent,
+      reviewedStageFingerprint
+    )
+    assert.equal(allowedDeleteModifyAction.applicable, true)
+
     const rename = assessCopilotConflictApplication(
       resolution('src/file.ts'),
       file('src/file.ts', {

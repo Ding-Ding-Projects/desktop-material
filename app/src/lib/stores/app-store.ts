@@ -1009,9 +1009,12 @@ import {
   fingerprintCopilotConflictStages,
   hashCopilotConflictContent,
 } from '../copilot-conflict-application-safety'
-import type { ICopilotConflictStageEntry } from '../copilot-conflict-application-safety'
+import type {
+  ICopilotConflictApplicationAssessment,
+  ICopilotConflictApplicationResult,
+  ICopilotConflictStageEntry,
+} from '../copilot-conflict-application-safety'
 import { parseNulTerminatedIndexEntries } from '../git/batched-object-reads'
-import type { ICopilotConflictApplicationAssessment } from '../copilot-conflict-application-safety'
 import {
   buildConflictContext,
   gatherCommitContext,
@@ -17624,18 +17627,17 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * This shouldn't be called directly. See `Dispatcher`.
    */
   public async _applyCopilotConflictResolutions(
-    repository: Repository
-  ): Promise<void> {
+    repository: Repository,
+    editedResults: ReadonlyMap<string, string> = new Map()
+  ): Promise<ICopilotConflictApplicationResult> {
     const state = this.repositoryStateCache.get(repository)
     const { multiCommitOperationState } = state
     if (multiCommitOperationState === null) {
-      return
+      return { written: [], staged: [], skipped: [] }
     }
 
     const { copilotResolutions, step } = multiCommitOperationState
-    if (copilotResolutions === null || copilotResolutions.length === 0) {
-      return
-    }
+    const generatedResolutions = copilotResolutions ?? []
 
     // Respect any manual overrides the user chose in the result dialog
     const manualResolutions =
@@ -17648,14 +17650,44 @@ export class AppStore extends TypedBaseStore<IAppState> {
       this.statsStore.increment('copilotConflictResolutionWithOverridesCount')
     }
 
+    const resolutionsByPath = new Map(
+      generatedResolutions
+        .filter(resolution => !manualResolutions.has(resolution.path))
+        .map(resolution => [resolution.path, resolution])
+    )
+    const skipped: Array<{ path: string; reason: string }> = []
+    for (const [path, content] of editedResults) {
+      const generated = resolutionsByPath.get(path)
+      if (generated !== undefined) {
+        resolutionsByPath.set(path, { ...generated, resolvedContent: content })
+        continue
+      }
+
+      const snapshot = await this.captureCopilotEditedResolution(
+        repository,
+        path,
+        content
+      )
+      if (snapshot === null) {
+        skipped.push({ path, reason: 'edited conflict could not be captured' })
+      } else {
+        resolutionsByPath.set(path, snapshot)
+      }
+    }
+
     const applicationResult = await this.applyCopilotResolutionsToDisk(
       repository,
-      copilotResolutions,
-      manualResolutions
+      [...resolutionsByPath.values()],
+      new Map()
     )
+    const combinedResult: ICopilotConflictApplicationResult = {
+      written: applicationResult.written,
+      staged: applicationResult.staged,
+      skipped: [...skipped, ...applicationResult.skipped],
+    }
 
-    if (applicationResult.skipped.length > 0) {
-      const skippedDetails = applicationResult.skipped
+    if (combinedResult.skipped.length > 0) {
+      const skippedDetails = combinedResult.skipped
         .map(({ path, reason }) => `${path} (${reason})`)
         .join(', ')
       const visibleSkippedDetails =
@@ -17668,9 +17700,52 @@ export class AppStore extends TypedBaseStore<IAppState> {
             )} …`
       this.emitError(
         new Error(
-          `Copilot wrote ${applicationResult.written.length} file(s), staged ${applicationResult.staged.length}, and skipped ${applicationResult.skipped.length}: ${visibleSkippedDetails}`
+          `Copilot wrote ${combinedResult.written.length} file(s), staged ${combinedResult.staged.length}, and skipped ${combinedResult.skipped.length}: ${visibleSkippedDetails}`
         )
       )
+    }
+    return combinedResult
+  }
+
+  private async captureCopilotEditedResolution(
+    repository: Repository,
+    path: string,
+    resolvedContent: string
+  ): Promise<IFileResolution | null> {
+    const absolutePath = await resolveWithin(repository.path, path)
+    if (absolutePath === null) {
+      return null
+    }
+
+    try {
+      const status = await getStatus(repository, true, true)
+      const currentFile = status.workingDirectory.files.find(
+        file => file.path === path
+      )
+      const currentContent = await readFile(absolutePath, 'utf8')
+      const stageFingerprint = fingerprintCopilotConflictStages(
+        path,
+        await this.getCopilotConflictStageEntries(repository, path)
+      )
+      if (
+        currentFile === undefined ||
+        currentContent.includes('\ufffd') ||
+        stageFingerprint === ''
+      ) {
+        return null
+      }
+      return {
+        path,
+        resolvedContent,
+        reasoning: 'User-edited Copilot result',
+        conflictGeneration: {
+          contentHash: hashCopilotConflictContent(currentContent),
+          stageFingerprint,
+          conflictType: 'text',
+        },
+      }
+    } catch {
+      return null
     }
   }
 
@@ -17728,13 +17803,16 @@ export class AppStore extends TypedBaseStore<IAppState> {
           }
 
           let currentStageFingerprint: string | undefined
+          let currentStageEntries: ReadonlyArray<ICopilotConflictStageEntry> =
+            []
           try {
+            currentStageEntries = await this.getCopilotConflictStageEntries(
+              repository,
+              resolution.path
+            )
             currentStageFingerprint = fingerprintCopilotConflictStages(
               resolution.path,
-              await this.getCopilotConflictStageEntries(
-                repository,
-                resolution.path
-              )
+              currentStageEntries
             )
           } catch (error) {
             throw new Error('current conflict stages could not be read', {
@@ -17742,30 +17820,107 @@ export class AppStore extends TypedBaseStore<IAppState> {
             })
           }
 
+          let effectiveResolution = resolution
+          const currentAction = String(
+            currentFile?.status.kind === AppFileStatusKind.Conflicted
+              ? currentFile.status.entry.action
+              : ''
+          )
+          if (
+            resolution.resolutionAction === 'keep' &&
+            currentAction.includes('deleted-by-')
+          ) {
+            const modifiedStage =
+              currentAction === 'deleted-by-them' ? '2' : '3'
+            const modifiedEntry = currentStageEntries.find(
+              entry => entry.stage === modifiedStage
+            )
+            if (modifiedEntry === undefined) {
+              throw new Error('modified conflict stage is unavailable')
+            }
+            const modifiedBlob = await git(
+              ['cat-file', 'blob', modifiedEntry.objectId],
+              repository.path,
+              'copilotConflictReadModifiedSide',
+              { encoding: 'buffer' }
+            )
+            const modifiedContent = modifiedBlob.stdout.toString('utf8')
+            effectiveResolution = {
+              ...resolution,
+              resolvedContent: modifiedContent,
+            }
+          }
+
           let assessment: ICopilotConflictApplicationAssessment
           assessment = await applyCopilotResolutionIfSafe(
-            resolution,
+            effectiveResolution,
             currentFile,
             currentContent,
             currentStageFingerprint,
             async () => {
+              if (effectiveResolution.resolutionAction === 'delete') {
+                await rm(absolutePath, { force: true })
+                let exists = true
+                try {
+                  await lstat(absolutePath)
+                } catch {
+                  exists = false
+                }
+                if (exists) {
+                  throw new Error('file remained after delete resolution')
+                }
+                writtenPaths.push(effectiveResolution.path)
+                await this.withTemporaryRepositoryMutationGuard(
+                  repository,
+                  () =>
+                    git(
+                      ['add', '--', `:(literal)${effectiveResolution.path}`],
+                      repository.path,
+                      'copilotConflictStageDeletion'
+                    )
+                )
+                const deletionEntries = parseNulTerminatedIndexEntries(
+                  (
+                    await git(
+                      [
+                        'ls-files',
+                        '--stage',
+                        '-z',
+                        '--',
+                        `:(literal)${effectiveResolution.path}`,
+                      ],
+                      repository.path,
+                      'copilotConflictVerifyDeletion'
+                    )
+                  ).stdout
+                )
+                if (deletionEntries.length !== 0) {
+                  throw new Error('delete resolution remained staged as a file')
+                }
+                stagedPaths.push(effectiveResolution.path)
+                return
+              }
               await this.withTemporaryRepositoryMutationGuard(repository, () =>
-                writeFile(absolutePath, resolution.resolvedContent, 'utf8')
+                writeFile(
+                  absolutePath,
+                  effectiveResolution.resolvedContent,
+                  'utf8'
+                )
               )
 
               const afterWrite = await readFile(absolutePath, 'utf8')
-              if (afterWrite !== resolution.resolvedContent) {
+              if (afterWrite !== effectiveResolution.resolvedContent) {
                 throw new Error(
                   'file changed before Copilot write verification'
                 )
               }
-              writtenPaths.push(resolution.path)
+              writtenPaths.push(effectiveResolution.path)
 
               const expectedBlob = await git(
                 ['hash-object', '--stdin'],
                 repository.path,
                 'copilotConflictExpectedBlob',
-                { stdin: resolution.resolvedContent }
+                { stdin: effectiveResolution.resolvedContent }
               )
               const expectedBlobId = expectedBlob.stdout.trim()
               if (!/^[0-9a-f]{40,64}$/.test(expectedBlobId)) {
@@ -17773,12 +17928,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
               }
 
               const beforeStage = await readFile(absolutePath, 'utf8')
-              if (beforeStage !== resolution.resolvedContent) {
+              if (beforeStage !== effectiveResolution.resolvedContent) {
                 throw new Error('file changed before Copilot staging')
               }
               await this.withTemporaryRepositoryMutationGuard(repository, () =>
                 git(
-                  ['add', '--', `:(literal)${resolution.path}`],
+                  ['add', '--', `:(literal)${effectiveResolution.path}`],
                   repository.path,
                   'copilotConflictStage'
                 )
@@ -17792,7 +17947,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
                       '--stage',
                       '-z',
                       '--',
-                      `:(literal)${resolution.path}`,
+                      `:(literal)${effectiveResolution.path}`,
                     ],
                     repository.path,
                     'copilotConflictStageVerify'
@@ -17800,32 +17955,22 @@ export class AppStore extends TypedBaseStore<IAppState> {
                 ).stdout
               )
               const pathEntries = stagedEntries.filter(
-                entry => entry.path === resolution.path
+                entry => entry.path === effectiveResolution.path
               )
               if (
                 pathEntries.length !== 1 ||
                 pathEntries[0].stage !== '0' ||
                 pathEntries[0].objectId !== expectedBlobId
               ) {
-                await git(
-                  ['reset', '--', `:(literal)${resolution.path}`],
-                  repository.path,
-                  'copilotConflictUnstageAfterVerification'
-                ).catch(() => undefined)
                 throw new Error(
                   'staged resolution did not match intended bytes'
                 )
               }
               const afterStage = await readFile(absolutePath, 'utf8')
-              if (afterStage !== resolution.resolvedContent) {
-                await git(
-                  ['reset', '--', `:(literal)${resolution.path}`],
-                  repository.path,
-                  'copilotConflictUnstageAfterExternalEdit'
-                ).catch(() => undefined)
+              if (afterStage !== effectiveResolution.resolvedContent) {
                 throw new Error('file changed after Copilot staging')
               }
-              stagedPaths.push(resolution.path)
+              stagedPaths.push(effectiveResolution.path)
             }
           )
 

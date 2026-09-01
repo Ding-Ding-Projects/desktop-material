@@ -19,10 +19,20 @@ export type CopilotConflictApplicationRefusalReason =
   | 'rename-conflict'
   | 'manual-only-conflict'
   | 'non-utf8-content'
+  | 'illegal-resolution'
 
 export interface ICopilotConflictApplicationAssessment {
   readonly applicable: boolean
   readonly reason?: CopilotConflictApplicationRefusalReason
+}
+
+export interface ICopilotConflictApplicationResult {
+  readonly written: ReadonlyArray<string>
+  readonly staged: ReadonlyArray<string>
+  readonly skipped: ReadonlyArray<{
+    readonly path: string
+    readonly reason: string
+  }>
 }
 
 export interface ICopilotConflictStageEntry {
@@ -119,9 +129,21 @@ export function assessCopilotConflictApplication(
     return { applicable: false, reason: 'non-utf8-content' }
   }
 
+  if (
+    /^<{7}/m.test(resolution.resolvedContent) ||
+    /^={7}$/m.test(resolution.resolvedContent) ||
+    /^>{7}/m.test(resolution.resolvedContent)
+  ) {
+    return { applicable: false, reason: 'illegal-resolution' }
+  }
+
   const action = String(currentFile.status.entry.action)
-  if (action.includes('deleted-by-')) {
+  const isDeleteModify = action.includes('deleted-by-')
+  if (isDeleteModify && resolution.resolutionAction === undefined) {
     return { applicable: false, reason: 'delete-modify-conflict' }
+  }
+  if (!isDeleteModify && resolution.resolutionAction !== undefined) {
+    return { applicable: false, reason: 'illegal-resolution' }
   }
   if (action.includes('rename')) {
     return { applicable: false, reason: 'rename-conflict' }

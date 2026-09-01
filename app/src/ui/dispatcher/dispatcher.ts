@@ -364,6 +364,7 @@ import {
   WorktreeEntry,
   WorktreeMaintenanceOperation,
 } from '../../models/worktree'
+import type { ICopilotConflictApplicationResult } from '../../lib/copilot-conflict-application-safety'
 import { ICreatedGitHubIssue } from '../../lib/github-issue'
 import {
   getGitHubPullRequestHead,
@@ -3125,9 +3126,13 @@ export class Dispatcher {
    * Called when the user confirms the resolutions from the result dialog.
    */
   public applyCopilotConflictResolutions(
-    repository: Repository
-  ): Promise<void> {
-    return this.appStore._applyCopilotConflictResolutions(repository)
+    repository: Repository,
+    editedResults: ReadonlyMap<string, string> = new Map()
+  ): Promise<ICopilotConflictApplicationResult> {
+    return this.appStore._applyCopilotConflictResolutions(
+      repository,
+      editedResults
+    )
   }
 
   /** Remove the given account from the app. */

@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { join } from 'path'
 import { Dialog, DialogContent, DialogFooter } from '../../dialog'
 import { DialogHeader } from '../../dialog/header'
 import { Dispatcher } from '../../dispatcher'
@@ -40,7 +39,6 @@ import { MultiCommitOperationKind } from '../../../models/multi-commit-operation
 import { TabBar, TabBarType } from '../../tab-bar'
 import { CopilotConflictsChanges } from './copilot-conflicts-changes'
 import { CopilotConflictsEditor } from './copilot-conflicts-editor'
-import { writeFile } from 'fs/promises'
 
 import {
   CopilotFileResolutionChoice,
@@ -134,32 +132,20 @@ export class CopilotConflictsDialog extends React.Component<
     try {
       // Write Copilot resolutions to disk before continuing the operation.
       // Done here (shared) so it works for merge, rebase, and cherry-pick.
-      await this.props.dispatcher.applyCopilotConflictResolutions(
-        this.props.repository
-      )
-      // Then let any hand-edits made in the Editor tab's result pane
-      // override those files on disk — the user's explicit edit always
-      // wins over whatever Copilot (or ours/theirs) produced.
-      await this.applyEditedResults()
+      const applicationResult =
+        await this.props.dispatcher.applyCopilotConflictResolutions(
+          this.props.repository,
+          this.state.editedResults
+        )
+      if (applicationResult.skipped.length > 0) {
+        this.setState({ isContinuing: false })
+        return
+      }
       await this.props.onContinueAfterConflicts()
     } catch (e) {
       this.setState({ isContinuing: false })
       throw e
     }
-  }
-
-  private async applyEditedResults(): Promise<void> {
-    const { editedResults } = this.state
-    if (editedResults.size === 0) {
-      return
-    }
-
-    const { repository } = this.props
-    await Promise.all(
-      [...editedResults].map(([path, text]) =>
-        writeFile(join(repository.path, path), text, 'utf8')
-      )
-    )
   }
 
   private onEditedResultChange = (path: string, text: string) => {

@@ -20,6 +20,7 @@ export interface IFileResolution {
   readonly resolvedContent: string
   /** Human-readable explanation of how and why conflicts were resolved this way. */
   readonly reasoning: string
+  readonly resolutionAction?: 'keep' | 'delete'
   /**
    * Identity of the conflicted file that Copilot reviewed. The write path
    * uses this to avoid replacing a manual or external resolution made after
@@ -47,6 +48,7 @@ export interface IRawFileResolution {
   readonly hunks: ReadonlyArray<IHunkResolution>
   /** Human-readable explanation of the resolution strategy for this file. */
   readonly reasoning: string
+  readonly resolutionAction?: 'keep' | 'delete'
 }
 
 /** A reference the model considered material to its decision. */
@@ -405,7 +407,7 @@ export function parseCopilotConflictResolution(
     }
 
     const obj = entry as Record<string, unknown>
-    const { path, hunks: rawHunks, reasoning } = obj
+    const { path, hunks: rawHunks, reasoning, resolutionAction } = obj
 
     if (typeof path !== 'string' || path.trim().length === 0) {
       throw new CopilotValidationError(
@@ -479,11 +481,21 @@ export function parseCopilotConflictResolution(
         `Copilot returned reasoning that is too large for file "${path}"`
       )
     }
+    if (
+      resolutionAction !== undefined &&
+      resolutionAction !== 'keep' &&
+      resolutionAction !== 'delete'
+    ) {
+      throw new CopilotValidationError(
+        `Copilot returned an invalid resolution action for file "${path}"`
+      )
+    }
 
     validated.push({
       path: normalizeLLMPath(path),
       hunks: validatedHunks,
       reasoning,
+      ...(resolutionAction === undefined ? {} : { resolutionAction }),
     })
   }
 
@@ -659,6 +671,9 @@ export function reassembleResolutions(
       path: raw.path,
       resolvedContent,
       reasoning: raw.reasoning,
+      ...(raw.resolutionAction === undefined
+        ? {}
+        : { resolutionAction: raw.resolutionAction }),
       conflictGeneration: {
         contentHash: createHash('sha256')
           .update(ctx.rawContent, 'utf8')
