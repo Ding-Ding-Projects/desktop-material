@@ -7,6 +7,7 @@ import { FoldoutType, IConstrainedValue } from '../../lib/app-state'
 import {
   WorktreeEntry,
   WorktreeMaintenanceOperation,
+  worktreePathsEqual,
 } from '../../models/worktree'
 import { WorktreeList } from '../worktrees/worktree-list'
 import { showContextualMenu, IMenuItem } from '../../lib/menu-item'
@@ -210,7 +211,10 @@ export class WorktreeDropdown extends React.Component<
 
   private getCurrentWorktree(): WorktreeEntry | null {
     const repoPath = this.props.repository.path
-    return this.props.worktrees.find(wt => wt.path === repoPath) ?? null
+    return (
+      this.props.worktrees.find(wt => worktreePathsEqual(wt.path, repoPath)) ??
+      null
+    )
   }
 
   private onResize = (width: number) => {
