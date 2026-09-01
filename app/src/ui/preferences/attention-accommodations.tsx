@@ -213,7 +213,7 @@ export class AttentionAccommodations extends React.Component<
   private renderMode(mode: typeof Modes[number]): JSX.Element {
     const descriptionId = `attention-${mode.id}-description`
     const handleModeChange = (
-      event: React.ChangeEvent<HTMLInputElement>
+      event: React.FormEvent<HTMLInputElement>
     ): void => {
       this.onModeChanged(mode.id, event.currentTarget.checked)
     }

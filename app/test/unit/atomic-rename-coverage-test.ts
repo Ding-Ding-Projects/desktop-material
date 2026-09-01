@@ -30,19 +30,17 @@ const MUST_FAIL_CLOSED_WHEN_QUARANTINE_RENAME_FAILS = [
   'app/src/lib/stores/notification-automation-store.ts',
 ]
 
-function read(relative: string): string {
+async function read(relative: string): Promise<string> {
   const absolute = Path.join(repoRoot, relative)
-  return (async () => {
-    try {
-      await FsAsync.access(absolute)
-    } catch {
-      throw new Error(
-        `${relative} is on the atomic-rename list but does not exist. Either the file moved, in which case update this list, or it was deleted, in which case remove the entry deliberately.`
-      )
-    }
-    const content = await FsAsync.readFile(absolute, 'utf8')
-    return content.replace(/\r\n?/g, '\n')
-  })()
+  try {
+    await FsAsync.access(absolute)
+  } catch {
+    throw new Error(
+      `${relative} is on the atomic-rename list but does not exist. Either the file moved, in which case update this list, or it was deleted, in which case remove the entry deliberately.`
+    )
+  }
+  const content = await FsAsync.readFile(absolute, 'utf8')
+  return content.replace(/\r\n?/g, '\n')
 }
 
 describe('files that publish user state retry their rename', () => {
