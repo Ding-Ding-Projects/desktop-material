@@ -3,6 +3,7 @@ import assert from 'node:assert'
 
 import {
   parseCopilotConflictResolution,
+  reassembleResolutions,
   reassembleResolvedFile,
   extractSymbols,
   createDependencyAwareChunks,
@@ -1076,6 +1077,24 @@ describe('modify/delete and skipped conflict contracts', () => {
               },
             ],
           })
+        ),
+      CopilotValidationError
+    )
+  })
+
+  it('rejects a delete action when the context is a text conflict', () => {
+    assert.throws(
+      () =>
+        reassembleResolutions(
+          [
+            {
+              path: 'file.txt',
+              action: 'keep',
+              hunks: [],
+              reasoning: 'Not valid for a text conflict.',
+            },
+          ],
+          [makeFile('file.txt', 'ours', 'theirs')]
         ),
       CopilotValidationError
     )

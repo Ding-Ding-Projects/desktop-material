@@ -42,7 +42,6 @@ import { MultiCommitOperationKind } from '../../../models/multi-commit-operation
 import { TabBar, TabBarType } from '../../tab-bar'
 import { CopilotConflictsChanges } from './copilot-conflicts-changes'
 import { CopilotConflictsEditor } from './copilot-conflicts-editor'
-import { writeFile } from 'fs/promises'
 
 import {
   CopilotFileResolutionChoice,
@@ -53,6 +52,16 @@ import {
   getDeleteConflictChoiceLabel,
   getOursTheirsLabels,
 } from './copilot-resolution-helpers'
+
+export interface ICopilotConflictApplicationResult {
+  readonly written: ReadonlyArray<string>
+  readonly staged: ReadonlyArray<string>
+  readonly skipped: ReadonlyArray<{
+    readonly path: string
+    readonly reason: string
+  }>
+  readonly freshWorkingDirectory?: WorkingDirectoryStatus
+}
 
 interface ICopilotConflictsDialogProps {
   readonly repository: Repository
@@ -71,6 +80,12 @@ interface ICopilotConflictsDialogProps {
   readonly onDismissed: () => void
   /** Re-runs the (R14-gated) Copilot conflict resolution pipeline. */
   readonly onResolveWithCopilot: () => void
+  /** Main-process guarded application callback, supplied by the safety lane. */
+  readonly applyCopilotConflictResolutions?: () => Promise<ICopilotConflictApplicationResult>
+  /** Main-process guarded callback for editor-produced file contents. */
+  readonly applyEditedConflictResults?: (
+    editedResults: ReadonlyMap<string, string>
+  ) => Promise<ICopilotConflictApplicationResult>
   readonly emoji: Map<string, Emoji>
 }
 
@@ -89,6 +104,11 @@ interface ICopilotConflictsDialogState {
    * resolution for that file) when the user continues the operation.
    */
   readonly editedResults: ReadonlyMap<string, string>
+  readonly applicationRefusals: ReadonlyArray<{
+    readonly path: string
+    readonly reason: string
+  }>
+  readonly freshWorkingDirectory: WorkingDirectoryStatus | null
 }
 
 const CopilotConflictsDialogTitleId = 'Dialog_Copilot_Conflicts'
@@ -114,6 +134,8 @@ export class CopilotConflictsDialog extends React.Component<
       isContinuing: false,
       selectedTab: CopilotConflictsTab.Summary,
       editedResults: new Map(),
+      applicationRefusals: [],
+      freshWorkingDirectory: null,
     }
   }
 
@@ -142,12 +164,19 @@ export class CopilotConflictsDialog extends React.Component<
     try {
       // Write Copilot resolutions to disk before continuing the operation.
       // Done here (shared) so it works for merge, rebase, and cherry-pick.
-      await this.props.dispatcher.applyCopilotConflictResolutions(
-        this.props.repository
-      )
-      // Then let any hand-edits made in the Editor tab's result pane
-      // override those files on disk — the user's explicit edit always
-      // wins over whatever Copilot (or ours/theirs) produced.
+      const applicationResult = this.props.applyCopilotConflictResolutions
+        ? await this.props.applyCopilotConflictResolutions()
+        : ((await this.props.dispatcher.applyCopilotConflictResolutions(
+            this.props.repository
+          )) as unknown as ICopilotConflictApplicationResult)
+      this.setState({
+        applicationRefusals: applicationResult?.skipped ?? [],
+        freshWorkingDirectory: applicationResult?.freshWorkingDirectory ?? null,
+      })
+      if ((applicationResult?.skipped.length ?? 0) > 0) {
+        this.setState({ isContinuing: false })
+        return
+      }
       await this.applyEditedResults()
       await this.props.onContinueAfterConflicts()
     } catch (e) {
@@ -162,12 +191,17 @@ export class CopilotConflictsDialog extends React.Component<
       return
     }
 
-    const { repository } = this.props
-    await Promise.all(
-      [...editedResults].map(([path, text]) =>
-        writeFile(join(repository.path, path), text, 'utf8')
-      )
-    )
+    if (this.props.applyEditedConflictResults === undefined) {
+      throw new Error('Edited conflict results require the guarded authority')
+    }
+    const result = await this.props.applyEditedConflictResults(editedResults)
+    this.setState({
+      applicationRefusals: result.skipped,
+      freshWorkingDirectory: result.freshWorkingDirectory ?? null,
+    })
+    if (result.skipped.length > 0) {
+      throw new Error('Edited conflict results were not all applied')
+    }
   }
 
   private onEditedResultChange = (path: string, text: string) => {
@@ -297,7 +331,7 @@ export class CopilotConflictsDialog extends React.Component<
   }
 
   private getConflictedFileStatus(path: string) {
-    const file = this.props.workingDirectory.files.find(f => f.path === path)
+    const file = this.currentWorkingDirectory.files.find(f => f.path === path)
     if (file === undefined || !isConflictedFile(file.status)) {
       return undefined
     }
@@ -327,7 +361,7 @@ export class CopilotConflictsDialog extends React.Component<
     if (this.getSkippedFileChoice(path) !== undefined) {
       return true
     }
-    const file = this.props.workingDirectory.files.find(f => f.path === path)
+    const file = this.currentWorkingDirectory.files.find(f => f.path === path)
     if (file === undefined || !isConflictedFile(file.status)) {
       return true
     }
@@ -362,6 +396,10 @@ export class CopilotConflictsDialog extends React.Component<
         action: () => this.setResolution(path, 'theirs'),
       },
     ])
+  }
+
+  private get currentWorkingDirectory(): WorkingDirectoryStatus {
+    return this.state.freshWorkingDirectory ?? this.props.workingDirectory
   }
 
   private getSkippedDropdownClickHandler(path: string): () => void {
@@ -539,7 +577,7 @@ export class CopilotConflictsDialog extends React.Component<
   }
 
   private renderSkippedFile(skipped: ICopilotSkippedFile): JSX.Element {
-    const file = this.props.workingDirectory.files.find(
+    const file = this.currentWorkingDirectory.files.find(
       candidate => candidate.path === skipped.path
     )
     if (
@@ -613,6 +651,32 @@ export class CopilotConflictsDialog extends React.Component<
     )
   }
 
+  private renderApplicationRefusalList(): JSX.Element | null {
+    if (this.state.applicationRefusals.length === 0) {
+      return null
+    }
+    return (
+      <>
+        <h2 className="copilot-conflicts-file-heading">
+          <Octicon symbol={octicons.alert} />
+          Resolution not applied
+        </h2>
+        <ul className="copilot-conflicts-file-list">
+          {this.state.applicationRefusals.map(refusal => (
+            <li key={refusal.path} className="copilot-conflicts-file-item">
+              <div className="copilot-file-details">
+                <PathText path={refusal.path} />
+                <span className="copilot-file-explanation">
+                  {refusal.reason}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </>
+    )
+  }
+
   private onTabSelected = (index: CopilotConflictsTab) => {
     this.setState({ selectedTab: index })
   }
@@ -625,6 +689,7 @@ export class CopilotConflictsDialog extends React.Component<
         {this.renderResolutionSummary()}
         {this.renderFileList(unmergedFiles)}
         {this.renderSkippedFileList()}
+        {this.renderApplicationRefusalList()}
       </div>
     )
   }
@@ -680,10 +745,10 @@ export class CopilotConflictsDialog extends React.Component<
   }
 
   public render() {
-    const { operationKind, workingDirectory, model } = this.props
+    const { operationKind, model } = this.props
     const { isContinuing, selectedTab } = this.state
 
-    const unmergedFiles = getUnmergedFiles(workingDirectory)
+    const unmergedFiles = getUnmergedFiles(this.currentWorkingDirectory)
     const operation = __DARWIN__ ? operationKind : operationKind.toLowerCase()
     const hasUnresolvedSkippedFiles = this.hasUnresolvedSkippedFiles()
 

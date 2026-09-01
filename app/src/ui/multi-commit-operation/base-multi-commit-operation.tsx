@@ -20,6 +20,7 @@ import { Account } from '../../models/account'
 import { IAPIRepoRuleset } from '../../lib/api'
 import { Emoji } from '../../lib/emoji'
 import { IConflictResolutionModelDisplay } from '../../lib/copilot/conflict-resolution-model'
+import type { ICopilotConflictApplicationResult } from './dialog/copilot-conflicts-dialog'
 
 export interface IMultiCommitOperationProps {
   readonly repository: Repository
@@ -68,6 +69,12 @@ export interface IMultiCommitOperationProps {
   readonly openFileInExternalEditor: (path: string) => void
   readonly resolvedExternalEditor: string | null
   readonly openRepositoryInShell: (repository: Repository) => void
+
+  /** Optional safety-authority callbacks for guarded Copilot application. */
+  readonly applyCopilotConflictResolutions?: () => Promise<ICopilotConflictApplicationResult>
+  readonly applyEditedConflictResults?: (
+    editedResults: ReadonlyMap<string, string>
+  ) => Promise<ICopilotConflictApplicationResult>
 }
 
 /** A base component for the shared logic of multi commit operations. */
@@ -289,6 +296,10 @@ export abstract class BaseMultiCommitOperation extends React.Component<IMultiCom
             openRepositoryInShell={openRepositoryInShell}
             someConflictsHaveBeenResolved={this.setConflictsHaveBeenResolved}
             onResolveWithCopilot={this.onResolveWithCopilot}
+            applyCopilotConflictResolutions={
+              this.props.applyCopilotConflictResolutions
+            }
+            applyEditedConflictResults={this.props.applyEditedConflictResults}
           />
         )
       }

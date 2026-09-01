@@ -191,6 +191,16 @@ export class CopilotConflictsChanges extends React.Component<
       r => r.path === file.path
     )
 
+    if (resolution?.deleteConflictAction !== undefined) {
+      this.setState({
+        diff: null,
+        fileContents: null,
+        noResolution: true,
+        diffError: false,
+      })
+      return
+    }
+
     if (resolution === undefined) {
       this.setState({
         diff: null,
@@ -460,7 +470,11 @@ export class CopilotConflictsChanges extends React.Component<
             )}
             {selectedFile !== null && noResolution && (
               <div className="copilot-changes-no-diff">
-                No Copilot resolution available for this file.
+                {this.props.copilotResolutions?.find(
+                  resolution => resolution.path === selectedFile.path
+                )?.deleteConflictAction !== undefined
+                  ? 'Copilot provided a keep or delete recommendation. Choose the manual action from Summary.'
+                  : 'No Copilot resolution available for this file.'}
               </div>
             )}
             {selectedFile !== null && !noResolution && diffError && (

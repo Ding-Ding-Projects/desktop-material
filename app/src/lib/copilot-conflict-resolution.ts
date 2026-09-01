@@ -595,6 +595,17 @@ export function reassembleResolutions(
   const contextByPath = new Map(fileContexts.map(f => [f.path, f]))
 
   return rawResolutions.map(raw => {
+    const ctx = contextByPath.get(raw.path)
+    if (raw.action !== undefined && ctx?.deleteConflict === undefined) {
+      throw new CopilotValidationError(
+        `Cannot apply action for "${raw.path}": it is not a modify/delete conflict`
+      )
+    }
+    if (raw.action === undefined && ctx?.deleteConflict !== undefined) {
+      throw new CopilotValidationError(
+        `Cannot apply hunk resolution for "${raw.path}": modify/delete conflicts require an action`
+      )
+    }
     if (raw.action !== undefined) {
       return {
         path: raw.path,
@@ -604,7 +615,6 @@ export function reassembleResolutions(
       }
     }
 
-    const ctx = contextByPath.get(raw.path)
     if (ctx?.rawContent === undefined) {
       throw new CopilotValidationError(
         `Cannot reassemble resolution for "${raw.path}": original file content is unavailable`
