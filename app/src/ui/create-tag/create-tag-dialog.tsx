@@ -31,9 +31,14 @@ interface ICreateTagState {
   readonly isCreatingTag: boolean
   readonly previousTags: Array<string> | null
   readonly error: Error | null
+  readonly targetIdentity: string
 }
 
 const MaxTagNameLength = 245
+
+function createTagTargetIdentity(props: ICreateTagProps): string {
+  return `${props.repository.path}\u0000${props.repository.id}\u0000${props.targetCommitSha}`
+}
 
 /** The Create Tag component. */
 export class CreateTag extends React.Component<
@@ -48,6 +53,22 @@ export class CreateTag extends React.Component<
       isCreatingTag: false,
       previousTags: this.getExistingTagsFiltered(),
       error: null,
+      targetIdentity: createTagTargetIdentity(props),
+    }
+  }
+
+  public componentDidUpdate(prevProps: ICreateTagProps) {
+    const previousIdentity = createTagTargetIdentity(prevProps)
+    const targetIdentity = createTagTargetIdentity(this.props)
+    if (
+      previousIdentity !== targetIdentity &&
+      this.state.targetIdentity !== targetIdentity
+    ) {
+      this.setState({
+        targetIdentity,
+        isCreatingTag: false,
+        error: null,
+      })
     }
   }
 
@@ -62,6 +83,7 @@ export class CreateTag extends React.Component<
         title={__DARWIN__ ? 'Create a Tag' : 'Create a tag'}
         onSubmit={this.createTag}
         onDismissed={this.props.onDismissed}
+        dismissDisabled={this.state.isCreatingTag}
         loading={this.state.isCreatingTag}
         disabled={this.state.isCreatingTag}
       >
@@ -164,8 +186,13 @@ export class CreateTag extends React.Component<
   private createTag = async () => {
     const name = this.state.tagName
     const repository = this.props.repository
+    const targetIdentity = createTagTargetIdentity(this.props)
 
-    if (name.length > 0 && !this.state.isCreatingTag) {
+    if (
+      this.state.targetIdentity === targetIdentity &&
+      name.length > 0 &&
+      !this.state.isCreatingTag
+    ) {
       this.setState({ isCreatingTag: true, error: null })
 
       const timer = startTimer('create tag', repository)
@@ -176,13 +203,17 @@ export class CreateTag extends React.Component<
           this.props.targetCommitSha
         )
         timer.done()
-        this.props.onDismissed()
+        if (createTagTargetIdentity(this.props) === targetIdentity) {
+          this.props.onDismissed()
+        }
       } catch (error) {
         timer.done()
-        this.setState({
-          isCreatingTag: false,
-          error: this.errorFromUnknown(error),
-        })
+        if (createTagTargetIdentity(this.props) === targetIdentity) {
+          this.setState({
+            isCreatingTag: false,
+            error: this.errorFromUnknown(error),
+          })
+        }
       }
     }
   }

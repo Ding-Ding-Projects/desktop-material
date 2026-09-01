@@ -18,6 +18,11 @@ interface IDeleteTagState {
   readonly isDeleting: boolean
   readonly authorized: boolean
   readonly error: Error | null
+  readonly targetIdentity: string
+}
+
+function deleteTagTargetIdentity(props: IDeleteTagProps): string {
+  return `${props.repository.path}\u0000${props.repository.id}\u0000${props.tagName}`
 }
 
 export class DeleteTag extends React.Component<
@@ -31,6 +36,22 @@ export class DeleteTag extends React.Component<
       isDeleting: false,
       authorized: false,
       error: null,
+      targetIdentity: deleteTagTargetIdentity(props),
+    }
+  }
+
+  public componentDidUpdate(prevProps: IDeleteTagProps) {
+    const previousIdentity = deleteTagTargetIdentity(prevProps)
+    const targetIdentity = deleteTagTargetIdentity(this.props)
+    if (
+      previousIdentity !== targetIdentity &&
+      this.state.targetIdentity !== targetIdentity
+    ) {
+      this.setState({
+        targetIdentity,
+        authorized: false,
+        error: null,
+      })
     }
   }
 
@@ -42,6 +63,7 @@ export class DeleteTag extends React.Component<
         type="warning"
         onSubmit={this.DeleteTag}
         onDismissed={this.props.onDismissed}
+        dismissDisabled={this.state.isDeleting}
         disabled={this.state.isDeleting}
         loading={this.state.isDeleting}
         role="alertdialog"
@@ -56,6 +78,7 @@ export class DeleteTag extends React.Component<
           )}
           <div id="delete-tag-confirmation">
             <Md3DestructiveGateBody
+              key={deleteTagTargetIdentity(this.props)}
               actionId="delete-tag"
               summary={`Delete tag ${this.props.tagName}.`}
               irreversible="The tag and its published deletion cannot be undone."
@@ -83,8 +106,13 @@ export class DeleteTag extends React.Component<
 
   private DeleteTag = async () => {
     const { dispatcher, repository, tagName } = this.props
+    const targetIdentity = deleteTagTargetIdentity(this.props)
 
-    if (!this.state.authorized || this.state.isDeleting) {
+    if (
+      this.state.targetIdentity !== targetIdentity ||
+      !this.state.authorized ||
+      this.state.isDeleting
+    ) {
       return
     }
 
@@ -92,12 +120,16 @@ export class DeleteTag extends React.Component<
 
     try {
       await dispatcher.deleteTag(repository, tagName)
-      this.props.onDismissed()
+      if (deleteTagTargetIdentity(this.props) === targetIdentity) {
+        this.props.onDismissed()
+      }
     } catch (error) {
-      this.setState({
-        isDeleting: false,
-        error: error instanceof Error ? error : new Error(String(error)),
-      })
+      if (deleteTagTargetIdentity(this.props) === targetIdentity) {
+        this.setState({
+          isDeleting: false,
+          error: error instanceof Error ? error : new Error(String(error)),
+        })
+      }
     }
   }
 
