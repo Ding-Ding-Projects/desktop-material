@@ -1005,6 +1005,12 @@ import {
   IFileResolution,
 } from '../copilot-conflict-resolution'
 import {
+  applyCopilotResolutionIfSafe,
+  fingerprintCopilotConflictStatus,
+  hashCopilotConflictContent,
+} from '../copilot-conflict-application-safety'
+import type { ICopilotConflictApplicationAssessment } from '../copilot-conflict-application-safety'
+import {
   buildConflictContext,
   gatherCommitContext,
   IConflictContextCommit,
@@ -16498,8 +16504,36 @@ export class AppStore extends TypedBaseStore<IAppState> {
         const references =
           cited.length > 0 ? cited : fallbackReferencedContext(context)
 
+        // Bind each generated file to the exact conflict status and bytes
+        // reviewed for it. The apply path re-reads both immediately before
+        // writing so an external or manual resolution is never overwritten.
+        const statusByPath = new Map(
+          conflictedFiles.map(file => [file.path, file.status])
+        )
+        const contextByPath = new Map(
+          context.files.map(file => [file.path, file])
+        )
+        const resolutions = result.resolutions.map(resolution => {
+          const sourceContext = contextByPath.get(resolution.path)
+          const sourceStatus = statusByPath.get(resolution.path)
+          if (
+            sourceContext?.rawContent === undefined ||
+            sourceStatus === undefined
+          ) {
+            return resolution
+          }
+
+          return {
+            ...resolution,
+            conflictGeneration: {
+              contentHash: hashCopilotConflictContent(sourceContext.rawContent),
+              statusFingerprint: fingerprintCopilotConflictStatus(sourceStatus),
+            },
+          }
+        })
+
         return {
-          resolutions: result.resolutions,
+          resolutions,
           summary: {
             markdown: result.summary,
             ourLabel: labels.ourLabel,
@@ -17503,44 +17537,129 @@ export class AppStore extends TypedBaseStore<IAppState> {
       this.statsStore.increment('copilotConflictResolutionWithOverridesCount')
     }
 
-    await this.applyCopilotResolutionsToDisk(
+    const applicationResult = await this.applyCopilotResolutionsToDisk(
       repository,
       copilotResolutions,
       manualResolutions
     )
+
+    if (applicationResult.skipped.length > 0) {
+      const skippedDetails = applicationResult.skipped
+        .map(({ path, reason }) => `${path} (${reason})`)
+        .join(', ')
+      this.emitError(
+        new Error(
+          `Copilot applied ${applicationResult.applied.length} file(s) and skipped ${applicationResult.skipped.length}: ${skippedDetails}`
+        )
+      )
+    }
   }
 
   private async applyCopilotResolutionsToDisk(
     repository: Repository,
     resolutions: ReadonlyArray<IFileResolution>,
     manualResolutions: ReadonlyMap<string, ManualConflictResolution>
-  ): Promise<void> {
+  ): Promise<{
+    readonly applied: ReadonlyArray<string>
+    readonly skipped: ReadonlyArray<{
+      readonly path: string
+      readonly reason: string
+    }>
+  }> {
     const pathsToStage: string[] = []
+    const skipped: Array<{ path: string; reason: string }> = []
+
     for (const resolution of resolutions) {
       if (manualResolutions.has(resolution.path)) {
         continue
       }
+
       const absolutePath = await resolveWithin(repository.path, resolution.path)
       if (absolutePath === null) {
-        log.warn(
-          `Copilot resolution skipped: path outside repository: ${resolution.path}`
-        )
+        const reason = 'path is outside the repository'
+        log.warn(`Copilot resolution skipped: ${resolution.path}: ${reason}`)
+        skipped.push({ path: resolution.path, reason })
         continue
       }
-      await this.withTemporaryRepositoryMutationGuard(repository, () =>
-        writeFile(absolutePath, resolution.resolvedContent, 'utf8')
+
+      let currentStatus: IStatusResult
+      try {
+        // This is intentionally a fresh disk read for every file. A cached
+        // status can say a conflict still exists after a user or another
+        // process has already resolved it.
+        currentStatus = await getStatus(repository, true, true)
+      } catch (error) {
+        const reason = 'current conflict status could not be read'
+        log.warn(
+          `Copilot resolution skipped: ${resolution.path}: ${reason}`,
+          error
+        )
+        skipped.push({ path: resolution.path, reason })
+        continue
+      }
+
+      const currentFile = currentStatus.workingDirectory.files.find(
+        file => file.path === resolution.path
       )
+      let currentContent: string | undefined
+      try {
+        currentContent = await readFile(absolutePath, 'utf8')
+      } catch (error) {
+        log.warn(
+          `Copilot resolution skipped: ${resolution.path}: file is missing or unreadable`,
+          error
+        )
+      }
+
+      let assessment: ICopilotConflictApplicationAssessment
+      try {
+        assessment = await applyCopilotResolutionIfSafe(
+          resolution,
+          currentFile,
+          currentContent,
+          async () =>
+            this.withTemporaryRepositoryMutationGuard(repository, () =>
+              writeFile(absolutePath, resolution.resolvedContent, 'utf8')
+            )
+        )
+      } catch (error) {
+        const reason = 'writing the reviewed resolution failed'
+        log.warn(
+          `Copilot resolution skipped: ${resolution.path}: ${reason}`,
+          error
+        )
+        skipped.push({ path: resolution.path, reason })
+        continue
+      }
+      if (!assessment.applicable) {
+        const reason = assessment.reason ?? 'conflict state no longer matches'
+        log.warn(`Copilot resolution skipped: ${resolution.path}: ${reason}`)
+        skipped.push({ path: resolution.path, reason })
+        continue
+      }
+
       pathsToStage.push(resolution.path)
     }
+
     if (pathsToStage.length > 0) {
-      await this.withTemporaryRepositoryMutationGuard(repository, () =>
-        git(
-          ['add', '--', ...pathsToStage],
-          repository.path,
-          'copilotConflictResolution'
+      try {
+        await this.withTemporaryRepositoryMutationGuard(repository, () =>
+          git(
+            ['add', '--', ...pathsToStage],
+            repository.path,
+            'copilotConflictResolution'
+          )
         )
-      )
+      } catch (error) {
+        log.warn('Copilot resolution staging failed', error)
+        for (const path of pathsToStage) {
+          skipped.push({ path, reason: 'staging the resolution failed' })
+        }
+        return { applied: pathsToStage, skipped }
+      }
     }
+
+    return { applied: pathsToStage, skipped }
   }
 
   /**

@@ -6,6 +6,7 @@ import {
   IConflictResolutionContext,
   IFileConflictContext,
 } from './copilot-conflict-context'
+import { createHash } from 'crypto'
 
 // ---------------------------------------------------------------------------
 // Types & interfaces
@@ -19,6 +20,16 @@ export interface IFileResolution {
   readonly resolvedContent: string
   /** Human-readable explanation of how and why conflicts were resolved this way. */
   readonly reasoning: string
+  /**
+   * Identity of the conflicted file that Copilot reviewed. The write path
+   * uses this to avoid replacing a manual or external resolution made after
+   * generation. Older callers may omit it and are rejected by the guarded
+   * write path.
+   */
+  readonly conflictGeneration?: {
+    readonly contentHash: string
+    readonly statusFingerprint?: string
+  }
 }
 
 /** Resolution for a single conflict hunk as returned by the model. */
@@ -567,6 +578,11 @@ export function reassembleResolutions(
       path: raw.path,
       resolvedContent,
       reasoning: raw.reasoning,
+      conflictGeneration: {
+        contentHash: createHash('sha256')
+          .update(ctx.rawContent, 'utf8')
+          .digest('hex'),
+      },
     }
   })
 }
