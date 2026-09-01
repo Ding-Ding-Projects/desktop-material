@@ -5,6 +5,48 @@ import { compileSafeRegex, MaxRegexPatternLength } from '../../lib/safe-regex'
 import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
 import { createObservableRef, ObservableRef } from '../lib/observable-ref'
 import { Tooltip } from '../lib/tooltip'
+import { singleFlightActions } from '../../lib/single-flight-action'
+
+let nextMd3ButtonActionId = 0
+
+function useSingleFlightClick(
+  onClick:
+    | ((
+        event: React.MouseEvent<HTMLButtonElement>
+      ) => void | PromiseLike<unknown>)
+    | undefined,
+  suppliedKey: string | undefined
+) {
+  const instanceKey = React.useRef<string>()
+  if (instanceKey.current === undefined) {
+    instanceKey.current = `md3-button:${++nextMd3ButtonActionId}`
+  }
+  const key = suppliedKey ?? instanceKey.current
+  const [, setRevision] = React.useState(0)
+
+  React.useEffect(
+    () =>
+      singleFlightActions.subscribe(key, () => setRevision(value => value + 1)),
+    [key]
+  )
+
+  const guardedClick = React.useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      if (onClick === undefined || singleFlightActions.isActive(key)) {
+        event.preventDefault()
+        return
+      }
+      const result = singleFlightActions.run(key, () => onClick(event))
+      void result.catch(() => {})
+    },
+    [key, onClick]
+  )
+
+  return {
+    busy: singleFlightActions.isActive(key),
+    onClick: onClick === undefined ? undefined : guardedClick,
+  }
+}
 
 /**
  * The repeated controls of the MD3 shell design contract
@@ -58,7 +100,12 @@ export interface IMd3IconButtonProps {
    */
   readonly label: string
 
-  readonly onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void
+  readonly onClick?: (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => void | PromiseLike<unknown>
+
+  /** Coordinate alternate controls which start the same async action. */
+  readonly activationKey?: string
 
   readonly onContextMenu?: (event: React.MouseEvent<HTMLButtonElement>) => void
 
@@ -117,6 +164,7 @@ export function Md3IconButton(props: IMd3IconButtonProps) {
       ? SmallIconButtonGlyphSize
       : IconButtonGlyphSize
   const tooltip = props.tooltip === undefined ? props.label : props.tooltip
+  const activation = useSingleFlightClick(props.onClick, props.activationKey)
 
   return (
     <button
@@ -137,8 +185,10 @@ export function Md3IconButton(props: IMd3IconButtonProps) {
       aria-expanded={props.expanded}
       aria-haspopup={props.hasPopup}
       disabled={props.disabled}
+      aria-disabled={activation.busy || undefined}
+      aria-busy={activation.busy || undefined}
       tabIndex={props.tabIndex}
-      onClick={props.onClick}
+      onClick={activation.onClick}
       onContextMenu={props.onContextMenu}
     >
       {tooltip === null ? null : (
@@ -161,7 +211,12 @@ export interface IMd3TextButtonProps {
   /** An optional leading glyph. Decorative. */
   readonly icon?: MaterialSymbolName
 
-  readonly onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void
+  readonly onClick?: (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => void | PromiseLike<unknown>
+
+  /** Coordinate alternate controls which start the same async action. */
+  readonly activationKey?: string
 
   readonly onContextMenu?: (event: React.MouseEvent<HTMLButtonElement>) => void
 
@@ -198,6 +253,7 @@ function Md3TextButton(
   props: IMd3TextButtonProps & { readonly baseClassName: string }
 ) {
   const ref = useTooltipTarget(props.buttonRef)
+  const activation = useSingleFlightClick(props.onClick, props.activationKey)
 
   return (
     <button
@@ -209,7 +265,9 @@ function Md3TextButton(
       aria-expanded={props.expanded}
       aria-haspopup={props.hasPopup}
       disabled={props.disabled}
-      onClick={props.onClick}
+      aria-disabled={activation.busy || undefined}
+      aria-busy={activation.busy || undefined}
+      onClick={activation.onClick}
       onContextMenu={props.onContextMenu}
     >
       {props.tooltip === undefined ? null : (

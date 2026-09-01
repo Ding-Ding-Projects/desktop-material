@@ -17,7 +17,13 @@ import {
   IGitHubPackageFileTransferClient,
   IGitHubPackagesClient,
 } from '../../../src/ui/github-packages/github-packages-view'
-import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '../../helpers/ui/render'
 
 const repositoryId = 784
 const manifestDigest = `sha256:${'a'.repeat(64)}`
@@ -133,6 +139,83 @@ function selectContainerPackage(): void {
 }
 
 describe('GitHub Packages view', () => {
+  it('exposes filtered virtual row positions and complete long values', async () => {
+    const longName = `${'package-'.repeat(18)}files`
+    const longVersion = `sha256:${'f'.repeat(64)}`
+    const longPackage: IGitHubPackage = {
+      ...containerPackage,
+      id: 93,
+      name: longName,
+      updatedAt: new Date('2026-07-26T12:00:00Z'),
+      htmlURL: `https://github.com/orgs/desktop/packages/container/${longName}`,
+    }
+    const client = clientWithVersions(
+      async (_owner, _type, _name, page = 1) => ({
+        versions: [
+          {
+            ...packageVersion,
+            id: 315,
+            name: longVersion,
+            tags: [`${'release-'.repeat(12)}latest`],
+          },
+        ],
+        page,
+        nextPage: null,
+        capped: false,
+      }),
+      [containerPackage, longPackage]
+    )
+    const view = render(
+      <GitHubPackagesView
+        repository={repository}
+        accounts={[account]}
+        clientFactory={() => client}
+      />
+    )
+
+    try {
+      await waitFor(() => {
+        const rows = screen.getAllByRole('listitem')
+        assert.equal(rows.length, 2)
+        assert.ok(rows.every(row => row.getAttribute('aria-setsize') === '2'))
+        assert.deepEqual(
+          rows.map(row => row.getAttribute('aria-posinset')).sort(),
+          ['1', '2']
+        )
+        assert.ok(screen.getByText(longName))
+        assert.equal(
+          screen.getByText(longName).getAttribute('data-full-value'),
+          longName
+        )
+      })
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: /material-files container private 1 version/i,
+        })
+      )
+      await waitFor(() => {
+        const rows = within(
+          screen.getByRole('list', { name: 'Package versions' })
+        ).getAllByRole('listitem')
+        assert.equal(rows.length, 1)
+        assert.equal(rows[0].getAttribute('aria-setsize'), '1')
+        assert.equal(rows[0].getAttribute('aria-posinset'), '1')
+      })
+      assert.equal(
+        screen.getByText(longVersion).getAttribute('data-full-value'),
+        longVersion
+      )
+      assert.ok(
+        screen.getByRole('button', {
+          name: `Copy package version ${longVersion}`,
+        })
+      )
+    } finally {
+      view.unmount()
+    }
+  })
+
   it('routes a version download through the rendered custom Button', async () => {
     const client = clientWithVersions(
       async (_owner, packageType, _name, page = 1) => ({

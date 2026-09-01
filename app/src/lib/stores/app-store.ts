@@ -23302,7 +23302,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   public _requestBrowserAuthentication() {
-    this.signInStore.authenticateWithBrowser()
+    return this.signInStore.authenticateWithBrowser()
   }
 
   public async _setAppFocusState(isFocused: boolean): Promise<void> {

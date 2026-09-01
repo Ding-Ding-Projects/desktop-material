@@ -4024,7 +4024,7 @@ export class Dispatcher {
    * this promise will never complete.
    */
   public requestBrowserAuthentication() {
-    this.appStore._requestBrowserAuthentication()
+    return this.appStore._requestBrowserAuthentication()
   }
 
   /**

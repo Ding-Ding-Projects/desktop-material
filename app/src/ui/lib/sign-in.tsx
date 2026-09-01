@@ -29,7 +29,7 @@ export class SignIn extends React.Component<ISignInProps, {}> {
   }
 
   private onBrowserSignInRequested = () => {
-    this.props.dispatcher.requestBrowserAuthentication()
+    return this.props.dispatcher.requestBrowserAuthentication()
   }
 
   private renderExistingAccountWarningStep(state: IExistingAccountWarning) {

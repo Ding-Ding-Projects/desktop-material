@@ -30,6 +30,9 @@ import {
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
 import { LinkButton } from '../lib/link-button'
+import { CopyButton } from '../copy-button'
+import { createObservableRef, ObservableRef } from '../lib/observable-ref'
+import { Tooltip } from '../lib/tooltip'
 import {
   showItemInFolder,
   showOpenDialog,
@@ -59,6 +62,38 @@ const VersionRowTagsExtraHeight = 34
  * prop exists at runtime but is missing from the bundled typings.
  */
 const virtualizedListContainerProps = { containerRole: 'presentation' }
+
+interface IOverflowValueProps {
+  readonly value: string
+  readonly ariaLabel?: string
+  readonly className?: string
+}
+
+/**
+ * Keeps long package values available without relying on the browser's native
+ * title hint. The full value remains in the accessible name and in the app's
+ * own focusable tooltip, even when the virtualized row must stay one line.
+ */
+class OverflowValue extends React.Component<IOverflowValueProps, {}> {
+  private readonly valueRef: ObservableRef<HTMLSpanElement> =
+    createObservableRef<HTMLSpanElement>()
+
+  public render() {
+    return (
+      <span
+        ref={this.valueRef}
+        className={this.props.className}
+        aria-label={this.props.ariaLabel}
+        data-full-value={this.props.value}
+      >
+        {this.props.value}
+        <Tooltip target={this.valueRef} onlyWhenOverflowed={true}>
+          {this.props.value}
+        </Tooltip>
+      </span>
+    )
+  }
+}
 
 type PackageTypeFilter = 'all' | GitHubPackageType
 type BusyTransfer = 'upload' | 'download' | null
@@ -511,6 +546,8 @@ export class GitHubPackagesView extends React.Component<
             key={key}
             style={style}
             role="listitem"
+            aria-posinset={index + 1}
+            aria-setsize={packages.length}
             className="github-package-virtual-row"
           >
             <div className={`github-package-row${selected ? ' selected' : ''}`}>
@@ -522,7 +559,9 @@ export class GitHubPackagesView extends React.Component<
                 aria-pressed={selected}
               >
                 <span className="github-package-row-header">
-                  <strong>{value.name}</strong>
+                  <strong>
+                    <OverflowValue value={value.name} />
+                  </strong>
                   <span>
                     <span className="github-package-kind">
                       {value.packageType}
@@ -533,14 +572,22 @@ export class GitHubPackagesView extends React.Component<
                   </span>
                 </span>
                 <span className="github-package-muted">
-                  {value.versionCount} version
-                  {value.versionCount === 1 ? '' : 's'} · updated{' '}
-                  {value.updatedAt.toLocaleString()}
+                  <OverflowValue
+                    value={`${value.versionCount} version${
+                      value.versionCount === 1 ? '' : 's'
+                    } · updated ${value.updatedAt.toLocaleString()}`}
+                  />
                 </span>
               </button>
-              {packageURL !== null && (
-                <LinkButton uri={packageURL}>Open on GitHub</LinkButton>
-              )}
+              <div className="github-package-value-actions">
+                <CopyButton
+                  copyContent={value.name}
+                  ariaLabel={`Copy package name ${value.name}`}
+                />
+                {packageURL !== null && (
+                  <LinkButton uri={packageURL}>Open on GitHub</LinkButton>
+                )}
+              </div>
             </div>
           </div>
         )
@@ -572,6 +619,8 @@ export class GitHubPackagesView extends React.Component<
             key={key}
             style={style}
             role="listitem"
+            aria-posinset={index + 1}
+            aria-setsize={versions.length}
             className="github-package-virtual-row"
           >
             <div
@@ -579,10 +628,19 @@ export class GitHubPackagesView extends React.Component<
               data-package-version-id={version.id}
             >
               <div className="github-package-version-header">
-                <code>{version.name}</code>
-                <span className="github-package-version-meta">
-                  {version.updatedAt.toLocaleString()}
+                <span className="github-package-version-value">
+                  <code>
+                    <OverflowValue value={version.name} />
+                  </code>
+                  <CopyButton
+                    copyContent={version.name}
+                    ariaLabel={`Copy package version ${version.name}`}
+                  />
                 </span>
+                <OverflowValue
+                  className="github-package-version-meta"
+                  value={version.updatedAt.toLocaleString()}
+                />
               </div>
               {version.tags.length > 0 && (
                 <div
@@ -591,9 +649,11 @@ export class GitHubPackagesView extends React.Component<
                   aria-label="Version tags"
                 >
                   {version.tags.map(tag => (
-                    <span key={tag} className="github-package-tag">
-                      {tag}
-                    </span>
+                    <OverflowValue
+                      key={tag}
+                      className="github-package-tag"
+                      value={tag}
+                    />
                   ))}
                 </div>
               )}

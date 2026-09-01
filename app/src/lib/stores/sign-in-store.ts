@@ -339,7 +339,7 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
       }
     )
 
-    new Promise<Account>((resolve, reject) => {
+    return new Promise<Account>((resolve, reject) => {
       const { endpoint, resultCallback } = currentState
       log.info('[SignInStore] initializing OAuth flow')
       this.setState({
@@ -357,9 +357,15 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
           callbackResult,
         },
       })
-      shell.openExternal(getOAuthAuthorizationURL(endpoint, csrfToken), {
-        intent: 'authentication',
-      })
+      void shell
+        .openExternal(getOAuthAuthorizationURL(endpoint, csrfToken), {
+          intent: 'authentication',
+        })
+        .then(opened => {
+          if (!opened) {
+            reject(new Error('The browser could not be opened for sign in.'))
+          }
+        }, reject)
     })
       .then(account => {
         if (!this.state || this.state.kind !== SignInStep.Authentication) {
@@ -397,6 +403,7 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
           log.info(`[SignInStore] OAuth error but session has changed: ${e}`)
           settleOAuthCallback?.('rejected')
         }
+        throw e
       })
   }
 

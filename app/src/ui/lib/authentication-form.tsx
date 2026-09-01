@@ -5,6 +5,9 @@ import { Form } from './form'
 import { Button } from './button'
 import { DefaultAppDisplayName } from '../../models/app-identity'
 
+/** Shared by the form submit and its submit button. */
+export const BrowserSignInActionKey = 'authentication:browser-sign-in'
+
 /** Text to let the user know their browser will send them back to the app */
 export const BrowserRedirectMessage = `Your browser will redirect you back to ${DefaultAppDisplayName} once you've signed in. If your browser asks for your permission to launch ${DefaultAppDisplayName} please allow it to.`
 
@@ -13,7 +16,7 @@ interface IAuthenticationFormProps {
    * A callback which is invoked if the user requests OAuth sign in using
    * their system configured browser.
    */
-  readonly onBrowserSignInRequested: () => void
+  readonly onBrowserSignInRequested: () => void | PromiseLike<unknown>
 
   /**
    * An array of additional buttons to render after the "Sign In" button.
@@ -26,7 +29,11 @@ interface IAuthenticationFormProps {
 export class AuthenticationForm extends React.Component<IAuthenticationFormProps> {
   public render() {
     return (
-      <Form className="sign-in-form" onSubmit={this.signInWithBrowser}>
+      <Form
+        className="sign-in-form"
+        activationKey={BrowserSignInActionKey}
+        onSubmit={this.signInWithBrowser}
+      >
         {this.renderEndpointRequiresWebFlow()}
       </Form>
     )
@@ -44,6 +51,7 @@ export class AuthenticationForm extends React.Component<IAuthenticationFormProps
           type="submit"
           className="button-with-icon"
           onClick={this.signInWithBrowser}
+          activationKey={BrowserSignInActionKey}
           autoFocus={true}
           role="link"
         >
@@ -57,6 +65,6 @@ export class AuthenticationForm extends React.Component<IAuthenticationFormProps
 
   private signInWithBrowser = (event?: React.MouseEvent<HTMLButtonElement>) => {
     event?.preventDefault()
-    this.props.onBrowserSignInRequested()
+    return this.props.onBrowserSignInRequested()
   }
 }
