@@ -210,7 +210,7 @@
 
 - [x] Move a clean default-branch checkout from another worktree automatically
   instead of failing the entire merge-all operation.
-- [x] Add the explicit **Force Mat Day** option, with checkpoint, synchronization,
+- [x] Add the explicit **Force cleanup** option, with checkpoint, synchronization,
   and publication of recoverable dirty worktrees before merge and cleanup.
 - [x] Retain locked, divergent, unpublished, stale, or otherwise unproved work;
   no forced push or forced worktree removal is introduced.

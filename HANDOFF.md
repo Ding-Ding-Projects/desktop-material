@@ -220,7 +220,7 @@ not a renderer client and receives no desktop agent credential. See
 `docs/features/design-system/status-hub.md`.
 
 No tests, lint, typecheck, build, runtime interaction, or capture was run in
-this assigned Yum Leung Cha lane.
+this assigned rapid-release lane.
 
 ## Local file-converter foundation — 2026-08-21
 
@@ -539,7 +539,7 @@ checked out in another clean worktree. It transfers the default branch to the
 active worktree, removes a redundant linked owner, and continues the existing
 merge, non-force push, exact-tip deletion, and worktree cleanup sequence.
 
-An explicit **Force Mat Day** checkbox enables the existing preservation path
+An explicit **Force cleanup** checkbox enables the existing preservation path
 for recoverable dirty worktrees: fetch, fast-forward-only pull, commit, and
 push occur before merge. Unsafe work remains retained. Focused candidate and
 renderer coverage passes 4/4; exact-file ESLint and `git diff --check` pass.
@@ -672,7 +672,7 @@ still Material Design 3 throughout.
 ### How this was done, and why not by hand
 
 `app/` was restored wholesale from `9c9755d844`, whose tree already *was*
-"August 7 chrome plus every feature" — the surgical route the revert jer had
+"August 7 chrome plus every feature" — the surgical route the revert branch had
 produced before the literal revert removed it. Rebuilding 42,638 lines by hand
 would have been slower and strictly worse: this way the result is verifiable by
 `git diff` rather than by review.
@@ -862,7 +862,7 @@ What the retirement kept, deliberately: 46 md3 files remain, and they are
 dialogs rather than chrome — the destructive-action gate, the regex builder, the
 toasts, the menu overlay, the compose dialog, the authenticator and Support
 Tickets. That is the line the revert itself drew, and the four commits on the
-merged jer restore every setting the shell's removal had stranded
+merged branches restore every setting the shell's removal had stranded
 (`lib/personal-vocabulary`, `lib/school-mode`, `lib/dialog-emoji`,
 `lib/md3-locks`, `lib/authenticator`) into the classic Settings surface.
 
@@ -880,7 +880,7 @@ that is now gone. That closes open item 3 below. Issue #195's current MD3
 header-avatar wiring is now covered by focused regression tests for shared
 account-switcher routing, distinct header and rail expanded state, and focus
 return through the invoking avatar anchor. Those tests were added in the
-task-owned issue-195 lane; they have not been run in the Yum Leung Cha pass.
+task-owned issue-195 lane; they have not been run in the rapid-release pass.
 
 Verified for this integration: `npx tsc --noEmit -p tsconfig.json` exit 0, zero
 errors, on the merged tree at `fe1db0dbb5`. The test suite, lint, captures,
@@ -940,14 +940,14 @@ switching the default back.
 
 ### Work stopped mid-flight, preserved not discarded
 
-> **Resolved on 2026-08-15.** That jer merged as `fe1db0dbb5` and was then
+> **Resolved on 2026-08-15.** That branch merged as `fe1db0dbb5` and was then
 > deleted. Only the GitLab work below survived; the account-switcher work built
 > on the deleted shell and did not. The header-avatar defect it describes is
 > still real and is now the one open item from this entry.
 
 Two multi-agent fleets were running when the revert was requested and were
 stopped so they could not write into a tree being rewound. Their unfinished
-work is preserved on the jer **`wip/stopped-fleets-2026-08-14`**, commit
+work is preserved on the branch **`wip/stopped-fleets-2026-08-14`**, commit
 `064fdab5fd`. It is incomplete and unverified. It covers:
 
 - **The account-switcher wiring.** `onMd3OpenAccountSwitcher` in `app/src/ui/app.tsx`
@@ -10897,7 +10897,7 @@ keeps the fail-closed behavior intact.
 
 ### Verification
 
-No tests or captures were run in this lane, per the Yum Leung Cha boundary for
+No tests or captures were run in this lane, per the rapid-release boundary for
 this task.
 
 ### Notes for the next person

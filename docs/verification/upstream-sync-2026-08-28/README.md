@@ -64,7 +64,7 @@ The history that establishes this boundary is:
 | 3abcee9015145a1d1346022f4673922f625752d5 | Removed the later unsolicited shell rebuild. |
 | 970570b1afd5dc2baebee9c66d6d79f36e060e62 | Integrated the second interface revert and reaffirmed the chosen chrome. |
 | 8f364cfaf45665face921cb04afed5ac883ba22f | Retired the removed shell article as an implementation source. |
-| ed2f49c68ae4f756fd3a461028061644d1816eca | Added the executable frozen-shell Shek Q. |
+| ed2f49c68ae4f756fd3a461028061644d1816eca | Added the executable frozen-shell guard. |
 | 0d04ec40f5989606f7e745c6c0f25f71a9172017 | Converted remaining raw controls to shared primitives on the retained GUI. |
 | 2a211b87a11eb2c0fe36f5fcda6fe1555912a429 | Recorded the shared-control conformance sweep and evidence gaps. |
 
@@ -102,7 +102,7 @@ architecture and define the intended implementation lane.
 | # | SHA | Subject | Subsystem | Disposition | Local evidence or intended lane |
 | --- | --- | --- | --- | --- | --- |
 | 001 | 45bd1e743cbb92e5dc4d2fc828fb5a38bcd3c428 | Fix image diff sub-pixel misalignment on non-Retina displays | image diff | superseded by stronger local behavior | IMG, local antecedents `ec12749f2a` and `15f14b622a` established the behavior before the stronger local correction. |
-| 002 | cd3693f347b4b747aef5b94ea63ef27203cd5e37 | Fix image diff sub-pixel misalignment | image diff | ported | IMG, local adaptation `0179541f33` is on this task jer and is not in `origin/main`; it is not an integrated equivalent yet. |
+| 002 | cd3693f347b4b747aef5b94ea63ef27203cd5e37 | Fix image diff sub-pixel misalignment | image diff | ported | IMG, local adaptation `0179541f33` is on this task branch and is not in `origin/main`; it is not an integrated equivalent yet. |
 | 003 | 0e30e78f6cad03ebd5880ed9348139cb0dfabdbd | Create "usage snapshot card" | Copilot quota | review required | COP, implement the card in the existing preferences surface. |
 | 004 | 9c5d1a1728c792ddf6191a8108d21e7752de564b | Extract Copilot settings to a component for a given account | Copilot settings | review required | COP, account-owned component boundary. |
 | 005 | 87ac06f7b72bf18538ab1926dd85d7211d75facc | Support multi-account Copilot settings in preferences | Copilot settings | review required | COP, preserve existing account and provider state. |
@@ -180,9 +180,9 @@ architecture and define the intended implementation lane.
 | 077 | c5f64b1ebdffa1bb9d921c1198664fd205cd290f | fix(api): preserve protected branches when refresh fails | protected branches | review required | PRO, null means retain state and empty array means successful empty state. |
 | 078 | 1542b7a544c97cdc48ac8d17020a47c8d26c9d16 | Migrate to @electron/packager | packaging | inapplicable because of platform/scope | PKG, current repository has its own supported packager path; no blind migration. |
 | 079 | 3dcda706cfa06b12eeca9a9fbf17dee572c87df9 | Bump fast-uri from 3.1.2 to 3.1.5 | dependency | review required | DEP, re-resolve and verify the current lockfile. |
-| 080 | 9c14239d1133b194d990fe66926bd3b56fdcbce3 | Preserve legacy macOS icons with Packager 18 | packaging | inapplicable because of platform/scope | MAC, current delivery scope is Deen No only. |
+| 080 | 9c14239d1133b194d990fe66926bd3b56fdcbce3 | Preserve legacy macOS icons with Packager 18 | packaging | inapplicable because of platform/scope | MAC, current delivery scope is Windows only. |
 | 081 | 5a948e58b1a57a32ed839f87b6e595ffcccb85cc | Pin cross-compiled Copilot packages to the lockfile | CI dependency | review required | DEP and WF, preserve current cross-compile package pins where still consumed. |
-| 082 | 5976ee49a9f6d0c11691ce24e13a400ec6b4a035 | Restore platform-specific packaging icons | packaging | review required | PKG, preserve active Deen No icon requirements without restoring macOS work. |
+| 082 | 5976ee49a9f6d0c11691ce24e13a400ec6b4a035 | Restore platform-specific packaging icons | packaging | review required | PKG, preserve active Windows icon requirements without restoring macOS work. |
 | 083 | ab0bb5ad85c1f0c07b4dc3c5dd8e1d85b82b5545 | Draft release 3.6.4-beta2 | release metadata | inapplicable because of platform/scope | REL, historical metadata only. |
 | 084 | 14afd321a0206a06ae3693fb7825cfb9e5e525c1 | Add Fixed prefix | changelog | inapplicable because of platform/scope | REL, historical release-note classification. |
 | 085 | 5364e9f5db790f5c65e95bd8b44191305bec4dd7 | Update changelog.json | changelog | inapplicable because of platform/scope | REL, account for the record without copying stale release entries. |
