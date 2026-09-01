@@ -69,6 +69,8 @@ export const DialogStackContext = React.createContext<IDialogStackContext>({
  * IDialogState for more information.
  */
 const dismissGracePeriodMs = 250
+const focusRestoreRetryPeriodMs = 16
+const focusRestoreRetryTimeoutMs = 1000
 
 /**
  * The time (in milliseconds) that we should wait after focusing before we
@@ -311,6 +313,15 @@ export class Dialog extends React.Component<DialogProps, IDialogState> {
 
   private dialogElement: HTMLDialogElement | null = null
   private dismissGraceTimeoutId?: number
+  private focusRestoreRetryTimeoutId: number | null = null
+  private focusRestoreRetryDeadline = 0
+
+  /**
+   * The element within this dialog that last had keyboard focus while the
+   * dialog was top-most. Used to restore focus to the control that triggered a
+   * nested dialog when that nested dialog is dismissed.
+   */
+  private lastFocusedElement: HTMLElement | null = null
 
   private disableClickDismissalTimeoutId: number | null = null
   private disableClickDismissal = false
@@ -413,6 +424,8 @@ export class Dialog extends React.Component<DialogProps, IDialogState> {
     if (typeof open !== 'function') {
       return
     }
+
+    this.dialogElement.addEventListener('focusin', this.onDialogFocusIn)
     open.call(dialog)
 
     // Provide an event that components can subscribe to in order to perform
@@ -520,6 +533,11 @@ export class Dialog extends React.Component<DialogProps, IDialogState> {
       this.openDialog()
     }
 
+    // Reattach after a background dialog returns to the front. The listener
+    // is removed while this dialog is not top-most so that only the active
+    // dialog records restoration candidates.
+    this.dialogElement.addEventListener('focusin', this.onDialogFocusIn)
+
     // A dialog can be pushed behind a newer non-modal dialog before its
     // dismissal grace period expires. Backgrounding clears that timer, so
     // restart it when the dialog returns to the front; otherwise
@@ -535,10 +553,30 @@ export class Dialog extends React.Component<DialogProps, IDialogState> {
     if (
       active === null ||
       active === document.body ||
+      active === this.dialogElement ||
       !this.dialogElement.contains(active)
     ) {
-      this.focusFirstSuitableChild()
+      // If we're regaining top-most status after a nested dialog was
+      // dismissed, restore focus to the element that previously had it,
+      // typically the control that opened the nested dialog.
+      if (
+        this.lastFocusedElement !== null &&
+        this.dialogElement.contains(this.lastFocusedElement)
+      ) {
+        this.lastFocusedElement.focus()
+
+        // Focusing can fail when the element was disabled or otherwise became
+        // non-focusable while the nested dialog was open. Use the normal
+        // suitable-child ordering in that case.
+        if (document.activeElement !== this.lastFocusedElement) {
+          this.focusFirstSuitableChild()
+        }
+      } else {
+        this.focusFirstSuitableChild()
+      }
     }
+
+    this.scheduleFocusRestoreRetry()
 
     window.addEventListener('focus', this.onWindowFocus)
 
@@ -547,6 +585,9 @@ export class Dialog extends React.Component<DialogProps, IDialogState> {
   }
 
   protected onDialogIsNotTopMost() {
+    this.clearFocusRestoreRetry()
+    this.dialogElement?.removeEventListener('focusin', this.onDialogFocusIn)
+
     // Non-modal dialogs remain open (and visible) when they're no longer the
     // top most dialog; we only tear down the top-most-only event listeners.
     this.clearDismissGraceTimeout()
@@ -556,6 +597,91 @@ export class Dialog extends React.Component<DialogProps, IDialogState> {
 
     this.resizeObserver.disconnect()
     window.removeEventListener('resize', this.scheduleResizeEvent)
+  }
+
+  /**
+   * Keep the last real descendant focus target for nested-dialog restoration.
+   * The dialog element itself is only a focus container, never a restoration
+   * target.
+   */
+  private onDialogFocusIn = (e: FocusEvent) => {
+    if (
+      e.target instanceof HTMLElement &&
+      e.target !== this.dialogElement &&
+      this.dialogElement?.contains(e.target)
+    ) {
+      this.lastFocusedElement = e.target
+    }
+  }
+
+  private clearFocusRestoreRetry() {
+    if (this.focusRestoreRetryTimeoutId !== null) {
+      window.clearTimeout(this.focusRestoreRetryTimeoutId)
+      this.focusRestoreRetryTimeoutId = null
+    }
+  }
+
+  private scheduleFocusRestoreRetry() {
+    if (
+      this.focusRestoreRetryTimeoutId !== null ||
+      this.dialogElement === null
+    ) {
+      return
+    }
+
+    const hasOtherOpenModal = Array.from(
+      document.querySelectorAll<HTMLDialogElement>(
+        'dialog[open][data-modal="true"]'
+      )
+    ).some(candidate => candidate !== this.dialogElement)
+    if (!hasOtherOpenModal) {
+      return
+    }
+
+    this.focusRestoreRetryDeadline = Date.now() + focusRestoreRetryTimeoutMs
+    this.focusRestoreRetryTimeoutId = window.setTimeout(
+      this.restoreFocusAfterModalExit,
+      focusRestoreRetryPeriodMs
+    )
+  }
+
+  private restoreFocusAfterModalExit = () => {
+    this.focusRestoreRetryTimeoutId = null
+    const dialog = this.dialogElement
+    if (dialog === null || !this.context.isTopMost) {
+      return
+    }
+
+    const hasOtherOpenModal = Array.from(
+      document.querySelectorAll<HTMLDialogElement>(
+        'dialog[open][data-modal="true"]'
+      )
+    ).some(candidate => candidate !== dialog)
+    if (hasOtherOpenModal && Date.now() < this.focusRestoreRetryDeadline) {
+      this.focusRestoreRetryTimeoutId = window.setTimeout(
+        this.restoreFocusAfterModalExit,
+        focusRestoreRetryPeriodMs
+      )
+      return
+    }
+
+    const active = document.activeElement
+    if (
+      active === null ||
+      active === document.body ||
+      active === dialog ||
+      !dialog.contains(active)
+    ) {
+      if (
+        this.lastFocusedElement !== null &&
+        dialog.contains(this.lastFocusedElement)
+      ) {
+        this.lastFocusedElement.focus()
+      }
+      if (document.activeElement !== this.lastFocusedElement) {
+        this.focusFirstSuitableChild()
+      }
+    }
   }
 
   /**
