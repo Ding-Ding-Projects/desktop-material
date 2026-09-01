@@ -313,7 +313,7 @@
   }
 }
 
-.md3-destructive-gate__slider-input {
+.md3-destructive-gate__slider-input[type='range'] {
   accent-color: var(--md-sys-color-error);
   background: transparent;
   height: 40px;

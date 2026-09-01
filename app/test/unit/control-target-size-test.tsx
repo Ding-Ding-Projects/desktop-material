@@ -9,7 +9,10 @@ import { Md3AuthenticatorRegistration } from '../../src/ui/md3/md3-authenticator
 import { fireEvent, render } from '../helpers/ui/render'
 
 function extractCssRule(css: string, selector: string): string {
-  const start = css.indexOf(selector)
+  let start = css.indexOf(selector)
+  while (start !== -1 && !/^\s*\{/.test(css.slice(start + selector.length))) {
+    start = css.indexOf(selector, start + selector.length)
+  }
   assert.notEqual(start, -1, `missing CSS selector ${selector}`)
   const open = css.indexOf('{', start)
   assert.ok(open > start, `missing opening brace for ${selector}`)
@@ -52,8 +55,11 @@ describe('shared control target sizes', () => {
       /min-height:\s*40px;/
     )
     assert.match(
-      extractCssRule(destructive, '.md3-destructive-gate__slider-input'),
-      /height:\s*40px;/
+      extractCssRule(
+        destructive,
+        ".md3-destructive-gate__slider-input[type='range']"
+      ),
+      /(?:^|[;\n])\s*height:\s*40px;/
     )
   })
 
@@ -85,6 +91,10 @@ describe('shared control target sizes', () => {
   })
 
   it('binds progress paint to the 40px wrappers at all slider values', () => {
+    const destructive = readFileSync(
+      join(process.cwd(), 'app', 'styles', 'ui', '_md3-destructive-gate.scss'),
+      'utf8'
+    )
     const rangeSource = readFileSync(
       join(process.cwd(), 'app', 'src', 'ui', 'lib', 'range-slider.tsx'),
       'utf8'
@@ -107,6 +117,23 @@ describe('shared control target sizes', () => {
     assert.ok(
       gateSource.indexOf('md3-destructive-gate__slider-input-hit-target') <
         gateSource.indexOf('--md3-gate-progress')
+    )
+    const gateInputRule = extractCssRule(
+      destructive,
+      ".md3-destructive-gate__slider-input[type='range']"
+    )
+    assert.match(gateInputRule, /background:\s*transparent;/)
+    assert.throws(() =>
+      assert.match(
+        gateInputRule.replace(/height:\s*40px;/, ''),
+        /(?:^|[;\n])\s*height:\s*40px;/
+      )
+    )
+    assert.throws(() =>
+      assert.match(
+        gateInputRule.replace(/background:\s*transparent;/, 'background: red;'),
+        /background:\s*transparent;/
+      )
     )
   })
 

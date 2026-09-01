@@ -26,6 +26,14 @@ clamps it horizontally inside the viewport, and returns `null` — falling back 
 a centred modal — when the panel could only fit by covering the control itself
 or when the viewport is too small to hold it.
 
+The authorization slider uses a 40px semantic block target for pointer and
+keyboard input while retaining a centered 16px visual track. This is the
+documented horizontal-control exception to the usual minimum target geometry:
+the cross-axis is deliberately larger than the painted track so the control is
+easy to operate without changing the compact visual anatomy. The target stays
+40px at the supported 100%, 125%, 150%, and 200% display scales and in narrow
+layouts.
+
 Hosts that already sit inside the application's `Dialog` render the body only.
 Nesting a modal inside a dialog would give a keyboard user two competing focus
 traps, which is worse than either alone, so those hosts keep their own chrome,
