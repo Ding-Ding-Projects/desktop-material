@@ -1,8 +1,10 @@
 import * as React from 'react'
-import * as Path from 'path'
 import { Branch } from '../../models/branch'
-import { WorktreeEntry } from '../../models/worktree'
-import { shortenSHA } from '../../models/commit'
+import {
+  getWorktreeDescription,
+  getWorktreeDisplayName,
+  WorktreeEntry,
+} from '../../models/worktree'
 import { IMatches } from '../../lib/fuzzy-find'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
@@ -38,11 +40,9 @@ export class WorktreeListItem extends React.Component<IWorktreeListItemProps> {
       mergeBranch,
       onMergeWorktree,
     } = this.props
-    const name = Path.basename(worktree.path)
+    const name = getWorktreeDisplayName(worktree)
     const icon = isCurrentWorktree ? octicons.check : octicons.fileDirectory
-    const refLabel = worktree.branch
-      ? worktree.branch.replace(/^refs\/heads\//, '')
-      : shortenSHA(worktree.head)
+    const refLabel = getWorktreeDescription(worktree)
     const stateLabels = [
       worktree.dirtyFileCount === null ? 'status unavailable' : null,
       worktree.dirtyFileCount && worktree.dirtyFileCount > 0

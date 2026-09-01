@@ -170,7 +170,8 @@ export class RepositoriesStore extends TypedBaseStore<
       repo.buildRunPreferences,
       repo.groupName ?? null,
       repo.defaultBranch ?? null,
-      repo.customEditorOverride ?? null
+      repo.customEditorOverride ?? null,
+      repo.mainWorktreePath
     )
   }
 
@@ -318,7 +319,8 @@ export class RepositoriesStore extends TypedBaseStore<
       repository.buildRunPreferences,
       repository.groupName,
       repository.defaultBranch,
-      repository.customEditorOverride
+      repository.customEditorOverride,
+      repository.mainWorktreePath
     )
   }
 
@@ -345,7 +347,8 @@ export class RepositoriesStore extends TypedBaseStore<
       repository.buildRunPreferences,
       repository.groupName,
       repository.defaultBranch,
-      repository.customEditorOverride
+      repository.customEditorOverride,
+      repository.mainWorktreePath
     )
   }
 
@@ -404,7 +407,8 @@ export class RepositoriesStore extends TypedBaseStore<
       repository.buildRunPreferences,
       repository.groupName,
       defaultBranch,
-      repository.customEditorOverride
+      repository.customEditorOverride,
+      repository.mainWorktreePath
     )
   }
 
@@ -480,7 +484,8 @@ export class RepositoriesStore extends TypedBaseStore<
       repository.buildRunPreferences,
       repository.groupName,
       repository.defaultBranch,
-      repository.customEditorOverride
+      repository.customEditorOverride,
+      repository.mainWorktreePath
     )
   }
 
@@ -489,6 +494,7 @@ export class RepositoriesStore extends TypedBaseStore<
     repository: Repository,
     path: string,
     gitDir: string | undefined,
+    mainWorktreePath: string | undefined = undefined,
     missing: boolean = false
   ): Promise<Repository> {
     this.assertPersistedRepository(repository)
@@ -496,6 +502,7 @@ export class RepositoriesStore extends TypedBaseStore<
       missing,
       path,
       gitDir,
+      mainWorktreePath,
     })
 
     this.emitUpdatedRepositories()
@@ -513,7 +520,8 @@ export class RepositoriesStore extends TypedBaseStore<
       repository.buildRunPreferences,
       repository.groupName,
       repository.defaultBranch,
-      repository.customEditorOverride
+      repository.customEditorOverride,
+      mainWorktreePath
     )
   }
 
@@ -527,12 +535,16 @@ export class RepositoriesStore extends TypedBaseStore<
    * @param repository  The repository to switch
    * @param worktreePath The path of the worktree to switch to
    * @param gitDir       The git directory for the target worktree
+   * @param mainWorktreePath The path of the repository's main worktree, which
+   *                         remains available when linked worktree metadata is
+   *                         removed
    */
   public async switchWorktree(
     repository: Repository,
     worktreePath: string,
     missing = false,
-    gitDir: string | undefined = repository.gitDir
+    gitDir: string | undefined = repository.gitDir,
+    mainWorktreePath: string | undefined = repository.mainWorktreePath
   ): Promise<{ repository: Repository; existingRepository: boolean }> {
     this.assertPersistedRepository(repository)
     const existing = await this.db.repositories.get({ path: worktreePath })
@@ -548,6 +560,7 @@ export class RepositoriesStore extends TypedBaseStore<
       path: worktreePath,
       missing,
       gitDir,
+      mainWorktreePath,
     })
 
     this.emitUpdatedRepositories()
@@ -566,7 +579,8 @@ export class RepositoriesStore extends TypedBaseStore<
         repository.buildRunPreferences,
         repository.groupName,
         repository.defaultBranch,
-        repository.customEditorOverride
+        repository.customEditorOverride,
+        mainWorktreePath
       ),
       existingRepository: false,
     }
@@ -722,7 +736,8 @@ export class RepositoriesStore extends TypedBaseStore<
       repo.buildRunPreferences,
       repo.groupName,
       repo.defaultBranch,
-      repo.customEditorOverride
+      repo.customEditorOverride,
+      repo.mainWorktreePath
     )
 
     assertIsRepositoryWithGitHubRepository(updatedRepo)

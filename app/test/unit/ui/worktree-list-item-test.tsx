@@ -1,13 +1,21 @@
 import assert from 'node:assert'
-import { describe, it } from 'node:test'
+import { afterEach, beforeEach, describe, it } from 'node:test'
 import * as React from 'react'
 
 import { Branch, BranchType } from '../../../src/models/branch'
 import { IMatches } from '../../../src/lib/fuzzy-find'
-import { WorktreeEntry } from '../../../src/models/worktree'
+import {
+  getWorktreeAriaLabel,
+  getWorktreeDescription,
+  getWorktreeDisplayName,
+  WorktreeEntry,
+} from '../../../src/models/worktree'
 import { WorktreeListItem } from '../../../src/ui/worktrees/worktree-list-item'
-import { getMergeBranchForWorktree } from '../../../src/ui/worktrees/worktree-list'
-import { fireEvent, render, screen } from '../../helpers/ui/render'
+import {
+  getMergeBranchForWorktree,
+  WorktreeList,
+} from '../../../src/ui/worktrees/worktree-list'
+import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
 
 const noMatches: IMatches = { title: [], subtitle: [] }
 
@@ -25,7 +33,118 @@ function linkedWorktree(options: Partial<WorktreeEntry> = {}): WorktreeEntry {
   }
 }
 
+class FixedResizeObserver implements ResizeObserver {
+  public constructor(private readonly callback: ResizeObserverCallback) {}
+
+  public observe(target: Element) {
+    Object.defineProperty(target, 'offsetWidth', {
+      configurable: true,
+      value: 420,
+    })
+    Object.defineProperty(target, 'offsetHeight', {
+      configurable: true,
+      value: 240,
+    })
+    this.callback(
+      [
+        {
+          target,
+          contentRect: {
+            x: 0,
+            y: 0,
+            width: 420,
+            height: 240,
+            top: 0,
+            right: 420,
+            bottom: 240,
+            left: 0,
+            toJSON: () => ({}),
+          },
+          borderBoxSize: [],
+          contentBoxSize: [],
+          devicePixelContentBoxSize: [],
+        },
+      ],
+      this
+    )
+  }
+
+  public unobserve() {}
+
+  public disconnect() {}
+}
+
+let originalResizeObserver: typeof ResizeObserver | undefined
+let originalWindowResizeObserver: typeof ResizeObserver | undefined
+
+beforeEach(() => {
+  originalResizeObserver = globalThis.ResizeObserver
+  originalWindowResizeObserver = window.ResizeObserver
+  Object.assign(globalThis, { ResizeObserver: FixedResizeObserver })
+  Object.assign(window, { ResizeObserver: FixedResizeObserver })
+})
+
+afterEach(() => {
+  Object.assign(globalThis, { ResizeObserver: originalResizeObserver })
+  Object.assign(window, { ResizeObserver: originalWindowResizeObserver })
+})
+
 describe('WorktreeListItem', () => {
+  it('derives stable accessible names with observed state', () => {
+    const worktree = linkedWorktree({
+      dirtyFileCount: 2,
+      isLocked: true,
+      isPrunable: true,
+    })
+
+    assert.equal(getWorktreeDisplayName(worktree), 'feature')
+    assert.equal(getWorktreeDescription(worktree), 'feature')
+    assert.equal(
+      getWorktreeAriaLabel(worktree),
+      'feature, feature, 2 uncommitted, locked, missing'
+    )
+  })
+
+  it('activates the focused worktree with Enter and keeps the state accessible', async () => {
+    const worktree = linkedWorktree({
+      path: 'C:/worktrees/main',
+      branch: 'refs/heads/main',
+      type: 'main',
+    })
+    let activated: WorktreeEntry | null = null
+
+    const { container } = render(
+      <WorktreeList
+        worktrees={[worktree]}
+        currentWorktree={worktree}
+        onWorktreeClick={selected => {
+          activated = selected
+        }}
+        filterText=""
+        onFilterTextChanged={() => undefined}
+        canCreateNewWorktree={false}
+      />
+    )
+
+    await waitFor(() => {
+      assert.ok(
+        screen.getByRole('option', {
+          name: /main, main, current worktree, Main worktree/,
+        })
+      )
+    })
+
+    const list = container.querySelector<HTMLElement>(
+      '.ReactVirtualized__Grid[tabindex="0"]'
+    )
+    assert.ok(list)
+    list.focus()
+    fireEvent.keyDown(list, { key: 'ArrowDown' })
+    fireEvent.keyDown(list, { key: 'Enter' })
+
+    assert.equal(activated?.path, worktree.path)
+  })
+
   it('merges an eligible linked worktree without selecting it', () => {
     const branch = new Branch(
       'feature',

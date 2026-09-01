@@ -107,6 +107,25 @@ describe('RepositoriesStore', () => {
   })
 
   describe('repository metadata', () => {
+    it('persists the main worktree recovery hint across reloads', async () => {
+      const repository = await repositoriesStore.addRepository(
+        '/some/linked/path',
+        '/some/main/.git/worktrees/linked'
+      )
+
+      const switched = await repositoriesStore.switchWorktree(
+        repository,
+        '/some/linked/path-again',
+        true,
+        '/some/main/.git/worktrees/linked',
+        '/some/main'
+      )
+      const [reloaded] = await repositoriesStore.getAll()
+
+      assert.equal(switched.repository.mainWorktreePath, '/some/main')
+      assert.equal(reloaded.mainWorktreePath, '/some/main')
+    })
+
     it('round-trips configurable Cheap LFS upload concurrency and its legacy mirror', async () => {
       const repository = await repositoriesStore.addRepository(
         '/some/cheap-lfs/path',

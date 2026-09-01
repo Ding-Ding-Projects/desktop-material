@@ -9,12 +9,14 @@ import {
   parseWorktreePorcelainOutput,
   listWorktrees,
   listWorktreesFromGitDir,
+  resolveMainWorktreePath,
   lockWorktree,
   pruneWorktrees,
   repairWorktrees,
   unlockWorktree,
   validateWorktreeRepairPaths,
 } from '../../../src/lib/git'
+import { Repository } from '../../../src/models/repository'
 
 describe('git/worktree', () => {
   describe('parseWorktreePorcelainOutput', () => {
@@ -323,6 +325,106 @@ describe('git/worktree', () => {
       assert.strictEqual(mainWorktree?.path, repoPath)
       assert(
         worktrees.some(wt => wt.path === resolvedWorktreePath && wt.isPrunable)
+      )
+    })
+  })
+
+  describe('resolveMainWorktreePath', () => {
+    async function linkedRepository(
+      t: Parameters<typeof setupEmptyRepository>[0]
+    ) {
+      const repo = await setupEmptyRepository(t, 'main')
+      await makeCommit(repo, {
+        entries: [{ path: 'README', contents: 'hello' }],
+      })
+      await exec(['branch', 'feature-main-path'], repo.path)
+      const linkedPath = repo.path + '-main-path'
+      await exec(
+        ['worktree', 'add', linkedPath, 'feature-main-path'],
+        repo.path
+      )
+      const { stdout } = await exec(['rev-parse', '--git-dir'], linkedPath)
+      return {
+        repo,
+        mainPath: await realpath(repo.path),
+        linkedPath: await realpath(linkedPath),
+        gitDir: Path.resolve(linkedPath, stdout.trim()),
+      }
+    }
+
+    function asRepository(
+      linkedPath: string,
+      gitDir: string | undefined,
+      mainWorktreePath?: string
+    ): Repository {
+      return new Repository(
+        linkedPath,
+        -1,
+        null,
+        true,
+        null,
+        {},
+        false,
+        gitDir,
+        null,
+        undefined,
+        null,
+        null,
+        null,
+        mainWorktreePath
+      )
+    }
+
+    it('returns a readable recorded main path', async t => {
+      const { mainPath, linkedPath, gitDir } = await linkedRepository(t)
+      assert.strictEqual(
+        await resolveMainWorktreePath(
+          asRepository(linkedPath, gitDir, mainPath)
+        ),
+        mainPath
+      )
+    })
+
+    it('falls back to git metadata when the recorded path is stale or inaccessible', async t => {
+      const { mainPath, linkedPath, gitDir } = await linkedRepository(t)
+      const stalePath = Path.join(mainPath, 'missing-main-worktree')
+      assert.strictEqual(
+        await resolveMainWorktreePath(
+          asRepository(linkedPath, gitDir, stalePath)
+        ),
+        mainPath
+      )
+    })
+
+    it('does not guess when neither the recorded path nor metadata is usable', async t => {
+      const { linkedPath } = await linkedRepository(t)
+      assert.strictEqual(
+        await resolveMainWorktreePath(
+          asRepository(
+            linkedPath,
+            undefined,
+            Path.join(linkedPath, 'missing-main')
+          )
+        ),
+        null
+      )
+    })
+
+    it('resolves one main path when several linked worktrees exist', async t => {
+      const { repo, mainPath, linkedPath, gitDir } = await linkedRepository(t)
+      await exec(['branch', 'feature-main-path-two'], repo.path)
+      await exec(
+        [
+          'worktree',
+          'add',
+          repo.path + '-main-path-two',
+          'feature-main-path-two',
+        ],
+        repo.path
+      )
+      assert.strictEqual(
+        await resolveMainWorktreePath(asRepository(linkedPath, gitDir)),
+        mainPath
       )
     })
   })

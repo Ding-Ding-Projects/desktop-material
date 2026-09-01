@@ -1,7 +1,10 @@
 import * as React from 'react'
-import * as Path from 'path'
 import { Branch, BranchType } from '../../models/branch'
-import { WorktreeEntry } from '../../models/worktree'
+import {
+  getWorktreeAriaLabel,
+  getWorktreeDisplayName,
+  WorktreeEntry,
+} from '../../models/worktree'
 import { IFilterListGroup, IFilterListItem } from '../lib/filter-list'
 import { SectionFilterList } from '../lib/section-filter-list'
 import { WorktreeListItem } from './worktree-list-item'
@@ -117,6 +120,19 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
     return <div className="filter-list-group-header">{label}</div>
   }
 
+  private getGroupAriaLabel = (group: number) => {
+    const identifier = this.getGroups(this.props.worktrees)[group].identifier
+    return identifier === 'main' ? 'Main worktree' : 'Linked worktrees'
+  }
+
+  private getItemAriaLabel = (item: IWorktreeListItem) => {
+    const isCurrent =
+      this.props.currentWorktree !== null &&
+      this.props.currentWorktree.path === item.worktree.path
+    const state = getWorktreeAriaLabel(item.worktree)
+    return isCurrent ? `${state}, current worktree` : state
+  }
+
   private onRenderNewButton = () => {
     if (
       (!this.props.canCreateNewWorktree ||
@@ -195,6 +211,8 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
         selectedItem={null}
         renderItem={this.renderItem}
         renderGroupHeader={this.renderGroupHeader}
+        getItemAriaLabel={this.getItemAriaLabel}
+        getGroupAriaLabel={this.getGroupAriaLabel}
         onItemClick={this.onItemClick}
         groups={groups}
         invalidationProps={this.props.worktrees}
@@ -246,5 +264,5 @@ function worktreeFilterText(worktree: WorktreeEntry): ReadonlyArray<string> {
     worktree.isLocked ? 'locked' : '',
     worktree.isPrunable ? 'missing' : '',
   ]
-  return [Path.basename(worktree.path), worktree.path, branch, ...state]
+  return [getWorktreeDisplayName(worktree), worktree.path, branch, ...state]
 }

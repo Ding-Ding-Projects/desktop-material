@@ -2,6 +2,7 @@ import * as Path from 'path'
 import * as Fs from 'fs/promises'
 import type { Repository } from '../../models/repository'
 import type { WorktreeEntry, WorktreeType } from '../../models/worktree'
+import { pathExists } from '../path-exists'
 import { git } from './core'
 
 const MaximumRepairWorktrees = 1_000
@@ -134,6 +135,49 @@ export async function listWorktreesFromGitDir(
   )
 
   return addCreationTimes(parseWorktreePorcelainOutput(result.stdout))
+}
+
+function worktreePathsEqual(first: string, second: string): boolean {
+  const a = Path.normalize(first)
+  const b = Path.normalize(second)
+  return __WIN32__ ? a.toLowerCase() === b.toLowerCase() : a === b
+}
+
+/**
+ * Resolve the main worktree path for a repository selected in a linked
+ * worktree. A persisted path is only a hint: it must still be readable before
+ * it is returned. When it is stale or inaccessible, the administrative git
+ * directory remains the authoritative fallback. If neither source can prove a
+ * main worktree, return null rather than guessing.
+ */
+export async function resolveMainWorktreePath(
+  repository: Repository
+): Promise<string | null> {
+  const { mainWorktreePath, gitDir, path } = repository
+
+  if (
+    mainWorktreePath !== undefined &&
+    worktreePathsEqual(mainWorktreePath, path)
+  ) {
+    return null
+  }
+
+  if (mainWorktreePath !== undefined && (await pathExists(mainWorktreePath))) {
+    return mainWorktreePath
+  }
+
+  if (gitDir === undefined) {
+    return null
+  }
+
+  const mainWorktree = (await listWorktreesFromGitDir(gitDir)).find(
+    wt => wt.type === 'main'
+  )
+
+  return mainWorktree === undefined ||
+    worktreePathsEqual(mainWorktree.path, path)
+    ? null
+    : mainWorktree.path
 }
 
 export async function addWorktree(
