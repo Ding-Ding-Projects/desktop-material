@@ -9,7 +9,12 @@ import {
   WorktreeMaintenanceOperation,
   worktreePathsEqual,
 } from '../../models/worktree'
-import { WorktreeList } from '../worktrees/worktree-list'
+import {
+  getMergeBranchForWorktree,
+  WorktreeList,
+} from '../worktrees/worktree-list'
+import { listWorktrees } from '../../lib/git'
+import { Branch } from '../../models/branch'
 import { showContextualMenu, IMenuItem } from '../../lib/menu-item'
 import { generateWorktreeContextMenuItems } from '../worktrees/worktree-list-item-context-menu'
 import { openRepositoryInNewWindow } from '../main-process-proxy'
@@ -135,6 +140,44 @@ export class WorktreeDropdown extends React.Component<
     })
   }
 
+  private onMergeWorktree = (branch: Branch) => {
+    const expected = this.props.worktrees.find(
+      worktree => worktree.branch === branch.ref
+    )
+    if (expected === undefined) {
+      return
+    }
+
+    void listWorktrees(this.props.repository)
+      .then(worktrees => {
+        const current = worktrees.find(worktree =>
+          worktreePathsEqual(worktree.path, expected.path)
+        )
+        const currentBranch =
+          current === undefined
+            ? undefined
+            : getMergeBranchForWorktree(current, false)
+        if (
+          currentBranch === undefined ||
+          currentBranch.ref !== branch.ref ||
+          currentBranch.tip.sha !== branch.tip.sha
+        ) {
+          return this.props.dispatcher.postError(
+            new Error('The worktree changed before its merge could start.')
+          )
+        }
+
+        this.props.dispatcher.closeFoldout(FoldoutType.Worktree)
+        this.props.dispatcher.startMergeBranchOperation(
+          this.props.repository,
+          false,
+          currentBranch,
+          false
+        )
+      })
+      .catch(error => this.props.dispatcher.postError(error))
+  }
+
   private onContextMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
 
@@ -202,6 +245,7 @@ export class WorktreeDropdown extends React.Component<
         canCreateNewWorktree={true}
         onCreateNewWorktree={this.onCreateNewWorktree}
         onMergeAllWorktrees={this.onMergeAllWorktrees}
+        onMergeWorktree={this.onMergeWorktree}
         onCheckoutAllBranchesAsWorktrees={this.onCheckoutAllBranchesAsWorktrees}
         onWorktreeContextMenu={this.onWorktreeContextMenu}
         renderAdministration={this.renderAdministration}
