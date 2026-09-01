@@ -29,6 +29,8 @@ export class DeleteTag extends React.Component<
   IDeleteTagProps,
   IDeleteTagState
 > {
+  private operationIdentity: string | null = null
+  private authorizedIdentity: string | null = null
   public constructor(props: IDeleteTagProps) {
     super(props)
 
@@ -45,8 +47,10 @@ export class DeleteTag extends React.Component<
     const targetIdentity = deleteTagTargetIdentity(this.props)
     if (
       previousIdentity !== targetIdentity &&
-      this.state.targetIdentity !== targetIdentity
+      this.state.targetIdentity !== targetIdentity &&
+      !this.state.isDeleting
     ) {
+      this.authorizedIdentity = null
       this.setState({
         targetIdentity,
         authorized: false,
@@ -111,29 +115,56 @@ export class DeleteTag extends React.Component<
     if (
       this.state.targetIdentity !== targetIdentity ||
       !this.state.authorized ||
+      this.authorizedIdentity !== targetIdentity ||
       this.state.isDeleting
     ) {
       return
     }
 
     this.setState({ isDeleting: true, error: null })
+    this.operationIdentity = targetIdentity
 
     try {
       await dispatcher.deleteTag(repository, tagName)
-      if (deleteTagTargetIdentity(this.props) === targetIdentity) {
+      if (
+        this.operationIdentity === targetIdentity &&
+        deleteTagTargetIdentity(this.props) === targetIdentity
+      ) {
         this.props.onDismissed()
+      } else if (this.operationIdentity === targetIdentity) {
+        this.operationIdentity = null
+        this.setState({
+          isDeleting: false,
+          targetIdentity: deleteTagTargetIdentity(this.props),
+          authorized: false,
+          error: null,
+        })
       }
     } catch (error) {
-      if (deleteTagTargetIdentity(this.props) === targetIdentity) {
+      if (
+        this.operationIdentity === targetIdentity &&
+        deleteTagTargetIdentity(this.props) === targetIdentity
+      ) {
         this.setState({
           isDeleting: false,
           error: error instanceof Error ? error : new Error(String(error)),
+        })
+      } else if (this.operationIdentity === targetIdentity) {
+        this.operationIdentity = null
+        this.setState({
+          isDeleting: false,
+          targetIdentity: deleteTagTargetIdentity(this.props),
+          authorized: false,
+          error: null,
         })
       }
     }
   }
 
   private onAuthorizationChanged = (authorized: boolean) => {
+    this.authorizedIdentity = authorized
+      ? deleteTagTargetIdentity(this.props)
+      : null
     if (!this.state.isDeleting && authorized !== this.state.authorized) {
       this.setState({ authorized })
     }

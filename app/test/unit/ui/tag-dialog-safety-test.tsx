@@ -17,9 +17,12 @@ const dialogPrototype = HTMLDialogElement.prototype
 const originalShow = dialogPrototype.show
 const originalShowModal = dialogPrototype.showModal
 const originalClose = dialogPrototype.close
+let showCalls = 0
 
 beforeEach(() => {
+  showCalls = 0
   dialogPrototype.show = function () {
+    showCalls++
     this.setAttribute('open', '')
   }
   dialogPrototype.showModal = function () {
@@ -76,6 +79,8 @@ describe('tag dialogs safety', () => {
     const dialog = screen.getByRole('alertdialog')
     const dialogForm = dialog.querySelector('form')
     assert.ok(dialogForm)
+    assert.equal(showCalls, 1)
+    assert.equal(dialog.hasAttribute('open'), true)
     const checks = screen.getAllByRole('checkbox')
     const slider = screen.getByRole('slider') as HTMLInputElement
     const submit = screen.getByRole('button', { name: 'Delete tag' })
@@ -189,7 +194,7 @@ describe('tag dialogs safety', () => {
     const dispatcher = {
       createTag: () =>
         new Promise<void>(resolve => {
-          setTimeout(resolve, 100)
+          setTimeout(resolve, 500)
         }),
     } as never
     renderDialog(
@@ -223,7 +228,7 @@ describe('tag dialogs safety', () => {
       deleteTag: () =>
         new Promise<void>(resolve => {
           deletes++
-          setTimeout(resolve, 100)
+          setTimeout(resolve, 500)
         }),
     } as never
     const view = renderDialog(
@@ -239,6 +244,7 @@ describe('tag dialogs safety', () => {
     fireEvent.click(checks[0])
     fireEvent.click(checks[1])
     fireEvent.change(screen.getByRole('slider'), { target: { value: '100' } })
+    fireEvent.submit(getDialogForm())
     view.rerender(
       <DialogStackContext.Provider value={{ isTopMost: true }}>
         <DeleteTag
@@ -258,8 +264,14 @@ describe('tag dialogs safety', () => {
     fireEvent.submit(getDialogForm())
     assert.equal(deletes, 0)
     fireEvent.keyDown(screen.getByRole('alertdialog'), { key: 'Escape' })
-    assert.equal(dismissed, 1)
-    await new Promise(resolve => setTimeout(resolve, 150))
-    assert.equal(dismissed, 1)
+    assert.equal(dismissed, 0)
+    await new Promise(resolve => setTimeout(resolve, 550))
+    assert.equal(dismissed, 0)
+    assert.equal(
+      screen
+        .getByRole('button', { name: 'Delete tag' })
+        .getAttribute('aria-disabled'),
+      'true'
+    )
   })
 })
