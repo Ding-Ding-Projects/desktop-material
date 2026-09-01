@@ -69,6 +69,8 @@ export const DialogStackContext = React.createContext<IDialogStackContext>({
  * IDialogState for more information.
  */
 const dismissGracePeriodMs = 250
+const focusRestoreRetryPeriodMs = 16
+const focusRestoreRetryTimeoutMs = 1000
 
 /**
  * The time (in milliseconds) that we should wait after focusing before we
@@ -311,6 +313,8 @@ export class Dialog extends React.Component<DialogProps, IDialogState> {
 
   private dialogElement: HTMLDialogElement | null = null
   private dismissGraceTimeoutId?: number
+  private focusRestoreRetryTimeoutId: number | null = null
+  private focusRestoreRetryDeadline = 0
 
   /**
    * The element within this dialog that last had keyboard focus while the
@@ -572,6 +576,8 @@ export class Dialog extends React.Component<DialogProps, IDialogState> {
       }
     }
 
+    this.scheduleFocusRestoreRetry()
+
     window.addEventListener('focus', this.onWindowFocus)
 
     this.resizeObserver.observe(this.dialogElement)
@@ -579,6 +585,7 @@ export class Dialog extends React.Component<DialogProps, IDialogState> {
   }
 
   protected onDialogIsNotTopMost() {
+    this.clearFocusRestoreRetry()
     this.dialogElement?.removeEventListener('focusin', this.onDialogFocusIn)
 
     // Non-modal dialogs remain open (and visible) when they're no longer the
@@ -604,6 +611,76 @@ export class Dialog extends React.Component<DialogProps, IDialogState> {
       this.dialogElement?.contains(e.target)
     ) {
       this.lastFocusedElement = e.target
+    }
+  }
+
+  private clearFocusRestoreRetry() {
+    if (this.focusRestoreRetryTimeoutId !== null) {
+      window.clearTimeout(this.focusRestoreRetryTimeoutId)
+      this.focusRestoreRetryTimeoutId = null
+    }
+  }
+
+  private scheduleFocusRestoreRetry() {
+    if (
+      this.focusRestoreRetryTimeoutId !== null ||
+      this.dialogElement === null
+    ) {
+      return
+    }
+
+    const hasOtherOpenModal = Array.from(
+      document.querySelectorAll<HTMLDialogElement>(
+        'dialog[open][data-modal="true"]'
+      )
+    ).some(candidate => candidate !== this.dialogElement)
+    if (!hasOtherOpenModal) {
+      return
+    }
+
+    this.focusRestoreRetryDeadline = Date.now() + 1000
+    this.focusRestoreRetryTimeoutId = window.setTimeout(
+      this.restoreFocusAfterModalExit,
+      focusRestoreRetryPeriodMs
+    )
+  }
+
+  private restoreFocusAfterModalExit = () => {
+    this.focusRestoreRetryTimeoutId = null
+    const dialog = this.dialogElement
+    if (dialog === null || !this.context.isTopMost) {
+      return
+    }
+
+    const hasOtherOpenModal = Array.from(
+      document.querySelectorAll<HTMLDialogElement>(
+        'dialog[open][data-modal="true"]'
+      )
+    ).some(candidate => candidate !== dialog)
+    if (hasOtherOpenModal && Date.now() < this.focusRestoreRetryDeadline) {
+      this.focusRestoreRetryTimeoutId = window.setTimeout(
+        this.restoreFocusAfterModalExit,
+        focusRestoreRetryPeriodMs
+      )
+      return
+    }
+
+    const active = document.activeElement
+    if (
+      active === null ||
+      active === document.body ||
+      active === dialog ||
+      !dialog.contains(active)
+    ) {
+      if (
+        this.lastFocusedElement !== null &&
+        dialog.contains(this.lastFocusedElement)
+      ) {
+        this.lastFocusedElement.focus()
+      }
+      if (document.activeElement !== this.lastFocusedElement) {
+        this.focusFirstSuitableChild()
+      }
     }
   }
 

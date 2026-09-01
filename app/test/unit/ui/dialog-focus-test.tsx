@@ -9,6 +9,10 @@ const showDescriptor = Object.getOwnPropertyDescriptor(
   HTMLDialogElement.prototype,
   'show'
 )
+const showModalDescriptor = Object.getOwnPropertyDescriptor(
+  HTMLDialogElement.prototype,
+  'showModal'
+)
 const closeDescriptor = Object.getOwnPropertyDescriptor(
   HTMLDialogElement.prototype,
   'close'
@@ -38,6 +42,9 @@ describe('Dialog focus', () => {
     }
 
     HTMLDialogElement.prototype.show = function () {
+      this.open = true
+    }
+    HTMLDialogElement.prototype.showModal = function () {
       this.open = true
     }
     HTMLDialogElement.prototype.close = function () {
@@ -77,6 +84,16 @@ describe('Dialog focus', () => {
       Reflect.deleteProperty(HTMLDialogElement.prototype, 'show')
     } else {
       Object.defineProperty(HTMLDialogElement.prototype, 'show', showDescriptor)
+    }
+
+    if (showModalDescriptor === undefined) {
+      Reflect.deleteProperty(HTMLDialogElement.prototype, 'showModal')
+    } else {
+      Object.defineProperty(
+        HTMLDialogElement.prototype,
+        'showModal',
+        showModalDescriptor
+      )
     }
 
     if (closeDescriptor === undefined) {
@@ -391,6 +408,40 @@ describe('Dialog focus', () => {
         document.activeElement,
         screen.getByRole('button', { name: 'Fallback action' })
       )
+    } finally {
+      view.unmount()
+    }
+  })
+
+  it('retries outer focus after an exiting native modal closes', async () => {
+    const renderStack = (outerTopMost: boolean, innerTopMost: boolean) => (
+      <>
+        <DialogStackContext.Provider value={{ isTopMost: outerTopMost }}>
+          <Dialog title="Outer dialog">
+            <button>Outer trigger</button>
+          </Dialog>
+        </DialogStackContext.Provider>
+        <DialogStackContext.Provider value={{ isTopMost: innerTopMost }}>
+          <Dialog title="Inner modal" modal>
+            <button>Inner action</button>
+          </Dialog>
+        </DialogStackContext.Provider>
+      </>
+    )
+
+    const view = render(renderStack(true, false))
+    try {
+      const outer = screen.getByRole('button', { name: 'Outer trigger' })
+      const innerDialog = screen.getByRole('dialog', { name: 'Inner modal' })
+      outer.focus()
+
+      view.rerender(renderStack(false, true))
+      view.rerender(renderStack(true, false))
+      assert.notStrictEqual(document.activeElement, outer)
+
+      window.setTimeout(() => innerDialog.close(), 100)
+      await new Promise(resolve => window.setTimeout(resolve, 125))
+      assert.strictEqual(document.activeElement, outer)
     } finally {
       view.unmount()
     }
