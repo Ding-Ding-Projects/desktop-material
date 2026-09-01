@@ -5424,6 +5424,18 @@ export class API {
       if (!Array.isArray(branches)) {
         throw new Error('Protected branch response was not an array')
       }
+      if (
+        !branches.every(
+          branch =>
+            branch !== null &&
+            typeof branch === 'object' &&
+            typeof (branch as { name?: unknown }).name === 'string' &&
+            (branch as { name: string }).name.trim().length > 0 &&
+            typeof (branch as { protected?: unknown }).protected === 'boolean'
+        )
+      ) {
+        throw new Error('Protected branch response contained an invalid item')
+      }
       return branches as IAPIBranch[]
     } catch (err) {
       log.info(

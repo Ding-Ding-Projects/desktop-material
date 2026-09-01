@@ -143,6 +143,30 @@ describe('API', () => {
 
       assert.equal(await api.fetchProtectedBranches('desktop', 'desktop'), null)
     })
+
+    it('returns null when any successful response item is malformed', async () => {
+      const malformedBranches = [
+        [null],
+        [{ name: 42, protected: true }],
+        [{ name: '', protected: true }],
+        [{ name: '   ', protected: true }],
+        [{ name: 'main', protected: 'yes' }],
+        [
+          { name: 'main', protected: true },
+          { name: '', protected: true },
+        ],
+      ]
+
+      for (const branches of malformedBranches) {
+        const api = createAPI(
+          async () => new Response(JSON.stringify(branches), { status: 200 })
+        )
+        assert.equal(
+          await api.fetchProtectedBranches('desktop', 'desktop'),
+          null
+        )
+      }
+    })
   })
 
   describe('third-party provider endpoints', () => {

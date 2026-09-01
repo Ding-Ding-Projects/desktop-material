@@ -169,4 +169,38 @@ describe('AppStore protected branch refresh', () => {
     assert.deepEqual(persisted, [{ name: 'release', protected: true }])
     assert.equal(updateCalls, 1)
   })
+
+  it('recovers after a malformed response is treated as inconclusive', async () => {
+    const account = createAccount()
+    let persisted: Array<{ name: string; protected: true }> = [
+      { name: 'main', protected: true },
+    ]
+    let updateCalls = 0
+    let refreshNumber = 0
+    const { repository, store, originalFromAccount } = createStore(
+      account,
+      async () => {
+        refreshNumber++
+        return refreshNumber === 1 ? null : [{ name: 'release', protected: true }]
+      },
+      protectedBranches => {
+        updateCalls++
+        persisted = [...protectedBranches]
+      }
+    )
+
+    try {
+      const refresh = Reflect.get(
+        AppStore.prototype,
+        'updateBranchProtectionsFromAPI'
+      ) as (repository: Repository) => Promise<void>
+      await refresh.call(store, repository)
+      await refresh.call(store, repository)
+    } finally {
+      Reflect.set(API, 'fromAccount', originalFromAccount)
+    }
+
+    assert.deepEqual(persisted, [{ name: 'release', protected: true }])
+    assert.equal(updateCalls, 1)
+  })
 })
