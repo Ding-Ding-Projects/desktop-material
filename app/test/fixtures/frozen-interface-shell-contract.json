@@ -164,12 +164,6 @@
     },
     "requiredElements": [
       {
-        "tag": "div",
-        "attributes": {
-          "id": "desktop-app-chrome"
-        }
-      },
-      {
         "tag": "RepositoryTabStrip"
       },
       {
@@ -181,15 +175,6 @@
       },
       {
         "tag": "CrashProofBoundary"
-      },
-      {
-        "tag": "TitleBar"
-      },
-      {
-        "tag": "Preferences"
-      },
-      {
-        "tag": "Welcome"
       }
     ],
     "acceptedSourceExtensions": [".ts", ".tsx", ".js", ".jsx", ".mts", ".mjs", ".cts", ".cjs"],
@@ -204,7 +189,8 @@
       "renderer-boundary-markers",
       "renderer-retired-imports",
       "renderer-import-bindings",
-      "retired-family-reservation"
+      "retired-family-reservation",
+      "renderer-root-reachability"
     ]
   }
 }

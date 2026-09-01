@@ -83,6 +83,7 @@ function assertContractShape(): void {
     'renderer-retired-imports',
     'renderer-import-bindings',
     'retired-family-reservation',
+    'renderer-root-reachability',
   ])
 }
 

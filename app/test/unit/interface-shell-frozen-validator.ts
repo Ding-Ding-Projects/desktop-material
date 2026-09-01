@@ -59,6 +59,7 @@ export type FrozenShellValidationIssue = {
     | 'missing-renderer-import'
     | 'missing-renderer-element'
     | 'missing-renderer-root'
+    | 'renderer-reachability-bound'
     | 'unretained-renderer-md3-import'
   path: string
   detail: string
@@ -385,38 +386,214 @@ type ParsedRendererElement = {
   attributes: ReadonlyMap<string, string>
 }
 
-function parseRendererElements(
-  sourceFile: ts.SourceFile
-): ParsedRendererElement[] {
-  const elements: ParsedRendererElement[] = []
-  const recordOpening = (
-    opening: ts.JsxOpeningElement | ts.JsxSelfClosingElement
-  ) => {
-    const attributes = new Map<string, string>()
-    for (const property of opening.attributes.properties) {
-      if (!ts.isJsxAttribute(property)) {
-        continue
-      }
-      const initializer = property.initializer
-      if (initializer !== undefined && ts.isStringLiteral(initializer)) {
-        attributes.set(property.name.getText(sourceFile), initializer.text)
-      }
+type RendererReachability = {
+  elements: ParsedRendererElement[]
+  rootFound: boolean
+  boundExceeded: boolean
+}
+
+const MAX_REACHABLE_RENDER_FUNCTIONS = 2_048
+const MAX_REACHABLE_THIS_CALLS = 16_384
+
+function parseRendererElement(
+  sourceFile: ts.SourceFile,
+  opening: ts.JsxOpeningElement | ts.JsxSelfClosingElement
+): ParsedRendererElement {
+  const attributes = new Map<string, string>()
+  for (const property of opening.attributes.properties) {
+    if (!ts.isJsxAttribute(property)) {
+      continue
     }
-    elements.push({
-      tag: opening.tagName.getText(sourceFile),
-      attributes,
-    })
+    const initializer = property.initializer
+    if (initializer !== undefined && ts.isStringLiteral(initializer)) {
+      attributes.set(property.name.getText(sourceFile), initializer.text)
+    }
   }
+  return {
+    tag: opening.tagName.getText(sourceFile),
+    attributes,
+  }
+}
+
+function isFunctionNode(node: ts.Node): node is ts.FunctionLikeDeclaration {
+  return (
+    ts.isMethodDeclaration(node) ||
+    ts.isFunctionDeclaration(node) ||
+    ts.isFunctionExpression(node) ||
+    ts.isArrowFunction(node) ||
+    ts.isGetAccessorDeclaration(node) ||
+    ts.isSetAccessorDeclaration(node)
+  )
+}
+
+function enclosingFunction(node: ts.Node): ts.FunctionLikeDeclaration | null {
+  let current: ts.Node | undefined = node.parent
+  while (current !== undefined) {
+    if (isFunctionNode(current)) {
+      return current
+    }
+    current = current.parent
+  }
+  return null
+}
+
+function enclosingClass(
+  node: ts.Node
+): ts.ClassDeclaration | ts.ClassExpression | null {
+  let current: ts.Node | undefined = node.parent
+  while (current !== undefined) {
+    if (ts.isClassDeclaration(current) || ts.isClassExpression(current)) {
+      return current
+    }
+    current = current.parent
+  }
+  return null
+}
+
+function classMemberName(member: ts.ClassElement): string | null {
+  const name = member.name
+  if (name === undefined) {
+    return null
+  }
+  if (ts.isIdentifier(name) || ts.isStringLiteral(name)) {
+    return name.text
+  }
+  return null
+}
+
+function classMemberFunction(
+  member: ts.ClassElement
+): ts.FunctionLikeDeclaration | null {
+  if (
+    ts.isMethodDeclaration(member) ||
+    ts.isGetAccessorDeclaration(member) ||
+    ts.isSetAccessorDeclaration(member)
+  ) {
+    return member.body === undefined ? null : member
+  }
+  if (
+    ts.isPropertyDeclaration(member) &&
+    member.initializer !== undefined &&
+    (ts.isArrowFunction(member.initializer) ||
+      ts.isFunctionExpression(member.initializer))
+  ) {
+    return member.initializer
+  }
+  return null
+}
+
+function classFunctionMap(
+  rootFunction: ts.FunctionLikeDeclaration
+): ReadonlyMap<string, ts.FunctionLikeDeclaration> {
+  const owner = enclosingClass(rootFunction)
+  const functions = new Map<string, ts.FunctionLikeDeclaration>()
+  if (owner === null) {
+    return functions
+  }
+  for (const member of owner.members) {
+    const name = classMemberName(member)
+    const implementation = classMemberFunction(member)
+    if (name !== null && implementation !== null) {
+      functions.set(name, implementation)
+    }
+  }
+  return functions
+}
+
+function findRootFunctions(
+  sourceFile: ts.SourceFile,
+  rootContract: RendererElementContract
+): ts.FunctionLikeDeclaration[] {
+  const roots = new Set<ts.FunctionLikeDeclaration>()
   const visit = (node: ts.Node) => {
     if (ts.isJsxElement(node)) {
-      recordOpening(node.openingElement)
+      const element = parseRendererElement(sourceFile, node.openingElement)
+      if (rendererElementMatches(element, rootContract)) {
+        const owner = enclosingFunction(node)
+        if (owner !== null) {
+          roots.add(owner)
+        }
+      }
     } else if (ts.isJsxSelfClosingElement(node)) {
-      recordOpening(node)
+      const element = parseRendererElement(sourceFile, node)
+      if (rendererElementMatches(element, rootContract)) {
+        const owner = enclosingFunction(node)
+        if (owner !== null) {
+          roots.add(owner)
+        }
+      }
     }
     ts.forEachChild(node, visit)
   }
   visit(sourceFile)
-  return elements
+  return [...roots]
+}
+
+function collectReachableRendererElements(
+  sourceFile: ts.SourceFile,
+  rootContract: RendererElementContract
+): RendererReachability {
+  const rootFunctions = findRootFunctions(sourceFile, rootContract)
+  if (rootFunctions.length !== 1) {
+    return { elements: [], rootFound: false, boundExceeded: false }
+  }
+
+  const functionMap = classFunctionMap(rootFunctions[0])
+  const queue: ts.FunctionLikeDeclaration[] = [rootFunctions[0]]
+  const visited = new Set<ts.FunctionLikeDeclaration>()
+  const elements: ParsedRendererElement[] = []
+  let thisCallCount = 0
+  let boundExceeded = false
+
+  while (queue.length > 0) {
+    if (visited.size >= MAX_REACHABLE_RENDER_FUNCTIONS) {
+      boundExceeded = true
+      break
+    }
+    const current = queue.shift()
+    if (current === undefined || visited.has(current)) {
+      continue
+    }
+    visited.add(current)
+
+    const visit = (node: ts.Node) => {
+      if (
+        node !== current &&
+        (ts.isClassDeclaration(node) || ts.isClassExpression(node))
+      ) {
+        return
+      }
+      if (ts.isJsxElement(node)) {
+        elements.push(parseRendererElement(sourceFile, node.openingElement))
+      } else if (ts.isJsxSelfClosingElement(node)) {
+        elements.push(parseRendererElement(sourceFile, node))
+      }
+      if (
+        ts.isCallExpression(node) &&
+        ts.isPropertyAccessExpression(node.expression) &&
+        node.expression.expression.kind === ts.SyntaxKind.ThisKeyword
+      ) {
+        thisCallCount += 1
+        if (thisCallCount > MAX_REACHABLE_THIS_CALLS) {
+          boundExceeded = true
+          return
+        }
+        const target = functionMap.get(node.expression.name.text)
+        if (target !== undefined && !visited.has(target)) {
+          queue.push(target)
+        }
+      }
+      if (!boundExceeded) {
+        ts.forEachChild(node, visit)
+      }
+    }
+    visit(current)
+    if (boundExceeded) {
+      break
+    }
+  }
+
+  return { elements, rootFound: true, boundExceeded }
 }
 
 function rendererElementMatches(
@@ -446,7 +623,10 @@ export function findRendererWiringIssues(options: {
   const issues: FrozenShellValidationIssue[] = []
   const sourceFile = parseAst(renderer.source)
   const imports = parseStaticImportStatements(renderer.source)
-  const elements = parseRendererElements(sourceFile)
+  const reachability = collectReachableRendererElements(
+    sourceFile,
+    contract.currentRenderer.rootElement
+  )
 
   for (const expected of contract.currentRenderer.imports) {
     const matching = imports.find(
@@ -462,19 +642,29 @@ export function findRendererWiringIssues(options: {
     }
   }
 
-  if (
-    !elements.some(element =>
-      rendererElementMatches(element, contract.currentRenderer.rootElement)
-    )
-  ) {
+  if (!reachability.rootFound) {
     issues.push({
       code: 'missing-renderer-root',
       path: renderer.path,
       detail: rendererElementDetail(contract.currentRenderer.rootElement),
     })
   }
-  for (const expected of contract.currentRenderer.requiredElements) {
-    if (!elements.some(element => rendererElementMatches(element, expected))) {
+  if (reachability.boundExceeded) {
+    issues.push({
+      code: 'renderer-reachability-bound',
+      path: renderer.path,
+      detail: `${MAX_REACHABLE_RENDER_FUNCTIONS} functions or ${MAX_REACHABLE_THIS_CALLS} this-method calls`,
+    })
+  }
+  if (reachability.rootFound && !reachability.boundExceeded) {
+    for (const expected of contract.currentRenderer.requiredElements) {
+      if (
+        reachability.elements.some(element =>
+          rendererElementMatches(element, expected)
+        )
+      ) {
+        continue
+      }
       issues.push({
         code: 'missing-renderer-element',
         path: renderer.path,

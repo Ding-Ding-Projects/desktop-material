@@ -48,6 +48,7 @@ const dimensions = [
   'renderer-retired-imports',
   'renderer-import-bindings',
   'retired-family-reservation',
+  'renderer-root-reachability',
 ]
 
 assert.deepEqual(contract.negativeRegression.requiredDimensions, dimensions)
@@ -456,6 +457,48 @@ try {
   )
   console.log(
     'retired-family-reservation: green -> red(module) -> green -> red(stylesheet) -> green'
+  )
+
+  const rootBoundTabCall = '{this.renderRepositoryTabStrip()}'
+  const rendererWithUnreachableTabHelper = realRendererSource.replace(
+    rootBoundTabCall,
+    '{null /* renderer-root-reachability probe */}'
+  )
+  assert.notEqual(
+    rendererWithUnreachableTabHelper,
+    realRendererSource,
+    'renderer-root-reachability must remove the actual root-bound call'
+  )
+  assert.ok(
+    rendererWithUnreachableTabHelper.includes('<RepositoryTabStrip'),
+    'renderer-root-reachability must retain identical JSX in the unreachable helper'
+  )
+  const reachabilityIssues = findRendererWiringIssues({
+    contract,
+    renderer: {
+      path: rendererPath,
+      source: rendererWithUnreachableTabHelper,
+    },
+  })
+  assertOnlyIssueCode(
+    reachabilityIssues,
+    'missing-renderer-element',
+    'renderer-root-reachability'
+  )
+  assert.ok(
+    reachabilityIssues.some(issue => issue.detail === 'RepositoryTabStrip'),
+    'renderer-root-reachability must report the unreachable RepositoryTabStrip'
+  )
+  assert.deepEqual(
+    findRendererWiringIssues({
+      contract,
+      renderer: { path: rendererPath, source: realRendererSource },
+    }),
+    [],
+    'renderer-root-reachability restored must be green'
+  )
+  console.log(
+    'renderer-root-reachability: green -> red(unreachable helper decoy retained) -> green'
   )
 
   await assertRetiredImportsGreen('restored frozen-shell import contract')
