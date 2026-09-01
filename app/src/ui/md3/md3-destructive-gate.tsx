@@ -448,24 +448,28 @@ export function Md3DestructiveGateBody(props: IMd3DestructiveGateBodyProps) {
           {t('md3.destructiveGate.sliderLabel')}
         </label>
         <div className="md3-destructive-gate__slider-row">
-          <input
-            id={sliderId}
-            type="range"
-            className="md3-destructive-gate__slider-input"
-            min={0}
-            max={Md3GateAuthorizationMaximum}
-            step={1}
-            value={shownProgress}
-            disabled={disabled === true || !bothKeysTurned}
-            aria-describedby={statusId}
-            aria-valuetext={t('md3.destructiveGate.sliderValue', { percent })}
+          <div
+            className="md3-destructive-gate__slider-input-hit-target"
             style={
               {
                 '--md3-gate-progress': `${shownProgress}%`,
               } as React.CSSProperties
             }
-            onChange={onProgress}
-          />
+          >
+            <input
+              id={sliderId}
+              type="range"
+              className="md3-destructive-gate__slider-input"
+              min={0}
+              max={Md3GateAuthorizationMaximum}
+              step={1}
+              value={shownProgress}
+              disabled={disabled === true || !bothKeysTurned}
+              aria-describedby={statusId}
+              aria-valuetext={t('md3.destructiveGate.sliderValue', { percent })}
+              onChange={onProgress}
+            />
+          </div>
           <output className="md3-destructive-gate__slider-output">
             {t('md3.destructiveGate.sliderValue', { percent })}
           </output>

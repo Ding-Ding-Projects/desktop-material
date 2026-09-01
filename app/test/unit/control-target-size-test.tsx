@@ -8,6 +8,22 @@ import { RangeSlider } from '../../src/ui/lib/range-slider'
 import { Md3AuthenticatorRegistration } from '../../src/ui/md3/md3-authenticator-registration'
 import { fireEvent, render } from '../helpers/ui/render'
 
+function extractCssRule(css: string, selector: string): string {
+  const start = css.indexOf(selector)
+  assert.notEqual(start, -1, `missing CSS selector ${selector}`)
+  const open = css.indexOf('{', start)
+  assert.ok(open > start, `missing opening brace for ${selector}`)
+  let depth = 0
+  for (let index = open; index < css.length; index++) {
+    if (css[index] === '{') depth++
+    if (css[index] === '}') {
+      depth--
+      if (depth === 0) return css.slice(start, index + 1)
+    }
+  }
+  assert.fail(`unterminated CSS rule ${selector}`)
+}
+
 describe('shared control target sizes', () => {
   it('keeps every owned target-size rule at 40px', () => {
     const root = join(process.cwd(), 'app')
@@ -24,20 +40,20 @@ describe('shared control target sizes', () => {
       'utf8'
     )
     assert.match(
-      controls,
-      /\.range-slider-input-hit-target\s*\{[\s\S]*?min-height:\s*40px;/
+      extractCssRule(controls, '.range-slider-input-hit-target'),
+      /min-height:\s*40px;/
     )
     assert.match(
-      authenticator,
-      /\.md3-auth-register__source\s*\{[\s\S]*?min-height:\s*40px;/
+      extractCssRule(authenticator, '.md3-auth-register__source'),
+      /min-height:\s*40px;/
     )
     assert.match(
-      destructive,
-      /\.md3-destructive-gate__key\s*\{[\s\S]*?min-height:\s*40px;/
+      extractCssRule(destructive, '.md3-destructive-gate__key'),
+      /min-height:\s*40px;/
     )
     assert.match(
-      destructive,
-      /\.md3-destructive-gate__slider-input\s*\{[\s\S]*?height:\s*40px;/
+      extractCssRule(destructive, '.md3-destructive-gate__slider-input'),
+      /height:\s*40px;/
     )
   })
 
@@ -66,6 +82,32 @@ describe('shared control target sizes', () => {
     assert.equal(hitTarget?.firstElementChild, input)
     fireEvent.change(input!, { target: { value: '50' } })
     assert.equal(value, 50)
+  })
+
+  it('binds progress paint to the 40px wrappers at all slider values', () => {
+    const rangeSource = readFileSync(
+      join(process.cwd(), 'app', 'src', 'ui', 'lib', 'range-slider.tsx'),
+      'utf8'
+    )
+    const gateSource = readFileSync(
+      join(
+        process.cwd(),
+        'app',
+        'src',
+        'ui',
+        'md3',
+        'md3-destructive-gate.tsx'
+      ),
+      'utf8'
+    )
+    assert.ok(
+      rangeSource.indexOf('range-slider-input-hit-target') <
+        rangeSource.indexOf('--range-slider-progress')
+    )
+    assert.ok(
+      gateSource.indexOf('md3-destructive-gate__slider-input-hit-target') <
+        gateSource.indexOf('--md3-gate-progress')
+    )
   })
 
   it('keeps authenticator source rows label-clickable and keyboard-selectable', () => {
