@@ -31,9 +31,11 @@ export const BatchCloneStagingDirectoryName =
   '.desktop-material-clone-staging-v1'
 export const BatchCloneStagingCheckoutName = 'checkout'
 export const BatchCloneStagingMarkerName = 'owner.json'
+export const BatchCloneStagingContainerMarkerName = 'container-owner.json'
 export const BatchClonePromotionMarkerName =
   'desktop-material-clone-promotion-v1.json'
 const MaxBatchCloneStagingMarkerBytes = 64 * 1024
+type CloneRenameOperation = (oldPath: string, newPath: string) => Promise<void>
 
 interface IBatchCloneStagingMarker {
   readonly version: typeof BatchCloneStagingVersion
@@ -59,6 +61,7 @@ interface IBatchClonePromotionMarker {
 export interface IBatchCloneStagingPaths {
   readonly basePath: string
   readonly containerPath: string
+  readonly containerMarkerPath: string
   readonly recoveryRootPath: string
   readonly markerPath: string
   readonly checkoutPath: string
@@ -114,6 +117,10 @@ export function getBatchCloneStagingPaths(
   return {
     basePath,
     containerPath,
+    containerMarkerPath: Path.join(
+      containerPath,
+      BatchCloneStagingContainerMarkerName
+    ),
     recoveryRootPath,
     markerPath: Path.join(recoveryRootPath, BatchCloneStagingMarkerName),
     checkoutPath,
@@ -125,6 +132,11 @@ export function getBatchCloneStagingPaths(
  * or promotion; ambiguous paths are retained for explicit user review.
  */
 export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
+  public constructor(
+    private readonly renameDirectory: CloneRenameOperation = rename,
+    private readonly inspectRepository: typeof inspectStagedCloneRepository = inspectStagedCloneRepository
+  ) {}
+
   public async prepare(
     item: IBatchCloneItem
   ): Promise<BatchCloneStagingPreparation> {
@@ -273,13 +285,7 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
           'The clone recovery marker changed while cloning and was left unchanged.'
         )
       }
-      if (
-        !(await inspectStagedCloneRepository(
-          paths.checkoutPath,
-          item.url,
-          true
-        ))
-      ) {
+      if (!(await this.inspectRepository(paths.checkoutPath, item.url, true))) {
         return review(
           'The staged repository is incomplete, dirty, has unfinished submodules, or has a different origin.'
         )
@@ -312,16 +318,19 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
       // repository still matches this exact queue item.
       if (root === null) {
         if (promotionEntry === null) {
-          return true
+          return await removeEmptyOwnedContainer(paths)
         }
         if (
           (await readPromotionMarker(item, promotionPath)) === null ||
-          !(await inspectStagedCloneRepository(item.path, item.url, true))
+          !(await this.inspectRepository(item.path, item.url, true))
         ) {
           return false
         }
         await unlink(promotionPath)
-        return (await lstatOrNull(promotionPath)) === null
+        return (
+          (await lstatOrNull(promotionPath)) === null &&
+          (await removeEmptyOwnedContainer(paths))
+        )
       }
       if (!isOrdinaryDirectory(root)) {
         return false
@@ -337,12 +346,15 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
         if ((await inspectCloneDestination(item)) !== 'matching-repository') {
           return false
         }
-        return await this.discardOwnedRoot(item, paths, marker, true)
+        return (
+          (await this.discardOwnedRoot(item, paths, marker, true)) &&
+          (await removeEmptyOwnedContainer(paths))
+        )
       }
       if ((await lstatOrNull(paths.checkoutPath)) !== null) {
         return false
       }
-      if (!(await inspectStagedCloneRepository(item.path, item.url, true))) {
+      if (!(await this.inspectRepository(item.path, item.url, true))) {
         return false
       }
 
@@ -362,7 +374,8 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
       }
       return (
         (await lstatOrNull(paths.recoveryRootPath)) === null &&
-        (await lstatOrNull(promotionPath)) === null
+        (await lstatOrNull(promotionPath)) === null &&
+        (await removeEmptyOwnedContainer(paths))
       )
     } catch (error) {
       log.error('Unable to clean promoted clone staging metadata', error)
@@ -375,7 +388,7 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
       const paths = getBatchCloneStagingPaths(item)
       const root = await lstatOrNull(paths.recoveryRootPath)
       if (root === null) {
-        return true
+        return await removeEmptyOwnedContainer(paths)
       }
       if (
         !isOrdinaryDirectory(root) ||
@@ -385,7 +398,8 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
       }
       const marker = await readStagingMarker(item, paths)
       return marker !== null
-        ? await this.discardOwnedRoot(item, paths, marker)
+        ? (await this.discardOwnedRoot(item, paths, marker)) &&
+            (await removeEmptyOwnedContainer(paths))
         : false
     } catch (error) {
       log.error('Unable to discard clone staging metadata', error)
@@ -397,16 +411,35 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
     paths: IBatchCloneStagingPaths
   ): Promise<boolean> {
     const existing = await lstatOrNull(paths.containerPath)
+    let created = false
     if (existing === null) {
       try {
         await mkdir(paths.containerPath, { mode: 0o700 })
+        created = true
       } catch (error) {
         if (errorCode(error) !== 'EEXIST') {
           throw error
         }
       }
     }
-    return isCanonicalOrdinaryDirectory(paths.containerPath)
+    if (!(await isCanonicalOrdinaryDirectory(paths.containerPath))) {
+      return false
+    }
+    if (created) {
+      try {
+        await writeMarkerExclusive(paths.containerMarkerPath, {
+          version: BatchCloneStagingVersion,
+          kind: 'desktop-material-batch-clone-staging-container',
+        })
+      } catch (error) {
+        log.error(
+          'Unable to write clone staging container ownership marker',
+          error
+        )
+        return false
+      }
+    }
+    return await isOwnedContainerMarker(paths.containerMarkerPath)
   }
 
   private async createOwnedRoot(
@@ -472,7 +505,7 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
       promotion === null ||
       promotion.successfulAccountKey !==
         (marker.successfulAccountKey ?? null) ||
-      !(await inspectStagedCloneRepository(item.path, item.url, true))
+      !(await this.inspectRepository(item.path, item.url, true))
     ) {
       return null
     }
@@ -496,7 +529,7 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
       !(await isCanonicalOrdinaryDirectory(paths.recoveryRootPath)) ||
       !isOrdinaryDirectory(await requireEntry(paths.checkoutPath)) ||
       (await lstatOrNull(item.path)) !== null ||
-      !(await inspectStagedCloneRepository(paths.checkoutPath, item.url, true))
+      !(await this.inspectRepository(paths.checkoutPath, item.url, true))
     ) {
       return review(
         'The staged clone or final destination changed before promotion and was left unchanged.'
@@ -533,7 +566,7 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
     if (
       (await lstatOrNull(item.path)) !== null ||
       !(await isCanonicalOrdinaryDirectory(paths.recoveryRootPath)) ||
-      !(await inspectStagedCloneRepository(paths.checkoutPath, item.url, true))
+      !(await this.inspectRepository(paths.checkoutPath, item.url, true))
     ) {
       return review(
         'The staged clone or final destination changed before the atomic promotion.'
@@ -541,10 +574,18 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
     }
 
     try {
-      await rename(paths.checkoutPath, item.path)
+      if (process.platform !== 'win32') {
+        return review(
+          'The direct clone promotion requires Windows no-replace directory semantics and was left unchanged.'
+        )
+      }
+      await this.renameDirectory(paths.checkoutPath, item.path)
     } catch (error) {
+      const destinationOccupied = (await lstatOrNull(item.path)) !== null
       return review(
-        errorCode(error) === 'EEXIST' || errorCode(error) === 'ENOTEMPTY'
+        destinationOccupied ||
+          errorCode(error) === 'EEXIST' ||
+          errorCode(error) === 'ENOTEMPTY'
           ? 'The final clone destination became occupied and was not replaced.'
           : 'The staged clone could not be promoted atomically and was left unchanged.'
       )
@@ -557,7 +598,7 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
     if (
       finalPromotion === null ||
       finalPromotion.successfulAccountKey !== successfulAccountKey ||
-      !(await inspectStagedCloneRepository(item.path, item.url, true))
+      !(await this.inspectRepository(item.path, item.url, true))
     ) {
       return review(
         'The promoted repository could not be verified and was left for review.'
@@ -952,6 +993,44 @@ function errorCode(error: unknown): string | undefined {
   return typeof error === 'object' && error !== null && 'code' in error
     ? String((error as { readonly code?: unknown }).code)
     : undefined
+}
+
+async function isOwnedContainerMarker(path: string): Promise<boolean> {
+  const marker = await readBoundedMarker(path)
+  if (typeof marker !== 'object' || marker === null) {
+    return false
+  }
+  const value = marker as Record<string, unknown>
+  return (
+    Object.keys(value).sort().join(',') === 'kind,version' &&
+    value.version === BatchCloneStagingVersion &&
+    value.kind === 'desktop-material-batch-clone-staging-container'
+  )
+}
+
+/** Remove only an empty, canonical staging container owned by this manager. */
+async function removeEmptyOwnedContainer(
+  paths: IBatchCloneStagingPaths
+): Promise<boolean> {
+  const container = await lstatOrNull(paths.containerPath)
+  if (container === null) {
+    return true
+  }
+  if (
+    !isOrdinaryDirectory(container) ||
+    !(await isCanonicalOrdinaryDirectory(paths.containerPath)) ||
+    !(await isOwnedContainerMarker(paths.containerMarkerPath))
+  ) {
+    return false
+  }
+
+  const names = await readdir(paths.containerPath)
+  if (names.length !== 1 || names[0] !== BatchCloneStagingContainerMarkerName) {
+    return false
+  }
+  await unlink(paths.containerMarkerPath)
+  await rmdir(paths.containerPath)
+  return (await lstatOrNull(paths.containerPath)) === null
 }
 
 function review(message: string): {
