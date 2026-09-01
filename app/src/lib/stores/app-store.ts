@@ -10838,9 +10838,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
           new Map<string, ManualConflictResolution>()
         )
         if (commit === undefined || (await isMergeHeadSet(repository))) {
-          await this.withTemporaryRepositoryMutationGuard(repository, () =>
-            abortMerge(repository)
-          )
           await this._refreshRepository(repository)
           return {
             ...base,
