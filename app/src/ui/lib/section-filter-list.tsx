@@ -164,7 +164,13 @@ interface ISectionFilterListProps<T extends IFilterListItem, GroupIdentifier> {
   readonly getItemAriaLabel?: (item: T) => string | undefined
 
   /** Aria label for a specific group */
-  readonly getGroupAriaLabel?: (group: number) => string | undefined
+  readonly getGroupAriaLabel?: (
+    group: number,
+    filteredItemCount: number
+  ) => string | undefined
+
+  /** Keep section context on the listbox instead of repeating it per item. */
+  readonly includeGroupAriaLabelInItem?: boolean
 
   /** The current filter text to use in the form */
   readonly filterText?: string
@@ -755,8 +761,13 @@ export class SectionFilterList<
       return undefined
     }
 
+    if (this.props.includeGroupAriaLabelInItem === false) {
+      return itemAriaLabel
+    }
+
     const groupAriaLabel = this.props.getGroupAriaLabel?.(
-      this.state.groups[index.section]
+      this.state.groups[index.section],
+      this.getFilteredItemCount(index.section)
     )
 
     return groupAriaLabel !== undefined
@@ -766,11 +777,15 @@ export class SectionFilterList<
 
   private getSectionAriaLabel = (section: number) => {
     const groupAriaLabel = this.props.getGroupAriaLabel?.(
-      this.state.groups[section]
+      this.state.groups[section],
+      this.getFilteredItemCount(section)
     )
 
     return groupAriaLabel !== undefined ? groupAriaLabel : undefined
   }
+
+  private getFilteredItemCount = (section: number): number =>
+    this.state.rows[section].filter(row => row.kind === 'item').length
 
   private getSectionId = (section: number) =>
     this.props.getSectionId?.(this.state.groups[section])

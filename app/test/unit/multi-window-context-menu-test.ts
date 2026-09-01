@@ -84,4 +84,20 @@ describe('multi-window context actions', () => {
       'unlock:C:\\repos\\material-feature',
     ])
   })
+
+  it('offers a target-specific appearance editor action', () => {
+    let editedPath: string | null = null
+    const items = generateWorktreeContextMenuItems({
+      path: 'C:\\repos\\material-feature',
+      isMainWorktree: false,
+      isLocked: false,
+      onEditAppearance: path => {
+        editedPath = path
+      },
+    })
+    const edit = items.find(item => item.label === 'Edit appearance…')
+    assert.ok(edit?.action)
+    edit.action()
+    assert.equal(editedPath, 'C:\\repos\\material-feature')
+  })
 })

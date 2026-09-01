@@ -111,7 +111,27 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
         isCurrentWorktree={isCurrentWorktree}
         matches={matches}
         mergeBranch={mergeBranch}
-        onMergeWorktree={this.props.onMergeWorktree}
+        onMergeWorktree={
+          this.props.onMergeWorktree === undefined
+            ? undefined
+            : branch => {
+                // Recheck the exact rendered worktree identity immediately
+                // before dispatching. A refresh can replace the branch tip
+                // while the row is still mounted; stale merge actions must
+                // become no-ops rather than claiming success.
+                if (
+                  branch.ref !== item.worktree.branch ||
+                  branch.tip.sha !== item.worktree.head ||
+                  getMergeBranchForWorktree(
+                    item.worktree,
+                    isCurrentWorktree
+                  ) === undefined
+                ) {
+                  return
+                }
+                this.props.onMergeWorktree?.(branch)
+              }
+        }
       />
     )
   }
@@ -121,12 +141,12 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
     return <div className="filter-list-group-header">{label}</div>
   }
 
-  private getGroupAriaLabel = (group: number) => {
+  private getGroupAriaLabel = (group: number, filteredItemCount: number) => {
     const groupData = this.getGroups(this.props.worktrees)[group]
-    const count = groupData.items.length
+    const count = filteredItemCount
     return groupData.identifier === 'main'
       ? `Main worktree, ${count} worktree`
-      : `Linked worktrees, ${count} worktrees`
+      : `Linked worktrees, ${count} ${count === 1 ? 'worktree' : 'worktrees'}`
   }
 
   private getItemAriaLabel = (item: IWorktreeListItem) => {
@@ -217,6 +237,7 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
         renderGroupHeader={this.renderGroupHeader}
         getGroupAriaLabel={this.getGroupAriaLabel}
         getItemAriaLabel={this.getItemAriaLabel}
+        includeGroupAriaLabelInItem={false}
         onItemClick={this.onItemClick}
         groups={groups}
         invalidationProps={this.props.worktrees}
@@ -262,7 +283,9 @@ export function getMergeBranchForWorktree(
 function worktreeFilterText(worktree: WorktreeEntry): ReadonlyArray<string> {
   const branch = worktree.branch?.replace(/^refs\/heads\//, '') ?? 'detached'
   const state = [
-    worktree.dirtyFileCount && worktree.dirtyFileCount > 0
+    worktree.dirtyFileCount === null
+      ? 'status unavailable'
+      : worktree.dirtyFileCount !== undefined && worktree.dirtyFileCount > 0
       ? `uncommitted ${worktree.dirtyFileCount}`
       : 'clean',
     worktree.isLocked ? 'locked' : '',

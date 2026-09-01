@@ -147,6 +147,37 @@ describe('WorktreeListItem', () => {
     )
   })
 
+  it('shows unavailable status instead of claiming a clean row', () => {
+    render(
+      <WorktreeListItem
+        worktree={linkedWorktree({ dirtyFileCount: null })}
+        isCurrentWorktree={false}
+        matches={noMatches}
+      />
+    )
+
+    assert.ok(screen.getByText(/status unavailable/))
+    assert.equal(screen.queryByText(/^clean$/), null)
+  })
+
+  it('indexes unavailable status in the worktree filter', async () => {
+    localStorage.setItem('filter-mode/worktrees', 'substring')
+    render(
+      <WorktreeList
+        worktrees={[linkedWorktree({ dirtyFileCount: null })]}
+        currentWorktree={null}
+        filterText="unavailable"
+        onFilterTextChanged={() => undefined}
+        canCreateNewWorktree={false}
+      />
+    )
+
+    await waitFor(() => {
+      assert.equal(screen.getAllByRole('option').length, 1)
+    })
+    localStorage.removeItem('filter-mode/worktrees')
+  })
+
   it('activates the focused worktree with Enter and keeps the state accessible', async () => {
     const worktree = linkedWorktree({
       path: 'C:/worktrees/main',
@@ -171,7 +202,7 @@ describe('WorktreeListItem', () => {
     await waitFor(() => {
       assert.ok(
         screen.getByRole('option', {
-          name: /main, main, current worktree, Main worktree/,
+          name: 'main, main, current worktree',
         })
       )
     })
@@ -219,31 +250,115 @@ describe('WorktreeListItem', () => {
     })
 
     const mainOption = screen.getByRole('option', {
-      name: /main, main, current worktree, Main worktree, 1 worktree/,
+      name: 'main, main, current worktree',
     })
     const linkedOption = screen.getByRole('option', {
-      name: /feature, feature, Linked worktrees, 2 worktrees/,
+      name: 'feature, feature',
     })
     const detachedOption = screen.getByRole('option', {
-      name: /detached, abcdef1, 3 uncommitted, locked, missing, Linked worktrees, 2 worktrees/,
+      name: 'detached, abcdef1, 3 uncommitted, locked, missing',
     })
+
+    const listboxes = screen.getAllByRole('listbox')
+    assert.ok(
+      listboxes.some(
+        listbox =>
+          listbox.getAttribute('aria-label') === 'Main worktree, 1 worktree'
+      )
+    )
+    assert.ok(
+      listboxes.some(
+        listbox =>
+          listbox.getAttribute('aria-label') === 'Linked worktrees, 2 worktrees'
+      )
+    )
 
     assert.equal(
       (mainOption.getAttribute('aria-label')?.match(/Main worktree/g) ?? [])
         .length,
-      1
+      0
     )
     assert.equal(
       (
         linkedOption.getAttribute('aria-label')?.match(/Linked worktrees/g) ??
         []
       ).length,
-      1
+      0
     )
     assert.equal(
       detachedOption.getAttribute('aria-label'),
-      'detached, abcdef1, 3 uncommitted, locked, missing, Linked worktrees, 2 worktrees'
+      'detached, abcdef1, 3 uncommitted, locked, missing'
     )
+  })
+
+  it('counts only filtered linked rows in the section association', async () => {
+    const main = linkedWorktree({
+      path: 'C:/worktrees/main',
+      branch: 'refs/heads/main',
+      type: 'main',
+    })
+    const firstLinked = linkedWorktree({ path: 'C:/worktrees/feature-one' })
+    const secondLinked = linkedWorktree({ path: 'C:/worktrees/other' })
+
+    render(
+      <WorktreeList
+        worktrees={[main, firstLinked, secondLinked]}
+        currentWorktree={main}
+        filterText="feature-one"
+        onFilterTextChanged={() => undefined}
+        canCreateNewWorktree={false}
+      />
+    )
+
+    await waitFor(() => {
+      assert.equal(screen.getAllByRole('option').length, 1)
+    })
+
+    assert.equal(
+      screen
+        .getByRole('option', { name: 'feature-one, feature' })
+        .getAttribute('aria-label'),
+      'feature-one, feature'
+    )
+    assert.ok(
+      screen
+        .getAllByRole('listbox')
+        .some(
+          listbox =>
+            listbox.getAttribute('aria-label') ===
+            'Linked worktrees, 1 worktree'
+        )
+    )
+  })
+
+  it('uses a singular count when one linked row is rendered', async () => {
+    const main = linkedWorktree({
+      path: 'C:/worktrees/main',
+      branch: 'refs/heads/main',
+      type: 'main',
+    })
+
+    render(
+      <WorktreeList
+        worktrees={[main, linkedWorktree()]}
+        currentWorktree={main}
+        filterText=""
+        onFilterTextChanged={() => undefined}
+        canCreateNewWorktree={false}
+      />
+    )
+
+    await waitFor(() => {
+      assert.ok(
+        screen
+          .getAllByRole('listbox')
+          .some(
+            listbox =>
+              listbox.getAttribute('aria-label') ===
+              'Linked worktrees, 1 worktree'
+          )
+      )
+    })
   })
 
   it('merges an eligible linked worktree without selecting it', () => {

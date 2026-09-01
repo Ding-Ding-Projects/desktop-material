@@ -15920,17 +15920,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
     repository: Repository,
     worktreePath: string
   ): void {
-    if (this.confirmWorktreeRemoval) {
-      this._showPopup({
-        type: PopupType.DeleteWorktree,
-        repository,
-        worktreePath,
-      })
-    } else {
-      this._deleteWorktree(repository, worktreePath).catch(e =>
-        this.emitError(e)
-      )
-    }
+    this._showPopup({
+      type: PopupType.DeleteWorktree,
+      repository,
+      worktreePath,
+    })
   }
 
   /** This shouldn't be called directly. See 'Dispatcher'. */
