@@ -40,4 +40,13 @@ describe('local-changes rebase dismissal contract', () => {
     )
     assert.match(handler, /retryAction\.type === RetryActionType\.Rebase/)
   })
+
+  it('advances past the dialog appearance grace period before interaction', () => {
+    const behavior = read(
+      'app/test/unit/ui/local-changes-overwritten-dialog-behavior-test.tsx'
+    )
+    assert.match(behavior, /advanceTimersBy\(250\)/)
+    assert.match(behavior, /enableTestTimers\(\['setTimeout'\]\)/)
+    assert.match(behavior, /resetTestTimers\(\)/)
+  })
 })

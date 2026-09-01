@@ -1,12 +1,19 @@
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 import * as React from 'react'
+import { ipcRenderer } from 'electron'
 
 import { Repository } from '../../../src/models/repository'
 import { RetryActionType } from '../../../src/models/retry-actions'
 import { PopupType } from '../../../src/models/popup'
+import { DialogStackContext } from '../../../src/ui/dialog/dialog'
 import { LocalChangesOverwrittenDialog } from '../../../src/ui/local-changes-overwritten/local-changes-overwritten-dialog'
 import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
+import {
+  advanceTimersBy,
+  enableTestTimers,
+  resetTestTimers,
+} from '../../helpers/ui/timers'
 
 const repository = new Repository('/tmp/rebase', 1, null, false)
 
@@ -31,32 +38,58 @@ function renderDialog(
   }
 
   const view = render(
-    <LocalChangesOverwrittenDialog
-      repository={repository}
-      dispatcher={dispatcher as any}
-      retryAction={retryAction}
-      onDismissed={() => events.push('dismiss')}
-      files={['conflicted.txt']}
-    />
+    <DialogStackContext.Provider value={{ isTopMost: true }}>
+      <LocalChangesOverwrittenDialog
+        repository={repository}
+        dispatcher={dispatcher as any}
+        retryAction={retryAction}
+        onDismissed={() => events.push('dismiss')}
+        files={['conflicted.txt']}
+      />
+    </DialogStackContext.Provider>
   )
+
+  // Dialog intentionally ignores dismissal while its 250ms appearance grace
+  // period is active. Advance it before every interaction in this suite.
+  advanceTimersBy(250)
 
   return { view, dispatcher }
 }
 
 describe('local-changes rebase dismissal behavior', () => {
   let restoreIpcSend: (() => void) | null = null
+  let restoreDialogShow: (() => void) | null = null
 
   beforeEach(async () => {
-    const electron = await import('electron')
-    const previousSend = electron.ipcRenderer.send
-    electron.ipcRenderer.send = () => undefined
+    enableTestTimers(['setTimeout'])
+    const previousSend = ipcRenderer.send
+    ipcRenderer.send = () => undefined
     restoreIpcSend = () => {
-      electron.ipcRenderer.send = previousSend
+      ipcRenderer.send = previousSend
       restoreIpcSend = null
+    }
+
+    const prototype = window.HTMLDialogElement.prototype
+    const previousShow = prototype.show
+    const previousShowModal = prototype.showModal
+    prototype.show = function () {
+      this.setAttribute('open', '')
+    }
+    prototype.showModal = function () {
+      this.setAttribute('open', '')
+    }
+    restoreDialogShow = () => {
+      prototype.show = previousShow
+      prototype.showModal = previousShowModal
+      restoreDialogShow = null
     }
   })
 
-  afterEach(() => restoreIpcSend?.())
+  afterEach(() => {
+    restoreIpcSend?.()
+    restoreDialogShow?.()
+    resetTestTimers()
+  })
 
   it('dismisses rebase in order and closes the outer popup exactly once', () => {
     const events: string[] = []
