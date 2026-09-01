@@ -1,6 +1,8 @@
+import * as Path from 'path'
 import { CloningRepository } from '../../models/cloning-repository'
 import { ICloneProgress } from '../../models/progress'
 import { CloneOptions } from '../../models/clone-options'
+import { IBatchCloneItem } from '../../models/batch-clone'
 import { RetryAction, RetryActionType } from '../../models/retry-actions'
 import { Account } from '../../models/account'
 
@@ -12,6 +14,10 @@ import {
 import { ErrorWithMetadata } from '../error-with-metadata'
 import { CloneProgressEtaEstimator } from '../progress/clone-eta'
 import { BaseStore } from './base-store'
+import {
+  createBatchCloneRecoveryId,
+  IBatchCloneStagingManager,
+} from './batch-clone-staging'
 
 /** The store in charge of repository currently being cloned. */
 export class CloningRepositoriesStore extends BaseStore {
@@ -21,7 +27,8 @@ export class CloningRepositoriesStore extends BaseStore {
   public constructor(
     private readonly getAccounts: () => Promise<
       ReadonlyArray<Account>
-    > = async () => []
+    > = async () => [],
+    private readonly stagingManager: IBatchCloneStagingManager | null = null
   ) {
     super()
   }
@@ -70,16 +77,57 @@ export class CloningRepositoriesStore extends BaseStore {
     // between repositories sharing this store.
     const etaEstimator = new CloneProgressEtaEstimator()
 
+    const stagedItem: IBatchCloneItem | null =
+      this.stagingManager !== null && opts?.displayPath === undefined
+        ? {
+            url,
+            name: Path.basename(Path.resolve(path)) || 'repository',
+            path,
+            recoveryId: createBatchCloneRecoveryId(),
+          }
+        : null
+    let clonePath = path
+
     let success = true
     try {
+      if (stagedItem !== null) {
+        const prepared = await this.stagingManager!.prepare(stagedItem)
+        if (prepared.kind === 'review') {
+          throw prepared.error
+        }
+        if (prepared.kind === 'done') {
+          repository.accountKey = prepared.accountKey
+          opts?.onSuccess?.(prepared.accountKey)
+          this.remove(repository)
+          return true
+        }
+        clonePath = prepared.clonePath
+      }
+
+      let attempt = 0
       const result = await cloneWithAccountFallback(
         url,
         this.getAccounts,
         options.accountKey ?? null,
-        accountKey =>
-          cloneRepo(
+        async accountKey => {
+          if (attempt > 0 && stagedItem !== null) {
+            if (!(await this.stagingManager!.discard(stagedItem))) {
+              throw new Error(
+                'The previous clone attempt could not be discarded safely.'
+              )
+            }
+            const prepared = await this.stagingManager!.prepare(stagedItem)
+            if (prepared.kind !== 'clone') {
+              throw new Error(
+                'The clone staging directory changed before the retry could start.'
+              )
+            }
+            clonePath = prepared.clonePath
+          }
+          attempt += 1
+          await cloneRepo(
             url,
-            path,
+            clonePath,
             options,
             progress => {
               const etaSeconds = etaEstimator.record(progress.value)
@@ -93,13 +141,38 @@ export class CloningRepositoriesStore extends BaseStore {
             },
             accountKey,
             opts?.signal
-          ),
+          )
+        },
         opts?.signal
       )
+
+      if (stagedItem !== null) {
+        const completed = await this.stagingManager!.completeAndPromote(
+          stagedItem,
+          clonePath,
+          result.accountKey
+        )
+        if (completed.kind === 'review') {
+          throw completed.error
+        }
+        if (!(await this.stagingManager!.cleanupPromoted(stagedItem))) {
+          log.error(
+            `The direct clone completed, but its staging cleanup needs review: ${path}`
+          )
+        }
+      }
       repository.accountKey = result.accountKey
       opts?.onSuccess?.(result.accountKey)
     } catch (e) {
       success = false
+
+      if (stagedItem !== null) {
+        if (!(await this.stagingManager!.discard(stagedItem))) {
+          log.error(
+            `The failed direct clone staging could not be discarded safely: ${path}`
+          )
+        }
+      }
 
       if (opts?.signal?.aborted || isCloneAbortError(e)) {
         opts?.onAbort?.()

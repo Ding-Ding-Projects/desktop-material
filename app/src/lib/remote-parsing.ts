@@ -69,8 +69,12 @@ export interface IRepositoryIdentifier {
   readonly name: string
 }
 
+export const MaxCloneNameLength = 100
+
 const WindowsReservedCloneName =
   /^(con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])(?:[ .]|$)/i
+const DeceptiveCloneNameCharacters =
+  /[\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/
 
 /**
  * Validate a repository name before it is used as a single path component.
@@ -96,8 +100,10 @@ export function sanitizeCloneName(name: string): string | null {
     candidate === '.' ||
     candidate === '..' ||
     /[\u0000-\u001f\u007f]/.test(candidate) ||
-    /[\\/:]/.test(candidate) ||
+    /[\\/:<>"|?*]/.test(candidate) ||
     /[. ]$/.test(candidate) ||
+    DeceptiveCloneNameCharacters.test(candidate) ||
+    Array.from(candidate).length > MaxCloneNameLength ||
     WindowsReservedCloneName.test(candidate)
   ) {
     return null

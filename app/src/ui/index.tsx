@@ -80,6 +80,7 @@ import { ApiRepositoriesStore } from '../lib/stores/api-repositories-store'
 import { CommitStatusStore } from '../lib/stores/commit-status-store'
 import { PullRequestCoordinator } from '../lib/stores/pull-request-coordinator'
 import { ElementAppearanceCoordinator } from '../lib/stores/element-appearance-coordinator'
+import { FileBatchCloneStagingManager } from '../lib/stores/batch-clone-staging'
 
 import { sendNonFatalException } from '../lib/helpers/non-fatal-exception'
 import { classifyPeerClosedStreamError } from '../lib/peer-closed-stream-error'
@@ -421,8 +422,9 @@ const statsStore = new StatsStore(
 )
 
 const accountsStore = new AccountsStore(localStorage, TokenStore)
-const cloningRepositoriesStore = new CloningRepositoriesStore(() =>
-  accountsStore.getAll()
+const cloningRepositoriesStore = new CloningRepositoriesStore(
+  () => accountsStore.getAll(),
+  new FileBatchCloneStagingManager()
 )
 
 const profileStore = new ProfileStore(accountsStore)

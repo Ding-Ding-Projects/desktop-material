@@ -2,6 +2,7 @@ import * as Path from 'path'
 import { URL } from 'url'
 import {
   parseRepositoryIdentifier,
+  MaxCloneNameLength,
   sanitizeCloneName,
 } from '../lib/remote-parsing'
 import {
@@ -25,7 +26,7 @@ export const BatchCloneParallelLimit = 3
 export const MaxBatchCloneItems = 500
 export const MaxBatchCloneURLLength = 8192
 export const MaxBatchCloneRawFolderNameLength = 1024
-export const MaxBatchCloneFolderNameLength = 100
+export const MaxBatchCloneFolderNameLength = MaxCloneNameLength
 export const MaxBatchClonePathLength = 32767
 export const MaxBatchCloneBranchLength = 1024
 export const MaxBatchCloneAccountKeyLength = 4096
@@ -215,7 +216,10 @@ const WindowsReservedFolderName =
 export function sanitizeBatchCloneFolderName(candidate: string): string {
   let name = candidate
     .normalize('NFC')
-    .replace(/[\u0000-\u001f\u007f<>:"/\\|?*]+/g, '-')
+    .replace(
+      /[\u0000-\u001f\u007f\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff<>:"/\\|?*]+/g,
+      '-'
+    )
     .replace(/\s+/g, ' ')
     .trim()
     .replace(/[. ]+$/g, '')

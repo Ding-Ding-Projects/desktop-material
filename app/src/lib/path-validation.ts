@@ -19,12 +19,44 @@ const sensitiveCloneLocations = (): ReadonlyArray<string> => {
     Path.join(home, '.npmrc'),
     Path.join(home, '.netrc'),
     Path.join(home, '.pypirc'),
+    Path.join(home, '.git-credentials'),
     Path.join(home, 'AppData', 'Roaming'),
   ]
 
-  for (const value of [process.env.APPDATA]) {
-    if (value !== undefined && value.length > 0) {
-      locations.push(Path.resolve(value))
+  const xdgConfigHome = process.env.XDG_CONFIG_HOME
+  if (xdgConfigHome !== undefined && xdgConfigHome.length > 0) {
+    locations.push(Path.resolve(xdgConfigHome))
+  }
+
+  const appData = process.env.APPDATA
+  if (appData !== undefined && appData.length > 0) {
+    locations.push(Path.resolve(appData))
+  }
+
+  const localAppData = process.env.LOCALAPPDATA
+  if (localAppData !== undefined && localAppData.length > 0) {
+    const local = Path.resolve(localAppData)
+    locations.push(
+      Path.join(local, 'Credentials'),
+      Path.join(local, 'TokenCache'),
+      Path.join(local, 'IdentityCache'),
+      Path.join(local, 'Microsoft', 'Credentials'),
+      Path.join(local, 'Microsoft', 'Vault'),
+      Path.join(local, 'Microsoft', 'Protect')
+    )
+  }
+
+  if (process.platform === 'win32') {
+    for (const value of [
+      process.env.SystemRoot,
+      process.env.WINDIR,
+      process.env.ProgramData,
+      process.env.ProgramFiles,
+      process.env['ProgramFiles(x86)'],
+    ]) {
+      if (value !== undefined && value.length > 0) {
+        locations.push(Path.resolve(value))
+      }
     }
   }
 
@@ -47,14 +79,35 @@ function isWithinOrEqual(parent: string, child: string): boolean {
  * callers, and remains a final backstop at the Git boundary.
  */
 export function isClonePathSensitive(unresolvedClonePath: string): boolean {
-  const clonePath = Path.resolve(unresolvedClonePath).toLocaleLowerCase('en-US')
-  const home = Path.resolve(homedir()).toLocaleLowerCase('en-US')
-  if (clonePath === home) {
+  const normalize = (path: string): string => {
+    const normalized = Path.normalize(path)
+    return process.platform === 'win32'
+      ? normalized.toLocaleLowerCase('en-US')
+      : normalized
+  }
+  const clonePath = normalize(Path.resolve(unresolvedClonePath))
+  const home = normalize(Path.resolve(homedir()))
+  if (
+    clonePath === home ||
+    clonePath === normalize(Path.parse(clonePath).root)
+  ) {
     return true
   }
 
+  const localAppData = process.env.LOCALAPPDATA
+  if (localAppData !== undefined && localAppData.length > 0) {
+    const localRoot = normalize(Path.resolve(localAppData))
+    const localTemp = normalize(Path.join(localRoot, 'Temp'))
+    if (
+      isWithinOrEqual(localRoot, clonePath) &&
+      !isWithinOrEqual(localTemp, clonePath)
+    ) {
+      return true
+    }
+  }
+
   return sensitiveCloneLocations().some(location =>
-    isWithinOrEqual(location.toLocaleLowerCase('en-US'), clonePath)
+    isWithinOrEqual(normalize(location), clonePath)
   )
 }
 

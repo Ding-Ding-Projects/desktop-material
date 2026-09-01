@@ -249,6 +249,7 @@ describe('batch-clone model', () => {
       assert.equal(sanitizeBatchCloneFolderName('..'), 'repository')
       assert.equal(sanitizeBatchCloneFolderName('folder.  '), 'folder')
       assert.equal(sanitizeBatchCloneFolderName('a/b\\c'), 'a-b-c')
+      assert.equal(sanitizeBatchCloneFolderName('repo\u200bname'), 'repo-name')
     })
 
     it('rejects credentialed web URLs without echoing their secret', () => {

@@ -35,12 +35,24 @@ describe('git/clone', () => {
     assert.equal(isClonePathSensitive(home), true)
     assert.equal(isClonePathSensitive(path.join(home, '.ssh', 'clone')), true)
     assert.equal(
+      isClonePathSensitive(path.join(home, '.git-credentials')),
+      true
+    )
+    assert.equal(
       isClonePathSensitive(path.join(home, '.config', 'git', 'clone')),
       true
     )
     assert.equal(
       isClonePathSensitive(path.join(home, 'Documents', 'GitHub', 'clone')),
       false
+    )
+    const caseVariantHome = path.join(
+      path.dirname(home),
+      path.basename(home).toLocaleUpperCase('en-US')
+    )
+    assert.equal(
+      isClonePathSensitive(path.join(caseVariantHome, '.ssh', 'clone')),
+      process.platform === 'win32'
     )
   })
 
@@ -55,6 +67,61 @@ describe('git/clone', () => {
         /sensitive system location/i.test(error.message) &&
         /Choose another folder and try again/i.test(error.message)
     )
+  })
+
+  it('covers configured credential roots while permitting local temporary clones', async () => {
+    const os = await import('os')
+    const previous = {
+      APPDATA: process.env.APPDATA,
+      LOCALAPPDATA: process.env.LOCALAPPDATA,
+      XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
+      SystemRoot: process.env.SystemRoot,
+    }
+    const fixture = path.join(os.tmpdir(), 'desktop-material-clone-policy')
+    const roaming = path.join(fixture, 'roaming')
+    const local = path.join(fixture, 'local')
+    const xdg = path.join(fixture, 'xdg')
+    process.env.APPDATA = roaming
+    process.env.LOCALAPPDATA = local
+    process.env.XDG_CONFIG_HOME = xdg
+    process.env.SystemRoot = path.join(fixture, 'system-root')
+
+    try {
+      assert.equal(isClonePathSensitive(path.join(roaming, 'clone')), true)
+      assert.equal(isClonePathSensitive(path.join(xdg, 'clone')), true)
+      if (process.platform === 'win32') {
+        assert.equal(
+          isClonePathSensitive(path.join(fixture, 'system-root', 'clone')),
+          true
+        )
+      }
+      assert.equal(
+        isClonePathSensitive(path.join(local, 'Credentials', 'clone')),
+        true
+      )
+      assert.equal(
+        isClonePathSensitive(path.join(local, 'Microsoft', 'Vault', 'clone')),
+        true
+      )
+      assert.equal(isClonePathSensitive(local), true)
+      assert.equal(
+        isClonePathSensitive(path.join(local, 'Temp', 'clone')),
+        false
+      )
+      assert.equal(isClonePathSensitive(path.parse(os.homedir()).root), true)
+      assert.equal(
+        isClonePathSensitive(path.join(path.parse(os.homedir()).root, 'clone')),
+        false
+      )
+    } finally {
+      for (const [key, value] of Object.entries(previous)) {
+        if (value === undefined) {
+          delete process.env[key]
+        } else {
+          process.env[key] = value
+        }
+      }
+    }
   })
 
   it('owns an abort which arrives before Dugite exposes the process', async () => {
