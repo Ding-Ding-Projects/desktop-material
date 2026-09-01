@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import * as Path from 'path'
-import { realpath, rm } from 'fs/promises'
+import { realpath, rm, symlink, writeFile } from 'fs/promises'
 import { describe, it } from 'node:test'
 import { exec } from 'dugite'
 import { setupEmptyRepository } from '../../helpers/repositories'
@@ -380,6 +380,55 @@ describe('git/worktree', () => {
       assert.strictEqual(
         await resolveMainWorktreePath(
           asRepository(linkedPath, gitDir, mainPath)
+        ),
+        mainPath
+      )
+    })
+
+    it('recovers from a valid hint after linked worktree metadata is removed', async t => {
+      const { repo, mainPath, linkedPath, gitDir } = await linkedRepository(t)
+      const selected = asRepository(linkedPath, gitDir, mainPath)
+      await exec(['worktree', 'remove', '--force', linkedPath], repo.path)
+
+      assert.strictEqual(await resolveMainWorktreePath(selected), mainPath)
+    })
+
+    it('rejects an existing file as a recorded main path', async t => {
+      const { repo, mainPath, linkedPath, gitDir } = await linkedRepository(t)
+      const filePath = Path.join(repo.path, 'not-a-worktree')
+      await writeFile(filePath, 'not a directory')
+
+      assert.strictEqual(
+        await resolveMainWorktreePath(
+          asRepository(linkedPath, gitDir, filePath)
+        ),
+        mainPath
+      )
+    })
+
+    it('rejects an unrelated repository as a recorded main path', async t => {
+      const { mainPath, linkedPath, gitDir } = await linkedRepository(t)
+      const unrelated = await setupEmptyRepository(t, 'main')
+      await makeCommit(unrelated, {
+        entries: [{ path: 'README', contents: 'unrelated' }],
+      })
+
+      assert.strictEqual(
+        await resolveMainWorktreePath(
+          asRepository(linkedPath, gitDir, unrelated.path)
+        ),
+        mainPath
+      )
+    })
+
+    it('rejects a symlink or reparse path and uses git metadata', async t => {
+      const { repo, mainPath, linkedPath, gitDir } = await linkedRepository(t)
+      const symlinkPath = Path.join(repo.path, 'main-link')
+      await symlink(mainPath, symlinkPath, 'junction')
+
+      assert.strictEqual(
+        await resolveMainWorktreePath(
+          asRepository(linkedPath, gitDir, symlinkPath)
         ),
         mainPath
       )

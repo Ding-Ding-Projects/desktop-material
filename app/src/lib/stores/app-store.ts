@@ -293,6 +293,7 @@ import {
   isSubmoduleRepository,
   SubmoduleRepository,
 } from '../../models/repository'
+import { worktreePathsEqual } from '../../models/worktree'
 import { DefaultAppDisplayName } from '../../models/app-identity'
 import {
   buildGitHubPullRequestTargets,
@@ -8356,18 +8357,37 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return
     }
 
-    // Populate gitDir for repositories that don't have it yet
-    if (repository.gitDir === undefined) {
+    // Populate worktree metadata for legacy records while the repository is
+    // readable. Each write is independent so a failed path probe cannot erase
+    // a previously persisted git directory.
+    if (
+      repository.gitDir === undefined ||
+      repository.mainWorktreePath === undefined
+    ) {
       const repositoryBeforeGitDirUpdate = repository
       const type = await getRepositoryType(repository.path)
       if (!this.isTemporaryRepositoryActive(repositoryBeforeGitDirUpdate)) {
         return
       }
       if (type.kind === 'regular') {
-        repository = await this.repositoriesStore.updateRepositoryGitDir(
-          repository,
-          type.gitDir
-        )
+        if (repository.gitDir === undefined) {
+          repository = await this.repositoriesStore.updateRepositoryGitDir(
+            repository,
+            type.gitDir
+          )
+        }
+        if (repository.mainWorktreePath === undefined) {
+          const mainWorktreePath = await this.findMainWorktreePath(
+            repository.path
+          )
+          if (mainWorktreePath !== undefined) {
+            repository =
+              await this.repositoriesStore.updateRepositoryMainWorktreePath(
+                repository,
+                mainWorktreePath
+              )
+          }
+        }
         if (!this.isTemporaryRepositoryActive(repositoryBeforeGitDirUpdate)) {
           return
         }
@@ -23736,6 +23756,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
             accountKeysByPath.get(path) ??
             accountKeysByPath.get(validatedPath) ??
             null,
+          mainWorktreePath: await this.findMainWorktreePath(validatedPath),
         }
       )
 
@@ -27557,14 +27578,6 @@ function isLocalChangesOverwrittenError(error: Error): boolean {
     error instanceof GitError &&
     error.result.gitError === DugiteError.LocalChangesOverwritten
   )
-}
-
-function worktreePathsEqual(left: string, right: string): boolean {
-  const normalizedLeft = Path.resolve(left)
-  const normalizedRight = Path.resolve(right)
-  return __WIN32__
-    ? normalizedLeft.toLowerCase() === normalizedRight.toLowerCase()
-    : normalizedLeft === normalizedRight
 }
 
 function constrain(

@@ -1,4 +1,5 @@
 import { shortenSHA } from './commit'
+import * as Path from 'path'
 
 export type WorktreeType = 'main' | 'linked'
 
@@ -22,6 +23,17 @@ export type WorktreeEntry = {
   readonly createdAt?: number
   /** Number of uncommitted entries, or null when the worktree cannot be read. */
   readonly dirtyFileCount?: number | null
+}
+
+/** Compare absolute worktree paths across separator and case differences. */
+export function worktreePathsEqual(first: string, second: string): boolean {
+  const normalize = (path: string) =>
+    Path.resolve(path.replace(/\\/g, '/')).replace(/\/+$/, '')
+  const a = normalize(first)
+  const b = normalize(second)
+  return process.platform === 'win32'
+    ? a.toLowerCase() === b.toLowerCase()
+    : a === b
 }
 
 /** Return a worktree's final path segment without assuming one separator. */

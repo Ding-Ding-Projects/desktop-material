@@ -35,6 +35,7 @@ import { shallowEquals } from '../equality'
 type AddRepositoryOptions = {
   missing?: boolean
   accountKey?: string | null
+  mainWorktreePath?: string
 }
 
 /** The store for local repositories. */
@@ -276,6 +277,7 @@ export class RepositoriesStore extends TypedBaseStore<
           alias: null,
           gitDir,
           accountKey: opts?.accountKey ?? null,
+          mainWorktreePath: opts?.mainWorktreePath,
         }
         const id = await this.db.repositories.add(dbRepo)
         return this.toRepository({ id, ...dbRepo })
@@ -349,6 +351,34 @@ export class RepositoriesStore extends TypedBaseStore<
       repository.defaultBranch,
       repository.customEditorOverride,
       repository.mainWorktreePath
+    )
+  }
+
+  /** Update the recorded main worktree recovery hint. */
+  public async updateRepositoryMainWorktreePath(
+    repository: Repository,
+    mainWorktreePath: string
+  ): Promise<Repository> {
+    this.assertPersistedRepository(repository)
+    await this.db.repositories.update(repository.id, { mainWorktreePath })
+
+    this.emitUpdatedRepositories()
+
+    return new Repository(
+      repository.path,
+      repository.id,
+      repository.gitHubRepository,
+      repository.missing,
+      repository.alias,
+      repository.workflowPreferences,
+      repository.isTutorialRepository,
+      repository.gitDir,
+      repository.accountKey,
+      repository.buildRunPreferences,
+      repository.groupName,
+      repository.defaultBranch,
+      repository.customEditorOverride,
+      mainWorktreePath
     )
   }
 

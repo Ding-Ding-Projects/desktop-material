@@ -3,6 +3,7 @@ import { Branch, BranchType } from '../../models/branch'
 import {
   getWorktreeAriaLabel,
   getWorktreeDisplayName,
+  worktreePathsEqual,
   WorktreeEntry,
 } from '../../models/worktree'
 import { IFilterListGroup, IFilterListItem } from '../lib/filter-list'
@@ -98,7 +99,7 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
   private renderItem = (item: IWorktreeListItem, matches: IMatches) => {
     const isCurrentWorktree =
       this.props.currentWorktree !== null &&
-      this.props.currentWorktree.path === item.worktree.path
+      worktreePathsEqual(this.props.currentWorktree.path, item.worktree.path)
     const mergeBranch =
       this.props.onMergeWorktree === undefined
         ? undefined
@@ -128,7 +129,7 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
   private getItemAriaLabel = (item: IWorktreeListItem) => {
     const isCurrent =
       this.props.currentWorktree !== null &&
-      this.props.currentWorktree.path === item.worktree.path
+      worktreePathsEqual(this.props.currentWorktree.path, item.worktree.path)
     const state = getWorktreeAriaLabel(item.worktree)
     return isCurrent ? `${state}, current worktree` : state
   }

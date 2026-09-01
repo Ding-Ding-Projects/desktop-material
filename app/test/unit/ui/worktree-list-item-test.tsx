@@ -9,6 +9,7 @@ import {
   getWorktreeDescription,
   getWorktreeDisplayName,
   WorktreeEntry,
+  worktreePathsEqual,
 } from '../../../src/models/worktree'
 import { WorktreeListItem } from '../../../src/ui/worktrees/worktree-list-item'
 import {
@@ -90,6 +91,13 @@ afterEach(() => {
 })
 
 describe('WorktreeListItem', () => {
+  it('normalizes Windows separators and casing for current-path state', () => {
+    assert.equal(
+      worktreePathsEqual('c:/Users/example/repo', 'C:\\Users\\example\\repo'),
+      true
+    )
+  })
+
   it('derives stable accessible names with observed state', () => {
     const worktree = linkedWorktree({
       dirtyFileCount: 2,
@@ -111,14 +119,14 @@ describe('WorktreeListItem', () => {
       branch: 'refs/heads/main',
       type: 'main',
     })
-    let activated: WorktreeEntry | null = null
+    let activatedPath: string | null = null
 
     const { container } = render(
       <WorktreeList
         worktrees={[worktree]}
         currentWorktree={worktree}
         onWorktreeClick={selected => {
-          activated = selected
+          activatedPath = selected.path
         }}
         filterText=""
         onFilterTextChanged={() => undefined}
@@ -142,7 +150,7 @@ describe('WorktreeListItem', () => {
     fireEvent.keyDown(list, { key: 'ArrowDown' })
     fireEvent.keyDown(list, { key: 'Enter' })
 
-    assert.equal(activated?.path, worktree.path)
+    assert.equal(activatedPath, worktree.path)
   })
 
   it('merges an eligible linked worktree without selecting it', () => {
