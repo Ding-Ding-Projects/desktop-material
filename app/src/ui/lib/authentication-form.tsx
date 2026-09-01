@@ -6,7 +6,7 @@ import { Button } from './button'
 import { DefaultAppDisplayName } from '../../models/app-identity'
 import { BrowserAuthenticationActionKey } from '../../lib/single-flight-action'
 
-/** Shared by the form submit and its submit button. */
+/** Public name for the store-owned browser authentication action key. */
 export const BrowserSignInActionKey = BrowserAuthenticationActionKey
 
 /** Text to let the user know their browser will send them back to the app */
@@ -30,11 +30,7 @@ interface IAuthenticationFormProps {
 export class AuthenticationForm extends React.Component<IAuthenticationFormProps> {
   public render() {
     return (
-      <Form
-        className="sign-in-form"
-        activationKey={BrowserSignInActionKey}
-        onSubmit={this.signInWithBrowser}
-      >
+      <Form className="sign-in-form" onSubmit={this.signInWithBrowser}>
         {this.renderEndpointRequiresWebFlow()}
       </Form>
     )
@@ -52,7 +48,6 @@ export class AuthenticationForm extends React.Component<IAuthenticationFormProps
           type="submit"
           className="button-with-icon"
           onClick={this.signInWithBrowser}
-          activationKey={BrowserSignInActionKey}
           autoFocus={true}
           role="link"
         >

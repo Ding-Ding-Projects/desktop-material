@@ -2,7 +2,7 @@ import assert from 'node:assert'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import * as React from 'react'
-import { describe, it } from 'node:test'
+import { describe, it, mock } from 'node:test'
 
 import { Button } from '../../../src/ui/lib/button'
 import { Form } from '../../../src/ui/lib/form'
@@ -11,6 +11,9 @@ import {
   AuthenticationForm,
   BrowserSignInActionKey,
 } from '../../../src/ui/lib/authentication-form'
+import { Dispatcher } from '../../../src/ui/dispatcher/dispatcher'
+import { SignInStore } from '../../../src/lib/stores/sign-in-store'
+import { shell } from '../../../src/lib/app-shell'
 import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
 
 describe('single-flight activation controls', () => {
@@ -117,7 +120,7 @@ describe('single-flight activation controls', () => {
     assert.equal(calls, 0)
   })
 
-  it('shares the authentication key between submit and browser button', async () => {
+  it('keeps the browser button busy while its launch settles', async () => {
     let calls = 0
     let finish = () => {}
     const pending = new Promise<void>(resolve => {
@@ -136,7 +139,6 @@ describe('single-flight activation controls', () => {
     })
 
     fireEvent.click(button)
-    fireEvent.submit(button.closest('form') as HTMLFormElement)
     assert.equal(calls, 1)
     assert.equal(button.getAttribute('aria-busy'), 'true')
     assert.equal(BrowserSignInActionKey, 'authentication:browser-sign-in')
@@ -144,6 +146,120 @@ describe('single-flight activation controls', () => {
     finish()
     await pending
     await waitFor(() => assert.equal(button.getAttribute('aria-busy'), null))
+  })
+
+  it('guards mixed form and button activation through Dispatcher and SignInStore', async () => {
+    const signInStore = new SignInStore()
+    signInStore.beginDotComSignIn()
+    let finishLaunch = (_opened: boolean) => {}
+    const launch = new Promise<boolean>(resolve => {
+      finishLaunch = resolve
+    })
+    let launches = 0
+    const openExternal = mock.method(shell, 'openExternal', async () => {
+      launches++
+      return launch
+    })
+    const dispatcher = Object.create(Dispatcher.prototype) as Dispatcher
+    ;(
+      dispatcher as unknown as {
+        appStore: {
+          _requestBrowserAuthentication: () => ReturnType<
+            SignInStore['authenticateWithBrowser']
+          >
+          _isBrowserAuthenticationActive: () => boolean
+        }
+      }
+    ).appStore = {
+      _requestBrowserAuthentication: () =>
+        signInStore.authenticateWithBrowser(),
+      _isBrowserAuthenticationActive: () =>
+        signInStore.isBrowserAuthenticationActive(),
+    }
+
+    const view = render(
+      <AuthenticationForm
+        onBrowserSignInRequested={() =>
+          dispatcher.requestBrowserAuthentication()
+        }
+      />
+    )
+    const button = screen.getByRole('link', {
+      name: /Sign in using your browser/i,
+    })
+
+    try {
+      fireEvent.click(button)
+      fireEvent.submit(button.closest('form') as HTMLFormElement)
+      assert.equal(launches, 1)
+
+      finishLaunch(true)
+      await launch
+      await waitFor(() => assert.equal(button.getAttribute('aria-busy'), null))
+      assert.equal(
+        signInStore.getState()?.kind === 'Authentication',
+        true,
+        'the launch promise settling must not invent an authenticated state'
+      )
+    } finally {
+      view.unmount()
+      signInStore.reset()
+      openExternal.mock.restore()
+    }
+  })
+
+  it('releases a rejected launch so the same form can retry once', async () => {
+    const signInStore = new SignInStore()
+    signInStore.beginDotComSignIn()
+    let rejectLaunch = (_error: Error) => {}
+    const rejectedLaunch = new Promise<boolean>((_resolve, reject) => {
+      rejectLaunch = reject
+    })
+    let launches = 0
+    const openExternal = mock.method(shell, 'openExternal', async () => {
+      launches++
+      return launches === 1 ? rejectedLaunch : true
+    })
+    const dispatcher = Object.create(Dispatcher.prototype) as Dispatcher
+    ;(
+      dispatcher as unknown as {
+        appStore: {
+          _requestBrowserAuthentication: () => ReturnType<
+            SignInStore['authenticateWithBrowser']
+          >
+          _isBrowserAuthenticationActive: () => boolean
+        }
+      }
+    ).appStore = {
+      _requestBrowserAuthentication: () =>
+        signInStore.authenticateWithBrowser(),
+      _isBrowserAuthenticationActive: () =>
+        signInStore.isBrowserAuthenticationActive(),
+    }
+    const view = render(
+      <AuthenticationForm
+        onBrowserSignInRequested={() =>
+          dispatcher.requestBrowserAuthentication()
+        }
+      />
+    )
+    const button = screen.getByRole('link', {
+      name: /Sign in using your browser/i,
+    })
+
+    try {
+      fireEvent.click(button)
+      rejectLaunch(new Error('launch rejected'))
+      await waitFor(() => assert.equal(button.getAttribute('aria-busy'), null))
+      assert.equal(signInStore.isBrowserAuthenticationActive(), false)
+
+      fireEvent.click(button)
+      assert.equal(launches, 2)
+    } finally {
+      view.unmount()
+      signInStore.reset()
+      openExternal.mock.restore()
+    }
   })
 
   it('guards a Form submit even when no button owns the action', async () => {
