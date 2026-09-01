@@ -601,6 +601,59 @@ describe('direct clone staging', () => {
     }
   })
 
+  it('retains clone A recovery when clone B starts after cleanup failure', async t => {
+    const source = await setupEmptyRepository(t)
+    await makeCommit(source, {
+      entries: [{ path: 'README.md', contents: 'journal identity' }],
+      commitMessage: 'journal identity source',
+    })
+    const root = await mkdtemp(
+      Path.join(tmpdir(), 'desktop-material-journal-race-')
+    )
+    const destinationA = Path.join(root, 'clone-a')
+    const destinationB = Path.join(root, 'clone-b')
+    try {
+      const store = new CloningRepositoriesStore(
+        async () => [],
+        new CleanupBlockedManager()
+      )
+      await initializeDirectRecovery(store, root)
+      assert.equal(await store.clone(source.path, destinationA, {}), true)
+      const retainedA = await journalFor(root).load()
+      assert.equal(retainedA?.items[0]?.path, destinationA)
+
+      let reported: Error | undefined
+      const secondSuccess = await store.clone(
+        source.path,
+        destinationB,
+        {},
+        { onError: error => (reported = error) }
+      )
+
+      assert.equal(secondSuccess, false)
+      assert(reported instanceof Error)
+      assert.match(reported.message, /previous direct clone.*cleanup|pending/i)
+      const retainedAfterB = await journalFor(root).load()
+      assert.equal(retainedAfterB?.items[0]?.path, destinationA)
+      assert.equal(existsSync(destinationB), false)
+      assert.equal(
+        existsSync(Path.join(root, '.desktop-material-clone-staging-v1')),
+        true
+      )
+
+      const restart = new CloningRepositoriesStore(
+        async () => [],
+        new FileBatchCloneStagingManager(rename, alwaysValidRepository)
+      )
+      await initializeDirectRecovery(restart, root)
+      assert.equal(await journalFor(root).load(), null)
+      assert.equal(existsSync(destinationA), true)
+      assert.equal(existsSync(destinationB), false)
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
   it('serializes overlapping direct clones around the shared journal', async t => {
     const source = await setupEmptyRepository(t)
     await makeCommit(source, {

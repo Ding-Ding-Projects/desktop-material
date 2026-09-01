@@ -185,6 +185,7 @@ export class CloningRepositoriesStore extends BaseStore {
           }
         : null
     let clonePath = path
+    let journalOwned = false
 
     let success = true
     try {
@@ -199,6 +200,7 @@ export class CloningRepositoriesStore extends BaseStore {
             'Direct clone recovery is not initialized, so the clone was not started.'
           )
         }
+        await this.reconcileRetainedDirectRecovery()
         await this.directCloneJournal.save({
           version: CurrentBatchCloneJournalVersion,
           updatedAt: new Date().toISOString(),
@@ -209,6 +211,7 @@ export class CloningRepositoriesStore extends BaseStore {
           paused: false,
           generation: 1,
         })
+        journalOwned = true
         const prepared = await this.stagingManager!.prepare(stagedItem)
         if (prepared.kind === 'review') {
           throw prepared.error
@@ -302,7 +305,7 @@ export class CloningRepositoriesStore extends BaseStore {
             `The failed direct clone staging could not be discarded safely: ${path}`
           )
         }
-        if (discarded) {
+        if (discarded && journalOwned) {
           await this.directCloneJournal?.clear()
         }
       }
@@ -332,6 +335,46 @@ export class CloningRepositoriesStore extends BaseStore {
     this.remove(repository)
 
     return success
+  }
+
+  private async reconcileRetainedDirectRecovery(): Promise<void> {
+    const journal = this.directCloneJournal
+    if (journal === null) {
+      return
+    }
+    const snapshot = await journal.load()
+    if (snapshot === null || snapshot.items.length === 0) {
+      return
+    }
+    if (snapshot.items.length !== 1 || this.stagingManager === null) {
+      throw new Error(
+        'A previous direct clone recovery is still pending. Review it before starting another direct clone.'
+      )
+    }
+
+    const item = snapshot.items[0]
+    const prepared = await this.stagingManager.prepare(item)
+    if (prepared.kind === 'done') {
+      if (await this.stagingManager.cleanupPromoted(item)) {
+        await journal.clear()
+        return
+      }
+      throw new Error(
+        'A previous direct clone was verified, but its recovery cleanup is still pending. Choose another action after the recovery notification is resolved.'
+      )
+    }
+    if (
+      prepared.kind === 'clone' &&
+      (await this.stagingManager.discard(item))
+    ) {
+      await journal.clear()
+      return
+    }
+    throw new Error(
+      prepared.kind === 'review'
+        ? `A previous direct clone recovery needs review before another clone can start: ${prepared.error.message}`
+        : 'A previous direct clone recovery is still pending. Its recovery data was left unchanged.'
+    )
   }
 
   /** Get the repositories currently being cloned. */
