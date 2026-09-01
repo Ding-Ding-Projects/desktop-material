@@ -6,7 +6,6 @@ import { tFunny } from '../../lib/funny-level-text'
 import { formatNumber } from '../../lib/format-number'
 import { getNumberFormatPreference } from '../../models/formatting-preferences'
 import { Button } from '../lib/button'
-import { teleportAnchor } from '../../lib/teleport-targets'
 import type {
   CopilotQuotaSnapshots,
   ICopilotQuotaSnapshotState,
@@ -17,6 +16,10 @@ export interface ISnapshotCardProps {
   readonly snapshots: CopilotQuotaSnapshots | null
   readonly quotaState?: ICopilotQuotaSnapshotState
   readonly onConfigureModels?: (account: Account) => void
+}
+
+export function getCopilotAccountTargetSuffix(account: Account): string {
+  return `${account.id}-${account.endpoint}`.replace(/[^a-zA-Z0-9-]/g, '_')
 }
 
 function formatPercent(snapshot: AccountQuotaSnapshot): string {
@@ -76,10 +79,14 @@ export function SnapshotCard({
   onConfigureModels,
 }: ISnapshotCardProps): JSX.Element {
   const state = quotaState?.status
+  const suffix = getCopilotAccountTargetSuffix(account)
+  const overviewTarget = `settings-copilot-account-overview-${suffix}`
+  const quotaTarget = `settings-copilot-quota-${suffix}`
+  const configureTarget = `settings-copilot-configure-models-${suffix}`
   return (
     <section
       className="copilot-snapshot-card"
-      {...teleportAnchor('settings-copilot-account-overview')}
+      data-teleport-target={overviewTarget}
       aria-label={t('copilot.accountUsage', { account: account.login })}
     >
       <header className="copilot-snapshot-account">
@@ -89,7 +96,7 @@ export function SnapshotCard({
         </div>
         {onConfigureModels !== undefined && (
           <Button
-            {...teleportAnchor('settings-copilot-configure-models')}
+            data-teleport-target={configureTarget}
             onClick={() => onConfigureModels(account)}
             ariaLabel={t('copilot.configureModels', {
               account: account.login,
@@ -117,7 +124,7 @@ export function SnapshotCard({
         <p role="status">{t('copilot.quotaEmpty')}</p>
       )}
       {snapshots !== null && snapshots.size > 0 && (
-        <ul {...teleportAnchor('settings-copilot-quota')}>
+        <ul data-teleport-target={quotaTarget}>
           {[...snapshots.entries()].map(([key, snapshot]) => (
             <li key={key}>
               <span>{key}</span>

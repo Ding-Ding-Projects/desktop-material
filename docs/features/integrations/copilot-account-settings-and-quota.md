@@ -14,6 +14,12 @@ selected account's map. If an account is removed, its in-flight data cannot
 restore itself later. Re-authentication starts a new request generation, so an
 older response cannot replace newer data.
 
+Refreshes run in bounded batches of two accounts and settle independently. One
+slow or unavailable account therefore does not hold another account's refresh
+hostage. SDK startup and quota requests have bounded deadlines, and a timeout
+retains the last valid snapshot as stale data or reports an unavailable state
+when no prior snapshot exists.
+
 The usage card reports the values returned by the provider: used requests,
 available requests when the provider supplies a finite entitlement, reset date,
 and the local refresh timestamp. Unlimited quotas use an accessible
@@ -72,6 +78,11 @@ the entries already discovered by a test. Its negative evidence is the focused
 red proof that replaces the used value with the entitlement value and requires
 the UI check to turn red; restoring the provider-reported used value turns it
 green again.
+
+Each account card uses a stable sanitized account suffix for its overview,
+quota, and model-configuration targets. This keeps palette and settings search
+navigation account-specific without exposing credentials or unsafe selector
+characters.
 
 Focused checks cover two-account model isolation, migration overrides,
 storage round trips, idempotence, sign-out, re-authentication races, stale

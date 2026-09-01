@@ -514,6 +514,25 @@ export function getConflictResolutionAIProviderBinding(
  */
 const ModelListCacheTTL = 10 * 60 * 1000
 const QuotaSnapshotsCacheTTL = 10 * 60 * 1000
+const CopilotSDKDeadlineMs = 30_000
+
+async function withCopilotDeadline<T>(
+  operation: Promise<T>,
+  label: string
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    return await new Promise<T>((resolve, reject) => {
+      timer = setTimeout(
+        () => reject(new Error(`Copilot ${label} timed out`)),
+        CopilotSDKDeadlineMs
+      )
+      operation.then(resolve, reject)
+    })
+  } finally {
+    if (timer !== undefined) clearTimeout(timer)
+  }
+}
 
 /** Returns the cache key used for account-scoped Copilot model metadata. */
 export function getCopilotModelCacheKey(account: Account): string {
@@ -2529,7 +2548,7 @@ export class CopilotStore extends BaseStore {
     const client = await this.createClient(account)
 
     try {
-      await client.start()
+      await withCopilotDeadline(client.start(), 'model startup')
       // HACK(copilot-sdk): using `Model` (from RPC API) instead of `ModelInfo`
       // in order to get the new billing metadata fields that are not available
       // yet in the `ModelInfo` type returned by `CopilotClient.listModels()`.
@@ -2549,10 +2568,11 @@ export class CopilotStore extends BaseStore {
     const client = await this.createClient(account)
 
     try {
-      await client.start()
-      const result = await client.rpc.account.getQuota({
-        gitHubToken: account.token,
-      })
+      await withCopilotDeadline(client.start(), 'quota startup')
+      const result = await withCopilotDeadline(
+        client.rpc.account.getQuota({ gitHubToken: account.token }),
+        'quota request'
+      )
       const snapshots = new Map<string, ICopilotQuotaSnapshot>()
       for (const [key, snapshot] of Object.entries(result.quotaSnapshots)) {
         const normalized = normalizeCopilotQuotaSnapshot(snapshot)

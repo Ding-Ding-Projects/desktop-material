@@ -15,6 +15,7 @@ import {
 } from '../../helpers/ui/timers'
 import { CopilotPreferences } from '../../../src/ui/preferences/copilot'
 import { SnapshotCard } from '../../../src/ui/preferences/snapshot-card'
+import { getCopilotAccountTargetSuffix } from '../../../src/ui/preferences/snapshot-card'
 import type { CopilotQuotaSnapshots } from '../../../src/lib/stores/copilot-store'
 import {
   DefaultCopilotModel,
@@ -370,6 +371,15 @@ function getCostDetailsValue(container: HTMLElement, label: string): string {
 }
 
 describe('CopilotPreferences', () => {
+  it('uses stable sanitized target suffixes for each account card', () => {
+    const first = makeAccount({ id: 1, endpoint: 'https://api.example.com/a' })
+    const second = makeAccount({ id: 2, endpoint: 'https://api.example.com/a' })
+    assert.notStrictEqual(
+      getCopilotAccountTargetSuffix(first),
+      getCopilotAccountTargetSuffix(second)
+    )
+    assert.match(getCopilotAccountTargetSuffix(first), /^[a-zA-Z0-9_-]+$/)
+  })
   it('does not fall back to global model or quota props for a known scoped account', () => {
     const account = makeAccount({ id: 42 })
     render(

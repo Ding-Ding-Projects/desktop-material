@@ -290,7 +290,10 @@ export class CopilotPreferences extends React.Component<
       return (
         <DialogContent className="copilot-tab">
           <div className="copilot-tab-content">
-            <div className="copilot-section copilot-account-snapshot-groups">
+            <div
+              className="copilot-section copilot-account-snapshot-groups"
+              {...teleportAnchor('settings-copilot-account-overview')}
+            >
               {accounts.map(account => (
                 <SnapshotCard
                   key={getCopilotAccountCacheKey(account)}
