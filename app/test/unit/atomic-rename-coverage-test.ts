@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
-import * as Fs from 'node:fs'
+import * as FsAsync from 'node:fs/promises'
 import * as Path from 'node:path'
 
 /**
@@ -32,26 +32,31 @@ const MUST_FAIL_CLOSED_WHEN_QUARANTINE_RENAME_FAILS = [
 
 function read(relative: string): string {
   const absolute = Path.join(repoRoot, relative)
-  assert.equal(
-    Fs.existsSync(absolute),
-    true,
-    `${relative} is on the atomic-rename list but does not exist. Either the file moved, in which case update this list, or it was deleted, in which case remove the entry deliberately.`
-  )
-  return Fs.readFileSync(absolute, 'utf8').replace(/\r\n?/g, '\n')
+  return (async () => {
+    try {
+      await FsAsync.access(absolute)
+    } catch {
+      throw new Error(
+        `${relative} is on the atomic-rename list but does not exist. Either the file moved, in which case update this list, or it was deleted, in which case remove the entry deliberately.`
+      )
+    }
+    const content = await FsAsync.readFile(absolute, 'utf8')
+    return content.replace(/\r\n?/g, '\n')
+  })()
 }
 
 describe('files that publish user state retry their rename', () => {
   for (const relative of MUST_USE_RETRYING_RENAME) {
-    it(`${relative} imports the retrying helper`, () => {
-      const source = read(relative)
+    it(`${relative} imports the retrying helper`, async () => {
+      const source = await read(relative)
       assert.ok(
         source.includes('rename-with-retry'),
         `${relative} does not import renameWithRetry. A bare rename here loses a user's data on Windows whenever a scanner has the destination open.`
       )
     })
 
-    it(`${relative} has no bare rename left`, () => {
-      const source = read(relative)
+    it(`${relative} has no bare rename left`, async () => {
+      const source = await read(relative)
       // Anchored to a call, and checked line by line so a commented-out call
       // cannot satisfy it and a longer identifier cannot hide inside the match.
       const offender = source
@@ -72,8 +77,8 @@ describe('files that publish user state retry their rename', () => {
     })
   }
 
-  it('the helper itself still refuses to retry a non-transient failure', () => {
-    const helper = read('app/src/lib/rename-with-retry.ts')
+  it('the helper itself still refuses to retry a non-transient failure', async () => {
+    const helper = await read('app/src/lib/rename-with-retry.ts')
     assert.ok(helper.includes("'EPERM'"), 'EPERM must be retried')
     assert.ok(helper.includes("'EACCES'"), 'EACCES must be retried')
     assert.ok(helper.includes("'EBUSY'"), 'EBUSY must be retried')
@@ -83,8 +88,8 @@ describe('files that publish user state retry their rename', () => {
     )
   })
 
-  it('batch clone marker replacement retries transient rename failures', () => {
-    const source = read('app/src/lib/stores/batch-clone-staging.ts')
+  it('batch clone marker replacement retries transient rename failures', async () => {
+    const source = await read('app/src/lib/stores/batch-clone-staging.ts')
     const start = source.indexOf('async function replaceStagingMarker(')
     const end = source.indexOf('\nfunction serializeMarker(', start)
 
@@ -116,8 +121,8 @@ describe('files that publish user state retry their rename', () => {
   })
 
   for (const relative of MUST_FAIL_CLOSED_WHEN_QUARANTINE_RENAME_FAILS) {
-    it(`${relative} retries and fails closed when quarantine cannot move`, () => {
-      const source = read(relative)
+    it(`${relative} retries and fails closed when quarantine cannot move`, async () => {
+      const source = await read(relative)
       const start = source.indexOf(
         '  private async recoverFromUnrecoverableCorruption('
       )

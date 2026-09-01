@@ -156,6 +156,7 @@ export class FileConverter extends React.Component<
     return (
       <div
         className="file-converter-catalog"
+        role="region"
         aria-label="Local file conversion adapters"
       >
         {FileConverterCategories.map(category => {
@@ -166,6 +167,7 @@ export class FileConverter extends React.Component<
             <section
               className="file-converter-category"
               key={category}
+              role="region"
               aria-label={category}
             >
               <h3>{category}</h3>
@@ -183,6 +185,7 @@ export class FileConverter extends React.Component<
                   </div>
                   <span
                     className="file-converter-state"
+                    role="note"
                     aria-label="Unavailable"
                   >
                     Unavailable

@@ -18,7 +18,7 @@ export interface IOllamaHarnessSnapshot {
 
 /** Reject shell syntax so launch adapters may only execute explicitly registered profiles. */
 export function isAllowlistedHarnessProfile(value: unknown): value is IOllamaHarnessProfile {
-  if (typeof value !== 'object' || value === null) return false
+  if (typeof value !== 'object' || value === null) {return false}
   const profile = value as Record<string, unknown>
   return typeof profile.id === 'string' && /^[A-Za-z0-9._-]{1,80}$/.test(profile.id) &&
     typeof profile.label === 'string' && profile.label.trim().length > 0 && profile.label.length <= 120 &&
