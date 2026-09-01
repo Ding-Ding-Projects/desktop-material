@@ -37,20 +37,50 @@ export type BrowserExtensionDownloadQueueListener = (
  */
 export class BrowserExtensionDownloadQueue {
   private readonly controllers = new Map<string, AbortController>()
-  private readonly current = new Map<string, IBrowserExtensionDownloadProgress>()
+  private readonly current = new Map<
+    string,
+    IBrowserExtensionDownloadProgress
+  >()
+  private activeRequestId: string | null = null
 
   public constructor(
     private readonly executor: IBrowserExtensionDownloadExecutor,
     private readonly onProgress: BrowserExtensionDownloadQueueListener
   ) {}
 
-  public async start(request: IBrowserExtensionDownloadRequest): Promise<void> {
+  public enqueue(request: IBrowserExtensionDownloadRequest): void {
     if (this.current.has(request.id)) {
+      return
+    }
+    this.publish({
+      request,
+      phase: 'awaiting-confirmation',
+      downloadedBytes: 0,
+      totalBytes: null,
+      bytesPerSecond: null,
+      error: null,
+    })
+  }
+
+  public confirm(requestId: string): Promise<void> {
+    const progress = this.current.get(requestId)
+    if (progress?.phase !== 'awaiting-confirmation') {
+      return Promise.resolve()
+    }
+    return this.start(progress.request)
+  }
+
+  public async start(request: IBrowserExtensionDownloadRequest): Promise<void> {
+    if (
+      this.controllers.has(request.id) ||
+      (this.activeRequestId !== null && this.activeRequestId !== request.id)
+    ) {
       return
     }
 
     const controller = new AbortController()
     this.controllers.set(request.id, controller)
+    this.activeRequestId = request.id
     const temporaryPath = join(
       dirname(request.destination),
       `.${request.suggestedFileName}.${randomUUID()}.part`
@@ -128,12 +158,18 @@ export class BrowserExtensionDownloadQueue {
       })
     } finally {
       this.controllers.delete(request.id)
+      if (this.activeRequestId === request.id) {
+        this.activeRequestId = null
+      }
     }
   }
 
   public async pause(requestId: string): Promise<void> {
     const progress = this.current.get(requestId)
-    if (progress?.phase !== 'downloading' || this.executor.pause === undefined) {
+    if (
+      progress?.phase !== 'downloading' ||
+      this.executor.pause === undefined
+    ) {
       return
     }
     await this.executor.pause(requestId)

@@ -5,6 +5,7 @@ import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import * as Path from 'path'
 import { App } from './app'
+import { BrowserExtensionDownloadRuntimeHost } from './browser-extension-download/browser-extension-download-runtime-host'
 import { CrashProofBoundary } from './crash-proof-boundary'
 import {
   Dispatcher,
@@ -907,6 +908,7 @@ ReactDOM.render(
       issueWorkflowsStore={issueWorkflowsStore}
       startTime={startTime}
     />
+    <BrowserExtensionDownloadRuntimeHost />
   </CrashProofBoundary>,
   document.getElementById('desktop-app-container')!
 )

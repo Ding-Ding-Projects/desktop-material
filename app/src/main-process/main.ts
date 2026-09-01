@@ -179,6 +179,7 @@ import {
   registerAgentSetupCommandRunnerIpc,
 } from './agent-setup-command-runner'
 import { createUnconfiguredStatusHubClient } from './status-hub-client'
+import { createBrowserExtensionDownloadRuntime } from './browser-extension-download-runtime'
 import {
   inspectLocalFileForConversion,
   preflightFileConverterStorage,
@@ -209,6 +210,9 @@ let browserOpenMode: BrowserOpenMode = 'external'
 let agentServerController: AgentServerController | null = null
 let selfHostedServerController: SelfHostedServerController | null = null
 let selfHostedRunnerManager: WindowsSelfHostedRunnerManager | null = null
+let browserExtensionDownloadRuntime: ReturnType<
+  typeof createBrowserExtensionDownloadRuntime
+> | null = null
 const internalBrowserOAuthCallbackTimeoutMs = 60_000
 
 interface IPendingInternalBrowserOAuthCallback {
@@ -1233,10 +1237,41 @@ app.on('ready', () => {
     }
   )
 
+  browserExtensionDownloadRuntime = createBrowserExtensionDownloadRuntime(
+    progress => {
+      for (const window of getAppWindows()) {
+        window.sendBrowserExtensionDownloadProgress(progress)
+      }
+    }
+  )
+
+  ipcMain.handle('browser-extension-download-confirm', (_event, requestId) =>
+    browserExtensionDownloadRuntime!.queue.confirm(requestId)
+  )
+  ipcMain.handle('browser-extension-download-pause', (_event, requestId) =>
+    browserExtensionDownloadRuntime!.queue.pause(requestId)
+  )
+  ipcMain.handle('browser-extension-download-resume', (_event, requestId) =>
+    browserExtensionDownloadRuntime!.queue.resume(requestId)
+  )
+  ipcMain.handle('browser-extension-download-cancel', (_event, requestId) => {
+    browserExtensionDownloadRuntime!.queue.cancel(requestId)
+    return Promise.resolve()
+  })
+  ipcMain.handle(
+    'browser-extension-download-accept-native-frame',
+    (_event, frame) =>
+      Promise.resolve(
+        browserExtensionDownloadRuntime!.handoff.acceptNativeFrame(frame)
+      )
+  )
+
   ipcMain.handle('fetch-scheduled-settings', async (_event, endpoint) =>
     fetchScheduledSettingsAPI(endpoint)
   )
-  ipcMain.handle('get-status-hub-status', async () => statusHubClient.getStatus())
+  ipcMain.handle('get-status-hub-status', async () =>
+    statusHubClient.getStatus()
+  )
   ipcMain.handle('publish-status-hub-session', async (_event, projection) =>
     statusHubClient.publish(projection)
   )
@@ -2007,8 +2042,9 @@ app.on('ready', () => {
    * File conversion performs every byte inspection in the privileged process.
    * The renderer receives bounded format metadata only, never source bytes.
    */
-  ipcMain.handle('file-converter-inspect-source', async (_event, path: string) =>
-    inspectLocalFileForConversion(path)
+  ipcMain.handle(
+    'file-converter-inspect-source',
+    async (_event, path: string) => inspectLocalFileForConversion(path)
   )
 
   ipcMain.handle(

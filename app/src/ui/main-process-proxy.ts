@@ -15,6 +15,7 @@ import {
 import { stat } from 'fs/promises'
 import { isApplicationBundle } from '../lib/is-application-bundle'
 import { pathExists } from '../lib/path-exists'
+import { IBrowserExtensionDownloadProgress } from '../lib/browser-extension-download'
 
 /**
  * Creates a strongly typed proxy method for sending a duplex IPC message to the
@@ -77,6 +78,34 @@ export const selectAllWindowContents = sendProxy(
   'select-all-window-contents',
   0
 )
+
+export const confirmBrowserExtensionDownload = invokeProxy(
+  'browser-extension-download-confirm',
+  1
+)
+export const pauseBrowserExtensionDownload = invokeProxy(
+  'browser-extension-download-pause',
+  1
+)
+export const resumeBrowserExtensionDownload = invokeProxy(
+  'browser-extension-download-resume',
+  1
+)
+export const cancelBrowserExtensionDownload = invokeProxy(
+  'browser-extension-download-cancel',
+  1
+)
+
+export function onBrowserExtensionDownloadProgress(
+  handler: (
+    event: Electron.IpcRendererEvent,
+    progress: IBrowserExtensionDownloadProgress
+  ) => void
+): () => void {
+  ipcRenderer.on('browser-extension-download-progress', handler)
+  return () =>
+    ipcRenderer.removeListener('browser-extension-download-progress', handler)
+}
 
 /** Start the main-process-owned wait record for one credential lock. */
 export const startUnlockLadder = invokeProxy('unlock-ladder-start', 1)
@@ -588,7 +617,10 @@ export const runAgentSetupCommands = invokeProxy('run-agent-setup-commands', 1)
 
 /** Main-process-confirmed status; credentials and Discord bridge state stay private. */
 export const getStatusHubStatus = invokeProxy('get-status-hub-status', 0)
-export const publishStatusHubSession = invokeProxy('publish-status-hub-session', 1)
+export const publishStatusHubSession = invokeProxy(
+  'publish-status-hub-session',
+  1
+)
 export const pollStatusHubReplies = invokeProxy('poll-status-hub-replies', 2)
 
 /** Cancel only the setup operation owned by this renderer. */
