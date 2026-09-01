@@ -402,7 +402,27 @@ describe('CopilotPreferences', () => {
     )
     assert.ok(screen.getByRole('region', { name: 'Copilot usage for mona' }))
     assert.ok(screen.getByText(/25 used of 100 available/))
+    assert.strictEqual(
+      screen.getByRole('progressbar').getAttribute('aria-valuenow'),
+      '25'
+    )
     assert.ok(screen.getByText(/Updated/))
+  })
+
+  it('uses determinate progress semantics for unlimited quota', () => {
+    const unlimited: CopilotQuotaSnapshots = new Map([
+      [
+        'chat',
+        {
+          ...quotaSnapshots.get('chat')!,
+          isUnlimitedEntitlement: true,
+        },
+      ],
+    ])
+    render(<SnapshotCard account={makeAccount()} snapshots={unlimited} />)
+    const progress = screen.getByRole('progressbar')
+    assert.strictEqual(progress.getAttribute('aria-valuetext'), 'No usage limit')
+    assert.strictEqual(progress.getAttribute('aria-valuenow'), null)
   })
 
   it('reports stale, unavailable, and error quota states without inventing values', () => {

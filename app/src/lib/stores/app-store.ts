@@ -10633,7 +10633,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       if (ownerStatus.stdout.trim().length > 0) {
         if (!options.forceMatDay) {
           throw new Error(
-            'The default branch worktree has uncommitted changes. Select Force Mat Day to preserve and publish them first.'
+            'The default checkout has uncommitted changes. Select force cleanup to preserve and publish them first.'
           )
         }
         const checkpointFailure = await this.checkpointDirtyMergeAllWorktree(

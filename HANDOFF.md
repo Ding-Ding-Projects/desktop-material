@@ -186,7 +186,7 @@ not a renderer client and receives no desktop agent credential. See
 `docs/features/design-system/status-hub.md`.
 
 No tests, lint, typecheck, build, runtime interaction, or capture was run in
-this assigned Yum Leung Cha lane.
+this assigned accelerated-release lane.
 
 ## Local file-converter foundation — 2026-08-21
 
@@ -476,12 +476,12 @@ functional, or verified.
 The focused contract source now validates the exact canonical ID order and
 dimension set, checks repository-relative paths for claimed-present records,
 requires reasons for pending/blocked records, and reports a separate
-completion verdict. Its dedicated completion Chut asserts `complete === true`
+completion verdict. Its dedicated completion gate asserts `complete === true`
 and prints the exact pending, blocked, or missing-path errors; it is expected
 to be red until the deferred evidence is filled. Its row-by-row mutation
 coverage removes each dimension and mutates either a claimed path or a pending
 reason, so a broad template or commented-out placeholder cannot satisfy the
-contract. The current Chut is intentionally red because the ultra-speed pass
+contract. The current gate is intentionally red because the accelerated-release pass
 did not run tests, built-artifact interactions, captures, reviews, audits,
 builds, or packaging.
 
@@ -505,7 +505,7 @@ checked out in another clean worktree. It transfers the default branch to the
 active worktree, removes a redundant linked owner, and continues the existing
 merge, non-force push, exact-tip deletion, and worktree cleanup sequence.
 
-An explicit **Force Mat Day** checkbox enables the existing preservation path
+An explicit **force cleanup** checkbox enables the existing preservation path
 for recoverable dirty worktrees: fetch, fast-forward-only pull, commit, and
 push occur before merge. Unsafe work remains retained. Focused candidate and
 renderer coverage passes 4/4; exact-file ESLint and `git diff --check` pass.
@@ -517,7 +517,7 @@ new checkbox remains outstanding.
 ## Personal vocabulary dynamic-entry repair — 2026-08-20
 
 - The upload parser again accepts the documented canonical `schemaVersion`/`entries` payload and keeps older `schemaVersion`/`terms` and `version`/`terms` cache records readable.
-- The focused unit Chut builds 47 distinct mappings, confirms the parsed map keeps all 47, and confirms one replacement pass applies all 47 rather than stopping at the former payload count.
+- The focused unit gate builds 47 distinct mappings, confirms the parsed map keeps all 47, and confirms one replacement pass applies all 47 rather than stopping at the former payload count.
 - Directly affected files: `app/src/lib/personal-vocabulary.ts`, `app/src/ui/preferences/personal-vocabulary-control.tsx`, `app/test/unit/personal-vocabulary-test.ts`, and `docs/features/design-system/personal-vocabulary.md`.
 
 ## Eighteen defects, five hunts — 2026-08-19
@@ -638,7 +638,7 @@ still Material Design 3 throughout.
 ### How this was done, and why not by hand
 
 `app/` was restored wholesale from `9c9755d844`, whose tree already *was*
-"August 7 chrome plus every feature" — the surgical route the revert jer had
+"August 7 chrome plus every feature" — the surgical route the revert branch had
 produced before the literal revert removed it. Rebuilding 42,638 lines by hand
 would have been slower and strictly worse: this way the result is verifiable by
 `git diff` rather than by review.
@@ -828,7 +828,7 @@ What the retirement kept, deliberately: 46 md3 files remain, and they are
 dialogs rather than chrome — the destructive-action gate, the regex builder, the
 toasts, the menu overlay, the compose dialog, the authenticator and Support
 Tickets. That is the line the revert itself drew, and the four commits on the
-merged jer restore every setting the shell's removal had stranded
+merged branch restore every setting the shell's removal had stranded
 (`lib/personal-vocabulary`, `lib/school-mode`, `lib/dialog-emoji`,
 `lib/md3-locks`, `lib/authenticator`) into the classic Settings surface.
 
@@ -846,7 +846,7 @@ that is now gone. That closes open item 3 below. Issue #195's current MD3
 header-avatar wiring is now covered by focused regression tests for shared
 account-switcher routing, distinct header and rail expanded state, and focus
 return through the invoking avatar anchor. Those tests were added in the
-task-owned issue-195 lane; they have not been run in the Yum Leung Cha pass.
+task-owned issue-195 lane; they have not been run in the accelerated-release pass.
 
 Verified for this integration: `npx tsc --noEmit -p tsconfig.json` exit 0, zero
 errors, on the merged tree at `fe1db0dbb5`. The test suite, lint, captures,
@@ -906,14 +906,14 @@ switching the default back.
 
 ### Work stopped mid-flight, preserved not discarded
 
-> **Resolved on 2026-08-15.** That jer merged as `fe1db0dbb5` and was then
+> **Resolved on 2026-08-15.** That branch merged as `fe1db0dbb5` and was then
 > deleted. Only the GitLab work below survived; the account-switcher work built
 > on the deleted shell and did not. The header-avatar defect it describes is
 > still real and is now the one open item from this entry.
 
 Two multi-agent fleets were running when the revert was requested and were
 stopped so they could not write into a tree being rewound. Their unfinished
-work is preserved on the jer **`wip/stopped-fleets-2026-08-14`**, commit
+work is preserved on the branch **`wip/stopped-fleets-2026-08-14`**, commit
 `064fdab5fd`. It is incomplete and unverified. It covers:
 
 - **The account-switcher wiring.** `onMd3OpenAccountSwitcher` in `app/src/ui/app.tsx`
@@ -1415,7 +1415,7 @@ behavior, failure modes, security notes, and verification record are in
 `docs/features/quality-and-reliability/renderer-startup-bundle-safety.md` and
 `.codex/run-manifests/2026-08-06-blank-startup.md`.
 
-The source branch still needs its commit, dew, default-branch integration, and
+The source branch still needs its commit, push, default-branch integration, and
 remote CI result before this handoff is complete.
 
 ## 2026-08-06 — Verify Super Express on the self-hosted pool
@@ -1876,7 +1876,7 @@ passed, 0 failed**. The repository wrapper's additional `--conditions=import`
 flag is not used for this proof because its current `tsx` loader path changes
 the `whatwg-encoding` JSON import shape before the test can start.
 
-The dewed integrated tip was `bc63986119e2c71cc28d98e1465c9c8501c25f58`.
+The pushed integrated tip was `bc63986119e2c71cc28d98e1465c9c8501c25f58`.
 Its current-SHA remote evidence is recorded precisely: `Deploy Pages` run
 [31056983826](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31056983826)
 passed; **CI Windows run
@@ -2060,7 +2060,7 @@ contract.
 ## 2026-08-03 — App fixes: repository list, Cheap LFS, local Actions, CI
 
 A session of defect work across the app and the test harness. Everything below
-is on `main` and dewed; the one item that is *not* finished is named at the end
+is on `main` and pushed; the one item that is *not* finished is named at the end
 rather than left for someone to discover.
 
 **The Repositories list rendered nothing while holding repositories.**
@@ -2202,7 +2202,7 @@ on the first merge after it shipped.
 
 | Item | Outcome |
 | --- | --- |
-| `codex/revive-linux-tui` + its worktree | **Deleted** after its tip was proved an ancestor of the dewed `origin/main` |
+| `codex/revive-linux-tui` + its checkout | **Deleted** after its tip was proved an ancestor of the pushed `origin/main` |
 | `origin/claude/pensive-visvesvaraya-e86ef2` | **Deleted** — proved already an ancestor of `origin/main` |
 | Nine `dependabot/**` branches | **Kept.** Each backs an open pull request (#137–#145). Deleting them closes those PRs, and they are neither agent task branches nor merged |
 | Stashes | None existed |
@@ -2213,7 +2213,7 @@ on the first merge after it shipped.
 
 Three separate agents committed into this working tree during the session. One
 of them swept an earlier task's staged `git rm` deletions into its own commits
-(`ba452e4017`, `dbea7be82f`) and dewed them, briefly leaving `main` publishing
+(`ba452e4017`, `dbea7be82f`) and pushed them, briefly leaving `main` publishing
 the old homepage with its stylesheet and both Cheap LFS pages deleted.
 **Stage explicit paths, never `git add -A`, and re-read `git log` before
 committing** — the index may not still be yours.
@@ -2264,7 +2264,7 @@ and the appearance editor applying and persisting per element.
 
 **Concurrency note.** Two commits made by another agent in this same checkout —
 `ba452e4017` and `dbea7be82f` — swept this task's staged `git rm` deletions into
-themselves and were dewed, leaving `main` briefly publishing the old homepage
+themselves and were pushed, leaving `main` briefly publishing the old homepage
 with its stylesheet and both Cheap LFS pages deleted. Commit
 `80d05e73b881d6b2cd4da4f5a99465be5ad2df98` restores a coherent tree. When
 several agents share one working tree, stage explicit paths and re-check
@@ -2357,7 +2357,7 @@ added the following scoped fixes:
   Node test coordinator a 4 GiB heap. The previous `a0d7b4a598` CI run passed
   all 7,238 assertions but died at 318 MiB while the long Agents test batch was
   still emitting its accounting summary; the new workflow change is awaiting
-  its own GitHui run for proof.
+  its own GitHub Actions run for proof.
 
 - The Agents creator now uses the shared modal dialog layer, exposes dialog
   semantics, avoids a nested form, and disables the Options disclosure while
@@ -2402,7 +2402,7 @@ and Electron process must be removed after final evidence is recorded.
 
 ## 2026-08-02 — Session close: 51 commits, all on `main`
 
-**Start here.** Everything below is dewed; `origin/main` contains all of it and
+**Start here.** Everything below is pushed; `origin/main` contains all of it and
 no worktree holds uncommitted work.
 
 ### What landed
@@ -6200,7 +6200,7 @@ job found two pre-existing source-contract regexes that still expected the old
 three-item scroll-owner exception list. The follow-up makes both contracts
 expect the new Cheap LFS exception and also preserves the earlier
 Prettier-tolerant controller assertion. / 首次 push 功能本身過關，但 CI 捉到兩條舊
-regex 仲認住舊 scroll-owner 清單；今次一齊更新，唔畀測試字蝨再扮大佬。
+regex 仲認住舊 scroll-owner 清單；今次一齊更新，唔畀測試字蝨再扮大人物。
 
 ## 2026-07-23 responsive Releases publication and live Bambu checkpoint
 
@@ -10729,7 +10729,7 @@ which is how the gap opened.
   repository list rows and the shell-wide `feature:` / `profile:` appearance
   targets have lock records but no DOM attribute, so their locks still gate
   nothing.
-- No HuiShots have been captured against a built artifact this session, so the
+- No screenshots have been captured against a built artifact this session, so the
   Material 3 button change and both new controls are unverified visually.
 - The empty branch list visible in the reported Branches screenshot was never
   diagnosed; the two layout faults beside it were.
@@ -10863,7 +10863,7 @@ keeps the fail-closed behavior intact.
 
 ### Verification
 
-No tests or captures were run in this lane, per the Yum Leung Cha boundary for
+No tests or captures were run in this lane, per the accelerated-release boundary for
 this task.
 
 ### Notes for the next person

@@ -184,7 +184,7 @@
 - [ ] Run the deferred tests, reviews, audits, built-artifact interactions, and
   captures needed to verify each registered feature. The August 21 ultra-speed
   pass intentionally skipped those activities, so the manifest's completion
-  Chut remains red until a later evidence pass closes every required record.
+  gate remains red until a later evidence pass closes every required record.
 - [ ] Verify changelog Markdown and plain-text exports preserve each recorded
   full commit SHA and its forge URL, and explicitly report entries with no
   recorded commit. The implementation and focused assertions are present in
@@ -207,7 +207,7 @@
 
 - [x] Move a clean default-branch checkout from another worktree automatically
   instead of failing the entire merge-all operation.
-- [x] Add the explicit **Force Mat Day** option, with checkpoint, synchronization,
+- [x] Add the explicit **force cleanup** option, with checkpoint, synchronization,
   and publication of recoverable dirty worktrees before merge and cleanup.
 - [x] Retain locked, divergent, unpublished, stale, or otherwise unproved work;
   no forced push or forced worktree removal is introduced.
@@ -570,8 +570,8 @@ Updated: **August 13, 2026**
 - [ ] The existing Agents sidebar now receives a main-process-only Status Hub
   status projection with an honest local-only fallback. Repository registration,
   heartbeat/evidence models, and authenticated inbox reply confirmation are
-  implemented; endpoint/vault configuration, focused Chuts, packaged
-  interaction, and real HuiShots remain pending.
+  implemented; endpoint/vault configuration, focused checks, packaged
+  interaction, and real screenshots remain pending.
 
 - The Agents creator is now mounted through the shared modal dialog layer and
   keeps its Options disclosure disabled during creation. The live store and
@@ -685,7 +685,7 @@ ahead of any single feature that depends on it.
 - Still not started: funny-level sliders, non-blocking notifications, and the
   dim sum surprise in the browser window.
 
-## August 1 line counts move into releases — **Implemented and dewed**
+## August 1 line counts move into releases — **Implemented and pushed**
 
 - Every release now carries its own line count, measured by CI over the exact
   commit it was built from, via the committed `script/count-lines.mjs`.
