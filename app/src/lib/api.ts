@@ -5406,10 +5406,17 @@ export class API {
     }
   }
 
+  /**
+   * Fetch the repository's protected branches.
+   *
+   * A successful response with no protected branches is represented by an
+   * empty array. A failed or otherwise inconclusive refresh is represented by
+   * null so callers can preserve their last known protection state.
+   */
   public async fetchProtectedBranches(
     owner: string,
     name: string
-  ): Promise<ReadonlyArray<IAPIBranch>> {
+  ): Promise<ReadonlyArray<IAPIBranch> | null> {
     const path = `repos/${owner}/${name}/branches?protected=true`
     try {
       const response = await this.ghRequest('GET', path)
@@ -5419,7 +5426,7 @@ export class API {
         `[fetchProtectedBranches] unable to list protected branches`,
         err
       )
-      return new Array<IAPIBranch>()
+      return null
     }
   }
 
@@ -6772,7 +6779,7 @@ abstract class ThirdPartyAPI extends API {
   }
 
   public override async fetchProtectedBranches(): Promise<
-    ReadonlyArray<IAPIBranch>
+    ReadonlyArray<IAPIBranch> | null
   > {
     return []
   }
