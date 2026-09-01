@@ -120,4 +120,53 @@ describe('AppStore protected branch refresh', () => {
     assert.deepEqual(persisted, [])
     assert.equal(updateCalls, 1)
   })
+
+  it('ignores an older response when refreshes complete out of order', async () => {
+    const account = createAccount()
+    let persisted: Array<{ name: string; protected: true }> = []
+    let updateCalls = 0
+    let resolveOld: ((
+      value: ReadonlyArray<{ name: string; protected: true }>
+    ) => void) | undefined
+    let resolveNew: ((
+      value: ReadonlyArray<{ name: string; protected: true }>
+    ) => void) | undefined
+    let refreshNumber = 0
+    const { repository, store, originalFromAccount } = createStore(
+      account,
+      () => {
+        refreshNumber++
+        return new Promise(resolve => {
+          if (refreshNumber === 1) {
+            resolveOld = resolve
+          } else {
+            resolveNew = resolve
+          }
+        })
+      },
+      protectedBranches => {
+        updateCalls++
+        persisted = [...protectedBranches]
+      }
+    )
+
+    try {
+      const refresh = Reflect.get(
+        AppStore.prototype,
+        'updateBranchProtectionsFromAPI'
+      ) as (repository: Repository) => Promise<void>
+      const oldRefresh = refresh.call(store, repository)
+      const newRefresh = refresh.call(store, repository)
+
+      resolveNew?.([{ name: 'release', protected: true }])
+      await newRefresh
+      resolveOld?.([{ name: 'main', protected: true }])
+      await oldRefresh
+    } finally {
+      Reflect.set(API, 'fromAccount', originalFromAccount)
+    }
+
+    assert.deepEqual(persisted, [{ name: 'release', protected: true }])
+    assert.equal(updateCalls, 1)
+  })
 })

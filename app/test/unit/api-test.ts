@@ -134,6 +134,15 @@ describe('API', () => {
 
       assert.equal(await api.fetchProtectedBranches('desktop', 'desktop'), null)
     })
+
+    it('returns null when a successful response has an invalid shape', async () => {
+      const api = createAPI(
+        async () =>
+          new Response(JSON.stringify({ branches: [] }), { status: 200 })
+      )
+
+      assert.equal(await api.fetchProtectedBranches('desktop', 'desktop'), null)
+    })
   })
 
   describe('third-party provider endpoints', () => {

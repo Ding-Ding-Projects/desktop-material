@@ -5420,7 +5420,11 @@ export class API {
     const path = `repos/${owner}/${name}/branches?protected=true`
     try {
       const response = await this.ghRequest('GET', path)
-      return await parsedResponse<IAPIBranch[]>(response)
+      const branches = await parsedResponse<unknown>(response)
+      if (!Array.isArray(branches)) {
+        throw new Error('Protected branch response was not an array')
+      }
+      return branches as IAPIBranch[]
     } catch (err) {
       log.info(
         `[fetchProtectedBranches] unable to list protected branches`,
