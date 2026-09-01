@@ -2,6 +2,7 @@ import assert from 'node:assert'
 import { describe, it } from 'node:test'
 import { tmpdir } from 'node:os'
 import { writeFile } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
 
 import {
   BrowserExtensionDownloadQueue,
@@ -12,11 +13,11 @@ const request = (id: string) => ({
   id,
   source: 'https://downloads.example.test/file.zip',
   suggestedFileName: `${id}.zip`,
-  destination: `${tmpdir()}\\${id}.zip`,
+  destination: `${tmpdir()}\\${id}-${randomUUID()}.zip`,
   receivedAt: 1_700_000_000_000,
 })
 
-describe('BrowserExtensionDownloadQueue', () => {
+describe('BrowserExtensionDownloadQueue', { concurrency: false }, () => {
   it('requires confirmation and publishes its lifecycle phases', async () => {
     const phases: string[] = []
     let resolveDownload: (() => void) | null = null
@@ -36,7 +37,7 @@ describe('BrowserExtensionDownloadQueue', () => {
     queue.enqueue(value)
     assert.deepEqual(phases, ['awaiting-confirmation'])
     const started = queue.confirm(value.id)
-    await new Promise(resolve => setTimeout(resolve, 10))
+    await new Promise(resolve => setTimeout(resolve, 50))
     assert.deepEqual(phases, [
       'awaiting-confirmation',
       'downloading',
@@ -65,11 +66,11 @@ describe('BrowserExtensionDownloadQueue', () => {
     queue.enqueue(first)
     queue.enqueue(second)
     const started = queue.confirm(first.id)
-    await new Promise(resolve => setTimeout(resolve, 10))
+    await new Promise(resolve => setTimeout(resolve, 50))
     await queue.confirm(first.id)
     await queue.confirm(second.id)
     assert.equal(calls, 1)
-    resolveDownload!()
+    resolveDownload?.()
     await started
   })
 
@@ -92,11 +93,11 @@ describe('BrowserExtensionDownloadQueue', () => {
     const value = request('cancel')
     queue.enqueue(value)
     const started = queue.confirm(value.id)
-    await new Promise(resolve => setTimeout(resolve, 10))
+    await new Promise(resolve => setTimeout(resolve, 50))
     await queue.pause(value.id)
     await queue.resume(value.id)
     queue.cancel(value.id)
-    resolveDownload!()
+    resolveDownload?.()
     await started
     assert.deepEqual(phases, [
       'awaiting-confirmation',
