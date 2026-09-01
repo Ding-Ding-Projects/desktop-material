@@ -278,7 +278,9 @@ async function readSourceFiles(root: string): Promise<
       source: await FsAsync.readFile(path, 'utf8'),
     }))
   )
-  if (negativeDimension === 'alias-import-resolution') {
+  if (negativeDimension === 'retired-path-resolution') {
+    files.push({ path: Path.join(root, 'retired-import.ts'), source: "import './ui/md3/md3-shell'" })
+  } else if (negativeDimension === 'alias-import-resolution') {
     files.push({ path: Path.join(root, 'alias-import.js'), source: "import './md3/md3-shell'" })
   } else if (negativeDimension === 'accepted-source-extensions') {
     files.push({ path: Path.join(root, 'js-family.js'), source: "import './md3/md3-shell'" })
