@@ -4,6 +4,7 @@ import { describe, it } from 'node:test'
 import * as FsAsync from 'node:fs/promises'
 import * as Path from 'node:path'
 import { promisify } from 'node:util'
+import * as ts from 'typescript'
 
 type FrozenInterfaceShellContract = {
   schemaVersion: number
@@ -178,6 +179,10 @@ function stripComments(source: string): string {
   return result
 }
 
+function parseAst(source: string): ts.SourceFile {
+  return ts.createSourceFile('frozen-shell.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+}
+
 function escapeRegExp(value: string): string {
   return value.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
 }
@@ -187,64 +192,36 @@ function parseStaticImportStatements(source: string): Array<{
   statement: string
 }> {
   const statements: Array<{ specifier: string; statement: string }> = []
-  source = stripComments(source)
-  let pending: string | null = null
-
-  for (const line of source.split(/\r?\n/)) {
-    const trimmed = line.trim()
-    if (
-      pending === null &&
-      !trimmed.startsWith('import ') &&
-      !trimmed.startsWith('export ')
-    ) {
-      continue
+  const sourceFile = parseAst(source)
+  sourceFile.forEachChild(node => {
+    if (!ts.isImportDeclaration(node) && !ts.isExportDeclaration(node)) return
+    const module = node.moduleSpecifier
+    if (module && ts.isStringLiteral(module)) {
+      statements.push({ specifier: module.text, statement: node.getText(sourceFile) })
     }
-
-    pending = pending === null ? line : pending + '\n' + line
-    const fromMatch = pending.match(/\bfrom\s+['"]([^'"]+)['"]/)
-    const sideEffectMatch = pending.match(
-      /^\s*(?:import|export)\s*['"]([^'"]+)['"]/
-    )
-    const match = fromMatch ?? sideEffectMatch
-    if (match !== null) {
-      statements.push({ specifier: match[1], statement: pending })
-      pending = null
-      continue
-    }
-
-    if (trimmed.endsWith(';')) {
-      pending = null
-    }
-  }
-
+  })
   return statements
 }
 
 function parseDynamicImportSpecifiers(source: string): string[] {
   const specifiers: string[] = []
-  const pattern = /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g
-  source = stripComments(source)
-  for (const line of source.split(/\r?\n/)) {
-    let match: RegExpExecArray | null
-    while ((match = pattern.exec(line)) !== null) {
-      specifiers.push(match[1])
-    }
-    pattern.lastIndex = 0
+  const sourceFile = parseAst(source)
+  const visit = (node: ts.Node) => {
+    if (ts.isCallExpression(node) && node.arguments.length === 1 && ts.isStringLiteral(node.arguments[0]) && node.expression.kind === ts.SyntaxKind.ImportKeyword) specifiers.push(node.arguments[0].text)
+    ts.forEachChild(node, visit)
   }
+  visit(sourceFile)
   return specifiers
 }
 
 function parseRequireSpecifiers(source: string): string[] {
   const specifiers: string[] = []
-  const pattern = /\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g
-  source = stripComments(source)
-  for (const line of source.split(/\r?\n/)) {
-    let match: RegExpExecArray | null
-    while ((match = pattern.exec(line)) !== null) {
-      specifiers.push(match[1])
-    }
-    pattern.lastIndex = 0
+  const sourceFile = parseAst(source)
+  const visit = (node: ts.Node) => {
+    if (ts.isCallExpression(node) && node.arguments.length === 1 && ts.isStringLiteral(node.arguments[0]) && ts.isIdentifier(node.expression) && node.expression.text === 'require') specifiers.push(node.arguments[0].text)
+    ts.forEachChild(node, visit)
   }
+  visit(sourceFile)
   return specifiers
 }
 
@@ -457,7 +434,7 @@ describe('the interface shell stays frozen', () => {
 
   it('keeps the current renderer entry and control-level Material Design 3 wiring', async () => {
     const appPath = Path.join(repoRoot, contract.currentRenderer.entry)
-    const appSource = stripComments(await FsAsync.readFile(appPath, 'utf8'))
+    const appSource = await FsAsync.readFile(appPath, 'utf8')
     const imports = parseStaticImportStatements(appSource)
 
     for (const expected of contract.currentRenderer.imports) {
@@ -478,7 +455,7 @@ describe('the interface shell stays frozen', () => {
       )
     }
 
-    const lines = appSource.split(/\r?\n/)
+    const lines = parseAst(appSource).statements.map(statement => statement.getText())
     assert.ok(lines.some(line => line.trim() === 'private renderApp() {'))
     for (const marker of contract.currentRenderer.markers) {
       assert.ok(
