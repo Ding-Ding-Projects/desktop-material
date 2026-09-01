@@ -16,6 +16,16 @@ import {
   SettingsTabDockPosition,
   toggleSettingsTabPin,
   unpinSettingsTab,
+  SettingsTabPersistenceVersion,
+  getSettingsTabLayout,
+  getSettingsTabOrder,
+  setSettingsTabLayout,
+  createSettingsTabGroup,
+  removeSettingsTabGroup,
+  setSettingsTabGroupCollapsed,
+  setSettingsTabGroupMembership,
+  getSettingsTabGroupMembership,
+  reorderSettingsTab,
 } from '../../src/ui/settings-tabs/settings-tab-model'
 import { fireEvent, render } from '../helpers/ui/render'
 
@@ -246,13 +256,118 @@ describe('settings tab docking', () => {
 
     const select = view.getByRole('combobox', {
       name: 'Settings tab position',
-    }) as HTMLSelectElement
+    })
+    fireEvent.click(select)
     assert.deepStrictEqual(
-      Array.from(select.options).map(option => option.value),
-      ['left', 'top', 'bottom', 'right']
+      Array.from(view.getAllByRole('option', { hidden: true })).map(
+        option => option.textContent
+      ),
+      ['Left', 'Top', 'Bottom', 'Right']
     )
-    fireEvent.change(select, { target: { value: 'right' } })
+    fireEvent.click(view.getByRole('option', { name: 'Right', hidden: true }))
     assert.deepStrictEqual(changes, ['right'])
+  })
+})
+
+describe('versioned settings tab layout', () => {
+  beforeEach(() => localStorage.clear())
+
+  it('migrates legacy order and pins into one versioned record', () => {
+    setOpenSettingsTabs('preferences', ['sound', 'remote'])
+    pinSettingsTab('preferences', 'sound')
+
+    const layout = getSettingsTabLayout('preferences', {
+      allowedIds: PAGES.map(page => page.id),
+    })
+    assert.strictEqual(layout.version, SettingsTabPersistenceVersion)
+    assert.deepStrictEqual(layout.order, ['sound', 'remote'])
+    assert.deepStrictEqual(layout.pinnedIds, ['sound'])
+    assert.deepStrictEqual(layout.groups, [])
+  })
+
+  it('round-trips order, groups, membership and collapse state', () => {
+    const options = { allowedIds: PAGES.map(page => page.id) }
+    setSettingsTabLayout(
+      'preferences',
+      {
+        version: SettingsTabPersistenceVersion,
+        order: ['sound', 'remote', 'ignored'],
+        pinnedIds: ['remote'],
+        groups: [{ id: 'work', name: 'Work', color: 'green' }],
+        groupOrder: ['work'],
+        membership: { sound: 'work' },
+      },
+      options
+    )
+
+    assert.deepStrictEqual(getSettingsTabLayout('preferences', options), {
+      version: SettingsTabPersistenceVersion,
+      order: ['sound', 'remote', 'ignored'],
+      pinnedIds: ['remote'],
+      groups: [{ id: 'work', name: 'Work', color: 'green' }],
+      groupOrder: ['work'],
+      membership: { sound: 'work' },
+    })
+    assert.strictEqual(
+      setSettingsTabGroupCollapsed('preferences', 'work', true, options),
+      true
+    )
+    assert.strictEqual(
+      getSettingsTabLayout('preferences', options).groups[0].isCollapsed,
+      true
+    )
+  })
+
+  it('supports bounded group lifecycle and isolated membership', () => {
+    const options = { allowedIds: PAGES.map(page => page.id) }
+    assert.ok(
+      createSettingsTabGroup('preferences', { id: 'one', name: 'One' }, options)
+    )
+    assert.strictEqual(
+      createSettingsTabGroup(
+        'preferences',
+        { id: 'one', name: 'Again' },
+        options
+      ),
+      null
+    )
+    setSettingsTabGroupMembership('preferences', 'remote', 'one', options)
+    assert.deepStrictEqual(
+      getSettingsTabGroupMembership('preferences', options),
+      { remote: 'one' }
+    )
+    assert.strictEqual(
+      removeSettingsTabGroup('preferences', 'one', options),
+      true
+    )
+    assert.deepStrictEqual(
+      getSettingsTabGroupMembership('preferences', options),
+      {}
+    )
+  })
+
+  it('reorders tabs without mutating the pinned list', () => {
+    const options = { allowedIds: PAGES.map(page => page.id) }
+    setSettingsTabLayout(
+      'preferences',
+      {
+        version: SettingsTabPersistenceVersion,
+        order: ['remote', 'ignored', 'sound'],
+        pinnedIds: ['sound'],
+        groups: [],
+        groupOrder: [],
+        membership: {},
+      },
+      options
+    )
+    assert.deepStrictEqual(
+      reorderSettingsTab('preferences', 'remote', 2, options),
+      ['ignored', 'sound', 'remote']
+    )
+    assert.deepStrictEqual(
+      getSettingsTabLayout('preferences', options).pinnedIds,
+      ['sound']
+    )
   })
 })
 
@@ -664,5 +779,67 @@ describe('SettingsTabStrip', () => {
     fireEvent.click(document.body)
 
     assert.strictEqual(document.activeElement, trigger)
+  })
+
+  it('renders named groups and keeps a group search builder isolated', () => {
+    setSettingsTabLayout(
+      'preferences',
+      {
+        version: SettingsTabPersistenceVersion,
+        order: ['remote', 'ignored', 'sound'],
+        pinnedIds: [],
+        groups: [{ id: 'work', name: 'Work', color: 'green' }],
+        groupOrder: ['work'],
+        membership: { remote: 'work' },
+      },
+      { allowedIds: PAGES.map(page => page.id) }
+    )
+    const { view } = renderStrip({ variant: 'browser', showNewTab: true })
+    assert.ok(view.getByRole('button', { name: 'Collapse Work' }))
+    fireEvent.click(view.getByRole('button', { name: 'Search Work tabs' }))
+    const input = view.getByRole('combobox', { hidden: true })
+    assert.strictEqual(
+      input.getAttribute('data-search-surface-id'),
+      'preferences-master-tabs-group-work'
+    )
+    assert.ok(view.getByRole('option', { name: 'Remote' }))
+  })
+
+  it('reveals a collapsed group for a search result without changing collapse state', () => {
+    setSettingsTabLayout(
+      'preferences',
+      {
+        version: SettingsTabPersistenceVersion,
+        order: ['remote', 'ignored', 'sound'],
+        pinnedIds: [],
+        groups: [{ id: 'work', name: 'Work', isCollapsed: true }],
+        groupOrder: ['work'],
+        membership: { remote: 'work' },
+      },
+      { allowedIds: PAGES.map(page => page.id) }
+    )
+    const { view } = renderStrip({ variant: 'browser', showNewTab: true })
+    assert.strictEqual(view.queryByRole('tab', { name: 'Remote' }), null)
+    fireEvent.click(view.getByRole('button', { name: 'Search settings' }))
+    fireEvent.click(view.getByRole('option', { name: 'Remote' }))
+    assert.ok(view.getByRole('tab', { name: 'Remote' }))
+    assert.strictEqual(
+      getSettingsTabLayout('preferences', {
+        allowedIds: PAGES.map(page => page.id),
+      }).groups[0].isCollapsed,
+      true
+    )
+  })
+
+  it('moves a tab with the keyboard while keeping stable identities', () => {
+    const { view } = renderStrip({ variant: 'browser' })
+    const remote = view.getByRole('tab', { name: 'Remote' })
+    fireEvent.keyDown(remote, { key: 'ArrowRight', ctrlKey: true })
+    assert.deepStrictEqual(
+      getSettingsTabOrder('preferences', {
+        allowedIds: PAGES.map(page => page.id),
+      }),
+      ['ignored', 'remote', 'sound']
+    )
   })
 })
