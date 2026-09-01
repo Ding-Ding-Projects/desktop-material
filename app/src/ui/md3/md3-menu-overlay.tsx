@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { FilterMode } from '../../lib/fuzzy-find'
 import { t } from '../../lib/i18n'
+import { compileSafeRegex } from '../../lib/safe-regex'
 import { filterByMode } from '../lib/filter-string-list'
 import { MaterialSymbol } from '../lib/material-symbol'
 import { createObservableRef } from '../lib/observable-ref'
@@ -63,8 +64,44 @@ export interface IMd3MenuFilterResult {
 export function filterMenuItems(
   items: ReadonlyArray<IMd3MenuItem>,
   query: string,
-  regexEnabled: boolean
+  regexEnabled: boolean,
+  flags: IRegexFlags = {
+    g: false,
+    i: true,
+    m: false,
+    s: false,
+    u: false,
+    y: false,
+  }
 ): IMd3MenuFilterResult {
+  if (regexEnabled) {
+    const pattern = `${flags.m ? '(?m)' : ''}${flags.s ? '(?s)' : ''}${query}`
+    const compilation = compileSafeRegex(pattern, !flags.i)
+    if (compilation.regex === null) {
+      return { items, patternInvalid: true }
+    }
+    const result = filterByMode(
+      items,
+      item => [item.label],
+      pattern,
+      FilterMode.Regex,
+      !flags.i
+    )
+    if (result.regexError !== null) {
+      return { items, patternInvalid: true }
+    }
+    if (!flags.y) {
+      return { items: result.items, patternInvalid: false }
+    }
+    return {
+      items: result.items.filter(item => {
+        const first = compilation.regex?.findAll(item.label, 1).matches[0]
+        return first !== undefined && first.index === 0
+      }),
+      patternInvalid: false,
+    }
+  }
+
   const result = filterByMode(
     items,
     item => [item.label],
@@ -76,6 +113,22 @@ export function filterMenuItems(
     items: result.items,
     patternInvalid: result.regexError !== null,
   }
+}
+
+function menuPatternError(
+  value: string,
+  regexEnabled: boolean,
+  flags: IRegexFlags
+): string | null {
+  const baseError = md3SearchPatternError(value, regexEnabled)
+  if (baseError !== null || !regexEnabled || value.trim().length === 0) {
+    return baseError
+  }
+  const pattern = `${flags.m ? '(?m)' : ''}${flags.s ? '(?s)' : ''}${value}`
+  const compilation = compileSafeRegex(pattern, !flags.i)
+  return compilation.error === null
+    ? null
+    : t('md3.search.invalidPattern', { reason: compilation.error })
 }
 
 /**
@@ -278,7 +331,14 @@ export class Md3MenuOverlay extends React.Component<
         u: false,
         y: false,
       },
-      validation: md3SearchPatternError(initialFilter, initialRegexEnabled),
+      validation: menuPatternError(initialFilter, initialRegexEnabled, {
+        g: false,
+        i: initialRegexEnabled,
+        m: false,
+        s: false,
+        u: false,
+        y: false,
+      }),
       mode: initialRegexEnabled ? 'regex' : 'substring',
       history: initialFilter.length === 0 ? [] : [initialFilter],
       builderOpen: false,
@@ -333,7 +393,8 @@ export class Md3MenuOverlay extends React.Component<
     return filterMenuItems(
       this.props.spec.items,
       this.state.filter,
-      this.state.regexEnabled
+      this.state.regexEnabled,
+      this.state.flags
     )
   }
 
@@ -498,7 +559,11 @@ export class Md3MenuOverlay extends React.Component<
   }
 
   private onFilterChange = (value: string) => {
-    const validation = md3SearchPatternError(value, this.state.regexEnabled)
+    const validation = menuPatternError(
+      value,
+      this.state.regexEnabled,
+      this.state.flags
+    )
     this.setState(previous => ({
       filter: value,
       pattern: value,
@@ -521,7 +586,11 @@ export class Md3MenuOverlay extends React.Component<
       return {
         regexEnabled,
         mode: regexEnabled ? 'regex' : 'substring',
-        validation: md3SearchPatternError(previous.filter, regexEnabled),
+        validation: menuPatternError(
+          previous.filter,
+          regexEnabled,
+          regexEnabled ? { ...previous.flags, i: true } : previous.flags
+        ),
         flags: {
           ...previous.flags,
           i: regexEnabled,
@@ -539,7 +608,11 @@ export class Md3MenuOverlay extends React.Component<
   }
 
   private onApplyBuilder = (application: IMd3RegexBuilderApplication) => {
-    const validation = md3SearchPatternError(application.pattern, true)
+    const validation = menuPatternError(
+      application.pattern,
+      true,
+      application.flags
+    )
     this.setState(previous => ({
       filter: application.pattern,
       pattern: application.pattern,

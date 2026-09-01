@@ -80,7 +80,7 @@ export function isOwnedSearchSurfacePortal(
   const targetElement =
     target instanceof Element ? target : target.parentElement
   const portal = targetElement?.closest<HTMLElement>(
-    '.regex-builder-overlay[data-search-surface-id]'
+    '.regex-builder-overlay[data-search-surface-id], .md3-regex-builder-scrim[data-search-surface-id], .md3-regex-builder-owned-portal[data-search-surface-id]'
   )
   const searchSurfaceId = portal?.dataset.searchSurfaceId
 

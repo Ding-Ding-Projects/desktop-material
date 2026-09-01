@@ -670,6 +670,7 @@ export function Md3RegexBuilderDialog(props: IMd3RegexBuilderDialogProps) {
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div
       className="md3-regex-builder-scrim md3-anim-fade--overlay"
+      data-search-surface-id={props.searchSurfaceId}
       onClick={onScrimClick}
     >
       {/* A modal dialog is a non-interactive role, but a focus trap is
@@ -836,7 +837,12 @@ export function Md3RegexBuilderDialog(props: IMd3RegexBuilderDialogProps) {
       onClickOutside={onAnchoredOutside}
       onMousedownOutside={onAnchoredOutside}
     >
-      {dialog.props.children}
+      <div
+        className="md3-regex-builder-owned-portal"
+        data-search-surface-id={props.searchSurfaceId}
+      >
+        {dialog.props.children}
+      </div>
     </Popover>
   ) : (
     dialog

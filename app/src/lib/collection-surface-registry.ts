@@ -404,16 +404,15 @@ export const SearchSurfaceRegistry: ReadonlyArray<ISearchSurfaceRegistration> =
       source: 'worktrees/worktree-list.tsx',
       implementation: 'shared-filter-list',
     },
-    // The MD3 shell's search fields. Every one of these is an independent
-    // surface — its own query, its own regex mode, and its own regex builder
-    // target — so every one is registered separately rather than as "the
-    // shell's search".
     {
-      id: 'md3-menu-filter',
-      label: 'Menu actions',
-      source: 'md3/md3-menu-overlay.tsx',
-      implementation: 'md3-search-field',
+      id: 'checkout-branches-as-worktrees',
+      label: 'Branches to check out as worktrees',
+      source: 'worktrees/checkout-branches-worktrees-dialog.tsx',
+      implementation: 'shared-filter-list',
     },
+    // The MD3 shell's fixed search fields. Menu filters are concrete runtime
+    // instances and live in Md3MenuOverlayCompletenessRegistry below, so a
+    // static collection ID would falsely claim one shared surface.
     {
       id: 'md3-authenticator',
       label: 'Authenticator entries',
@@ -445,7 +444,9 @@ export const SearchSurfaceRegistry: ReadonlyArray<ISearchSurfaceRegistration> =
 // on one named contract without collapsing per-instance identities into the
 // generic `md3-menu-filter` entry above.
 export {
+  Md3MenuOverlayCanonicalRegistry,
   Md3MenuOverlayCompletenessRegistry,
+  MenuOverlayCanonicalRegistry,
   MenuOverlayCompletenessRegistry,
 } from '../ui/md3/md3-menu-specs'
 

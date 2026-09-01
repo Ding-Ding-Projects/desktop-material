@@ -94,9 +94,11 @@ export interface IMd3MenuOverlayCompletenessRegistration {
   readonly searchSurfacePrefix: string
   readonly supportsAnchoring: true
   readonly supportsCenteredFallback: true
+  readonly liveConsumers?: ReadonlyArray<string>
+  readonly originatingField?: string
 }
 
-export const Md3MenuOverlayCompletenessRegistry: ReadonlyArray<IMd3MenuOverlayCompletenessRegistration> =
+export const Md3MenuOverlayCanonicalRegistry: ReadonlyArray<IMd3MenuOverlayCompletenessRegistration> =
   Object.freeze([
     {
       kind: 'palette',
@@ -258,6 +260,43 @@ export const Md3MenuOverlayCompletenessRegistry: ReadonlyArray<IMd3MenuOverlayCo
       searchSurfacePrefix: 'md3-menu-guide-',
       supportsAnchoring: true,
       supportsCenteredFallback: true,
+    },
+  ])
+
+/** Descriptive alias for the canonical, hand-written inventory. */
+export const MenuOverlayCanonicalRegistry = Md3MenuOverlayCanonicalRegistry
+
+/**
+ * Runtime registry for the menu kinds currently mounted by live consumers.
+ * The canonical 23-kind list above is deliberately separate, so deleting a
+ * runtime row cannot make the canonical inventory shrink with it.
+ */
+export const Md3MenuOverlayCompletenessRegistry: ReadonlyArray<IMd3MenuOverlayCompletenessRegistration> =
+  Object.freeze([
+    {
+      kind: 'rowMenu',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-rowMenu-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+      liveConsumers: [
+        'md3-authenticator-view.tsx',
+        'md3-support-tickets-view.tsx',
+      ],
+      originatingField: 'row/context menu opener',
+    },
+    {
+      kind: 'listMenu',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-listMenu-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+      liveConsumers: [
+        'md3-authenticator-view.tsx',
+        'md3-locks-view.tsx',
+        'md3-support-tickets-view.tsx',
+      ],
+      originatingField: 'list/export/group menu opener',
     },
   ])
 
@@ -1771,7 +1810,7 @@ function searchMenuSpec(handlers: IMd3MenuHandlers): IMd3MenuSpec {
     filterPlaceholder: t('md3.menu.filterPlaceholder'),
     items: [
       {
-        id: 'openBuilder',
+        id: 'openRegexBuilder',
         label: t('md3.menu.searchMenu.openBuilder'),
         icon: 'construction',
         hint: ShortcutRegexBuilder,
