@@ -14,6 +14,8 @@ import {
   resetTestTimers,
 } from '../../helpers/ui/timers'
 import { CopilotPreferences } from '../../../src/ui/preferences/copilot'
+import { SnapshotCard } from '../../../src/ui/preferences/snapshot-card'
+import type { CopilotQuotaSnapshots } from '../../../src/lib/stores/copilot-store'
 import {
   DefaultCopilotModel,
   type CopilotFeature,
@@ -142,6 +144,22 @@ const models: ReadonlyArray<Model> = [
   otherModel,
   usageBilledModel,
 ]
+
+const quotaSnapshots: CopilotQuotaSnapshots = new Map([
+  [
+    'chat',
+    {
+      isUnlimitedEntitlement: false,
+      entitlementRequests: 100,
+      usedRequests: 25,
+      usageAllowedWithExhaustedQuota: false,
+      remainingPercentage: 75,
+      overage: 0,
+      overageAllowedWithExhaustedQuota: false,
+      resetDate: '2030-01-01T00:00:00.000Z',
+    },
+  ],
+])
 
 const ollamaProvider: IBYOKProvider = {
   id: 'ollama-id',
@@ -351,6 +369,55 @@ function getCostDetailsValue(container: HTMLElement, label: string): string {
 }
 
 describe('CopilotPreferences', () => {
+  it('exposes account identity and factual quota values accessibly', () => {
+    render(
+      <SnapshotCard
+        account={makeAccount({ login: 'mona' })}
+        snapshots={quotaSnapshots}
+        quotaState={{
+          status: 'available',
+          snapshots: quotaSnapshots,
+          fetchedAt: Date.parse('2026-08-31T12:00:00.000Z'),
+        }}
+      />
+    )
+    assert.ok(screen.getByRole('region', { name: 'Copilot usage for mona' }))
+    assert.ok(screen.getByText('25 used of 100 available'))
+    assert.ok(screen.getByText(/Updated/))
+  })
+
+  it('reports stale, unavailable, and error quota states without inventing values', () => {
+    const { rerender } = render(
+      <SnapshotCard
+        account={makeAccount()}
+        snapshots={quotaSnapshots}
+        quotaState={{
+          status: 'stale',
+          snapshots: quotaSnapshots,
+          fetchedAt: 1,
+        }}
+      />
+    )
+    assert.ok(screen.getByText('Showing stale Copilot usage data.'))
+    rerender(
+      <SnapshotCard
+        account={makeAccount()}
+        snapshots={null}
+        quotaState={{ status: 'unavailable', snapshots: null, fetchedAt: null }}
+      />
+    )
+    assert.ok(screen.getByText('Copilot usage unavailable for this account.'))
+    assert.strictEqual(screen.queryByText(/available$/), null)
+    rerender(
+      <SnapshotCard
+        account={makeAccount()}
+        snapshots={null}
+        quotaState={{ status: 'error', snapshots: null, fetchedAt: null }}
+      />
+    )
+    assert.ok(screen.getByRole('alert'))
+  })
+
   it('shows sign-in call to action when no account is available', () => {
     let called = 0
 

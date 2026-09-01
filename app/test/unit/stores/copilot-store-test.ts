@@ -1,5 +1,8 @@
 import type { CopilotClient, CopilotSession } from '@github/copilot-sdk'
-import type { Model } from '@github/copilot-sdk/dist/generated/rpc'
+import type {
+  AccountQuotaSnapshot,
+  Model,
+} from '@github/copilot-sdk/dist/generated/rpc'
 import assert from 'node:assert'
 import { after, before, describe, it } from 'node:test'
 import { getDotComAPIEndpoint } from '../../../src/lib/api'
@@ -12,10 +15,12 @@ import {
   CopilotStore,
   DefaultCopilotModel,
   getCopilotGHHost,
+  getCopilotAccountCacheKey,
   getCopilotModelCacheKey,
   getLowestReasoningEffort,
   getPreferredDefaultModel,
   getSupportedReasoningEffort,
+  migrateCopilotModelSelectionsToAccounts,
   isCopilotConflictResolutionAbortError,
   runConflictResolutionTurn,
 } from '../../../src/lib/stores/copilot-store'
@@ -141,6 +146,45 @@ function createCopilotStoreWithModels(
     createClientAccounts,
     stopCount: () => stopCount,
   }
+}
+
+function makeQuotaSnapshot(
+  overrides: Partial<AccountQuotaSnapshot> = {}
+): AccountQuotaSnapshot {
+  return {
+    isUnlimitedEntitlement: false,
+    entitlementRequests: 100,
+    usedRequests: 25,
+    usageAllowedWithExhaustedQuota: false,
+    remainingPercentage: 75,
+    overage: 0,
+    overageAllowedWithExhaustedQuota: false,
+    resetDate: new Date(Date.now() + 60_000).toISOString(),
+    ...overrides,
+  }
+}
+
+function createCopilotStoreWithQuota(
+  readQuota: (
+    account: Account
+  ) => Promise<Readonly<Record<string, AccountQuotaSnapshot>>>
+): { readonly accountsStore: AccountsStore; readonly store: CopilotStore } {
+  const accountsStore = createAccountsStore()
+  const store = new CopilotStore(accountsStore)
+  const testableStore = store as unknown as {
+    createClient(account: Account): Promise<CopilotClient>
+  }
+  testableStore.createClient = async account =>
+    ({
+      start: async () => {},
+      stop: async () => {},
+      rpc: {
+        account: {
+          getQuota: async () => ({ quotaSnapshots: await readQuota(account) }),
+        },
+      },
+    } as unknown as CopilotClient)
+  return { accountsStore, store }
 }
 
 function makeModel(
@@ -536,6 +580,108 @@ describe('CopilotStore model cache', () => {
     assert.strictEqual(store.getCachedModelList(account), null)
     assert.strictEqual(await store.listModels(account), freshModels)
     assert.strictEqual(store.getCachedModelList(account), freshModels)
+  })
+})
+
+describe('Copilot account model and quota isolation', () => {
+  let previousPreviewFeatures: string | undefined
+
+  before(() => {
+    previousPreviewFeatures = process.env[PreviewFeaturesEnv]
+    process.env[PreviewFeaturesEnv] = '1'
+  })
+
+  after(() => {
+    if (previousPreviewFeatures === undefined)
+      delete process.env[PreviewFeaturesEnv]
+    else process.env[PreviewFeaturesEnv] = previousPreviewFeatures
+  })
+
+  it('migrates legacy model choices to both accounts without overwriting an override', () => {
+    const first = makeAccount({ id: 1 })
+    const second = makeAccount({ id: 2 })
+    const migrated = migrateCopilotModelSelectionsToAccounts(
+      { 'commit-message-generation': 'legacy' },
+      new Map([
+        [
+          getCopilotAccountCacheKey(first),
+          { 'commit-message-generation': 'first' },
+        ],
+      ]),
+      [first, second]
+    )
+    assert.deepStrictEqual(migrated.get(getCopilotAccountCacheKey(first)), {
+      'commit-message-generation': 'first',
+    })
+    assert.deepStrictEqual(migrated.get(getCopilotAccountCacheKey(second)), {
+      'commit-message-generation': 'legacy',
+    })
+  })
+
+  it('keeps quota snapshots per account and reports no invented data', async () => {
+    const first = makeAccount({ id: 1 })
+    const second = makeAccount({ id: 2 })
+    const { accountsStore, store } = createCopilotStoreWithQuota(
+      async account => (account.id === 1 ? { chat: makeQuotaSnapshot() } : {})
+    )
+    await accountsStore.addAccount(first)
+    await accountsStore.addAccount(second)
+
+    const firstSnapshot = await store.getQuotaSnapshots(first)
+    const secondSnapshot = await store.getQuotaSnapshots(second)
+    assert.strictEqual(firstSnapshot?.get('chat')?.usedRequests, 25)
+    assert.strictEqual(secondSnapshot?.size, 0)
+    assert.strictEqual(store.getQuotaSnapshotState(second).status, 'available')
+    assert.strictEqual(
+      store.getCachedQuotaSnapshots(makeAccount({ id: 99 })),
+      null
+    )
+  })
+
+  it('drops in-flight quota data after sign-out and never restores it', async () => {
+    const account = makeAccount()
+    const deferred =
+      createDeferred<Readonly<Record<string, AccountQuotaSnapshot>>>()
+    const { accountsStore, store } = createCopilotStoreWithQuota(
+      () => deferred.promise
+    )
+    await accountsStore.addAccount(account)
+    const request = store.getQuotaSnapshots(account)
+    await accountsStore.removeAccount(account)
+    deferred.resolve({ chat: makeQuotaSnapshot() })
+    await request
+    assert.strictEqual(store.getCachedQuotaSnapshots(account), null)
+    assert.strictEqual(
+      store.getQuotaSnapshotState(account).status,
+      'unavailable'
+    )
+  })
+
+  it('does not restore an out-of-order quota response after re-authentication', async () => {
+    const account = makeAccount()
+    const stale =
+      createDeferred<Readonly<Record<string, AccountQuotaSnapshot>>>()
+    let fetchCount = 0
+    const { accountsStore, store } = createCopilotStoreWithQuota(() => {
+      fetchCount += 1
+      return fetchCount === 1
+        ? stale.promise
+        : Promise.resolve({ chat: makeQuotaSnapshot({ usedRequests: 80 }) })
+    })
+
+    await accountsStore.addAccount(account)
+    const staleRequest = store.getQuotaSnapshots(account)
+    await accountsStore.removeAccount(account)
+    await accountsStore.addAccount(account)
+    const freshRequest = store.getQuotaSnapshots(account)
+    stale.resolve({ chat: makeQuotaSnapshot({ usedRequests: 5 }) })
+
+    await staleRequest
+    await freshRequest
+    assert.strictEqual(
+      store.getCachedQuotaSnapshots(account)?.get('chat')?.usedRequests,
+      80
+    )
   })
 })
 

@@ -8055,15 +8055,23 @@ export class Dispatcher {
 
   /** Set the selected Copilot model for a specific feature. */
   public setSelectedCopilotModel(
+    account: Account,
     feature: CopilotFeature,
     model: string | null
   ) {
-    return this.appStore._setSelectedCopilotModel(feature, model)
+    return this.appStore._setSelectedCopilotModel(account, feature, model)
   }
 
   /** Replace all per-feature Copilot model selections at once. */
   public setSelectedCopilotModels(models: CopilotModelSelections) {
     return this.appStore._setSelectedCopilotModels(models)
+  }
+
+  /** Replace all account-scoped Copilot model selections at once. */
+  public setSelectedCopilotModelsByAccount(
+    models: ReadonlyMap<string, CopilotModelSelections>
+  ) {
+    return this.appStore._setSelectedCopilotModelsByAccount(models)
   }
 
   public setAlwaysUseCopilotForConflictResolution(value: boolean): void {
@@ -8073,6 +8081,11 @@ export class Dispatcher {
   /** Fetch the list of available Copilot models from the SDK. */
   public fetchCopilotModels(): Promise<void> {
     return this.appStore._fetchCopilotModels()
+  }
+
+  /** Fetch the account-scoped Copilot quota snapshots. */
+  public fetchCopilotQuotaSnapshots(): Promise<void> {
+    return this.appStore._fetchCopilotQuotaSnapshots()
   }
 
   /**

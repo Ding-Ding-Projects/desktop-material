@@ -365,6 +365,7 @@ import memoizeOne from 'memoize-one'
 import { AheadBehindStore } from '../lib/stores/ahead-behind-store'
 import {
   getAccountForCommitMessageGeneration,
+  getAccountForCopilotConflictResolution,
   getAccountForRepository,
 } from '../lib/get-account-for-repository'
 import { CommitOneLine } from '../models/commit'
@@ -4949,7 +4950,16 @@ export class App extends React.Component<IAppProps, IAppState> {
             underlineLinks={this.state.underlineLinks}
             showDiffCheckMarks={this.state.showDiffCheckMarks}
             selectedCopilotModels={this.state.selectedCopilotModels}
+            selectedCopilotModelsByAccount={
+              this.state.selectedCopilotModelsByAccount
+            }
             copilotModels={this.state.copilotModels}
+            copilotModelsByAccount={this.state.copilotModelsByAccount}
+            copilotQuotaSnapshots={this.state.copilotQuotaSnapshots}
+            copilotQuotaSnapshotsByAccount={
+              this.state.copilotQuotaSnapshotsByAccount
+            }
+            copilotQuotaStatesByAccount={this.state.copilotQuotaStatesByAccount}
             byokProviders={this.state.byokProviders}
             alwaysUseCopilotForConflictResolution={
               this.state.alwaysUseCopilotForConflictResolution
@@ -6205,8 +6215,28 @@ export class App extends React.Component<IAppProps, IAppState> {
               this.state.copilotConflictResolutionClickCount === 0
             }
             copilotConflictResolutionModel={getConflictResolutionModelDisplay(
-              this.state.selectedCopilotModels['conflict-resolution'] ?? null,
-              this.state.copilotModels,
+              (() => {
+                const account = getAccountForCopilotConflictResolution(
+                  this.state.accounts,
+                  popup.repository
+                )
+                return account === null || account === undefined
+                  ? null
+                  : this.state.selectedCopilotModelsByAccount.get(
+                      `${account.id}:${account.endpoint}`
+                    )?.['conflict-resolution'] ?? null
+              })(),
+              (() => {
+                const account = getAccountForCopilotConflictResolution(
+                  this.state.accounts,
+                  popup.repository
+                )
+                return account === null || account === undefined
+                  ? this.state.copilotModels
+                  : this.state.copilotModelsByAccount.get(
+                      `${account.id}:${account.endpoint}`
+                    ) ?? null
+              })(),
               this.state.byokProviders
             )}
             openFileInExternalEditor={this.openFileInExternalEditor}
