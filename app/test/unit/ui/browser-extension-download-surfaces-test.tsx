@@ -102,4 +102,67 @@ describe('BrowserExtensionDownloadSurfaces', () => {
     assert.ok(close)
     assert.equal(fireEvent.click(close), false)
   })
+
+  it('confirms native form and Enter-key submission', () => {
+    let confirmed = 0
+    const view = render(
+      <BrowserExtensionDownloadSurfaces
+        {...props({
+          progress: {
+            request,
+            phase: 'awaiting-confirmation',
+            downloadedBytes: 0,
+            totalBytes: 10,
+            bytesPerSecond: null,
+            error: null,
+          },
+          onConfirm: () => {
+            confirmed++
+          },
+        })}
+      />
+    )
+
+    const form = view.container.querySelector('form')
+    const confirm = view.container.querySelector<HTMLButtonElement>(
+      '.button-group button[type="submit"]'
+    )
+    assert.ok(form)
+    assert.ok(confirm)
+
+    fireEvent.submit(form)
+    assert.equal(confirmed, 1)
+
+    fireEvent.keyDown(confirm, { key: 'Enter', code: 'Enter' })
+    // A browser dispatches a submit after an Enter key in the form. Trigger
+    // that native follow-up explicitly because jsdom does not synthesize it.
+    fireEvent.submit(form)
+    assert.equal(confirmed, 2)
+  })
+
+  it('dismisses terminal states through native form submission', () => {
+    let dismissed = 0
+    const view = render(
+      <BrowserExtensionDownloadSurfaces
+        {...props({
+          progress: {
+            request,
+            phase: 'completed',
+            downloadedBytes: 10,
+            totalBytes: 10,
+            bytesPerSecond: null,
+            error: null,
+          },
+          onDismissCompleted: () => {
+            dismissed++
+          },
+        })}
+      />
+    )
+
+    const form = view.container.querySelector('form')
+    assert.ok(form)
+    fireEvent.submit(form)
+    assert.equal(dismissed, 1)
+  })
 })

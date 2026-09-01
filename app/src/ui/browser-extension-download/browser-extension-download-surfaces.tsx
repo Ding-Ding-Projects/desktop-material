@@ -102,6 +102,7 @@ export function BrowserExtensionDownloadSurfaces(
       <Dialog
         title={t('browserDownload.start.title')}
         onDismissed={actions.cancelBeforeStart}
+        onSubmit={actions.confirm}
         emojiDecoration="progress"
       >
         <DialogContent>
@@ -194,6 +195,7 @@ export function BrowserExtensionDownloadSurfaces(
       <Dialog
         title={t('browserDownload.completed.title')}
         onDismissed={actions.dismissCompleted}
+        onSubmit={actions.dismissCompleted}
         emojiDecoration="success"
       >
         <DialogContent>
@@ -223,6 +225,7 @@ export function BrowserExtensionDownloadSurfaces(
       <Dialog
         title={t('browserDownload.canceled.title')}
         onDismissed={actions.dismissCompleted}
+        onSubmit={actions.dismissCompleted}
         emojiDecoration="information"
       >
         <DialogContent>
@@ -247,6 +250,7 @@ export function BrowserExtensionDownloadSurfaces(
       title={t('browserDownload.failed.title')}
       type="error"
       onDismissed={actions.dismissCompleted}
+      onSubmit={actions.dismissCompleted}
     >
       <DialogContent>
         <p>{progress.error ?? t('browserDownload.failed.body')}</p>
