@@ -1,15 +1,56 @@
 import assert from 'node:assert'
-import { describe, it } from 'node:test'
+import { afterEach, beforeEach, describe, it } from 'node:test'
 import * as React from 'react'
 
 import { DeleteTag } from '../../../src/ui/delete-tag/delete-tag-dialog'
 import { CreateTag } from '../../../src/ui/create-tag/create-tag-dialog'
+import { DialogStackContext } from '../../../src/ui/dialog'
 import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
 
-const repository = {} as never
+const repository = { gitHubRepository: null, name: 'tag-test' } as never
+const dialogPrototype = HTMLDialogElement.prototype
+const originalShow = dialogPrototype.show
+const originalShowModal = dialogPrototype.showModal
+const originalClose = dialogPrototype.close
+
+beforeEach(() => {
+  dialogPrototype.show = function () {
+    this.setAttribute('open', '')
+  }
+  dialogPrototype.showModal = function () {
+    this.setAttribute('open', '')
+  }
+  dialogPrototype.close = function () {
+    this.removeAttribute('open')
+  }
+})
+
+afterEach(() => {
+  dialogPrototype.show = originalShow
+  dialogPrototype.showModal = originalShowModal
+  dialogPrototype.close = originalClose
+})
+
+async function allowDialogToAppear() {
+  await new Promise(resolve => setTimeout(resolve, 300))
+}
+
+function renderDialog(element: React.ReactElement) {
+  return render(
+    <DialogStackContext.Provider value={{ isTopMost: true }}>
+      {element}
+    </DialogStackContext.Provider>
+  )
+}
+
+function getDialogForm(): HTMLFormElement {
+  const form = screen.getByRole('alertdialog').querySelector('form')
+  assert.ok(form)
+  return form
+}
 
 describe('tag dialogs safety', () => {
-  it('requires both keys and the full range before deleting the exact tag', () => {
+  it('requires both keys and the full range before deleting the exact tag', async () => {
     let deletes = 0
     const dispatcher = {
       deleteTag: async () => {
@@ -17,7 +58,7 @@ describe('tag dialogs safety', () => {
       },
     } as never
 
-    render(
+    renderDialog(
       <DeleteTag
         dispatcher={dispatcher}
         repository={repository}
@@ -25,8 +66,11 @@ describe('tag dialogs safety', () => {
         onDismissed={() => undefined}
       />
     )
+    await allowDialogToAppear()
 
     const dialog = screen.getByRole('alertdialog')
+    const dialogForm = dialog.querySelector('form')
+    assert.ok(dialogForm)
     const checks = screen.getAllByRole('checkbox')
     const slider = screen.getByRole('slider') as HTMLInputElement
     const submit = screen.getByRole('button', { name: 'Delete tag' })
@@ -34,14 +78,14 @@ describe('tag dialogs safety', () => {
     assert.equal(slider.disabled, true)
     assert.equal(submit.getAttribute('aria-disabled'), 'true')
 
-    fireEvent.submit(dialog)
+    fireEvent.submit(dialogForm)
     assert.equal(deletes, 0)
     fireEvent.click(checks[0])
     fireEvent.click(checks[1])
     fireEvent.change(slider, { target: { value: '99' } })
     assert.equal(deletes, 0)
     fireEvent.change(slider, { target: { value: '100' } })
-    fireEvent.submit(dialog)
+    fireEvent.submit(dialogForm)
     assert.equal(deletes, 1)
   })
 
@@ -56,7 +100,7 @@ describe('tag dialogs safety', () => {
       },
     } as never
 
-    render(
+    renderDialog(
       <CreateTag
         dispatcher={dispatcher}
         repository={repository}
@@ -65,6 +109,7 @@ describe('tag dialogs safety', () => {
         onDismissed={() => undefined}
       />
     )
+    await allowDialogToAppear()
 
     const input = screen.getByLabelText('Name')
     fireEvent.change(input, { target: { value: 'release-1' } })
@@ -76,5 +121,61 @@ describe('tag dialogs safety', () => {
     assert.match(screen.getByRole('alert').textContent ?? '', /unavailable/)
     fireEvent.submit(form)
     await waitFor(() => assert.equal(attempts, 2))
+  })
+
+  it('blocks delete rejection without losing authorization and supports retry', async () => {
+    let attempts = 0
+    const dispatcher = {
+      deleteTag: async () => {
+        attempts++
+        if (attempts === 1) {
+          throw new Error('delete service unavailable')
+        }
+      },
+    } as never
+    let dismissed = 0
+
+    renderDialog(
+      <DeleteTag
+        dispatcher={dispatcher}
+        repository={repository}
+        tagName="release-1"
+        onDismissed={() => dismissed++}
+      />
+    )
+    await allowDialogToAppear()
+    const checks = screen.getAllByRole('checkbox')
+    const slider = screen.getByRole('slider')
+    fireEvent.click(checks[0])
+    fireEvent.click(checks[1])
+    fireEvent.change(slider, { target: { value: '100' } })
+    fireEvent.submit(getDialogForm())
+    await waitFor(() => assert.equal(attempts, 1))
+    assert.equal(dismissed, 0)
+    assert.match(screen.getByRole('alert').textContent ?? '', /unavailable/)
+    fireEvent.submit(getDialogForm())
+    await waitFor(() => assert.equal(attempts, 2))
+    await waitFor(() => assert.equal(dismissed, 1))
+  })
+
+  it('uses Emergency exit and Escape without deleting or leaving stale authorization', async () => {
+    let deletes = 0
+    let dismissed = 0
+    const dispatcher = { deleteTag: async () => deletes++ } as never
+    renderDialog(
+      <DeleteTag
+        dispatcher={dispatcher}
+        repository={repository}
+        tagName="release-1"
+        onDismissed={() => dismissed++}
+      />
+    )
+    await allowDialogToAppear()
+    const checks = screen.getAllByRole('checkbox')
+    fireEvent.click(checks[0])
+    fireEvent.click(checks[1])
+    fireEvent.keyDown(screen.getByRole('alertdialog'), { key: 'Escape' })
+    assert.equal(deletes, 0)
+    assert.equal(dismissed, 1)
   })
 })
