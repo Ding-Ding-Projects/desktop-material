@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as Path from 'path'
 import { Dispatcher } from '../dispatcher'
+import { Branch } from '../../models/branch'
 import { Repository, SubmoduleRepository } from '../../models/repository'
 import { ToolbarDropdown, DropdownState } from './dropdown'
 import { FoldoutType, IConstrainedValue } from '../../lib/app-state'
@@ -8,7 +9,10 @@ import {
   WorktreeEntry,
   WorktreeMaintenanceOperation,
 } from '../../models/worktree'
-import { WorktreeList } from '../worktrees/worktree-list'
+import {
+  getMergeBranchForWorktree,
+  WorktreeList,
+} from '../worktrees/worktree-list'
 import { showContextualMenu, IMenuItem } from '../../lib/menu-item'
 import { generateWorktreeContextMenuItems } from '../worktrees/worktree-list-item-context-menu'
 import { openRepositoryInNewWindow } from '../main-process-proxy'
@@ -31,6 +35,51 @@ interface IWorktreeDropdownProps {
 
 interface IWorktreeDropdownState {
   readonly filterText: string
+}
+
+interface IWorktreeDropdownContextMenuActions {
+  readonly onRenameWorktree?: (path: string) => void
+  readonly onRemoveWorktree?: (path: string) => void
+  readonly onLockWorktree?: (path: string) => void
+  readonly onUnlockWorktree?: (path: string) => void
+  readonly onMergeWorktree?: (branch: Branch) => void
+  readonly onOpenInNewWindow?: () => void
+}
+
+export interface IWorktreeMergeDispatcher {
+  readonly closeFoldout: (foldout: FoldoutType) => void
+  readonly startMergeBranchOperation: (
+    repository: Repository,
+    isSquash: boolean,
+    initialBranch: Branch
+  ) => void
+}
+
+export function generateWorktreeDropdownContextMenuItems(
+  worktree: WorktreeEntry,
+  currentWorktreePath: string,
+  actions: IWorktreeDropdownContextMenuActions
+): ReadonlyArray<IMenuItem> {
+  const mergeBranch = getMergeBranchForWorktree(
+    worktree,
+    worktree.path === currentWorktreePath
+  )
+  return generateWorktreeContextMenuItems({
+    path: worktree.path,
+    isMainWorktree: worktree.type === 'main',
+    isLocked: worktree.isLocked,
+    mergeBranch,
+    ...actions,
+  })
+}
+
+export function startWorktreeMergeFromMenu(
+  dispatcher: IWorktreeMergeDispatcher,
+  repository: Repository,
+  branch: Branch
+): void {
+  dispatcher.closeFoldout(FoldoutType.Worktree)
+  dispatcher.startMergeBranchOperation(repository, false, branch)
 }
 
 export class WorktreeDropdown extends React.Component<
@@ -57,16 +106,18 @@ export class WorktreeDropdown extends React.Component<
   ) => {
     event.preventDefault()
 
-    const items = generateWorktreeContextMenuItems({
-      path: worktree.path,
-      isMainWorktree: worktree.type === 'main',
-      isLocked: worktree.isLocked,
-      onRenameWorktree: this.onRenameWorktree,
-      onRemoveWorktree: this.onRemoveWorktree,
-      onLockWorktree: this.onLockWorktree,
-      onUnlockWorktree: this.onUnlockWorktree,
-      onOpenInNewWindow: () => this.onOpenWorktreeInNewWindow(worktree.path),
-    })
+    const items = generateWorktreeDropdownContextMenuItems(
+      worktree,
+      this.props.repository.path,
+      {
+        onMergeWorktree: this.onMergeWorktree,
+        onRenameWorktree: this.onRenameWorktree,
+        onRemoveWorktree: this.onRemoveWorktree,
+        onLockWorktree: this.onLockWorktree,
+        onUnlockWorktree: this.onUnlockWorktree,
+        onOpenInNewWindow: () => this.onOpenWorktreeInNewWindow(worktree.path),
+      }
+    )
 
     showContextualMenu(items)
   }
@@ -91,6 +142,14 @@ export class WorktreeDropdown extends React.Component<
   private onRemoveWorktree = (path: string) => {
     this.props.dispatcher.closeFoldout(FoldoutType.Worktree)
     this.props.dispatcher.requestDeleteWorktree(this.props.repository, path)
+  }
+
+  private onMergeWorktree = (branch: Branch) => {
+    startWorktreeMergeFromMenu(
+      this.props.dispatcher,
+      this.props.repository,
+      branch
+    )
   }
 
   private onLockWorktree = (path: string) => {

@@ -71,6 +71,10 @@ Wiki 而家亦都有一層視覺學習材料：八張標註嘅工作流程圖（
 | --- |
 | <img src="../assets/screenshots/not-updated-with-main-filter.png" alt="Merge into main chooser with Not updated with main active, showing only the stale fixture branch" width="720"><br><sub>Not updated with main · 960×660 client-only hidden-desktop capture · SHA-256 `DA046E4BC768324BAFF001B5DE0C7954F53F1CD498C25338081E8FDB83990346`</sub> |
 
+| Linked worktree right-click menu | Merge preview from the menu |
+| --- | --- |
+| <img src="../assets/screenshots/worktree-context-menu-merge-delete.png" alt="Linked worktree right-click menu showing its action filter, Merge, Delete, and lock actions" width="520"><br><sub>960×660 client-only hidden-desktop capture · SHA-256 `5C8FF8C70E5FC0DF7BAAC2FEE22EB6BFC5EC4CBEB7EF839830BB2CBB2419F180`</sub> | <img src="../assets/screenshots/worktree-merge-preview-from-context-menu.png" alt="Merge into main preview with feature menu-actions selected and one commit ready for review" width="520"><br><sub>960×660 client-only hidden-desktop capture · SHA-256 `2F5B3E8E56BDF2F7B09B98C81B3CB703D4D2CAFD23B9474ACE4F30AFAA791F59`</sub> |
+
 ## Historical Linux terminal captures / 歷史 Linux 終端機擷取
 
 Five original-resolution Debian/Xvfb captures remain preserved with their

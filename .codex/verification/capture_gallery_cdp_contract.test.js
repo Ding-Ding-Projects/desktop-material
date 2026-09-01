@@ -891,7 +891,7 @@ test('capture-only tooltip suppression is removed before disconnect', () => {
   assert.ok(cleanup < close)
 })
 
-test('canonical and promoted specialist batches own all 96 published images exactly once', () => {
+test('canonical and promoted specialist batches own all 98 published images exactly once', () => {
   const scenes = frozenStringArray('CanonicalGalleryScenes')
   const outputs = frozenStringArray('CanonicalGalleryOutputs')
   const publishedCanonical = outputs.filter(
@@ -917,19 +917,24 @@ test('canonical and promoted specialist batches own all 96 published images exac
   assert.deepEqual(DeferredCanonicalOutputs, [
     'material-cheap-lfs-preparing',
     'material-repositories-sheet',
+    'material-worktree-force-mat-day',
   ])
   assert.deepEqual(DeferredSpecialistOutputs, [])
-  assert.equal(publishedCanonical.length, 67)
-  assert.equal(specialistOutputs.length, 29)
-  assert.equal(new Set(specialistOutputs).size, 29)
-  assert.equal(publishedSpecialistOutputs.length, 29)
+  assert.equal(publishedCanonical.length, 66)
+  assert.equal(specialistOutputs.length, 32)
+  assert.equal(new Set(specialistOutputs).size, 32)
+  assert.equal(publishedSpecialistOutputs.length, 32)
   assert.ok(specialistOutputs.includes('auto-updater-current-source-ready'))
   assert.ok(specialistOutputs.includes('material-publish-organization-picker'))
   assert.ok(!specialistOutputs.includes('auto-updater-update-ready'))
-  assert.equal(ExpectedPublishedGalleryCount, 96)
+  assert.ok(specialistOutputs.includes('worktree-context-menu-merge-delete'))
+  assert.ok(
+    specialistOutputs.includes('worktree-merge-preview-from-context-menu')
+  )
+  assert.equal(ExpectedPublishedGalleryCount, 98)
   assert.equal(PublishedGalleryOutputs.length, ExpectedPublishedGalleryCount)
-  assert.equal(new Set(PublishedGalleryOutputs).size, 96)
-  assert.equal(GalleryCapturePlan.length, 96)
+  assert.equal(new Set(PublishedGalleryOutputs).size, 98)
+  assert.equal(GalleryCapturePlan.length, 98)
   assert.deepEqual(
     [...expectedCatalog].sort(),
     [...PublishedGalleryOutputs].sort()

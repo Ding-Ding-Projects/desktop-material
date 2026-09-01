@@ -1,5 +1,44 @@
 # Desktop Material — Active parity handoff
 
+## Linked worktree Merge and Delete context actions -- 2026-09-01
+
+The linked-worktree row context menu now offers **Merge…** when the target has
+an attached local branch, known status, and is not current, locked, or
+prunable. The action closes the worktree foldout and opens the existing reviewed
+merge flow with that branch preselected. **Delete…** remains separate, uses the
+existing non-force removal request, and stays unavailable for the main or a
+locked worktree. Merging never implicitly removes the worktree.
+
+Focused verification passed: `multi-window-context-menu-test.ts` reported 7 of
+7 tests, including the exact foldout-close and dispatcher arguments;
+TypeScript, changed-file ESLint, Prettier, and `git diff --check` passed. The
+merge-item negative regression failed at 5 of 6 and returned to 6 of 6 after
+restoration, before the dispatcher test raised the final count to 7. The real
+development build completed in 337.36 seconds through the cheap Lowlevel
+headless route. A disposable `main` plus
+`feature/menu-actions` fixture produced two inspected 960×660 client-only
+captures:
+
+- `docs/assets/screenshots/worktree-context-menu-merge-delete.png`, SHA-256
+  `5C8FF8C70E5FC0DF7BAAC2FEE22EB6BFC5EC4CBEB7EF839830BB2CBB2419F180`.
+- `docs/assets/screenshots/worktree-merge-preview-from-context-menu.png`,
+  SHA-256
+  `2F5B3E8E56BDF2F7B09B98C81B3CB703D4D2CAFD23B9474ACE4F30AFAA791F59`.
+
+The screenshot registry's pre-existing personal-vocabulary output mismatch was
+reconciled to its two already-published images. The separate canonical output
+`material-worktree-force-mat-day` had no tracked PNG and remains explicitly
+deferred rather than being fabricated or copied from another surface. The
+normal generator then produced one page for every tracked PNG plus its index,
+with 98 of 98 published gallery outputs. The focused menu/gallery documentation
+run passed 45 of 45 tests, and the capture-plan contract passed 60 of 60 tests.
+
+The repository-wide Markdown lint command still reports its existing 694
+findings across the long-standing feature article and user guide. The focused
+new prose is Prettier-clean. The task implementation lives on
+`codex/worktree-context-menu-actions` until the automatic `main` integration,
+remote proof, and task-owned cleanup complete.
+
 ## Remaining plain HTML controls converted to shared Material primitives — 2026-08-22
 
 A six-lane fleet sweep classified every raw `button`/`input`/`select`/`textarea`

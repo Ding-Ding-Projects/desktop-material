@@ -1,5 +1,18 @@
 # Desktop Material roadmap
 
+## September 1 -- linked worktree context-menu operations
+
+- [x] Add **Merge…** to an eligible linked worktree's right-click menu and
+  preselect that exact local branch in the existing reviewed merge flow.
+- [x] Keep **Delete…** as a separate guarded, non-force action that stays
+  unavailable for the main or locked worktree.
+- [x] Cover exact merge forwarding, missing merge inputs, exact deletion, and
+  protected targets with a focused red-then-green regression.
+- [x] Build the real Windows application and capture the menu plus merge preview
+  on an isolated off-screen desktop.
+- [ ] Integrate the verified task branch into `main`, push it, and prove the
+  remote `main` ref contains the task commit.
+
 ## August 22 — shared Material control conformance sweep
 
 - [x] Sweep every renderer surface for raw `button`/`input`/`select`/`textarea`
