@@ -1,5 +1,22 @@
 # Desktop Material roadmap
 
+## August 28 - upstream synchronization ledger
+
+- [x] Enumerate the exact 112 non-merge, patch-equivalent records from
+  origin/main...upstream/development at the refreshed origin and upstream tips.
+- [x] Record 108 unique patch effects, duplicate records, the reverted
+  Error-normalization detour, release-only history, workflow-policy records,
+  dependency re-resolution, and macOS out-of-scope work.
+- [x] Record the frozen GUI hard rule and the history that prohibits shell
+  redesign or retired-shell import while allowing control-level repairs.
+- [x] Link every upstream SHA to its exact source commit, record one refreshed
+  disposition and open issue status for every row, and add the executable
+  ledger completeness check.
+- [x] Prove the ledger check red on a missing source-link row and green after
+  restoring the row.
+- [ ] Apply each compatible adapt row in its bounded implementation lane and
+  attach its implementation SHA and focused Chut receipt to the ledger.
+
 ## August 22 — shared Material control conformance sweep
 
 - [x] Sweep every renderer surface for raw `button`/`input`/`select`/`textarea`

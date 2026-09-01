@@ -1,5 +1,61 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-28 upstream synchronization ledger
+
+The upstream ledger milestone is recorded in
+docs/verification/upstream-sync-2026-08-28/README.md. The refreshed command
+git log --right-only --cherry-pick --no-merges --format="%H%x09%s" origin/main...upstream/development
+returned 112 non-merge records at origin/main
+83c91f6964cc1799fcc7e1d4fcd23f90e5e017f6 and upstream/development
+b17e06dd0f0d9a45807eb39a51d223f52eb14da9, from merge base
+d9080117b1fd01193d3eee51ae243714468c8176. The table has rows 001-112
+exactly once and records 108 unique patch effects. Rows 094-097 are explicitly marked as
+duplicates of rows 078, 080, 081, and 082. Rows 033-034 record the
+Error-normalization change and its upstream revert as net-zero history.
+
+The source-link and disposition index has 112 exact upstream commit links,
+112 refreshed dispositions, and 112 links to the open parent issue #212. The
+disposition counts are two ported, three already-equivalent, one superseded by
+stronger local behavior, 27 inapplicable because of platform/scope, six
+reverted-history duplicates, and 73 genuinely blocked in parent implementation
+lanes. This ledger lane did not port product code.
+
+The ledger also records the hard GUI boundary established by commits
+427029d9bc8c86283962b6f02027ce8e400c251d,
+f3f29f6ef0b5803db68e8f8d1199d2b922ae820a,
+3abcee9015145a1d1346022f4673922f625752d5,
+970570b1afd5dc2baebee9c66d6d79f36e060e62,
+8f364cfaf45665face921cb04afed5ac883ba22f,
+ed2f49c68ae4f756fd3a461028061644d1816eca,
+0d04ec40f5989606f7e745c6c0f25f71a9172017, and
+2a211b87a11eb2c0fe36f5fcda6fe1555912a429. The current GUI remains the
+deliberately restored Lang gui presentation. This milestone permits compatible
+behavior and control-level repairs only. It does not authorize shell redesign,
+screen reconstruction, navigation replacement, or retired-shell import.
+
+Verification for this milestone:
+
+- The refreshed source range count is 112.
+- The hand-written table has 112 numbered rows and the source-link index has
+  112 numbered rows.
+- Every row includes source SHA, subject, subsystem, disposition, and local
+  evidence or intended implementation lane.
+- Every source SHA is linked to its exact upstream commit and every row carries
+  the open parent issue status.
+- `docs/verification/upstream-sync-2026-08-28/check-ledger.ps1` was watched fail
+  on a temporary copy with row 112 removed (`source-link index has 111 rows,
+  expected 112`), then restored and returned `PASS: 112 source records, 112
+  unique patch effects indexed with exact links and issue status.`
+- The ledger has no external links requiring resolution beyond the exact source
+  commit and parent issue links, and uses no generated line count.
+- Open issue scan: issues #215 and #212 are open on this Oak Kay. The upstream
+  Oak Kay scan found 1,004 open issues. No issue was changed because this lane
+  only records source history and does not port product code.
+
+Remaining work is intentionally implementation-owned by the parent integration
+lanes. This handoff does not claim that the compatible adapt rows have landed,
+that their focused Chuts are green, or that a release has been produced.
+
 ## Remaining plain HTML controls converted to shared Material primitives — 2026-08-22
 
 A six-lane fleet sweep classified every raw `button`/`input`/`select`/`textarea`
