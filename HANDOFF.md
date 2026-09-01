@@ -9,16 +9,18 @@ returned 112 non-merge records at origin/main
 83c91f6964cc1799fcc7e1d4fcd23f90e5e017f6 and upstream/development
 b17e06dd0f0d9a45807eb39a51d223f52eb14da9, from merge base
 d9080117b1fd01193d3eee51ae243714468c8176. The table has rows 001-112
-exactly once and records 108 unique patch effects. Rows 094-097 are explicitly marked as
-duplicates of rows 078, 080, 081, and 082. Rows 033-034 record the
+exactly once and records 108 unique stable patch IDs. The duplicate patch
+pairs are 078/094, 080/095, 081/096, and 082/097. Rows 033-034 record the
 Error-normalization change and its upstream revert as net-zero history.
 
 The source-link and disposition index has 112 exact upstream commit links,
-112 refreshed dispositions, and 112 links to the open parent issue #212. The
-disposition counts are two ported, three already-equivalent, one superseded by
+112 refreshed dispositions, and 112 links to the open parent issue #212. Issue
+#215 remains a separate active lane; none of these source rows overlaps its
+single-flight or canonical-feature work, so no row is assigned to #215. The
+disposition counts are two locally ported but unintegrated adaptations, three already-equivalent, one superseded by
 stronger local behavior, 27 inapplicable because of platform/scope, six
-reverted-history duplicates, and 73 genuinely blocked in parent implementation
-lanes. This ledger lane did not port product code.
+reverted-history duplicates, and 73 review-required follow-ups in parent
+implementation lanes. This ledger lane did not port product code.
 
 The ledger also records the hard GUI boundary established by commits
 427029d9bc8c86283962b6f02027ce8e400c251d,
@@ -29,32 +31,37 @@ f3f29f6ef0b5803db68e8f8d1199d2b922ae820a,
 ed2f49c68ae4f756fd3a461028061644d1816eca,
 0d04ec40f5989606f7e745c6c0f25f71a9172017, and
 2a211b87a11eb2c0fe36f5fcda6fe1555912a429. The current GUI remains the
-deliberately restored Lang gui presentation. This milestone permits compatible
+deliberately restored Material Design 3 presentation. This milestone permits compatible
 behavior and control-level repairs only. It does not authorize shell redesign,
 screen reconstruction, navigation replacement, or retired-shell import.
 
 Verification for this milestone:
 
-- The refreshed source range count is 112.
+- The refreshed source range count is 112, with 108 unique stable patch IDs.
 - The hand-written table has 112 numbered rows and the source-link index has
-  112 numbered rows.
+  112 numbered rows. Duplicate patch IDs are paired exactly as 078/094,
+  080/095, 081/096, and 082/097.
 - Every row includes source SHA, subject, subsystem, disposition, and local
   evidence or intended implementation lane.
 - Every source SHA is linked to its exact upstream commit and every row carries
   the open parent issue status.
 - `docs/verification/upstream-sync-2026-08-28/check-ledger.ps1` was watched fail
   on a temporary copy with row 112 removed (`source-link index has 111 rows,
-  expected 112`), then restored and returned `PASS: 112 source records, 112
-  unique patch effects indexed with exact links and issue status.`
+expected 112`), then restored and returned `PASS: 112 source records, 108
+unique stable patch IDs, four exact duplicate pairs, and all disposition,
+evidence, URL, baseline, and issue assertions are valid.`
 - The ledger has no external links requiring resolution beyond the exact source
   commit and parent issue links, and uses no generated line count.
-- Open issue scan: issues #215 and #212 are open on this Oak Kay. The upstream
-  Oak Kay scan found 1,004 open issues. No issue was changed because this lane
+- Boundary-aware scan of all non-exempt private aliases from the canonical
+  dictionary returned `PUBLIC_VOCABULARY_SCAN=PASS (0 non-exempt aliases)` for
+  the four lane files.
+- Open issue scan: issues #215 and #212 are open on this repository. The upstream
+  repository scan found 1,004 open issues. No issue was changed because this lane
   only records source history and does not port product code.
 
 Remaining work is intentionally implementation-owned by the parent integration
-lanes. This handoff does not claim that the compatible adapt rows have landed,
-that their focused Chuts are green, or that a release has been produced.
+lanes. This handoff does not claim that the review-required rows have landed,
+that their focused checks are green, or that a release has been produced.
 
 ## Remaining plain HTML controls converted to shared Material primitives — 2026-08-22
 
@@ -503,12 +510,12 @@ functional, or verified.
 The focused contract source now validates the exact canonical ID order and
 dimension set, checks repository-relative paths for claimed-present records,
 requires reasons for pending/blocked records, and reports a separate
-completion verdict. Its dedicated completion Chut asserts `complete === true`
+completion verdict. Its dedicated completion check asserts `complete === true`
 and prints the exact pending, blocked, or missing-path errors; it is expected
 to be red until the deferred evidence is filled. Its row-by-row mutation
 coverage removes each dimension and mutates either a claimed path or a pending
 reason, so a broad template or commented-out placeholder cannot satisfy the
-contract. The current Chut is intentionally red because the ultra-speed pass
+contract. The current check is intentionally red because the ultra-speed pass
 did not run tests, built-artifact interactions, captures, reviews, audits,
 builds, or packaging.
 
@@ -544,7 +551,7 @@ new checkbox remains outstanding.
 ## Personal vocabulary dynamic-entry repair — 2026-08-20
 
 - The upload parser again accepts the documented canonical `schemaVersion`/`entries` payload and keeps older `schemaVersion`/`terms` and `version`/`terms` cache records readable.
-- The focused unit Chut builds 47 distinct mappings, confirms the parsed map keeps all 47, and confirms one replacement pass applies all 47 rather than stopping at the former payload count.
+- The focused unit check builds 47 distinct mappings, confirms the parsed map keeps all 47, and confirms one replacement pass applies all 47 rather than stopping at the former payload count.
 - Directly affected files: `app/src/lib/personal-vocabulary.ts`, `app/src/ui/preferences/personal-vocabulary-control.tsx`, `app/test/unit/personal-vocabulary-test.ts`, and `docs/features/design-system/personal-vocabulary.md`.
 
 ## Eighteen defects, five hunts — 2026-08-19
@@ -1442,7 +1449,7 @@ behavior, failure modes, security notes, and verification record are in
 `docs/features/quality-and-reliability/renderer-startup-bundle-safety.md` and
 `.codex/run-manifests/2026-08-06-blank-startup.md`.
 
-The source branch still needs its commit, dew, default-branch integration, and
+The source branch still needs its commit, push, default-branch integration, and
 remote CI result before this handoff is complete.
 
 ## 2026-08-06 — Verify Super Express on the self-hosted pool
@@ -1903,7 +1910,7 @@ passed, 0 failed**. The repository wrapper's additional `--conditions=import`
 flag is not used for this proof because its current `tsx` loader path changes
 the `whatwg-encoding` JSON import shape before the test can start.
 
-The dewed integrated tip was `bc63986119e2c71cc28d98e1465c9c8501c25f58`.
+The pushed integrated tip was `bc63986119e2c71cc28d98e1465c9c8501c25f58`.
 Its current-SHA remote evidence is recorded precisely: `Deploy Pages` run
 [31056983826](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31056983826)
 passed; **CI Windows run
@@ -2087,7 +2094,7 @@ contract.
 ## 2026-08-03 — App fixes: repository list, Cheap LFS, local Actions, CI
 
 A session of defect work across the app and the test harness. Everything below
-is on `main` and dewed; the one item that is *not* finished is named at the end
+is on `main` and pushed; the one item that is *not* finished is named at the end
 rather than left for someone to discover.
 
 **The Repositories list rendered nothing while holding repositories.**
@@ -2229,7 +2236,7 @@ on the first merge after it shipped.
 
 | Item | Outcome |
 | --- | --- |
-| `codex/revive-linux-tui` + its worktree | **Deleted** after its tip was proved an ancestor of the dewed `origin/main` |
+| `codex/revive-linux-tui` + its worktree | **Deleted** after its tip was proved an ancestor of the pushed `origin/main` |
 | `origin/claude/pensive-visvesvaraya-e86ef2` | **Deleted** — proved already an ancestor of `origin/main` |
 | Nine `dependabot/**` branches | **Kept.** Each backs an open pull request (#137–#145). Deleting them closes those PRs, and they are neither agent task branches nor merged |
 | Stashes | None existed |
@@ -2240,7 +2247,7 @@ on the first merge after it shipped.
 
 Three separate agents committed into this working tree during the session. One
 of them swept an earlier task's staged `git rm` deletions into its own commits
-(`ba452e4017`, `dbea7be82f`) and dewed them, briefly leaving `main` publishing
+(`ba452e4017`, `dbea7be82f`) and pushed them, briefly leaving `main` publishing
 the old homepage with its stylesheet and both Cheap LFS pages deleted.
 **Stage explicit paths, never `git add -A`, and re-read `git log` before
 committing** — the index may not still be yours.
@@ -2291,7 +2298,7 @@ and the appearance editor applying and persisting per element.
 
 **Concurrency note.** Two commits made by another agent in this same checkout —
 `ba452e4017` and `dbea7be82f` — swept this task's staged `git rm` deletions into
-themselves and were dewed, leaving `main` briefly publishing the old homepage
+themselves and were pushed, leaving `main` briefly publishing the old homepage
 with its stylesheet and both Cheap LFS pages deleted. Commit
 `80d05e73b881d6b2cd4da4f5a99465be5ad2df98` restores a coherent tree. When
 several agents share one working tree, stage explicit paths and re-check
@@ -2384,7 +2391,7 @@ added the following scoped fixes:
   Node test coordinator a 4 GiB heap. The previous `a0d7b4a598` CI run passed
   all 7,238 assertions but died at 318 MiB while the long Agents test batch was
   still emitting its accounting summary; the new workflow change is awaiting
-  its own GitHui run for proof.
+  its own GitHub run for proof.
 
 - The Agents creator now uses the shared modal dialog layer, exposes dialog
   semantics, avoids a nested form, and disables the Options disclosure while
@@ -2429,7 +2436,7 @@ and Electron process must be removed after final evidence is recorded.
 
 ## 2026-08-02 — Session close: 51 commits, all on `main`
 
-**Start here.** Everything below is dewed; `origin/main` contains all of it and
+**Start here.** Everything below is pushed; `origin/main` contains all of it and
 no worktree holds uncommitted work.
 
 ### What landed
@@ -6227,7 +6234,7 @@ job found two pre-existing source-contract regexes that still expected the old
 three-item scroll-owner exception list. The follow-up makes both contracts
 expect the new Cheap LFS exception and also preserves the earlier
 Prettier-tolerant controller assertion. / 首次 push 功能本身過關，但 CI 捉到兩條舊
-regex 仲認住舊 scroll-owner 清單；今次一齊更新，唔畀測試字蝨再扮大佬。
+regex 仲認住舊 scroll-owner 清單；今次一齊更新，唔畀測試字蝨再扮大人物。
 
 ## 2026-07-23 responsive Releases publication and live Bambu checkpoint
 
@@ -10756,7 +10763,7 @@ which is how the gap opened.
   repository list rows and the shell-wide `feature:` / `profile:` appearance
   targets have lock records but no DOM attribute, so their locks still gate
   nothing.
-- No HuiShots have been captured against a built artifact this session, so the
+- No screenshots have been captured against a built artifact this session, so the
   Material 3 button change and both new controls are unverified visually.
 - The empty branch list visible in the reported Branches screenshot was never
   diagnosed; the two layout faults beside it were.
