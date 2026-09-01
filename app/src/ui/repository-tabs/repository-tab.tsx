@@ -469,6 +469,7 @@ export class RepositoryTab extends React.Component<
           // that does nothing for text truncated inside a tab that is visible.
           // The accessible name already carried the full text; a sighted mouse
           // user had nothing.
+          title={this.label}
           aria-label={this.label}
           style={tabTitleStyleToCss(tab.titleStyle)}
           data-context-menu-owner="tab-title-appearance"
