@@ -123,9 +123,9 @@
   flex: none;
   font-size: 12.5px;
   gap: 12px;
-  // 8px of padding either side of a 12.5px label is a 32px row; naming the
-  // floor keeps it a 32px target when a translation renders shorter.
-  min-height: 32px;
+  // The visual anatomy remains the same, but the actual hit area is a full
+  // 40px target so short labels and icon-only rows remain touchable.
+  min-height: 40px;
   padding: 8px 12px;
   text-align: left;
   transition: background-color 180ms cubic-bezier(0.2, 0, 0, 1);

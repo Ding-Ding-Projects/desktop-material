@@ -17,6 +17,11 @@ import {
 } from '../lib/regex-builder/regex-block-model'
 import { RegexGuideSections } from '../lib/regex-builder/regex-builder-guide'
 import { Md3IconButton, Md3TonalButton } from './md3-primitives'
+import {
+  Popover,
+  PopoverAnchorPosition,
+  PopoverDecoration,
+} from '../lib/popover'
 
 /**
  * The MD3 regex builder dialog from `design/History MD3.dc.html` (the
@@ -360,6 +365,15 @@ export interface IMd3RegexBuilderDialogProps {
    */
   readonly targetLabel: string
 
+  /** Stable identity of the search surface this builder edits. */
+  readonly searchSurfaceId?: string
+
+  /** Optional trigger anchor for a non-modal, bounded builder popover. */
+  readonly anchor?: HTMLElement | null
+
+  /** Preferred edge when the builder is anchored to its trigger. */
+  readonly anchorPosition?: PopoverAnchorPosition
+
   /** The pattern the originating field already holds. */
   readonly initialPattern: string
 
@@ -421,6 +435,17 @@ export function Md3RegexBuilderDialog(props: IMd3RegexBuilderDialogProps) {
 
   const instanceId = React.useMemo(() => `md3-regex-${nextInstanceId++}`, [])
   const host = React.useMemo(() => getMd3RegexBuilderPortalHost(), [])
+
+  // A compact viewport cannot hold the builder beside its trigger without
+  // covering that trigger or hiding the token/tester regions. In that one
+  // constrained case the existing centered dialog remains the honest,
+  // bounded fallback. Normal desktop dimensions use Floating UI below.
+  const anchored =
+    props.anchor !== undefined &&
+    props.anchor !== null &&
+    typeof window !== 'undefined' &&
+    window.innerWidth >= 620 &&
+    window.innerHeight >= 560
 
   const [pattern, setPattern] = React.useState(initialPattern)
   const [flags, setFlags] = React.useState<IRegexFlags>(
@@ -613,6 +638,25 @@ export function Md3RegexBuilderDialog(props: IMd3RegexBuilderDialogProps) {
     [onDismissed]
   )
 
+  const onAnchoredOutside = React.useCallback(
+    (event?: MouseEvent) => {
+      // The trigger click that mounts this portal can continue bubbling after
+      // the anchored Popover subscribes to document events. Treat that one
+      // click as belonging to the builder opener, otherwise the builder
+      // appears and immediately dismisses itself on roomy viewports.
+      if (
+        event?.target instanceof Node &&
+        props.anchor !== undefined &&
+        props.anchor !== null &&
+        props.anchor.contains(event.target)
+      ) {
+        return
+      }
+      onDismissed()
+    },
+    [onDismissed, props.anchor]
+  )
+
   if (host === null) {
     return null
   }
@@ -636,10 +680,11 @@ export function Md3RegexBuilderDialog(props: IMd3RegexBuilderDialogProps) {
       <div
         ref={panelRef}
         role="dialog"
-        aria-modal={true}
+        aria-modal={anchored ? false : true}
         aria-labelledby={titleId}
         tabIndex={-1}
         className="md3-regex-builder md3-anim-menu"
+        data-search-surface-id={props.searchSurfaceId}
         onClick={onPanelClick}
         onKeyDown={onPanelKeyDown}
       >
@@ -780,7 +825,24 @@ export function Md3RegexBuilderDialog(props: IMd3RegexBuilderDialogProps) {
     </div>
   )
 
-  return ReactDOM.createPortal(dialog, host)
+  const content = anchored ? (
+    <Popover
+      anchor={props.anchor ?? null}
+      anchorPosition={props.anchorPosition ?? PopoverAnchorPosition.BottomLeft}
+      decoration={PopoverDecoration.Bordered}
+      trapFocus={true}
+      isDialog={false}
+      style={{ zIndex: 50 }}
+      onClickOutside={onAnchoredOutside}
+      onMousedownOutside={onAnchoredOutside}
+    >
+      {dialog.props.children}
+    </Popover>
+  ) : (
+    dialog
+  )
+
+  return ReactDOM.createPortal(content, host)
 }
 
 interface IMd3RegexFlagToggleProps {

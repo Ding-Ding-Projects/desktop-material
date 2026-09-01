@@ -80,6 +80,191 @@ export const MenuKinds: ReadonlyArray<MenuKind> = [
   'guide',
 ]
 
+/**
+ * Hand-written completeness inventory for concrete menu overlays.
+ *
+ * The generic `md3-menu-filter` registry entry records the shared control,
+ * but it cannot prove that every menu kind carries a distinct instance-owned
+ * query and builder. Keep this list literal so removing one kind makes the
+ * registry contract fail instead of shrinking the list it derives.
+ */
+export interface IMd3MenuOverlayCompletenessRegistration {
+  readonly kind: MenuKind
+  readonly implementation: 'Md3MenuOverlay'
+  readonly searchSurfacePrefix: string
+  readonly supportsAnchoring: true
+  readonly supportsCenteredFallback: true
+}
+
+export const Md3MenuOverlayCompletenessRegistry: ReadonlyArray<IMd3MenuOverlayCompletenessRegistration> =
+  Object.freeze([
+    {
+      kind: 'palette',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-palette-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+    {
+      kind: 'settings',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-settings-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+    {
+      kind: 'account',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-account-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+    {
+      kind: 'repoMenu',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-repoMenu-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+    {
+      kind: 'branchMenu',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-branchMenu-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+    {
+      kind: 'paneMenu',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-paneMenu-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+    {
+      kind: 'listMenu',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-listMenu-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+    {
+      kind: 'diffOptions',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-diffOptions-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+    {
+      kind: 'fileMenu',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-fileMenu-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+    {
+      kind: 'rowMenu',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-rowMenu-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+    {
+      kind: 'changesMenu',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-changesMenu-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+    {
+      kind: 'changeRowMenu',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-changeRowMenu-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+    {
+      kind: 'branchRowMenu',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-branchRowMenu-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+    {
+      kind: 'runMenu',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-runMenu-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+    {
+      kind: 'repoRowMenu',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-repoRowMenu-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+    {
+      kind: 'compose',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-compose-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+    {
+      kind: 'agentAccess',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-agentAccess-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+    {
+      kind: 'inboxRowMenu',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-inboxRowMenu-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+    {
+      kind: 'agentRowMenu',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-agentRowMenu-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+    {
+      kind: 'terminalMenu',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-terminalMenu-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+    {
+      kind: 'drawerMenu',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-drawerMenu-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+    {
+      kind: 'searchMenu',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-searchMenu-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+    {
+      kind: 'guide',
+      implementation: 'Md3MenuOverlay',
+      searchSurfacePrefix: 'md3-menu-guide-',
+      supportsAnchoring: true,
+      supportsCenteredFallback: true,
+    },
+  ])
+
+/** Descriptive alias for consumers and source-level completeness tests. */
+export const MenuOverlayCompletenessRegistry =
+  Md3MenuOverlayCompletenessRegistry
+
 /** The shell's top-level destinations, as the contract's `dest` state names them. */
 export type Md3MenuDestination =
   | 'Repositories'

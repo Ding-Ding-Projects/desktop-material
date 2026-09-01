@@ -440,6 +440,15 @@ export const SearchSurfaceRegistry: ReadonlyArray<ISearchSurfaceRegistration> =
     },
   ])
 
+// Menus are a family of concrete collection surfaces. Re-exporting the
+// explicit menu inventory here keeps the source audit and the menu renderer
+// on one named contract without collapsing per-instance identities into the
+// generic `md3-menu-filter` entry above.
+export {
+  Md3MenuOverlayCompletenessRegistry,
+  MenuOverlayCompletenessRegistry,
+} from '../ui/md3/md3-menu-specs'
+
 export type BulkActionAuditStatus = 'implemented' | 'excluded'
 
 export interface IBulkActionSurfaceRegistration {

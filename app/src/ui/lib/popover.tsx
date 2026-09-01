@@ -88,8 +88,12 @@ export function isOwnedSearchSurfacePortal(
     return false
   }
 
+  // The builder is portalled into a document-level layer, while its menu
+  // owner remains in the app root. Search the whole document so an anchored
+  // builder does not dismiss when the user clicks back into its own menu.
+  const ownerRoot = container.ownerDocument ?? document
   return Array.from(
-    container.querySelectorAll<HTMLElement>('[data-search-surface-id]')
+    ownerRoot.querySelectorAll<HTMLElement>('[data-search-surface-id]')
   ).some(owner => owner.dataset.searchSurfaceId === searchSurfaceId)
 }
 
