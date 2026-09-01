@@ -29,6 +29,11 @@ type FrozenInterfaceShellContract = {
     entry: string
     imports: Array<{ binding: string; specifier: string }>
     markers: string[]
+    acceptedSourceExtensions: string[]
+    aliases: Record<string, string>
+  }
+  negativeRegression: {
+    requiredDimensions: string[]
   }
 }
 
@@ -48,6 +53,21 @@ const contract = JSON.parse(
   require('node:fs').readFileSync(contractPath, 'utf8')
 ) as FrozenInterfaceShellContract
 const execFileAsync = promisify(execFile)
+
+const negativeDimension = process.env.FROZEN_SHELL_NEGATIVE_DIMENSION
+if (negativeDimension === 'retired-path-resolution') {
+  contract.retiredShell.barrelPaths[0] = 'app/src/ui/md3/not-the-retired-barrel.ts'
+} else if (negativeDimension === 'accepted-source-extensions') {
+  contract.currentRenderer.acceptedSourceExtensions.pop()
+} else if (negativeDimension === 'alias-import-resolution') {
+  contract.currentRenderer.aliases['@ui/'] = 'app/src/not-ui/'
+} else if (negativeDimension === 'comment-free-import-detection') {
+  contract.currentRenderer.imports[0].specifier = './not-an-import'
+} else if (negativeDimension === 'renderer-boundary-markers') {
+  contract.currentRenderer.markers[0] = 'id="missing-renderer-boundary"'
+} else if (negativeDimension === 'renderer-retired-imports') {
+  contract.currentRenderer.imports[0].specifier = './md3/md3-shell'
+}
 
 function assertContractShape(): void {
   assert.equal(contract.schemaVersion, 1)
@@ -84,10 +104,24 @@ function assertContractShape(): void {
     new Set(contract.provenance.map(entry => entry.sha)).size,
     contract.provenance.length
   )
+  assert.deepEqual(contract.currentRenderer.acceptedSourceExtensions, sourceExtensions)
+  assert.deepEqual(contract.currentRenderer.aliases, {
+    '@ui/': 'app/src/ui/',
+    '@styles/': 'app/styles/',
+  })
+  assert.equal(contract.retiredShell.barrelPaths[0], 'app/src/ui/md3/index.ts')
+  assert.deepEqual(contract.negativeRegression.requiredDimensions, [
+    'retired-path-resolution',
+    'accepted-source-extensions',
+    'alias-import-resolution',
+    'comment-free-import-detection',
+    'renderer-boundary-markers',
+    'renderer-retired-imports',
+  ])
 }
 
 function withoutExtension(value: string): string {
-  return value.replace(/\.(?:tsx?|jsx?|mts|mjs)$/i, '')
+  return value.replace(/\.(?:tsx?|jsx?|mts|mjs|cts|cjs)$/i, '')
 }
 
 function repositoryRelativePath(value: string): string {
@@ -95,6 +129,56 @@ function repositoryRelativePath(value: string): string {
     .replace(/\\/g, '/')
     .replace(/\/index$/i, '')
     .toLowerCase()
+}
+
+const sourceExtensions = ['.ts', '.tsx', '.js', '.jsx', '.mts', '.mjs', '.cts', '.cjs']
+
+function stripComments(source: string): string {
+  let result = ''
+  let quote: string | null = null
+  let escaped = false
+  let lineComment = false
+  let blockComment = false
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index]
+    const next = source[index + 1]
+    if (lineComment) {
+      if (char === '\n') {
+        lineComment = false
+        result += char
+      } else {
+        result += ' '
+      }
+      continue
+    }
+    if (blockComment) {
+      if (char === '*' && next === '/') {
+        blockComment = false
+        result += '  '
+        index += 1
+      } else {
+        result += char === '\n' ? '\n' : ' '
+      }
+      continue
+    }
+    if (quote !== null) {
+      result += char
+      if (escaped) escaped = false
+      else if (char === '\\') escaped = true
+      else if (char === quote) quote = null
+      continue
+    }
+    if ((char === '/' && next === '/') || (char === '/' && next === '*')) {
+      if (next === '/') lineComment = true
+      else blockComment = true
+      result += '  '
+      index += 1
+      continue
+    }
+    if (char === "'" || char === '"' || char === '`') quote = char
+    result += char
+  }
+  return result
 }
 
 function escapeRegExp(value: string): string {
@@ -106,6 +190,7 @@ function parseStaticImportStatements(source: string): Array<{
   statement: string
 }> {
   const statements: Array<{ specifier: string; statement: string }> = []
+  source = stripComments(source)
   let pending: string | null = null
 
   for (const line of source.split(/\r?\n/)) {
@@ -141,6 +226,7 @@ function parseStaticImportStatements(source: string): Array<{
 function parseDynamicImportSpecifiers(source: string): string[] {
   const specifiers: string[] = []
   const pattern = /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g
+  source = stripComments(source)
   for (const line of source.split(/\r?\n/)) {
     let match: RegExpExecArray | null
     while ((match = pattern.exec(line)) !== null) {
@@ -154,6 +240,7 @@ function parseDynamicImportSpecifiers(source: string): string[] {
 function parseRequireSpecifiers(source: string): string[] {
   const specifiers: string[] = []
   const pattern = /\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g
+  source = stripComments(source)
   for (const line of source.split(/\r?\n/)) {
     let match: RegExpExecArray | null
     while ((match = pattern.exec(line)) !== null) {
@@ -165,33 +252,45 @@ function parseRequireSpecifiers(source: string): string[] {
 }
 
 function isRetiredSpecifier(sourceFile: string, specifier: string): boolean {
-  if (!specifier.startsWith('.')) {
-    return false
-  }
+  const resolved = resolveImportPath(sourceFile, specifier)
+  if (resolved === null) return false
+  const retiredPaths = new Set([
+    ...contract.retiredShell.modulePaths.map(name => `app/src/ui/md3/${name}`),
+    ...contract.retiredShell.barrelPaths.map(name => name),
+    ...contract.retiredShell.stylesheetPaths.map(name => `app/styles/ui/${name}`),
+  ].map(name => withoutExtension(name).replace(/\\/g, '/').toLowerCase()))
+  return retiredPaths.has(repositoryRelativePath(resolved))
+}
 
-  const resolved = repositoryRelativePath(
-    Path.resolve(Path.dirname(sourceFile), specifier)
-  )
-  const retiredPaths = new Set(
-    [
-      ...contract.retiredShell.modulePaths,
-      ...contract.retiredShell.stylesheetPaths,
-      ...contract.retiredShell.barrelPaths,
-    ].map(name => repositoryRelativePath(name))
-  )
-  return (
-    retiredPaths.has(resolved) ||
-    (resolved === 'app/src/ui/md3' &&
-      contract.retiredShell.barrelPaths.some(
-        path => repositoryRelativePath(path) === 'app/src/ui/md3'
-      ))
-  )
+function resolveImportPath(sourceFile: string, specifier: string): string | null {
+  let target = specifier
+  if (!target.startsWith('.')) {
+    const alias = Object.entries(contract.currentRenderer.aliases).find(([prefix]) =>
+      target.startsWith(prefix)
+    )
+    if (alias === undefined) return null
+    target = alias[1] + target.slice(alias[0].length)
+  } else {
+    target = Path.relative(repoRoot, Path.resolve(Path.dirname(sourceFile), target))
+  }
+  const base = target.replace(/\\/g, '/')
+  const candidates = [base, ...sourceExtensions.map(extension => base + extension), ...sourceExtensions.map(extension => `${base}/index${extension}`)]
+  for (const candidate of candidates) {
+    const absolute = Path.resolve(repoRoot, candidate)
+    try {
+      require('node:fs').accessSync(absolute)
+      return absolute
+    } catch {
+      continue
+    }
+  }
+  return Path.resolve(repoRoot, base)
 }
 
 async function listTypeScriptSources(root: string): Promise<string[]> {
   const entries = await FsAsync.readdir(root, { recursive: true })
   return entries
-    .filter(entry => /\.(?:ts|tsx|mts|cts)$/i.test(entry))
+    .filter(entry => /\.(?:ts|tsx|js|jsx|mts|mjs|cts|cjs)$/i.test(entry))
     .map(entry => Path.join(root, entry))
 }
 
@@ -311,6 +410,25 @@ describe('the interface shell stays frozen', () => {
     assert.deepEqual(offenders, [])
   })
 
+  it('keeps renderer shell imports within the retained control inventory', async () => {
+    const appPath = Path.join(repoRoot, contract.currentRenderer.entry)
+    const appSource = await FsAsync.readFile(appPath, 'utf8')
+    const retained = new Set(
+      contract.survivingControls.map(name =>
+        withoutExtension(`app/src/ui/md3/${name}`)
+          .replace(/\\/g, '/')
+          .toLowerCase()
+      )
+    )
+    const importedMd3Paths = parseStaticImportStatements(appSource)
+      .map(({ specifier }) => resolveImportPath(appPath, specifier))
+      .filter((resolved): resolved is string => resolved !== null)
+      .map(repositoryRelativePath)
+      .filter(path => path.startsWith('app/src/ui/md3/'))
+    assert.ok(importedMd3Paths.length > 0)
+    assert.deepEqual(importedMd3Paths.filter(path => !retained.has(path)), [])
+  })
+
   it('records and verifies the exact revert provenance', async () => {
     assert.equal(contract.schemaVersion, 1)
     assert.equal(contract.baseline.presentation, '2026-08-07')
@@ -334,7 +452,7 @@ describe('the interface shell stays frozen', () => {
 
   it('keeps the current renderer entry and control-level Material Design 3 wiring', async () => {
     const appPath = Path.join(repoRoot, contract.currentRenderer.entry)
-    const appSource = await FsAsync.readFile(appPath, 'utf8')
+    const appSource = stripComments(await FsAsync.readFile(appPath, 'utf8'))
     const imports = parseStaticImportStatements(appSource)
 
     for (const expected of contract.currentRenderer.imports) {
@@ -359,7 +477,7 @@ describe('the interface shell stays frozen', () => {
     assert.ok(lines.some(line => line.trim() === 'private renderApp() {'))
     for (const marker of contract.currentRenderer.markers) {
       assert.ok(
-        lines.some(line => line.includes(marker)),
+        lines.some(line => line.includes(marker) && line.trim().length > 0),
         'Current renderer marker ' + marker + ' is missing.'
       )
     }

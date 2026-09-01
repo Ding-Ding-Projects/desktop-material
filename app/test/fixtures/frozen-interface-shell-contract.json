@@ -163,6 +163,21 @@
       "{this.renderRepository()}",
       "{this.renderBuildRunPanel()}",
       "<TitleBar"
+    ],
+    "acceptedSourceExtensions": [".ts", ".tsx", ".js", ".jsx", ".mts", ".mjs", ".cts", ".cjs"],
+    "aliases": {
+      "@ui/": "app/src/ui/",
+      "@styles/": "app/styles/"
+    }
+  },
+  "negativeRegression": {
+    "requiredDimensions": [
+      "retired-path-resolution",
+      "accepted-source-extensions",
+      "alias-import-resolution",
+      "comment-free-import-detection",
+      "renderer-boundary-markers",
+      "renderer-retired-imports"
     ]
   }
 }
