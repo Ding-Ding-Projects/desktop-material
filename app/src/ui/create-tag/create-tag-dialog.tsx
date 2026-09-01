@@ -30,6 +30,7 @@ interface ICreateTagState {
    */
   readonly isCreatingTag: boolean
   readonly previousTags: Array<string> | null
+  readonly error: Error | null
 }
 
 const MaxTagNameLength = 245
@@ -46,11 +47,13 @@ export class CreateTag extends React.Component<
       tagName: props.initialName || '',
       isCreatingTag: false,
       previousTags: this.getExistingTagsFiltered(),
+      error: null,
     }
   }
 
   public render() {
     const error = this.getCurrentError()
+    const operationError = this.state.error
     const disabled = error !== null || this.state.tagName.length === 0
 
     return (
@@ -63,6 +66,12 @@ export class CreateTag extends React.Component<
         disabled={this.state.isCreatingTag}
       >
         {error && <DialogError>{error}</DialogError>}
+        {operationError && (
+          <DialogError>
+            Unable to create this tag: {operationError.message}. You can retry
+            without losing the name you entered.
+          </DialogError>
+        )}
 
         <DialogContent>
           <RefNameTextBox
@@ -148,22 +157,33 @@ export class CreateTag extends React.Component<
     })
   }
 
+  private errorFromUnknown(error: unknown): Error {
+    return error instanceof Error ? error : new Error(String(error))
+  }
+
   private createTag = async () => {
     const name = this.state.tagName
     const repository = this.props.repository
 
-    if (name.length > 0) {
-      this.setState({ isCreatingTag: true })
+    if (name.length > 0 && !this.state.isCreatingTag) {
+      this.setState({ isCreatingTag: true, error: null })
 
       const timer = startTimer('create tag', repository)
-      await this.props.dispatcher.createTag(
-        repository,
-        name,
-        this.props.targetCommitSha
-      )
-      timer.done()
-
-      this.props.onDismissed()
+      try {
+        await this.props.dispatcher.createTag(
+          repository,
+          name,
+          this.props.targetCommitSha
+        )
+        timer.done()
+        this.props.onDismissed()
+      } catch (error) {
+        timer.done()
+        this.setState({
+          isCreatingTag: false,
+          error: this.errorFromUnknown(error),
+        })
+      }
     }
   }
 }
