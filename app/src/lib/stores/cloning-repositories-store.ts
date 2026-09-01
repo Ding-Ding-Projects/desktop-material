@@ -32,6 +32,7 @@ export class CloningRepositoriesStore extends BaseStore {
   private readonly _repositories = new Array<CloningRepository>()
   private readonly stateByID = new Map<number, ICloneProgress>()
   private directCloneJournal: IBatchCloneJournal | null = null
+  private directCloneMutex: Promise<void> = Promise.resolve()
 
   public constructor(
     private readonly getAccounts: () => Promise<
@@ -70,7 +71,15 @@ export class CloningRepositoriesStore extends BaseStore {
     const item = snapshot.items[0]
     const prepared = await this.stagingManager.prepare(item)
     if (prepared.kind === 'done') {
-      await this.directCloneJournal.clear()
+      if (await this.stagingManager.cleanupPromoted(item)) {
+        await this.directCloneJournal.clear()
+        return
+      }
+      this.emitError(
+        new Error(
+          'A promoted direct clone was verified, but its recovery cleanup is still pending. The recovery record was retained.'
+        )
+      )
       return
     }
     if (
@@ -99,7 +108,35 @@ export class CloningRepositoriesStore extends BaseStore {
    *
    * Returns a {Promise} which resolves to whether the clone was successful.
    */
-  public async clone(
+  public clone(
+    url: string,
+    path: string,
+    options: CloneOptions,
+    opts?: Parameters<CloningRepositoriesStore['cloneInternal']>[3]
+  ): Promise<boolean> {
+    const directStaging =
+      this.stagingManager !== null && opts?.displayPath === undefined
+    const operation = () => this.cloneInternal(url, path, options, opts)
+    return directStaging ? this.withDirectCloneMutex(operation) : operation()
+  }
+
+  private async withDirectCloneMutex(
+    operation: () => Promise<boolean>
+  ): Promise<boolean> {
+    const previous = this.directCloneMutex
+    let release: () => void = () => undefined
+    this.directCloneMutex = new Promise<void>(resolve => {
+      release = resolve
+    })
+    await previous
+    try {
+      return await operation()
+    } finally {
+      release()
+    }
+  }
+
+  private async cloneInternal(
     url: string,
     path: string,
     options: CloneOptions,
@@ -228,11 +265,18 @@ export class CloningRepositoriesStore extends BaseStore {
         opts?.signal
       )
 
+      if (opts?.signal?.aborted) {
+        const error = new Error('Repository clone cancelled.')
+        error.name = 'AbortError'
+        throw error
+      }
+
       if (stagedItem !== null) {
         const completed = await this.stagingManager!.completeAndPromote(
           stagedItem,
           clonePath,
-          result.accountKey
+          result.accountKey,
+          opts?.signal
         )
         if (completed.kind === 'review') {
           throw completed.error

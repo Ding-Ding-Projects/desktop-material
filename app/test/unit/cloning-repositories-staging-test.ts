@@ -78,6 +78,46 @@ function authFailure(message = 'authentication failed'): Error {
   )
 }
 
+class CleanupBlockedManager implements IBatchCloneStagingManager {
+  private readonly delegate: FileBatchCloneStagingManager
+
+  public constructor(
+    inspectRepository: typeof alwaysValidRepository = alwaysValidRepository
+  ) {
+    this.delegate = new FileBatchCloneStagingManager(rename, inspectRepository)
+  }
+
+  public prepare(item: IBatchCloneItem) {
+    return this.delegate.prepare(item)
+  }
+
+  public reinspect(item: IBatchCloneItem, clonePath: string) {
+    return this.delegate.reinspect(item, clonePath)
+  }
+
+  public completeAndPromote(
+    item: IBatchCloneItem,
+    clonePath: string,
+    successfulAccountKey: string | null,
+    signal?: AbortSignal
+  ) {
+    return this.delegate.completeAndPromote(
+      item,
+      clonePath,
+      successfulAccountKey,
+      signal
+    )
+  }
+
+  public async cleanupPromoted(_item: IBatchCloneItem) {
+    return false
+  }
+
+  public discard(item: IBatchCloneItem) {
+    return this.delegate.discard(item)
+  }
+}
+
 describe('direct clone staging', () => {
   it('retains an unowned staging container for review', async () => {
     const root = await mkdtemp(Path.join(tmpdir(), 'desktop-material-unowned-'))
@@ -514,6 +554,136 @@ describe('direct clone staging', () => {
         existsSync(Path.join(root, '.desktop-material-clone-staging-v1')),
         false
       )
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('cleans a verified promoted checkout before clearing recovery after restart', async t => {
+    const source = await setupEmptyRepository(t)
+    await makeCommit(source, {
+      entries: [{ path: 'README.md', contents: 'restart cleanup' }],
+      commitMessage: 'restart cleanup source',
+    })
+    const root = await mkdtemp(Path.join(tmpdir(), 'desktop-material-crash-'))
+    const destination = Path.join(root, 'clone')
+    try {
+      const firstStore = new CloningRepositoriesStore(
+        async () => [],
+        new CleanupBlockedManager()
+      )
+      await initializeDirectRecovery(firstStore, root)
+      const firstSuccess = await firstStore.clone(source.path, destination, {})
+      assert.equal(firstSuccess, true)
+      assert.equal((await journalFor(root).load()) !== null, true)
+      assert.equal(
+        existsSync(Path.join(root, '.desktop-material-clone-staging-v1')),
+        true
+      )
+
+      const secondStore = new CloningRepositoriesStore(
+        async () => [],
+        new FileBatchCloneStagingManager(rename, alwaysValidRepository)
+      )
+      const errors: Error[] = []
+      secondStore.onDidError(error => errors.push(error))
+      await initializeDirectRecovery(secondStore, root)
+
+      assert.equal(await journalFor(root).load(), null)
+      assert.equal(errors.length, 0)
+      assert.equal(
+        existsSync(Path.join(root, '.desktop-material-clone-staging-v1')),
+        false
+      )
+      assert.equal(existsSync(Path.join(destination, '.git')), true)
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('serializes overlapping direct clones around the shared journal', async t => {
+    const source = await setupEmptyRepository(t)
+    await makeCommit(source, {
+      entries: [{ path: 'README.md', contents: 'overlap' }],
+      commitMessage: 'overlap source',
+    })
+    const root = await mkdtemp(Path.join(tmpdir(), 'desktop-material-overlap-'))
+    const firstDestination = Path.join(root, 'first')
+    const secondDestination = Path.join(root, 'second')
+    let active = 0
+    let maximumActive = 0
+    try {
+      const cloneOperation = async (_url: string, clonePath: string) => {
+        active += 1
+        maximumActive = Math.max(maximumActive, active)
+        await new Promise(resolve => setTimeout(resolve, 15))
+        await mkdir(Path.join(clonePath, '.git'), { recursive: true })
+        active -= 1
+      }
+      const store = new CloningRepositoriesStore(
+        async () => [],
+        new FileBatchCloneStagingManager(rename, alwaysValidRepository),
+        cloneOperation as never
+      )
+      await initializeDirectRecovery(store, root)
+      const [firstSuccess, secondSuccess] = await Promise.all([
+        store.clone(source.path, firstDestination, {}),
+        store.clone(source.path, secondDestination, {}),
+      ])
+
+      assert.equal(firstSuccess, true)
+      assert.equal(secondSuccess, true)
+      assert.equal(maximumActive, 1)
+      assert.equal(existsSync(Path.join(firstDestination, '.git')), true)
+      assert.equal(existsSync(Path.join(secondDestination, '.git')), true)
+      assert.equal(await journalFor(root).load(), null)
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('discards owned staging when Git aborts after returning', async t => {
+    const source = await setupEmptyRepository(t)
+    const root = await mkdtemp(
+      Path.join(tmpdir(), 'desktop-material-post-abort-')
+    )
+    const destination = Path.join(root, 'clone')
+    const controller = new AbortController()
+    try {
+      const cloneOperation = async (
+        _url: string,
+        clonePath: string,
+        _options: unknown,
+        _progress: unknown,
+        _accountKey: string | undefined,
+        signal: AbortSignal | undefined
+      ) => {
+        await mkdir(Path.join(clonePath, '.git'), { recursive: true })
+        signal?.throwIfAborted?.()
+        controller.abort()
+      }
+      const store = new CloningRepositoriesStore(
+        async () => [],
+        new FileBatchCloneStagingManager(rename, alwaysValidRepository),
+        cloneOperation as never
+      )
+      await initializeDirectRecovery(store, root)
+      let aborted = 0
+      const success = await store.clone(
+        source.path,
+        destination,
+        {},
+        { signal: controller.signal, onAbort: () => (aborted += 1) }
+      )
+
+      assert.equal(success, false)
+      assert.equal(aborted, 1)
+      assert.equal(existsSync(destination), false)
+      assert.equal(
+        existsSync(Path.join(root, '.desktop-material-clone-staging-v1')),
+        false
+      )
+      assert.equal(await journalFor(root).load(), null)
     } finally {
       await rm(root, { recursive: true, force: true })
     }

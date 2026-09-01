@@ -82,7 +82,8 @@ export interface IBatchCloneStagingManager {
   completeAndPromote(
     item: IBatchCloneItem,
     clonePath: string,
-    successfulAccountKey: string | null
+    successfulAccountKey: string | null,
+    signal?: AbortSignal
   ): Promise<BatchCloneStagingCompletion>
   cleanupPromoted(item: IBatchCloneItem): Promise<boolean>
   discard(item: IBatchCloneItem): Promise<boolean>
@@ -258,9 +259,15 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
   public async completeAndPromote(
     item: IBatchCloneItem,
     clonePath: string,
-    successfulAccountKey: string | null
+    successfulAccountKey: string | null,
+    signal?: AbortSignal
   ): Promise<BatchCloneStagingCompletion> {
     try {
+      if (signal?.aborted) {
+        return review(
+          'The clone was cancelled before promotion and the final destination was left unchanged.'
+        )
+      }
       if (
         successfulAccountKey !== null &&
         successfulAccountKey.length > MaxBatchCloneAccountKeyLength
@@ -296,8 +303,18 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
         cloneCompleted: true,
         successfulAccountKey,
       }
+      if (signal?.aborted) {
+        return review(
+          'The clone was cancelled before promotion and the final destination was left unchanged.'
+        )
+      }
       await replaceStagingMarker(paths.markerPath, completedMarker)
-      return await this.promoteReadyCheckout(item, paths, completedMarker)
+      return await this.promoteReadyCheckout(
+        item,
+        paths,
+        completedMarker,
+        signal
+      )
     } catch (error) {
       log.error('Unable to promote a staged batch clone', error)
       return review(
@@ -518,7 +535,8 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
   private async promoteReadyCheckout(
     item: IBatchCloneItem,
     paths: IBatchCloneStagingPaths,
-    marker: IBatchCloneStagingMarker
+    marker: IBatchCloneStagingMarker,
+    signal?: AbortSignal
   ): Promise<BatchCloneStagingCompletion> {
     if (!marker.cloneCompleted) {
       return review('The staged clone has not completed successfully.')
@@ -533,6 +551,11 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
     ) {
       return review(
         'The staged clone or final destination changed before promotion and was left unchanged.'
+      )
+    }
+    if (signal?.aborted) {
+      return review(
+        'The clone was cancelled before promotion and the final destination was left unchanged.'
       )
     }
 
@@ -570,6 +593,11 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
     ) {
       return review(
         'The staged clone or final destination changed before the atomic promotion.'
+      )
+    }
+    if (signal?.aborted) {
+      return review(
+        'The clone was cancelled before promotion and the final destination was left unchanged.'
       )
     }
 
