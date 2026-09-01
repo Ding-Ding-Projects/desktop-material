@@ -397,7 +397,7 @@ jobs:
           fi
           for expected in \
             'RELEASES' \
-            'GitHub Desktop-x64.zip' \
+            'GitHub.Desktop-x64.zip' \
             'GitHubDesktopSetup-x64.exe' \
             'GitHubDesktopSetup-x64.msi' \
             "GitHubDesktop-${RELEASE_VERSION}-full.nupkg" \
@@ -451,7 +451,7 @@ jobs:
 
           for expected in \
             'RELEASES' \
-            'GitHub Desktop-x64.zip' \
+            'GitHub.Desktop-x64.zip' \
             'GitHubDesktopSetup-x64.exe' \
             'GitHubDesktopSetup-x64.msi' \
             "GitHubDesktop-${RELEASE_VERSION}-full.nupkg" \

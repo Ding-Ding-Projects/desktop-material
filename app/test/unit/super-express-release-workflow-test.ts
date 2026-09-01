@@ -134,13 +134,60 @@ function getWorkflowStepRun(
   return matches[0]?.run ?? ''
 }
 
-const requiredWindowsReleaseAssets = [
+const canonicalWindowsReleaseAssetInventory = [
+  'release-index',
+  'portable-zip',
+  'setup-executable',
+  'setup-msi',
+  'full-squirrel-package',
+  'architecture-full-squirrel-package',
+] as const
+
+const stagedWindowsReleaseAssets = [
   'RELEASES',
   'GitHub Desktop-x64.zip',
   'GitHubDesktopSetup-x64.exe',
   'GitHubDesktopSetup-x64.msi',
   'GitHubDesktop-${RELEASE_VERSION}-full.nupkg',
   'GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg',
+] as const
+
+const apiNormalizedWindowsReleaseAssets = [
+  'RELEASES',
+  'GitHub.Desktop-x64.zip',
+  'GitHubDesktopSetup-x64.exe',
+  'GitHubDesktopSetup-x64.msi',
+  'GitHubDesktop-${RELEASE_VERSION}-full.nupkg',
+  'GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg',
+] as const
+
+const windowsReleaseAssetSemantics = [
+  { id: 'release-index', staged: 'RELEASES', api: 'RELEASES' },
+  {
+    id: 'portable-zip',
+    staged: 'GitHub Desktop-x64.zip',
+    api: 'GitHub.Desktop-x64.zip',
+  },
+  {
+    id: 'setup-executable',
+    staged: 'GitHubDesktopSetup-x64.exe',
+    api: 'GitHubDesktopSetup-x64.exe',
+  },
+  {
+    id: 'setup-msi',
+    staged: 'GitHubDesktopSetup-x64.msi',
+    api: 'GitHubDesktopSetup-x64.msi',
+  },
+  {
+    id: 'full-squirrel-package',
+    staged: 'GitHubDesktop-${RELEASE_VERSION}-full.nupkg',
+    api: 'GitHubDesktop-${RELEASE_VERSION}-full.nupkg',
+  },
+  {
+    id: 'architecture-full-squirrel-package',
+    staged: 'GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg',
+    api: 'GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg',
+  },
 ] as const
 
 function trimShellToken(line: string): string {
@@ -187,9 +234,11 @@ function extractExpectedAssetNames(run: string): string[] {
 
 function assertExactWindowsReleaseAssets(
   actual: readonly string[],
+  expected: readonly string[],
   context: string
 ): void {
-  assert.deepEqual(actual, requiredWindowsReleaseAssets, context)
+  assert.equal(actual.length, 6, `${context} must contain exactly six assets`)
+  assert.deepEqual(actual, expected, context)
 }
 
 function getActionStepRun(
@@ -482,7 +531,7 @@ describe('Super Express Release workflow', () => {
     }
   })
 
-  it('keeps the six exact Windows release assets consistent and fail-closed', () => {
+  it('keeps independent Windows release asset inventories fail-closed', () => {
     const downloadedPayload = getWorkflowStepRun(
       windowsWorkflowDocument,
       'Verify downloaded Windows release payload'
@@ -496,47 +545,130 @@ describe('Super Express Release workflow', () => {
       'Verify published target and assets'
     )
 
-    const lists = [
-      [
-        'downloaded payload',
-        extractRequiredAssetNames(downloadedPayload),
-      ],
-      ['draft release', extractExpectedAssetNames(draftAssets)],
-      ['published release', extractExpectedAssetNames(publishedAssets)],
-    ] as const
+    const staged = extractRequiredAssetNames(downloadedPayload)
+    const draft = extractExpectedAssetNames(draftAssets)
+    const published = extractExpectedAssetNames(publishedAssets)
 
-    for (const [context, actual] of lists) {
-      assertExactWindowsReleaseAssets(actual, context)
-    }
-
-    assert.doesNotMatch(
-      windowsWorkflow,
-      /GitHub\.Desktop-x64\.zip/,
-      'Windows release workflow must use the actual ZIP asset name'
+    assert.equal(
+      canonicalWindowsReleaseAssetInventory.length,
+      6,
+      'canonical release asset inventory must contain exactly six assets'
+    )
+    assert.equal(
+      windowsReleaseAssetSemantics.length,
+      6,
+      'release asset semantics must contain exactly six assets'
+    )
+    assert.deepEqual(
+      windowsReleaseAssetSemantics.map(asset => asset.id),
+      canonicalWindowsReleaseAssetInventory,
+      'canonical inventory must enumerate each semantic asset exactly once'
+    )
+    assertExactWindowsReleaseAssets(
+      staged,
+      stagedWindowsReleaseAssets,
+      'staged Windows release payload'
+    )
+    assertExactWindowsReleaseAssets(
+      draft,
+      apiNormalizedWindowsReleaseAssets,
+      'draft API-normalized Windows release payload'
+    )
+    assertExactWindowsReleaseAssets(
+      published,
+      apiNormalizedWindowsReleaseAssets,
+      'published API-normalized Windows release payload'
+    )
+    assert.deepEqual(
+      windowsReleaseAssetSemantics.map(asset => asset.staged),
+      staged,
+      'staged producer names must match canonical semantics'
+    )
+    assert.deepEqual(
+      windowsReleaseAssetSemantics.map(asset => asset.api),
+      draft,
+      'draft API aliases must match canonical semantics'
+    )
+    assert.deepEqual(
+      windowsReleaseAssetSemantics.map(asset => asset.api),
+      published,
+      'published API aliases must match canonical semantics'
     )
 
-    const mutations = [
-      ['GitHub Desktop-x64.zip', 'GitHub.Desktop-x64.zip'],
-      [
-        'GitHubDesktop-${RELEASE_VERSION}-full.nupkg',
-        'GitHubDesktop-${RELEASE_VERSION}-full-package.nupkg',
-      ],
-      [
-        'GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg',
-        'GitHubDesktop-${RELEASE_VERSION}-x64-package.nupkg',
-      ],
+    const routeMutations = [
+      {
+        context: 'staged ZIP producer spelling',
+        run: downloadedPayload,
+        extract: extractRequiredAssetNames,
+        expected: stagedWindowsReleaseAssets,
+        mutations: [
+          ['GitHub Desktop-x64.zip', 'GitHub.Desktop-x64.zip'],
+          [
+            'GitHubDesktop-${RELEASE_VERSION}-full.nupkg',
+            '',
+          ],
+          [
+            'GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg',
+            '',
+          ],
+        ],
+      },
+      {
+        context: 'draft API alias',
+        run: draftAssets,
+        extract: extractExpectedAssetNames,
+        expected: apiNormalizedWindowsReleaseAssets,
+        mutations: [
+          ['GitHub.Desktop-x64.zip', 'GitHub Desktop-x64.zip'],
+          ['GitHub.Desktop-x64.zip', 'GitHub.wrong-x64.zip'],
+          [
+            'GitHubDesktop-${RELEASE_VERSION}-full.nupkg',
+            '',
+          ],
+          [
+            'GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg',
+            '',
+          ],
+        ],
+      },
+      {
+        context: 'published API alias',
+        run: publishedAssets,
+        extract: extractExpectedAssetNames,
+        expected: apiNormalizedWindowsReleaseAssets,
+        mutations: [
+          ['GitHub.Desktop-x64.zip', 'GitHub Desktop-x64.zip'],
+          ['GitHub.Desktop-x64.zip', 'GitHub.wrong-x64.zip'],
+          [
+            'GitHubDesktop-${RELEASE_VERSION}-full.nupkg',
+            '',
+          ],
+          [
+            'GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg',
+            '',
+          ],
+        ],
+      },
     ] as const
 
-    for (const [expectedName, brokenName] of mutations) {
-      const brokenRun = downloadedPayload.replace(expectedName, brokenName)
-      assert.throws(
-        () =>
-          assertExactWindowsReleaseAssets(
-            extractRequiredAssetNames(brokenRun),
-            `broken asset ${brokenName}`
-          ),
-        `the semantic asset Chut must reject ${brokenName}`
-      )
+    for (const route of routeMutations) {
+      for (const [expectedName, brokenName] of route.mutations) {
+        const brokenRun = route.run.replace(expectedName, brokenName)
+        assert.notEqual(
+          brokenRun,
+          route.run,
+          `${route.context} mutation must alter the extracted route`
+        )
+        assert.throws(
+          () =>
+            assertExactWindowsReleaseAssets(
+              route.extract(brokenRun),
+              route.expected,
+              `${route.context}: broken ${expectedName}`
+            ),
+          `the semantic asset contract must reject ${route.context} mutation`
+        )
+      }
     }
   })
 
