@@ -163,6 +163,43 @@ input[type='range'] {
   }
 }
 
+// Keep the visible track and thumb compact while giving the shared control a
+// full 40px pointer and keyboard target. The progress fill is painted by the
+// wrapper behind the input, while focus rings stay attached to the real native
+// control.
+.range-slider-input-hit-target {
+  align-items: center;
+  display: flex;
+  min-height: 40px;
+  min-width: 0;
+  position: relative;
+
+  > input[type='range'] {
+    background: transparent;
+    height: 40px;
+    position: relative;
+    width: 100%;
+  }
+
+  &::before {
+    background: linear-gradient(
+      to right,
+      var(--md-sys-color-primary) 0%,
+      var(--md-sys-color-primary) var(--range-slider-progress, 0%),
+      var(--md-sys-color-secondary-container) var(--range-slider-progress, 0%),
+      var(--md-sys-color-secondary-container) 100%
+    );
+    border-radius: 999px;
+    content: '';
+    height: 16px;
+    left: 0;
+    pointer-events: none;
+    position: absolute;
+    right: 0;
+    top: 12px;
+  }
+}
+
 // ---------------------------------------------------------------- progress
 // M3 linear progress: 6px rounded track in secondary-container, primary bar.
 progress {

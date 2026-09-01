@@ -459,6 +459,11 @@ export function Md3DestructiveGateBody(props: IMd3DestructiveGateBodyProps) {
             disabled={disabled === true || !bothKeysTurned}
             aria-describedby={statusId}
             aria-valuetext={t('md3.destructiveGate.sliderValue', { percent })}
+            style={
+              {
+                '--md3-gate-progress': `${shownProgress}%`,
+              } as React.CSSProperties
+            }
             onChange={onProgress}
           />
           <output className="md3-destructive-gate__slider-output">

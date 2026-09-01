@@ -230,7 +230,7 @@
   // 20px is not an adequate target on its own, so the whole row is the target:
   // the label wraps the input, and the row keeps a comfortable minimum height
   // at every display scale.
-  min-height: 32px;
+  min-height: 40px;
 
   > .material-symbol {
     color: var(--md-sys-color-on-surface-variant);
@@ -289,7 +289,18 @@
 .md3-destructive-gate__slider-input {
   accent-color: var(--md-sys-color-error);
   flex: 1;
+  height: 40px;
   min-width: 0;
+
+  // The shared range anatomy keeps its 16px track centred in this 40px
+  // native target, preserving the gate's compact visual rhythm.
+  background: linear-gradient(
+    to right,
+    var(--md-sys-color-error) 0%,
+    var(--md-sys-color-error) var(--md3-gate-progress, 0%),
+    var(--md-sys-color-error-container) var(--md3-gate-progress, 0%),
+    var(--md-sys-color-error-container) 100%
+  );
 
   &:disabled {
     cursor: not-allowed;
