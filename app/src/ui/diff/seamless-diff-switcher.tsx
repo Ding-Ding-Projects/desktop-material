@@ -53,6 +53,12 @@ interface ISeamlessDiffSwitcherProps {
   /** The diff that should be rendered */
   readonly diff: IDiff | null
 
+  /**
+   * Authoritative contents for synthetic diffs. When provided, the switcher
+   * must not fetch git contents because the sides may not have revisions.
+   */
+  readonly externalFileContents?: IFileContents | null
+
   /** The type of image diff to display. */
   // Used in getDerivedStateFromProps, no-unused-prop-types doesn't know that
   // eslint-disable-next-line react/no-unused-prop-types
@@ -256,6 +262,15 @@ export class SeamlessDiffSwitcher extends React.Component<
       return
     }
 
+    if (this.props.externalFileContents !== undefined) {
+      const fileContents = this.props.externalFileContents
+      if (fileContents === null || !isSameFile(fileContents.file, fileToLoad)) {
+        return
+      }
+      this.applyFileContents(diff, fileContents)
+      return
+    }
+
     // Have we already loaded file contents for this file and is the diff
     // still the same, if so there's no need to do it again.
     const currentFileContents = this.state.fileContents
@@ -292,6 +307,13 @@ export class SeamlessDiffSwitcher extends React.Component<
       return
     }
 
+    this.applyFileContents(diff, fileContents)
+  }
+
+  private applyFileContents(
+    diff: ITextDiff | ILargeTextDiff,
+    fileContents: IFileContents
+  ) {
     const newDiff =
       fileContents.canBeExpanded && diff.kind === DiffType.Text
         ? getTextDiffWithBottomDummyHunk(

@@ -20,9 +20,11 @@ describe('git/diff/getResolutionDiff', () => {
       content: resolved,
     })
 
-    assert.equal(diff.kind, DiffType.Text)
-    const textDiff = diff as ITextDiff
+    assert.equal(diff.diff.kind, DiffType.Text)
+    const textDiff = diff.diff as ITextDiff
     assert(textDiff.text.includes('-original'))
     assert(textDiff.text.includes('+modified'))
+    assert.equal(diff.oldContents, 'original\n')
+    assert.equal(diff.newContents, resolved)
   })
 })

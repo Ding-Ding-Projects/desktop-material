@@ -324,6 +324,8 @@ import {
   WorkingDirectoryFileChange,
   WorkingDirectoryStatus,
   AppFileStatusKind,
+  isConflictedFileStatus,
+  GitStatusEntry,
 } from '../../models/status'
 import { TipState, tipEquals, IValidBranch } from '../../models/tip'
 import {
@@ -1003,6 +1005,7 @@ import {
   IConflictResolutionProgress,
   ICopilotResolutionSummary,
   IFileResolution,
+  ICopilotSkippedFile,
 } from '../copilot-conflict-resolution'
 import {
   buildConflictContext,
@@ -16395,6 +16398,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   ): Promise<{
     readonly resolutions: ReadonlyArray<IFileResolution>
     readonly summary: ICopilotResolutionSummary
+    readonly skippedFiles: ReadonlyArray<ICopilotSkippedFile>
   } | null> {
     if (
       !enableCopilotConflictResolution() ||
@@ -16498,6 +16502,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
         const references =
           cited.length > 0 ? cited : fallbackReferencedContext(context)
 
+        const skippedFiles = context.files.flatMap(file =>
+          file.skippedReason === undefined
+            ? []
+            : [{ path: file.path, reason: file.skippedReason }]
+        )
+
         return {
           resolutions: result.resolutions,
           summary: {
@@ -16506,6 +16516,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
             theirLabel: labels.theirLabel,
             references,
           },
+          skippedFiles,
         }
       } finally {
         resolveTimer.done()
@@ -16962,16 +16973,23 @@ export class AppStore extends TypedBaseStore<IAppState> {
       readonly ourRef: string | undefined
       readonly theirRef: string | undefined
     },
-    conflictedFiles: ReadonlyArray<{ readonly path: string }>,
+    conflictedFiles: ReadonlyArray<WorkingDirectoryFileChange>,
     state: IRepositoryState,
     signal?: AbortSignal
   ): Promise<IConflictResolutionContext> {
+    const filesWithDeleteInfo = conflictedFiles.map(file => {
+      const deletedSide = getDeletedSideFromStatus(file)
+      return deletedSide === undefined
+        ? { path: file.path }
+        : { path: file.path, deletedSide }
+    })
+
     const contextTimer = startTimer('build conflict context', repository)
     const fileContext = await buildConflictContext(
       labels.ourLabel,
       labels.theirLabel,
       repository.path,
-      conflictedFiles
+      filesWithDeleteInfo
     )
     contextTimer.done()
     if (signal?.aborted || !this.isTemporaryRepositoryActive(repository)) {
@@ -17375,6 +17393,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
             },
             copilotResolutions: result.resolutions,
             copilotResolutionSummary: result.summary,
+            copilotSkippedFiles: result.skippedFiles,
             copilotResolutionProgress: null,
             copilotResolutionAbortController: null,
           })
@@ -17396,6 +17415,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
           },
           copilotResolutions: result.resolutions,
           copilotResolutionSummary: result.summary,
+          copilotSkippedFiles: result.skippedFiles,
           copilotResolutionProgress: null,
           copilotResolutionAbortController: null,
         })
@@ -17443,6 +17463,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
           useCopilotConflictResolution: false,
           copilotResolutions: null,
           copilotResolutionSummary: null,
+          copilotSkippedFiles: null,
           copilotResolutionProgress: null,
           copilotResolutionAbortController: null,
         })
@@ -26458,6 +26479,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       useCopilotConflictResolution: false,
       copilotResolutions: null,
       copilotResolutionSummary: null,
+      copilotSkippedFiles: null,
       copilotResolutionProgress: null,
       copilotResolutionAbortController: null,
       copilotResolutionModel: null,
@@ -27553,4 +27575,20 @@ function constrain(
     min,
     max: constrainedMax,
   }
+}
+
+function getDeletedSideFromStatus(
+  file: WorkingDirectoryFileChange
+): 'ours' | 'theirs' | undefined {
+  if (!isConflictedFileStatus(file.status)) {
+    return undefined
+  }
+  const { us, them } = file.status.entry
+  if (us === GitStatusEntry.Deleted && them !== GitStatusEntry.Deleted) {
+    return 'ours'
+  }
+  if (them === GitStatusEntry.Deleted && us !== GitStatusEntry.Deleted) {
+    return 'theirs'
+  }
+  return undefined
 }

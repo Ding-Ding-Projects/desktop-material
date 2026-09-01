@@ -5,6 +5,7 @@ import type {
   IFileResolution,
   IConflictResolutionProgress,
   ICopilotResolutionSummary,
+  ICopilotSkippedFile,
 } from './copilot-conflict-resolution'
 import { Account } from '../models/account'
 import { INotificationEntry } from '../models/notification-centre'
@@ -1327,6 +1328,9 @@ export interface IMultiCommitOperationState {
    * Null when Copilot hasn't been invoked or has not yet completed.
    */
   readonly copilotResolutionSummary: ICopilotResolutionSummary | null
+
+  /** Files Copilot skipped, each with its stable reason for manual recovery. */
+  readonly copilotSkippedFiles: ReadonlyArray<ICopilotSkippedFile> | null
 
   /**
    * Controller used to cancel the in-flight Copilot conflict resolution. Set
