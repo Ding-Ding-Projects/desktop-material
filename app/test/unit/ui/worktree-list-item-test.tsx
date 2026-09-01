@@ -187,6 +187,65 @@ describe('WorktreeListItem', () => {
     assert.equal(activatedPath, worktree.path)
   })
 
+  it('announces main, linked, and detached rows with one counted group label', async () => {
+    const main = linkedWorktree({
+      path: 'C:/worktrees/main',
+      branch: 'refs/heads/main',
+      type: 'main',
+    })
+    const linked = linkedWorktree()
+    const detached = linkedWorktree({
+      path: 'C:/worktrees/detached',
+      head: 'abcdef1234567890',
+      branch: null,
+      isDetached: true,
+      dirtyFileCount: 3,
+      isLocked: true,
+      isPrunable: true,
+    })
+
+    render(
+      <WorktreeList
+        worktrees={[main, linked, detached]}
+        currentWorktree={main}
+        filterText=""
+        onFilterTextChanged={() => undefined}
+        canCreateNewWorktree={false}
+      />
+    )
+
+    await waitFor(() => {
+      assert.equal(screen.getAllByRole('option').length, 3)
+    })
+
+    const mainOption = screen.getByRole('option', {
+      name: /main, main, current worktree, Main worktree, 1 worktree/,
+    })
+    const linkedOption = screen.getByRole('option', {
+      name: /feature, feature, Linked worktrees, 2 worktrees/,
+    })
+    const detachedOption = screen.getByRole('option', {
+      name: /detached, abcdef1, 3 uncommitted, locked, missing, Linked worktrees, 2 worktrees/,
+    })
+
+    assert.equal(
+      (mainOption.getAttribute('aria-label')?.match(/Main worktree/g) ?? [])
+        .length,
+      1
+    )
+    assert.equal(
+      (
+        linkedOption.getAttribute('aria-label')?.match(/Linked worktrees/g) ??
+        []
+      ).length,
+      1
+    )
+    assert.equal(
+      detachedOption.getAttribute('aria-label'),
+      'detached, abcdef1, 3 uncommitted, locked, missing, Linked worktrees, 2 worktrees'
+    )
+  })
+
   it('merges an eligible linked worktree without selecting it', () => {
     const branch = new Branch(
       'feature',

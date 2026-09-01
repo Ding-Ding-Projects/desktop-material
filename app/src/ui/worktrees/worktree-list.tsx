@@ -122,8 +122,11 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
   }
 
   private getGroupAriaLabel = (group: number) => {
-    const identifier = this.getGroups(this.props.worktrees)[group].identifier
-    return identifier === 'main' ? 'Main worktree' : 'Linked worktrees'
+    const groupData = this.getGroups(this.props.worktrees)[group]
+    const count = groupData.items.length
+    return groupData.identifier === 'main'
+      ? `Main worktree, ${count} worktree`
+      : `Linked worktrees, ${count} worktrees`
   }
 
   private getItemAriaLabel = (item: IWorktreeListItem) => {
@@ -212,8 +215,8 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
         selectedItem={null}
         renderItem={this.renderItem}
         renderGroupHeader={this.renderGroupHeader}
-        getItemAriaLabel={this.getItemAriaLabel}
         getGroupAriaLabel={this.getGroupAriaLabel}
+        getItemAriaLabel={this.getItemAriaLabel}
         onItemClick={this.onItemClick}
         groups={groups}
         invalidationProps={this.props.worktrees}
