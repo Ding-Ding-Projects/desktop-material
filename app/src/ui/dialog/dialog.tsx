@@ -638,7 +638,7 @@ export class Dialog extends React.Component<DialogProps, IDialogState> {
       return
     }
 
-    this.focusRestoreRetryDeadline = Date.now() + 1000
+    this.focusRestoreRetryDeadline = Date.now() + focusRestoreRetryTimeoutMs
     this.focusRestoreRetryTimeoutId = window.setTimeout(
       this.restoreFocusAfterModalExit,
       focusRestoreRetryPeriodMs

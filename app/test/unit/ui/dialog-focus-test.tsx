@@ -25,6 +25,10 @@ const removeEventListenerDescriptor = Object.getOwnPropertyDescriptor(
   EventTarget.prototype,
   'removeEventListener'
 )
+const focusDescriptor = Object.getOwnPropertyDescriptor(
+  HTMLElement.prototype,
+  'focus'
+)
 const focusInListeners = new Map<
   EventTarget,
   Set<EventListenerOrEventListenerObject>
@@ -75,6 +79,17 @@ describe('Dialog focus', () => {
       }
       return removeEventListener.call(this, type, listener, options)
     }
+
+    const focus = HTMLElement.prototype.focus
+    HTMLElement.prototype.focus = function (options) {
+      const openModal = document.querySelector<HTMLDialogElement>(
+        'dialog[open][data-modal="true"]'
+      )
+      if (openModal !== null && !openModal.contains(this)) {
+        return
+      }
+      return focus.call(this, options)
+    }
   })
 
   afterEach(() => {
@@ -124,6 +139,11 @@ describe('Dialog focus', () => {
         'removeEventListener',
         removeEventListenerDescriptor
       )
+    }
+    if (focusDescriptor === undefined) {
+      Reflect.deleteProperty(HTMLElement.prototype, 'focus')
+    } else {
+      Object.defineProperty(HTMLElement.prototype, 'focus', focusDescriptor)
     }
   })
 
