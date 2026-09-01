@@ -56,6 +56,7 @@ const dimensions = [
   'renderer-local-symbol-calls',
   'renderer-cycle-bounds',
   'renderer-public-entry-elements',
+  'renderer-dead-control-flow',
 ]
 
 assert.deepEqual(contract.negativeRegression.requiredDimensions, dimensions)
@@ -765,6 +766,117 @@ export class App {
   )
   console.log(
     'renderer-public-entry-elements: green(true App) -> red(decoy renderer only) -> green(true App)'
+  )
+
+  const fullRequiredTree = `<div id="desktop-app-contents">
+    <RepositoryTabStrip />
+    <Toolbar id="desktop-app-toolbar" ariaLabel="Repository controls" />
+    <CrashProofBoundary />
+  </div>`
+  const emptyLiveRoot = '<div id="desktop-app-contents" />'
+  const deadControlFlowCases = [
+    {
+      name: 'if-false',
+      body: `if (false) { return ${fullRequiredTree} }\nreturn ${emptyLiveRoot}`,
+    },
+    {
+      name: 'if-true-else',
+      body: `if (true) { void 0 } else { return ${fullRequiredTree} }\nreturn ${emptyLiveRoot}`,
+    },
+    {
+      name: 'parenthesized-false',
+      body: `if ((((false)))) { return ${fullRequiredTree} }\nreturn ${emptyLiveRoot}`,
+    },
+    {
+      name: 'conditional-expression',
+      body: `false ? ${fullRequiredTree} : null\nreturn ${emptyLiveRoot}`,
+    },
+    {
+      name: 'false-and',
+      body: `false && ${fullRequiredTree}\nreturn ${emptyLiveRoot}`,
+    },
+    {
+      name: 'true-or',
+      body: `true || ${fullRequiredTree}\nreturn ${emptyLiveRoot}`,
+    },
+    {
+      name: 'while-false',
+      body: `while (false) { return ${fullRequiredTree} }\nreturn ${emptyLiveRoot}`,
+    },
+  ]
+  for (const deadCase of deadControlFlowCases) {
+    const source = `
+export class App {
+  public render() { return this.renderApp() }
+  private renderApp() {
+    ${deadCase.body}
+  }
+}
+`
+    assertOnlyIssueCode(
+      syntheticRendererIssues(
+        source,
+        contract.currentRenderer.requiredElements
+      ),
+      'renderer-dead-path-only',
+      `renderer-dead-control-flow ${deadCase.name}`
+    )
+  }
+  const afterReturnSource = `
+export class App {
+  public render() { return this.renderApp() }
+  private deadAfterReturn() {
+    return null
+    ${fullRequiredTree}
+  }
+  private renderApp() {
+    this.deadAfterReturn()
+    return ${emptyLiveRoot}
+  }
+}
+`
+  assertOnlyIssueCode(
+    syntheticRendererIssues(
+      afterReturnSource,
+      contract.currentRenderer.requiredElements
+    ),
+    'renderer-dead-path-only',
+    'renderer-dead-control-flow after-return'
+  )
+  const afterThrowSource = `
+export class App {
+  public render() { return this.renderApp() }
+  private deadAfterThrow() {
+    throw new Error('probe')
+    ${fullRequiredTree}
+  }
+  private renderApp() {
+    this.deadAfterThrow()
+    return ${emptyLiveRoot}
+  }
+}
+`
+  assertOnlyIssueCode(
+    syntheticRendererIssues(
+      afterThrowSource,
+      contract.currentRenderer.requiredElements
+    ),
+    'renderer-dead-path-only',
+    'renderer-dead-control-flow after-throw'
+  )
+  const liveRequiredTreeSource = `
+export class App {
+  public render() { return this.renderApp() }
+  private renderApp() { return ${fullRequiredTree} }
+}
+`
+  assertSyntheticGreen(
+    liveRequiredTreeSource,
+    contract.currentRenderer.requiredElements,
+    'renderer-dead-control-flow restored live tree'
+  )
+  console.log(
+    'renderer-dead-control-flow: 9 dead-shape decoys red(renderer-dead-path-only) -> green(live required tree)'
   )
 
   await assertRetiredImportsGreen('restored frozen-shell import contract')

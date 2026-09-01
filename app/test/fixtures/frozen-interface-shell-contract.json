@@ -201,7 +201,8 @@
       "renderer-unrelated-path-scope",
       "renderer-local-symbol-calls",
       "renderer-cycle-bounds",
-      "renderer-public-entry-elements"
+      "renderer-public-entry-elements",
+      "renderer-dead-control-flow"
     ]
   }
 }

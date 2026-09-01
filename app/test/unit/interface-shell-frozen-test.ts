@@ -95,6 +95,7 @@ function assertContractShape(): void {
     'renderer-local-symbol-calls',
     'renderer-cycle-bounds',
     'renderer-public-entry-elements',
+    'renderer-dead-control-flow',
   ])
 }
 

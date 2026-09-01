@@ -66,6 +66,7 @@ export type FrozenShellValidationIssue = {
     | 'missing-renderer-root'
     | 'renderer-call-ambiguous'
     | 'renderer-call-unresolved'
+    | 'renderer-dead-path-only'
     | 'renderer-entry-ambiguous'
     | 'renderer-reachability-bound'
     | 'renderer-root-ambiguous'
@@ -397,6 +398,7 @@ type ParsedRendererElement = {
 }
 
 type RendererReachability = {
+  deadElements: ParsedRendererElement[]
   elements: ParsedRendererElement[]
   issues: FrozenShellValidationIssue[]
 }
@@ -433,17 +435,6 @@ function isFunctionNode(node: ts.Node): node is ts.FunctionLikeDeclaration {
     ts.isGetAccessorDeclaration(node) ||
     ts.isSetAccessorDeclaration(node)
   )
-}
-
-function enclosingFunction(node: ts.Node): ts.FunctionLikeDeclaration | null {
-  let current: ts.Node | undefined = node.parent
-  while (current !== undefined) {
-    if (isFunctionNode(current)) {
-      return current
-    }
-    current = current.parent
-  }
-  return null
 }
 
 function createRendererProgram(source: string): {
@@ -657,6 +648,113 @@ type FunctionGraph = {
   visited: ReadonlySet<ts.FunctionLikeDeclaration>
 }
 
+type ExecutableNodeVisitor = {
+  dead: (node: ts.Node) => void
+  live: (node: ts.Node) => void
+}
+
+function immediateBooleanValue(expression: ts.Expression): boolean | null {
+  const unwrapped = unwrapCallableExpression(expression)
+  if (unwrapped.kind === ts.SyntaxKind.TrueKeyword) return true
+  if (unwrapped.kind === ts.SyntaxKind.FalseKeyword) return false
+  return null
+}
+
+function walkDeadNode(node: ts.Node, visitor: ExecutableNodeVisitor): void {
+  visitor.dead(node)
+  if (isFunctionNode(node) || ts.isClassLike(node)) return
+  ts.forEachChild(node, child => walkDeadNode(child, visitor))
+}
+
+function walkExecutableNode(
+  node: ts.Node,
+  visitor: ExecutableNodeVisitor,
+  root: ts.Node = node
+): void {
+  visitor.live(node)
+  if (node !== root && (isFunctionNode(node) || ts.isClassLike(node))) return
+
+  if (ts.isBlock(node)) {
+    for (let index = 0; index < node.statements.length; index += 1) {
+      const statement = node.statements[index]
+      walkExecutableNode(statement, visitor, root)
+      if (ts.isReturnStatement(statement) || ts.isThrowStatement(statement)) {
+        for (const dead of node.statements.slice(index + 1)) {
+          walkDeadNode(dead, visitor)
+        }
+        break
+      }
+    }
+    return
+  }
+
+  if (ts.isIfStatement(node)) {
+    walkExecutableNode(node.expression, visitor, root)
+    const condition = immediateBooleanValue(node.expression)
+    if (condition === true) {
+      walkExecutableNode(node.thenStatement, visitor, root)
+      if (node.elseStatement !== undefined) {
+        walkDeadNode(node.elseStatement, visitor)
+      }
+    } else if (condition === false) {
+      walkDeadNode(node.thenStatement, visitor)
+      if (node.elseStatement !== undefined) {
+        walkExecutableNode(node.elseStatement, visitor, root)
+      }
+    } else {
+      walkExecutableNode(node.thenStatement, visitor, root)
+      if (node.elseStatement !== undefined) {
+        walkExecutableNode(node.elseStatement, visitor, root)
+      }
+    }
+    return
+  }
+
+  if (ts.isConditionalExpression(node)) {
+    walkExecutableNode(node.condition, visitor, root)
+    const condition = immediateBooleanValue(node.condition)
+    if (condition === true) {
+      walkExecutableNode(node.whenTrue, visitor, root)
+      walkDeadNode(node.whenFalse, visitor)
+    } else if (condition === false) {
+      walkDeadNode(node.whenTrue, visitor)
+      walkExecutableNode(node.whenFalse, visitor, root)
+    } else {
+      walkExecutableNode(node.whenTrue, visitor, root)
+      walkExecutableNode(node.whenFalse, visitor, root)
+    }
+    return
+  }
+
+  if (
+    ts.isBinaryExpression(node) &&
+    (node.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken ||
+      node.operatorToken.kind === ts.SyntaxKind.BarBarToken)
+  ) {
+    walkExecutableNode(node.left, visitor, root)
+    const left = immediateBooleanValue(node.left)
+    const rightIsDead =
+      (node.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken &&
+        left === false) ||
+      (node.operatorToken.kind === ts.SyntaxKind.BarBarToken && left === true)
+    if (rightIsDead) walkDeadNode(node.right, visitor)
+    else walkExecutableNode(node.right, visitor, root)
+    return
+  }
+
+  if (ts.isWhileStatement(node)) {
+    walkExecutableNode(node.expression, visitor, root)
+    if (immediateBooleanValue(node.expression) === false) {
+      walkDeadNode(node.statement, visitor)
+    } else {
+      walkExecutableNode(node.statement, visitor, root)
+    }
+    return
+  }
+
+  ts.forEachChild(node, child => walkExecutableNode(child, visitor, root))
+}
+
 function buildFunctionGraph(options: {
   checker: ts.TypeChecker
   entry: ts.FunctionLikeDeclaration
@@ -692,18 +790,21 @@ function buildFunctionGraph(options: {
     if (body === undefined) {
       continue
     }
-    const visit = (node: ts.Node) => {
-      if (node !== body && (isFunctionNode(node) || ts.isClassLike(node))) {
-        return
-      }
-      if (ts.isCallExpression(node)) {
+    walkExecutableNode(body, {
+      dead: () => undefined,
+      live: node => {
+        if (!ts.isCallExpression(node)) return
         callCount += 1
         if (callCount > MAX_REACHABLE_RENDER_CALLS) {
-          issues.push({
-            code: 'renderer-reachability-bound',
-            path: options.path,
-            detail: `${MAX_REACHABLE_RENDER_CALLS} calls`,
-          })
+          if (
+            !issues.some(issue => issue.code === 'renderer-reachability-bound')
+          ) {
+            issues.push({
+              code: 'renderer-reachability-bound',
+              path: options.path,
+              detail: `${MAX_REACHABLE_RENDER_CALLS} calls`,
+            })
+          }
           return
         }
         const resolution = resolveCallImplementations({
@@ -730,12 +831,8 @@ function buildFunctionGraph(options: {
             detail: node.expression.getText(options.sourceFile),
           })
         }
-      }
-      if (!issues.some(issue => issue.code === 'renderer-reachability-bound')) {
-        ts.forEachChild(node, visit)
-      }
-    }
-    visit(body)
+      },
+    })
     if (issues.some(issue => issue.code === 'renderer-reachability-bound')) {
       break
     }
@@ -743,53 +840,63 @@ function buildFunctionGraph(options: {
   return { adjacency, issues, visited }
 }
 
+type RendererElementFlow = {
+  dead: ParsedRendererElement[]
+  live: ParsedRendererElement[]
+}
+
 function collectOwnRendererElements(
   sourceFile: ts.SourceFile,
   implementation: ts.FunctionLikeDeclaration
-): ParsedRendererElement[] {
-  const elements: ParsedRendererElement[] = []
+): RendererElementFlow {
+  const dead: ParsedRendererElement[] = []
+  const live: ParsedRendererElement[] = []
   const body = implementation.body
   if (body === undefined) {
-    return elements
+    return { dead, live }
   }
-  const visit = (node: ts.Node) => {
-    if (node !== body && (isFunctionNode(node) || ts.isClassLike(node))) {
-      return
-    }
+  const collect = (target: ParsedRendererElement[]) => (node: ts.Node) => {
     if (ts.isJsxElement(node)) {
-      elements.push(parseRendererElement(sourceFile, node.openingElement))
+      target.push(parseRendererElement(sourceFile, node.openingElement))
     } else if (ts.isJsxSelfClosingElement(node)) {
-      elements.push(parseRendererElement(sourceFile, node))
+      target.push(parseRendererElement(sourceFile, node))
     }
-    ts.forEachChild(node, visit)
   }
-  visit(body)
-  return elements
+  walkExecutableNode(body, { dead: collect(dead), live: collect(live) })
+  return { dead, live }
 }
 
 function findAllRootFunctions(
   sourceFile: ts.SourceFile,
   rootContract: RendererElementContract
-): ReadonlySet<ts.FunctionLikeDeclaration> {
-  const roots = new Set<ts.FunctionLikeDeclaration>()
+): {
+  dead: ReadonlySet<ts.FunctionLikeDeclaration>
+  live: ReadonlySet<ts.FunctionLikeDeclaration>
+} {
+  const dead = new Set<ts.FunctionLikeDeclaration>()
+  const live = new Set<ts.FunctionLikeDeclaration>()
   const visit = (node: ts.Node) => {
-    if (ts.isJsxElement(node)) {
-      const element = parseRendererElement(sourceFile, node.openingElement)
-      if (rendererElementMatches(element, rootContract)) {
-        const owner = enclosingFunction(node)
-        if (owner !== null) roots.add(owner)
+    if (isFunctionNode(node) && node.body !== undefined) {
+      const elements = collectOwnRendererElements(sourceFile, node)
+      if (
+        elements.live.some(element =>
+          rendererElementMatches(element, rootContract)
+        )
+      ) {
+        live.add(node)
       }
-    } else if (ts.isJsxSelfClosingElement(node)) {
-      const element = parseRendererElement(sourceFile, node)
-      if (rendererElementMatches(element, rootContract)) {
-        const owner = enclosingFunction(node)
-        if (owner !== null) roots.add(owner)
+      if (
+        elements.dead.some(element =>
+          rendererElementMatches(element, rootContract)
+        )
+      ) {
+        dead.add(node)
       }
     }
     ts.forEachChild(node, visit)
   }
   visit(sourceFile)
-  return roots
+  return { dead, live }
 }
 
 function descendantFunctions(
@@ -818,6 +925,7 @@ function collectReachableRendererElements(options: {
   const entries = findRendererEntry({ contract: options.contract, sourceFile })
   if (entries.length !== 1) {
     return {
+      deadElements: [],
       elements: [],
       issues: [
         {
@@ -835,14 +943,15 @@ function collectReachableRendererElements(options: {
     sourceFile,
   })
   if (graph.issues.length > 0) {
-    return { elements: [], issues: graph.issues }
+    return { deadElements: [], elements: [], issues: graph.issues }
   }
   const allRoots = findAllRootFunctions(
     sourceFile,
     options.contract.currentRenderer.rootElement
   )
-  if (allRoots.size === 0) {
+  if (allRoots.live.size === 0 && allRoots.dead.size === 0) {
     return {
+      deadElements: [],
       elements: [],
       issues: [
         {
@@ -855,13 +964,21 @@ function collectReachableRendererElements(options: {
       ],
     }
   }
-  const reachableRoots = [...allRoots].filter(root => graph.visited.has(root))
+  const reachableRoots = [...allRoots.live].filter(root =>
+    graph.visited.has(root)
+  )
   if (reachableRoots.length === 0) {
+    const deadReachableRoot = [...allRoots.dead].some(root =>
+      graph.visited.has(root)
+    )
     return {
+      deadElements: [],
       elements: [],
       issues: [
         {
-          code: 'renderer-root-unreachable',
+          code: deadReachableRoot
+            ? 'renderer-dead-path-only'
+            : 'renderer-root-unreachable',
           path: options.path,
           detail: rendererElementDetail(
             options.contract.currentRenderer.rootElement
@@ -872,6 +989,7 @@ function collectReachableRendererElements(options: {
   }
   if (reachableRoots.length !== 1) {
     return {
+      deadElements: [],
       elements: [],
       issues: [
         {
@@ -883,10 +1001,12 @@ function collectReachableRendererElements(options: {
     }
   }
   const descendants = descendantFunctions(reachableRoots[0], graph.adjacency)
+  const elementFlows = [...descendants].map(implementation =>
+    collectOwnRendererElements(sourceFile, implementation)
+  )
   return {
-    elements: [...descendants].flatMap(implementation =>
-      collectOwnRendererElements(sourceFile, implementation)
-    ),
+    deadElements: elementFlows.flatMap(flow => flow.dead),
+    elements: elementFlows.flatMap(flow => flow.live),
     issues: [],
   }
 }
@@ -947,8 +1067,13 @@ export function findRendererWiringIssues(options: {
       ) {
         continue
       }
+      const deadPathOnly = reachability.deadElements.some(element =>
+        rendererElementMatches(element, expected)
+      )
       issues.push({
-        code: 'missing-renderer-element',
+        code: deadPathOnly
+          ? 'renderer-dead-path-only'
+          : 'missing-renderer-element',
         path: renderer.path,
         detail: rendererElementDetail(expected),
       })
