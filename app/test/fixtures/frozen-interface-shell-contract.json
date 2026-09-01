@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "baseline": {
+    "presentation": "2026-08-07",
+    "restoredOn": "2026-08-15",
+    "rule": "The current application presentation is frozen. Shared Material Design 3 controls and dialogs remain active inside it."
+  },
+  "changePolicy": {
+    "frozenBoundary": "application chrome, whole-screen views, and their shell styles",
+    "allowedWithinBoundary": [
+      "control-level bug fixes",
+      "Material Design 3 conformance for retained controls and dialogs"
+    ],
+    "requiresExplicitRequest": "replacing, re-skinning, re-shelling, or restoring the application chrome"
+  },
+  "provenance": [
+    {
+      "sha": "427029d9bc8c86283962b6f02027ce8e400c251d",
+      "role": "first documented interface restoration",
+      "subject": "Revert the interface to 2026-08-07, before both MD3 waves"
+    },
+    {
+      "sha": "f3f29f6ef0b5803db68e8f8d1199d2b922ae820a",
+      "role": "literal restoration with feature compatibility notes",
+      "subject": "Revert the interface to 2026-08-07 literally, features and all"
+    },
+    {
+      "sha": "3abcee9015145a1d1346022f4673922f625752d5",
+      "role": "removal of the unrequested second shell rebuild",
+      "subject": "Take the interface back to the chrome that was already chosen"
+    },
+    {
+      "sha": "970570b1afd5dc2baebee9c66d6d79f36e060e62",
+      "role": "merge of the interface restoration",
+      "subject": "Merge the interface revert"
+    },
+    {
+      "sha": "8f364cfaf45665face921cb04afed5ac883ba22f",
+      "role": "retirement of the misleading shell article",
+      "subject": "Mark the MD3 shell article retired, because it has already been read as an order"
+    },
+    {
+      "sha": "ed2f49c68ae4f756fd3a461028061644d1816eca",
+      "role": "executable frozen-shell regression",
+      "subject": "Fix five real defects the hunt confirmed, and freeze the shell in a test"
+    },
+    {
+      "sha": "0d04ec40f5989606f7e745c6c0f25f71a9172017",
+      "role": "shared control conformance on the retained presentation",
+      "subject": "Convert remaining plain HTML controls to shared Material components"
+    },
+    {
+      "sha": "2a211b87a11eb2c0fe36f5fcda6fe1555912a429",
+      "role": "conformance sweep record",
+      "subject": "Record the Material control conformance sweep"
+    }
+  ],
+  "retiredShell": {
+    "barrelPaths": [
+      "app/src/ui/md3/index.ts",
+      "app/src/ui/md3/index.tsx"
+    ],
+    "modulePaths": [
+      "md3-shell.tsx",
+      "md3-shell-carryover.ts",
+      "md3-app-header.tsx",
+      "md3-navigation-rail.tsx",
+      "md3-navigation-drawer.tsx",
+      "md3-pane-header.tsx",
+      "md3-resizable-pane.tsx",
+      "md3-diff-pane.tsx",
+      "md3-virtual-window.tsx",
+      "md3-view-props.ts",
+      "md3-destination-adapters.ts",
+      "md3-menu-bindings.ts",
+      "md3-changes-view.tsx",
+      "md3-history-view.tsx",
+      "md3-branches-view.tsx",
+      "md3-repositories-view.tsx",
+      "md3-actions-view.tsx",
+      "md3-agents-view.tsx",
+      "md3-inbox-view.tsx",
+      "md3-terminal-view.tsx"
+    ],
+    "stylesheetPaths": [
+      "_md3-shell.scss",
+      "_md3-shell-layout.scss",
+      "_md3-app-header.scss",
+      "_md3-navigation-rail.scss",
+      "_md3-navigation-drawer.scss",
+      "_md3-pane-header.scss",
+      "_md3-changes-view.scss",
+      "_md3-history-view.scss",
+      "_md3-branches.scss",
+      "_md3-repositories.scss",
+      "_md3-actions.scss",
+      "_md3-agents.scss",
+      "_md3-inbox.scss",
+      "_md3-terminal.scss",
+      "_md3-diff-pane.scss"
+    ],
+    "familyPrefixes": [
+      "md3-shell",
+      "md3-app-header",
+      "md3-navigation-rail",
+      "md3-navigation-drawer",
+      "md3-pane-header",
+      "md3-resizable-pane",
+      "md3-diff-pane",
+      "md3-virtual-window",
+      "md3-view-props",
+      "md3-destination-adapters",
+      "md3-menu-bindings",
+      "md3-changes-view",
+      "md3-history-view",
+      "md3-branches-view",
+      "md3-repositories-view",
+      "md3-actions-view",
+      "md3-agents-view",
+      "md3-inbox-view",
+      "md3-terminal-view"
+    ]
+  },
+  "survivingControls": [
+    "md3-primitives.tsx",
+    "md3-destructive-gate.tsx",
+    "md3-toast.tsx",
+    "md3-regex-builder-dialog.tsx",
+    "md3-locks-view.tsx",
+    "md3-authenticator-view.tsx",
+    "md3-support-tickets-view.tsx",
+    "md3-menu-specs.ts",
+    "md3-style-contract.ts"
+  ],
+  "currentRenderer": {
+    "entry": "app/src/ui/app.tsx",
+    "imports": [
+      {
+        "binding": "RepositoryTabStrip",
+        "specifier": "./repository-tabs/repository-tab-strip"
+      },
+      {
+        "binding": "AppMenuBar",
+        "specifier": "./app-menu"
+      },
+      {
+        "binding": "TitleBar",
+        "specifier": "./window"
+      },
+      {
+        "binding": "Preferences",
+        "specifier": "./preferences"
+      },
+      {
+        "binding": "Welcome",
+        "specifier": "./welcome"
+      }
+    ],
+    "markers": [
+      "id=\"desktop-app-contents\"",
+      "{this.renderRepositoryTabStrip()}",
+      "{this.renderToolbar()}",
+      "{this.renderRepository()}",
+      "{this.renderBuildRunPanel()}",
+      "<TitleBar"
+    ]
+  }
+}
