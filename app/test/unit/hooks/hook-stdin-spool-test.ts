@@ -3,7 +3,7 @@ import { describe, it, TestContext } from 'node:test'
 import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { Readable } from 'stream'
+import { Readable, Writable } from 'stream'
 import { exec } from 'dugite'
 
 import {
@@ -120,6 +120,75 @@ describe('hooks/hook-stdin-spool', () => {
     await assert.rejects(() => readFile(join(directories[0], 'stdin'), 'utf8'))
   })
 
+  it('accepts the exact byte budget without buffering beyond it', async () => {
+    const payload = Buffer.alloc(12, 7)
+    const spooled = await spoolHookStdinToFile(Readable.from([payload]), 12)
+    try {
+      assert.equal(spooled.byteLength, payload.byteLength)
+      assert.deepEqual(await readFile(spooled.path), payload)
+    } finally {
+      await spooled.dispose()
+    }
+  })
+
+  it('cleans up after an input stream error', async () => {
+    let directory: string | undefined
+    const stdin = new Readable({
+      read() {
+        this.destroy(new Error('stdin exploded'))
+      },
+    })
+
+    await assert.rejects(
+      () =>
+        spoolHookStdinToFile(stdin, MaximumHookStdinBytes, {
+          makeDirectory: async () => {
+            directory = await mkdtemp(
+              join(tmpdir(), 'desktop-hook-stdin-error-')
+            )
+            return directory
+          },
+        }),
+      /stdin exploded/
+    )
+    assert.ok(directory)
+    await assert.rejects(() => readFile(join(directory as string, 'stdin')))
+  })
+
+  it('cleans up after a sink stream error', async () => {
+    let directory: string | undefined
+    const removeCalls: string[] = []
+    const sink = new Writable({
+      write(_chunk, _encoding, callback) {
+        callback(new Error('sink exploded'))
+      },
+    })
+
+    await assert.rejects(
+      () =>
+        spoolHookStdinToFile(
+          Readable.from(['payload']),
+          MaximumHookStdinBytes,
+          {
+            makeDirectory: async () => {
+              directory = await mkdtemp(
+                join(tmpdir(), 'desktop-hook-stdin-sink-')
+              )
+              return directory
+            },
+            createSink: () => sink,
+            removeDirectory: async path => {
+              removeCalls.push(path)
+              await rm(path, { recursive: true, force: true })
+            },
+          }
+        ),
+      /sink exploded/
+    )
+    assert.ok(directory)
+    assert.deepEqual(removeCalls, [directory])
+  })
+
   it('rejects a non-positive budget', async () => {
     await assert.rejects(
       () => spoolHookStdinToFile(Readable.from(['x']), 0),
@@ -129,9 +198,73 @@ describe('hooks/hook-stdin-spool', () => {
   })
 
   it('dispose is idempotent and never throws', async () => {
-    const spooled = await spoolHookStdinToFile(Readable.from(['x']))
+    let removeCount = 0
+    const spooled = await spoolHookStdinToFile(
+      Readable.from(['x']),
+      MaximumHookStdinBytes,
+      {
+        removeDirectory: async path => {
+          removeCount += 1
+          await rm(path, { recursive: true, force: true })
+        },
+      }
+    )
     await spooled.dispose()
     await spooled.dispose()
+    assert.equal(removeCount, 1)
+  })
+
+  it('does not create a directory when already aborted', async () => {
+    const controller = new AbortController()
+    controller.abort()
+    let makeDirectoryCalls = 0
+
+    await assert.rejects(
+      () =>
+        spoolHookStdinToFile(
+          Readable.from(['payload']),
+          MaximumHookStdinBytes,
+          {
+            makeDirectory: async () => {
+              makeDirectoryCalls += 1
+              return mkdtemp(join(tmpdir(), 'desktop-hook-stdin-early-abort-'))
+            },
+          },
+          controller.signal
+        ),
+      (error: unknown) => error instanceof Error && error.name === 'AbortError'
+    )
+    assert.equal(makeDirectoryCalls, 0)
+  })
+
+  it('aborts a pending spool and removes its private directory', async () => {
+    const controller = new AbortController()
+    let directory: string | undefined
+    const stdin = new Readable({ read() {} })
+    const pending = spoolHookStdinToFile(
+      stdin,
+      MaximumHookStdinBytes,
+      {
+        makeDirectory: async () => {
+          directory = await mkdtemp(join(tmpdir(), 'desktop-hook-stdin-abort-'))
+          return directory
+        },
+      },
+      controller.signal
+    )
+
+    await new Promise<void>(resolve => setImmediate(resolve))
+    controller.abort()
+
+    await assert.rejects(
+      pending,
+      (error: unknown) => error instanceof Error && error.name === 'AbortError'
+    )
+    assert.ok(directory)
+    await assert.rejects(() =>
+      readFile(join(directory as string, 'stdin'), 'utf8')
+    )
+    await rm(directory as string, { recursive: true, force: true })
   })
 
   it('lets the bundled Git run a stdin-reading pre-push hook', async t => {

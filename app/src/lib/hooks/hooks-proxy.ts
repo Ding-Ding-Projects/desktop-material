@@ -1,4 +1,5 @@
 import { execFile, spawn } from 'child_process'
+import type { ChildProcessWithoutNullStreams } from 'child_process'
 import { basename, resolve } from 'path'
 import { ProcessProxyConnection as Connection } from 'process-proxy'
 import type { HookCallbackOptions } from '../git'
@@ -11,6 +12,7 @@ import memoizeOne from 'memoize-one'
 import which from 'which'
 import {
   HookStdinTooLargeError,
+  MaximumHookStdinBytes,
   ISpooledHookStdin,
   spoolHookStdinToFile,
 } from './hook-stdin-spool'
@@ -151,160 +153,222 @@ export const createHooksProxy = (
 ) => {
   return async (conn: Connection) => {
     const startTime = Date.now()
-    const proxyArgs = await conn.getArgs()
-    const proxyEnv = await conn.getEnv()
-    const proxyCwd = await conn.getCwd()
-    const hasStdin = await conn.isStdinConnected()
-
-    const hookName = basename(proxyArgs[0], __WIN32__ ? '.exe' : undefined)
-
     const abortController = new AbortController()
     const abort = () => abortController.abort()
+    conn.on('close', abort)
+    let hookName = 'unknown'
 
-    await writeline(conn.stderr, `Running ${hookName} hook...`)
-    onHookProgress?.({ hookName, status: 'started', abort })
+    try {
+      const proxyArgs = await conn.getArgs()
+      const proxyEnv = await conn.getEnv()
+      const proxyCwd = await conn.getCwd()
+      const hasStdin = await conn.isStdinConnected()
 
-    // GIT_ vars are considered safe to pass to hooks unless explicitly excluded
-    // GITHEAD_ are set by git-merge (https://github.com/git/git/blob/83a69f19359e6d9bc980563caca38b2b5729808c/builtin/merge.c#L1590)
-    const safePrefixes = ['GIT_', 'GITHEAD_']
+      hookName = basename(proxyArgs[0], __WIN32__ ? '.exe' : undefined)
 
-    const safeEnv = Object.fromEntries(
-      Object.entries(proxyEnv).filter(
-        ([k]) =>
-          safePrefixes.some(prefix => k.startsWith(prefix)) &&
-          !excludedEnvVars.has(k)
+      await writeline(conn.stderr, `Running ${hookName} hook...`)
+      onHookProgress?.({ hookName, status: 'started', abort })
+
+      // GIT_ vars are considered safe to pass to hooks unless explicitly excluded
+      // GITHEAD_ are set by git-merge (https://github.com/git/git/blob/83a69f19359e6d9bc980563caca38b2b5729808c/builtin/merge.c#L1590)
+      const safePrefixes = ['GIT_', 'GITHEAD_']
+
+      const safeEnv = Object.fromEntries(
+        Object.entries(proxyEnv).filter(
+          ([k]) =>
+            safePrefixes.some(prefix => k.startsWith(prefix)) &&
+            !excludedEnvVars.has(k)
+        )
       )
-    )
 
-    if (abortController.signal.aborted) {
-      debug(`${hookName}: aborted before execution`)
-      await exitWithError(conn, `hook ${hookName} aborted`)
-      return
-    }
+      if (abortController.signal.aborted) {
+        debug(`${hookName}: aborted before execution`)
+        await exitWithError(conn, `hook ${hookName} aborted`)
+        return
+      }
 
-    const terminalOutput: Buffer[] = []
-    const gitPath = resolveGitBinary(resolve(__dirname, 'git'))
-    const shellEnv = await ensureGitExecPathEnv(await getShellEnv(proxyCwd))
+      const terminalOutput: Buffer[] = []
+      const gitPath = resolveGitBinary(resolve(__dirname, 'git'))
+      const shellEnv = await ensureGitExecPathEnv(await getShellEnv(proxyCwd))
 
-    if (shellEnv.kind === 'failure') {
-      let errMsg = `Failed to load shell environment for hook ${hookName}.`
-      debug(errMsg)
+      if (shellEnv.kind === 'failure') {
+        let errMsg = `Failed to load shell environment for hook ${hookName}.`
+        debug(errMsg)
 
-      if (shellEnv.shellKind) {
-        const friendlyName = shellFriendlyNames[shellEnv.shellKind]
-        if (shellEnv.shellKind === 'git-bash') {
-          errMsg += `\n${friendlyName} not found. Please ensure Git for Windows is installed and added to your PATH.`
-        } else {
-          errMsg += `\n${friendlyName} not found. Please ensure it's installed and added to your PATH.`
+        if (shellEnv.shellKind) {
+          const friendlyName = shellFriendlyNames[shellEnv.shellKind]
+          if (shellEnv.shellKind === 'git-bash') {
+            errMsg += `\n${friendlyName} not found. Please ensure Git for Windows is installed and added to your PATH.`
+          } else {
+            errMsg += `\n${friendlyName} not found. Please ensure it's installed and added to your PATH.`
+          }
+        }
+
+        errMsg += '\n\nConfigure the shell to use in Preferences > Git > Hooks.'
+
+        return exitWithError(conn, errMsg)
+      }
+
+      if (abortController.signal.aborted) {
+        debug(`${hookName}: aborted before execution`)
+        await exitWithError(conn, `hook ${hookName} aborted`)
+        onHookProgress?.({ hookName, status: 'failed' })
+        return
+      }
+
+      // `git hook run --to-stdin=<path>` opens <path> itself. `/dev/stdin` is not
+      // openable by the bundled native Win32 Git, so the proxied payload is
+      // spooled to a real file first. See `hook-stdin-spool`.
+      let spooledStdin: ISpooledHookStdin | null = null
+      if (hasStdin) {
+        try {
+          spooledStdin = await spoolHookStdinToFile(
+            conn.stdin,
+            MaximumHookStdinBytes,
+            {},
+            abortController.signal
+          )
+        } catch (err) {
+          const detail = abortController.signal.aborted
+            ? `hook ${hookName} aborted`
+            : err instanceof HookStdinTooLargeError
+            ? err.message
+            : `Failed to buffer stdin for ${hookName} hook: ${
+                err instanceof Error ? err.message : String(err)
+              }`
+          debug(detail, err instanceof Error ? err : undefined)
+          return exitWithError(conn, detail)
         }
       }
 
-      errMsg += '\n\nConfigure the shell to use in Preferences > Git > Hooks.'
-
-      return exitWithError(conn, errMsg)
-    }
-
-    // `git hook run --to-stdin=<path>` opens <path> itself. `/dev/stdin` is not
-    // openable by the bundled native Win32 Git, so the proxied payload is
-    // spooled to a real file first. See `hook-stdin-spool`.
-    let spooledStdin: ISpooledHookStdin | null = null
-    if (hasStdin) {
-      try {
-        spooledStdin = await spoolHookStdinToFile(conn.stdin)
-      } catch (err) {
-        const detail =
-          err instanceof HookStdinTooLargeError
-            ? err.message
-            : `Failed to capture standard input for hook ${hookName}.`
-        debug(detail, err instanceof Error ? err : undefined)
-        return exitWithError(conn, detail)
+      if (abortController.signal.aborted) {
+        debug(`${hookName}: aborted before execution`)
+        await exitWithError(conn, `hook ${hookName} aborted`)
+        onHookProgress?.({ hookName, status: 'failed' })
+        return
       }
-    }
 
-    const args = [
-      ...['hook', 'run', hookName],
-      // We always copy our pre-auto-gc hook in order to be able to tell the
-      // user that the reason their commit is taking so long is because Git is
-      // performing garbage collection, but it's unlikely that the user has a
-      // pre-auto-gc hook configured themselves, so we tell Git to ignore
-      // missing hooks here.
-      ...(hookName === 'pre-auto-gc' ? ['--ignore-missing'] : []),
-      ...(spooledStdin === null ? [] : [`--to-stdin=${spooledStdin.path}`]),
-      '--',
-      ...proxyArgs.slice(1),
-    ]
+      const args = [
+        ...['hook', 'run', hookName],
+        // We always copy our pre-auto-gc hook in order to be able to tell the
+        // user that the reason their commit is taking so long is because Git is
+        // performing garbage collection, but it's unlikely that the user has a
+        // pre-auto-gc hook configured themselves, so we tell Git to ignore
+        // missing hooks here.
+        ...(hookName === 'pre-auto-gc' ? ['--ignore-missing'] : []),
+        ...(spooledStdin === null ? [] : [`--to-stdin=${spooledStdin.path}`]),
+        '--',
+        ...proxyArgs.slice(1),
+      ]
 
-    let code: number | null
-    let signal: NodeJS.Signals | null
-    try {
-      ;({ code, signal } = await new Promise<{
-        code: number | null
-        signal: NodeJS.Signals | null
-      }>((resolve, reject) => {
-        conn.on('close', abort)
+      let code: number | null
+      let signal: NodeJS.Signals | null
+      try {
+        ;({ code, signal } = await new Promise<{
+          code: number | null
+          signal: NodeJS.Signals | null
+        }>((resolve, reject) => {
+          let processError: Error | undefined
+          const fail = (error: unknown) => {
+            processError ??=
+              error instanceof Error ? error : new Error(String(error))
+            if (!abortController.signal.aborted) {
+              abortController.abort()
+            }
+          }
 
-        const child = spawn(gitPath, args, {
-          cwd: proxyCwd,
-          // GITHUB_DESKTOP lets hooks know they're run from GitHub Desktop.
-          // See https://github.com/desktop/desktop/issues/19001
-          env: { ...shellEnv.env, ...safeEnv, GITHUB_DESKTOP: '1' },
-          signal: abortController.signal,
-        })
-          .on('close', (code, signal) => resolve({ code, signal }))
-          .on('error', err => reject(err))
+          let child: ChildProcessWithoutNullStreams
+          try {
+            child = spawn(gitPath, args, {
+              cwd: proxyCwd,
+              // GITHUB_DESKTOP lets hooks know they're run from GitHub Desktop.
+              // See https://github.com/desktop/desktop/issues/19001
+              env: { ...shellEnv.env, ...safeEnv, GITHUB_DESKTOP: '1' },
+              signal: abortController.signal,
+            }) as ChildProcessWithoutNullStreams
+          } catch (error) {
+            reject(error)
+            return
+          }
 
-        // git-hook run takes care of ensuring we only get hook output on stderr
-        // https://github.com/git/git/blob/4cf919bd7b946477798af5414a371b23fd68bf93/hook.c#L73C6-L73C22
-        child.stderr.pipe(conn.stderr, { end: false }).on('error', reject)
-        child.stderr.on('data', data => terminalOutput.push(data))
-        // The hook reads the spooled file, so Git's own stdin stays empty.
-        child.stdin.end()
-      }))
+          child.on('close', (code, signal) => {
+            if (processError) {
+              reject(processError)
+            } else {
+              resolve({ code, signal })
+            }
+          })
+          child.on('error', fail)
+          child.stdin.on('error', fail)
+          child.stderr.on('error', fail)
+
+          // git-hook run takes care of ensuring we only get hook output on stderr
+          // https://github.com/git/git/blob/4cf919bd7b946477798af5414a371b23fd68bf93/hook.c#L73C6-L73C22
+          child.stderr.pipe(conn.stderr, { end: false }).on('error', fail)
+          child.stderr.on('data', data => terminalOutput.push(data))
+          // The hook reads the spooled file, so Git's own stdin stays empty.
+          child.stdin.end()
+        }))
+      } catch (error) {
+        const detail = abortController.signal.aborted
+          ? `hook ${hookName} aborted`
+          : `Failed to run ${hookName} hook: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+        debug(detail, error instanceof Error ? error : undefined)
+        await exitWithError(conn, detail)
+        onHookProgress?.({ hookName, status: 'failed' })
+        return
+      } finally {
+        await spooledStdin?.dispose()
+      }
+
+      const dur = `after ${((Date.now() - startTime) / 1000).toFixed(2)}s`
+      const prefix = `${hookName} hook`
+      const terminationMessage = signal
+        ? `${prefix} killed by signal ${signal} ${dur}`
+        : `${prefix} ${code ? `failed with code ${code}` : 'done'} ${dur}`
+
+      debug(terminationMessage)
+
+      // If we were to write this to the proxy's stderr it wouldn't make it into the terminalOutput
+      // array in time for us to call onHookFailure with it, so we append it here to ensure it's
+      // included and then we'll write it to stderr to be included in the overall output later
+      const hookFailureTerminalOutput = terminalOutput.concat(
+        Buffer.from(`${terminationMessage}\n`)
+      )
+
+      const ignoreError =
+        code !== null &&
+        code !== 0 &&
+        !ignoredOnFailureHooks.includes(hookName) &&
+        onHookFailure
+          ? (await onHookFailure(hookName, hookFailureTerminalOutput)) ===
+            'ignore'
+          : false
+
+      if (ignoreError) {
+        debug(
+          `ignoring error from hook ${hookName} as per onHookFailure result`
+        )
+      }
+
+      await writeline(conn.stderr, terminationMessage)
+
+      if (ignoreError) {
+        await writeline(conn.stderr, `${hookName} hook failure ignored by user`)
+      }
+
+      const exitCode = ignoreError ? 0 : code ?? 1
+
+      await tryExit(conn, exitCode)
+
+      onHookProgress?.({
+        hookName,
+        status: exitCode === 0 ? 'finished' : 'failed',
+      })
     } finally {
-      await spooledStdin?.dispose()
+      conn.removeListener('close', abort)
     }
-
-    const dur = `after ${((Date.now() - startTime) / 1000).toFixed(2)}s`
-    const prefix = `${hookName} hook`
-    const terminationMessage = signal
-      ? `${prefix} killed by signal ${signal} ${dur}`
-      : `${prefix} ${code ? `failed with code ${code}` : 'done'} ${dur}`
-
-    debug(terminationMessage)
-
-    // If we were to write this to the proxy's stderr it wouldn't make it into the terminalOutput
-    // array in time for us to call onHookFailure with it, so we append it here to ensure it's
-    // included and then we'll write it to stderr to be included in the overall output later
-    const hookFailureTerminalOutput = terminalOutput.concat(
-      Buffer.from(`${terminationMessage}\n`)
-    )
-
-    const ignoreError =
-      code !== null &&
-      code !== 0 &&
-      !ignoredOnFailureHooks.includes(hookName) &&
-      onHookFailure
-        ? (await onHookFailure(hookName, hookFailureTerminalOutput)) ===
-          'ignore'
-        : false
-
-    if (ignoreError) {
-      debug(`ignoring error from hook ${hookName} as per onHookFailure result`)
-    }
-
-    await writeline(conn.stderr, terminationMessage)
-
-    if (ignoreError) {
-      await writeline(conn.stderr, `${hookName} hook failure ignored by user`)
-    }
-
-    const exitCode = ignoreError ? 0 : code ?? 1
-
-    await tryExit(conn, exitCode)
-
-    onHookProgress?.({
-      hookName,
-      status: exitCode === 0 ? 'finished' : 'failed',
-    })
   }
 }
