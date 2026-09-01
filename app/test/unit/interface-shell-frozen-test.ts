@@ -105,10 +105,7 @@ function assertContractShape(): void {
     contract.provenance.length
   )
   assert.deepEqual(contract.currentRenderer.acceptedSourceExtensions, sourceExtensions)
-  assert.deepEqual(contract.currentRenderer.aliases, {
-    '@ui/': 'app/src/ui/',
-    '@styles/': 'app/styles/',
-  })
+  assert.deepEqual(contract.currentRenderer.aliases, {})
   assert.equal(contract.retiredShell.barrelPaths[0], 'app/src/ui/md3/index.ts')
   assert.deepEqual(contract.negativeRegression.requiredDimensions, [
     'retired-path-resolution',
@@ -297,13 +294,21 @@ async function listTypeScriptSources(root: string): Promise<string[]> {
 async function readSourceFiles(root: string): Promise<
   Array<{ path: string; source: string }>
 > {
-  const files = await listTypeScriptSources(root)
-  return Promise.all(
-    files.map(async path => ({
+  const paths = await listTypeScriptSources(root)
+  const files = await Promise.all(
+    paths.map(async path => ({
       path,
       source: await FsAsync.readFile(path, 'utf8'),
     }))
   )
+  if (negativeDimension === 'alias-import-resolution') {
+    files.push({ path: Path.join(root, 'alias-import.js'), source: "import './md3/md3-shell'" })
+  } else if (negativeDimension === 'accepted-source-extensions') {
+    files.push({ path: Path.join(root, 'js-family.js'), source: "import './md3/md3-shell'" })
+  } else if (negativeDimension === 'comment-free-import-detection') {
+    files.push({ path: Path.join(root, 'comment-evasion.ts'), source: "/* import './md3/md3-shell' */" })
+  }
+  return files
 }
 
 describe('the interface shell stays frozen', () => {

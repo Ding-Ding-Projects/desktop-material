@@ -165,10 +165,7 @@
       "<TitleBar"
     ],
     "acceptedSourceExtensions": [".ts", ".tsx", ".js", ".jsx", ".mts", ".mjs", ".cts", ".cjs"],
-    "aliases": {
-      "@ui/": "app/src/ui/",
-      "@styles/": "app/styles/"
-    }
+    "aliases": {}
   },
   "negativeRegression": {
     "requiredDimensions": [
