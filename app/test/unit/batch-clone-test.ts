@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
 import * as Path from 'path'
+import { homedir } from 'os'
 import {
   BatchCloneMode,
   IBatchCloneState,
@@ -51,6 +52,28 @@ describe('batch-clone model', () => {
 
     it('returns a safe default when nothing usable is present', () => {
       assert.equal(deriveBatchCloneName(''), 'repository')
+    })
+
+    it('rejects reserved names regardless of case or git suffix casing', () => {
+      assert.equal(
+        deriveBatchCloneName('https://example.test/owner/con.GIT'),
+        'repository'
+      )
+      assert.equal(
+        deriveBatchCloneName('https://example.test/owner/LPT¹.txt'),
+        'repository'
+      )
+    })
+
+    it('falls back to a safe component for path-shaped remote names', () => {
+      assert.equal(
+        deriveBatchCloneName('https://example.test/owner/nested\\..\\.ssh.git'),
+        'repository'
+      )
+      assert.equal(
+        deriveBatchCloneName('https://example.test/owner/CON.git'),
+        'repository'
+      )
     })
   })
 
@@ -196,6 +219,27 @@ describe('batch-clone model', () => {
               name: 'b',
               path: Path.resolve('/other-base/b'),
             },
+          ]),
+        /unsafe or oversized/i
+      )
+    })
+
+    it('rejects sensitive base directories and destinations', () => {
+      const home = homedir()
+      assert.throws(
+        () =>
+          buildBatchCloneItems([{ url: 'https://example.test/a.git' }], home),
+        /sensitive system location/i
+      )
+
+      const safe = buildBatchCloneItems(
+        [{ url: 'https://example.test/a.git' }],
+        Path.resolve('/base')
+      )[0]
+      assert.throws(
+        () =>
+          assertSafeBatchCloneItems([
+            { ...safe, path: Path.join(home, '.ssh', safe.name) },
           ]),
         /unsafe or oversized/i
       )

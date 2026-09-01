@@ -1,8 +1,42 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
-import { parseRemote } from '../../src/lib/remote-parsing'
+import { parseRemote, sanitizeCloneName } from '../../src/lib/remote-parsing'
 
 describe('URL remote parsing', () => {
+  describe('sanitizeCloneName', () => {
+    it('keeps ordinary names and removes a trailing git suffix', () => {
+      assert.equal(sanitizeCloneName('Hello-World'), 'Hello-World')
+      assert.equal(sanitizeCloneName('Hello-World.git'), 'Hello-World')
+    })
+
+    it('rejects path syntax, traversal, control characters, and device names', () => {
+      const unsafeNames = [
+        '',
+        '.',
+        '..',
+        'nested/name',
+        'nested\\name',
+        'C:drive',
+        'CON',
+        'con.txt',
+        'NUL ',
+        'COM1.log',
+        'repo.',
+        'repo ',
+        'repo\u0000name',
+      ]
+
+      for (const name of unsafeNames) {
+        assert.equal(sanitizeCloneName(name), null, name)
+      }
+    })
+
+    it('does not extract a component from a path-shaped name', () => {
+      assert.equal(sanitizeCloneName('owner\\..\\.ssh'), null)
+      assert.equal(sanitizeCloneName('../outside'), null)
+    })
+  })
+
   it('parses HTTPS URLs with a trailing git suffix', () => {
     const remote = parseRemote('https://github.com/hubot/repo.git')
     assert(remote !== null)

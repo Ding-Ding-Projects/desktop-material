@@ -14,6 +14,7 @@ import {
 import * as Path from 'path'
 import { IAPIRepository } from '../api'
 import { IAccountRepositories } from './api-repositories-store'
+import { isClonePathSensitive } from '../path-validation'
 
 export const AutoClonePoliciesStorageKey = 'clone-auto-clone-policies-v1'
 export const AutoCloneRefreshInterval = 5 * 60 * 1000
@@ -123,11 +124,14 @@ export class AutoCloneStore {
       baseDirectory.length === 0 ||
       baseDirectory.length > MaxBatchClonePathLength ||
       !Path.isAbsolute(baseDirectory) ||
+      isClonePathSensitive(baseDirectory) ||
       (mode !== BatchCloneMode.Parallel && mode !== BatchCloneMode.Sequential)
     ) {
       this.dependencies.notify(
         'Automatic clone was not enabled',
-        'The account identity or base directory is invalid or too long.'
+        isClonePathSensitive(baseDirectory)
+          ? 'The clone base directory targets a sensitive system location. Choose another folder and try again.'
+          : 'The account identity or base directory is invalid or too long.'
       )
       return
     }
@@ -480,6 +484,7 @@ function isAutoClonePolicy(value: unknown): value is IAutoClonePolicy {
     policy.baseDirectory.length <= MaxBatchClonePathLength &&
     Path.isAbsolute(policy.baseDirectory) &&
     Path.resolve(policy.baseDirectory) === policy.baseDirectory &&
+    !isClonePathSensitive(policy.baseDirectory) &&
     (policy.mode === BatchCloneMode.Parallel ||
       policy.mode === BatchCloneMode.Sequential) &&
     typeof policy.baselineEstablished === 'boolean' &&

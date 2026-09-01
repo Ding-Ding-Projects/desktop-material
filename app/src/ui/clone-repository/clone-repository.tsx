@@ -16,6 +16,7 @@ import {
   IRepositoryIdentifier,
   parseRepositoryIdentifier,
   parseRemote,
+  sanitizeCloneName,
 } from '../../lib/remote-parsing'
 import { findAccountForRemoteURL } from '../../lib/find-account'
 import {
@@ -42,6 +43,7 @@ import { isTopMostDialog } from '../dialog/is-top-most'
 import memoizeOne from 'memoize-one'
 import {
   NonEmptyCloneFolderError,
+  isClonePathSensitive,
   validateEmptyFolder,
 } from '../../lib/path-validation'
 import {
@@ -49,6 +51,7 @@ import {
   IBatchCloneItem,
   IBatchCloneInput,
   buildBatchCloneItems,
+  resolveBatchCloneDestination,
 } from '../../models/batch-clone'
 import { mergeOrganizationRepositories } from './org-filter-chips'
 import {
@@ -234,6 +237,22 @@ export function cloneInfoWithAccountFallback(
     ...(info ?? { url: fallbackUrl }),
     ...(accountKey !== undefined ? { accountKey } : {}),
   }
+}
+
+/** Return the inline recovery message for a clone destination snapshot. */
+export function getCloneDestinationError(
+  path: string | null,
+  identifier: IRepositoryIdentifier | null
+): Error | null {
+  if (identifier !== null && sanitizeCloneName(identifier.name) === null) {
+    return new Error('The repository name cannot be used as a folder name.')
+  }
+  if (path !== null && isClonePathSensitive(path)) {
+    return new Error(
+      `The clone destination "${path}" targets a sensitive system location. Choose another folder and try again.`
+    )
+  }
+  return null
 }
 
 interface ICloneRepositoryState {
@@ -2184,6 +2203,20 @@ export class CloneRepository extends React.Component<
     const request = ++this.pathValidationSequence
     const tabState = this.getTabState(tab)
     const { path, url, error } = tabState
+    const cloneNameError = this.getCloneNameError(tabState.lastParsedIdentifier)
+    if (cloneNameError !== null) {
+      if (error?.message !== cloneNameError.message) {
+        this.setTabState({ error: cloneNameError }, tab)
+      }
+      return
+    }
+    const clonePathError = this.getClonePathError(path)
+    if (clonePathError !== null) {
+      if (error?.message !== clonePathError.message) {
+        this.setTabState({ error: clonePathError }, tab)
+      }
+      return
+    }
     const accountSnapshotKey = this.getAccountSnapshotKey(tab)
     const { initialPath } = this.state
     const isDefaultPath = initialPath === path
@@ -2255,6 +2288,16 @@ export class CloneRepository extends React.Component<
     return account === null ? null : getAccountKey(account)
   }
 
+  private getCloneNameError(
+    identifier: IRepositoryIdentifier | null
+  ): Error | null {
+    return getCloneDestinationError(null, identifier)
+  }
+
+  private getClonePathError(path: string | null): Error | null {
+    return getCloneDestinationError(path, null)
+  }
+
   private onChooseDirectory = async () => {
     // We received feedback (#12812) that using the save dialog is confusing on
     // windows due to appearing to require a file selection. This is not the case
@@ -2285,13 +2328,21 @@ export class CloneRepository extends React.Component<
 
     const tabState = this.getTabState(tab)
     const lastParsedIdentifier = tabState.lastParsedIdentifier
-    const directory = lastParsedIdentifier
-      ? Path.join(path, lastParsedIdentifier.name)
+    const safeName = lastParsedIdentifier
+      ? sanitizeCloneName(lastParsedIdentifier.name)
+      : null
+    const directory = safeName
+      ? resolveBatchCloneDestination(path, safeName)
       : path
+    const error =
+      this.getCloneNameError(lastParsedIdentifier) ??
+      this.getClonePathError(directory)
 
-    this.setTabState({ path: directory, error: null }, tab, () =>
-      this.validatePath(tab)
-    )
+    this.setTabState({ path: directory, error }, tab, () => {
+      if (error === null) {
+        this.validatePath(tab)
+      }
+    })
 
     return directory
   }
@@ -2333,7 +2384,16 @@ export class CloneRepository extends React.Component<
 
     // If there is no path yet, just update the url
     if (tabState.path === null) {
-      this.setTabState({ url }, tab, () => this.validatePath(tab))
+      const error = this.getCloneNameError(parsed)
+      this.setTabState(
+        { url, lastParsedIdentifier: parsed, error },
+        tab,
+        () => {
+          if (error === null) {
+            this.validatePath(tab)
+          }
+        }
+      )
       return
     }
 
@@ -2341,25 +2401,36 @@ export class CloneRepository extends React.Component<
 
     const dirPath = tabState.path
     if (lastParsedIdentifier) {
-      if (parsed) {
-        newPath = Path.join(Path.dirname(dirPath), parsed.name)
+      const safeName = parsed ? sanitizeCloneName(parsed.name) : null
+      if (safeName) {
+        newPath = resolveBatchCloneDestination(Path.dirname(dirPath), safeName)
       } else {
         newPath = Path.dirname(dirPath)
       }
     } else if (parsed) {
-      newPath = Path.join(dirPath, parsed.name)
+      const safeName = sanitizeCloneName(parsed.name)
+      newPath = safeName
+        ? resolveBatchCloneDestination(dirPath, safeName)
+        : dirPath
     } else {
       newPath = dirPath
     }
+
+    const error = this.getCloneNameError(parsed)
 
     this.setTabState(
       {
         url,
         lastParsedIdentifier: parsed,
         path: newPath,
+        error,
       },
       tab,
-      () => this.validatePath(tab)
+      () => {
+        if (error === null) {
+          this.validatePath(tab)
+        }
+      }
     )
   }
 
@@ -2434,6 +2505,15 @@ export class CloneRepository extends React.Component<
       return
     }
     const { path } = currentState
+
+    const destinationError =
+      this.getCloneNameError(currentState.lastParsedIdentifier) ??
+      this.getClonePathError(path)
+    if (destinationError !== null) {
+      this.setState({ loading: false })
+      this.setTabState({ error: destinationError }, tab)
+      return
+    }
 
     if (path == null) {
       const error = new Error(`Directory could not be created at this path.`)

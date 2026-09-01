@@ -9,6 +9,7 @@ import {
   clone,
   createCloneProcessAbortHandler,
   ICloneProgressContext,
+  isClonePathSensitive,
   mapCloneProgressEvent,
 } from '../../../src/lib/git/clone'
 import { SubmoduleFetchStage } from '../../../src/models/progress'
@@ -28,6 +29,34 @@ async function createEmptyBareRepository(
 }
 
 describe('git/clone', () => {
+  it('identifies home and credential-sensitive destinations without rejecting normal children', async () => {
+    const os = await import('os')
+    const home = os.homedir()
+    assert.equal(isClonePathSensitive(home), true)
+    assert.equal(isClonePathSensitive(path.join(home, '.ssh', 'clone')), true)
+    assert.equal(
+      isClonePathSensitive(path.join(home, '.config', 'git', 'clone')),
+      true
+    )
+    assert.equal(
+      isClonePathSensitive(path.join(home, 'Documents', 'GitHub', 'clone')),
+      false
+    )
+  })
+
+  it('rejects a sensitive destination before starting Git', async () => {
+    const os = await import('os')
+    const destination = path.join(os.homedir(), '.ssh', 'clone')
+
+    await assert.rejects(
+      () => clone('https://example.com/repo.git', destination, {}),
+      (error: unknown) =>
+        error instanceof Error &&
+        /sensitive system location/i.test(error.message) &&
+        /Choose another folder and try again/i.test(error.message)
+    )
+  })
+
   it('owns an abort which arrives before Dugite exposes the process', async () => {
     const controller = new AbortController()
     const child = new EventEmitter() as ChildProcess
