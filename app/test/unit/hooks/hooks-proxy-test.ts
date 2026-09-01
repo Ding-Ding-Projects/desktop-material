@@ -355,9 +355,9 @@ describe('hooks/hooks-proxy', () => {
         spoolPath === undefined ? undefined : existsSync(spoolPath)
     }
     const proxy = createHooksProxy(successShell, event => progress.push(event))
+    child.onSpawn = () => setImmediate(() => child.close(0, null))
     const pending = proxy(conn as unknown as ProcessProxyConnection)
 
-    child.onSpawn = () => setImmediate(() => child.close(0, null))
     await pending
 
     assert.deepEqual(progressStatuses(progress), ['started', 'finished'])
