@@ -267,6 +267,30 @@ describe('hooks/hook-stdin-spool', () => {
     await rm(directory as string, { recursive: true, force: true })
   })
 
+  it('removes a directory created after abort during directory allocation', async () => {
+    const controller = new AbortController()
+    let resolveDirectory: (path: string) => void = () => {}
+    const directoryPromise = new Promise<string>(resolve => {
+      resolveDirectory = resolve
+    })
+    const pending = spoolHookStdinToFile(
+      Readable.from(['payload']),
+      MaximumHookStdinBytes,
+      { makeDirectory: () => directoryPromise },
+      controller.signal
+    )
+
+    controller.abort()
+    const directory = await mkdtemp(join(tmpdir(), 'desktop-hook-stdin-late-'))
+    resolveDirectory(directory)
+
+    await assert.rejects(
+      pending,
+      (error: unknown) => error instanceof Error && error.name === 'AbortError'
+    )
+    await assert.rejects(() => readFile(join(directory, 'stdin')))
+  })
+
   it('lets the bundled Git run a stdin-reading pre-push hook', async t => {
     const root = await repositoryWithStdinReadingPrePushHook(t)
     const payload =

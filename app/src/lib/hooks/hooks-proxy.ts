@@ -2,7 +2,7 @@ import { execFile, spawn } from 'child_process'
 import type { ChildProcessWithoutNullStreams } from 'child_process'
 import { basename, resolve } from 'path'
 import { ProcessProxyConnection as Connection } from 'process-proxy'
-import type { HookCallbackOptions } from '../git'
+import type { HookCallbackOptions, HookProgress } from '../git'
 import { resolveGitBinary } from 'dugite'
 import { ShellEnvResult } from './get-shell-env'
 import { shellFriendlyNames } from './config'
@@ -157,6 +157,34 @@ export const createHooksProxy = (
     const abort = () => abortController.abort()
     conn.on('close', abort)
     let hookName = 'unknown'
+    let started = false
+    let terminalProgress: 'finished' | 'failed' | undefined
+
+    const reportProgress = (progress: HookProgress) => {
+      try {
+        onHookProgress?.(progress)
+      } catch (error) {
+        debug(
+          `hook progress callback failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          error instanceof Error ? error : undefined
+        )
+      }
+    }
+
+    const reportTerminalProgress = (status: 'finished' | 'failed') => {
+      if (!started || terminalProgress !== undefined) {
+        return
+      }
+      terminalProgress = status
+      reportProgress({ hookName, status })
+    }
+
+    const failHook = async (message: string) => {
+      reportTerminalProgress('failed')
+      await exitWithError(conn, message)
+    }
 
     try {
       const proxyArgs = await conn.getArgs()
@@ -167,7 +195,8 @@ export const createHooksProxy = (
       hookName = basename(proxyArgs[0], __WIN32__ ? '.exe' : undefined)
 
       await writeline(conn.stderr, `Running ${hookName} hook...`)
-      onHookProgress?.({ hookName, status: 'started', abort })
+      started = true
+      reportProgress({ hookName, status: 'started', abort })
 
       // GIT_ vars are considered safe to pass to hooks unless explicitly excluded
       // GITHEAD_ are set by git-merge (https://github.com/git/git/blob/83a69f19359e6d9bc980563caca38b2b5729808c/builtin/merge.c#L1590)
@@ -183,7 +212,7 @@ export const createHooksProxy = (
 
       if (abortController.signal.aborted) {
         debug(`${hookName}: aborted before execution`)
-        await exitWithError(conn, `hook ${hookName} aborted`)
+        await failHook(`hook ${hookName} aborted`)
         return
       }
 
@@ -206,13 +235,13 @@ export const createHooksProxy = (
 
         errMsg += '\n\nConfigure the shell to use in Preferences > Git > Hooks.'
 
-        return exitWithError(conn, errMsg)
+        await failHook(errMsg)
+        return
       }
 
       if (abortController.signal.aborted) {
         debug(`${hookName}: aborted before execution`)
-        await exitWithError(conn, `hook ${hookName} aborted`)
-        onHookProgress?.({ hookName, status: 'failed' })
+        await failHook(`hook ${hookName} aborted`)
         return
       }
 
@@ -237,14 +266,14 @@ export const createHooksProxy = (
                 err instanceof Error ? err.message : String(err)
               }`
           debug(detail, err instanceof Error ? err : undefined)
-          return exitWithError(conn, detail)
+          await failHook(detail)
+          return
         }
       }
 
       if (abortController.signal.aborted) {
         debug(`${hookName}: aborted before execution`)
-        await exitWithError(conn, `hook ${hookName} aborted`)
-        onHookProgress?.({ hookName, status: 'failed' })
+        await failHook(`hook ${hookName} aborted`)
         return
       }
 
@@ -269,15 +298,13 @@ export const createHooksProxy = (
           signal: NodeJS.Signals | null
         }>((resolve, reject) => {
           let processError: Error | undefined
+          let child: ChildProcessWithoutNullStreams | undefined
           const fail = (error: unknown) => {
             processError ??=
               error instanceof Error ? error : new Error(String(error))
-            if (!abortController.signal.aborted) {
-              abortController.abort()
-            }
+            child?.kill()
           }
 
-          let child: ChildProcessWithoutNullStreams
           try {
             child = spawn(gitPath, args, {
               cwd: proxyCwd,
@@ -316,8 +343,7 @@ export const createHooksProxy = (
               error instanceof Error ? error.message : String(error)
             }`
         debug(detail, error instanceof Error ? error : undefined)
-        await exitWithError(conn, detail)
-        onHookProgress?.({ hookName, status: 'failed' })
+        await failHook(detail)
         return
       } finally {
         await spooledStdin?.dispose()
@@ -363,10 +389,15 @@ export const createHooksProxy = (
 
       await tryExit(conn, exitCode)
 
-      onHookProgress?.({
-        hookName,
-        status: exitCode === 0 ? 'finished' : 'failed',
-      })
+      reportTerminalProgress(exitCode === 0 ? 'finished' : 'failed')
+    } catch (error) {
+      const detail = abortController.signal.aborted
+        ? `hook ${hookName} aborted`
+        : `Failed to run ${hookName} hook: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+      debug(detail, error instanceof Error ? error : undefined)
+      await failHook(detail)
     } finally {
       conn.removeListener('close', abort)
     }
