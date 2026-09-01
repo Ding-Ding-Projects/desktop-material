@@ -17,6 +17,8 @@ import {
   MaxDiffExpansionNewContentLength,
 } from '../../diff/syntax-highlighting'
 import { Button } from '../../lib/button'
+import { LocalizedText } from '../../lib/localized-text'
+import { getPersistedLanguageMode, translate } from '../../../lib/i18n'
 import { Octicon } from '../../octicons'
 import * as octicons from '../../octicons/octicons.generated'
 import {
@@ -473,19 +475,27 @@ export class CopilotConflictsChanges extends React.Component<
                 {this.props.copilotResolutions?.find(
                   resolution => resolution.path === selectedFile.path
                 )?.deleteConflictAction !== undefined
-                  ? 'Copilot provided a keep or delete recommendation. Choose the manual action from Summary.'
-                  : 'No Copilot resolution available for this file.'}
+                  ? translate(
+                      'copilotConflict.modifyDeleteRecommendation',
+                      getPersistedLanguageMode()
+                    )
+                  : translate(
+                      'copilotConflict.noResolution',
+                      getPersistedLanguageMode()
+                    )}
               </div>
             )}
             {selectedFile !== null && !noResolution && diffError && (
               <div className="copilot-changes-no-diff" role="alert">
-                Unable to load the diff for this file. Try again or resolve it
-                manually.
+                <LocalizedText translationKey="copilotConflict.unableLoadDiff" />
                 <Button
                   onClick={() => this.loadDiffForFile(selectedFile)}
-                  ariaLabel="Retry loading diff"
+                  ariaLabel={translate(
+                    'copilotConflict.retryDiff',
+                    getPersistedLanguageMode()
+                  )}
                 >
-                  Retry
+                  <LocalizedText translationKey="copilotConflict.retryDiff" />
                 </Button>
               </div>
             )}

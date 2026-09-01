@@ -20,7 +20,7 @@ import { Account } from '../../models/account'
 import { IAPIRepoRuleset } from '../../lib/api'
 import { Emoji } from '../../lib/emoji'
 import { IConflictResolutionModelDisplay } from '../../lib/copilot/conflict-resolution-model'
-import type { ICopilotConflictApplicationResult } from './dialog/copilot-conflicts-dialog'
+import type { ICopilotConflictApplicationResult } from '../../lib/copilot-conflict-application-result'
 
 export interface IMultiCommitOperationProps {
   readonly repository: Repository

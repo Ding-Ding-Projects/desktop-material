@@ -26,6 +26,7 @@ import { formatReasoningEffort } from '../../../lib/stores/copilot-store'
 import { showContextualMenu, IMenuItem } from '../../../lib/menu-item'
 import { OkCancelButtonGroup } from '../../dialog/ok-cancel-button-group'
 import { Button } from '../../lib/button'
+import { LocalizedText } from '../../lib/localized-text'
 import { Octicon } from '../../octicons'
 import * as octicons from '../../octicons/octicons.generated'
 import { PathText } from '../../lib/path-text'
@@ -42,6 +43,12 @@ import { MultiCommitOperationKind } from '../../../models/multi-commit-operation
 import { TabBar, TabBarType } from '../../tab-bar'
 import { CopilotConflictsChanges } from './copilot-conflicts-changes'
 import { CopilotConflictsEditor } from './copilot-conflicts-editor'
+import { getPersistedLanguageMode, translate } from '../../../lib/i18n'
+import {
+  canContinueAfterCopilotConflictApplication,
+  ICopilotConflictApplicationResult,
+  ICopilotConflictApplicationRefusal,
+} from '../../../lib/copilot-conflict-application-result'
 
 import {
   CopilotFileResolutionChoice,
@@ -52,16 +59,6 @@ import {
   getDeleteConflictChoiceLabel,
   getOursTheirsLabels,
 } from './copilot-resolution-helpers'
-
-export interface ICopilotConflictApplicationResult {
-  readonly written: ReadonlyArray<string>
-  readonly staged: ReadonlyArray<string>
-  readonly skipped: ReadonlyArray<{
-    readonly path: string
-    readonly reason: string
-  }>
-  readonly freshWorkingDirectory?: WorkingDirectoryStatus
-}
 
 interface ICopilotConflictsDialogProps {
   readonly repository: Repository
@@ -104,10 +101,7 @@ interface ICopilotConflictsDialogState {
    * resolution for that file) when the user continues the operation.
    */
   readonly editedResults: ReadonlyMap<string, string>
-  readonly applicationRefusals: ReadonlyArray<{
-    readonly path: string
-    readonly reason: string
-  }>
+  readonly applicationRefusals: ReadonlyArray<ICopilotConflictApplicationRefusal>
   readonly freshWorkingDirectory: WorkingDirectoryStatus | null
 }
 
@@ -166,14 +160,20 @@ export class CopilotConflictsDialog extends React.Component<
       // Done here (shared) so it works for merge, rebase, and cherry-pick.
       const applicationResult = this.props.applyCopilotConflictResolutions
         ? await this.props.applyCopilotConflictResolutions()
-        : ((await this.props.dispatcher.applyCopilotConflictResolutions(
-            this.props.repository
-          )) as unknown as ICopilotConflictApplicationResult)
+        : undefined
+      if (applicationResult === undefined) {
+        throw new Error(
+          translate(
+            'copilotConflict.editedResultsAuthorityUnavailable',
+            getPersistedLanguageMode()
+          )
+        )
+      }
       this.setState({
-        applicationRefusals: applicationResult?.skipped ?? [],
-        freshWorkingDirectory: applicationResult?.freshWorkingDirectory ?? null,
+        applicationRefusals: applicationResult.refused,
+        freshWorkingDirectory: applicationResult.freshWorkingDirectory,
       })
-      if ((applicationResult?.skipped.length ?? 0) > 0) {
+      if (!canContinueAfterCopilotConflictApplication(applicationResult)) {
         this.setState({ isContinuing: false })
         return
       }
@@ -192,15 +192,25 @@ export class CopilotConflictsDialog extends React.Component<
     }
 
     if (this.props.applyEditedConflictResults === undefined) {
-      throw new Error('Edited conflict results require the guarded authority')
+      throw new Error(
+        translate(
+          'copilotConflict.editedResultsAuthorityUnavailable',
+          getPersistedLanguageMode()
+        )
+      )
     }
     const result = await this.props.applyEditedConflictResults(editedResults)
     this.setState({
-      applicationRefusals: result.skipped,
-      freshWorkingDirectory: result.freshWorkingDirectory ?? null,
+      applicationRefusals: result.refused,
+      freshWorkingDirectory: result.freshWorkingDirectory,
     })
-    if (result.skipped.length > 0) {
-      throw new Error('Edited conflict results were not all applied')
+    if (!canContinueAfterCopilotConflictApplication(result)) {
+      throw new Error(
+        translate(
+          'copilotConflict.editedResultsNotApplied',
+          getPersistedLanguageMode()
+        )
+      )
     }
   }
 
@@ -642,7 +652,10 @@ export class CopilotConflictsDialog extends React.Component<
       <>
         <h2 className="copilot-conflicts-file-heading copilot-conflicts-skipped-heading">
           <Octicon symbol={octicons.alert} />
-          {this.skippedFiles.length} Skipped by Copilot
+          <LocalizedText
+            translationKey="copilotConflict.skippedHeading"
+            variables={{ count: `${this.skippedFiles.length}` }}
+          />
         </h2>
         <ul className="copilot-conflicts-file-list">
           {this.skippedFiles.map(file => this.renderSkippedFile(file))}
@@ -659,7 +672,7 @@ export class CopilotConflictsDialog extends React.Component<
       <>
         <h2 className="copilot-conflicts-file-heading">
           <Octicon symbol={octicons.alert} />
-          Resolution not applied
+          <LocalizedText translationKey="copilotConflict.resolutionNotApplied" />
         </h2>
         <ul className="copilot-conflicts-file-list">
           {this.state.applicationRefusals.map(refusal => (
@@ -808,7 +821,10 @@ export class CopilotConflictsDialog extends React.Component<
               okButtonDisabled={hasUnresolvedSkippedFiles || isContinuing}
               okButtonTitle={
                 hasUnresolvedSkippedFiles
-                  ? 'Some files were skipped by Copilot. Resolve them manually before continuing.'
+                  ? translate(
+                      'copilotConflict.continueBlocked',
+                      getPersistedLanguageMode()
+                    )
                   : undefined
               }
               cancelButtonText={`Abort ${operation}`}

@@ -13,6 +13,8 @@ import {
 
 /** Resolution suggestion for a single conflicted file. */
 export interface IFileResolution {
+  /** Explicitly distinguishes content replacement from modify/delete action. */
+  readonly kind?: 'content' | 'modify-delete'
   /** Repository-relative file path that was resolved. */
   readonly path: string
   /** The fully resolved file content (all conflict markers removed). */
@@ -31,6 +33,8 @@ export interface IHunkResolution {
 
 /** Per-file resolution from the model's raw response (before reassembly). */
 export interface IRawFileResolution {
+  /** Explicitly distinguishes content replacement from modify/delete action. */
+  readonly kind?: 'content' | 'modify-delete'
   /** Repository-relative file path. */
   readonly path: string
   /** Resolved content for each conflict hunk, in order. */
@@ -393,6 +397,7 @@ export function parseCopilotConflictResolution(
         hunks: [],
         reasoning,
         action,
+        kind: 'modify-delete',
       })
       continue
     }
@@ -442,6 +447,7 @@ export function parseCopilotConflictResolution(
       path: normalizeLLMPath(path),
       hunks: validatedHunks,
       reasoning,
+      kind: 'content',
     })
   }
 
@@ -612,6 +618,7 @@ export function reassembleResolutions(
         resolvedContent: '',
         reasoning: raw.reasoning,
         deleteConflictAction: raw.action,
+        kind: 'modify-delete',
       }
     }
 
@@ -626,6 +633,7 @@ export function reassembleResolutions(
       path: raw.path,
       resolvedContent,
       reasoning: raw.reasoning,
+      kind: 'content',
     }
   })
 }

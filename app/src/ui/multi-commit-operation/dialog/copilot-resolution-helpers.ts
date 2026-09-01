@@ -6,6 +6,12 @@ import {
   ManualConflict,
 } from '../../../models/status'
 import * as octicons from '../../octicons/octicons.generated'
+import { getPersistedLanguageMode, translate } from '../../../lib/i18n'
+
+const localize = (
+  key: Parameters<typeof translate>[0],
+  variables: Readonly<Record<string, string>> = {}
+) => translate(key, getPersistedLanguageMode(), variables)
 
 export type CopilotFileResolutionChoice = 'copilot' | 'ours' | 'theirs'
 
@@ -70,13 +76,21 @@ export function getDeleteConflictLabels(
   const deletedSide = getDeletedSide(status)
   if (deletedSide === 'ours') {
     return {
-      oursLabel: `Delete file${ourBranch ? ` on ${ourBranch}` : ''}`,
-      theirsLabel: `Keep file${theirBranch ? ` from ${theirBranch}` : ''}`,
+      oursLabel: `${localize('copilotConflict.deleteFile')}${
+        ourBranch ? ` on ${ourBranch}` : ''
+      }`,
+      theirsLabel: `${localize('copilotConflict.keepFile')}${
+        theirBranch ? ` from ${theirBranch}` : ''
+      }`,
     }
   }
   return {
-    oursLabel: `Keep file${ourBranch ? ` from ${ourBranch}` : ''}`,
-    theirsLabel: `Delete file${theirBranch ? ` on ${theirBranch}` : ''}`,
+    oursLabel: `${localize('copilotConflict.keepFile')}${
+      ourBranch ? ` from ${ourBranch}` : ''
+    }`,
+    theirsLabel: `${localize('copilotConflict.deleteFile')}${
+      theirBranch ? ` on ${theirBranch}` : ''
+    }`,
   }
 }
 
@@ -86,13 +100,17 @@ export function getDeleteConflictChoiceLabel(
   status: ManualConflict
 ): string {
   if (choice === 'copilot') {
-    return 'Copilot'
+    return localize('copilotConflict.copilotChoice')
   }
   const deletedSide = getDeletedSide(status)
   if (deletedSide === 'ours') {
-    return choice === 'ours' ? 'Delete file' : 'Keep file'
+    return choice === 'ours'
+      ? localize('copilotConflict.deleteFile')
+      : localize('copilotConflict.keepFile')
   }
-  return choice === 'ours' ? 'Keep file' : 'Delete file'
+  return choice === 'ours'
+    ? localize('copilotConflict.keepFile')
+    : localize('copilotConflict.deleteFile')
 }
 
 /** Build labels for either a text conflict or a modify/delete conflict. */
@@ -106,10 +124,10 @@ export function getOursTheirsLabels(
   }
   return {
     oursLabel: ourBranch
-      ? `Use current file from ${ourBranch}`
-      : 'Use current file',
+      ? `${localize('copilotConflict.useCurrentFile')} from ${ourBranch}`
+      : localize('copilotConflict.currentFile'),
     theirsLabel: theirBranch
-      ? `Use incoming file from ${theirBranch}`
-      : 'Use incoming file',
+      ? `${localize('copilotConflict.useIncomingFile')} from ${theirBranch}`
+      : localize('copilotConflict.incomingFile'),
   }
 }
