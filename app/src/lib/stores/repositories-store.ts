@@ -821,44 +821,37 @@ export class RepositoriesStore extends TypedBaseStore<
     protectedBranches: ReadonlyArray<IAPIBranch>
   ): Promise<void> {
     const dbID = gitHubRepository.dbID
+    const branchRecords = protectedBranches.map<IDatabaseProtectedBranch>(
+      b => ({ repoId: dbID, name: b.name })
+    )
 
     await this.db.transaction('rw', this.db.protectedBranches, async () => {
-      // This update flow is organized into two stages:
-      //
-      // - update the in-memory cache
-      // - update the underlying database state
-      //
-      // This should ensure any stale values are not being used, and avoids
-      // the need to query the database while the results are in memory.
-
-      const prefix = getKeyPrefix(dbID)
-
-      for (const key of this.protectionEnabledForBranchCache.keys()) {
-        // invalidate any cached entries belonging to this repository
-        if (key.startsWith(prefix)) {
-          this.protectionEnabledForBranchCache.delete(key)
-        }
-      }
-
-      const branchRecords = protectedBranches.map<IDatabaseProtectedBranch>(
-        b => ({ repoId: dbID, name: b.name })
-      )
-
-      // update cached values to avoid database lookup
-      for (const item of branchRecords) {
-        const key = getKey(dbID, item.name)
-        this.protectionEnabledForBranchCache.set(key, true)
-      }
-
       await this.db.protectedBranches.where('repoId').equals(dbID).delete()
-
-      const protectionsFound = branchRecords.length > 0
-      this.branchProtectionSettingsFoundCache.set(dbID, protectionsFound)
 
       if (branchRecords.length > 0) {
         await this.db.protectedBranches.bulkAdd(branchRecords)
       }
     })
+
+    // Swap the in-memory view only after the transaction commits. If the
+    // delete or bulkAdd above rejects, Dexie rolls the database back and the
+    // previous cache remains valid as well.
+    const prefix = getKeyPrefix(dbID)
+    for (const key of this.protectionEnabledForBranchCache.keys()) {
+      if (key.startsWith(prefix)) {
+        this.protectionEnabledForBranchCache.delete(key)
+      }
+    }
+
+    for (const item of branchRecords) {
+      const key = getKey(dbID, item.name)
+      this.protectionEnabledForBranchCache.set(key, true)
+    }
+
+    this.branchProtectionSettingsFoundCache.set(
+      dbID,
+      branchRecords.length > 0
+    )
 
     // this update doesn't affect the list (or its items) we emit from this store, so no need to `emitUpdatedRepositories`
   }

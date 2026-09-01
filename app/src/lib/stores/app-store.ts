@@ -1743,6 +1743,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
    */
   private scheduledAutomationSelectionEpoch = 0
   private readonly mergeAllControllers = new Map<number, AbortController>()
+  /**
+   * Fences overlapping protected-branch refreshes per repository. A response
+   * that started earlier must not replace the result of a newer refresh.
+   */
+  private protectedBranchRefreshGenerations = new Map<number, number>()
 
   /**
    * Every pending materialization owner (queued and active) for each canonical
@@ -4208,7 +4213,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
     // Understanding how many users actually contribute to repos with branch protections gives us
     // insight into who our users are and what kinds of work they do
     if (!isSubmoduleRepository(repository)) {
-      this.updateBranchProtectionsFromAPI(repository)
+      void this.updateBranchProtectionsFromAPI(repository).catch(error => {
+        log.warn('Unable to refresh branch protections', error)
+      })
     }
 
     this.notificationsStore.selectRepository(repository)
@@ -10045,9 +10052,28 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return
     }
 
+    // The refresh is background work and may overlap when repository
+    // selection is re-entered. Each repository gets a monotonically increasing
+    // generation so only the newest response may update persisted state.
+    if (this.protectedBranchRefreshGenerations === undefined) {
+      this.protectedBranchRefreshGenerations = new Map<number, number>()
+    }
+    const generation =
+      (this.protectedBranchRefreshGenerations.get(repository.dbID) ?? 0) + 1
+    this.protectedBranchRefreshGenerations.set(repository.dbID, generation)
+
     const api = API.fromAccount(account)
 
     const branches = await api.fetchProtectedBranches(owner.login, name)
+    if (branches === null) {
+      return
+    }
+
+    if (
+      this.protectedBranchRefreshGenerations.get(repository.dbID) !== generation
+    ) {
+      return
+    }
 
     await this.repositoriesStore.updateBranchProtections(
       repository.gitHubRepository,

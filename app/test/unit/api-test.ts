@@ -83,6 +83,92 @@ describe('API', () => {
     })
   })
 
+  describe('fetchProtectedBranches', () => {
+    const createAPI = (request: () => Promise<Response>) => {
+      const api = new API('https://api.github.com', 'token')
+      Reflect.set(api, 'request', request)
+      return api
+    }
+
+    it('returns the protected branches from a successful request', async () => {
+      const branches = [
+        { name: 'main', protected: true },
+        { name: 'release', protected: true },
+      ]
+      const api = createAPI(
+        async () => new Response(JSON.stringify(branches), { status: 200 })
+      )
+
+      assert.deepEqual(
+        await api.fetchProtectedBranches('desktop', 'desktop'),
+        branches
+      )
+    })
+
+    it('returns an empty array when the request succeeds without protected branches', async () => {
+      const api = createAPI(
+        async () => new Response(JSON.stringify([]), { status: 200 })
+      )
+
+      assert.deepEqual(
+        await api.fetchProtectedBranches('desktop', 'desktop'),
+        []
+      )
+    })
+
+    it('returns null when the request fails', async () => {
+      const api = createAPI(async () => {
+        throw new Error('Network request failed')
+      })
+
+      assert.equal(await api.fetchProtectedBranches('desktop', 'desktop'), null)
+    })
+
+    it('returns null when the repository is not found', async () => {
+      const api = createAPI(
+        async () =>
+          new Response(JSON.stringify({ message: 'Not Found' }), {
+            status: 404,
+          })
+      )
+
+      assert.equal(await api.fetchProtectedBranches('desktop', 'desktop'), null)
+    })
+
+    it('returns null when a successful response has an invalid shape', async () => {
+      const api = createAPI(
+        async () =>
+          new Response(JSON.stringify({ branches: [] }), { status: 200 })
+      )
+
+      assert.equal(await api.fetchProtectedBranches('desktop', 'desktop'), null)
+    })
+
+    it('returns null when any successful response item is malformed', async () => {
+      const malformedBranches = [
+        [null],
+        [{ name: 42, protected: true }],
+        [{ name: '', protected: true }],
+        [{ name: '   ', protected: true }],
+        [{ name: 'main', protected: 'yes' }],
+        [
+          { name: 'main', protected: true },
+          { name: '', protected: true },
+        ],
+      ]
+
+      for (const branches of malformedBranches) {
+        const api = createAPI(
+          async () => new Response(JSON.stringify(branches), { status: 200 })
+        )
+        assert.equal(
+          await api.fetchProtectedBranches('desktop', 'desktop'),
+          null
+        )
+      }
+    })
+  })
+
   describe('third-party provider endpoints', () => {
     it('normalizes GitLab.com and self-hosted subpath endpoints', () => {
       assert.equal(getGitLabAPIEndpoint(), 'https://gitlab.com/api/v4')
