@@ -26,7 +26,8 @@ export type FrozenInterfaceShellContract = {
   currentRenderer: {
     entry: string
     imports: Array<{ binding: string; specifier: string }>
-    markers: string[]
+    rootElement: RendererElementContract
+    requiredElements: RendererElementContract[]
     acceptedSourceExtensions: string[]
     aliases: Record<string, string>
   }
@@ -40,11 +41,23 @@ export type SourceRecord = {
   source: string
 }
 
+export type RendererElementContract = {
+  tag: string
+  attributes?: Record<string, string>
+}
+
+export type StaticImportRecord = {
+  specifier: string
+  statement: string
+  bindings: string[]
+}
+
 export type FrozenShellValidationIssue = {
   code:
     | 'retired-import'
+    | 'retired-family-member'
     | 'missing-renderer-import'
-    | 'missing-renderer-marker'
+    | 'missing-renderer-element'
     | 'missing-renderer-root'
     | 'unretained-renderer-md3-import'
   path: string
@@ -90,11 +103,10 @@ function parseAst(source: string): ts.SourceFile {
   )
 }
 
-export function parseStaticImportStatements(source: string): Array<{
-  specifier: string
-  statement: string
-}> {
-  const statements: Array<{ specifier: string; statement: string }> = []
+export function parseStaticImportStatements(
+  source: string
+): StaticImportRecord[] {
+  const statements: StaticImportRecord[] = []
   const sourceFile = parseAst(source)
   sourceFile.forEachChild(node => {
     if (!ts.isImportDeclaration(node) && !ts.isExportDeclaration(node)) {
@@ -102,13 +114,53 @@ export function parseStaticImportStatements(source: string): Array<{
     }
     const module = node.moduleSpecifier
     if (module && ts.isStringLiteral(module)) {
+      const bindings: string[] = []
+      if (ts.isImportDeclaration(node) && node.importClause !== undefined) {
+        const importClause = node.importClause
+        if (importClause.name !== undefined) {
+          bindings.push(importClause.name.text)
+        }
+        const namedBindings = importClause.namedBindings
+        if (namedBindings !== undefined) {
+          if (ts.isNamespaceImport(namedBindings)) {
+            bindings.push(namedBindings.name.text)
+          } else {
+            bindings.push(...namedBindings.elements.map(item => item.name.text))
+          }
+        }
+      }
       statements.push({
         specifier: module.text,
         statement: node.getText(sourceFile),
+        bindings,
       })
     }
   })
   return statements
+}
+
+export function findRetiredFamilyIssues(options: {
+  contract: FrozenInterfaceShellContract
+  paths: readonly string[]
+}): FrozenShellValidationIssue[] {
+  const prefixes = options.contract.retiredShell.familyPrefixes.map(prefix =>
+    prefix.toLowerCase()
+  )
+  return options.paths.flatMap(path => {
+    const stem = withoutSourceExtension(Path.basename(path).replace(/^_/, ''))
+      .toLowerCase()
+      .replace(/\\/g, '/')
+    if (!prefixes.some(prefix => stem.startsWith(prefix))) {
+      return []
+    }
+    return [
+      {
+        code: 'retired-family-member' as const,
+        path,
+        detail: stem,
+      },
+    ]
+  })
 }
 
 export function parseDynamicImportSpecifiers(source: string): string[] {
@@ -328,8 +380,62 @@ export function findUnretainedRendererMd3Issues(options: {
     }))
 }
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
+type ParsedRendererElement = {
+  tag: string
+  attributes: ReadonlyMap<string, string>
+}
+
+function parseRendererElements(
+  sourceFile: ts.SourceFile
+): ParsedRendererElement[] {
+  const elements: ParsedRendererElement[] = []
+  const recordOpening = (
+    opening: ts.JsxOpeningElement | ts.JsxSelfClosingElement
+  ) => {
+    const attributes = new Map<string, string>()
+    for (const property of opening.attributes.properties) {
+      if (!ts.isJsxAttribute(property)) {
+        continue
+      }
+      const initializer = property.initializer
+      if (initializer !== undefined && ts.isStringLiteral(initializer)) {
+        attributes.set(property.name.getText(sourceFile), initializer.text)
+      }
+    }
+    elements.push({
+      tag: opening.tagName.getText(sourceFile),
+      attributes,
+    })
+  }
+  const visit = (node: ts.Node) => {
+    if (ts.isJsxElement(node)) {
+      recordOpening(node.openingElement)
+    } else if (ts.isJsxSelfClosingElement(node)) {
+      recordOpening(node)
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(sourceFile)
+  return elements
+}
+
+function rendererElementMatches(
+  actual: ParsedRendererElement,
+  expected: RendererElementContract
+): boolean {
+  if (actual.tag !== expected.tag) {
+    return false
+  }
+  return Object.entries(expected.attributes ?? {}).every(
+    ([name, value]) => actual.attributes.get(name) === value
+  )
+}
+
+function rendererElementDetail(expected: RendererElementContract): string {
+  const attributes = Object.entries(expected.attributes ?? {})
+    .map(([name, value]) => `${name}=${JSON.stringify(value)}`)
+    .join(' ')
+  return attributes === '' ? expected.tag : `${expected.tag} ${attributes}`
 }
 
 export function findRendererWiringIssues(options: {
@@ -340,12 +446,12 @@ export function findRendererWiringIssues(options: {
   const issues: FrozenShellValidationIssue[] = []
   const sourceFile = parseAst(renderer.source)
   const imports = parseStaticImportStatements(renderer.source)
+  const elements = parseRendererElements(sourceFile)
 
   for (const expected of contract.currentRenderer.imports) {
     const matching = imports.find(
-      ({ specifier, statement }) =>
-        specifier === expected.specifier &&
-        new RegExp(`\\b${escapeRegExp(expected.binding)}\\b`).test(statement)
+      ({ specifier, bindings }) =>
+        specifier === expected.specifier && bindings.includes(expected.binding)
     )
     if (matching === undefined) {
       issues.push({
@@ -356,34 +462,23 @@ export function findRendererWiringIssues(options: {
     }
   }
 
-  const topLevelStatements = sourceFile.statements.map(statement =>
-    statement.getText(sourceFile)
-  )
-  const jsxNodes: ts.Node[] = []
-  const collectJsx = (node: ts.Node) => {
-    if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) {
-      jsxNodes.push(node)
-    }
-    ts.forEachChild(node, collectJsx)
-  }
-  collectJsx(sourceFile)
   if (
-    !jsxNodes.some(node =>
-      node.getText(sourceFile).includes('desktop-app-contents')
+    !elements.some(element =>
+      rendererElementMatches(element, contract.currentRenderer.rootElement)
     )
   ) {
     issues.push({
       code: 'missing-renderer-root',
       path: renderer.path,
-      detail: 'desktop-app-contents',
+      detail: rendererElementDetail(contract.currentRenderer.rootElement),
     })
   }
-  for (const marker of contract.currentRenderer.markers) {
-    if (!topLevelStatements.some(statement => statement.includes(marker))) {
+  for (const expected of contract.currentRenderer.requiredElements) {
+    if (!elements.some(element => rendererElementMatches(element, expected))) {
       issues.push({
-        code: 'missing-renderer-marker',
+        code: 'missing-renderer-element',
         path: renderer.path,
-        detail: marker,
+        detail: rendererElementDetail(expected),
       })
     }
   }

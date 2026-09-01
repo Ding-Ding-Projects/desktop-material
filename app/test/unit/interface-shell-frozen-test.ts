@@ -8,10 +8,10 @@ import { promisify } from 'node:util'
 import {
   SOURCE_EXTENSIONS,
   findRendererWiringIssues,
+  findRetiredFamilyIssues,
   findRetiredImportIssues,
   findUnretainedRendererMd3Issues,
   readSourceFiles,
-  withoutSourceExtension,
   type FrozenInterfaceShellContract,
   type SourceRecord,
 } from './interface-shell-frozen-validator'
@@ -81,6 +81,8 @@ function assertContractShape(): void {
     'comment-free-import-detection',
     'renderer-boundary-markers',
     'renderer-retired-imports',
+    'renderer-import-bindings',
+    'retired-family-reservation',
   ])
 }
 
@@ -156,13 +158,14 @@ describe('the interface shell stays frozen', () => {
       FsAsync.readdir(md3Dir),
       FsAsync.readdir(stylesDir),
     ])
-    const offenders = [...md3Files, ...styleFiles].filter(file => {
-      const stem = withoutSourceExtension(file.replace(/^_/, '')).toLowerCase()
-      return contract.retiredShell.familyPrefixes.some(prefix =>
-        stem.startsWith(prefix.toLowerCase())
-      )
+    const issues = findRetiredFamilyIssues({
+      contract,
+      paths: [
+        ...md3Files.map(file => Path.join(md3Dir, file)),
+        ...styleFiles.map(file => Path.join(stylesDir, file)),
+      ],
     })
-    assert.deepEqual(offenders, [], 'A retired shell family member returned.')
+    assert.deepEqual(issues, [], 'A retired shell family member returned.')
   })
 
   it('rejects static, dynamic, and require imports of retired shell modules', async () => {

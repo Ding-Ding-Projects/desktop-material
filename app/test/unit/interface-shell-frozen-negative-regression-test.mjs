@@ -3,6 +3,7 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  readdir,
   rm,
   unlink,
   writeFile,
@@ -19,7 +20,9 @@ const validator =
 const {
   SOURCE_EXTENSIONS,
   findRendererWiringIssues,
+  findRetiredFamilyIssues,
   findRetiredImportIssues,
+  parseStaticImportStatements,
   readSourceFiles,
 } = validator
 
@@ -43,15 +46,19 @@ const dimensions = [
   'comment-free-import-detection',
   'renderer-boundary-markers',
   'renderer-retired-imports',
+  'renderer-import-bindings',
+  'retired-family-reservation',
 ]
 
 assert.deepEqual(contract.negativeRegression.requiredDimensions, dimensions)
 
 const temporaryRoot = await mkdtemp(join(tmpdir(), 'frozen-shell-negative-'))
 const sourceRoot = join(temporaryRoot, 'app', 'src')
+const md3Root = join(sourceRoot, 'ui', 'md3')
+const stylesRoot = join(temporaryRoot, 'app', 'styles', 'ui')
 const rendererPath = join(temporaryRoot, contract.currentRenderer.entry)
-const retiredModulePath = join(sourceRoot, 'ui', 'md3', 'md3-shell.tsx')
-const retiredBarrelPath = join(sourceRoot, 'ui', 'md3', 'index.ts')
+const retiredModulePath = join(md3Root, 'md3-shell.tsx')
+const retiredBarrelPath = join(md3Root, 'index.ts')
 
 async function writeSource(path, source) {
   await mkdir(dirname(path), { recursive: true })
@@ -96,6 +103,24 @@ async function ensureRetiredModule() {
 
 async function ensureRetiredBarrel() {
   await writeSource(retiredBarrelPath, 'export {}\n')
+}
+
+async function retiredFamilyIssues() {
+  await Promise.all([
+    mkdir(md3Root, { recursive: true }),
+    mkdir(stylesRoot, { recursive: true }),
+  ])
+  const [moduleFiles, styleFiles] = await Promise.all([
+    readdir(md3Root),
+    readdir(stylesRoot),
+  ])
+  return findRetiredFamilyIssues({
+    contract,
+    paths: [
+      ...moduleFiles.map(file => join(md3Root, file)),
+      ...styleFiles.map(file => join(stylesRoot, file)),
+    ],
+  })
 }
 
 async function removeIfPresent(path) {
@@ -218,10 +243,11 @@ try {
     'comment-free-import-detection: green(comment) -> red(actual import) -> green(comment)'
   )
 
-  const rendererMarker = contract.currentRenderer.markers[0]
+  const rendererRootId = contract.currentRenderer.rootElement.attributes.id
+  const rendererRootLiteral = `id="${rendererRootId}"`
   const mutatedRendererSource = realRendererSource.replace(
-    rendererMarker,
-    'id="desktop-app-contents-negative-probe"'
+    rendererRootLiteral,
+    `id="${rendererRootId}-negative-probe"`
   )
   assert.notEqual(
     mutatedRendererSource,
@@ -235,12 +261,14 @@ try {
   })
   assertOnlyIssueCode(
     markerIssues,
-    'missing-renderer-marker',
+    'missing-renderer-root',
     'renderer-boundary-markers'
   )
   assert.ok(
-    markerIssues.some(issue => issue.detail === rendererMarker),
-    'renderer-boundary-markers must report the exact removed marker'
+    markerIssues.some(issue =>
+      issue.detail.includes(`id=${JSON.stringify(rendererRootId)}`)
+    ),
+    'renderer-boundary-markers must report the exact root id'
   )
   await writeSource(rendererPath, realRendererSource)
   assert.deepEqual(
@@ -251,8 +279,45 @@ try {
     [],
     'renderer-boundary-markers restored must be green'
   )
+
+  const toolbarContract = contract.currentRenderer.requiredElements.find(
+    element => element.tag === 'Toolbar'
+  )
+  assert.ok(toolbarContract, 'Toolbar must remain in the renderer contract')
+  const toolbarId = toolbarContract.attributes.id
+  const toolbarLiteral = `id="${toolbarId}"`
+  const rendererWithoutToolbarBoundary = realRendererSource.replace(
+    toolbarLiteral,
+    `id="${toolbarId}-negative-probe"`
+  )
+  assert.notEqual(
+    rendererWithoutToolbarBoundary,
+    realRendererSource,
+    'renderer-boundary-markers must alter the exact Toolbar id'
+  )
+  const toolbarIssues = findRendererWiringIssues({
+    contract,
+    renderer: { path: rendererPath, source: rendererWithoutToolbarBoundary },
+  })
+  assertOnlyIssueCode(
+    toolbarIssues,
+    'missing-renderer-element',
+    'renderer-boundary-markers Toolbar structure'
+  )
+  assert.ok(
+    toolbarIssues.some(issue => issue.detail.includes('Toolbar')),
+    'renderer-boundary-markers must report the missing Toolbar structure'
+  )
+  assert.deepEqual(
+    findRendererWiringIssues({
+      contract,
+      renderer: { path: rendererPath, source: realRendererSource },
+    }),
+    [],
+    'renderer-boundary-markers Toolbar restoration must be green'
+  )
   console.log(
-    'renderer-boundary-markers: green -> red(missing-renderer-marker) -> green'
+    'renderer-boundary-markers: green -> red(missing-renderer-root) -> green -> red(missing-renderer-element) -> green'
   )
 
   await ensureRetiredModule()
@@ -280,6 +345,118 @@ try {
     'renderer-retired-imports restored must be green'
   )
   console.log('renderer-retired-imports: green -> red(retired-import) -> green')
+
+  const bindingForms = parseStaticImportStatements(
+    [
+      "import DefaultBinding from './default-binding'",
+      "import * as NamespaceBinding from './namespace-binding'",
+      "import { OriginalBinding as NamedBinding } from './named-binding'",
+      '',
+    ].join('\n')
+  )
+  assert.deepEqual(
+    bindingForms.map(item => ({
+      specifier: item.specifier,
+      bindings: item.bindings,
+    })),
+    [
+      { specifier: './default-binding', bindings: ['DefaultBinding'] },
+      { specifier: './namespace-binding', bindings: ['NamespaceBinding'] },
+      { specifier: './named-binding', bindings: ['NamedBinding'] },
+    ],
+    'renderer-import-bindings must read default, namespace, and named bindings from the import clause'
+  )
+  const realTabImport =
+    "import { RepositoryTabStrip } from './repository-tabs/repository-tab-strip'"
+  const fakeCommentTabImport =
+    "import { /* RepositoryTabStrip */ } from './repository-tabs/repository-tab-strip'"
+  const rendererWithFakeCommentBinding = realRendererSource.replace(
+    realTabImport,
+    fakeCommentTabImport
+  )
+  assert.notEqual(
+    rendererWithFakeCommentBinding,
+    realRendererSource,
+    'renderer-import-bindings must replace the active import clause'
+  )
+  const bindingIssues = findRendererWiringIssues({
+    contract,
+    renderer: {
+      path: rendererPath,
+      source: rendererWithFakeCommentBinding,
+    },
+  })
+  assertOnlyIssueCode(
+    bindingIssues,
+    'missing-renderer-import',
+    'renderer-import-bindings'
+  )
+  assert.ok(
+    bindingIssues.some(issue =>
+      issue.detail.includes(
+        'RepositoryTabStrip from ./repository-tabs/repository-tab-strip'
+      )
+    ),
+    'renderer-import-bindings must report the binding hidden behind the comment'
+  )
+  assert.deepEqual(
+    findRendererWiringIssues({
+      contract,
+      renderer: { path: rendererPath, source: realRendererSource },
+    }),
+    [],
+    'renderer-import-bindings restored must be green'
+  )
+  console.log(
+    'renderer-import-bindings: default/namespace/named parsed -> red(active inner-comment fake) -> green'
+  )
+
+  assert.deepEqual(
+    await retiredFamilyIssues(),
+    [],
+    'retired-family-reservation baseline must be green'
+  )
+  const renamedFamilyModule = join(md3Root, 'md3-shell-renamed-p0.tsx')
+  await writeSource(renamedFamilyModule, 'export {}\n')
+  const familyModuleIssues = await retiredFamilyIssues()
+  assertOnlyIssueCode(
+    familyModuleIssues,
+    'retired-family-member',
+    'retired-family-reservation module'
+  )
+  assert.ok(
+    familyModuleIssues.some(issue => issue.path === renamedFamilyModule),
+    'retired-family-reservation must report the fresh renamed module'
+  )
+  await removeIfPresent(renamedFamilyModule)
+  assert.deepEqual(
+    await retiredFamilyIssues(),
+    [],
+    'retired-family-reservation module restoration must be green'
+  )
+  const renamedFamilyStylesheet = join(stylesRoot, '_md3-shell-renamed-p1.scss')
+  await writeSource(renamedFamilyStylesheet, '.probe {}\n')
+  const familyStylesheetIssues = await retiredFamilyIssues()
+  assertOnlyIssueCode(
+    familyStylesheetIssues,
+    'retired-family-member',
+    'retired-family-reservation stylesheet'
+  )
+  assert.ok(
+    familyStylesheetIssues.some(
+      issue => issue.path === renamedFamilyStylesheet
+    ),
+    'retired-family-reservation must report the fresh renamed stylesheet'
+  )
+  await removeIfPresent(renamedFamilyStylesheet)
+  assert.deepEqual(
+    await retiredFamilyIssues(),
+    [],
+    'retired-family-reservation stylesheet restoration must be green'
+  )
+  console.log(
+    'retired-family-reservation: green -> red(module) -> green -> red(stylesheet) -> green'
+  )
 
   await assertRetiredImportsGreen('restored frozen-shell import contract')
   assert.deepEqual(

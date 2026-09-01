@@ -156,13 +156,41 @@
         "specifier": "./welcome"
       }
     ],
-    "markers": [
-      "id=\"desktop-app-contents\"",
-      "{this.renderRepositoryTabStrip()}",
-      "{this.renderToolbar()}",
-      "{this.renderRepository()}",
-      "{this.renderBuildRunPanel()}",
-      "<TitleBar"
+    "rootElement": {
+      "tag": "div",
+      "attributes": {
+        "id": "desktop-app-contents"
+      }
+    },
+    "requiredElements": [
+      {
+        "tag": "div",
+        "attributes": {
+          "id": "desktop-app-chrome"
+        }
+      },
+      {
+        "tag": "RepositoryTabStrip"
+      },
+      {
+        "tag": "Toolbar",
+        "attributes": {
+          "id": "desktop-app-toolbar",
+          "ariaLabel": "Repository controls"
+        }
+      },
+      {
+        "tag": "CrashProofBoundary"
+      },
+      {
+        "tag": "TitleBar"
+      },
+      {
+        "tag": "Preferences"
+      },
+      {
+        "tag": "Welcome"
+      }
     ],
     "acceptedSourceExtensions": [".ts", ".tsx", ".js", ".jsx", ".mts", ".mjs", ".cts", ".cjs"],
     "aliases": {}
@@ -174,7 +202,9 @@
       "alias-import-resolution",
       "comment-free-import-detection",
       "renderer-boundary-markers",
-      "renderer-retired-imports"
+      "renderer-retired-imports",
+      "renderer-import-bindings",
+      "retired-family-reservation"
     ]
   }
 }
