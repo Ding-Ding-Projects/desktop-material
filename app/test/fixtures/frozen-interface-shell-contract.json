@@ -134,6 +134,10 @@
   ],
   "currentRenderer": {
     "entry": "app/src/ui/app.tsx",
+    "mountedComponent": {
+      "exportName": "App",
+      "renderMethod": "render"
+    },
     "imports": [
       {
         "binding": "RepositoryTabStrip",
@@ -190,7 +194,14 @@
       "renderer-retired-imports",
       "renderer-import-bindings",
       "retired-family-reservation",
-      "renderer-root-reachability"
+      "renderer-root-reachability",
+      "renderer-public-entry-root",
+      "renderer-nested-closure-scope",
+      "renderer-nested-class-scope",
+      "renderer-unrelated-path-scope",
+      "renderer-local-symbol-calls",
+      "renderer-cycle-bounds",
+      "renderer-public-entry-elements"
     ]
   }
 }

@@ -49,6 +49,13 @@ const dimensions = [
   'renderer-import-bindings',
   'retired-family-reservation',
   'renderer-root-reachability',
+  'renderer-public-entry-root',
+  'renderer-nested-closure-scope',
+  'renderer-nested-class-scope',
+  'renderer-unrelated-path-scope',
+  'renderer-local-symbol-calls',
+  'renderer-cycle-bounds',
+  'renderer-public-entry-elements',
 ]
 
 assert.deepEqual(contract.negativeRegression.requiredDimensions, dimensions)
@@ -93,6 +100,29 @@ function assertOnlyIssueCode(issues, code, label) {
 async function assertRetiredImportsGreen(label, activeContract = contract) {
   assert.deepEqual(
     await retiredImportIssues(activeContract),
+    [],
+    `${label} must be green`
+  )
+}
+
+function syntheticRendererContract(requiredElements = []) {
+  const synthetic = structuredClone(contract)
+  synthetic.currentRenderer.imports = []
+  synthetic.currentRenderer.requiredElements = requiredElements
+  synthetic.currentRenderer.aliases = {}
+  return synthetic
+}
+
+function syntheticRendererIssues(source, requiredElements = []) {
+  return findRendererWiringIssues({
+    contract: syntheticRendererContract(requiredElements),
+    renderer: { path: rendererPath, source },
+  })
+}
+
+function assertSyntheticGreen(source, requiredElements, label) {
+  assert.deepEqual(
+    syntheticRendererIssues(source, requiredElements),
     [],
     `${label} must be green`
   )
@@ -499,6 +529,242 @@ try {
   )
   console.log(
     'renderer-root-reachability: green -> red(unreachable helper decoy retained) -> green'
+  )
+
+  const publicRenderRootCall = ': this.renderApp()'
+  const rendererWithUncalledRootMethod = realRendererSource.replace(
+    publicRenderRootCall,
+    ': null /* renderer-public-entry-root probe */'
+  )
+  assert.notEqual(
+    rendererWithUncalledRootMethod,
+    realRendererSource,
+    'renderer-public-entry-root must remove the mounted render path'
+  )
+  assert.ok(
+    rendererWithUncalledRootMethod.includes(rendererRootLiteral),
+    'renderer-public-entry-root must retain the uncalled same-class root method'
+  )
+  assertOnlyIssueCode(
+    findRendererWiringIssues({
+      contract,
+      renderer: { path: rendererPath, source: rendererWithUncalledRootMethod },
+    }),
+    'renderer-root-unreachable',
+    'renderer-public-entry-root uncalled same-class method'
+  )
+  const ambiguousRootSource = `
+export class App {
+  public render() { return this.choose ? this.firstRoot() : this.secondRoot() }
+  private firstRoot() { return <div id="desktop-app-contents" /> }
+  private secondRoot() { return <div id="desktop-app-contents" /> }
+}
+`
+  assertOnlyIssueCode(
+    syntheticRendererIssues(ambiguousRootSource),
+    'renderer-root-ambiguous',
+    'renderer-public-entry-root ambiguous candidates'
+  )
+  const unresolvedRootSource = `
+function rootTree() { return <div id="desktop-app-contents" /> }
+let unresolvedRoot: typeof rootTree
+export class App { public render() { return unresolvedRoot() } }
+`
+  assertOnlyIssueCode(
+    syntheticRendererIssues(unresolvedRootSource),
+    'renderer-call-unresolved',
+    'renderer-public-entry-root unresolved candidate path'
+  )
+  assert.deepEqual(
+    findRendererWiringIssues({
+      contract,
+      renderer: { path: rendererPath, source: realRendererSource },
+    }),
+    [],
+    'renderer-public-entry-root restored must be green'
+  )
+  console.log(
+    'renderer-public-entry-root: green -> red(uncalled root) -> red(ambiguous roots) -> red(unresolved path) -> green'
+  )
+
+  const requiredTab = [{ tag: 'RepositoryTabStrip' }]
+  const uncalledClosureSource = `
+export class App {
+  public render() { return this.renderApp() }
+  private renderApp() {
+    const unused = () => <RepositoryTabStrip />
+    return <div id="desktop-app-contents" />
+  }
+}
+`
+  assertOnlyIssueCode(
+    syntheticRendererIssues(uncalledClosureSource, requiredTab),
+    'missing-renderer-element',
+    'renderer-nested-closure-scope'
+  )
+  const calledClosureSource = uncalledClosureSource.replace(
+    'return <div id="desktop-app-contents" />',
+    'return <div id="desktop-app-contents">{unused()}</div>'
+  )
+  assertSyntheticGreen(
+    calledClosureSource,
+    requiredTab,
+    'renderer-nested-closure-scope restored'
+  )
+  console.log(
+    'renderer-nested-closure-scope: green(call) -> red(uncalled arrow decoy) -> green(call)'
+  )
+
+  const nestedClassDecoySource = `
+export class App {
+  public render() { return this.renderApp() }
+  private renderApp() {
+    class NestedDecoy {
+      public render() { return <RepositoryTabStrip /> }
+    }
+    return <div id="desktop-app-contents" />
+  }
+}
+`
+  assertOnlyIssueCode(
+    syntheticRendererIssues(nestedClassDecoySource, requiredTab),
+    'missing-renderer-element',
+    'renderer-nested-class-scope'
+  )
+  const nestedClassRestoredSource = nestedClassDecoySource.replace(
+    'return <div id="desktop-app-contents" />',
+    'return <div id="desktop-app-contents"><RepositoryTabStrip /></div>'
+  )
+  assertSyntheticGreen(
+    nestedClassRestoredSource,
+    requiredTab,
+    'renderer-nested-class-scope restored'
+  )
+  console.log(
+    'renderer-nested-class-scope: green(root element) -> red(nested-class decoy only) -> green(root element)'
+  )
+
+  const unrelatedStartupSource = `
+export class App {
+  private loading = false
+  public render() { return this.loading ? this.renderStartup() : this.renderApp() }
+  private renderStartup() { return <RepositoryTabStrip /> }
+  private renderApp() { return <div id="desktop-app-contents" /> }
+}
+`
+  assertOnlyIssueCode(
+    syntheticRendererIssues(unrelatedStartupSource, requiredTab),
+    'missing-renderer-element',
+    'renderer-unrelated-path-scope'
+  )
+  const startupRestoredSource = unrelatedStartupSource.replace(
+    'private renderApp() { return <div id="desktop-app-contents" /> }',
+    'private renderApp() { return <div id="desktop-app-contents"><RepositoryTabStrip /></div> }'
+  )
+  assertSyntheticGreen(
+    startupRestoredSource,
+    requiredTab,
+    'renderer-unrelated-path-scope restored'
+  )
+  console.log(
+    'renderer-unrelated-path-scope: green(root path) -> red(startup decoy only) -> green(root path)'
+  )
+
+  const localSymbolSource = `
+function rootTree() { return <div id="desktop-app-contents"><RepositoryTabStrip /></div> }
+const indirectRoot = rootTree
+function directRoot() { return indirectRoot() }
+export class App {
+  private renderThroughProperty = () => {
+    function localRoot() { return directRoot() }
+    return localRoot()
+  }
+  public render() { return this.renderThroughProperty() }
+}
+`
+  assertSyntheticGreen(
+    localSymbolSource,
+    requiredTab,
+    'renderer-local-symbol-calls direct and indirect chain'
+  )
+  const brokenLocalSymbolSource = localSymbolSource.replace(
+    'const indirectRoot = rootTree',
+    'const indirectRoot = () => null'
+  )
+  assertOnlyIssueCode(
+    syntheticRendererIssues(brokenLocalSymbolSource, requiredTab),
+    'renderer-root-unreachable',
+    'renderer-local-symbol-calls broken indirect chain'
+  )
+  assertSyntheticGreen(
+    localSymbolSource,
+    requiredTab,
+    'renderer-local-symbol-calls restored'
+  )
+  console.log(
+    'renderer-local-symbol-calls: green(property, local, direct, and indirect chain) -> red(broken alias) -> green'
+  )
+
+  const cycleSource = `
+function rootTree() { return <div id="desktop-app-contents"><RepositoryTabStrip /></div> }
+function cycleA() { return cycleB() }
+function cycleB() { cycleA(); return rootTree() }
+export class App { public render() { return cycleA() } }
+`
+  assertSyntheticGreen(
+    cycleSource,
+    requiredTab,
+    'renderer-cycle-bounds cycle baseline'
+  )
+  const boundFunctions = Array.from(
+    { length: 2_049 },
+    (_, index) =>
+      `function bound${index}() { return ${
+        index === 2_048
+          ? '<div id="desktop-app-contents"><RepositoryTabStrip /></div>'
+          : `bound${index + 1}()`
+      } }`
+  ).join('\n')
+  const boundSource = `${boundFunctions}\nexport class App { public render() { return bound0() } }\n`
+  assertOnlyIssueCode(
+    syntheticRendererIssues(boundSource, requiredTab),
+    'renderer-reachability-bound',
+    'renderer-cycle-bounds function bound'
+  )
+  assertSyntheticGreen(
+    cycleSource,
+    requiredTab,
+    'renderer-cycle-bounds restored cycle'
+  )
+  console.log(
+    'renderer-cycle-bounds: green(cycle visited once) -> red(function bound) -> green(cycle)'
+  )
+
+  const wrongPublicEntrySource = `
+class DecoyRenderer {
+  public render() { return <div id="desktop-app-contents"><RepositoryTabStrip /></div> }
+}
+export class App {
+  public render() { return this.renderApp() }
+  private renderApp() { return <div id="desktop-app-contents" /> }
+}
+`
+  assertOnlyIssueCode(
+    syntheticRendererIssues(wrongPublicEntrySource, requiredTab),
+    'missing-renderer-element',
+    'renderer-public-entry-elements'
+  )
+  const publicEntryRestoredSource = wrongPublicEntrySource.replace(
+    'private renderApp() { return <div id="desktop-app-contents" /> }',
+    'private renderApp() { return <div id="desktop-app-contents"><RepositoryTabStrip /></div> }'
+  )
+  assertSyntheticGreen(
+    publicEntryRestoredSource,
+    requiredTab,
+    'renderer-public-entry-elements restored'
+  )
+  console.log(
+    'renderer-public-entry-elements: green(true App) -> red(decoy renderer only) -> green(true App)'
   )
 
   await assertRetiredImportsGreen('restored frozen-shell import contract')

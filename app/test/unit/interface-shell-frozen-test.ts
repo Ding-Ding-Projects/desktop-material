@@ -73,6 +73,10 @@ function assertContractShape(): void {
     SOURCE_EXTENSIONS
   )
   assert.deepEqual(contract.currentRenderer.aliases, {})
+  assert.deepEqual(contract.currentRenderer.mountedComponent, {
+    exportName: 'App',
+    renderMethod: 'render',
+  })
   assert.equal(contract.retiredShell.barrelPaths[0], 'app/src/ui/md3/index.ts')
   assert.deepEqual(contract.negativeRegression.requiredDimensions, [
     'retired-path-resolution',
@@ -84,6 +88,13 @@ function assertContractShape(): void {
     'renderer-import-bindings',
     'retired-family-reservation',
     'renderer-root-reachability',
+    'renderer-public-entry-root',
+    'renderer-nested-closure-scope',
+    'renderer-nested-class-scope',
+    'renderer-unrelated-path-scope',
+    'renderer-local-symbol-calls',
+    'renderer-cycle-bounds',
+    'renderer-public-entry-elements',
   ])
 }
 
