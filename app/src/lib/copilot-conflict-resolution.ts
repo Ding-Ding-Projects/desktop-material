@@ -29,7 +29,7 @@ export interface IFileResolution {
   readonly conflictGeneration?: {
     readonly contentHash: string
     readonly stageFingerprint: string
-    readonly conflictType?: 'text'
+    readonly conflictType: 'text'
   }
 }
 
@@ -412,6 +412,11 @@ export function parseCopilotConflictResolution(
         `Copilot returned an invalid conflict resolution payload: "path" at index ${i} must be a non-empty string`
       )
     }
+    if (path.length > MaxConflictResolutionPathChars) {
+      throw new CopilotValidationError(
+        `Copilot returned a conflict resolution path at index ${i} that is too long`
+      )
+    }
 
     if (!Array.isArray(rawHunks)) {
       throw new CopilotValidationError(
@@ -633,11 +638,6 @@ export function reassembleResolutions(
     if (ctx?.rawContent === undefined) {
       throw new CopilotValidationError(
         `Cannot reassemble resolution for "${raw.path}": original file content is unavailable`
-      )
-    }
-    if (path.length > MaxConflictResolutionPathChars) {
-      throw new CopilotValidationError(
-        `Copilot returned a conflict resolution path at index ${i} that is too long`
       )
     }
     if (ctx.stageFingerprint === undefined || ctx.stageFingerprint === '') {

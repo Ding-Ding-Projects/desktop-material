@@ -10800,9 +10800,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
           signal
         )
         if (resolution === null || signal.aborted) {
-          await this.withTemporaryRepositoryMutationGuard(repository, () =>
-            abortMerge(repository)
-          )
           await this._refreshRepository(repository)
           return {
             ...base,
@@ -10824,14 +10821,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
           applicationResult.skipped.length > 0 ||
           applicationResult.staged.length !== resolution.resolutions.length
         ) {
-          await this.withTemporaryRepositoryMutationGuard(repository, () =>
-            abortMerge(repository)
-          )
           await this._refreshRepository(repository)
           return {
             ...base,
             status: 'skipped',
-            detail: `Copilot resolved ${applicationResult.staged.length} of ${resolution.resolutions.length} files; merge stopped because not every resolution was verified staged.`,
+            detail: `Copilot resolved ${applicationResult.staged.length} of ${resolution.resolutions.length} files; merge remains in progress because not every resolution was verified staged. Manual work was preserved.`,
           }
         }
         const conflictState = this.repositoryStateCache.get(repository)
@@ -16507,6 +16501,26 @@ export class AppStore extends TypedBaseStore<IAppState> {
         `[Timing] resolving ${conflictedFiles.length} conflicted file(s)`
       )
 
+      const captureStageFingerprints = async () =>
+        new Map(
+          await Promise.all(
+            conflictedFiles.map(async file => [
+              file.path,
+              await this.getCopilotConflictStageFingerprint(
+                repository,
+                file.path
+              ),
+            ])
+          )
+        )
+      const generationStagesBefore = await captureStageFingerprints()
+      if ([...generationStagesBefore.values()].some(value => value === '')) {
+        log.warn(
+          'AppStore: Copilot conflict resolution stages were unavailable before context capture'
+        )
+        return null
+      }
+
       const context = await this.gatherConflictResolutionContext(
         repository,
         labels,
@@ -16514,15 +16528,25 @@ export class AppStore extends TypedBaseStore<IAppState> {
         state,
         signal
       )
+      const generationStagesAfter = await captureStageFingerprints()
+      const stagesChangedDuringCapture = conflictedFiles.some(
+        file =>
+          generationStagesBefore.get(file.path) !==
+          generationStagesAfter.get(file.path)
+      )
+      if (stagesChangedDuringCapture) {
+        log.warn(
+          'AppStore: Copilot conflict resolution stages changed during context capture'
+        )
+        return null
+      }
+
       const contextWithStages: IConflictResolutionContext = {
         ...context,
         files: await Promise.all(
           context.files.map(async file => ({
             ...file,
-            stageFingerprint: await this.getCopilotConflictStageFingerprint(
-              repository,
-              file.path
-            ),
+            stageFingerprint: generationStagesBefore.get(file.path),
           }))
         ),
       }
