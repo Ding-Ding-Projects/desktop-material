@@ -92,10 +92,44 @@ afterEach(() => {
 
 describe('WorktreeListItem', () => {
   it('normalizes Windows separators and casing for current-path state', () => {
-    assert.equal(
-      worktreePathsEqual('c:/Users/example/repo', 'C:\\Users\\example\\repo'),
-      true
-    )
+    const originalPlatform = process.platform
+    Object.defineProperty(process, 'platform', {
+      configurable: true,
+      value: 'win32',
+    })
+    try {
+      assert.equal(
+        worktreePathsEqual('c:/Users/example/repo', 'C:\\Users\\example\\repo'),
+        true
+      )
+    } finally {
+      Object.defineProperty(process, 'platform', {
+        configurable: true,
+        value: originalPlatform,
+      })
+    }
+  })
+
+  it('keeps POSIX backslashes literal and case-sensitive', () => {
+    const literalBackslash = '/tmp/worktree\\name'
+    const separatorPath = '/tmp/worktree/name'
+    const differentlyCased = '/tmp/Worktree/name'
+
+    const originalPlatform = process.platform
+    Object.defineProperty(process, 'platform', {
+      configurable: true,
+      value: 'linux',
+    })
+    try {
+      assert.equal(worktreePathsEqual(literalBackslash, separatorPath), false)
+      assert.equal(worktreePathsEqual(separatorPath, differentlyCased), false)
+    } finally {
+      Object.defineProperty(process, 'platform', {
+        configurable: true,
+        value: originalPlatform,
+      })
+    }
+    assert.equal(worktreePathsEqual(separatorPath, separatorPath), true)
   })
 
   it('derives stable accessible names with observed state', () => {

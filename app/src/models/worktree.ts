@@ -27,8 +27,8 @@ export type WorktreeEntry = {
 
 /** Compare absolute worktree paths across separator and case differences. */
 export function worktreePathsEqual(first: string, second: string): boolean {
-  const normalize = (path: string) =>
-    Path.resolve(path.replace(/\\/g, '/')).replace(/\/+$/, '')
+  const pathModule = process.platform === 'win32' ? Path.win32 : Path.posix
+  const normalize = (path: string) => pathModule.resolve(path)
   const a = normalize(first)
   const b = normalize(second)
   return process.platform === 'win32'

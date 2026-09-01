@@ -445,6 +445,16 @@ describe('git/worktree', () => {
       )
     })
 
+    it('falls back through a primary .git directory', async t => {
+      const { repo, mainPath, linkedPath } = await linkedRepository(t)
+      assert.strictEqual(
+        await resolveMainWorktreePath(
+          asRepository(linkedPath, Path.join(repo.path, '.git'))
+        ),
+        mainPath
+      )
+    })
+
     it('does not guess when neither the recorded path nor metadata is usable', async t => {
       const { linkedPath } = await linkedRepository(t)
       assert.strictEqual(
