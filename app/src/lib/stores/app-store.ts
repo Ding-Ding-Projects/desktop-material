@@ -41,6 +41,7 @@ import {
   CommitMessageGenerationCancelledError,
   getCopilotAccountCacheKey,
   getConflictResolutionAIProviderBinding,
+  isCopilotAccountEligible,
 } from './copilot-store'
 import { FileBatchCloneStagingManager } from './batch-clone-staging'
 import {
@@ -1236,6 +1237,35 @@ interface ICheapLfsMaterializeOwner {
 interface ICheapLfsRestoreRun {
   readonly id: number
   progress: ICheapLfsRestoreState | null
+}
+
+export async function runBoundedCopilotAccountRefreshes<T>(
+  accounts: ReadonlyArray<Account>,
+  refresh: (account: Account) => Promise<T>,
+  concurrency: number = 2
+): Promise<ReadonlyArray<PromiseSettledResult<T>>> {
+  const results: Array<PromiseSettledResult<T>> = new Array(accounts.length)
+  let nextIndex = 0
+  const worker = async () => {
+    while (true) {
+      const index = nextIndex++
+      if (index >= accounts.length) return
+      try {
+        results[index] = {
+          status: 'fulfilled',
+          value: await refresh(accounts[index]),
+        }
+      } catch (reason) {
+        results[index] = { status: 'rejected', reason }
+      }
+    }
+  }
+  const workers = Array.from(
+    { length: Math.max(1, Math.min(concurrency, accounts.length)) },
+    () => worker()
+  )
+  await Promise.all(workers)
+  return results
 }
 
 interface ICheapLfsMaterializeBatchOptions {
@@ -2857,12 +2887,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   private getCopilotSettingsAccounts(): ReadonlyArray<Account> {
-    return this.accounts.filter(
-      account =>
-        !isGHES(account.endpoint) &&
-        enableCopilotSdkCommitMessageGeneration(account) &&
-        account.isCopilotDesktopEnabled
-    )
+    return this.accounts.filter(account => isCopilotAccountEligible(account))
   }
 
   private getCopilotModelsAccount(): Account | undefined {
@@ -27519,38 +27544,39 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     const byAccount = new Map(this.copilotModelsByAccount)
-    for (let start = 0; start < accounts.length; start += 2) {
-      const batch = accounts.slice(start, start + 2)
-      const results = await Promise.allSettled(
-        batch.map(async account => {
-          const accountKey = getCopilotAccountCacheKey(account)
-          const generation =
-            (this.copilotModelsRequestGeneration.get(accountKey) ?? 0) + 1
-          this.copilotModelsRequestGeneration.set(accountKey, generation)
-          return {
-            accountKey,
-            generation,
-            models: await this.copilotStore.listModels(account),
-          }
-        })
+    const generations = accounts.map(account => {
+      const accountKey = getCopilotAccountCacheKey(account)
+      const generation =
+        (this.copilotModelsRequestGeneration.get(accountKey) ?? 0) + 1
+      this.copilotModelsRequestGeneration.set(accountKey, generation)
+      return { accountKey, generation }
+    })
+    const results = await runBoundedCopilotAccountRefreshes(
+      accounts,
+      account => this.copilotStore.listModels(account),
+      2
+    )
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        log.warn(
+          'AppStore: Copilot model refresh failed for one account',
+          result.reason
+        )
+        return
+      }
+      const { accountKey, generation } = generations[index]
+      const models = result.value
+      if (
+        this.copilotModelsRequestGeneration.get(accountKey) !== generation ||
+        !this.accounts.some(
+          current => getCopilotAccountCacheKey(current) === accountKey
+        )
       )
-      results.forEach(result => {
-        if (result.status === 'rejected') {
-          log.warn('AppStore: Copilot model refresh failed for one account', result.reason)
-          return
-        }
-        const { accountKey, generation, models } = result.value
-        if (
-          this.copilotModelsRequestGeneration.get(accountKey) !== generation ||
-          !this.accounts.some(
-            current => getCopilotAccountCacheKey(current) === accountKey
-          )
-        ) return
-        byAccount.set(accountKey, models === null ? null : [...models])
-        this.copilotModelsByAccount = new Map(byAccount)
-        this.emitUpdate()
-      })
-    }
+        return
+      byAccount.set(accountKey, models === null ? null : [...models])
+      this.copilotModelsByAccount = new Map(byAccount)
+      this.emitUpdate()
+    })
     this.copilotModelsByAccount = byAccount
     this.copilotModels =
       byAccount.get(getCopilotAccountCacheKey(accounts[0])) ?? null
@@ -27572,38 +27598,39 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     const byAccount = new Map(this.copilotQuotaSnapshotsByAccount)
-    for (let start = 0; start < accounts.length; start += 2) {
-      const batch = accounts.slice(start, start + 2)
-      const results = await Promise.allSettled(
-        batch.map(async account => {
-          const accountKey = getCopilotAccountCacheKey(account)
-          const generation =
-            (this.copilotQuotaRequestGeneration.get(accountKey) ?? 0) + 1
-          this.copilotQuotaRequestGeneration.set(accountKey, generation)
-          return {
-            accountKey,
-            generation,
-            snapshots: await this.copilotStore.getQuotaSnapshots(account),
-          }
-        })
+    const generations = accounts.map(account => {
+      const accountKey = getCopilotAccountCacheKey(account)
+      const generation =
+        (this.copilotQuotaRequestGeneration.get(accountKey) ?? 0) + 1
+      this.copilotQuotaRequestGeneration.set(accountKey, generation)
+      return { accountKey, generation }
+    })
+    const results = await runBoundedCopilotAccountRefreshes(
+      accounts,
+      account => this.copilotStore.getQuotaSnapshots(account),
+      2
+    )
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        log.warn(
+          'AppStore: Copilot quota refresh failed for one account',
+          result.reason
+        )
+        return
+      }
+      const { accountKey, generation } = generations[index]
+      const snapshots = result.value
+      if (
+        this.copilotQuotaRequestGeneration.get(accountKey) !== generation ||
+        !this.accounts.some(
+          current => getCopilotAccountCacheKey(current) === accountKey
+        )
       )
-      results.forEach(result => {
-        if (result.status === 'rejected') {
-          log.warn('AppStore: Copilot quota refresh failed for one account', result.reason)
-          return
-        }
-        const { accountKey, generation, snapshots } = result.value
-        if (
-          this.copilotQuotaRequestGeneration.get(accountKey) !== generation ||
-          !this.accounts.some(
-            current => getCopilotAccountCacheKey(current) === accountKey
-          )
-        ) return
-        byAccount.set(accountKey, snapshots)
-        this.copilotQuotaSnapshotsByAccount = new Map(byAccount)
-        this.emitUpdate()
-      })
-    }
+        return
+      byAccount.set(accountKey, snapshots)
+      this.copilotQuotaSnapshotsByAccount = new Map(byAccount)
+      this.emitUpdate()
+    })
     this.copilotQuotaSnapshotsByAccount = byAccount
     this.copilotQuotaSnapshots =
       byAccount.get(getCopilotAccountCacheKey(accounts[0])) ?? null

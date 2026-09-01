@@ -329,3 +329,18 @@ export function teleportAnchor(anchorId: string): {
 } {
   return { 'data-teleport-target': anchorId }
 }
+
+/** Build a deterministic, selector-safe suffix for account-owned targets. */
+export function sanitizeTeleportTargetSuffix(value: string): string {
+  return value.replace(/[^a-zA-Z0-9-]/g, '_')
+}
+
+export function copilotAccountTeleportTarget(
+  base: 'account-overview' | 'quota' | 'configure-models',
+  accountId: number,
+  endpoint: string
+): string {
+  return `settings-copilot-${base}-${sanitizeTeleportTargetSuffix(
+    `${accountId}-${endpoint}`
+  )}`
+}

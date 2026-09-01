@@ -431,7 +431,10 @@ describe('CopilotPreferences', () => {
     ])
     render(<SnapshotCard account={makeAccount()} snapshots={unlimited} />)
     const progress = screen.getByRole('progressbar')
-    assert.strictEqual(progress.getAttribute('aria-valuetext'), 'No usage limit')
+    assert.strictEqual(
+      progress.getAttribute('aria-valuetext'),
+      'No usage limit'
+    )
     assert.strictEqual(progress.getAttribute('aria-valuenow'), null)
   })
 

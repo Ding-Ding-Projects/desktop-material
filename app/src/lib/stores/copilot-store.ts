@@ -233,7 +233,11 @@ export function readCopilotModelSelectionsByAccount(
   if (raw === null) return new Map()
   try {
     const parsed: unknown = JSON.parse(raw)
-    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    if (
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      Array.isArray(parsed)
+    ) {
       return new Map()
     }
     return new Map(
@@ -273,7 +277,11 @@ export function migrateCopilotModelSelectionsStorage(
   if (legacyRaw !== null) {
     try {
       const parsed: unknown = JSON.parse(legacyRaw)
-      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+      if (
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        !Array.isArray(parsed)
+      ) {
         legacy = parsed as CopilotModelSelections
       }
     } catch {
@@ -542,6 +550,18 @@ export function getCopilotModelCacheKey(account: Account): string {
 /** Returns the stable key used for all account-scoped Copilot state. */
 export function getCopilotAccountCacheKey(account: Account): string {
   return getCopilotModelCacheKey(account)
+}
+
+/** Shared eligibility predicate for every Copilot account data request. */
+export function isCopilotAccountEligible(account: Account): boolean {
+  return (
+    account.provider === 'github' &&
+    !isGHE(account.endpoint) &&
+    account.isCopilotDesktopEnabled === true &&
+    account.copilotLicenseType !== undefined &&
+    account.copilotLicenseType !== 'NO_ACCESS' &&
+    enableCopilotSdkCommitMessageGeneration(account)
+  )
 }
 
 /** Returns the Copilot CLI host override for the account, if one is needed. */
@@ -2381,7 +2401,7 @@ export class CopilotStore extends BaseStore {
     const key = getCopilotModelCacheKey(account)
     if (
       !this.signedInAccountKeys.has(key) ||
-      !enableCopilotSdkCommitMessageGeneration(account)
+      !isCopilotAccountEligible(account)
     ) {
       return null
     }
@@ -2407,7 +2427,7 @@ export class CopilotStore extends BaseStore {
     const key = getCopilotAccountCacheKey(account)
     if (
       !this.signedInAccountKeys.has(key) ||
-      !enableCopilotSdkCommitMessageGeneration(account)
+      !isCopilotAccountEligible(account)
     ) {
       this.quotaStates.set(key, {
         status: 'unavailable',

@@ -22,7 +22,8 @@ when no prior snapshot exists.
 
 The usage card reports the values returned by the provider: used requests,
 available requests when the provider supplies a finite entitlement, reset date,
-and the local refresh timestamp. Unlimited quotas use an accessible
+the reported or computed remaining percentage, and the local refresh timestamp.
+Unlimited quotas use an accessible
 "No usage limit" value. The card also reports loading, available, stale,
 unavailable, and error states. Missing data is never represented as a guessed
 zero or as another account's data.

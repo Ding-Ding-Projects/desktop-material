@@ -13,10 +13,7 @@ import {
   translate,
 } from '../../lib/i18n'
 import { createOllamaClient } from '../../lib/ollama'
-import {
-  enableCopilotConflictResolution,
-  enableCopilotSdkCommitMessageGeneration,
-} from '../../lib/feature-flag'
+import { enableCopilotConflictResolution } from '../../lib/feature-flag'
 import { isGHES } from '../../lib/endpoint-capabilities'
 import {
   DefaultCopilotModel,
@@ -27,11 +24,9 @@ import {
   type CopilotQuotaSnapshots,
   type CopilotQuotaSnapshotsByAccount,
   type CopilotQuotaStatesByAccount,
+  isCopilotAccountEligible,
 } from '../../lib/stores/copilot-store'
-import {
-  CopilotLicenseTypeNoAccess,
-  type Account,
-} from '../../models/account'
+import { CopilotLicenseTypeNoAccess, type Account } from '../../models/account'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import {
   OllamaModelManager,
@@ -362,9 +357,7 @@ export class CopilotPreferences extends React.Component<
   }
 
   private getActiveCopilotAccount(): Account | undefined {
-    return (
-      this.state.configuringAccount ?? this.getCopilotSettingsAccounts()[0]
-    )
+    return this.state.configuringAccount ?? this.getCopilotSettingsAccounts()[0]
   }
 
   private renderCurrentTab(accessState: CopilotAccessState) {
@@ -426,13 +419,8 @@ export class CopilotPreferences extends React.Component<
   }
 
   private getCopilotSettingsAccounts(): ReadonlyArray<Account> {
-    return this.props.accounts.filter(
-      account =>
-        !isGHES(account.endpoint) &&
-        enableCopilotSdkCommitMessageGeneration(account) &&
-        account.isCopilotDesktopEnabled === true &&
-        account.copilotLicenseType !== undefined &&
-        account.copilotLicenseType !== CopilotLicenseTypeNoAccess
+    return this.props.accounts.filter(account =>
+      isCopilotAccountEligible(account)
     )
   }
 

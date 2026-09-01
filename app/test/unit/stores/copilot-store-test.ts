@@ -7,6 +7,7 @@ import assert from 'node:assert'
 import { after, before, describe, it } from 'node:test'
 import { getDotComAPIEndpoint } from '../../../src/lib/api'
 import { AccountsStore } from '../../../src/lib/stores/accounts-store'
+import { runBoundedCopilotAccountRefreshes } from '../../../src/lib/stores/app-store'
 import {
   CommitMessageGenerationCancelledError,
   CopilotConflictResolutionAbortError,
@@ -87,10 +88,10 @@ function makeAccount(overrides: IAccountOverrides = {}): Account {
     overrides.id ?? 1,
     overrides.name ?? login,
     'free',
-    undefined,
-    undefined,
-    undefined,
-    undefined,
+    'https://copilot-proxy.githubusercontent.com',
+    true,
+    ['desktop_enable_copilot_sdk_commit_message_generation'],
+    'COPILOT_INDIVIDUAL',
     overrides.provider ?? 'github'
   )
 }
@@ -661,6 +662,29 @@ describe('Copilot account model and quota isolation', () => {
     )
   })
 
+  it('does not create transport for an unlicensed account', async () => {
+    const account = makeAccount()
+    const noAccess = new Account(
+      account.login,
+      account.endpoint,
+      account.token,
+      account.emails,
+      account.avatarURL,
+      account.id,
+      account.name,
+      account.plan,
+      account.copilotEndpoint,
+      true,
+      account.features,
+      'NO_ACCESS'
+    )
+    const { accountsStore, store, createClientAccounts } =
+      createCopilotStoreWithModels(() => [])
+    await accountsStore.addAccount(noAccess)
+    assert.strictEqual(await store.listModels(noAccess), null)
+    assert.strictEqual(createClientAccounts.length, 0)
+  })
+
   it('persists account selections idempotently and removes legacy keys after migration', () => {
     const values = new Map<string, string>()
     const storage = {
@@ -676,7 +700,9 @@ describe('Copilot account model and quota isolation', () => {
     writeCopilotModelSelectionsByAccount(selections, storage)
     assert.strictEqual(values.get('selected-copilot-models-by-account'), first)
     assert.deepStrictEqual(
-      readCopilotModelSelectionsByAccount(storage).get('1:https://api.github.com'),
+      readCopilotModelSelectionsByAccount(storage).get(
+        '1:https://api.github.com'
+      ),
       { 'commit-message-generation': 'auto' }
     )
     values.set(
@@ -690,7 +716,9 @@ describe('Copilot account model and quota isolation', () => {
     assert.strictEqual(values.has('selected-copilot-models'), false)
     assert.strictEqual(values.has('selected-copilot-model'), false)
     assert.deepStrictEqual(
-      readCopilotModelSelectionsByAccount(storage).get('2:https://api.github.com'),
+      readCopilotModelSelectionsByAccount(storage).get(
+        '2:https://api.github.com'
+      ),
       { 'conflict-resolution': 'legacy-conflict' }
     )
   })
@@ -720,6 +748,34 @@ describe('Copilot account model and quota isolation', () => {
       store.getCachedQuotaSnapshots(account)?.get('chat')?.usedRequests,
       80
     )
+  })
+
+  it('starts the next account as soon as a worker slot frees', async () => {
+    const accounts = [makeAccount({ id: 1 }), makeAccount({ id: 2 }), makeAccount({ id: 3 })]
+    const first = createDeferred<string>()
+    const second = createDeferred<string>()
+    const third = createDeferred<string>()
+    const started: number[] = []
+    const refresh = (account: Account) => {
+      started.push(account.id)
+      if (account.id === 1) return first.promise
+      if (account.id === 3) return third.promise
+      return second.promise
+    }
+    const run = runBoundedCopilotAccountRefreshes(accounts, refresh, 2)
+    await Promise.resolve()
+    assert.deepStrictEqual(started, [1, 2])
+    second.resolve('second')
+    await Promise.resolve()
+    assert.deepStrictEqual(started, [1, 2, 3])
+    first.resolve('first')
+    third.resolve('third')
+    const results = await run
+    assert.deepStrictEqual(results.map(result => result.status), [
+      'fulfilled',
+      'fulfilled',
+      'fulfilled',
+    ])
   })
 })
 

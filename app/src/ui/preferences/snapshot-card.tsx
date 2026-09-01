@@ -5,6 +5,7 @@ import { t } from '../../lib/i18n'
 import { tFunny } from '../../lib/funny-level-text'
 import { formatNumber } from '../../lib/format-number'
 import { getNumberFormatPreference } from '../../models/formatting-preferences'
+import { copilotAccountTeleportTarget } from '../../lib/teleport-targets'
 import { Button } from '../lib/button'
 import type {
   CopilotQuotaSnapshots,
@@ -30,7 +31,11 @@ function formatPercent(snapshot: AccountQuotaSnapshot): string {
   })
 }
 
-function QuotaProgress({ snapshot }: { readonly snapshot: AccountQuotaSnapshot }) {
+function QuotaProgress({
+  snapshot,
+}: {
+  readonly snapshot: AccountQuotaSnapshot
+}) {
   const used = snapshot.isUnlimitedEntitlement
     ? 0
     : Math.max(0, Math.min(100, 100 - snapshot.remainingPercentage))
@@ -79,10 +84,21 @@ export function SnapshotCard({
   onConfigureModels,
 }: ISnapshotCardProps): JSX.Element {
   const state = quotaState?.status
-  const suffix = getCopilotAccountTargetSuffix(account)
-  const overviewTarget = `settings-copilot-account-overview-${suffix}`
-  const quotaTarget = `settings-copilot-quota-${suffix}`
-  const configureTarget = `settings-copilot-configure-models-${suffix}`
+  const overviewTarget = copilotAccountTeleportTarget(
+    'account-overview',
+    account.id,
+    account.endpoint
+  )
+  const quotaTarget = copilotAccountTeleportTarget(
+    'quota',
+    account.id,
+    account.endpoint
+  )
+  const configureTarget = copilotAccountTeleportTarget(
+    'configure-models',
+    account.id,
+    account.endpoint
+  )
   return (
     <section
       className="copilot-snapshot-card"
@@ -111,12 +127,8 @@ export function SnapshotCard({
       {state === 'unavailable' && (
         <p role="status">{t('copilot.quotaUnavailable')}</p>
       )}
-      {state === 'error' && (
-        <p role="alert">{t('copilot.quotaError')}</p>
-      )}
-      {state === 'stale' && (
-        <p role="status">{t('copilot.quotaStale')}</p>
-      )}
+      {state === 'error' && <p role="alert">{t('copilot.quotaError')}</p>}
+      {state === 'stale' && <p role="status">{t('copilot.quotaStale')}</p>}
       {snapshots === null && state === undefined && (
         <p role="status">{t('copilot.quotaLoading')}</p>
       )}
@@ -139,32 +151,41 @@ export function SnapshotCard({
               </strong>
               <QuotaProgress snapshot={snapshot} />
               {!snapshot.isUnlimitedEntitlement && (
-                <span>
-                  {t('copilot.quotaUsedOfAvailable', {
-                    used: formatNumber(
-                      snapshot.usedRequests,
-                      getNumberFormatPreference()
-                    ),
-                    available: formatNumber(
-                      snapshot.entitlementRequests,
-                      getNumberFormatPreference()
-                    ),
-                    reset: formatReset(snapshot.resetDate),
-                  })}
-                </span>
+                <>
+                  <span>
+                    {t('copilot.quotaUsedOfAvailable', {
+                      used: formatNumber(
+                        snapshot.usedRequests,
+                        getNumberFormatPreference()
+                      ),
+                      available: formatNumber(
+                        snapshot.entitlementRequests,
+                        getNumberFormatPreference()
+                      ),
+                      reset: formatReset(snapshot.resetDate),
+                    })}
+                  </span>
+                  <span>
+                    {t('copilot.quotaPercentRemaining', {
+                      percent: formatNumber(
+                        snapshot.remainingPercentage,
+                        getNumberFormatPreference()
+                      ),
+                    })}
+                  </span>
+                </>
               )}
             </li>
           ))}
         </ul>
       )}
-      {quotaState?.fetchedAt !== null &&
-        quotaState?.fetchedAt !== undefined && (
-          <small>
-            {t('copilot.quotaUpdated', {
-              timestamp: new Date(quotaState.fetchedAt).toLocaleString(),
-            })}
-          </small>
-        )}
+      {quotaState?.fetchedAt !== null && quotaState?.fetchedAt !== undefined && (
+        <small>
+          {t('copilot.quotaUpdated', {
+            timestamp: new Date(quotaState.fetchedAt).toLocaleString(),
+          })}
+        </small>
+      )}
     </section>
   )
 }

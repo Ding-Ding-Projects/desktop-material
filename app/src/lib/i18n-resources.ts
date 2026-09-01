@@ -5717,6 +5717,7 @@ export type TranslationKey =
   | 'copilot.quotaUpdated'
   | 'copilot.quotaPercentUsed'
   | 'copilot.quotaNoUsageLimit'
+  | 'copilot.quotaPercentRemaining'
   | 'copilot.accountOverview'
   | 'copilot.quotaDetails'
   | 'copilot.configureModelsAction'
@@ -8426,6 +8427,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'copilot.quotaUpdated': 'Updated {timestamp}',
   'copilot.quotaPercentUsed': '{percent}% used',
   'copilot.quotaNoUsageLimit': 'No usage limit',
+  'copilot.quotaPercentRemaining': '{percent}% remaining',
   'copilot.accountOverview': 'Copilot account overview',
   'copilot.quotaDetails': 'Copilot quota details',
   'copilot.configureModelsAction': 'Configure Copilot models',
@@ -15442,6 +15444,7 @@ export const cantoneseTranslations: Readonly<
   'copilot.quotaUpdated': '更新於 {timestamp}',
   'copilot.quotaPercentUsed': '已用 {percent}%',
   'copilot.quotaNoUsageLimit': '冇用量上限',
+  'copilot.quotaPercentRemaining': '仲有 {percent}%',
   'copilot.accountOverview': 'Copilot 帳戶總覽',
   'copilot.quotaDetails': 'Copilot 配額詳情',
   'copilot.configureModelsAction': '設定 Copilot 模型',
