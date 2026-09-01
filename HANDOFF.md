@@ -35,9 +35,13 @@ run passed 45 of 45 tests, and the capture-plan contract passed 60 of 60 tests.
 
 The repository-wide Markdown lint command still reports its existing 694
 findings across the long-standing feature article and user guide. The focused
-new prose is Prettier-clean. The task implementation lives on
-`codex/worktree-context-menu-actions` until the automatic `main` integration,
-remote proof, and task-owned cleanup complete.
+new prose is Prettier-clean. Task commit
+`c5222a3a988b779686053a498defb2a120d246da` was fast-forwarded to `main`; a
+direct remote ref read returned that exact SHA. Public progress and handoff are
+recorded in [issue #219](https://github.com/Ding-Ding-Projects/desktop-material/issues/219)
+and [Discussion #220](https://github.com/Ding-Ding-Projects/desktop-material/discussions/220).
+Only the task-owned temporary branch and linked worktree remain for automatic
+post-proof cleanup.
 
 ## Remaining plain HTML controls converted to shared Material primitives — 2026-08-22
 

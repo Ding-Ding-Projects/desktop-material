@@ -10,7 +10,7 @@
   protected targets with a focused red-then-green regression.
 - [x] Build the real Windows application and capture the menu plus merge preview
   on an isolated off-screen desktop.
-- [ ] Integrate the verified task branch into `main`, push it, and prove the
+- [x] Integrate the verified task branch into `main`, push it, and prove the
   remote `main` ref contains the task commit.
 
 ## August 22 — shared Material control conformance sweep
