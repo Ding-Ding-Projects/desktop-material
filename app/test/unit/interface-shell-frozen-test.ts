@@ -456,7 +456,13 @@ describe('the interface shell stays frozen', () => {
     }
 
     const lines = parseAst(appSource).statements.map(statement => statement.getText())
-    assert.ok(lines.some(line => line.trim() === 'private renderApp() {'))
+    const jsxNodes: ts.Node[] = []
+    const collectJsx = (node: ts.Node) => {
+      if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) jsxNodes.push(node)
+      ts.forEachChild(node, collectJsx)
+    }
+    collectJsx(parseAst(appSource))
+    assert.ok(jsxNodes.some(node => node.getText().includes('desktop-app-contents')))
     for (const marker of contract.currentRenderer.markers) {
       assert.ok(
         lines.some(line => line.includes(marker) && line.trim().length > 0),
