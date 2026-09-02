@@ -1,0 +1,74 @@
+// The shared search row: leading icon, field, clear, regex toggle, hit count
+// and an error line for an invalid pattern.
+
+.md3-search-row {
+  align-items: center;
+  background-color: var(--md-sys-color-surface-container-high);
+  border-radius: var(--md-sys-shape-corner-full);
+  color: var(--md-sys-color-on-surface);
+  display: flex;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 8px 0 12px;
+  // The row shrinks with its container instead of pushing its trailing controls
+  // out of the surface.
+  min-width: 0;
+
+  &:focus-within {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
+  }
+}
+
+.md3-search-row__icon {
+  color: var(--md-sys-color-on-surface-variant);
+  flex: 0 0 auto;
+}
+
+.md3-search-row__input {
+  background: none;
+  border: none;
+  color: inherit;
+  // Grows and shrinks; `min-width: 0` is what lets it shrink at all inside a
+  // flex row rather than forcing the row wider than its parent.
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+
+  &:focus {
+    outline: none;
+  }
+
+  &::placeholder {
+    color: var(--md-sys-color-on-surface-variant);
+  }
+}
+
+.md3-search-row__clear {
+  flex: 0 0 auto;
+}
+
+.md3-search-row__regex {
+  flex: 0 0 auto;
+  font-family: var(--font-family-monospace, monospace);
+}
+
+.md3-search-row__regex--active {
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+.md3-search-row__hits {
+  color: var(--md-sys-color-on-surface-variant);
+  flex: 0 0 auto;
+  // A count is short, but it must never be the thing that gets clipped, because
+  // it is the only feedback that the query matched anything.
+  white-space: nowrap;
+}
+
+.md3-search-row__error {
+  color: var(--md-sys-color-error);
+  // The message explains why a pattern was rejected, so it wraps in full rather
+  // than ellipsising the part that says what is wrong.
+  overflow-wrap: anywhere;
+}

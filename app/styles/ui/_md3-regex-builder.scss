@@ -8,7 +8,7 @@
 //
 // Motion comes from the shared `.md3-anim-fade--overlay` (dmFade 160ms ease)
 // and `.md3-anim-menu` (dmMenu 200ms cubic-bezier(0.2,0,0,1)) classes in
-// `_md3-shell.scss`, which are already disabled under reduced motion.
+// `app/styles/ui/md3/`, which are already disabled under reduced motion.
 
 // The dialog is portalled into this host (see `getMd3RegexBuilderPortalHost`).
 // `display: contents` makes it generate no box at all, so the scrim's

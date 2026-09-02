@@ -1,0 +1,15 @@
+// The MD3 primitive layer.
+//
+// One partial per primitive rather than a single shared grab-bag, so a rule is
+// findable by the class it declares. Imported after the per-surface `ui`
+// partials and before `_material-shell`, which keeps the shell's upstream
+// overrides last in the cascade exactly as before.
+
+@import 'motion';
+@import 'surface';
+@import 'button';
+@import 'icon-button';
+@import 'chip';
+@import 'search-row';
+@import 'empty-state';
+@import 'list';

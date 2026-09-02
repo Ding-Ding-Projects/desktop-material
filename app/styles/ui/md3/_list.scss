@@ -1,0 +1,37 @@
+// List rows and their group headers.
+
+.md3-group-header {
+  align-items: center;
+  background-color: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-on-surface-variant);
+  display: flex;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 12px;
+}
+
+.md3-group-header--sticky {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.md3-row {
+  align-items: center;
+  color: var(--md-sys-color-on-surface);
+  display: flex;
+  gap: 12px;
+  // A minimum, not a fixed height: a row must grow for a longer label rather
+  // than clipping it.
+  min-height: 48px;
+  padding: 4px 12px;
+  // Without this a flex child refuses to shrink below its content width, which
+  // is the most common silent clipper in this tree.
+  min-width: 0;
+}
+
+.md3-row__detail {
+  color: var(--md-sys-color-on-surface-variant);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

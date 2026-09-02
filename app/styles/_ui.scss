@@ -124,6 +124,7 @@
 @import 'ui/md3-locks';
 @import 'ui/md3-authenticator';
 @import 'ui/md3-support-tickets';
+@import 'ui/md3-bulk-bar';
 @import 'ui/unlock-ladder';
 @import 'ui/banners';
 @import 'ui/add-repository';
@@ -144,6 +145,7 @@
 @import 'ui/terms-and-conditions';
 @import 'ui/ref';
 @import 'ui/initialize-lfs';
+@import 'ui/interactive-rebase';
 @import 'ui/ci-status';
 @import 'ui/pull-request-badge';
 @import 'ui/no-branches';
@@ -213,3 +215,7 @@
 @import 'ui/ai-merge-editor';
 @import 'ui/feature-highlights';
 @import 'ui/launchpad';
+
+// The MD3 primitive layer. Last in this file so a primitive rule wins over the
+// per-surface partials above it, while `_material-shell` still loads afterwards.
+@import 'ui/md3/index';

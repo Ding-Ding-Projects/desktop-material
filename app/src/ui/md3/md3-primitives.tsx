@@ -10,7 +10,7 @@ import { Tooltip } from '../lib/tooltip'
  * The repeated controls of the MD3 shell design contract
  * (`design/History MD3.dc.html`).
  *
- * Every measurement lives in `app/styles/ui/_md3-shell.scss`; these components
+ * Every measurement lives in `app/styles/ui/app/styles/ui/md3/`; these components
  * exist so the markup, the ARIA state and the glyph sizes are written once
  * rather than once per view. The contract's inline `style` strings are not
  * reproduced here — a value that appears in two views must resolve to the same

@@ -34,6 +34,54 @@ deliberately on 2026-08-15 after two earlier redesign waves were reverted. It is
   renders every item the old one did. Removing a feature while restyling is a
   defect, not a simplification.
 
+### The MD3 shell was removed on purpose — its leftovers are litter, not a mandate
+
+The third wave is the one this section is now guarding against, because the
+removed shell left pointers behind that read like a specification.
+
+A design-system sync on 2026-08-21 (commit `bd6e7f4f58`) deleted
+`design/History MD3.dc.html`, and the MD3 shell it specified went with it.
+Verified absent on 2026-09-02: `app/src/ui/md3/md3-shell.tsx`,
+`app/styles/ui/_md3-shell.scss`, `app/styles/ui/_md3-shell-layout.scss`,
+`app/test/unit/md3-contract-conformance-test.ts`, `renderClassicApp`,
+`renderMd3Shell`, `md3NoViews`, and any `InterfaceMode` concept. The comment in
+`app/styles/_ui.scss` records the intent: the surviving `md3-*` dialogs "ship
+with the rest of the reverted interface rather than with the shell that was
+removed".
+
+**It was reverted for a reason. Do not revert the revert.** These leftovers are
+cleaned up by deleting or retargeting them, never by rebuilding what they
+describe:
+
+- `.codex/verification/design-parity-reference-routes.json` — 38 of its 54
+  routes still name the deleted design file
+- `script/extract-md3-contract.mjs` — reads the deleted file, writes
+  `app/test/fixtures/md3-contract.json` (also absent), and nothing consumes it
+- the in-app docs-browser article describing the shell, its eight destinations
+  and a conformance test that does not exist
+- a run of pre-existing red style contracts (`post-shell-style-test.ts`,
+  `overlay-material-language-test.ts` and neighbours) that assert against the
+  removed chrome
+
+`design/Desktop Material v2.dc.html` is the sole parity authority, confirmed by
+the repository owner on 2026-09-02. Finding one of these pointers is not a
+request to restore anything, and neither is finding a red test that wants the
+shell back.
+
+**The reverted chrome is still Material Design 3, and is still held to it in
+full.** The revert removed one particular shell, not the design language. So
+"do not rebuild the shell" never means "this surface is exempt from Material
+Design 3" — the chrome that is shipping today is the chrome that has to conform,
+and as of 2026-09-02 a great deal of it does not: 464 Octicons against 174
+Material Symbols, 74 native `<select>` elements, 297 raw `<button>` elements,
+roughly nineteen hand-rolled Material lookalikes, 1,014 raw border radii and 964
+raw font sizes, and about half of all CSS variable use still on the legacy
+Primer token set. Converting those in place is ordinary, wanted work.
+
+Ordinary work continues normally: the `md3-*` **dialogs and primitives** that
+survived the revert are live, and styling a class a live component actually
+renders is a fix, not a re-shell.
+
 ## Product platform boundary
 
 - Desktop Material has two supported application surfaces: the Windows

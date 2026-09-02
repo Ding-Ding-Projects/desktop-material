@@ -424,3 +424,39 @@ body[data-dm-monospace-font='consolas'] {
 body[data-dm-monospace-font='sf-mono'] {
   --font-family-monospace: SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
+
+// ---------------------------------------------------------------------------
+// Extended roles
+//
+// Material Design 3's baseline scheme has no success or warning family, but the
+// tonal contract in `app/src/ui/md3/md3-style-contract.ts` needs a green and an
+// amber tone for run status, branch state and inbox badges. They are declared
+// here as `--md-ext-*` rather than as literals inside a component partial, so
+// there is still exactly one file in this tree that emits a colour value, and
+// so the light and dark sets stay side by side where a missing counterpart is
+// visible rather than inferred.
+// ---------------------------------------------------------------------------
+
+:root {
+  --md-ext-color-success: #216c2e;
+  --md-ext-color-on-success: #ffffff;
+  --md-ext-color-success-container: #a9f5ac;
+  --md-ext-color-on-success-container: #002204;
+
+  --md-ext-color-warning: #7a5900;
+  --md-ext-color-on-warning: #ffffff;
+  --md-ext-color-warning-container: #ffdf9a;
+  --md-ext-color-on-warning-container: #261a00;
+}
+
+body.theme-dark {
+  --md-ext-color-success: #8ed88f;
+  --md-ext-color-on-success: #00390a;
+  --md-ext-color-success-container: #005313;
+  --md-ext-color-on-success-container: #a9f5ac;
+
+  --md-ext-color-warning: #f3bf48;
+  --md-ext-color-on-warning: #402d00;
+  --md-ext-color-warning-container: #5c4200;
+  --md-ext-color-on-warning-container: #ffdf9a;
+}
