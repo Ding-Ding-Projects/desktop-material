@@ -77,12 +77,22 @@
 //                                Reading the built app rather than reasoning
 //                                about the stylesheet, which is the only way to
 //                                tell "the rule is written" from "the rule wins"
+//   audit:<label>[@<root>]       walk every rendered element under <root> (the
+//                                body by default, plus any portalled dialog,
+//                                popover or foldout) and record real layout
+//                                defects into the JSON report: content that
+//                                overflows with nowhere to scroll, silently
+//                                truncated text, a control escaping its own
+//                                surface, a hit target under the accessible
+//                                minimum, a box collapsed to zero, and a
+//                                design-system class with no rule behind it
 //   optional:<step>              run <step>, but do not fail when it cannot
 
 const { execFileSync } = require('child_process')
 const fs = require('fs')
 const os = require('os')
 const path = require('path')
+const { auditSurface } = require('./capture-audit')
 
 const repoRoot = path.resolve(__dirname, '..')
 
@@ -548,6 +558,21 @@ function parseStep(raw) {
         throw new Error(`Step probe needs a selector: ${value}`)
       }
       return { kind, selector }
+    }
+    case 'audit': {
+      // `audit:<label>` or `audit:<label>@<rootSelector>`. The label names the
+      // surface in the report; a finding with no label cannot be traced back to
+      // the state that produced it.
+      const at = rest.indexOf('@')
+      const label = (at === -1 ? rest : rest.slice(0, at)).trim()
+      const root = at === -1 ? null : rest.slice(at + 1).trim()
+      if (label.length === 0) {
+        throw new Error(`Step audit needs a label: ${value}`)
+      }
+      if (root !== null && root.length === 0) {
+        throw new Error(`Step audit was given an empty root selector: ${value}`)
+      }
+      return { kind, label, root }
     }
     case 'optional': {
       // Some scenes only appear sometimes — the update banner a fresh profile
@@ -1133,7 +1158,8 @@ async function runStep(
   electronApp,
   step,
   timeoutMilliseconds,
-  probes = []
+  probes = [],
+  audits = []
 ) {
   switch (step.kind) {
     case 'optional':
@@ -1306,6 +1332,10 @@ async function runStep(
         }
       }, step.selector)
       probes.push({ selector: step.selector, ...measured })
+      return
+    }
+    case 'audit': {
+      audits.push(await auditSurface(page, step))
       return
     }
     case 'menu':
@@ -2105,6 +2135,7 @@ async function captureApp(options) {
   // Geometry read from the running app by `probe:` steps. Measuring beats
   // reasoning about a stylesheet: a rule can be present, correct, and losing.
   const probes = []
+  const audits = []
   let electronApp = null
 
   try {
@@ -2234,7 +2265,14 @@ async function captureApp(options) {
     }
 
     for (const step of options.steps || []) {
-      await runStep(page, electronApp, step, timeoutMilliseconds, probes)
+      await runStep(
+        page,
+        electronApp,
+        step,
+        timeoutMilliseconds,
+        probes,
+        audits
+      )
     }
 
     await page.waitForTimeout(
@@ -2295,6 +2333,7 @@ async function captureApp(options) {
       windowControls,
       consoleErrors,
       probes,
+      audits,
     }
   } finally {
     if (electronApp !== null) {
