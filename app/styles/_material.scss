@@ -50,6 +50,10 @@
   --md-sys-color-inverse-surface: #2e3135;
   --md-sys-color-inverse-on-surface: #eff1f7;
   --md-sys-color-scrim: #000000;
+  // Material Design 3 gives shadow one value for both themes, as it does the
+  // scrim. Declared because the internal browser paints an elevation shadow
+  // and was reaching for a literal black to do it.
+  --md-sys-color-shadow: #000000;
 
   // Tooltips read as MD3 inverse-surface pills. These upstream vars were never
   // remapped, so every hover tooltip resolved to a raw stock gray. The inverse
@@ -163,6 +167,13 @@ body.theme-dark {
   --md-sys-color-on-primary: #00344f;
   --md-sys-color-primary-container: #004b70;
   --md-sys-color-on-primary-container: #c9e6ff;
+  // The secondary pair. Dark did not restate either one, so both kept their
+  // LIGHT values here: `secondary` is a mid blue-grey used as a text colour in
+  // the Actions log viewer and as a filled background in the Cheap LFS asset
+  // rows, and a mid tone reads as neither on a dark surface. Restated at the
+  // dark tones of the same tonal palette its container pair already uses.
+  --md-sys-color-secondary: #b7c9d9;
+  --md-sys-color-on-secondary: #22323e;
   --md-sys-color-secondary-container: #394956;
   --md-sys-color-on-secondary-container: #d3e5f5;
   --md-sys-color-tertiary: #d7bee4;
