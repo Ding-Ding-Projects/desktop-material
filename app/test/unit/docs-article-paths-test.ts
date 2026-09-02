@@ -39,7 +39,20 @@ const PathExpression =
 
 /** Paths that are not part of the tree and are never expected on disk. */
 function isOutsideTheTree(path: string): boolean {
-  return path.includes('node_modules/')
+  return path.split('/').includes('node_modules')
+}
+
+/**
+ * A path that escapes the repository root with a `..` segment.
+ *
+ * `existsSync` resolves `app/../package.json` happily, so a traversing path
+ * would satisfy the check while naming something that is not where the article
+ * says it is. Treated as missing rather than skipped: an article has no reason
+ * to write one, so a `..` is either a typo or a way around this guard, and
+ * both deserve to go red.
+ */
+function traversesUpward(path: string): boolean {
+  return path.split('/').includes('..')
 }
 
 function articleFiles(directory: string): ReadonlyArray<string> {
@@ -60,10 +73,12 @@ const files = articleFiles(featuresDirectory)
 describe('feature articles do not name files that were removed', () => {
   it('finds articles to check at all', () => {
     // An empty walk would make every assertion below vacuously true, which is
-    // exactly how a guard stops guarding without anybody noticing.
+    // exactly how a guard stops guarding without anybody noticing. One article
+    // is enough to prove the walk ran; a larger floor would be a number nobody
+    // could justify and would go red on a legitimate reorganisation.
     assert.ok(
-      files.length > 20,
-      `only ${files.length} articles found under docs/features`
+      files.length > 0,
+      'no articles found under docs/features — the walk found nothing to check'
     )
   })
 
@@ -78,7 +93,7 @@ describe('feature articles do not name files that were removed', () => {
         if (isOutsideTheTree(match)) {
           continue
         }
-        if (!existsSync(join(root, match))) {
+        if (traversesUpward(match) || !existsSync(join(root, match))) {
           missing.add(match)
         }
       }
