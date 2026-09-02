@@ -110,6 +110,7 @@ link targets are stated exactly in every band.
 | --------- | --------- |
 | An article is added and the bundle is not regenerated | The build fails. `app/test/unit/docs-browser-bundle-test.ts` walks `docs/features` on disk and names every article the bundle does not carry. |
 | An article is deleted and the bundle is not regenerated | The same test names every bundled article with no file on disk. |
+| An article outlives its subject | `app/test/unit/docs-article-paths-test.ts` fails naming every repository path an article documents that is no longer in the tree. The bundle guard cannot catch this: an article whose whole subject was deleted bundles exactly as cleanly as one describing a live feature. |
 | A title is edited on disk only | The same test compares each article's first heading with its bundled title and names the mismatch. |
 | The index and the bundle disagree | The same test compares them row by row — a palette row that opened the wrong page would otherwise be invisible. |
 | A link points outside the bundle | A warning notification naming the exact path. |
@@ -150,6 +151,9 @@ link targets are stated exactly in every band.
   completeness guard, the offline-safety assertions, the index/bundle
   agreement, the palette-row-per-article check and the rendering-readiness
   checks.
+- `node script/test.mjs app/test/unit/docs-article-paths-test.ts` — every
+  repository path named by an article exists. Verified by adding a removed path
+  to an article and watching it go red before the change was reverted.
 - `node script/test.mjs app/test/unit/docs-browser-test.ts` — search in both
   modes and both case settings, invalid patterns, snippet windowing, link
   resolution for all four outcomes, the three export formats and their file

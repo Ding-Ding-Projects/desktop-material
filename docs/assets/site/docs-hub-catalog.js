@@ -273,11 +273,11 @@
       d: "Desktop Material mirrors the Desktop Material v2.dc.html prototype's two app-wide motion primitives:",
     },
     {
-      t: 'The Material Design 3 shell — RETIRED',
+      t: 'The Material Design 3 shell — removed',
       h: 'features/design-system/md3-shell.html',
       s: 'features/design-system/md3-shell.md',
       c: 'features',
-      d: 'The application chrome, rewritten against design/History MD3.dc.html and assembled as one component. Md3Shell (app/src/ui/md3/md3-shell.tsx) is what App.renderApp() renders: a…',
+      d: 'This article is a record of something that is not in the application. It is kept so the removal reads as a decision rather than an oversight, and so the next person who finds a…',
     },
     {
       t: 'Recorded narration + melody assets',
@@ -515,7 +515,7 @@
       h: 'features/integrations/browser-extension-downloads.html',
       s: 'features/integrations/browser-extension-downloads.md',
       c: 'features',
-      d: 'Desktop Material now owns the Windows desktop surfaces and bounded message contract for a browser-extension download handoff. It does not currently ship a browser extension or…',
+      d: 'Desktop Material now owns the Windows desktop surfaces, a checked-in unpacked browser-extension entry, and a bounded native-messaging contract for a browser-extension download…',
     },
     {
       t: 'Build & Run output controls',
@@ -2023,6 +2023,13 @@
       d: 'This receipt records local acceptance for the persistent tab-group and rich command-palette continuation. It does not claim a commit, remote publication, CI, Pages, wiki, or…',
     },
     {
+      t: 'UI bug audit closeout evidence',
+      h: 'verification/ui-bugs-audit-plan-t1kohh/',
+      s: 'verification/ui-bugs-audit-plan-t1kohh/README.md',
+      c: 'verification',
+      d: 'Date: 2026-08-29',
+    },
+    {
       t: 'UI design audit cleanup ledger',
       h: 'verification/ui-design-audit-2026-07-20/cleanup-ledger.html',
       s: 'verification/ui-design-audit-2026-07-20/cleanup-ledger.md',
@@ -2063,6 +2070,13 @@
       s: 'verification/ui-design-audit-2026-07-20/static-findings.md',
       c: 'verification',
       d: 'Date: 2026-07-20 Scope: post-remediation source and verification-harness review Runtime status: pending',
+    },
+    {
+      t: 'Worktree context-menu acceptance, 2026-09-01',
+      h: 'verification/worktree-context-menu-2026-09-01/',
+      s: 'verification/worktree-context-menu-2026-09-01/README.md',
+      c: 'verification',
+      d: 'This receipt covers the linked-worktree Merge… and Delete… context actions. The merge item opens the existing reviewed merge operation with the exact linked local branch…',
     },
     {
       t: 'Agent API',

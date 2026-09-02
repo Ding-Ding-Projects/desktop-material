@@ -37,7 +37,7 @@ Desktop Material 自己有個 TOTP 驗證器：可以幫任何帳戶登記同保
 | Image, clipboard and camera capture | `app/src/ui/md3/md3-authenticator-capture.ts` |
 | Export serializers | `app/src/ui/md3/md3-authenticator-export.ts` |
 | Styles | `app/styles/ui/_md3-authenticator.scss` |
-| Tests | `app/test/unit/authenticator-totp-test.ts`, `app/test/unit/authenticator-qr-test.ts`, `app/test/unit/authenticator-entries-test.ts`, `app/test/unit/md3-authenticator-view-test.tsx` |
+| Tests | `app/test/unit/authenticator-totp-test.ts`, `app/test/unit/authenticator-qr-test.ts`, `app/test/unit/authenticator-entries-test.ts` |
 
 ## Behaviour / 行為
 
@@ -252,17 +252,18 @@ read.
   normalization, the assertion that no record carries a secret, the
   credential-vault boundary including a failing delete, list filtering, and the
   export contract in all nine formats.
-- `app/test/unit/md3-authenticator-view-test.tsx` — the rendered surface: the
-  named grid, the code matching the RFC value at a pinned instant, the countdown
-  text equivalent, the live region carrying the code and never the countdown,
-  the missing-secret row, the clock states, the search field and its regex
-  builder, selection and bulk actions, and the registration flow refusing to
-  commit until a code matches.
+The rendered surface had its own test file until 2026-08-19, when it was removed
+together with the Material Design 3 shell (see [The Material Design 3 shell —
+removed](../design-system/md3-shell.md)). `app/src/ui/md3/md3-authenticator-view.tsx`
+survived that revert deliberately and is still the surface, but the coverage of
+the named grid, the countdown text equivalent, the live region, the missing-secret
+row, the clock states, selection and bulk actions, and the registration flow
+refusing to commit until a code matches went with the shell and has not been
+rewritten. That is a real coverage gap, recorded here rather than papered over.
 
-Run them with `node script/test.mjs app/test/unit/authenticator-totp-test.ts
+Run the surviving tests with `node script/test.mjs app/test/unit/authenticator-totp-test.ts
 app/test/unit/authenticator-qr-test.ts
-app/test/unit/authenticator-entries-test.ts
-app/test/unit/md3-authenticator-view-test.tsx`.
+app/test/unit/authenticator-entries-test.ts`.
 
 ## Suggested articles / 建議閱讀
 

@@ -522,7 +522,7 @@ Everything under `buildTestMenu()` (crash main/renderer, prune branches, 5 test 
 
 ### C5. Per-search-surface state with no global value
 
-`Filter mode` (Fuzzy/Substring/Regex), `Match case`, and `Open regex builder` appear on ~20 search bars and persist **per `searchSurfaceId`** via `app/src/ui/lib/filter-list-mode.ts`. There is no app-wide value for a palette row to show or set. Only **G133**, explicitly scoped to the palette's own field, is meaningful.
+`Filter mode` (Fuzzy/Substring/Regex), `Match case`, and `Open regex builder` appear on ~20 search bars and persist **per `searchSurfaceId`** via `app/src/ui/lib/filter-list-mode.tsx`. There is no app-wide value for a palette row to show or set. Only **G133**, explicitly scoped to the palette's own field, is meaningful.
 
 ### C6. Elements that may not be on screen at teleport time
 

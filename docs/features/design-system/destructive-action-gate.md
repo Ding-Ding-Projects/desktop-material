@@ -171,27 +171,23 @@ it says so plainly rather than implying that anyone else is being kept out.
 
 ## Verification
 
-`app/test/unit/md3-destructive-gate-test.tsx` covers:
+The gate's own dedicated test file was removed on 2026-08-19 together with the
+Material Design 3 shell (see [The Material Design 3 shell —
+removed](md3-shell.md)). The component itself survived the revert deliberately
+and is still what every registered destructive action renders, but the
+unit-level coverage of its state machine, anchoring and overlay behaviour went
+with the shell and has not been rewritten. That is a real coverage gap, recorded
+here rather than papered over.
 
-- the registry agreeing with a hand-written required set, so deleting an entry
-  goes red;
-- every registered action's module actually rendering the shared gate with its
-  own `actionId`, the matching shape for its host, an emergency exit, a gated
-  affirmative button and a guarded submit handler;
-- the state machine staying locked while either key is off, whatever the slider
-  reports;
-- anchoring below, flipping above, clamping horizontally, and refusing to place
-  a panel that would cover its own control;
-- the body keeping the slider unusable until both keys are turned, only
-  reporting authorization at the maximum, retracting it when a key is turned
-  back off, and freezing when disabled;
-- the overlay refusing to confirm without a full gate, dismissing from the
-  emergency exit, Escape and the scrim, focusing the emergency exit on open,
-  returning focus to its anchor on close, refusing both dismissal and
-  confirmation while busy, and stating a failure verbatim in an alert;
-- every gate key existing in both catalogs with matching interpolation
-  placeholders and no English text sitting in a Cantonese slot, and all four
-  funny-level bands being distinct.
+What still covers it today:
+
+- `app/test/unit/repository-transfer-surface-test.ts` reads
+  `app/src/ui/md3/md3-destructive-gate.tsx` and asserts its two key checkboxes,
+  its slider, and its `progress >= Md3GateAuthorizationMaximum` authorization
+  rule, and that the repository-transfer dialog routes through `gateAuthorized`
+  rather than being left ungated with a green test.
+- `app/test/unit/dialog-emoji-test.tsx` renders `Md3DestructiveGate` and covers
+  its copy under the dialog-emoji setting.
 
 `app/test/unit/ui/confirm-remove-repository-test.tsx` additionally proves the
 behaviour end to end on a real dialog: an unauthorized submission removes
