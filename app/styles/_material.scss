@@ -49,6 +49,7 @@
   --md-sys-color-outline-variant: #c1c7ce;
   --md-sys-color-inverse-surface: #2e3135;
   --md-sys-color-inverse-on-surface: #eff1f7;
+  --md-sys-color-inverse-primary: #8dcdff;
   --md-sys-color-scrim: #000000;
   // Material Design 3 gives shadow one value for both themes, as it does the
   // scrim. Declared because the internal browser paints an elevation shadow
@@ -163,6 +164,7 @@ body {
 }
 
 body.theme-dark {
+  --md-sys-color-inverse-primary: #006493;
   --md-sys-color-primary: #8dcdff;
   --md-sys-color-on-primary: #00344f;
   --md-sys-color-primary-container: #004b70;
@@ -470,4 +472,50 @@ body.theme-dark {
   --md-ext-color-on-warning: #402d00;
   --md-ext-color-warning-container: #5c4200;
   --md-ext-color-on-warning-container: #ffdf9a;
+}
+
+// ---------------------------------------------------------------------------
+// Type scale
+//
+// Declared as `font` shorthands because that is how every call site already
+// consumes them. Two of those sites carried a fallback and two did not, so the
+// headings in the unlock ladder were rendering with no type ramp at all — the
+// declaration resolved to nothing and the text simply inherited whatever it
+// happened to sit inside.
+// ---------------------------------------------------------------------------
+
+:root {
+  --md-sys-typescale-display-large: 400 3.5625rem/4rem var(--font-family-sans-serif);
+  --md-sys-typescale-display-medium: 400 2.8125rem/3.25rem var(--font-family-sans-serif);
+  --md-sys-typescale-display-small: 400 2.25rem/2.75rem var(--font-family-sans-serif);
+  --md-sys-typescale-headline-large: 400 2rem/2.5rem var(--font-family-sans-serif);
+  --md-sys-typescale-headline-medium: 400 1.75rem/2.25rem var(--font-family-sans-serif);
+  --md-sys-typescale-headline-small: 400 1.5rem/2rem var(--font-family-sans-serif);
+  --md-sys-typescale-title-large: 500 1.375rem/1.75rem var(--font-family-sans-serif);
+  --md-sys-typescale-title-medium: 500 1rem/1.5rem var(--font-family-sans-serif);
+  --md-sys-typescale-title-small: 500 0.875rem/1.25rem var(--font-family-sans-serif);
+  --md-sys-typescale-body-large: 400 1rem/1.5rem var(--font-family-sans-serif);
+  --md-sys-typescale-body-medium: 400 0.875rem/1.25rem var(--font-family-sans-serif);
+  --md-sys-typescale-body-small: 400 0.75rem/1rem var(--font-family-sans-serif);
+  --md-sys-typescale-label-large: 500 0.875rem/1.25rem var(--font-family-sans-serif);
+  --md-sys-typescale-label-medium: 500 0.75rem/1rem var(--font-family-sans-serif);
+  --md-sys-typescale-label-small: 500 0.6875rem/1rem var(--font-family-sans-serif);
+}
+
+// ---------------------------------------------------------------------------
+// Compositions the application's own surfaces reach for
+//
+// These three names were used across the MD3 dialogs, the menu overlay, the
+// regex builder and the docs browser, and none of them was ever declared: the
+// scrim painted no scrim, the dialogs cast no shadow, and the menu rows showed
+// no hover state. Kept under their existing names so the call sites do not
+// churn, and defined in terms of the roles above so there is still one place a
+// value comes from.
+// ---------------------------------------------------------------------------
+
+:root {
+  --dm-scrim: color-mix(in srgb, var(--md-sys-color-scrim) 32%, transparent);
+  --dm-elev3: var(--md-sys-elevation-level3);
+  --dm-state: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+  --shadow-dialog: var(--md-sys-elevation-level3);
 }

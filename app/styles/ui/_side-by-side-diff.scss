@@ -162,7 +162,7 @@
 
     &.context .before,
     &.context .after {
-      background: var(--diff-background-color);
+      background: var(--md-sys-color-surface);
       color: var(--diff-text-color);
 
       .line-number {
