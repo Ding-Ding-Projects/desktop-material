@@ -75,12 +75,12 @@ export class UnlockLadder extends React.Component<
   }
 
   public componentWillUnmount() {
-    if (this.timer !== null) clearInterval(this.timer)
+    if (this.timer !== null) {clearInterval(this.timer)}
   }
 
-  public componentDidUpdate(previousProps: IUnlockLadderProps) {
+  public componentDidUpdate(prevProps: IUnlockLadderProps) {
     if (
-      previousProps.challenge?.challengeId !== this.props.challenge?.challengeId
+      prevProps.challenge?.challengeId !== this.props.challenge?.challengeId
     ) {
       this.setState({ selectedChoice: null, sums: {}, hits: {} })
     }
@@ -104,13 +104,13 @@ export class UnlockLadder extends React.Component<
       this.state.submitting ||
       this.props.disabled === true
     )
-      return
+      {return}
     const answer = this.answerFor(challenge)
-    if (answer === null) return
+    if (answer === null) {return}
     this.setState({ submitting: true, message: null })
     void Promise.resolve(this.props.onSubmit(answer))
       .then(result => {
-        if (result === null) return
+        if (result === null) {return}
         this.setState({
           message:
             result.grade.outcome === 'correct'

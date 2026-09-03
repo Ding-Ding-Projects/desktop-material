@@ -21,7 +21,7 @@
  * nearest sRGB colour was what the user asked for.
  */
 ;(function (global) {
-  'use strict'
+
 
   // --------------------------------------------------------------- helpers
 
@@ -34,13 +34,13 @@
   }
 
   function round(value, places) {
-    var factor = Math.pow(10, places === undefined ? 0 : places)
+    const factor = Math.pow(10, places === undefined ? 0 : places)
     return Math.round(value * factor) / factor
   }
 
   /** Numbers reach CSS without a trailing `.0`, so output stays idiomatic. */
   function num(value, places) {
-    var rounded = round(value, places)
+    const rounded = round(value, places)
     return String(rounded === 0 ? 0 : rounded)
   }
 
@@ -51,16 +51,16 @@
   // ------------------------------------------------------------ sRGB <-> hsl
 
   function rgbToHsl(r, g, b) {
-    var max = Math.max(r, g, b)
-    var min = Math.min(r, g, b)
-    var lightness = (max + min) / 2
+    const max = Math.max(r, g, b)
+    const min = Math.min(r, g, b)
+    const lightness = (max + min) / 2
     if (max === min) {
       return { h: 0, s: 0, l: lightness }
     }
-    var delta = max - min
-    var saturation =
+    const delta = max - min
+    const saturation =
       lightness > 0.5 ? delta / (2 - max - min) : delta / (max + min)
-    var hue
+    let hue
     if (max === r) {
       hue = (g - b) / delta + (g < b ? 6 : 0)
     } else if (max === g) {
@@ -72,7 +72,7 @@
   }
 
   function hueToChannel(p, q, t) {
-    var value = t
+    let value = t
     if (value < 0) {
       value += 1
     }
@@ -95,9 +95,9 @@
     if (s === 0) {
       return { r: l, g: l, b: l }
     }
-    var hue = (((h % 360) + 360) % 360) / 360
-    var q = l < 0.5 ? l * (1 + s) : l + s - l * s
-    var p = 2 * l - q
+    const hue = (((h % 360) + 360) % 360) / 360
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s
+    const p = 2 * l - q
     return {
       r: hueToChannel(p, q, hue + 1 / 3),
       g: hueToChannel(p, q, hue),
@@ -108,10 +108,10 @@
   // ------------------------------------------------------------ sRGB <-> hsv
 
   function rgbToHsv(r, g, b) {
-    var max = Math.max(r, g, b)
-    var min = Math.min(r, g, b)
-    var delta = max - min
-    var hue = 0
+    const max = Math.max(r, g, b)
+    const min = Math.min(r, g, b)
+    const delta = max - min
+    let hue = 0
     if (delta !== 0) {
       if (max === r) {
         hue = (g - b) / delta + (g < b ? 6 : 0)
@@ -126,12 +126,12 @@
   }
 
   function hsvToRgb(h, s, v) {
-    var hue = (((h % 360) + 360) % 360) / 60
-    var sector = Math.floor(hue)
-    var f = hue - sector
-    var p = v * (1 - s)
-    var q = v * (1 - s * f)
-    var t = v * (1 - s * (1 - f))
+    const hue = (((h % 360) + 360) % 360) / 60
+    const sector = Math.floor(hue)
+    const f = hue - sector
+    const p = v * (1 - s)
+    const q = v * (1 - s * f)
+    const t = v * (1 - s * (1 - f))
     switch (sector % 6) {
       case 0:
         return { r: v, g: t, b: p }
@@ -151,19 +151,19 @@
   // ------------------------------------------------------------ sRGB <-> hwb
 
   function rgbToHwb(r, g, b) {
-    var hsv = rgbToHsv(r, g, b)
+    const hsv = rgbToHsv(r, g, b)
     return { h: hsv.h, w: Math.min(r, g, b), b: 1 - Math.max(r, g, b) }
   }
 
   function hwbToRgb(h, w, b) {
-    var white = w
-    var black = b
+    const white = w
+    const black = b
     // A whiteness/blackness pair summing above 1 is achromatic by definition.
     if (white + black >= 1) {
-      var grey = white / (white + black)
+      const grey = white / (white + black)
       return { r: grey, g: grey, b: grey }
     }
-    var rgb = hsvToRgb(h, 1, 1)
+    const rgb = hsvToRgb(h, 1, 1)
     return {
       r: rgb.r * (1 - white - black) + white,
       g: rgb.g * (1 - white - black) + white,
@@ -174,7 +174,7 @@
   // ----------------------------------------------------------- sRGB <-> cmyk
 
   function rgbToCmyk(r, g, b) {
-    var k = 1 - Math.max(r, g, b)
+    const k = 1 - Math.max(r, g, b)
     if (k >= 1) {
       return { c: 0, m: 0, y: 0, k: 1 }
     }
@@ -209,14 +209,14 @@
   }
 
   /** CSS Lab/LCH use D50; sRGB and OKLab use D65. */
-  var WhiteD50X = 0.96422
-  var WhiteD50Y = 1
-  var WhiteD50Z = 0.82521
+  const WhiteD50X = 0.96422
+  const WhiteD50Y = 1
+  const WhiteD50Z = 0.82521
 
   function rgbToXyz(r, g, b) {
-    var rl = toLinear(r)
-    var gl = toLinear(g)
-    var bl = toLinear(b)
+    const rl = toLinear(r)
+    const gl = toLinear(g)
+    const bl = toLinear(b)
     return {
       x: 0.4123907993 * rl + 0.3575843394 * gl + 0.1804807884 * bl,
       y: 0.2126390059 * rl + 0.7151686788 * gl + 0.0721923154 * bl,
@@ -225,9 +225,9 @@
   }
 
   function xyzToRgb(x, y, z) {
-    var rl = 3.2409699419 * x - 1.5373831776 * y - 0.4986107603 * z
-    var gl = -0.9692436363 * x + 1.8759675015 * y + 0.0415550574 * z
-    var bl = 0.0556300797 * x - 0.203976959 * y + 1.0569715142 * z
+    const rl = 3.2409699419 * x - 1.5373831776 * y - 0.4986107603 * z
+    const gl = -0.9692436363 * x + 1.8759675015 * y + 0.0415550574 * z
+    const bl = 0.0556300797 * x - 0.203976959 * y + 1.0569715142 * z
     return { r: toGamma(rl), g: toGamma(gl), b: toGamma(bl) }
   }
 
@@ -251,23 +251,23 @@
 
   // ------------------------------------------------------------- CIE Lab/LCH
 
-  var LabEpsilon = 216 / 24389
-  var LabKappa = 24389 / 27
+  const LabEpsilon = 216 / 24389
+  const LabKappa = 24389 / 27
 
   function labF(t) {
     return t > LabEpsilon ? Math.cbrt(t) : (LabKappa * t + 16) / 116
   }
 
   function labFInverse(t) {
-    var cubed = t * t * t
+    const cubed = t * t * t
     return cubed > LabEpsilon ? cubed : (116 * t - 16) / LabKappa
   }
 
   function rgbToLab(r, g, b) {
-    var xyz = d65ToD50(rgbToXyz(r, g, b))
-    var fx = labF(xyz.x / WhiteD50X)
-    var fy = labF(xyz.y / WhiteD50Y)
-    var fz = labF(xyz.z / WhiteD50Z)
+    const xyz = d65ToD50(rgbToXyz(r, g, b))
+    const fx = labF(xyz.x / WhiteD50X)
+    const fy = labF(xyz.y / WhiteD50Y)
+    const fz = labF(xyz.z / WhiteD50Z)
     return {
       l: 116 * fy - 16,
       a: 500 * (fx - fy),
@@ -276,10 +276,10 @@
   }
 
   function labToRgb(l, a, bStar) {
-    var fy = (l + 16) / 116
-    var fx = fy + a / 500
-    var fz = fy - bStar / 200
-    var xyz = d50ToD65({
+    const fy = (l + 16) / 116
+    const fx = fy + a / 500
+    const fz = fy - bStar / 200
+    const xyz = d50ToD65({
       x: labFInverse(fx) * WhiteD50X,
       y: labFInverse(fy) * WhiteD50Y,
       z: labFInverse(fz) * WhiteD50Z,
@@ -288,25 +288,25 @@
   }
 
   function labToLch(l, a, b) {
-    var chroma = Math.sqrt(a * a + b * b)
-    var hue = (Math.atan2(b, a) * 180) / Math.PI
+    const chroma = Math.sqrt(a * a + b * b)
+    const hue = (Math.atan2(b, a) * 180) / Math.PI
     return { l: l, c: chroma, h: hue < 0 ? hue + 360 : hue }
   }
 
   function lchToLab(l, c, h) {
-    var radians = (h * Math.PI) / 180
+    const radians = (h * Math.PI) / 180
     return { l: l, a: c * Math.cos(radians), b: c * Math.sin(radians) }
   }
 
   // ---------------------------------------------------------- OKLab / OKLCH
 
   function rgbToOklab(r, g, b) {
-    var rl = toLinear(r)
-    var gl = toLinear(g)
-    var bl = toLinear(b)
-    var l = Math.cbrt(0.4122214708 * rl + 0.5363325363 * gl + 0.0514459929 * bl)
-    var m = Math.cbrt(0.2119034982 * rl + 0.6806995451 * gl + 0.1073969566 * bl)
-    var s = Math.cbrt(0.0883024619 * rl + 0.2817188376 * gl + 0.6299787005 * bl)
+    const rl = toLinear(r)
+    const gl = toLinear(g)
+    const bl = toLinear(b)
+    const l = Math.cbrt(0.4122214708 * rl + 0.5363325363 * gl + 0.0514459929 * bl)
+    const m = Math.cbrt(0.2119034982 * rl + 0.6806995451 * gl + 0.1073969566 * bl)
+    const s = Math.cbrt(0.0883024619 * rl + 0.2817188376 * gl + 0.6299787005 * bl)
     return {
       l: 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
       a: 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
@@ -315,12 +315,12 @@
   }
 
   function oklabToRgb(L, A, B) {
-    var l = L + 0.3963377774 * A + 0.2158037573 * B
-    var m = L - 0.1055613458 * A - 0.0638541728 * B
-    var s = L - 0.0894841775 * A - 1.291485548 * B
-    var l3 = l * l * l
-    var m3 = m * m * m
-    var s3 = s * s * s
+    const l = L + 0.3963377774 * A + 0.2158037573 * B
+    const m = L - 0.1055613458 * A - 0.0638541728 * B
+    const s = L - 0.0894841775 * A - 1.291485548 * B
+    const l3 = l * l * l
+    const m3 = m * m * m
+    const s3 = s * s * s
     return {
       r: toGamma(4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3),
       g: toGamma(-1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3),
@@ -330,7 +330,7 @@
 
   // ------------------------------------------------------------ named colours
 
-  var NAMED = {
+  const NAMED = {
     aliceblue: '#f0f8ff',
     antiquewhite: '#faebd7',
     aqua: '#00ffff',
@@ -481,12 +481,12 @@
     yellowgreen: '#9acd32',
   }
 
-  var NAMED_LOOKUP = null
+  let NAMED_LOOKUP = null
 
   function namedLookup() {
     if (NAMED_LOOKUP === null) {
       NAMED_LOOKUP = {}
-      for (var name in NAMED) {
+      for (const name in NAMED) {
         if (Object.prototype.hasOwnProperty.call(NAMED, name)) {
           // Several CSS names share one hex value (aqua/cyan, gray/grey). The
           // first spelling wins so the reported name is stable.
@@ -517,7 +517,7 @@
   }
 
   function outOfGamut(rgb) {
-    var tolerance = 1e-6
+    const tolerance = 1e-6
     return (
       rgb.r < -tolerance ||
       rgb.r > 1 + tolerance ||
@@ -535,14 +535,14 @@
   // ------------------------------------------------------------------ parsing
 
   function parseHex(text) {
-    var body = text.slice(1)
+    const body = text.slice(1)
     if (!/^[0-9a-f]+$/i.test(body)) {
       return null
     }
-    var r
-    var g
-    var b
-    var a = 1
+    let r
+    let g
+    let b
+    let a = 1
     if (body.length === 3 || body.length === 4) {
       r = parseInt(body.charAt(0) + body.charAt(0), 16) / 255
       g = parseInt(body.charAt(1) + body.charAt(1), 16) / 255
@@ -565,15 +565,15 @@
 
   /** Accepts `50%` as 0.5 when a percentage is meaningful for the channel. */
   function component(token, scale) {
-    var text = String(token).trim()
+    const text = String(token).trim()
     if (text === 'none') {
       return 0
     }
     if (!/^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?%?$/i.test(text)) {
       return null
     }
-    var percent = text.charAt(text.length - 1) === '%'
-    var value = Number(percent ? text.slice(0, -1) : text)
+    const percent = text.charAt(text.length - 1) === '%'
+    const value = Number(percent ? text.slice(0, -1) : text)
     if (!isFiniteNumber(value)) {
       return null
     }
@@ -584,14 +584,14 @@
   }
 
   function angle(token) {
-    var text = String(token).trim().toLowerCase()
-    var match = /^([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)(deg|grad|rad|turn)?$/.exec(
+    const text = String(token).trim().toLowerCase()
+    const match = /^([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)(deg|grad|rad|turn)?$/.exec(
       text
     )
     if (match === null) {
       return null
     }
-    var value = Number(match[1])
+    const value = Number(match[1])
     if (!isFiniteNumber(value)) {
       return null
     }
@@ -613,17 +613,17 @@
     if (token === undefined || token === null || String(token).trim() === '') {
       return 1
     }
-    var value = component(token, 1)
+    const value = component(token, 1)
     return value === null ? null : clamp01(value)
   }
 
   function splitArguments(body) {
     // CSS permits both comma and space separated forms, and `/` before alpha.
-    var normalized = body.replace(/,/g, ' ').replace(/\//g, ' / ')
-    var parts = normalized.split(/\s+/).filter(function (part) {
+    const normalized = body.replace(/,/g, ' ').replace(/\//g, ' / ')
+    const parts = normalized.split(/\s+/).filter(function (part) {
       return part !== ''
     })
-    var slash = parts.indexOf('/')
+    const slash = parts.indexOf('/')
     if (slash === -1) {
       return { values: parts, alpha: undefined, valid: true }
     }
@@ -657,7 +657,7 @@
     ) {
       return make(input.r, input.g, input.b, input.alpha, input.clipped)
     }
-    var text = String(input).trim().toLowerCase()
+    const text = String(input).trim().toLowerCase()
     if (text === '') {
       return null
     }
@@ -670,17 +670,17 @@
     if (text.charAt(0) === '#') {
       return parseHex(text)
     }
-    var call = /^([a-z]+)\s*\(([\s\S]*)\)$/.exec(text)
+    const call = /^([a-z]+)\s*\(([\s\S]*)\)$/.exec(text)
     if (call === null) {
       return null
     }
-    var fn = call[1]
-    var parts = splitArguments(call[2])
+    const fn = call[1]
+    const parts = splitArguments(call[2])
     if (!parts.valid) {
       return null
     }
-    var values = parts.values
-    var alpha = alphaToken(parts.alpha)
+    const values = parts.values
+    const alpha = alphaToken(parts.alpha)
     if (alpha === null) {
       return null
     }
@@ -698,13 +698,13 @@
       if (!exact(3, true)) {
         return null
       }
-      var r = component(values[0], 255)
-      var g = component(values[1], 255)
-      var b = component(values[2], 255)
+      const r = component(values[0], 255)
+      const g = component(values[1], 255)
+      const b = component(values[2], 255)
       if (r === null || g === null || b === null) {
         return null
       }
-      var rgbAlpha = values.length > 3 ? alphaToken(values[3]) : alpha
+      const rgbAlpha = values.length > 3 ? alphaToken(values[3]) : alpha
       if (rgbAlpha === null) {
         return null
       }
@@ -715,13 +715,13 @@
       if (!exact(3, true)) {
         return null
       }
-      var hslH = angle(values[0])
-      var hslS = component(values[1], 1)
-      var hslL = component(values[2], 1)
+      const hslH = angle(values[0])
+      const hslS = component(values[1], 1)
+      const hslL = component(values[2], 1)
       if (hslH === null || hslS === null || hslL === null) {
         return null
       }
-      var hslAlpha = values.length > 3 ? alphaToken(values[3]) : alpha
+      const hslAlpha = values.length > 3 ? alphaToken(values[3]) : alpha
       if (hslAlpha === null) {
         return null
       }
@@ -735,9 +735,9 @@
       if (!exact(3, false)) {
         return null
       }
-      var hsvH = angle(values[0])
-      var hsvS = component(values[1], 1)
-      var hsvV = component(values[2], 1)
+      const hsvH = angle(values[0])
+      const hsvS = component(values[1], 1)
+      const hsvV = component(values[2], 1)
       if (hsvH === null || hsvS === null || hsvV === null) {
         return null
       }
@@ -748,9 +748,9 @@
       if (!exact(3, false)) {
         return null
       }
-      var hwbH = angle(values[0])
-      var hwbW = component(values[1], 1)
-      var hwbB = component(values[2], 1)
+      const hwbH = angle(values[0])
+      const hwbW = component(values[1], 1)
+      const hwbB = component(values[2], 1)
       if (hwbH === null || hwbW === null || hwbB === null) {
         return null
       }
@@ -761,10 +761,10 @@
       if (!exact(4, false)) {
         return null
       }
-      var c = component(values[0], 1)
-      var m = component(values[1], 1)
-      var y = component(values[2], 1)
-      var k = component(values[3], 1)
+      const c = component(values[0], 1)
+      const m = component(values[1], 1)
+      const y = component(values[2], 1)
+      const k = component(values[3], 1)
       if (c === null || m === null || y === null || k === null) {
         return null
       }
@@ -778,9 +778,9 @@
       if (!exact(3, false)) {
         return null
       }
-      var labL = component(values[0], 100)
-      var labA = component(values[1], 125)
-      var labB = component(values[2], 125)
+      const labL = component(values[0], 100)
+      const labA = component(values[1], 125)
+      const labB = component(values[2], 125)
       if (labL === null || labA === null || labB === null) {
         return null
       }
@@ -791,13 +791,13 @@
       if (!exact(3, false)) {
         return null
       }
-      var lchL = component(values[0], 100)
-      var lchC = component(values[1], 150)
-      var lchH = angle(values[2])
+      const lchL = component(values[0], 100)
+      const lchC = component(values[1], 150)
+      const lchH = angle(values[2])
       if (lchL === null || lchC === null || lchH === null) {
         return null
       }
-      var lab = lchToLab(lchL, lchC, lchH)
+      const lab = lchToLab(lchL, lchC, lchH)
       return fromRgbObject(labToRgb(lab.l, lab.a, lab.b), alpha)
     }
 
@@ -805,9 +805,9 @@
       if (!exact(3, false)) {
         return null
       }
-      var okL = component(values[0], 1)
-      var okA = component(values[1], 0.4)
-      var okB = component(values[2], 0.4)
+      const okL = component(values[0], 1)
+      const okA = component(values[1], 0.4)
+      const okB = component(values[2], 0.4)
       if (okL === null || okA === null || okB === null) {
         return null
       }
@@ -818,13 +818,13 @@
       if (!exact(3, false)) {
         return null
       }
-      var oklchL = component(values[0], 1)
-      var oklchC = component(values[1], 0.4)
-      var oklchH = angle(values[2])
+      const oklchL = component(values[0], 1)
+      const oklchC = component(values[1], 0.4)
+      const oklchH = angle(values[2])
       if (oklchL === null || oklchC === null || oklchH === null) {
         return null
       }
-      var oklab = lchToLab(oklchL, oklchC, oklchH)
+      const oklab = lchToLab(oklchL, oklchC, oklchH)
       return fromRgbObject(oklabToRgb(oklab.l, oklab.a, oklab.b), alpha)
     }
 
@@ -838,7 +838,7 @@
   }
 
   function hexPair(channel) {
-    var text = byte(channel).toString(16)
+    const text = byte(channel).toString(16)
     return text.length === 1 ? '0' + text : text
   }
 
@@ -851,15 +851,15 @@
   }
 
   function toRgbString(color) {
-    var base = byte(color.r) + ', ' + byte(color.g) + ', ' + byte(color.b)
+    const base = byte(color.r) + ', ' + byte(color.g) + ', ' + byte(color.b)
     return color.alpha >= 1
       ? 'rgb(' + base + ')'
       : 'rgba(' + base + ', ' + num(color.alpha, 3) + ')'
   }
 
   function toHslString(color) {
-    var hsl = rgbToHsl(color.r, color.g, color.b)
-    var base =
+    const hsl = rgbToHsl(color.r, color.g, color.b)
+    const base =
       num(hsl.h, 1) +
       'deg ' +
       num(hsl.s * 100, 1) +
@@ -876,7 +876,7 @@
   }
 
   function toHsvString(color) {
-    var hsv = rgbToHsv(color.r, color.g, color.b)
+    const hsv = rgbToHsv(color.r, color.g, color.b)
     return (
       'hsv(' +
       num(hsv.h, 1) +
@@ -891,7 +891,7 @@
   }
 
   function toHwbString(color) {
-    var hwb = rgbToHwb(color.r, color.g, color.b)
+    const hwb = rgbToHwb(color.r, color.g, color.b)
     return (
       'hwb(' +
       num(hwb.h, 1) +
@@ -906,7 +906,7 @@
   }
 
   function toLabString(color) {
-    var lab = rgbToLab(color.r, color.g, color.b)
+    const lab = rgbToLab(color.r, color.g, color.b)
     return (
       'lab(' +
       num(lab.l, 2) +
@@ -920,8 +920,8 @@
   }
 
   function toLchString(color) {
-    var lab = rgbToLab(color.r, color.g, color.b)
-    var lch = labToLch(lab.l, lab.a, lab.b)
+    const lab = rgbToLab(color.r, color.g, color.b)
+    const lch = labToLch(lab.l, lab.a, lab.b)
     return (
       'lch(' +
       num(lch.l, 2) +
@@ -936,7 +936,7 @@
   }
 
   function toOklabString(color) {
-    var oklab = rgbToOklab(color.r, color.g, color.b)
+    const oklab = rgbToOklab(color.r, color.g, color.b)
     return (
       'oklab(' +
       num(oklab.l * 100, 2) +
@@ -950,8 +950,8 @@
   }
 
   function toOklchString(color) {
-    var oklab = rgbToOklab(color.r, color.g, color.b)
-    var oklch = labToLch(oklab.l, oklab.a, oklab.b)
+    const oklab = rgbToOklab(color.r, color.g, color.b)
+    const oklch = labToLch(oklab.l, oklab.a, oklab.b)
     return (
       'oklch(' +
       num(oklch.l * 100, 2) +
@@ -966,7 +966,7 @@
   }
 
   function toCmykString(color) {
-    var cmyk = rgbToCmyk(color.r, color.g, color.b)
+    const cmyk = rgbToCmyk(color.r, color.g, color.b)
     return (
       'cmyk(' +
       num(cmyk.c * 100, 1) +
@@ -987,7 +987,7 @@
     if (color.alpha < 1) {
       return null
     }
-    var name = namedLookup()[toHex(color)]
+    const name = namedLookup()[toHex(color)]
     return name === undefined ? null : name
   }
 
@@ -1007,7 +1007,7 @@
    * it — reporting the opaque ratio would overstate legibility.
    */
   function contrastRatio(foreground, background) {
-    var fg = foreground
+    let fg = foreground
     if (fg.alpha < 1) {
       fg = make(
         fg.r * fg.alpha + background.r * (1 - fg.alpha),
@@ -1017,15 +1017,15 @@
         false
       )
     }
-    var a = relativeLuminance(fg)
-    var b = relativeLuminance(background)
-    var lighter = Math.max(a, b)
-    var darker = Math.min(a, b)
+    const a = relativeLuminance(fg)
+    const b = relativeLuminance(background)
+    const lighter = Math.max(a, b)
+    const darker = Math.min(a, b)
     return (lighter + 0.05) / (darker + 0.05)
   }
 
   function contrastReport(foreground, background) {
-    var ratio = contrastRatio(foreground, background)
+    const ratio = contrastRatio(foreground, background)
     return {
       ratio: round(ratio, 2),
       passesAA: ratio >= 4.5,
@@ -1042,7 +1042,7 @@
    * translator the appearance surfaces render: each row is copyable, and each
    * row is also accepted back by `parse`.
    */
-  var FORMATS = [
+  const FORMATS = [
     { id: 'named', label: 'Named', format: toName },
     { id: 'hex', label: 'HEX', format: toHex },
     { id: 'hex8', label: 'HEX8', format: toHex8 },
@@ -1058,10 +1058,10 @@
   ]
 
   function translate(color) {
-    var rows = []
-    for (var i = 0; i < FORMATS.length; i++) {
-      var entry = FORMATS[i]
-      var value = entry.format(color)
+    const rows = []
+    for (let i = 0; i < FORMATS.length; i++) {
+      const entry = FORMATS[i]
+      const value = entry.format(color)
       rows.push({
         id: entry.id,
         label: entry.label,
@@ -1088,7 +1088,7 @@
     }
   }
 
-  var api = {
+  const api = {
     parse: parse,
     make: make,
     translate: translate,

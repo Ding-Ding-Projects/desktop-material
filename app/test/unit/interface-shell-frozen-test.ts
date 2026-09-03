@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
-import * as Fs from 'node:fs'
+import * as FsAsync from 'node:fs/promises'
 import * as Path from 'node:path'
 
 /**
@@ -82,9 +82,13 @@ const REQUIRED_SURVIVING_MODULES = [
 
 describe('the interface shell stays frozen', () => {
   for (const name of FORBIDDEN_SHELL_MODULES) {
-    it(`does not reintroduce app/src/ui/md3/${name}`, () => {
+    it(`does not reintroduce app/src/ui/md3/${name}`, async () => {
+      const exists = await FsAsync.access(Path.join(md3Dir, name)).then(
+        () => true,
+        () => false
+      )
       assert.equal(
-        Fs.existsSync(Path.join(md3Dir, name)),
+        exists,
         false,
         `${name} is back. The application chrome is frozen: see "The interface shell is frozen" in AGENTS.md. If the repository owner asked for this in the current session, delete this entry deliberately and say so in the commit.`
       )
@@ -92,9 +96,13 @@ describe('the interface shell stays frozen', () => {
   }
 
   for (const name of FORBIDDEN_SHELL_STYLESHEETS) {
-    it(`does not reintroduce app/styles/ui/${name}`, () => {
+    it(`does not reintroduce app/styles/ui/${name}`, async () => {
+      const exists = await FsAsync.access(Path.join(stylesDir, name)).then(
+        () => true,
+        () => false
+      )
       assert.equal(
-        Fs.existsSync(Path.join(stylesDir, name)),
+        exists,
         false,
         `${name} is back. The application chrome is frozen: see AGENTS.md.`
       )
@@ -102,17 +110,21 @@ describe('the interface shell stays frozen', () => {
   }
 
   for (const name of REQUIRED_SURVIVING_MODULES) {
-    it(`keeps the surviving control app/src/ui/md3/${name}`, () => {
+    it(`keeps the surviving control app/src/ui/md3/${name}`, async () => {
+      const exists = await FsAsync.access(Path.join(md3Dir, name)).then(
+        () => true,
+        () => false
+      )
       assert.equal(
-        Fs.existsSync(Path.join(md3Dir, name)),
+        exists,
         true,
         `${name} is gone. Material Design 3 controls and dialogs survived the revert deliberately; only the shell was removed.`
       )
     })
   }
 
-  it('does not let app.tsx import a shell module', () => {
-    const appSource = Fs.readFileSync(
+  it('does not let app.tsx import a shell module', async () => {
+    const appSource = await FsAsync.readFile(
       Path.join(repoRoot, 'app', 'src', 'ui', 'app.tsx'),
       'utf8'
     )
@@ -224,8 +236,8 @@ const REVERTED_STYLE_MARKERS: ReadonlyArray<{
 
 describe('the reverted style wave stays reverted', () => {
   for (const { file, marker, surface } of REVERTED_STYLE_MARKERS) {
-    it(`does not restore ${surface} in app/styles/ui/${file}`, () => {
-      const source = Fs.readFileSync(Path.join(stylesDir, file), 'utf8')
+    it(`does not restore ${surface} in app/styles/ui/${file}`, async () => {
+      const source = await FsAsync.readFile(Path.join(stylesDir, file), 'utf8')
       assert.equal(
         marker.test(source),
         false,

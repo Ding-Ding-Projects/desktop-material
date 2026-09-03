@@ -67,9 +67,9 @@ export function isInfiniteColorValue(value: unknown): value is string {
 }
 
 export function normalizeRainbowSpeed(value: unknown): RainbowSpeedLevel {
-  const number = typeof value === 'number' ? Math.round(value) : NaN
-  return number >= 1 && number <= 5
-    ? (number as RainbowSpeedLevel)
+  const numericSpeed = typeof value === 'number' ? Math.round(value) : NaN
+  return numericSpeed >= 1 && numericSpeed <= 5
+    ? (numericSpeed as RainbowSpeedLevel)
     : DefaultRainbowSpeed
 }
 
@@ -174,8 +174,8 @@ export class InfiniteColorPicker extends React.Component<
     }
   }
 
-  public componentDidUpdate(previous: IInfiniteColorPickerProps) {
-    if (previous.value !== this.props.value) {
+  public componentDidUpdate(prevProps: IInfiniteColorPickerProps) {
+    if (prevProps.value !== this.props.value) {
       const color = colorOrDefault(this.props.value)
       const hsv = ColorEngine.rgbToHsv(color.r, color.g, color.b)
       this.setState({
