@@ -63,7 +63,7 @@ describe('repository + branch side sheets v2 styles', () => {
     )
     assert.match(
       branchList,
-      /className="new-branch-button"[\s\S]*?<Octicon symbol=\{octicons\.plus\} \/>/
+      /className="new-branch-button"[\s\S]*?<MaterialSymbol name="add" \/>/
     )
   })
 
@@ -120,7 +120,7 @@ describe('repository + branch side sheets v2 styles', () => {
     )
     assert.match(
       noPullRequests,
-      /className="no-pull-requests-icon"[\s\S]*?<Octicon symbol=\{octicons\.gitMerge\} \/>/
+      /className="no-pull-requests-icon"[\s\S]*?<MaterialSymbol name="merge" \/>/
     )
     assert.match(noPullRequests, /No open pull requests/)
   })

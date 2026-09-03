@@ -1075,7 +1075,8 @@
   min-height: 0;
   min-width: 0;
   padding: 4px 0 20px 24px;
-  width: 300px;
+  width: 100%;
+  border-right: 1px solid var(--md-sys-color-surface-container-high);
 }
 
 .repository-tools-search {

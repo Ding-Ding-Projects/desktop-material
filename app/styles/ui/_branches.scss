@@ -644,7 +644,8 @@
       max-width: 100%;
       min-width: 0;
       margin-right: 0;
-      align-self: stretch;
+      align-self: start;
+      min-height: var(--button-height);
       justify-self: stretch;
     }
   }

@@ -116,6 +116,11 @@
       background: var(--md-sys-color-surface-container-high);
     }
 
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+
     &:active {
       transform: scale(0.86) rotate(90deg);
     }
@@ -146,6 +151,11 @@
     font-weight: 700;
     cursor: pointer;
     transition: background-color 280ms var(--emph), color 280ms var(--emph), transform 200ms var(--spring-fast);
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
 
     &:active {
       transform: scale(0.96);
@@ -245,6 +255,11 @@
   padding: 0 22px 12px;
 
   .regex-builder-pattern-field {
+    &:focus-within {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+
     min-width: 0;
     flex: 1;
     display: flex;
@@ -292,6 +307,11 @@
   }
 
   .regex-builder-icon-button {
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+
     display: grid;
     place-items: center;
     width: 44px;
@@ -376,6 +396,11 @@
   }
 
   .regex-builder-category {
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+
     height: 38px;
     padding: 0 14px;
     border: 0;
@@ -413,6 +438,11 @@
   }
 
   .regex-builder-token {
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+
     display: inline-flex;
     min-width: 0;
     max-width: 100%;
@@ -642,6 +672,11 @@
   padding: 12px 20px 16px;
 
   .regex-builder-cancel {
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+
     height: 42px;
     padding: 0 20px;
     border: 0;
@@ -659,6 +694,11 @@
   }
 
   .regex-builder-apply {
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+
     display: inline-flex;
     align-items: center;
     gap: 8px;
