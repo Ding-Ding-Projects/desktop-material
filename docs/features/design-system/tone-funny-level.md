@@ -103,7 +103,7 @@ tab is open is reported as `in Appearance` / `喺外觀`.
 
 ## Verification
 
-`app/test/unit/ui/funny-level-controls-test.tsx` (14 tests) covers: both sliders
+`app/test/unit/ui/funny-level-preferences-test.tsx` covers: both sliders
 rendering inside the same section as the language-mode selector; the 1..5
 bounds; `aria-valuetext` naming each level; the rendered copy changing at every
 level in English and in Cantonese, each without disturbing the other; the two

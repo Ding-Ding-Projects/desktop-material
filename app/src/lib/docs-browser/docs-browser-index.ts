@@ -201,9 +201,9 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
     {
       id: 'design-system/md3-shell',
       category: 'design-system',
-      title: 'The Material Design 3 shell — RETIRED',
+      title: 'The Material Design 3 shell — removed',
       description:
-        'The application chrome, rewritten against design/History MD3.dc.html and assembled as one component. Md3Shell (app/src/ui/md3/md3-shell.tsx) is what App.renderApp() renders: a…',
+        'This article is a record of something that is not in the application. It is kept so the removal reads as a decision rather than an oversight, and so the next person who finds a…',
       sourcePath: 'docs/features/design-system/md3-shell.md',
     },
     {

@@ -1,0 +1,74 @@
+# Path-based pull-request labels, applied by .github/workflows/label.yml.
+#
+# The workflow has shipped since an upstream Actions bump without this file,
+# so every pull request has been failing its `label` check with
+# "HttpError: Not Found" — the action fetches this path through the API and
+# there was nothing at it. The failure is repository-wide, not per-branch.
+#
+# Note for whoever reads a still-red check on the pull request that adds this
+# file: `label.yml` runs on `pull_request_target` and reads its configuration
+# from the base branch, so this takes effect once it is on the default branch,
+# not on the branch introducing it.
+#
+# actions/labeler v5 and later require the `changed-files` form below; the flat
+# list that older examples show is silently ignored rather than rejected.
+# Labels that do not exist yet are created on first use.
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/**'
+          - '**/*.md'
+
+github_actions:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/workflows/**'
+          - '.github/labeler.yml'
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/package.json'
+          - '**/yarn.lock'
+          - '**/package-lock.json'
+
+app:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'app/src/**'
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'app/test/**'
+          - 'script/*-test.mjs'
+
+styles:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'app/styles/**'
+
+design:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'design/**'
+          - 'design-app/**'
+
+tooling:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'script/**'
+          - 'eslint-rules/**'
+
+website:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'site/**'
+          - 'remote-site/**'
+
+browser-extension:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'browser-extension/**'
+          - 'shell-extension/**'
