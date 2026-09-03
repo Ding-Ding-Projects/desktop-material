@@ -9389,12 +9389,12 @@ scene('merge-all', async () => {
       })
     }
   }
-  await click('.worktree-button')
+  await clickSelector('.worktree-button')
   await waitFor(
     `document.querySelector('.worktree-list .merge-all-worktrees-button') !== null`,
     'Merge all worktrees action'
   )
-  await click('.worktree-list .merge-all-worktrees-button')
+  await clickSelector('.worktree-list .merge-all-worktrees-button')
   await waitFor(
     `document.querySelector('#merge-all input[type="checkbox"]') !== null`,
     'Merge all worktrees options'

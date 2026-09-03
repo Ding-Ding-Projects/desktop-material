@@ -18,7 +18,7 @@ function modifyDeleteStatus(deletedSide: 'ours' | 'theirs'): ManualConflict {
     return {
       kind: AppFileStatusKind.Conflicted,
       entry: {
-        kind: AppFileStatusKind.Conflicted,
+        kind: 'conflicted' as const,
         action: UnmergedEntrySummary.DeletedByUs,
         us: GitStatusEntry.Deleted,
         them: GitStatusEntry.UpdatedButUnmerged,
@@ -28,7 +28,7 @@ function modifyDeleteStatus(deletedSide: 'ours' | 'theirs'): ManualConflict {
   return {
     kind: AppFileStatusKind.Conflicted,
     entry: {
-      kind: AppFileStatusKind.Conflicted,
+      kind: 'conflicted' as const,
       action: UnmergedEntrySummary.DeletedByThem,
       us: GitStatusEntry.UpdatedButUnmerged,
       them: GitStatusEntry.Deleted,

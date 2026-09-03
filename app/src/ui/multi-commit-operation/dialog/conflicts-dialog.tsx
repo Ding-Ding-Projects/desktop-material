@@ -1,3 +1,4 @@
+import { ICopilotConflictApplicationResult } from '../../../lib/copilot-conflict-application-result'
 import * as React from 'react'
 import { Dialog, DialogContent, DialogFooter } from '../../dialog'
 import { Dispatcher } from '../../dispatcher'
@@ -68,6 +69,12 @@ interface IConflictsDialogProps {
    * for the first time.
    */
   readonly shouldShowCopilotConflictResolutionCallOut: boolean
+  /** Forwarded to the Copilot dialog: guarded application of resolutions. */
+  readonly applyCopilotConflictResolutions?: () => Promise<ICopilotConflictApplicationResult>
+  /** Forwarded to the Copilot dialog: guarded application of edited files. */
+  readonly applyEditedConflictResults?: (
+    editedResults: ReadonlyMap<string, string>
+  ) => Promise<ICopilotConflictApplicationResult>
 }
 
 interface IConflictsDialogState {

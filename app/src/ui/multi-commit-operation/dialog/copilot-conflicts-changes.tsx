@@ -194,7 +194,7 @@ export class CopilotConflictsChanges extends React.Component<
       r => r.path === file.path
     )
 
-    if (resolution?.deleteConflictAction !== undefined) {
+    if (resolution?.resolutionAction !== undefined) {
       this.setState({
         diff: null,
         fileContents: null,
@@ -475,7 +475,7 @@ export class CopilotConflictsChanges extends React.Component<
               <div className="copilot-changes-no-diff">
                 {this.props.copilotResolutions?.find(
                   resolution => resolution.path === selectedFile.path
-                )?.deleteConflictAction !== undefined
+                )?.resolutionAction !== undefined
                   ? translate(
                       'copilotConflict.modifyDeleteRecommendation',
                       getPersistedLanguageMode()

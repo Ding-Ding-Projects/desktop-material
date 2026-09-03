@@ -27,6 +27,7 @@ import { OkCancelButtonGroup } from '../../dialog/ok-cancel-button-group'
 import { Button } from '../../lib/button'
 import { LocalizedText } from '../../lib/localized-text'
 import { Octicon } from '../../octicons'
+import * as octicons from '../../octicons/octicons.generated'
 import { join } from 'path'
 import { PathText } from '../../lib/path-text'
 import {
