@@ -20,7 +20,7 @@
 // stack instead of painting on top of each other.
 //
 // The animation itself is the shared `.md3-anim-toast` class from
-// `_md3-shell.scss` (`md3Up`, 240ms), which is already disabled under
+// `app/styles/ui/md3/` (`md3Up`, 240ms), which is already disabled under
 // `prefers-reduced-motion`.
 
 .md3-toast-stack {

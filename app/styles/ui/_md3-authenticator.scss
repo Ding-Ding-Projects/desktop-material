@@ -2,7 +2,7 @@
 //
 // Shared measurements — the search row, the chip row, `.md3-row`,
 // `.md3-row__detail`, the icon and text buttons, the group header — come from
-// `_md3-shell.scss` and are composed rather than restated.
+// `app/styles/ui/md3/` and are composed rather than restated.
 //
 // Theme note: this repository selects light with `:root` and dark with
 // `body.theme-dark`. `[data-theme]` selectors match nothing here and are never
@@ -557,5 +557,31 @@
 @media (prefers-reduced-motion: reduce) {
   .md3-auth-register__panel {
     animation: none;
+  }
+}
+
+// The registration dialog's commit action, which previously had no declaration.
+.md3-auth-register__commit {
+  align-items: center;
+  appearance: none;
+  background-color: var(--md-sys-color-primary);
+  border: none;
+  border-radius: var(--md-sys-shape-corner-full);
+  color: var(--md-sys-color-on-primary);
+  cursor: pointer;
+  display: inline-flex;
+  gap: 8px;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 20px;
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.38;
   }
 }

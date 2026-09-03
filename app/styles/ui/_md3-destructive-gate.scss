@@ -7,7 +7,7 @@
 // the application's `Dialog`. `.md3-destructive-gate` wraps that body in the
 // anchored panel, with its own scrim, header and footer.
 //
-// Motion comes from the shared `.md3-anim-*` classes in `_md3-shell.scss`,
+// Motion comes from the shared `.md3-anim-*` classes in `app/styles/ui/md3/`,
 // which are already disabled under `prefers-reduced-motion`. The two
 // treatments declared here — the sweep while the slider moves and the flash
 // when it completes — are turned off in the same media query at the bottom of

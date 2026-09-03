@@ -1,0 +1,46 @@
+// Tonal container/foreground pairs for `IMd3Tone`.
+//
+// `md3-style-contract.ts` hands callers a `container` class and an `on` class so
+// a caller needing only the foreground can apply `on` by itself. Green and amber
+// resolve through the extended roles declared in `app/styles/_material.scss`,
+// because the MD3 baseline scheme has no success or warning family.
+
+.md3-tone--primary {
+  background-color: var(--md-sys-color-primary-container);
+}
+
+.md3-tone-on--primary {
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.md3-tone--error {
+  background-color: var(--md-sys-color-error-container);
+}
+
+.md3-tone-on--error {
+  color: var(--md-sys-color-on-error-container);
+}
+
+.md3-tone--surface {
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+.md3-tone-on--surface {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.md3-tone--green {
+  background-color: var(--md-ext-color-success-container);
+}
+
+.md3-tone-on--green {
+  color: var(--md-ext-color-on-success-container);
+}
+
+.md3-tone--amber {
+  background-color: var(--md-ext-color-warning-container);
+}
+
+.md3-tone-on--amber {
+  color: var(--md-ext-color-on-warning-container);
+}

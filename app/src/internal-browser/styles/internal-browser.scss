@@ -1,103 +1,64 @@
+// The internal browser's Material Design 3 roles.
+//
+// A separate bundle from the main renderer, so it declares the roles itself
+// rather than importing the application's whole stylesheet. The values come
+// from the shared partial and are asserted equal to `app/styles/_material.scss`
+// by `standalone-window-roles-test.ts`: this window shipped a private green
+// palette while the application is blue, so an in-product browser did not look
+// like the product it opened from.
+//
+// The accent blocks below are left as they are. They mirror the application's
+// own `data-dm-accent` feature, and `.theme-dark` is set from the operating
+// system preference because this window has no access to the theme store.
+@import '../../../styles/material/standalone-roles';
+
 :root {
-  --browser-primary: #1c6b34;
-  --browser-on-primary: #ffffff;
-  --browser-primary-container: #a9f6b4;
-  --browser-on-primary-container: #00210b;
-  --browser-surface: #f7fbf2;
-  --browser-surface-container-lowest: #ffffff;
-  --browser-surface-container-low: #f1f5ec;
-  --browser-surface-container: #ebefe6;
-  --browser-surface-container-high: #e5e9e1;
-  --browser-on-surface: #191d18;
-  --browser-on-surface-variant: #424940;
-  --browser-outline: #72796f;
-  --browser-outline-variant: #c2c9bd;
-  --browser-error: #ba1a1a;
-  --browser-error-container: #ffdad6;
-  --browser-on-error-container: #410002;
-  --browser-auth-container: #d5e8d1;
-  --browser-on-auth-container: #101f11;
+  @include md-standalone-color-roles-light;
+  @include md-standalone-shape-roles;
 }
 
 .theme-dark {
-  --browser-primary: #8ed99a;
-  --browser-on-primary: #003918;
-  --browser-primary-container: #005322;
-  --browser-on-primary-container: #a9f6b4;
-  --browser-surface: #101410;
-  --browser-surface-container-lowest: #0b0f0b;
-  --browser-surface-container-low: #181d18;
-  --browser-surface-container: #1c211c;
-  --browser-surface-container-high: #262b26;
-  --browser-on-surface: #e0e4dc;
-  --browser-on-surface-variant: #c0c9bf;
-  --browser-outline: #8a938a;
-  --browser-outline-variant: #414941;
-  --browser-error: #ffb4ab;
-  --browser-error-container: #93000a;
-  --browser-on-error-container: #ffdad6;
-  --browser-auth-container: #394b38;
-  --browser-on-auth-container: #d5e8d1;
+  @include md-standalone-color-roles-dark;
 }
 
 body[data-dm-accent='violet'] {
-  --browser-primary: #72519a;
-  --browser-primary-container: #efdbff;
-  --browser-on-primary-container: #2b0752;
+  @include md-standalone-accent-violet-light;
 }
 
 body[data-dm-accent='teal'] {
-  --browser-primary: #006a69;
-  --browser-primary-container: #9cf1ef;
-  --browser-on-primary-container: #00201f;
+  @include md-standalone-accent-teal-light;
 }
 
 body[data-dm-accent='green'] {
-  --browser-primary: #356a39;
-  --browser-primary-container: #b7f1b1;
-  --browser-on-primary-container: #002106;
+  @include md-standalone-accent-green-light;
 }
 
 body[data-dm-accent='amber'] {
-  --browser-primary: #7a5900;
-  --browser-primary-container: #ffdea1;
-  --browser-on-primary-container: #261900;
+  @include md-standalone-accent-amber-light;
 }
 
 body[data-dm-accent='rose'] {
-  --browser-primary: #984061;
-  --browser-primary-container: #ffd9e2;
-  --browser-on-primary-container: #3e001e;
+  @include md-standalone-accent-rose-light;
 }
 
 .theme-dark[data-dm-accent='violet'] {
-  --browser-primary: #dbb9ff;
-  --browser-primary-container: #59377f;
-  --browser-on-primary-container: #efdbff;
+  @include md-standalone-accent-violet-dark;
 }
 
 .theme-dark[data-dm-accent='teal'] {
-  --browser-primary: #80d5d3;
-  --browser-primary-container: #00504f;
-  --browser-on-primary-container: #9cf1ef;
+  @include md-standalone-accent-teal-dark;
 }
 
 .theme-dark[data-dm-accent='green'] {
-  --browser-primary: #9bd597;
-  --browser-primary-container: #1d5123;
-  --browser-on-primary-container: #b7f1b1;
+  @include md-standalone-accent-green-dark;
 }
 
 .theme-dark[data-dm-accent='amber'] {
-  --browser-primary: #f5be38;
-  --browser-primary-container: #5c4300;
-  --browser-on-primary-container: #ffdea1;
+  @include md-standalone-accent-amber-dark;
 }
 
 .theme-dark[data-dm-accent='rose'] {
-  --browser-primary: #ffb1c8;
-  --browser-primary-container: #7b2949;
-  --browser-on-primary-container: #ffd9e2;
+  @include md-standalone-accent-rose-dark;
 }
 
 * {
@@ -115,9 +76,9 @@ body,
 
 body {
   overflow: hidden;
-  background: var(--browser-surface);
-  color: var(--browser-on-surface);
-  font-family: var(--browser-ui-font-family, system-ui, 'Segoe UI Variable Text', 'Segoe UI', sans-serif);
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  font-family: var(--md-sys-color-ui-font-family, system-ui, 'Segoe UI Variable Text', 'Segoe UI', sans-serif);
   font-size: 14px;
 }
 
@@ -132,7 +93,7 @@ button {
 
 button:focus-visible,
 input:focus-visible {
-  outline: 2px solid var(--browser-primary);
+  outline: 2px solid var(--md-sys-color-primary);
   outline-offset: 2px;
 }
 
@@ -162,11 +123,11 @@ button:disabled {
 .internal-browser-chrome {
   z-index: 1;
   flex: 0 0 auto;
-  border-bottom: 1px solid var(--browser-outline-variant);
-  background: var(--browser-surface-container-lowest);
-  font-family: var(--browser-toolbar-font-family, inherit);
-  font-size: var(--browser-toolbar-font-size, 14px);
-  font-weight: var(--browser-toolbar-font-weight, 400);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  background: var(--md-sys-color-surface-container-lowest);
+  font-family: var(--md-sys-color-toolbar-font-family, inherit);
+  font-size: var(--md-sys-color-toolbar-font-size, 14px);
+  font-weight: var(--md-sys-color-toolbar-font-weight, 400);
 }
 
 // The new-tab button is a sibling of the tab list rather than a child of it,
@@ -177,7 +138,7 @@ button:disabled {
   min-height: 48px;
   align-items: end;
   padding: 6px 10px 0;
-  background: var(--browser-surface-container-low);
+  background: var(--md-sys-color-surface-container-low);
 }
 
 .internal-browser-tabs {
@@ -202,11 +163,11 @@ button:disabled {
   height: 40px;
   align-items: center;
   border-radius: 16px;
-  background: var(--browser-surface-container-high);
+  background: var(--md-sys-color-surface-container-high);
 
   &.active {
-    background: var(--browser-primary-container);
-    color: var(--browser-on-primary-container);
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
   }
 }
 
@@ -247,8 +208,8 @@ button:disabled {
   width: 13px;
   height: 13px;
   flex: 0 0 auto;
-  border: 2px solid var(--browser-outline);
-  border-right-color: var(--browser-primary);
+  border: 2px solid var(--md-sys-color-outline);
+  border-right-color: var(--md-sys-color-primary);
   border-radius: 50%;
   animation: internal-browser-spin 0.8s linear infinite;
 }
@@ -257,8 +218,8 @@ button:disabled {
   flex: 0 0 auto;
   padding: 2px 6px;
   border-radius: 8px;
-  background: var(--browser-auth-container);
-  color: var(--browser-on-auth-container);
+  background: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
   font-size: 10px;
   font-weight: 650;
 }
@@ -269,7 +230,7 @@ button:disabled {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: var(--browser-surface-container-lowest);
+  background: var(--md-sys-color-surface-container-lowest);
 }
 
 .internal-browser-find-bar {
@@ -279,9 +240,9 @@ button:disabled {
   gap: 6px;
   margin: 0 10px 8px;
   padding: 6px 10px;
-  border: 1px solid var(--browser-outline-variant);
+  border: 1px solid var(--md-sys-color-outline-variant);
   border-radius: 16px;
-  background: var(--browser-surface-container-high);
+  background: var(--md-sys-color-surface-container-high);
 }
 
 .internal-browser-find-input {
@@ -294,11 +255,11 @@ button:disabled {
     padding: 0 12px;
     border: 1px solid transparent;
     border-radius: 12px;
-    background: var(--browser-surface-container-lowest);
-    color: var(--browser-on-surface);
+    background: var(--md-sys-color-surface-container-lowest);
+    color: var(--md-sys-color-on-surface);
 
     &:focus {
-      border-color: var(--browser-primary);
+      border-color: var(--md-sys-color-primary);
     }
   }
 }
@@ -319,18 +280,18 @@ button:disabled {
 
   &:hover:not(:disabled),
   &.selected {
-    background: var(--browser-primary-container);
-    color: var(--browser-on-primary-container);
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
   }
 }
 
 .internal-browser-find-builder {
   min-height: 36px;
   padding: 0 10px;
-  border: 1px solid var(--browser-outline-variant);
+  border: 1px solid var(--md-sys-color-outline-variant);
   border-radius: 18px;
   background: transparent;
-  color: var(--browser-primary);
+  color: var(--md-sys-color-primary);
   cursor: pointer;
   font-size: 12px;
   font-weight: 650;
@@ -340,12 +301,12 @@ button:disabled {
 .internal-browser-find-status {
   min-width: 72px;
   flex: 0 1 auto;
-  color: var(--browser-on-surface-variant);
+  color: var(--md-sys-color-on-surface-variant);
   font-size: 12px;
   overflow-wrap: anywhere;
 
   &.error {
-    color: var(--browser-error);
+    color: var(--md-sys-color-error);
   }
 }
 
@@ -363,18 +324,18 @@ button:disabled {
     min-height: 32px;
     padding: 0 8px;
     overflow: hidden;
-    border: 1px solid var(--browser-outline);
+    border: 1px solid var(--md-sys-color-outline);
     border-radius: 16px;
-    background: var(--browser-surface);
-    color: var(--browser-on-surface-variant);
+    background: var(--md-sys-color-surface);
+    color: var(--md-sys-color-on-surface-variant);
     cursor: pointer;
     text-overflow: ellipsis;
     white-space: nowrap;
 
     &[aria-current='true'] {
-      border-color: var(--browser-primary);
-      background: var(--browser-primary-container);
-      color: var(--browser-on-primary-container);
+      border-color: var(--md-sys-color-primary);
+      background: var(--md-sys-color-primary-container);
+      color: var(--md-sys-color-on-primary-container);
     }
   }
 }
@@ -397,8 +358,8 @@ button:disabled {
 
   &:hover:not(:disabled),
   &.selected {
-    background: var(--browser-primary-container);
-    color: var(--browser-on-primary-container);
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
   }
 }
 
@@ -412,12 +373,12 @@ button:disabled {
     padding: 0 16px;
     border: 1px solid transparent;
     border-radius: 12px;
-    background: var(--browser-surface-container-high);
-    color: var(--browser-on-surface);
+    background: var(--md-sys-color-surface-container-high);
+    color: var(--md-sys-color-on-surface);
 
     &:focus {
-      border-color: var(--browser-primary);
-      background: var(--browser-surface);
+      border-color: var(--md-sys-color-primary);
+      background: var(--md-sys-color-surface);
     }
   }
 }
@@ -429,8 +390,8 @@ button:disabled {
   padding: 0 18px;
   border: 0;
   border-radius: 20px;
-  background: var(--browser-primary);
-  color: var(--browser-on-primary);
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
   cursor: pointer;
   font-weight: 600;
   white-space: nowrap;
@@ -442,9 +403,9 @@ button:disabled {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  border: 1px solid var(--browser-outline-variant);
-  background: var(--browser-surface-container-low);
-  color: var(--browser-primary);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  background: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-primary);
 }
 
 .internal-browser-bookmarks {
@@ -456,12 +417,12 @@ button:disabled {
   padding: 4px 8px;
   overflow-x: auto;
   border-radius: 12px;
-  background: var(--browser-surface-container-low);
+  background: var(--md-sys-color-surface-container-low);
 }
 
 .internal-browser-bookmarks-label {
   flex: 0 0 auto;
-  color: var(--browser-on-surface-variant);
+  color: var(--md-sys-color-on-surface-variant);
   font-size: 12px;
   font-weight: 600;
 }
@@ -473,7 +434,7 @@ button:disabled {
   overflow: hidden;
   border: 0;
   border-radius: 10px;
-  background: var(--browser-surface-container-high);
+  background: var(--md-sys-color-surface-container-high);
   cursor: pointer;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -500,20 +461,20 @@ button:disabled {
   margin: 0 10px 8px;
   padding: 7px 16px;
   border-radius: 12px;
-  background: var(--browser-auth-container);
-  color: var(--browser-on-auth-container);
+  background: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
 }
 
 .internal-browser-error-notice {
   justify-content: flex-start;
-  background: var(--browser-error-container);
-  color: var(--browser-on-error-container);
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
 }
 
 .internal-browser-content-viewport {
   min-height: 0;
   flex: 1 1 auto;
-  background: var(--browser-surface-container-lowest);
+  background: var(--md-sys-color-surface-container-lowest);
 }
 
 @keyframes internal-browser-spin {
@@ -565,7 +526,7 @@ body[data-dm-tab-density='compact'] {
 }
 
 body[data-dm-surface='neutral'] {
-  --browser-surface-container: color-mix(in srgb, var(--browser-surface) 86%, var(--browser-on-surface));
+  --md-sys-color-surface-container: color-mix(in srgb, var(--md-sys-color-surface) 86%, var(--md-sys-color-on-surface));
 }
 
 body[data-dm-elevation='flat'] .internal-browser-chrome {
@@ -573,7 +534,7 @@ body[data-dm-elevation='flat'] .internal-browser-chrome {
 }
 
 body[data-dm-elevation='standard'] .internal-browser-chrome {
-  box-shadow: 0 2px 6px color-mix(in srgb, #000 18%, transparent);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--md-sys-color-shadow) 18%, transparent);
 }
 
 body[data-dm-motion='reduced'] {

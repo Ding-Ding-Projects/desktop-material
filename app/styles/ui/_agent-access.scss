@@ -240,7 +240,7 @@
 
   code {
     overflow-wrap: anywhere;
-    font-family: var(--font-monospace);
+    font-family: var(--font-family-monospace);
     font-size: 11.5px;
   }
 
@@ -254,7 +254,7 @@
     input {
       width: 100%;
       padding: 0 13px;
-      font-family: var(--font-monospace);
+      font-family: var(--font-family-monospace);
       font-size: 11.5px;
 
       &:focus {

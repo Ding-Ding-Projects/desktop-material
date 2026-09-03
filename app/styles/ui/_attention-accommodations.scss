@@ -18,7 +18,7 @@
   gap: 8px;
   align-items: baseline;
   padding: 10px 12px;
-  border: 1px solid var(--border-color, #d0d7de);
+  border: 1px solid var(--md-sys-color-outline-variant, #d0d7de);
   border-radius: 8px;
   background: var(--background-color);
   box-shadow: 0 3px 12px rgb(0 0 0 / 18%);
@@ -41,7 +41,7 @@
 
 .attention-accommodation-row {
   padding: 12px 0;
-  border-bottom: 1px solid var(--border-color, #d0d7de);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant, #d0d7de);
 }
 
 .attention-accommodation-row:last-of-type {

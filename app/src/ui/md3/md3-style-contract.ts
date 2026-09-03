@@ -5,7 +5,7 @@ import { MaterialSymbolName } from '../lib/material-symbol'
  * (`design/History MD3.dc.html`).
  *
  * The contract's logic block computes styles as inline strings. Everything
- * those strings resolve to lives in `app/styles/ui/_md3-shell.scss`, so the
+ * those strings resolve to lives in `app/styles/ui/app/styles/ui/md3/`, so the
  * helpers here return the matching class names instead — one source of truth
  * for the values, one source of truth for which value a given state picks.
  */

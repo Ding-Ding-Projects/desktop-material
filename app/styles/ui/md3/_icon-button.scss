@@ -1,0 +1,71 @@
+// MD3 standard icon button, in the three sizes `Md3IconButton` offers.
+//
+// Sizes are expressed as a custom property so the size modifiers set one value
+// rather than restating the whole box, and so a caller cannot end up with a
+// height that disagrees with its width.
+
+.md3-icon-button {
+  --md3-icon-button-size: 40px;
+  --md3-icon-button-glyph: 20px;
+
+  align-items: center;
+  appearance: none;
+  background: none;
+  border: none;
+  border-radius: var(--md-sys-shape-corner-full);
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  justify-content: center;
+  // A minimum rather than a fixed size: the glyph must never be clipped when a
+  // display scale or a larger icon font makes it wider than the nominal box.
+  min-height: var(--md3-icon-button-size);
+  min-width: var(--md3-icon-button-size);
+  padding: 0;
+  position: relative;
+  transition: background-color 120ms ease, color 120ms ease;
+
+  .material-symbol,
+  .octicon,
+  svg {
+    font-size: var(--md3-icon-button-glyph);
+    height: var(--md3-icon-button-glyph);
+    width: var(--md3-icon-button-glyph);
+  }
+
+  &:hover:not(:disabled) {
+    background-color: var(--md-sys-color-surface-container-high);
+    color: var(--md-sys-color-on-surface);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.38;
+  }
+}
+
+.md3-icon-button--small {
+  --md3-icon-button-size: 32px;
+  --md3-icon-button-glyph: 18px;
+}
+
+.md3-icon-button--medium {
+  --md3-icon-button-size: 40px;
+  --md3-icon-button-glyph: 20px;
+}
+
+.md3-icon-button--active {
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+
+  &:hover:not(:disabled) {
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+  }
+}

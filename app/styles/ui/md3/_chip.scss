@@ -1,0 +1,55 @@
+// MD3 filter chips and the row that carries them.
+
+.md3-chip-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  // The row wraps rather than clipping: a filter set grows with the language
+  // mode, and bilingual labels are the longest this app renders.
+  min-width: 0;
+}
+
+.md3-chip-row__spacer {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.md3-chip {
+  align-items: center;
+  appearance: none;
+  background: none;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-small);
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  display: inline-flex;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 12px;
+  transition: background-color 120ms ease, border-color 120ms ease;
+
+  &:hover:not(:disabled) {
+    background-color: var(--md-sys-color-surface-container-high);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.38;
+  }
+}
+
+.md3-chip--active {
+  background-color: var(--md-sys-color-secondary-container);
+  border-color: transparent;
+  color: var(--md-sys-color-on-secondary-container);
+
+  &:hover:not(:disabled) {
+    background-color: var(--md-sys-color-secondary-container);
+  }
+}

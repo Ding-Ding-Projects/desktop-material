@@ -1,0 +1,63 @@
+// Text-label buttons rendered by `Md3TonalButton` / `Md3GhostButton`, plus the
+// small reset affordance the search row and filter rows use.
+//
+// `.md3-ghost-button` is declared in `app/styles/ui/_md3-bulk-bar.scss`, which
+// already owns it. It is deliberately not restated here: two declarations of one
+// class in one bundle means the later import silently wins, and an edit to the
+// losing copy is a no-op that still reads as a fix.
+
+.md3-tonal-button {
+  align-items: center;
+  appearance: none;
+  background-color: var(--md-sys-color-secondary-container);
+  border: none;
+  border-radius: var(--md-sys-shape-corner-full);
+  color: var(--md-sys-color-on-secondary-container);
+  cursor: pointer;
+  display: inline-flex;
+  gap: 8px;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 16px;
+  transition: background-color 120ms ease;
+
+  &:hover:not(:disabled) {
+    background-color: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.38;
+  }
+}
+
+.md3-reset-button {
+  appearance: none;
+  background: none;
+  border: none;
+  border-radius: var(--md-sys-shape-corner-full);
+  color: var(--md-sys-color-primary);
+  cursor: pointer;
+  min-height: 32px;
+  padding: 0 12px;
+
+  &:hover:not(:disabled) {
+    background-color: var(--md-sys-color-surface-container-high);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.38;
+  }
+}

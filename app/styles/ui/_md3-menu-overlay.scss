@@ -9,7 +9,7 @@
 //
 // The scrim's 160ms `dmFade` and the panel's 200ms `dmMenu` are applied
 // through `.md3-anim-fade--overlay` and `.md3-anim-menu` from
-// `_md3-shell.scss`, which already carry the contract's easings and are
+// `app/styles/ui/md3/`, which already carry the contract's easings and are
 // already disabled under `prefers-reduced-motion`.
 
 .md3-menu-overlay {
@@ -68,7 +68,7 @@
 // Filter row
 // ---------------------------------------------------------------------------
 //
-// The row itself is `.md3-search-row` from `_md3-shell.scss`, so the geometry
+// The row itself is `.md3-search-row` from `app/styles/ui/md3/`, so the geometry
 // is shared with every other search field in the rewrite. Only the two notes
 // that hang beneath it are declared here.
 
