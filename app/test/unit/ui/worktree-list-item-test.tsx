@@ -1,13 +1,23 @@
 import assert from 'node:assert'
-import { describe, it } from 'node:test'
+import { afterEach, beforeEach, describe, it } from 'node:test'
 import * as React from 'react'
 
 import { Branch, BranchType } from '../../../src/models/branch'
 import { IMatches } from '../../../src/lib/fuzzy-find'
-import { WorktreeEntry } from '../../../src/models/worktree'
+import {
+  getWorktreeAriaLabel,
+  getWorktreeAppearanceId,
+  getWorktreeDescription,
+  getWorktreeDisplayName,
+  WorktreeEntry,
+  worktreePathsEqual,
+} from '../../../src/models/worktree'
 import { WorktreeListItem } from '../../../src/ui/worktrees/worktree-list-item'
-import { getMergeBranchForWorktree } from '../../../src/ui/worktrees/worktree-list'
-import { fireEvent, render, screen } from '../../helpers/ui/render'
+import {
+  getMergeBranchForWorktree,
+  WorktreeList,
+} from '../../../src/ui/worktrees/worktree-list'
+import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
 
 const noMatches: IMatches = { title: [], subtitle: [] }
 
@@ -25,7 +35,385 @@ function linkedWorktree(options: Partial<WorktreeEntry> = {}): WorktreeEntry {
   }
 }
 
+class FixedResizeObserver implements ResizeObserver {
+  public constructor(private readonly callback: ResizeObserverCallback) {}
+
+  public observe(target: Element) {
+    Object.defineProperty(target, 'offsetWidth', {
+      configurable: true,
+      value: 420,
+    })
+    Object.defineProperty(target, 'offsetHeight', {
+      configurable: true,
+      value: 240,
+    })
+    this.callback(
+      [
+        {
+          target,
+          contentRect: {
+            x: 0,
+            y: 0,
+            width: 420,
+            height: 240,
+            top: 0,
+            right: 420,
+            bottom: 240,
+            left: 0,
+            toJSON: () => ({}),
+          },
+          borderBoxSize: [],
+          contentBoxSize: [],
+          devicePixelContentBoxSize: [],
+        },
+      ],
+      this
+    )
+  }
+
+  public unobserve() {}
+
+  public disconnect() {}
+}
+
+let originalResizeObserver: typeof ResizeObserver | undefined
+let originalWindowResizeObserver: typeof ResizeObserver | undefined
+
+beforeEach(() => {
+  originalResizeObserver = globalThis.ResizeObserver
+  originalWindowResizeObserver = window.ResizeObserver
+  Object.assign(globalThis, { ResizeObserver: FixedResizeObserver })
+  Object.assign(window, { ResizeObserver: FixedResizeObserver })
+})
+
+afterEach(() => {
+  Object.assign(globalThis, { ResizeObserver: originalResizeObserver })
+  Object.assign(window, { ResizeObserver: originalWindowResizeObserver })
+})
+
 describe('WorktreeListItem', () => {
+  it('normalizes Windows separators and casing for current-path state', () => {
+    const originalPlatform = process.platform
+    Object.defineProperty(process, 'platform', {
+      configurable: true,
+      value: 'win32',
+    })
+    try {
+      assert.equal(
+        worktreePathsEqual('c:/Users/example/repo', 'C:\\Users\\example\\repo'),
+        true
+      )
+    } finally {
+      Object.defineProperty(process, 'platform', {
+        configurable: true,
+        value: originalPlatform,
+      })
+    }
+  })
+
+  it('keeps POSIX backslashes literal and case-sensitive', () => {
+    const literalBackslash = '/tmp/worktree\\name'
+    const separatorPath = '/tmp/worktree/name'
+    const differentlyCased = '/tmp/Worktree/name'
+
+    const originalPlatform = process.platform
+    Object.defineProperty(process, 'platform', {
+      configurable: true,
+      value: 'linux',
+    })
+    try {
+      assert.equal(worktreePathsEqual(literalBackslash, separatorPath), false)
+      assert.equal(worktreePathsEqual(separatorPath, differentlyCased), false)
+    } finally {
+      Object.defineProperty(process, 'platform', {
+        configurable: true,
+        value: originalPlatform,
+      })
+    }
+    assert.equal(worktreePathsEqual(separatorPath, separatorPath), true)
+  })
+
+  it('derives stable accessible names with observed state', () => {
+    const worktree = linkedWorktree({
+      dirtyFileCount: 2,
+      isLocked: true,
+      isPrunable: true,
+    })
+
+    assert.equal(getWorktreeDisplayName(worktree), 'feature')
+    assert.equal(getWorktreeDescription(worktree), 'feature')
+    assert.equal(
+      getWorktreeAriaLabel(worktree),
+      'feature, feature, 2 uncommitted, locked, missing'
+    )
+  })
+
+  it('shows unavailable status instead of claiming a clean row', () => {
+    render(
+      <WorktreeListItem
+        worktree={linkedWorktree({ dirtyFileCount: null })}
+        isCurrentWorktree={false}
+        matches={noMatches}
+      />
+    )
+
+    assert.ok(screen.getByText(/status unavailable/))
+    assert.equal(screen.queryByText(/^clean$/), null)
+  })
+
+  it('registers isolated appearance and lock targets for each row', () => {
+    const firstId = getWorktreeAppearanceId(7, 'C:/worktrees/one')
+    const secondId = getWorktreeAppearanceId(7, 'C:/worktrees/two')
+    assert.notEqual(firstId, secondId)
+
+    const { container } = render(
+      <WorktreeListItem
+        worktree={linkedWorktree()}
+        isCurrentWorktree={false}
+        matches={noMatches}
+        appearanceId={firstId}
+      />
+    )
+    const row = container.querySelector('.worktrees-list-item')
+    assert.ok(row)
+    assert.equal(row.getAttribute('data-dm-feature'), firstId)
+    assert.equal(row.getAttribute('data-dm-feature-id'), firstId)
+    assert.equal(row.getAttribute('data-worktree-appearance-id'), firstId)
+    assert.equal(row.getAttribute('data-md3-lock-target'), `feature:${firstId}`)
+  })
+
+  it('indexes unavailable status in the worktree filter', async () => {
+    localStorage.setItem('filter-mode/worktrees', 'substring')
+    render(
+      <WorktreeList
+        worktrees={[linkedWorktree({ dirtyFileCount: null })]}
+        currentWorktree={null}
+        filterText="unavailable"
+        onFilterTextChanged={() => undefined}
+        canCreateNewWorktree={false}
+      />
+    )
+
+    await waitFor(() => {
+      assert.equal(screen.getAllByRole('option').length, 1)
+    })
+    localStorage.removeItem('filter-mode/worktrees')
+  })
+
+  it('dispatches a still-eligible row merge through its per-item owner', async () => {
+    const worktree = linkedWorktree()
+    let mergedRef: string | null = null
+    let mergedSha: string | null = null
+
+    const { container } = render(
+      <WorktreeList
+        worktrees={[worktree]}
+        currentWorktree={null}
+        onMergeWorktree={branch => {
+          mergedRef = branch.ref
+          mergedSha = branch.tip.sha
+        }}
+        filterText=""
+        onFilterTextChanged={() => undefined}
+        canCreateNewWorktree={false}
+      />
+    )
+
+    const button = await waitFor(() => {
+      const element = container.querySelector<HTMLButtonElement>(
+        '.merge-worktree-button'
+      )
+      assert.ok(element)
+      return element
+    })
+    fireEvent.click(button)
+    assert.equal(mergedRef, worktree.branch)
+    assert.equal(mergedSha, worktree.head)
+  })
+
+  it('activates the focused worktree with Enter and keeps the state accessible', async () => {
+    const worktree = linkedWorktree({
+      path: 'C:/worktrees/main',
+      branch: 'refs/heads/main',
+      type: 'main',
+    })
+    let activatedPath: string | null = null
+
+    const { container } = render(
+      <WorktreeList
+        worktrees={[worktree]}
+        currentWorktree={worktree}
+        onWorktreeClick={selected => {
+          activatedPath = selected.path
+        }}
+        filterText=""
+        onFilterTextChanged={() => undefined}
+        canCreateNewWorktree={false}
+      />
+    )
+
+    await waitFor(() => {
+      assert.ok(
+        screen.getByRole('option', {
+          name: 'main, main, current worktree',
+        })
+      )
+    })
+
+    const list = container.querySelector<HTMLElement>(
+      '.ReactVirtualized__Grid[tabindex="0"]'
+    )
+    assert.ok(list)
+    list.focus()
+    fireEvent.keyDown(list, { key: 'ArrowDown' })
+    fireEvent.keyDown(list, { key: 'Enter' })
+
+    assert.equal(activatedPath, worktree.path)
+  })
+
+  it('announces main, linked, and detached rows with one counted group label', async () => {
+    const main = linkedWorktree({
+      path: 'C:/worktrees/main',
+      branch: 'refs/heads/main',
+      type: 'main',
+    })
+    const linked = linkedWorktree()
+    const detached = linkedWorktree({
+      path: 'C:/worktrees/detached',
+      head: 'abcdef1234567890',
+      branch: null,
+      isDetached: true,
+      dirtyFileCount: 3,
+      isLocked: true,
+      isPrunable: true,
+    })
+
+    render(
+      <WorktreeList
+        worktrees={[main, linked, detached]}
+        currentWorktree={main}
+        filterText=""
+        onFilterTextChanged={() => undefined}
+        canCreateNewWorktree={false}
+      />
+    )
+
+    await waitFor(() => {
+      assert.equal(screen.getAllByRole('option').length, 3)
+    })
+
+    const mainOption = screen.getByRole('option', {
+      name: 'main, main, current worktree',
+    })
+    const linkedOption = screen.getByRole('option', {
+      name: 'feature, feature',
+    })
+    const detachedOption = screen.getByRole('option', {
+      name: 'detached, abcdef1, 3 uncommitted, locked, missing',
+    })
+
+    const listboxes = screen.getAllByRole('listbox')
+    assert.ok(
+      listboxes.some(
+        listbox =>
+          listbox.getAttribute('aria-label') === 'Main worktree, 1 worktree'
+      )
+    )
+    assert.ok(
+      listboxes.some(
+        listbox =>
+          listbox.getAttribute('aria-label') === 'Linked worktrees, 2 worktrees'
+      )
+    )
+
+    assert.equal(
+      (mainOption.getAttribute('aria-label')?.match(/Main worktree/g) ?? [])
+        .length,
+      0
+    )
+    assert.equal(
+      (
+        linkedOption.getAttribute('aria-label')?.match(/Linked worktrees/g) ??
+        []
+      ).length,
+      0
+    )
+    assert.equal(
+      detachedOption.getAttribute('aria-label'),
+      'detached, abcdef1, 3 uncommitted, locked, missing'
+    )
+  })
+
+  it('counts only filtered linked rows in the section association', async () => {
+    const main = linkedWorktree({
+      path: 'C:/worktrees/main',
+      branch: 'refs/heads/main',
+      type: 'main',
+    })
+    const firstLinked = linkedWorktree({ path: 'C:/worktrees/feature-one' })
+    const secondLinked = linkedWorktree({ path: 'C:/worktrees/other' })
+
+    render(
+      <WorktreeList
+        worktrees={[main, firstLinked, secondLinked]}
+        currentWorktree={main}
+        filterText="feature-one"
+        onFilterTextChanged={() => undefined}
+        canCreateNewWorktree={false}
+      />
+    )
+
+    await waitFor(() => {
+      assert.equal(screen.getAllByRole('option').length, 1)
+    })
+
+    assert.equal(
+      screen
+        .getByRole('option', { name: 'feature-one, feature' })
+        .getAttribute('aria-label'),
+      'feature-one, feature'
+    )
+    assert.ok(
+      screen
+        .getAllByRole('listbox')
+        .some(
+          listbox =>
+            listbox.getAttribute('aria-label') ===
+            'Linked worktrees, 1 worktree'
+        )
+    )
+  })
+
+  it('uses a singular count when one linked row is rendered', async () => {
+    const main = linkedWorktree({
+      path: 'C:/worktrees/main',
+      branch: 'refs/heads/main',
+      type: 'main',
+    })
+
+    render(
+      <WorktreeList
+        worktrees={[main, linkedWorktree()]}
+        currentWorktree={main}
+        filterText=""
+        onFilterTextChanged={() => undefined}
+        canCreateNewWorktree={false}
+      />
+    )
+
+    await waitFor(() => {
+      assert.ok(
+        screen
+          .getAllByRole('listbox')
+          .some(
+            listbox =>
+              listbox.getAttribute('aria-label') ===
+              'Linked worktrees, 1 worktree'
+          )
+      )
+    })
+  })
+
   it('merges an eligible linked worktree without selecting it', () => {
     const branch = new Branch(
       'feature',

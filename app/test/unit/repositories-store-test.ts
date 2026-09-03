@@ -107,6 +107,73 @@ describe('RepositoriesStore', () => {
   })
 
   describe('repository metadata', () => {
+    it('persists the main worktree recovery hint across reloads', async () => {
+      const repository = await repositoriesStore.addRepository(
+        '/some/linked/path',
+        '/some/main/.git/worktrees/linked'
+      )
+
+      const switched = await repositoriesStore.switchWorktree(
+        repository,
+        '/some/linked/path-again',
+        true,
+        '/some/main/.git/worktrees/linked',
+        '/some/main'
+      )
+      const [reloaded] = await repositoriesStore.getAll()
+
+      assert.equal(switched.repository.mainWorktreePath, '/some/main')
+      assert.equal(reloaded.mainWorktreePath, '/some/main')
+    })
+
+    it('records the main worktree hint on first linked-worktree registration', async () => {
+      const repository = await repositoriesStore.addRepository(
+        '/some/linked/first',
+        '/some/main/.git/worktrees/first',
+        { mainWorktreePath: '/some/main' }
+      )
+      const [reloaded] = await repositoriesStore.getAll()
+
+      assert.equal(repository.mainWorktreePath, '/some/main')
+      assert.equal(reloaded.mainWorktreePath, '/some/main')
+    })
+
+    it('enriches a legacy record without erasing its git directory', async () => {
+      const repository = await repositoriesStore.addRepository(
+        '/some/legacy/linked',
+        '/some/main/.git/worktrees/legacy'
+      )
+      const enriched = await repositoriesStore.updateRepositoryMainWorktreePath(
+        repository,
+        '/some/main'
+      )
+
+      assert.equal(enriched.gitDir, '/some/main/.git/worktrees/legacy')
+      assert.equal(enriched.mainWorktreePath, '/some/main')
+      const [reloaded] = await repositoriesStore.getAll()
+      assert.equal(reloaded.gitDir, '/some/main/.git/worktrees/legacy')
+      assert.equal(reloaded.mainWorktreePath, '/some/main')
+    })
+
+    it('updates the main worktree hint during relocation', async () => {
+      const repository = await repositoriesStore.addRepository(
+        '/some/old/linked',
+        '/some/old/.git/worktrees/linked',
+        { mainWorktreePath: '/some/old' }
+      )
+      const relocated = await repositoriesStore.updateRepositoryPath(
+        repository,
+        '/some/new/linked',
+        '/some/new/.git/worktrees/linked',
+        '/some/new'
+      )
+
+      assert.equal(relocated.mainWorktreePath, '/some/new')
+      const [reloaded] = await repositoriesStore.getAll()
+      assert.equal(reloaded.mainWorktreePath, '/some/new')
+      assert.equal(reloaded.gitDir, '/some/new/.git/worktrees/linked')
+    })
+
     it('round-trips configurable Cheap LFS upload concurrency and its legacy mirror', async () => {
       const repository = await repositoriesStore.addRepository(
         '/some/cheap-lfs/path',

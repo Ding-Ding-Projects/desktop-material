@@ -1,8 +1,10 @@
 import * as React from 'react'
-import * as Path from 'path'
 import { Branch } from '../../models/branch'
-import { WorktreeEntry } from '../../models/worktree'
-import { shortenSHA } from '../../models/commit'
+import {
+  getWorktreeDescription,
+  getWorktreeDisplayName,
+  WorktreeEntry,
+} from '../../models/worktree'
 import { IMatches } from '../../lib/fuzzy-find'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
@@ -12,6 +14,7 @@ import { TooltippedContent } from '../lib/tooltipped-content'
 import { enableAccessibleListToolTips } from '../../lib/feature-flag'
 import { RelativeTime } from '../relative-time'
 import { Button } from '../lib/button'
+import { appearanceLockTargetProps } from '../appearance'
 
 interface IWorktreeListItemProps {
   readonly worktree: WorktreeEntry
@@ -19,6 +22,7 @@ interface IWorktreeListItemProps {
   readonly matches: IMatches
   readonly mergeBranch?: Branch
   readonly onMergeWorktree?: (branch: Branch) => void
+  readonly appearanceId?: string
 }
 
 export class WorktreeListItem extends React.Component<IWorktreeListItemProps> {
@@ -38,11 +42,19 @@ export class WorktreeListItem extends React.Component<IWorktreeListItemProps> {
       mergeBranch,
       onMergeWorktree,
     } = this.props
-    const name = Path.basename(worktree.path)
+    const name = getWorktreeDisplayName(worktree)
+    const appearanceProps =
+      this.props.appearanceId === undefined
+        ? {}
+        : {
+            ...appearanceLockTargetProps(`feature:${this.props.appearanceId}`),
+            'data-dm-feature': this.props.appearanceId,
+            'data-dm-feature-id': this.props.appearanceId,
+            'data-worktree-appearance-id': this.props.appearanceId,
+            'data-md3-element-label': `Worktree ${name}`,
+          }
     const icon = isCurrentWorktree ? octicons.check : octicons.fileDirectory
-    const refLabel = worktree.branch
-      ? worktree.branch.replace(/^refs\/heads\//, '')
-      : shortenSHA(worktree.head)
+    const refLabel = getWorktreeDescription(worktree)
     const stateLabels = [
       worktree.dirtyFileCount === null ? 'status unavailable' : null,
       worktree.dirtyFileCount && worktree.dirtyFileCount > 0
@@ -61,7 +73,7 @@ export class WorktreeListItem extends React.Component<IWorktreeListItemProps> {
     })
 
     return (
-      <div className={className}>
+      <div className={className} {...appearanceProps}>
         <Octicon className="icon" symbol={icon} />
         <TooltippedContent
           className="name"
