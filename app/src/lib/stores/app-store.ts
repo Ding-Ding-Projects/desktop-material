@@ -5335,6 +5335,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
         if (!this.isDeferredStartupCurrent(generation)) {
           return
         }
+        await this.cloningRepositoriesStore.initializeDirectCloneRecovery()
+        if (!this.isDeferredStartupCurrent(generation)) {
+          return
+        }
         await this.batchCloneStore.initialize()
         if (!this.isDeferredStartupCurrent(generation)) {
           return

@@ -1,10 +1,15 @@
 import * as Path from 'path'
 import { URL } from 'url'
-import { parseRepositoryIdentifier } from '../lib/remote-parsing'
+import {
+  parseRepositoryIdentifier,
+  MaxCloneNameLength,
+  sanitizeCloneName,
+} from '../lib/remote-parsing'
 import {
   ICheapLfsCloneSelection,
   isSafeCheapLfsCloneSelection,
 } from './cheap-lfs-clone-selection'
+import { isClonePathSensitive } from '../lib/path-validation'
 
 /** How a batch of repositories should be cloned. */
 export enum BatchCloneMode {
@@ -21,7 +26,7 @@ export const BatchCloneParallelLimit = 3
 export const MaxBatchCloneItems = 500
 export const MaxBatchCloneURLLength = 8192
 export const MaxBatchCloneRawFolderNameLength = 1024
-export const MaxBatchCloneFolderNameLength = 100
+export const MaxBatchCloneFolderNameLength = MaxCloneNameLength
 export const MaxBatchClonePathLength = 32767
 export const MaxBatchCloneBranchLength = 1024
 export const MaxBatchCloneAccountKeyLength = 4096
@@ -165,14 +170,16 @@ export function isTerminalStatus(status: IBatchCloneItemStatus): boolean {
 export function deriveBatchCloneName(url: string): string {
   const identifier = parseRepositoryIdentifier(url)
   if (identifier !== null && identifier.name.length > 0) {
-    return identifier.name
+    return sanitizeCloneName(identifier.name) ?? 'repository'
   }
 
   // Strip a trailing ".git" and any trailing slashes, then take the basename.
   const cleaned = url.replace(/\/+$/, '').replace(/\.git$/i, '')
   const segments = cleaned.split(/[\\/]/).filter(s => s.length > 0)
   const last = segments[segments.length - 1]
-  return last && last.length > 0 ? last : 'repository'
+  return last && last.length > 0
+    ? sanitizeCloneName(last) ?? 'repository'
+    : 'repository'
 }
 
 /**
@@ -209,7 +216,10 @@ const WindowsReservedFolderName =
 export function sanitizeBatchCloneFolderName(candidate: string): string {
   let name = candidate
     .normalize('NFC')
-    .replace(/[\u0000-\u001f\u007f<>:"/\\|?*]+/g, '-')
+    .replace(
+      /[\u0000-\u001f\u007f\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff<>:"/\\|?*]+/g,
+      '-'
+    )
     .replace(/\s+/g, ' ')
     .trim()
     .replace(/[. ]+$/g, '')
@@ -291,6 +301,7 @@ export function isSafeBatchCloneItem(item: IBatchCloneItem): boolean {
     item.path.length === 0 ||
     item.path.length > MaxBatchClonePathLength ||
     !Path.isAbsolute(item.path) ||
+    isClonePathSensitive(item.path) ||
     (item.defaultBranch !== undefined &&
       (typeof item.defaultBranch !== 'string' ||
         item.defaultBranch.length > MaxBatchCloneBranchLength)) ||
@@ -387,6 +398,11 @@ export function buildBatchCloneItems(
   if (inputs.length > MaxBatchCloneItems) {
     throw new Error(
       `A clone batch cannot contain more than ${MaxBatchCloneItems} repositories.`
+    )
+  }
+  if (isClonePathSensitive(baseDirectory)) {
+    throw new Error(
+      'The clone base directory targets a sensitive system location. Choose another folder and try again.'
     )
   }
   const taken = new Set<string>()
