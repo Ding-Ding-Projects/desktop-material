@@ -12,6 +12,7 @@ import {
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
 import { ISettingsTabItem } from './settings-tab-model'
+import { getPersistedLanguageMode, translate } from '../../lib/i18n'
 
 interface ISettingsTabPickerPopoverProps {
   /** The pages this surface offers. Already narrowed by the caller. */
@@ -108,6 +109,21 @@ export class SettingsTabPickerPopover extends React.Component<
     return this.props.items.filter(item => matched.has(item))
   }
 
+  private get regexError(): string | null {
+    if (this.state.query.trim().length === 0) {
+      return null
+    }
+    return matchWithMode(
+      this.state.query,
+      this.props.items,
+      item => [item.searchText, item.accessibleLabel ?? ''],
+      {
+        mode: this.state.filterMode,
+        caseSensitive: this.state.caseSensitive,
+      }
+    ).regexError
+  }
+
   private onQueryChange = (event: React.FormEvent<HTMLInputElement>) => {
     this.setState({ query: event.currentTarget.value, highlightedIndex: 0 })
   }
@@ -178,7 +194,13 @@ export class SettingsTabPickerPopover extends React.Component<
         <>
           <p className="settings-tab-picker-empty" role="status">
             {this.props.accessibleLabels?.noMatches ??
-              `No ${this.props.title} page matches that.`}
+              translate(
+                'settings.browserTabNoMatches',
+                getPersistedLanguageMode(),
+                {
+                  surface: this.props.title,
+                }
+              )}
           </p>
           <ul
             id={`${this.props.pickerId}-list`}
@@ -186,7 +208,13 @@ export class SettingsTabPickerPopover extends React.Component<
             role="listbox"
             aria-label={
               this.props.accessibleLabels?.pickerTitle ??
-              `Choose a ${this.props.title} page`
+              translate(
+                'settings.browserTabPickerTitle',
+                getPersistedLanguageMode(),
+                {
+                  surface: this.props.title,
+                }
+              )
             }
           />
         </>
@@ -200,7 +228,13 @@ export class SettingsTabPickerPopover extends React.Component<
         role="listbox"
         aria-label={
           this.props.accessibleLabels?.pickerTitle ??
-          `Choose a ${this.props.title} page`
+          translate(
+            'settings.browserTabPickerTitle',
+            getPersistedLanguageMode(),
+            {
+              surface: this.props.title,
+            }
+          )
         }
       >
         {results.map((item, index) => {
@@ -235,10 +269,15 @@ export class SettingsTabPickerPopover extends React.Component<
 
   public render() {
     const label =
-      this.props.accessibleLabels?.search ?? `Search ${this.props.title}`
+      this.props.accessibleLabels?.search ??
+      translate('settings.browserTabSearch', getPersistedLanguageMode(), {
+        surface: this.props.title,
+      })
     const pickerTitle =
       this.props.accessibleLabels?.pickerTitle ??
-      `Choose a ${this.props.title} page`
+      translate('settings.browserTabPickerTitle', getPersistedLanguageMode(), {
+        surface: this.props.title,
+      })
     const results = this.results
     const activeOption = results[this.state.highlightedIndex]
 
@@ -252,9 +291,11 @@ export class SettingsTabPickerPopover extends React.Component<
         className="settings-tab-picker"
         ariaLabelledby={`${this.props.pickerId}-title`}
       >
-        <h2 id={`${this.props.pickerId}-title`} className="sr-only">
-          {pickerTitle}
-        </h2>
+        <div className="settings-tab-picker-header">
+          <h2 id={`${this.props.pickerId}-title`} className="sr-only">
+            {pickerTitle}
+          </h2>
+        </div>
         {/* The list is driven from the field, so the whole surface listens. */}
         {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
         <div onKeyDown={this.onKeyDown}>
@@ -289,6 +330,17 @@ export class SettingsTabPickerPopover extends React.Component<
               onRegexPatternApply={this.onRegexPatternApply}
             />
           </div>
+          {this.regexError !== null && (
+            <p className="settings-tab-picker-error" role="alert">
+              {translate(
+                'settings.tabGroupInvalidRegex',
+                getPersistedLanguageMode(),
+                {
+                  message: this.regexError,
+                }
+              )}
+            </p>
+          )}
           {this.renderResults()}
         </div>
       </Popover>
