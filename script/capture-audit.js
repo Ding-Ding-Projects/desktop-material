@@ -292,12 +292,28 @@ function collectFindings(auditRootSelector) {
         )
       }
 
-      const smallest = Math.min(rect.width, rect.height)
+      // WCAG 2.5.8 exempts a target sitting inside a sentence, because its
+      // height is set by the surrounding line-height rather than by anything
+      // the control chooses. Reporting those would be reporting correct code,
+      // and a rule that cries wolf is a rule somebody switches off.
+      const parent = element.parentElement
+      const inSentence =
+        parent !== null &&
+        Array.from(parent.childNodes).some(
+          node => node.nodeType === 3 && node.textContent.trim() !== ''
+        )
+
+      // The half-pixel slack is not laziness. The application applies its own
+      // zoom factor, so a control given exactly `min-height: 24px` measures
+      // 23.994 and would be reported for ever however it was written.
+      const smallest = Math.min(rect.width, rect.height) + 0.5
       const size = Math.round(rect.width) + 'x' + Math.round(rect.height)
-      if (smallest < 24) {
-        add('CJ-TARGET-TOO-SMALL', 'error', element, size)
-      } else if (smallest < 40) {
-        add('CJ-TARGET-TOO-SMALL', 'warn', element, size)
+      if (!inSentence) {
+        if (smallest < 24) {
+          add('CJ-TARGET-TOO-SMALL', 'error', element, size)
+        } else if (smallest < 40) {
+          add('CJ-TARGET-TOO-SMALL', 'warn', element, size)
+        }
       }
 
       const named =
@@ -327,10 +343,28 @@ function collectFindings(auditRootSelector) {
  * one finding per row, and forty copies of one defect is a report nobody reads.
  * The exemplar carries an occurrence count instead.
  */
-async function auditSurface(page, { label, root = null }) {
+async function auditSurface(page, { label, root = null, allowlist = [] }) {
   await settleForMeasurement(page)
 
   const found = await page.evaluate(collectFindings, root)
+
+  // Deliberate clipping is real — a decorative flourish clipped to its frame is
+  // not a defect. Each entry needs prose, and an entry that matches nothing is
+  // itself reported: a suppression that has outlived the thing it suppressed
+  // goes on excusing whatever drifts into its path.
+  const unused = new Set(allowlist.map((_, index) => index))
+  for (const finding of found.findings) {
+    const index = allowlist.findIndex(
+      entry => entry.rule === finding.rule && finding.path.includes(entry.path)
+    )
+    if (index !== -1) {
+      unused.delete(index)
+      finding.severity = 'info'
+      finding.allowedBecause = allowlist[index].reason
+    }
+  }
+
+  const staleAllowlist = [...unused].map(index => allowlist[index])
 
   const collapsed = new Map()
   for (const finding of found.findings) {
@@ -353,6 +387,7 @@ async function auditSurface(page, { label, root = null }) {
   return {
     label,
     root,
+    staleAllowlist,
     elementsExamined: found.elementsExamined,
     devicePixelRatio: found.devicePixelRatio,
     viewport: found.viewport,
