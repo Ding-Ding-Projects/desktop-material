@@ -14,6 +14,7 @@ import { TooltippedContent } from '../lib/tooltipped-content'
 import { enableAccessibleListToolTips } from '../../lib/feature-flag'
 import { RelativeTime } from '../relative-time'
 import { Button } from '../lib/button'
+import { appearanceLockTargetProps } from '../appearance'
 
 interface IWorktreeListItemProps {
   readonly worktree: WorktreeEntry
@@ -21,6 +22,7 @@ interface IWorktreeListItemProps {
   readonly matches: IMatches
   readonly mergeBranch?: Branch
   readonly onMergeWorktree?: (branch: Branch) => void
+  readonly appearanceId?: string
 }
 
 export class WorktreeListItem extends React.Component<IWorktreeListItemProps> {
@@ -41,6 +43,16 @@ export class WorktreeListItem extends React.Component<IWorktreeListItemProps> {
       onMergeWorktree,
     } = this.props
     const name = getWorktreeDisplayName(worktree)
+    const appearanceProps =
+      this.props.appearanceId === undefined
+        ? {}
+        : {
+            ...appearanceLockTargetProps(`feature:${this.props.appearanceId}`),
+            'data-dm-feature': this.props.appearanceId,
+            'data-dm-feature-id': this.props.appearanceId,
+            'data-worktree-appearance-id': this.props.appearanceId,
+            'data-md3-element-label': `Worktree ${name}`,
+          }
     const icon = isCurrentWorktree ? octicons.check : octicons.fileDirectory
     const refLabel = getWorktreeDescription(worktree)
     const stateLabels = [
@@ -61,7 +73,7 @@ export class WorktreeListItem extends React.Component<IWorktreeListItemProps> {
     })
 
     return (
-      <div className={className}>
+      <div className={className} {...appearanceProps}>
         <Octicon className="icon" symbol={icon} />
         <TooltippedContent
           className="name"

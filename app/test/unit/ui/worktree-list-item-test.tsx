@@ -6,6 +6,7 @@ import { Branch, BranchType } from '../../../src/models/branch'
 import { IMatches } from '../../../src/lib/fuzzy-find'
 import {
   getWorktreeAriaLabel,
+  getWorktreeAppearanceId,
   getWorktreeDescription,
   getWorktreeDisplayName,
   WorktreeEntry,
@@ -160,6 +161,27 @@ describe('WorktreeListItem', () => {
     assert.equal(screen.queryByText(/^clean$/), null)
   })
 
+  it('registers isolated appearance and lock targets for each row', () => {
+    const firstId = getWorktreeAppearanceId(7, 'C:/worktrees/one')
+    const secondId = getWorktreeAppearanceId(7, 'C:/worktrees/two')
+    assert.notEqual(firstId, secondId)
+
+    const { container } = render(
+      <WorktreeListItem
+        worktree={linkedWorktree()}
+        isCurrentWorktree={false}
+        matches={noMatches}
+        appearanceId={firstId}
+      />
+    )
+    const row = container.querySelector('.worktrees-list-item')
+    assert.ok(row)
+    assert.equal(row.getAttribute('data-dm-feature'), firstId)
+    assert.equal(row.getAttribute('data-dm-feature-id'), firstId)
+    assert.equal(row.getAttribute('data-worktree-appearance-id'), firstId)
+    assert.equal(row.getAttribute('data-md3-lock-target'), `feature:${firstId}`)
+  })
+
   it('indexes unavailable status in the worktree filter', async () => {
     localStorage.setItem('filter-mode/worktrees', 'substring')
     render(
@@ -176,6 +198,37 @@ describe('WorktreeListItem', () => {
       assert.equal(screen.getAllByRole('option').length, 1)
     })
     localStorage.removeItem('filter-mode/worktrees')
+  })
+
+  it('dispatches a still-eligible row merge through its per-item owner', async () => {
+    const worktree = linkedWorktree()
+    let mergedRef: string | null = null
+    let mergedSha: string | null = null
+
+    const { container } = render(
+      <WorktreeList
+        worktrees={[worktree]}
+        currentWorktree={null}
+        onMergeWorktree={branch => {
+          mergedRef = branch.ref
+          mergedSha = branch.tip.sha
+        }}
+        filterText=""
+        onFilterTextChanged={() => undefined}
+        canCreateNewWorktree={false}
+      />
+    )
+
+    const button = await waitFor(() => {
+      const element = container.querySelector<HTMLButtonElement>(
+        '.merge-worktree-button'
+      )
+      assert.ok(element)
+      return element
+    })
+    fireEvent.click(button)
+    assert.equal(mergedRef, worktree.branch)
+    assert.equal(mergedSha, worktree.head)
   })
 
   it('activates the focused worktree with Enter and keeps the state accessible', async () => {

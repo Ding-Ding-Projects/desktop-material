@@ -7,6 +7,7 @@ import { FoldoutType, IConstrainedValue } from '../../lib/app-state'
 import {
   WorktreeEntry,
   WorktreeMaintenanceOperation,
+  getWorktreeAppearanceId,
   worktreePathsEqual,
 } from '../../models/worktree'
 import {
@@ -33,6 +34,7 @@ interface IWorktreeDropdownProps {
   readonly onDropDownStateChanged: (state: DropdownState) => void
   readonly enableFocusTrap: boolean
   readonly worktreeDropdownWidth: IConstrainedValue
+  readonly onEditWorktreeAppearance?: (appearanceId: string) => void
 }
 
 interface IWorktreeDropdownState {
@@ -71,6 +73,10 @@ export class WorktreeDropdown extends React.Component<
       onRemoveWorktree: this.onRemoveWorktree,
       onLockWorktree: this.onLockWorktree,
       onUnlockWorktree: this.onUnlockWorktree,
+      onEditAppearance: path =>
+        this.props.onEditWorktreeAppearance?.(
+          getWorktreeAppearanceId(this.props.repository.id, path)
+        ),
       onOpenInNewWindow: () => this.onOpenWorktreeInNewWindow(worktree.path),
     })
 
@@ -149,7 +155,7 @@ export class WorktreeDropdown extends React.Component<
     }
 
     void listWorktrees(this.props.repository)
-      .then(worktrees => {
+      .then(async worktrees => {
         const current = worktrees.find(worktree =>
           worktreePathsEqual(worktree.path, expected.path)
         )
@@ -162,9 +168,10 @@ export class WorktreeDropdown extends React.Component<
           currentBranch.ref !== branch.ref ||
           currentBranch.tip.sha !== branch.tip.sha
         ) {
-          return this.props.dispatcher.postError(
+          await this.props.dispatcher.postError(
             new Error('The worktree changed before its merge could start.')
           )
+          return
         }
 
         this.props.dispatcher.closeFoldout(FoldoutType.Worktree)
@@ -197,6 +204,10 @@ export class WorktreeDropdown extends React.Component<
       onUnlockWorktree: this.onUnlockWorktree,
       onOpenInNewWindow: () =>
         this.onOpenWorktreeInNewWindow(currentWorktree.path),
+      onEditAppearance: path =>
+        this.props.onEditWorktreeAppearance?.(
+          getWorktreeAppearanceId(this.props.repository.id, path)
+        ),
     })
 
     const newWorktreeItem: IMenuItem = {
@@ -246,6 +257,7 @@ export class WorktreeDropdown extends React.Component<
         onCreateNewWorktree={this.onCreateNewWorktree}
         onMergeAllWorktrees={this.onMergeAllWorktrees}
         onMergeWorktree={this.onMergeWorktree}
+        appearanceRepositoryId={this.props.repository.id}
         onCheckoutAllBranchesAsWorktrees={this.onCheckoutAllBranchesAsWorktrees}
         onWorktreeContextMenu={this.onWorktreeContextMenu}
         renderAdministration={this.renderAdministration}

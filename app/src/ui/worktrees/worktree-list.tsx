@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Branch, BranchType } from '../../models/branch'
 import {
   getWorktreeAriaLabel,
+  getWorktreeAppearanceId,
   getWorktreeDisplayName,
   worktreePathsEqual,
   WorktreeEntry,
@@ -43,6 +44,7 @@ interface IWorktreeListProps {
     worktree: WorktreeEntry,
     event: React.MouseEvent<HTMLDivElement>
   ) => void
+  readonly appearanceRepositoryId?: number
 }
 
 type WorktreeGroupIdentifier = 'main' | 'linked'
@@ -111,6 +113,14 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
         isCurrentWorktree={isCurrentWorktree}
         matches={matches}
         mergeBranch={mergeBranch}
+        appearanceId={
+          this.props.appearanceRepositoryId === undefined
+            ? undefined
+            : getWorktreeAppearanceId(
+                this.props.appearanceRepositoryId,
+                item.worktree.path
+              )
+        }
         onMergeWorktree={
           this.props.onMergeWorktree === undefined
             ? undefined

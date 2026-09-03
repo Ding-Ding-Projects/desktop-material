@@ -36,6 +36,15 @@ export function worktreePathsEqual(first: string, second: string): boolean {
     : a === b
 }
 
+/** Stable per-repository identity for one worktree-row appearance owner. */
+export function getWorktreeAppearanceId(
+  repositoryId: number,
+  worktreePath: string
+): string {
+  const pathModule = process.platform === 'win32' ? Path.win32 : Path.posix
+  return `worktree:${repositoryId}:${pathModule.resolve(worktreePath)}`
+}
+
 /** Return a worktree's final path segment without assuming one separator. */
 export function getWorktreeDisplayName(worktree: WorktreeEntry): string {
   const trimmed = worktree.path.replace(/[\\/]+$/, '')

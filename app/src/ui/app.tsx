@@ -9331,6 +9331,42 @@ export class App extends React.Component<IAppProps, IAppState> {
     }
   }
 
+  private onEditWorktreeAppearance = (appearanceId: string) => {
+    const anchor = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-worktree-appearance-id]')
+    ).find(element => element.dataset.worktreeAppearanceId === appearanceId)
+    if (anchor === undefined) {
+      this.props.dispatcher.postError(
+        new Error('The selected worktree row is no longer available.')
+      )
+      return
+    }
+
+    this.prepareAppearanceAnchor(anchor)
+    const profileKey = this.props.dispatcher.getActiveProfileKey()
+    void this.props.dispatcher
+      .getFeatureAppearanceElement(appearanceId)
+      .then(value => {
+        if (
+          !this.mounted ||
+          !anchor.isConnected ||
+          this.props.dispatcher.getActiveProfileKey() !== profileKey
+        ) {
+          return
+        }
+        this.appearanceEditorTarget = {
+          kind: 'feature',
+          featureId: appearanceId,
+          label: anchor.dataset.md3ElementLabel ?? 'Worktree row',
+          anchor,
+          highlighted: value.highlighted,
+          profileKey,
+        }
+        this.forceUpdate()
+      })
+      .catch(error => this.props.dispatcher.postError(asError(error)))
+  }
+
   private renderBranchToolbarButton(): JSX.Element | null {
     const selection = this.state.selectedState
 
@@ -9415,6 +9451,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         worktrees={worktrees}
         isOpen={isOpen}
         onDropDownStateChanged={this.onWorktreeDropdownStateChanged}
+        onEditWorktreeAppearance={this.onEditWorktreeAppearance}
         enableFocusTrap={enableFocusTrap}
         worktreeDropdownWidth={this.state.worktreeDropdownWidth}
       />
