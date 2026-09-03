@@ -3,6 +3,7 @@ import {
   IBrowserExtensionDownloadRequest,
   parseBrowserExtensionDownloadRequest,
 } from '../lib/browser-extension-download'
+import { decodeNativeMessagingDownloadRequest } from '../lib/browser-extension-native-messaging'
 
 export interface IBrowserExtensionDownloadHandoffOptions {
   readonly onDownloadRequested: (
@@ -28,6 +29,13 @@ export class BrowserExtensionDownloadHandoff {
     }
     this.options.onDownloadRequested(request)
     return true
+  }
+
+  public acceptNativeFrame(frame: Uint8Array): boolean {
+    const result = decodeNativeMessagingDownloadRequest(frame)
+    return (
+      result.kind === 'accepted' && this.acceptNativeMessage(result.request)
+    )
   }
 
   /**

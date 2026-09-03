@@ -41,19 +41,46 @@ export class BrowserExtensionDownloadQueue {
     string,
     IBrowserExtensionDownloadProgress
   >()
+  private activeRequestId: string | null = null
 
   public constructor(
     private readonly executor: IBrowserExtensionDownloadExecutor,
     private readonly onProgress: BrowserExtensionDownloadQueueListener
   ) {}
 
-  public async start(request: IBrowserExtensionDownloadRequest): Promise<void> {
+  public enqueue(request: IBrowserExtensionDownloadRequest): void {
     if (this.current.has(request.id)) {
+      return
+    }
+    this.publish({
+      request,
+      phase: 'awaiting-confirmation',
+      downloadedBytes: 0,
+      totalBytes: null,
+      bytesPerSecond: null,
+      error: null,
+    })
+  }
+
+  public confirm(requestId: string): Promise<void> {
+    const progress = this.current.get(requestId)
+    if (progress?.phase !== 'awaiting-confirmation') {
+      return Promise.resolve()
+    }
+    return this.start(progress.request)
+  }
+
+  public async start(request: IBrowserExtensionDownloadRequest): Promise<void> {
+    if (
+      this.controllers.has(request.id) ||
+      (this.activeRequestId !== null && this.activeRequestId !== request.id)
+    ) {
       return
     }
 
     const controller = new AbortController()
     this.controllers.set(request.id, controller)
+    this.activeRequestId = request.id
     const temporaryPath = join(
       dirname(request.destination),
       `.${request.suggestedFileName}.${randomUUID()}.part`
@@ -131,6 +158,9 @@ export class BrowserExtensionDownloadQueue {
       })
     } finally {
       this.controllers.delete(request.id)
+      if (this.activeRequestId === request.id) {
+        this.activeRequestId = null
+      }
     }
   }
 

@@ -840,6 +840,8 @@ describe('RepositoryTab title appearance', () => {
 
     const label = screen.getByText('beta')
     assert.equal(label.classList.contains('repository-tab-label'), true)
+    assert.equal(label.getAttribute('title'), 'beta')
+    assert.equal(label.getAttribute('aria-label'), 'beta')
     const ordinaryRightClick = fireEvent.contextMenu(label, { button: 2 })
     assert.equal(ordinaryRightClick, false)
     assert.equal(screen.queryByText('Tab appearance'), null)

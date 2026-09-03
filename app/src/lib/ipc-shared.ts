@@ -157,6 +157,7 @@ import type {
   IUnlockLadderStartRequest,
   IUnlockLadderSubmission,
 } from '../models/unlock-ladder'
+import { IBrowserExtensionDownloadProgress } from './browser-extension-download'
 
 /**
  * Defines the simplex IPC channel names we use from the renderer
@@ -165,6 +166,9 @@ import type {
  * the two over the untyped IPC framework.
  */
 export type RequestChannels = {
+  'browser-extension-download-progress': (
+    progress: IBrowserExtensionDownloadProgress
+  ) => void
   'cancel-actions-artifact-provenance': (operationId: string) => void
   'release-actions-artifact-provenance-credential-lease': (
     accountHandle: string
@@ -328,6 +332,13 @@ export type RequestChannels = {
  * Return signatures must be promises
  */
 export type RequestResponseChannels = {
+  'browser-extension-download-confirm': (requestId: string) => Promise<void>
+  'browser-extension-download-pause': (requestId: string) => Promise<void>
+  'browser-extension-download-resume': (requestId: string) => Promise<void>
+  'browser-extension-download-cancel': (requestId: string) => Promise<void>
+  'browser-extension-download-accept-native-frame': (
+    frame: Uint8Array
+  ) => Promise<boolean>
   /** Start a wait recovery record owned by the main process. */
   'unlock-ladder-start': (
     request: IUnlockLadderStartRequest
