@@ -27,7 +27,7 @@
     flex: 1 1 260px;
     min-width: 0;
     padding: 5px 12px;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: var(--md-sys-color-surface-container-highest);
     color: var(--md-sys-color-on-surface-variant);
 
@@ -70,7 +70,7 @@
     min-height: 36px;
     padding: 6px 14px;
     border: 1px solid var(--md-sys-color-outline);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: transparent;
     color: var(--md-sys-color-on-surface);
     font-size: 13px;
@@ -107,7 +107,7 @@
     min-height: 32px;
     padding: 4px 12px;
     border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 8px;
+    border-radius: var(--md-sys-shape-corner-small);
     background: transparent;
     color: var(--md-sys-color-on-surface-variant);
     font-size: 12.5px;
@@ -189,7 +189,7 @@
 
   .changelog-current-badge {
     padding: 2px 8px;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: var(--md-sys-color-primary);
     color: var(--md-sys-color-on-primary);
     font-size: 11px;
@@ -261,7 +261,7 @@
     min-height: 36px;
     padding: 6px 20px;
     border: 1px solid var(--md-sys-color-outline);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: transparent;
     color: var(--md-sys-color-primary);
     font-size: 13px;
@@ -296,14 +296,14 @@
     min-width: 200px;
     padding: 6px;
     border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     background: var(--md-sys-color-surface-container);
     box-shadow: var(--md-sys-elevation-level2);
 
     button {
       padding: 8px 12px;
       border: 0;
-      border-radius: 8px;
+      border-radius: var(--md-sys-shape-corner-small);
       background: transparent;
       color: var(--md-sys-color-on-surface);
       font-size: 13px;
@@ -351,7 +351,7 @@
     min-height: 30px;
     padding: 3px 10px;
     border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: transparent;
     color: var(--md-sys-color-on-surface-variant);
     font-size: 12px;
@@ -392,7 +392,7 @@
       min-height: 34px;
       padding: 5px 10px;
       border: 1px solid var(--md-sys-color-outline);
-      border-radius: 8px;
+      border-radius: var(--md-sys-shape-corner-small);
       background: var(--md-sys-color-surface);
       color: var(--md-sys-color-on-surface);
       font-size: 12.5px;
@@ -434,7 +434,7 @@
       min-height: 32px;
       padding: 4px 8px;
       border: 1px solid var(--md-sys-color-outline);
-      border-radius: 8px;
+      border-radius: var(--md-sys-shape-corner-small);
       background: var(--md-sys-color-surface);
       color: var(--md-sys-color-on-surface);
       font-size: 12.5px;
@@ -449,7 +449,7 @@
     height: 32px;
     flex: none;
     border: 0;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: transparent;
     color: var(--md-sys-color-on-surface-variant);
     cursor: pointer;
@@ -492,7 +492,7 @@
     // guidance at a 7-column grid inside a 300px popover.
     height: 34px;
     border: 0;
-    border-radius: 8px;
+    border-radius: var(--md-sys-shape-corner-small);
     background: transparent;
     color: var(--md-sys-color-on-surface);
     font-size: 12.5px;

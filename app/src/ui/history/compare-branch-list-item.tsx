@@ -10,6 +10,7 @@ import { Repository } from '../../models/repository'
 import type { Disposable } from 'event-kit'
 import { TooltippedContent } from '../lib/tooltipped-content'
 import { formatNumber } from '../../lib/format-number'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface ICompareBranchListItemProps {
   readonly branch: Branch
@@ -115,12 +116,12 @@ export class CompareBranchListItem extends React.Component<
       <div className="branch-commit-counter">
         <span className="branch-commit-counter-item">
           {formatNumber(aheadBehind.behind)}
-          <Octicon className="icon" symbol={octicons.arrowDown} />
+          <MaterialSymbol name="arrow_downward" className="icon" />
         </span>
 
         <span className="branch-commit-counter-item">
           {formatNumber(aheadBehind.ahead)}
-          <Octicon className="icon" symbol={octicons.arrowUp} />
+          <MaterialSymbol name="arrow_upward" className="icon" />
         </span>
       </div>
     ) : null

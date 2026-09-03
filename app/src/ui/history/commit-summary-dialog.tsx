@@ -12,12 +12,11 @@ import { CommitAttribution } from '../lib/commit-attribution'
 import { RelativeTime } from '../relative-time'
 import { formatDate } from '../../lib/format-date'
 import { PathText } from '../lib/path-text'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import {
   ChangeSummaryResultChange,
   IChangeSummaryResult,
 } from '../../lib/change-summary/change-summary-model'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface ICommitSummaryDialogProps {
   readonly dispatcher: Dispatcher
@@ -134,9 +133,9 @@ export class CommitSummaryDialog extends React.Component<
     if (phase.kind === 'loading') {
       return (
         <div className="commit-summary-dialog-loading">
-          <Octicon
+          <MaterialSymbol
+            name="smart_toy"
             className="commit-summary-dialog-loading-icon"
-            symbol={octicons.copilot}
           />
           <span>Explaining these commits…</span>
         </div>

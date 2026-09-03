@@ -1,10 +1,9 @@
 import * as React from 'react'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { Banner } from './banner'
 import { Dispatcher } from '../dispatcher'
 import { Popup } from '../../models/popup'
 import { LinkButton } from '../lib/link-button'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IMergeConflictsBannerProps {
   readonly dispatcher: Dispatcher
@@ -31,7 +30,7 @@ export class MergeConflictsBanner extends React.Component<
         dismissable={false}
         onDismissed={this.props.onDismissed}
       >
-        <Octicon className="alert-icon" symbol={octicons.alert} />
+        <MaterialSymbol name="warning" className="alert-icon" />
         <div className="banner-message">
           <span>
             Resolve conflicts and commit to merge into{' '}

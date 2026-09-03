@@ -568,6 +568,8 @@ describe('every rendered element joins the toy-lock boundary', () => {
     )
     assert.match(host, /measureCreationMenu/)
     assert.match(host, /ArrowDown/)
+    assert.match(host, /role="menu"/)
+    assert.doesNotMatch(host, /role="menubar"/)
   })
 
   it('offers Lock this element from context-menu and keyboard routes', async () => {

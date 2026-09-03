@@ -29,7 +29,7 @@ button.material-switch {
   width: 54px;
   height: 32px;
   padding: 0;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   border: 2px solid var(--md-sys-color-outline);
   background: var(--md-sys-color-surface-container-high);
   position: relative;
@@ -42,7 +42,7 @@ button.material-switch {
     left: 3px;
     width: 18px;
     height: 18px;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: var(--md-sys-color-outline);
     transform: translateY(-50%) translateX(3px);
     display: grid;

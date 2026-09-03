@@ -2362,6 +2362,21 @@ export type TranslationKey =
   | 'settings.tabsDockTop'
   | 'settings.tabsDockBottom'
   | 'settings.tabsDockRight'
+  | 'settings.tabGroupCreate'
+  | 'settings.tabGroupNamePrompt'
+  | 'settings.tabGroupRenamePrompt'
+  | 'settings.tabGroupSearch'
+  | 'settings.tabGroupSearchTabs'
+  | 'settings.tabGroupMove'
+  | 'settings.tabGroupMoveOut'
+  | 'settings.tabGroupEmpty'
+  | 'settings.tabGroupExpand'
+  | 'settings.tabGroupCollapse'
+  | 'settings.tabGroupRemove'
+  | 'settings.tabGroupInvalidRegex'
+  | 'settings.tabGroupNoMatch'
+  | 'settings.tabsDockSearch'
+  | 'settings.tabGroupCurrentSearch'
   | 'settings.contextMenuHeading'
   | 'settings.contextMenuDescription'
   | 'settings.contextMenuPlacementNote'
@@ -5705,6 +5720,36 @@ export type TranslationKey =
   | 'md3.classicSection.cheapLfs'
   | 'md3.classicSection.launchpad'
   | 'md3.classicSection.historyGraph'
+  | 'copilot.accountUsage'
+  | 'copilot.configureModels'
+  | 'copilot.quotaLoading'
+  | 'copilot.quotaUnavailable'
+  | 'copilot.quotaStale'
+  | 'copilot.quotaError'
+  | 'copilot.quotaEmpty'
+  | 'copilot.quotaUsedOfAvailable'
+  | 'copilot.quotaResetUnavailable'
+  | 'copilot.quotaUpdated'
+  | 'copilot.quotaPercentUsed'
+  | 'copilot.quotaNoUsageLimit'
+  | 'copilot.quotaUnlimited'
+  | 'copilot.quotaPercentRemaining'
+  | 'copilot.accountOverview'
+  | 'copilot.quotaDetails'
+  | 'copilot.configureModelsAction'
+  | 'settingsSearch.entry.copilotAccountOverview.title'
+  | 'settingsSearch.entry.copilotAccountOverview.desc'
+  | 'settingsSearch.entry.copilotQuota.title'
+  | 'settingsSearch.entry.copilotQuota.desc'
+  | 'settingsSearch.entry.copilotConfigureModels.title'
+  | 'settingsSearch.entry.copilotConfigureModels.desc'
+  | 'palette.copilotAccountOverview'
+  | 'palette.copilotQuota'
+  | 'palette.copilotConfigureModels'
+  | 'copilot.quotaLead.plain'
+  | 'copilot.quotaLead.light'
+  | 'copilot.quotaLead.playful'
+  | 'copilot.quotaLead.maximum'
 
 /** Complete base catalog. Every missing locale entry falls back to this. */
 export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
@@ -8131,7 +8176,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Inspect a local file, choose a supported conversion, and keep the source unchanged.',
   'fileConverter.sourceFile': 'Source file',
   'fileConverter.browseSource': 'Browse for file',
-  'fileConverter.sourceEmpty': 'Choose a local file to see compatible conversions.',
+  'fileConverter.sourceEmpty':
+    'Choose a local file to see compatible conversions.',
   'fileConverter.sourceUnsupported':
     'This file type is not supported by an installed converter.',
   'fileConverter.adapterCatalog': 'Conversion catalog',
@@ -8148,7 +8194,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'fileConverter.failed': 'Failed',
   'fileConverter.sourceUnchanged': 'The original file is never changed.',
   'fileConverter.outputPath': 'Output location',
-  'fileConverter.noNetwork': 'Conversion runs locally and does not upload this file.',
+  'fileConverter.noNetwork':
+    'Conversion runs locally and does not upload this file.',
   'fileConverter.unavailableAdapter':
     'This conversion is unavailable because its required local adapter is not installed.',
   'fileConverter.lossWarning':
@@ -8385,6 +8432,42 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settings.accountsTab': 'Accounts',
   'settings.integrationsTab': 'Integrations',
   'settings.copilotTab': 'Copilot',
+  'copilot.accountUsage': 'Copilot usage for {account}',
+  'copilot.configureModels': 'Configure models for {account}',
+  'copilot.quotaLoading': 'Loading Copilot usage…',
+  'copilot.quotaUnavailable': 'Copilot usage unavailable for this account.',
+  'copilot.quotaStale': 'Showing stale Copilot usage data.',
+  'copilot.quotaError': 'Copilot usage could not be loaded.',
+  'copilot.quotaEmpty': 'No Copilot usage data available yet.',
+  'copilot.quotaUsedOfAvailable':
+    '{used} used of {available} available · {reset}',
+  'copilot.quotaResetUnavailable': 'Reset date unavailable',
+  'copilot.quotaUpdated': 'Updated {timestamp}',
+  'copilot.quotaPercentUsed': '{percent}% used',
+  'copilot.quotaNoUsageLimit': 'No usage limit',
+  'copilot.quotaUnlimited': 'Unlimited quota · no finite entitlement reported',
+  'copilot.quotaPercentRemaining': '{percent}% remaining',
+  'copilot.accountOverview': 'Copilot account overview',
+  'copilot.quotaDetails': 'Copilot quota details',
+  'copilot.configureModelsAction': 'Configure Copilot models',
+  'settingsSearch.entry.copilotAccountOverview.title':
+    'Copilot account overview',
+  'settingsSearch.entry.copilotAccountOverview.desc':
+    'Review signed-in accounts and their Copilot settings.',
+  'settingsSearch.entry.copilotQuota.title': 'Copilot quota',
+  'settingsSearch.entry.copilotQuota.desc':
+    'Review available, used, reset, and freshness details per account.',
+  'settingsSearch.entry.copilotConfigureModels.title':
+    'Configure Copilot models',
+  'settingsSearch.entry.copilotConfigureModels.desc':
+    'Choose the Copilot model for the selected account.',
+  'palette.copilotAccountOverview': 'Copilot account overview',
+  'palette.copilotQuota': 'Copilot quota details',
+  'palette.copilotConfigureModels': 'Configure Copilot models',
+  'copilot.quotaLead.plain': 'Account usage details',
+  'copilot.quotaLead.light': 'Here is the account usage, behaving itself.',
+  'copilot.quotaLead.playful': 'The account usage ledger has arrived, wearing a tiny hat.',
+  'copilot.quotaLead.maximum': 'Behold the account usage ledger, bravely counting every request.',
   'settings.gitTab': 'Git',
   'settings.appearanceTab': 'Appearance',
   'settings.notificationsTab': 'Notifications',
@@ -8617,7 +8700,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'browserDownload.start.cancel': 'Cancel',
   'browserDownload.progress.title': 'Downloading',
   'browserDownload.progress.label': 'Browser extension download progress',
-  'browserDownload.progress.running': 'Downloading through the browser-extension handoff.',
+  'browserDownload.progress.running':
+    'Downloading through the browser-extension handoff.',
   'browserDownload.progress.paused': 'Download paused. No transfer is running.',
   'browserDownload.progress.destination': 'Saving to {destination}',
   'browserDownload.progress.pause': 'Pause',
@@ -8661,6 +8745,21 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settings.tabsDockTop': 'Top',
   'settings.tabsDockBottom': 'Bottom',
   'settings.tabsDockRight': 'Right',
+  'settings.tabGroupCreate': 'Create settings tab group',
+  'settings.tabGroupNamePrompt': 'Name this settings tab group',
+  'settings.tabGroupRenamePrompt': 'Rename settings tab group',
+  'settings.tabGroupSearch': 'Search settings tab groups',
+  'settings.tabGroupSearchTabs': 'Search {group} tabs',
+  'settings.tabGroupMove': 'Move… into group…',
+  'settings.tabGroupMoveOut': 'Ungrouped tabs',
+  'settings.tabGroupEmpty': 'No tabs in this group yet.',
+  'settings.tabGroupExpand': 'Expand {group}',
+  'settings.tabGroupCollapse': 'Collapse {group}',
+  'settings.tabGroupRemove': 'Remove {group}',
+  'settings.tabGroupInvalidRegex': 'Invalid pattern: {message}',
+  'settings.tabGroupNoMatch': 'No match',
+  'settings.tabsDockSearch': 'Search settings tab positions',
+  'settings.tabGroupCurrentSearch': 'Search current settings tabs',
   'settings.contextMenuHeading': 'Windows context menu',
   'settings.contextMenuDescription':
     'Add Desktop Material actions to the right-click menu for folders and folder backgrounds in File Explorer.',
@@ -10789,9 +10888,12 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'agentSessions.worktrees': 'Worktrees',
   'agentSessions.newSession': 'New Agent Session',
   'agentSessions.statusHub.connected': 'Status Hub connected',
-  'agentSessions.statusHub.localOnly': 'Status Hub unavailable — showing local session state only',
-  'agentSessions.statusHub.authenticationUnavailable': 'Status Hub authentication is unavailable on this computer',
-  'agentSessions.statusHub.deliveryUnconfirmed': 'Status Hub reply delivery is not confirmed yet',
+  'agentSessions.statusHub.localOnly':
+    'Status Hub unavailable — showing local session state only',
+  'agentSessions.statusHub.authenticationUnavailable':
+    'Status Hub authentication is unavailable on this computer',
+  'agentSessions.statusHub.deliveryUnconfirmed':
+    'Status Hub reply delivery is not confirmed yet',
   'agentSessions.empty':
     'No worktrees yet. Create one to start an agent session.',
   'agentSessions.locked': 'Locked',
@@ -15148,8 +15250,10 @@ export const cantoneseTranslations: Readonly<
   'fileConverter.sourceUnchanged': '原始檔案永遠唔會改。',
   'fileConverter.outputPath': '輸出位置',
   'fileConverter.noNetwork': '轉換喺本機做，唔會上載呢個檔案。',
-  'fileConverter.unavailableAdapter': '呢個轉換用唔到，因為需要嘅本機 adapter 未安裝。',
-  'fileConverter.lossWarning': '呢個轉換可能改變或者漏咗資料；轉換之前請先覆核影響。',
+  'fileConverter.unavailableAdapter':
+    '呢個轉換用唔到，因為需要嘅本機 adapter 未安裝。',
+  'fileConverter.lossWarning':
+    '呢個轉換可能改變或者漏咗資料；轉換之前請先覆核影響。',
   'fileConverter.reviewConversion': '覆核轉換',
   'fileConverter.progress': '轉換進度',
   'fileConverter.status': '轉換狀態',
@@ -15367,6 +15471,41 @@ export const cantoneseTranslations: Readonly<
   'settings.accountsTab': '帳戶',
   'settings.integrationsTab': '整合',
   'settings.copilotTab': 'Copilot',
+  'copilot.accountUsage': '{account} 嘅 Copilot 用量',
+  'copilot.configureModels': '設定 {account} 嘅模型',
+  'copilot.quotaLoading': '載入緊 Copilot 用量…',
+  'copilot.quotaUnavailable': '呢個帳戶暫時冇 Copilot 用量資料。',
+  'copilot.quotaStale': '而家顯示緊過期嘅 Copilot 用量資料。',
+  'copilot.quotaError': 'Copilot 用量未能載入。',
+  'copilot.quotaEmpty': '暫時未有 Copilot 用量資料。',
+  'copilot.quotaUsedOfAvailable':
+    '已用 {used}，總共 {available} · {reset}',
+  'copilot.quotaResetUnavailable': '未有重設日期資料',
+  'copilot.quotaUpdated': '更新於 {timestamp}',
+  'copilot.quotaPercentUsed': '已用 {percent}%',
+  'copilot.quotaNoUsageLimit': '冇用量上限',
+  'copilot.quotaUnlimited': '配額無上限 · 供應方冇報有限額',
+  'copilot.quotaPercentRemaining': '仲有 {percent}%',
+  'copilot.accountOverview': 'Copilot 帳戶總覽',
+  'copilot.quotaDetails': 'Copilot 配額詳情',
+  'copilot.configureModelsAction': '設定 Copilot 模型',
+  'settingsSearch.entry.copilotAccountOverview.title':
+    'Copilot 帳戶總覽',
+  'settingsSearch.entry.copilotAccountOverview.desc':
+    '睇返已登入帳戶同各自嘅 Copilot 設定。',
+  'settingsSearch.entry.copilotQuota.title': 'Copilot 配額',
+  'settingsSearch.entry.copilotQuota.desc':
+    '逐個帳戶睇可用、已用、重設同資料新鮮度。',
+  'settingsSearch.entry.copilotConfigureModels.title': '設定 Copilot 模型',
+  'settingsSearch.entry.copilotConfigureModels.desc':
+    '為揀咗嘅帳戶選 Copilot 模型。',
+  'palette.copilotAccountOverview': 'Copilot 帳戶總覽',
+  'palette.copilotQuota': 'Copilot 配額詳情',
+  'palette.copilotConfigureModels': '設定 Copilot 模型',
+  'copilot.quotaLead.plain': '帳戶用量詳情',
+  'copilot.quotaLead.light': '呢度係帳戶用量，今次乖乖哋報數。',
+  'copilot.quotaLead.playful': '帳戶用量本簿到場，仲戴咗頂細細帽。',
+  'copilot.quotaLead.maximum': '請睇帳戶用量本簿，逐個請求都勇敢咁數清楚。',
   'settings.gitTab': 'Git',
   'settings.appearanceTab': '外觀',
   'settings.notificationsTab': '通知',
@@ -15632,6 +15771,21 @@ export const cantoneseTranslations: Readonly<
   'settings.tabsDockTop': '頂部',
   'settings.tabsDockBottom': '底部',
   'settings.tabsDockRight': '右邊',
+  'settings.tabGroupCreate': '建立設定分頁群組',
+  'settings.tabGroupNamePrompt': '幫設定分頁群組改個名',
+  'settings.tabGroupRenamePrompt': '重新命名設定分頁群組',
+  'settings.tabGroupSearch': '搵設定分頁群組',
+  'settings.tabGroupSearchTabs': '搵 {group} 分頁',
+  'settings.tabGroupMove': '移入群組…',
+  'settings.tabGroupMoveOut': '未分組分頁',
+  'settings.tabGroupEmpty': '呢個群組暫時未有分頁。',
+  'settings.tabGroupExpand': '展開 {group}',
+  'settings.tabGroupCollapse': '收埋 {group}',
+  'settings.tabGroupRemove': '移除 {group}',
+  'settings.tabGroupInvalidRegex': '樣式有問題：{message}',
+  'settings.tabGroupNoMatch': '搵唔到符合項目',
+  'settings.tabsDockSearch': '搵設定分頁位置',
+  'settings.tabGroupCurrentSearch': '搵目前設定分頁',
   'settings.contextMenuHeading': 'Windows 右鍵選單',
   'settings.contextMenuDescription':
     '喺檔案總管撳右鍵嗰陣，喺資料夾同資料夾空白位加返 Desktop Material 嘅動作。',
@@ -15873,8 +16027,7 @@ export const cantoneseTranslations: Readonly<
   'settings.soundNarratorCantoneseVoiceLabel': '廣東話旁白把聲',
   'settings.soundNarratorChooseAutomatically': '由個 app 自己揀',
   'settings.soundNarratorNetworkVoiceOption': '網絡聲音',
-  'settings.soundNarratorVoiceMissingOption':
-    '{uri} — 呢部電腦冇裝呢把聲',
+  'settings.soundNarratorVoiceMissingOption': '{uri} — 呢部電腦冇裝呢把聲',
   'settings.soundNarratorVoiceAutomaticStatus':
     '由個 app 自己揀：用呢部電腦最啱讀而家語言嗰把聲。',
   'settings.soundNarratorVoiceInstalledStatus':
@@ -17016,8 +17169,7 @@ export const cantoneseTranslations: Readonly<
   'settingsSearch.entry.attentionTimeAwareness.desc':
     '顯示工作階段經過幾耐，同上次活動隔咗幾耐。',
   'settingsSearch.entry.attentionOneThing.title': '一次一件事',
-  'settingsSearch.entry.attentionOneThing.desc':
-    '保留一件由你揀嘅下一步。',
+  'settingsSearch.entry.attentionOneThing.desc': '保留一件由你揀嘅下一步。',
   'settingsSearch.entry.attentionMomentum.title': '動力提示',
   'settingsSearch.entry.attentionMomentum.desc':
     '冇活動一段時間後提示一下，仲可以延後。',
@@ -17624,8 +17776,10 @@ export const cantoneseTranslations: Readonly<
   'agentSessions.worktrees': '工作樹',
   'agentSessions.newSession': '新增代理工作階段',
   'agentSessions.statusHub.connected': 'Status Hub 已連線',
-  'agentSessions.statusHub.localOnly': 'Status Hub 暫時不可用 — 而家只顯示本機工作階段狀態',
-  'agentSessions.statusHub.authenticationUnavailable': '呢部電腦未能使用 Status Hub 驗證',
+  'agentSessions.statusHub.localOnly':
+    'Status Hub 暫時不可用 — 而家只顯示本機工作階段狀態',
+  'agentSessions.statusHub.authenticationUnavailable':
+    '呢部電腦未能使用 Status Hub 驗證',
   'agentSessions.statusHub.deliveryUnconfirmed': 'Status Hub 回覆傳遞未確認',
   'agentSessions.empty': '未有工作樹。新增一個就可以開始代理工作階段。',
   'agentSessions.locked': '已鎖定',
@@ -19343,7 +19497,8 @@ export const cantoneseTranslations: Readonly<
   'authenticatorSettings.history.description':
     '檢視、復原或者還原驗證器帳戶資料。密鑰繼續留喺憑證保險箱，永遠唔會入呢份歷史記錄。',
   'authenticatorSettings.history.emptyTitle': '仲未有驗證器歷史記錄',
-  'authenticatorSettings.history.emptyDescription': '第一個登記嘅帳戶會喺呢度出現。',
+  'authenticatorSettings.history.emptyDescription':
+    '第一個登記嘅帳戶會喺呢度出現。',
   'authenticatorSettings.history.missingSecrets':
     '{count} 個還原返嚟嘅帳戶搵唔到相應嘅憑證保險箱記錄；呢啲列唔可以產生密碼。',
   'surfaceLocks.heading': '介面鎖',

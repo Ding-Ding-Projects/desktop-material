@@ -221,6 +221,11 @@ export const TeleportTargetSelectors = {
     '[data-teleport-target="settings-copilot-conflict-model"]',
   settingsCopilotAlwaysConflicts:
     '[data-teleport-target="settings-copilot-always-conflicts"]',
+  settingsCopilotAccountOverview:
+    '[data-teleport-target="settings-copilot-account-overview"]',
+  settingsCopilotQuota: '[data-teleport-target="settings-copilot-quota"]',
+  settingsCopilotConfigureModels:
+    '[data-teleport-target="settings-copilot-configure-models"]',
   settingsOllamaEndpoint: '[data-teleport-target="settings-ollama-endpoint"]',
   settingsAiMasterSwitch: '[data-teleport-target="settings-ai-master-switch"]',
 
@@ -323,4 +328,19 @@ export function teleportAnchor(anchorId: string): {
   readonly 'data-teleport-target': string
 } {
   return { 'data-teleport-target': anchorId }
+}
+
+/** Build a deterministic, selector-safe suffix for account-owned targets. */
+export function sanitizeTeleportTargetSuffix(value: string): string {
+  return value.replace(/[^a-zA-Z0-9-]/g, '_')
+}
+
+export function copilotAccountTeleportTarget(
+  base: 'account-overview' | 'quota' | 'configure-models',
+  accountId: number,
+  endpoint: string
+): string {
+  return `settings-copilot-${base}-${sanitizeTeleportTargetSuffix(
+    `${accountId}-${endpoint}`
+  )}`
 }

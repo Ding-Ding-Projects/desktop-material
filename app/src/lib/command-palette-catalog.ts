@@ -2632,6 +2632,42 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     },
   },
   {
+    event: 'palette:copilot-account-overview',
+    title: 'Copilot account overview',
+    titleKey: 'palette.copilotAccountOverview',
+    group: 'App',
+    keywords: 'copilot account overview signed in settings',
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeSidebar',
+      targetId: 'settingsCopilotAccountOverview',
+    },
+  },
+  {
+    event: 'palette:copilot-quota',
+    title: 'Copilot quota details',
+    titleKey: 'palette.copilotQuota',
+    group: 'App',
+    keywords: 'copilot quota usage available used reset',
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeSidebar',
+      targetId: 'settingsCopilotQuota',
+    },
+  },
+  {
+    event: 'palette:copilot-configure-models',
+    title: 'Configure Copilot models',
+    titleKey: 'palette.copilotConfigureModels',
+    group: 'App',
+    keywords: 'copilot configure models account',
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeSidebar',
+      targetId: 'settingsCopilotConfigureModels',
+    },
+  },
+  {
     event: 'palette:add-ai-provider',
     title: 'Add an AI provider (BYOK)',
     titleKey: 'palette.addAiProvider',

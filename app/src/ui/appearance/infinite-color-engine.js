@@ -585,9 +585,10 @@
 
   function angle(token) {
     var text = String(token).trim().toLowerCase()
-    var match = /^([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)(deg|grad|rad|turn)?$/.exec(
-      text
-    )
+    var match =
+      /^([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)(deg|grad|rad|turn)?$/.exec(
+        text
+      )
     if (match === null) {
       return null
     }

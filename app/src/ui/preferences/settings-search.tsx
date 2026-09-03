@@ -15,8 +15,7 @@ import {
   translateForAccessibleName,
   TranslationKey,
 } from '../../lib/i18n'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /** The stable audit + persistence identity for the settings search surface. */
 export const SettingsSearchSurfaceId = 'preferences'
@@ -432,7 +431,7 @@ export class SettingsSearch extends React.Component<
     return (
       <div className="settings-search">
         <div className="settings-search-field">
-          <Octicon className="settings-search-icon" symbol={octicons.search} />
+          <MaterialSymbol name="search" className="settings-search-icon" />
           <input
             data-search-surface-id="preferences"
             className="settings-search-input"
@@ -459,7 +458,7 @@ export class SettingsSearch extends React.Component<
               )}
               onClick={this.onClear}
             >
-              <Octicon symbol={octicons.x} />
+              <MaterialSymbol name="close" />
             </button>
           )}
         </div>

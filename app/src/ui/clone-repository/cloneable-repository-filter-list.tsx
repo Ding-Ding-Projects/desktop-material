@@ -12,7 +12,6 @@ import memoizeOne from 'memoize-one'
 import { Button } from '../lib/button'
 import { IMatches } from '../../lib/fuzzy-find'
 import { Octicon, syncClockwise } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { HighlightText } from '../lib/highlight-text'
 import { ClickSource } from '../lib/list'
 import { LinkButton } from '../lib/link-button'
@@ -314,7 +313,7 @@ export class CloneableRepositoryListItem extends React.PureComponent<ICloneableR
         onClick={this.onSubmoduleBadgeClick}
         aria-label={label}
       >
-        <Octicon symbol={octicons.fileSubmodule} />
+        <MaterialSymbol name="folder_special" />
         {submoduleCount}
       </button>
     )

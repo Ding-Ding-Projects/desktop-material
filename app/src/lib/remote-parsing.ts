@@ -69,6 +69,49 @@ export interface IRepositoryIdentifier {
   readonly name: string
 }
 
+export const MaxCloneNameLength = 100
+
+const WindowsReservedCloneName =
+  /^(con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])(?:[ .]|$)/i
+const DeceptiveCloneNameCharacters =
+  /[\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/
+
+/**
+ * Validate a repository name before it is used as a single path component.
+ *
+ * Names derived from remote URLs are not trusted path input. A remote parser
+ * may preserve a backslash, drive separator, control character, traversal
+ * segment, or Windows device name even when the URL itself looked ordinary.
+ * Returning null lets each caller reject the name or choose an explicit safe
+ * fallback without ever passing the raw value to path.join().
+ */
+export function sanitizeCloneName(name: string): string | null {
+  if (typeof name !== 'string' || name.length === 0) {
+    return null
+  }
+
+  let candidate = name.normalize('NFC')
+  if (/\.git$/i.test(candidate)) {
+    candidate = candidate.slice(0, -4)
+  }
+
+  if (
+    candidate.length === 0 ||
+    candidate === '.' ||
+    candidate === '..' ||
+    /[\u0000-\u001f\u007f]/.test(candidate) ||
+    /[\\/:<>"|?*]/.test(candidate) ||
+    /[. ]$/.test(candidate) ||
+    DeceptiveCloneNameCharacters.test(candidate) ||
+    Array.from(candidate).length > MaxCloneNameLength ||
+    WindowsReservedCloneName.test(candidate)
+  ) {
+    return null
+  }
+
+  return candidate
+}
+
 /** Try to parse an owner and name from a URL or owner/name shortcut. */
 export function parseRepositoryIdentifier(
   url: string

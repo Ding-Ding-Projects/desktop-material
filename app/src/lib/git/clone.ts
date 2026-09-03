@@ -13,6 +13,8 @@ import {
   createGitProcessAbortHandler,
   type GitProcessTerminator,
 } from './process-abort'
+import { isClonePathSensitive } from '../path-validation'
+export { isClonePathSensitive }
 
 function cloneAbortError(): Error {
   const error = new Error('Repository clone cancelled.')
@@ -132,6 +134,12 @@ export async function clone(
   signal?: AbortSignal
 ): Promise<void> {
   throwIfCloneAborted(signal)
+  if (isClonePathSensitive(path)) {
+    throw new Error(
+      `The clone destination "${path}" targets a sensitive system location. Choose another folder and try again.`
+    )
+  }
+
   const env = {
     ...(await envForRemoteOperation(url)),
     GIT_CLONE_PROTECTION_ACTIVE: 'false',

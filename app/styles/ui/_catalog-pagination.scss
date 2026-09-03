@@ -42,7 +42,7 @@
         min-height: 30px;
         padding: 4px 8px;
         border: 1px solid var(--md-sys-color-outline);
-        border-radius: 999px;
+        border-radius: var(--md-sys-shape-corner-full);
         color: var(--md-sys-color-on-surface);
         background: var(--md-sys-color-surface-container-lowest);
         font: inherit;
@@ -64,7 +64,7 @@
       min-height: 30px;
       padding: 4px 10px;
       border: 1px solid var(--md-sys-color-outline);
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       color: var(--md-sys-color-on-surface);
       background: var(--md-sys-color-surface-container);
       font: inherit;
@@ -108,7 +108,7 @@
       min-height: 30px;
       padding: 4px 8px;
       border: 1px solid var(--md-sys-color-outline);
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       color: var(--md-sys-color-on-surface);
       background: var(--md-sys-color-surface-container-lowest);
       font: inherit;

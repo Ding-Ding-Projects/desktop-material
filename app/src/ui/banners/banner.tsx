@@ -1,8 +1,7 @@
 import * as React from 'react'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { Button } from '../lib/button'
 import classNames from 'classnames'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IBannerProps {
   readonly id?: string
@@ -45,7 +44,7 @@ export class Banner extends React.Component<IBannerProps, {}> {
           ariaLabel="Dismiss this message"
           inferTooltip={false}
         >
-          <Octicon symbol={octicons.x} />
+          <MaterialSymbol name="close" />
         </Button>
       </div>
     )

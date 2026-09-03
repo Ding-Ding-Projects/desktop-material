@@ -14,7 +14,13 @@
   justify-content: center;
   letter-spacing: normal;
   line-height: 1;
-  overflow: hidden;
+  // The layout box stays exactly 1em, but the glyph is NOT clipped to it.
+  // Material Symbols draws roughly 1.11em tall inside a 1em em-box, so
+  // `overflow: hidden` cut 2px off the bottom of every icon in the product —
+  // measured on the window caption controls, where the box is 18px and the
+  // glyph needs 20px. Letting it paint outside its box changes no layout,
+  // because the box is what siblings are positioned against.
+  overflow: visible;
   text-rendering: optimizeLegibility;
   text-transform: none;
   user-select: none;

@@ -77,7 +77,7 @@ export class SignIn extends React.Component<ISignInProps, ISignInState> {
     }
   }
 
-  private onSubmit = () => {
+  private onSubmit = (): void => {
     const state = this.props.signInState
 
     if (!state) {
@@ -96,7 +96,7 @@ export class SignIn extends React.Component<ISignInProps, ISignInState> {
           .then(() => this.props.dispatcher.setSignInEndpoint(state.endpoint))
         break
       case SignInStep.Authentication:
-        this.props.dispatcher.requestBrowserAuthentication()
+        void this.props.dispatcher.requestBrowserAuthentication()
         break
       case SignInStep.Success:
         this.onDismissed()

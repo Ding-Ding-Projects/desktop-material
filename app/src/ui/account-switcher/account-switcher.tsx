@@ -17,8 +17,8 @@ import { TextBox } from '../lib/text-box'
 import { Avatar } from '../lib/avatar'
 import { lookupPreferredEmail } from '../../lib/email'
 import { IAvatarUser } from '../../models/avatar'
-import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 const AccountSwitcherSearchSurfaceId = 'account-switcher-accounts'
 const AccountSwitcherResultsId = 'account-switcher-results'
@@ -385,7 +385,7 @@ export class AccountSwitcher extends React.Component<
         </span>
         {active && (
           <span className="account-switcher-check">
-            <Octicon symbol={octicons.checkCircle} />
+            <MaterialSymbol name="check_circle" />
           </span>
         )}
       </button>
@@ -499,7 +499,7 @@ export class AccountSwitcher extends React.Component<
           onClick={this.onAddAccountClick}
           ref={visibleAccounts.length === 0 ? this.firstItemRef : undefined}
         >
-          <Octicon symbol={octicons.personAdd} />
+          <MaterialSymbol name="person_add" />
           {t('accounts.picker.add')}
         </button>
       </div>

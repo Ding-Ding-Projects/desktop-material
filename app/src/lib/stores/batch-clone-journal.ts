@@ -8,7 +8,7 @@ import {
 } from 'fs/promises'
 import { Buffer } from 'buffer'
 import { randomUUID } from 'crypto'
-import { dirname, join } from 'path'
+import { basename, dirname, join } from 'path'
 import {
   BatchCloneMode,
   BatchCloneSource,
@@ -124,17 +124,35 @@ export class FileBatchCloneJournal implements IBatchCloneJournal {
   private readonly userDataPath: string
   private readonly path: string
   private readonly backupPath: string
+  private readonly persistence: Pick<
+    CrashSafeFilePersistence,
+    'readText' | 'writeText' | 'clear'
+  >
   private operationChain: Promise<void> = Promise.resolve()
 
   public constructor(
     userDataPath: string,
-    private readonly persistence: Pick<
+    fileNameOrPersistence:
+      | string
+      | Pick<
+          CrashSafeFilePersistence,
+          'readText' | 'writeText' | 'clear'
+        > = 'clone-queue-v1.json',
+    persistence: Pick<
       CrashSafeFilePersistence,
       'readText' | 'writeText' | 'clear'
     > = sharedCrashSafeFilePersistence
   ) {
     this.userDataPath = userDataPath
-    this.path = join(userDataPath, 'clone-queue-v1.json')
+    const fileName =
+      typeof fileNameOrPersistence === 'string'
+        ? fileNameOrPersistence
+        : 'clone-queue-v1.json'
+    this.persistence =
+      typeof fileNameOrPersistence === 'string'
+        ? persistence
+        : fileNameOrPersistence
+    this.path = join(userDataPath, fileName)
     this.backupPath = `${this.path}.backup`
   }
 
@@ -253,7 +271,7 @@ export class FileBatchCloneJournal implements IBatchCloneJournal {
     }
 
     for (const name of names) {
-      if (name.startsWith('clone-queue-v1.json.tmp-')) {
+      if (name.startsWith(`${basename(this.path)}.tmp-`)) {
         await unlink(join(this.userDataPath, name)).catch(error => {
           if (error.code !== 'ENOENT') {
             throw error

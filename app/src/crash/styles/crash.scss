@@ -1,45 +1,18 @@
 @import '../../../styles/variables';
+@import '../../../styles/material/standalone-roles';
 @import '../../../styles/ui/window/title-bar';
 @import '../../../styles/ui/octicons';
 @import '../../../styles/globals';
 @import '../../../styles/ui/button';
 @import '../../../styles/ui/scroll';
 
-:root {
-  --crash-primary: #1c6b34;
-  --crash-on-primary: #ffffff;
-  --crash-primary-container: #a9f6b4;
-  --crash-on-primary-container: #00210b;
-  --crash-surface: #f7fbf2;
-  --crash-surface-container-low: #f1f5ec;
-  --crash-surface-container-high: #e5e9e1;
-  --crash-surface-container-highest: #dfe4db;
-  --crash-on-surface: #191d18;
-  --crash-on-surface-variant: #424940;
-  --crash-outline-variant: #c2c9bd;
-  --crash-error: #ba1a1a;
-  --crash-error-container: #ffdad6;
-  --crash-on-error-container: #410002;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --crash-primary: #8ed99a;
-    --crash-on-primary: #003918;
-    --crash-primary-container: #005322;
-    --crash-on-primary-container: #a9f6b4;
-    --crash-surface: #101410;
-    --crash-surface-container-low: #181d18;
-    --crash-surface-container-high: #262b26;
-    --crash-surface-container-highest: #313631;
-    --crash-on-surface: #e0e4dc;
-    --crash-on-surface-variant: #c0c9bf;
-    --crash-outline-variant: #414941;
-    --crash-error: #ffb4ab;
-    --crash-error-container: #93000a;
-    --crash-on-error-container: #ffdad6;
-  }
-}
+// Material Design 3 roles, shared with the application rather than a private
+// palette. This window used its own green scheme, so the crash reporter did not
+// look like the product the user had just been using.
+//
+// Theming follows the operating system preference: a crashed renderer has no
+// access to the application's own theme setting.
+@include md-standalone-roles;
 
 #desktop-crash-container,
 #crash-app {
@@ -47,8 +20,8 @@
 }
 
 body {
-  background: var(--crash-surface);
-  color: var(--crash-on-surface);
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
 }
 
 #crash-app {
@@ -63,10 +36,10 @@ pre.error {
   word-wrap: break-word;
   white-space: pre-wrap;
   font-family: var(--font-family-monospace);
-  background: var(--crash-surface-container-highest);
-  color: var(--crash-on-surface);
+  background: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface);
   padding: 14px 16px;
-  border: 1px solid var(--crash-outline-variant);
+  border: 1px solid var(--md-sys-color-outline-variant);
   border-radius: 16px;
   user-select: text;
   cursor: text;
@@ -83,8 +56,8 @@ pre.error {
   gap: 12px;
   padding: 16px 18px;
   border-radius: 18px;
-  background: var(--crash-error-container);
-  color: var(--crash-on-error-container);
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
 
   h1 {
     margin: 0;
@@ -104,14 +77,14 @@ pre.error {
 
   .octicon.error-icon {
     flex: none;
-    color: var(--crash-error);
+    color: var(--md-sys-color-error);
     height: 32px;
     align-self: center;
   }
 }
 
 .crash-copy {
-  color: var(--crash-on-surface-variant);
+  color: var(--md-sys-color-on-surface-variant);
 
   p {
     max-width: 640px;
@@ -125,7 +98,7 @@ main {
   flex-grow: 1;
   min-height: 0;
   padding: 20px;
-  background: var(--crash-surface-container-low);
+  background: var(--md-sys-color-surface-container-low);
 
   .crash-card {
     display: flex;
@@ -135,9 +108,9 @@ main {
     padding: 16px;
     flex-direction: column;
     gap: 16px;
-    border: 1px solid var(--crash-outline-variant);
+    border: 1px solid var(--md-sys-color-outline-variant);
     border-radius: 24px;
-    background: var(--crash-surface);
+    background: var(--md-sys-color-surface);
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.14);
   }
 
@@ -152,12 +125,12 @@ main {
       min-height: 40px;
       border: 0;
       border-radius: 20px;
-      background: var(--crash-primary);
-      color: var(--crash-on-primary);
+      background: var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-primary);
       font-weight: 650;
 
       &:focus-visible {
-        outline: 2px solid var(--crash-primary);
+        outline: 2px solid var(--md-sys-color-primary);
         outline-offset: 2px;
       }
     }

@@ -53,6 +53,7 @@ import {
   Md3AuthenticatorRegistration,
 } from './md3-authenticator-registration'
 import { notify } from './md3-toast'
+import { PopoverAnchorPosition } from '../lib/popover'
 
 /**
  * The Authenticator destination: the app's own TOTP list.
@@ -159,10 +160,18 @@ export interface IMd3AuthenticatorViewProps {
 }
 
 type OpenMenu =
-  | { readonly kind: 'row'; readonly id: string }
-  | { readonly kind: 'list' }
-  | { readonly kind: 'export'; readonly only: string | null }
-  | { readonly kind: 'group'; readonly ids: ReadonlyArray<string> }
+  | { readonly kind: 'row'; readonly id: string; readonly anchor: HTMLElement }
+  | { readonly kind: 'list'; readonly anchor: HTMLElement | null }
+  | {
+      readonly kind: 'export'
+      readonly only: string | null
+      readonly anchor: HTMLElement | null
+    }
+  | {
+      readonly kind: 'group'
+      readonly ids: ReadonlyArray<string>
+      readonly anchor: HTMLElement | null
+    }
   | null
 
 type OpenGate = 'delete' | 'secrets' | null
@@ -600,6 +609,14 @@ export function Md3AuthenticatorView(props: IMd3AuthenticatorViewProps) {
   const pendingFocus = React.useRef(false)
   const selectAllRef = React.useRef<HTMLInputElement | null>(null)
   const listMenuButtonRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
+  const exportMenuButtonRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
+  const groupMenuButtonRef = React.useMemo(
     () => createObservableRef<HTMLButtonElement>(),
     []
   )
@@ -1081,7 +1098,7 @@ export function Md3AuthenticatorView(props: IMd3AuthenticatorViewProps) {
       event.preventDefault()
       event.stopPropagation()
       setFocusIndex(index)
-      setMenu({ kind: 'row', id: factor.id })
+      setMenu({ kind: 'row', id: factor.id, anchor: event.currentTarget })
     },
     []
   )
@@ -1203,7 +1220,11 @@ export function Md3AuthenticatorView(props: IMd3AuthenticatorViewProps) {
           return
         case 'ContextMenu':
           event.preventDefault()
-          setMenu({ kind: 'row', id: factor.id })
+          setMenu({
+            kind: 'row',
+            id: factor.id,
+            anchor: rowElements.current.get(factor.id) ?? row,
+          })
           return
         default:
           return
@@ -1329,7 +1350,12 @@ export function Md3AuthenticatorView(props: IMd3AuthenticatorViewProps) {
         label: t('md3.auth.rowMenu.exportOne'),
         icon: 'cloud_download',
         hint: '',
-        onClick: () => setMenu({ kind: 'export', only: factor.id }),
+        onClick: () =>
+          setMenu({
+            kind: 'export',
+            only: factor.id,
+            anchor: rowElements.current.get(factor.id) ?? null,
+          }),
       })
     }
 
@@ -1438,7 +1464,12 @@ export function Md3AuthenticatorView(props: IMd3AuthenticatorViewProps) {
         }),
         icon: 'cloud_download',
         hint: '',
-        onClick: () => setMenu({ kind: 'export', only: null }),
+        onClick: () =>
+          setMenu({
+            kind: 'export',
+            only: null,
+            anchor: listMenuButtonRef.current,
+          }),
       })
     }
 
@@ -1530,7 +1561,10 @@ export function Md3AuthenticatorView(props: IMd3AuthenticatorViewProps) {
     }
   }, [groups, groupTargets, factors, assignGroup])
 
-  const onOpenListMenu = React.useCallback(() => setMenu({ kind: 'list' }), [])
+  const onOpenListMenu = React.useCallback(
+    () => setMenu({ kind: 'list', anchor: listMenuButtonRef.current }),
+    [listMenuButtonRef]
+  )
 
   const onOpenRegistration = React.useCallback(
     () => setDialog({ kind: 'register' }),
@@ -1547,8 +1581,13 @@ export function Md3AuthenticatorView(props: IMd3AuthenticatorViewProps) {
   )
 
   const onOpenBulkExport = React.useCallback(
-    () => setMenu({ kind: 'export', only: null }),
-    []
+    () =>
+      setMenu({
+        kind: 'export',
+        only: null,
+        anchor: exportMenuButtonRef.current,
+      }),
+    [exportMenuButtonRef]
   )
 
   /**
@@ -1564,7 +1603,7 @@ export function Md3AuthenticatorView(props: IMd3AuthenticatorViewProps) {
       if (groups.length === 0) {
         notify(t('md3.auth.groupMenu.empty'))
       }
-      setMenu({ kind: 'group', ids })
+      setMenu({ kind: 'group', ids, anchor: groupMenuButtonRef.current })
     },
     [groups.length]
   )
@@ -1573,19 +1612,6 @@ export function Md3AuthenticatorView(props: IMd3AuthenticatorViewProps) {
     () => openGroupPicker(scopeFactors.map(factor => factor.id)),
     [openGroupPicker, scopeFactors]
   )
-
-  /**
-   * The regex builder reached from a menu's own filter row.
-   *
-   * `Md3MenuOverlay` owns its filter text and has no way to receive a pattern
-   * back, so the builder it opens targets the factor search instead, seeded
-   * with whatever the menu filter already holds.
-   */
-  const onOpenMenuBuilder = React.useCallback((pattern: string) => {
-    setQuery(pattern)
-    setMenu(null)
-    setBuilderOpen(true)
-  }, [])
 
   // ---------------------------------------------------------------------
   // Registration
@@ -1775,6 +1801,7 @@ export function Md3AuthenticatorView(props: IMd3AuthenticatorViewProps) {
               scope: scopeDescription,
             })}
             icon="label"
+            buttonRef={groupMenuButtonRef}
             hasPopup="menu"
             disabled={scopeFactors.length === 0}
             onClick={onOpenBulkGroup}
@@ -1799,6 +1826,7 @@ export function Md3AuthenticatorView(props: IMd3AuthenticatorViewProps) {
                 scope: scopeDescription,
               })}
               icon="cloud_download"
+              buttonRef={exportMenuButtonRef}
               hasPopup="menu"
               disabled={scopeFactors.length === 0}
               onClick={onOpenBulkExport}
@@ -1883,7 +1911,10 @@ export function Md3AuthenticatorView(props: IMd3AuthenticatorViewProps) {
         <Md3MenuOverlay
           spec={rowMenuSpec}
           onDismiss={closeMenu}
-          onOpenRegexBuilder={onOpenMenuBuilder}
+          instanceId={`row-${menu.id}`}
+          anchor={menu.anchor}
+          anchorPosition={PopoverAnchorPosition.RightTop}
+          returnFocusTo={{ current: menu.anchor }}
         />
       ) : null}
 
@@ -1891,8 +1922,9 @@ export function Md3AuthenticatorView(props: IMd3AuthenticatorViewProps) {
         <Md3MenuOverlay
           spec={listMenuSpec}
           onDismiss={closeMenu}
-          onOpenRegexBuilder={onOpenMenuBuilder}
           returnFocusTo={listMenuButtonRef}
+          instanceId="list"
+          anchor={menu.anchor}
         />
       ) : null}
 
@@ -1900,7 +1932,9 @@ export function Md3AuthenticatorView(props: IMd3AuthenticatorViewProps) {
         <Md3MenuOverlay
           spec={exportMenuSpec}
           onDismiss={closeMenu}
-          onOpenRegexBuilder={onOpenMenuBuilder}
+          returnFocusTo={exportMenuButtonRef}
+          instanceId={`export-${menu.only ?? 'all'}`}
+          anchor={menu.anchor}
         />
       ) : null}
 
@@ -1908,7 +1942,9 @@ export function Md3AuthenticatorView(props: IMd3AuthenticatorViewProps) {
         <Md3MenuOverlay
           spec={groupMenuSpec}
           onDismiss={closeMenu}
-          onOpenRegexBuilder={onOpenMenuBuilder}
+          returnFocusTo={groupMenuButtonRef}
+          instanceId={`group-${menu.ids.join('-')}`}
+          anchor={menu.anchor}
         />
       ) : null}
 

@@ -30,7 +30,7 @@
 
   .button-component {
     max-width: 100%;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     white-space: normal;
 
     &.destructive {
@@ -241,7 +241,7 @@
   gap: 4px 8px;
   padding: 10px;
   border: 1px solid transparent;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   color: var(--md-sys-color-on-surface);
   background: transparent;
   font: inherit;
@@ -281,7 +281,7 @@
   display: inline-flex;
   width: fit-content;
   align-items: center;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   padding: 2px 7px;
   font-size: 10px;
   font-weight: 700;
@@ -358,7 +358,7 @@
 .github-issue-body {
   margin: 12px 0;
   padding: 12px;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   background: var(--md-sys-color-surface-container-highest);
 
   h3 {

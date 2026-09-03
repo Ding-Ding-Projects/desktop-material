@@ -80,7 +80,12 @@ export class Repository {
     /** Optional local default branch override. */
     public readonly defaultBranch: string | null = null,
     /** Optional per-repository editor override. */
-    public readonly customEditorOverride: EditorOverride | null = null
+    public readonly customEditorOverride: EditorOverride | null = null,
+    /**
+     * The path to the main worktree, recorded while the worktree set is
+     * readable. It is a recovery hint and is validated before use.
+     */
+    public readonly mainWorktreePath: string | undefined = undefined
   ) {
     this.name = (gitHubRepository && gitHubRepository.name) || getBaseName(path)
 
@@ -108,7 +113,8 @@ export class Repository {
       getCheapLfsStorageProvider(this.buildRunPreferences),
       this.groupName,
       this.defaultBranch,
-      getEditorOverrideHash(this.customEditorOverride)
+      getEditorOverrideHash(this.customEditorOverride),
+      this.mainWorktreePath
     )
   }
 

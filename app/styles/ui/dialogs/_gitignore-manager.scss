@@ -50,7 +50,7 @@
       height: 32px;
       padding: 0 12px;
       border: 0;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       font-size: 12.5px;
       font-weight: var(--font-weight-bold);
       // Chip pop-in.
@@ -103,7 +103,7 @@
       height: 22px;
       padding: 0;
       border: 0;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       background: transparent;
       color: inherit;
       cursor: pointer;
@@ -132,7 +132,7 @@
       height: 34px;
       padding: 0 8px;
       border: 0;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       background: transparent;
       color: var(--md-sys-color-on-surface);
       font-size: var(--font-size-md);
@@ -168,7 +168,7 @@
       gap: 8px;
       height: 46px;
       padding: 0 16px;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       background: var(--md-sys-color-surface-container-high);
       border: 2px solid transparent;
       transition: border-color 220ms var(--emph);
@@ -234,7 +234,7 @@
         min-height: 40px;
         padding: 0 12px;
         border: 1px solid var(--md-sys-color-outline);
-        border-radius: 999px;
+        border-radius: var(--md-sys-shape-corner-full);
         color: var(--md-sys-color-on-surface);
         background: var(--md-sys-color-surface-container-high);
         font: inherit;
@@ -310,7 +310,7 @@
       }
 
       &:hover {
-        border-radius: 999px;
+        border-radius: var(--md-sys-shape-corner-full);
       }
 
       &:active {

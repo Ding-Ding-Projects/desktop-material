@@ -1,3 +1,4 @@
+import { MaterialSymbol } from './lib/material-symbol'
 import * as React from 'react'
 import * as Path from 'path'
 import { randomUUID } from 'crypto'
@@ -158,8 +159,6 @@ import {
   ThemeToggleButton,
 } from './toolbar'
 import { canAutoCommitPush } from '../lib/automation/automation-guards'
-import { Octicon } from './octicons'
-import * as octicons from './octicons/octicons.generated'
 import {
   showCertificateTrustDialog,
   sendReady,
@@ -365,6 +364,7 @@ import memoizeOne from 'memoize-one'
 import { AheadBehindStore } from '../lib/stores/ahead-behind-store'
 import {
   getAccountForCommitMessageGeneration,
+  getAccountForCopilotConflictResolution,
   getAccountForRepository,
 } from '../lib/get-account-for-repository'
 import { CommitOneLine } from '../models/commit'
@@ -4949,7 +4949,16 @@ export class App extends React.Component<IAppProps, IAppState> {
             underlineLinks={this.state.underlineLinks}
             showDiffCheckMarks={this.state.showDiffCheckMarks}
             selectedCopilotModels={this.state.selectedCopilotModels}
+            selectedCopilotModelsByAccount={
+              this.state.selectedCopilotModelsByAccount
+            }
             copilotModels={this.state.copilotModels}
+            copilotModelsByAccount={this.state.copilotModelsByAccount}
+            copilotQuotaSnapshots={this.state.copilotQuotaSnapshots}
+            copilotQuotaSnapshotsByAccount={
+              this.state.copilotQuotaSnapshotsByAccount
+            }
+            copilotQuotaStatesByAccount={this.state.copilotQuotaStatesByAccount}
             byokProviders={this.state.byokProviders}
             alwaysUseCopilotForConflictResolution={
               this.state.alwaysUseCopilotForConflictResolution
@@ -6187,6 +6196,25 @@ export class App extends React.Component<IAppProps, IAppState> {
           return null
         }
 
+        const conflictAccount = getAccountForCopilotConflictResolution(
+          this.state.accounts,
+          popup.repository
+        )
+        const conflictAccountKey =
+          conflictAccount === null || conflictAccount === undefined
+            ? null
+            : `${conflictAccount.id}:${conflictAccount.endpoint}`
+        const conflictModels =
+          conflictAccountKey === null
+            ? null
+            : this.state.copilotModelsByAccount.get(conflictAccountKey) ?? null
+        const conflictSelection =
+          conflictAccountKey === null
+            ? null
+            : this.state.selectedCopilotModelsByAccount.get(
+                conflictAccountKey
+              )?.['conflict-resolution'] ?? null
+
         return (
           <MultiCommitOperation
             key="multi-commit-operation"
@@ -6205,8 +6233,8 @@ export class App extends React.Component<IAppProps, IAppState> {
               this.state.copilotConflictResolutionClickCount === 0
             }
             copilotConflictResolutionModel={getConflictResolutionModelDisplay(
-              this.state.selectedCopilotModels['conflict-resolution'] ?? null,
-              this.state.copilotModels,
+              conflictSelection,
+              conflictModels,
               this.state.byokProviders
             )}
             openFileInExternalEditor={this.openFileInExternalEditor}
@@ -6795,13 +6823,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             key="delete-worktree"
             repository={popup.repository}
             worktreePath={popup.worktreePath}
-            askForConfirmationOnWorktreeRemoval={
-              this.state.askForConfirmationOnWorktreeRemoval
-            }
             onDeleteWorktree={this.onDeleteWorkTree}
-            onConfirmWorktreeRemovalChanged={
-              this.onConfirmWorktreeRemovalChanged
-            }
             onDismissed={onPopupDismissedFn}
           />
         )
@@ -6838,10 +6860,6 @@ export class App extends React.Component<IAppProps, IAppState> {
     force?: boolean
   ) => {
     return this.props.dispatcher.deleteWorktree(repository, worktreePath, force)
-  }
-
-  private onConfirmWorktreeRemovalChanged = (value: boolean) => {
-    this.props.dispatcher.setConfirmWorktreeRemovalSetting(value)
   }
 
   private onUpdateCommitOptions = (
@@ -7326,7 +7344,7 @@ export class App extends React.Component<IAppProps, IAppState> {
           )}
           tooltip={t('submodule.closeTemporaryViewer')}
         >
-          <Octicon symbol={octicons.x} />
+          <MaterialSymbol name="close" />
           <span className="submodule-context-close-label">
             <LocalizedText
               translationKey="submodule.closeTemporaryViewer"
@@ -8060,7 +8078,7 @@ export class App extends React.Component<IAppProps, IAppState> {
           aria-live="polite"
         >
           <span className="repository-drop-overlay-icon">
-            <Octicon symbol={octicons.repoPush} height={28} />
+            <MaterialSymbol size={28} name="publish" />
           </span>
           <strong>Drop repository folders to open tabs</strong>
           <span>
@@ -9341,6 +9359,42 @@ export class App extends React.Component<IAppProps, IAppState> {
     }
   }
 
+  private onEditWorktreeAppearance = (appearanceId: string) => {
+    const anchor = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-worktree-appearance-id]')
+    ).find(element => element.dataset.worktreeAppearanceId === appearanceId)
+    if (anchor === undefined) {
+      this.props.dispatcher.postError(
+        new Error('The selected worktree row is no longer available.')
+      )
+      return
+    }
+
+    this.prepareAppearanceAnchor(anchor)
+    const profileKey = this.props.dispatcher.getActiveProfileKey()
+    void this.props.dispatcher
+      .getFeatureAppearanceElement(appearanceId)
+      .then(value => {
+        if (
+          !this.mounted ||
+          !anchor.isConnected ||
+          this.props.dispatcher.getActiveProfileKey() !== profileKey
+        ) {
+          return
+        }
+        this.appearanceEditorTarget = {
+          kind: 'feature',
+          featureId: appearanceId,
+          label: anchor.dataset.md3ElementLabel ?? 'Worktree row',
+          anchor,
+          highlighted: value.highlighted,
+          profileKey,
+        }
+        this.forceUpdate()
+      })
+      .catch(error => this.props.dispatcher.postError(asError(error)))
+  }
+
   private renderBranchToolbarButton(): JSX.Element | null {
     const selection = this.state.selectedState
 
@@ -9425,6 +9479,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         worktrees={worktrees}
         isOpen={isOpen}
         onDropDownStateChanged={this.onWorktreeDropdownStateChanged}
+        onEditWorktreeAppearance={this.onEditWorktreeAppearance}
         enableFocusTrap={enableFocusTrap}
         worktreeDropdownWidth={this.state.worktreeDropdownWidth}
       />

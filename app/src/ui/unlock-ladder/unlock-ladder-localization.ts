@@ -230,8 +230,8 @@ function lookup(
 ): string {
   const englishValue = english[band(levels.english)][key]
   const cantoneseValue = cantonese[band(levels.cantonese)][key]
-  if (mode === 'english') return englishValue
-  if (mode === 'cantonese') return cantoneseValue
+  if (mode === 'english') {return englishValue}
+  if (mode === 'cantonese') {return cantoneseValue}
   return `${englishValue} · ${cantoneseValue}`
 }
 

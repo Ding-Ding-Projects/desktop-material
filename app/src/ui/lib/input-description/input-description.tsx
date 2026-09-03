@@ -1,9 +1,8 @@
 import * as React from 'react'
-import { Octicon } from '../../octicons'
-import * as octicons from '../../octicons/octicons.generated'
 import classNames from 'classnames'
 import { AriaLiveContainer } from '../../accessibility/aria-live-container'
 import { assertNever } from '../../../lib/fatal-error'
+import { MaterialSymbol } from '../material-symbol'
 
 export enum InputDescriptionType {
   Caption,
@@ -85,9 +84,9 @@ export class InputDescription extends React.Component<IInputDescriptionProps> {
       case InputDescriptionType.Caption:
         return null
       case InputDescriptionType.Warning:
-        return <Octicon symbol={octicons.alert} />
+        return <MaterialSymbol name="warning" />
       case InputDescriptionType.Error:
-        return <Octicon symbol={octicons.stop} />
+        return <MaterialSymbol name="stop" />
       default:
         return assertNever(type, `Unknown input type  ${type}`)
     }

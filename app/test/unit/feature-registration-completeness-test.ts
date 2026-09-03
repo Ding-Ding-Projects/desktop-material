@@ -21,51 +21,51 @@ const evidenceDimensions = [
 
 type EvidenceDimension = typeof evidenceDimensions[number]
 
-interface CanonicalFeature {
+interface ICanonicalFeature {
   id: string
   name: string
 }
 
-interface CanonicalInventory {
+interface ICanonicalInventory {
   schemaVersion: number
-  features: Array<CanonicalFeature>
+  features: Array<ICanonicalFeature>
 }
 
-interface EvidenceRecord {
+interface IEvidenceRecord {
   status: EvidenceStatus
   paths?: Array<string>
   reason?: string
   note?: string
 }
 
-interface FeatureEvidence {
+interface IFeatureEvidence {
   id: string
-  evidence: Record<EvidenceDimension, Array<EvidenceRecord>>
+  evidence: Record<EvidenceDimension, Array<IEvidenceRecord>>
 }
 
-interface EvidenceManifest {
+interface IEvidenceManifest {
   schemaVersion: number
   canonicalFeatureDigest: string
   dimensions: Array<string>
-  features: Array<FeatureEvidence>
+  features: Array<IFeatureEvidence>
 }
 
 function parseFixture<T>(path: string): T {
   return JSON.parse(read(path)) as T
 }
 
-function inventoryDigest(inventory: CanonicalInventory): string {
+function inventoryDigest(inventory: ICanonicalInventory): string {
   return createHash('sha256')
     .update(JSON.stringify(inventory.features))
     .digest('hex')
 }
 
 function validateInventoryShape(
-  inventory: CanonicalInventory,
+  inventory: ICanonicalInventory,
   canonicalDigest: string
 ): Array<string> {
   const errors: Array<string> = []
-  if (inventory.schemaVersion !== 1) errors.push('unsupported inventory schema')
+  if (inventory.schemaVersion !== 1) {errors.push('unsupported inventory schema')}
   if (!Array.isArray(inventory.features) || inventory.features.length === 0) {
     errors.push('canonical feature inventory is empty')
     return errors
@@ -79,7 +79,7 @@ function validateInventoryShape(
     if (typeof feature.name !== 'string' || feature.name.trim().length === 0) {
       errors.push(`feature row ${index} has no human-readable name`)
     }
-    if (seen.has(feature.id)) errors.push(`duplicate feature id: ${feature.id}`)
+    if (seen.has(feature.id)) {errors.push(`duplicate feature id: ${feature.id}`)}
     seen.add(feature.id)
   }
   if (inventoryDigest(inventory) !== canonicalDigest) {
@@ -91,8 +91,8 @@ function validateInventoryShape(
 }
 
 function validateEvidenceManifestShape(
-  manifest: EvidenceManifest,
-  canonicalFeatures: Array<CanonicalFeature>,
+  manifest: IEvidenceManifest,
+  canonicalFeatures: Array<ICanonicalFeature>,
   canonicalDigest: string
 ): Array<string> {
   const errors: Array<string> = []
@@ -124,7 +124,7 @@ function validateEvidenceManifestShape(
   const seen = new Set<string>()
   for (const [index, feature] of manifest.features.entries()) {
     const id = typeof feature?.id === 'string' ? feature.id : `row-${index}`
-    if (seen.has(id)) errors.push(`duplicate evidence feature id: ${id}`)
+    if (seen.has(id)) {errors.push(`duplicate evidence feature id: ${id}`)}
     seen.add(id)
 
     if (
@@ -208,7 +208,7 @@ function validateEvidenceManifestShape(
 }
 
 function validateEvidenceCompletion(
-  manifest: EvidenceManifest,
+  manifest: IEvidenceManifest,
   repositoryRoot: string
 ): Array<string> {
   const errors: Array<string> = []
@@ -235,7 +235,7 @@ function validateEvidenceCompletion(
 }
 
 function completionVerdict(
-  manifest: EvidenceManifest,
+  manifest: IEvidenceManifest,
   repositoryRoot: string
 ): { complete: boolean; errors: Array<string> } {
   const errors = validateEvidenceCompletion(manifest, repositoryRoot)
@@ -259,10 +259,10 @@ function uniqueMatches(source: string, expression: RegExp): Array<string> {
 
 describe('public feature registration completeness', () => {
   it('validates the explicit evidence manifest and enforces the completion Chut', () => {
-    const inventory = parseFixture<CanonicalInventory>(
+    const inventory = parseFixture<ICanonicalInventory>(
       'app/test/fixtures/feature-completeness/canonical-features.json'
     )
-    const manifest = parseFixture<EvidenceManifest>(
+    const manifest = parseFixture<IEvidenceManifest>(
       'app/test/fixtures/feature-completeness/evidence-paths.json'
     )
 
@@ -291,10 +291,10 @@ describe('public feature registration completeness', () => {
   })
 
   it('proves every feature row and evidence dimension fails closed under content-aware mutation', () => {
-    const inventory = parseFixture<CanonicalInventory>(
+    const inventory = parseFixture<ICanonicalInventory>(
       'app/test/fixtures/feature-completeness/canonical-features.json'
     )
-    const manifest = parseFixture<EvidenceManifest>(
+    const manifest = parseFixture<IEvidenceManifest>(
       'app/test/fixtures/feature-completeness/evidence-paths.json'
     )
 

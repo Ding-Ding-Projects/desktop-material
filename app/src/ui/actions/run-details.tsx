@@ -25,6 +25,7 @@ import { Dispatcher } from '../dispatcher'
 import { PopupType } from '../../models/popup'
 import { buildCloudCiRepairPrompt } from '../../lib/build-run/repair-prompts'
 import { t } from '../../lib/i18n'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /** Status glyph for an individual job step. */
 function getStepGlyph(step: {
@@ -236,7 +237,7 @@ export class RunDetails extends React.PureComponent<IRunDetailsProps> {
             <h2>{run.display_title || run.name}</h2>
             <div className="actions-details-meta">
               <span className="branch-chip">
-                <Octicon symbol={octicons.gitBranch} />
+                <MaterialSymbol name="call_split" />
                 {run.head_branch ?? 'detached'}
               </span>
               <span>
@@ -251,8 +252,7 @@ export class RunDetails extends React.PureComponent<IRunDetailsProps> {
                   onClick={this.fixCloudCiLocally}
                   tooltip="Fix locally with Codex or OpenCode, verify, then push to start cloud CI"
                 >
-                  <Octicon symbol={octicons.tools} />{' '}
-                  {t('actions.fixCiWithAgent')}
+                  <MaterialSymbol name="build" /> {t('actions.fixCiWithAgent')}
                 </Button>
               )}
             <Button onClick={this.props.onClose}>Close</Button>

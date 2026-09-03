@@ -5,8 +5,6 @@ import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { Button } from '../lib/button'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { TextBox } from '../lib/text-box'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import { DateRangePicker } from '../lib/date-range-picker'
 import {
@@ -58,6 +56,7 @@ import {
   translateWithFunnyLevel,
 } from '../../lib/funny-level-text'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /**
  * The in-app changelog viewer: every recorded release, narrowed by text,
@@ -392,7 +391,7 @@ export class ChangelogDialog extends React.Component<
           inferTooltip={false}
           onClick={this.onToggleDatePicker}
         >
-          <Octicon symbol={octicons.calendar} />
+          <MaterialSymbol name="calendar_today" />
           {label}
         </Button>
         {this.state.datePickerOpen && (
@@ -520,7 +519,7 @@ export class ChangelogDialog extends React.Component<
         <DialogContent>
           <div className="changelog-controls">
             <div className="changelog-search">
-              <Octicon symbol={octicons.search} />
+              <MaterialSymbol name="search" />
               <TextBox
                 type="text"
                 searchSurfaceId={ChangelogSearchSurfaceId}

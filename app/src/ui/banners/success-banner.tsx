@@ -1,8 +1,7 @@
 import * as React from 'react'
 import { LinkButton } from '../lib/link-button'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { Banner } from './banner'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface ISuccessBannerProps {
   readonly timeout: number
@@ -36,7 +35,7 @@ export class SuccessBanner extends React.Component<ISuccessBannerProps, {}> {
         onDismissed={this.props.onDismissed}
       >
         <div className="green-circle">
-          <Octicon className="check-icon" symbol={octicons.checkCircleFill} />
+          <MaterialSymbol name="check_circle" className="check-icon" />
         </div>
         <div className="banner-message">
           <span className="success-contents">{this.props.children}</span>

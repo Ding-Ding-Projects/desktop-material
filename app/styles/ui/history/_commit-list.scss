@@ -200,7 +200,7 @@
     .unpushed-indicator {
       flex: 0 0 auto;
       height: 100%;
-      border-radius: 8px;
+      border-radius: var(--md-sys-shape-corner-small);
       padding: 0 var(--spacing-half);
       background: var(--list-item-badge-background-color);
       margin-left: var(--spacing-half);
@@ -219,7 +219,7 @@
     height: 28px;
     padding: 0;
     border: 0;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     color: var(--md-sys-color-on-surface-variant);
     background: transparent;
     box-shadow: none;
@@ -257,7 +257,7 @@
     .unpushed-indicator {
       display: inline-flex;
       flex: 0 0 auto;
-      border-radius: 8px;
+      border-radius: var(--md-sys-shape-corner-small);
       padding: 0 var(--spacing-half);
       color: var(--list-item-badge-color);
       align-items: center;
@@ -324,7 +324,7 @@
     gap: 4px;
     height: 22px;
     padding: 0 9px;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: var(--md-sys-color-surface-container-highest);
     color: var(--md-sys-color-on-surface-variant);
     font-size: 11px;
@@ -356,7 +356,7 @@
     height: 24px;
     padding: 0;
     margin-left: var(--spacing-half);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: var(--md-sys-color-primary-container);
     color: var(--md-sys-color-on-primary-container);
     animation: dmBounce calc(480ms * var(--mdur)) var(--spring-fast) backwards;
@@ -405,7 +405,7 @@
     flex: none;
     width: 34px;
     height: 34px;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     overflow: hidden;
     background: var(--md-sys-color-primary-container);
     transition: transform 220ms var(--spring-fast);
@@ -415,7 +415,7 @@
       display: block;
       width: 34px;
       height: 34px;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
     }
 
     svg.avatar {

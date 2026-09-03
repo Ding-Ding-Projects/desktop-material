@@ -2,9 +2,8 @@ import * as React from 'react'
 import { Account, isDotComAccount } from '../../models/account'
 import { LinkButton } from './link-button'
 import { isAttributableEmailFor } from '../../lib/email'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { AriaLiveContainer } from '../accessibility/aria-live-container'
+import { MaterialSymbol } from './material-symbol'
 
 interface IGitEmailNotFoundWarningProps {
   /** The account the commit should be attributed to. */
@@ -24,7 +23,7 @@ export class GitEmailNotFoundWarning extends React.Component<IGitEmailNotFoundWa
       <span className="warning-icon">⚠️</span>
     ) : (
       <span className="green-circle">
-        <Octicon className="check-icon" symbol={octicons.check} />
+        <MaterialSymbol name="check" className="check-icon" />
       </span>
     )
 

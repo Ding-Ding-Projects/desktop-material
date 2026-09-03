@@ -1,10 +1,9 @@
+import { MaterialSymbol } from './lib/material-symbol'
 import * as React from 'react'
 
 import { CloningRepository } from '../models/cloning-repository'
 import { ICloneProgress, SubmoduleFetchStage } from '../models/progress'
 import { formatCloneEta, formatCloneSpeed } from '../lib/progress/clone-eta'
-import { Octicon } from './octicons'
-import * as octicons from './octicons/octicons.generated'
 import { UiView } from './ui-view'
 import { TooltippedContent } from './lib/tooltipped-content'
 
@@ -45,7 +44,7 @@ export class CloningRepositoryView extends React.Component<
     return (
       <UiView id="cloning-repository-view">
         <div className="title-container">
-          <Octicon symbol={octicons.desktopDownload} />
+          <MaterialSymbol name="install_desktop" />
           <div className="title">Cloning {this.props.repository.name}</div>
         </div>
         <progress value={progressValue} />

@@ -7,12 +7,11 @@ import { MultiCommitOperationStepKind } from '../../../models/multi-commit-opera
 import { MultiCommitOperationConflictState } from '../../../lib/app-state'
 import { IConflictResolutionProgress } from '../../../lib/copilot-conflict-resolution'
 import { Button } from '../../lib/button'
-import { Octicon } from '../../octicons'
-import * as octicons from '../../octicons/octicons.generated'
 import { MultiCommitOperationKind } from '../../../models/multi-commit-operation'
 import { AriaLiveContainer } from '../../accessibility/aria-live-container'
 import { IConflictResolutionModelDisplay } from '../../../lib/copilot/conflict-resolution-model'
 import { formatReasoningEffort } from '../../../lib/stores/copilot-store'
+import { MaterialSymbol } from '../../lib/material-symbol'
 
 interface ICopilotConflictsLoadingDialogProps {
   readonly repository: Repository
@@ -429,9 +428,9 @@ export class CopilotConflictsLoadingDialog extends React.Component<
         <DialogContent>
           <div className="copilot-conflicts-loading-content">
             <div className="copilot-conflicts-loading-theme">
-              <Octicon
+              <MaterialSymbol
+                name="smart_toy"
                 className="copilot-conflicts-loading-theme-icon"
-                symbol={octicons.copilot}
               />
               <span className="copilot-conflicts-loading-theme-label">
                 {ThemeLabels[theme]}
@@ -464,9 +463,9 @@ export class CopilotConflictsLoadingDialog extends React.Component<
               className="copilot-conflicts-loading-stop"
               onClick={this.onCancel}
             >
-              <Octicon
+              <MaterialSymbol
+                name="square"
                 className="copilot-conflicts-loading-stop-icon"
-                symbol={octicons.squareFill}
               />
               Stop
             </Button>

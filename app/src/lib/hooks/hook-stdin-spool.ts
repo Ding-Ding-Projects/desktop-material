@@ -72,11 +72,14 @@ const defaultDependencies: ISpoolHookStdinDependencies = {
 export async function spoolHookStdinToFile(
   stdin: Readable,
   maximumBytes: number = MaximumHookStdinBytes,
-  dependencies: Partial<ISpoolHookStdinDependencies> = {}
+  dependencies: Partial<ISpoolHookStdinDependencies> = {},
+  signal?: AbortSignal
 ): Promise<ISpooledHookStdin> {
   if (!Number.isSafeInteger(maximumBytes) || maximumBytes <= 0) {
     throw new RangeError('A hook stdin spool needs a positive byte budget.')
   }
+
+  signal?.throwIfAborted()
 
   const { makeDirectory, createSink, removeDirectory } = {
     ...defaultDependencies,
@@ -85,8 +88,12 @@ export async function spoolHookStdinToFile(
 
   const directory = await makeDirectory()
   const path = join(directory, 'stdin')
-  const dispose = async () => {
-    await removeDirectory(directory).catch(() => {})
+  let disposal: Promise<void> | undefined
+  const dispose = () => {
+    if (disposal === undefined) {
+      disposal = removeDirectory(directory).catch(() => {})
+    }
+    return disposal
   }
 
   let byteLength = 0
@@ -102,7 +109,8 @@ export async function spoolHookStdinToFile(
   })
 
   try {
-    await pipeline(stdin, meter, createSink(path))
+    signal?.throwIfAborted()
+    await pipeline(stdin, meter, createSink(path), { signal })
   } catch (error) {
     await dispose()
     throw error

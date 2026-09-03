@@ -16,7 +16,7 @@
     select {
       min-width: 150px;
       border: 1px solid var(--md-sys-color-outline-variant);
-      border-radius: 12px;
+      border-radius: var(--md-sys-shape-corner-medium);
       padding: 6px 10px;
       color: var(--md-sys-color-on-surface);
       background: var(--md-sys-color-surface-container-high);
@@ -200,7 +200,7 @@
         box-sizing: border-box;
         height: 36px;
         padding: 0 32px 0 30px;
-        border-radius: 999px;
+        border-radius: var(--md-sys-shape-corner-full);
         border: 1px solid var(--md-sys-color-outline-variant);
         background: var(--md-sys-color-surface-container-high);
         color: var(--md-sys-color-on-surface);
@@ -230,7 +230,7 @@
         width: 24px;
         height: 24px;
         border: 0;
-        border-radius: 999px;
+        border-radius: var(--md-sys-shape-corner-full);
         background: transparent;
         color: var(--md-sys-color-on-surface-variant);
         cursor: pointer;
@@ -288,7 +288,7 @@
       box-sizing: border-box;
       padding: 8px 10px;
       border: 0;
-      border-radius: 12px;
+      border-radius: var(--md-sys-shape-corner-medium);
       background: transparent;
       color: var(--md-sys-color-on-surface);
       text-align: left;
@@ -472,7 +472,7 @@
           box-sizing: border-box;
           display: inline-grid;
           place-items: center;
-          border-radius: 999px;
+          border-radius: var(--md-sys-shape-corner-full);
           background: var(--md-sys-color-primary);
           color: var(--md-sys-color-on-primary);
           font-size: 10.5px;
@@ -549,7 +549,7 @@
         box-sizing: border-box;
         display: inline-grid;
         place-items: center;
-        border-radius: 999px;
+        border-radius: var(--md-sys-shape-corner-full);
         background: var(--md-sys-color-primary);
         color: var(--md-sys-color-on-primary);
         font-size: 10.5px;
@@ -568,7 +568,7 @@
     width: 40px;
     height: 40px;
     border: 0;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: transparent;
     color: var(--md-sys-color-on-surface-variant);
     cursor: pointer;
@@ -651,7 +651,7 @@
       background: var(--md-sys-color-primary);
       color: var(--md-sys-color-on-primary);
       border: 0;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       height: 42px;
       padding: 0 24px;
       font-weight: var(--font-weight-bold);
@@ -671,7 +671,7 @@
       background: transparent;
       color: var(--md-sys-color-primary);
       border: 0;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       height: 42px;
       padding: 0 20px;
       font-weight: var(--font-weight-bold);
@@ -708,7 +708,7 @@
       width: 54px;
       height: 32px;
       margin: 0;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       border: 2px solid var(--md-sys-color-outline);
       background: var(--md-sys-color-surface-container-high);
       cursor: pointer;
@@ -721,7 +721,7 @@
         left: 3px;
         width: 18px;
         height: 18px;
-        border-radius: 999px;
+        border-radius: var(--md-sys-shape-corner-full);
         background: var(--md-sys-color-outline);
         transform: translateY(-50%);
         transition: transform 320ms var(--spring), width 200ms var(--spring-fast), height 200ms var(--spring-fast), background-color 280ms var(--emph);
@@ -762,7 +762,7 @@
     .checkbox-component {
       gap: 14px;
       padding: 13px 16px;
-      border-radius: 16px;
+      border-radius: var(--md-sys-shape-corner-large);
       background: var(--md-sys-color-surface);
       transition: background-color 240ms var(--emph), transform 200ms var(--spring-fast);
       animation: dmUp calc(420ms * var(--mdur, 1)) var(--spring) backwards;
@@ -1056,7 +1056,7 @@
         min-height: 42px;
         padding: 0 18px;
         border: 0;
-        border-radius: 999px;
+        border-radius: var(--md-sys-shape-corner-full);
         background: transparent;
         color: var(--md-sys-color-primary);
         font-size: 13px;
@@ -1192,7 +1192,7 @@
         gap: 4px;
         height: 26px;
         padding: 0 10px;
-        border-radius: 999px;
+        border-radius: var(--md-sys-shape-corner-full);
         // v2 prototype: the active-account chip reads green, not tertiary.
         background: var(--dm-green-container);
         color: var(--dm-green);
@@ -1217,7 +1217,7 @@
         color: var(--md-sys-color-primary);
         border: 0;
         box-shadow: inset 0 0 0 1.5px var(--md-sys-color-outline-variant);
-        border-radius: 999px;
+        border-radius: var(--md-sys-shape-corner-full);
         height: 36px;
         padding: 0 14px;
         font-weight: var(--font-weight-bold);
@@ -1361,7 +1361,7 @@
     .appearance-playfulness-control {
       min-width: 0;
       padding: 12px;
-      border-radius: 16px;
+      border-radius: var(--md-sys-shape-corner-large);
       background: var(--md-sys-color-surface-container);
     }
 
@@ -1383,7 +1383,7 @@
         flex: 0 0 32px;
         min-width: 32px;
         padding: 2px 7px;
-        border-radius: 999px;
+        border-radius: var(--md-sys-shape-corner-full);
         background: var(--md-sys-color-primary-container);
         color: var(--md-sys-color-on-primary-container);
         font-variant-numeric: tabular-nums;
@@ -1649,7 +1649,7 @@
     margin-top: var(--spacing);
     padding: var(--spacing);
     border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
     background: var(--md-sys-color-surface-container-low);
 
     .appearance-tone-heading {
@@ -1746,7 +1746,7 @@
       flex: 1 1 240px;
       min-width: 0;
       padding: var(--spacing);
-      border-radius: 12px;
+      border-radius: var(--md-sys-shape-corner-medium);
       background: var(--md-sys-color-surface-container-high);
     }
 
@@ -2040,7 +2040,7 @@
         height: 38px;
         padding: 3px;
         border: 1px solid var(--md-sys-color-outline);
-        border-radius: 12px;
+        border-radius: var(--md-sys-shape-corner-medium);
         background: var(--md-sys-color-surface-container-high);
         cursor: pointer;
       }
@@ -2082,7 +2082,7 @@
       min-width: 40px;
       height: 40px;
       padding: 0;
-      border-radius: 12px;
+      border-radius: var(--md-sys-shape-corner-medium);
       font-weight: 700;
 
       &[aria-pressed='true'] {
@@ -2446,7 +2446,7 @@
 
             .theme-swatch-line {
               height: 6px;
-              border-radius: 999px;
+              border-radius: var(--md-sys-shape-corner-full);
               background: var(--dm-swatch-line);
 
               &--short {

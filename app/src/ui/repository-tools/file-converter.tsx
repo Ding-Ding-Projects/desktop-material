@@ -1,7 +1,5 @@
 import * as React from 'react'
 import { Button } from '../lib/button'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import {
   showOpenDialogMultiple,
   inspectFileConverterSource,
@@ -17,6 +15,7 @@ import {
   readFileConverterQueueState,
   writeFileConverterQueueState,
 } from '../../lib/file-converter'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IFileConverterProps {
   /** Injectable seams keep file selection and byte inspection out of the UI. */
@@ -156,6 +155,7 @@ export class FileConverter extends React.Component<
     return (
       <div
         className="file-converter-catalog"
+        role="region"
         aria-label="Local file conversion adapters"
       >
         {FileConverterCategories.map(category => {
@@ -166,6 +166,7 @@ export class FileConverter extends React.Component<
             <section
               className="file-converter-category"
               key={category}
+              role="region"
               aria-label={category}
             >
               <h3>{category}</h3>
@@ -183,6 +184,7 @@ export class FileConverter extends React.Component<
                   </div>
                   <span
                     className="file-converter-state"
+                    role="note"
                     aria-label="Unavailable"
                   >
                     Unavailable
@@ -224,7 +226,7 @@ export class FileConverter extends React.Component<
       >
         <header className="file-converter-heading">
           <span className="file-converter-icon" aria-hidden="true">
-            <Octicon symbol={octicons.fileDiff} />
+            <MaterialSymbol name="difference" />
           </span>
           <div>
             <h2 id="file-converter-title">{t('fileConverter.title')}</h2>

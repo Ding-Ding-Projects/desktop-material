@@ -2,10 +2,9 @@ import * as React from 'react'
 import { formatRebaseValue } from '../../../lib/rebase'
 import { RichText } from '../../lib/rich-text'
 import { Dialog, DialogContent } from '../../dialog'
-import { Octicon } from '../../octicons'
-import * as octicons from '../../octicons/octicons.generated'
 import { IMultiCommitOperationProgress } from '../../../models/progress'
 import { Emoji } from '../../../lib/emoji'
+import { MaterialSymbol } from '../../lib/material-symbol'
 
 interface IProgressDialogProps {
   /**
@@ -40,7 +39,7 @@ export class ProgressDialog extends React.Component<IProgressDialogProps> {
 
             <div className="details">
               <div className="green-circle">
-                <Octicon symbol={octicons.check} />
+                <MaterialSymbol name="check" />
               </div>
               <div className="summary">
                 <div className="message">

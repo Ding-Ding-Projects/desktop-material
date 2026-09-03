@@ -1,0 +1,20 @@
+// The shared empty state. Honest copy, centred, never a spinner.
+
+.md3-empty-state {
+  align-items: center;
+  color: var(--md-sys-color-on-surface-variant);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.md3-empty-state__message {
+  margin: 0;
+  // Long-form copy wraps; it is never truncated, because an empty state whose
+  // explanation is cut off has failed at the one job it has.
+  max-width: 46ch;
+  overflow-wrap: anywhere;
+}

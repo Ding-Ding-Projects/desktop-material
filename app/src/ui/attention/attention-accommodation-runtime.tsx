@@ -191,7 +191,10 @@ export class AttentionAccommodationRuntime extends React.Component<
         root.removeAttribute(name)
       }
     }
-    setModeAttribute('data-attention-focus', this.state.preferences.enabled.focus)
+    setModeAttribute(
+      'data-attention-focus',
+      this.state.preferences.enabled.focus
+    )
     setModeAttribute(
       'data-attention-low-stimulation',
       this.state.preferences.enabled.lowStimulation
@@ -204,7 +207,10 @@ export class AttentionAccommodationRuntime extends React.Component<
       'data-attention-one-thing',
       this.state.preferences.enabled.oneThingAtATime
     )
-    setModeAttribute('data-attention-momentum', this.state.preferences.enabled.momentum)
+    setModeAttribute(
+      'data-attention-momentum',
+      this.state.preferences.enabled.momentum
+    )
 
     if (!this.state.preferences.enabled.focus) {
       this.activeRegion?.removeAttribute('data-attention-active')

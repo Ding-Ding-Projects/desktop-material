@@ -189,7 +189,7 @@
     height: calc(44px * var(--welcome-scale));
     padding: 0 22px;
     border: 0;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: var(--md-sys-color-secondary-container);
     color: var(--md-sys-color-on-secondary-container);
     font-weight: var(--font-weight-semibold);
@@ -198,7 +198,7 @@
     &:not([aria-disabled='true']):hover {
       background: var(--md-sys-color-secondary-container);
       box-shadow: var(--md-sys-elevation-level1);
-      border-radius: 16px;
+      border-radius: var(--md-sys-shape-corner-large);
     }
 
     &:not([aria-disabled='true']):active {
@@ -213,7 +213,7 @@
       &:not([aria-disabled='true']):hover {
         background: var(--md-sys-color-primary);
         box-shadow: var(--md-sys-elevation-level2);
-        border-radius: 16px;
+        border-radius: var(--md-sys-shape-corner-large);
       }
     }
   }
@@ -439,7 +439,7 @@
     .welcome-orbit {
       position: absolute;
       display: block;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       background: var(--md-sys-color-primary-container);
       opacity: 0.44;
       filter: blur(1px);
@@ -551,7 +551,7 @@
       width: 8px;
       height: 8px;
       flex: 0 0 auto;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       background: var(--md-sys-color-primary);
       box-shadow: 0 0 0 4px var(--md-sys-color-primary-container);
     }
@@ -638,11 +638,11 @@
       height: auto;
       margin: 0;
       padding: 0 calc(24px * var(--welcome-scale));
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
 
       &:not([aria-disabled='true']):hover,
       &[type='submit']:not([aria-disabled='true']):hover {
-        border-radius: 999px;
+        border-radius: var(--md-sys-shape-corner-full);
       }
     }
   }
@@ -662,6 +662,12 @@
       justify-self: start;
       color: var(--md-sys-color-primary);
       font-weight: var(--font-weight-semibold);
+      // A standalone action rather than a link inside a sentence, so its own
+      // height is its own responsibility. It measured 180x21 against the 24px
+      // accessible minimum.
+      align-items: center;
+      display: inline-flex;
+      min-height: 24px;
     }
   }
 
@@ -677,7 +683,15 @@
     border-radius: clamp(28px, 3.5vw, 44px);
     background: linear-gradient(150deg, var(--md-sys-color-primary-container), color-mix(in srgb, var(--md-sys-color-primary-container) 70%, var(--md-sys-color-tertiary-container)));
     color: var(--md-sys-color-on-primary-container);
-    overflow: hidden;
+    // The panel is a fixed fraction of the window height, so at the minimum
+    // supported size its content does not fit: measured 65px hidden vertically
+    // and 50px horizontally at 1000x687. Scrolling makes the remainder
+    // reachable instead of silently cutting it off.
+    //
+    // This block already declared `overflow: hidden` further down, so adding a
+    // second declaration above it changed nothing at all: the later one in the
+    // same rule wins. The declaration itself had to move.
+    overflow: auto;
 
     .welcome-showcase-copy {
       position: relative;
@@ -718,7 +732,7 @@
         min-height: 34px;
         padding: 8px 14px;
         border: 1px solid color-mix(in srgb, var(--md-sys-color-on-primary-container) 25%, transparent);
-        border-radius: 999px;
+        border-radius: var(--md-sys-shape-corner-full);
         background: color-mix(in srgb, var(--md-sys-color-surface-container-lowest) 44%, transparent);
         font-size: 12px;
         font-weight: 650;
@@ -770,7 +784,7 @@
         background: var(--md-sys-color-surface-container-high);
 
         &:first-child {
-          border-radius: 999px;
+          border-radius: var(--md-sys-shape-corner-full);
           background: var(--md-sys-color-secondary-container);
         }
       }
@@ -788,7 +802,7 @@
         display: block;
         width: 26%;
         height: 42px;
-        border-radius: 999px;
+        border-radius: var(--md-sys-shape-corner-full);
         background: var(--md-sys-color-surface-container-high);
 
         &:last-child {

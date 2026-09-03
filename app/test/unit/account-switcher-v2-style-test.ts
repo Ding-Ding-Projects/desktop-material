@@ -53,7 +53,7 @@ describe('Account switcher v2 styles', () => {
   it('shapes account rows as 16px-radius pills with the prototype inset', () => {
     assert.match(
       styles,
-      /\.account-switcher-row\s*\{[\s\S]*?padding: 10px 12px;[\s\S]*?border-radius: 16px;/
+      /\.account-switcher-row\s*\{[\s\S]*?padding: 10px 12px;[\s\S]*?border-radius: var\(--md-sys-shape-corner-large\);/
     )
   })
 
@@ -78,7 +78,7 @@ describe('Account switcher v2 styles', () => {
   it('renders 38px circular avatar slots with a primary-container variant', () => {
     assert.match(
       styles,
-      /\.account-switcher-avatar\s*\{[\s\S]*?width: 38px;\s*height: 38px;\s*border-radius: 999px;\s*background: var\(--md-sys-color-secondary-container\);/
+      /\.account-switcher-avatar\s*\{[\s\S]*?width: 38px;\s*height: 38px;\s*border-radius: var\(--md-sys-shape-corner-full\);\s*background: var\(--md-sys-color-secondary-container\);/
     )
     assert.match(
       styles,
@@ -190,18 +190,18 @@ describe('Account switcher v2 component contract', () => {
     assert.match(component, /regexError !== null/)
   })
 
-  it('marks the active row and pops a check-circle octicon on it', () => {
+  it('marks the active row and pops a check-circle symbol on it', () => {
     assert.match(component, /aria-current=\{active \? 'true' : undefined\}/)
     assert.match(
       component,
-      /\{active && \([\s\S]*?className="account-switcher-check"[\s\S]*?octicons\.checkCircle/
+      /\{active && \([\s\S]*?className="account-switcher-check"[\s\S]*?MaterialSymbol name="check_circle"/
     )
   })
 
   it('offers the person-add action row', () => {
     assert.match(
       component,
-      /className="account-switcher-add"[\s\S]*?octicons\.personAdd[\s\S]*?accounts\.picker\.add/
+      /className="account-switcher-add"[\s\S]*?MaterialSymbol name="person_add"[\s\S]*?accounts\.picker\.add/
     )
   })
 })

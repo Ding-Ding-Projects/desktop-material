@@ -51,7 +51,7 @@ dialog#create-fork {
     min-width: 0;
     padding: 12px 14px;
     border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
     color: var(--md-sys-color-on-surface);
     background: var(--md-sys-color-surface-container);
     transition: background-color 300ms var(--emph), border-radius 300ms var(--spring);

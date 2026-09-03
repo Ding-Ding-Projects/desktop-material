@@ -38,6 +38,7 @@ import * as octicons from '../octicons/octicons.generated'
 import { RepositoryLogo } from '../repository-logo/repository-logo'
 import { IVersionedStoreHistorySource } from '../version-history'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /** How long to wait before re-checking a still-starting element coordinator. */
 const CoordinatorRetryDelay = 50
@@ -395,7 +396,7 @@ export class RepositoryAppearance extends React.Component<
                 )}
                 onClick={options.onShowHistory}
               >
-                <Octicon symbol={octicons.history} />
+                <MaterialSymbol name="history" />
                 <LocalizedText translationKey="repositorySettings.appearance.history" />
               </Button>
             )}
@@ -409,7 +410,7 @@ export class RepositoryAppearance extends React.Component<
               )}
               onClick={options.onReset}
             >
-              <Octicon symbol={octicons.sync} />
+              <MaterialSymbol name="sync" />
               <LocalizedText translationKey="repositorySettings.appearance.reset" />
             </Button>
           </div>
@@ -493,7 +494,7 @@ export class RepositoryAppearance extends React.Component<
         ],
         <div className="repository-appearance-preview-row">
           <span className="preview-row-icon">
-            <Octicon symbol={octicons.repo} />
+            <MaterialSymbol name="book_5" />
           </span>
           <span className="preview-row-name">{this.repositoryName}</span>
         </div>
@@ -552,7 +553,7 @@ export class RepositoryAppearance extends React.Component<
           )}
         >
           <span className="preview-toolbar-action">
-            <Octicon symbol={octicons.gitBranch} />
+            <MaterialSymbol name="call_split" />
             {labels !== 'icons' && (
               <span className="preview-toolbar-label" style={previewStyle}>
                 {this.repositoryName}
@@ -560,7 +561,7 @@ export class RepositoryAppearance extends React.Component<
             )}
           </span>
           <span className="preview-toolbar-action">
-            <Octicon symbol={octicons.sync} />
+            <MaterialSymbol name="sync" />
             {labels !== 'icons' && (
               <span className="preview-toolbar-label" style={previewStyle}>
                 Fetch origin
@@ -609,7 +610,7 @@ export class RepositoryAppearance extends React.Component<
             width
           )}
         >
-          <Octicon symbol={octicons.repo} />
+          <MaterialSymbol name="book_5" />
           <span className="preview-tab-label">{this.repositoryName}</span>
         </span>
       ),
@@ -721,7 +722,7 @@ export class RepositoryAppearance extends React.Component<
             <LocalizedText translationKey="repositorySettings.appearance.intro" />
           </p>
           <p className="repository-appearance-intro-hint">
-            <Octicon className="icon" symbol={octicons.paintbrush} />
+            <MaterialSymbol name="brush" className="icon" />
             <LocalizedText translationKey="repositorySettings.appearance.introHint" />
           </p>
         </div>

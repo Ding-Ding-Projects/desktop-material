@@ -1,23 +1,38 @@
 import * as React from 'react'
 import classNames from 'classnames'
 
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { TooltippedContent } from '../lib/tooltipped-content'
 import { showContextualMenu, IMenuItem } from '../../lib/menu-item'
 import { SettingsTabPickerPopover } from './settings-tab-picker-popover'
+import { getPersistedLanguageMode, translate } from '../../lib/i18n'
+import {
+  Popover,
+  PopoverAnchorPosition,
+  PopoverDecoration,
+} from '../lib/popover'
 import {
   DefaultSettingsTabDockPosition,
+  SettingsTabPersistenceVersion,
+  getSettingsTabLayout,
+  getSettingsTabGroupMembership,
   getPinnedSettingsTabs,
   getOpenSettingsTabs,
   ISettingsTabPersistenceOptions,
   ISettingsTabItem,
   orderSettingsTabs,
+  setSettingsTabGroupCollapsed,
+  setSettingsTabGroupMembership,
+  setSettingsTabLayout,
+  reorderSettingsTabPinnedOrder,
+  reorderSettingsTabGroup,
+  ISettingsTabGroup,
+  normalizeSettingsTabGroupName,
   setOpenSettingsTabs,
   SettingsTabDockPosition,
   SettingsTabStripId,
   toggleSettingsTabPin,
 } from './settings-tab-model'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface ISettingsTabStripProps {
   /** Which strip this is. Scopes the pins and the search surface id. */
@@ -78,6 +93,8 @@ interface ISettingsTabStripProps {
   }
 }
 
+const UngroupedSettingsTabOptionId = '__ungrouped__'
+
 interface ISettingsTabStripState {
   readonly pinnedIds: ReadonlyArray<string>
   /** Page ids that are currently open in the browser-style variant. */
@@ -92,7 +109,26 @@ interface ISettingsTabStripState {
   readonly overflowIds: ReadonlyArray<string>
   readonly pickerAnchor: HTMLElement | null
   /** Whether the picker was opened by the overflow button or by search. */
-  readonly pickerScope: 'overflow' | 'all' | 'new' | null
+  readonly pickerScope:
+    | 'overflow'
+    | 'all'
+    | 'current'
+    | 'new'
+    | 'group'
+    | 'groups'
+    | null
+  /** Complete user ordering, independent of the currently filtered view. */
+  readonly orderIds: ReadonlyArray<string>
+  readonly groups: ReadonlyArray<ISettingsTabGroup>
+  readonly groupOrder: ReadonlyArray<string>
+  readonly membership: Readonly<Record<string, string | null>>
+  readonly groupPickerId: string | null
+  readonly moveTabId: string | null
+  readonly revealedGroupId: string | null
+  readonly groupEditorAnchor: HTMLElement | null
+  readonly groupEditorId: string | null
+  readonly groupEditorMode: 'create' | 'rename' | null
+  readonly groupEditorName: string
 }
 
 /**
@@ -128,6 +164,10 @@ export class SettingsTabStrip extends React.Component<
     super(props)
     const declaredItems = props.allItems ?? props.items
     const persistenceOptions = this.getPersistenceOptions(props)
+    const layout = getSettingsTabLayout(props.strip, {
+      ...persistenceOptions,
+      allowedIds: declaredItems.map(item => item.id),
+    })
     const persistedOpenIds = getOpenSettingsTabs(
       props.strip,
       undefined,
@@ -156,11 +196,35 @@ export class SettingsTabStrip extends React.Component<
       setOpenSettingsTabs(props.strip, openIds, persistenceOptions)
     }
     this.state = {
-      pinnedIds: getPinnedSettingsTabs(props.strip, persistenceOptions),
+      pinnedIds: layout.pinnedIds,
       openIds,
+      orderIds: this.reconcileOrderIds(
+        declaredItems.map(item => item.id),
+        layout.order
+      ),
+      groups: layout.groups,
+      groupOrder: layout.groupOrder,
+      membership:
+        layout.membership ??
+        getSettingsTabGroupMembership(props.strip, persistenceOptions),
       overflowIds: [],
       pickerAnchor: null,
       pickerScope: null,
+      groupPickerId: null,
+      moveTabId: null,
+      revealedGroupId:
+        layout.membership[props.selectedId] !== undefined &&
+        layout.groups.some(
+          group =>
+            group.id === layout.membership[props.selectedId] &&
+            group.isCollapsed === true
+        )
+          ? layout.membership[props.selectedId]
+          : null,
+      groupEditorAnchor: null,
+      groupEditorId: null,
+      groupEditorMode: null,
+      groupEditorName: '',
     }
 
     // Guard and construct from the same value: a capability check that tests
@@ -214,6 +278,51 @@ export class SettingsTabStrip extends React.Component<
     return openIds
   }
 
+  private reconcileOrderIds(
+    declaredIds: ReadonlyArray<string>,
+    persistedIds: ReadonlyArray<string>
+  ): ReadonlyArray<string> {
+    const declared = new Set(declaredIds)
+    const seen = new Set<string>()
+    const order: string[] = []
+    for (const id of persistedIds) {
+      if (declared.has(id) && !seen.has(id)) {
+        seen.add(id)
+        order.push(id)
+      }
+    }
+    for (const id of declaredIds) {
+      if (!seen.has(id)) {
+        seen.add(id)
+        order.push(id)
+      }
+    }
+    return order
+  }
+
+  private persistLayout = (
+    layout: Partial<{
+      orderIds: ReadonlyArray<string>
+      groups: ReadonlyArray<ISettingsTabGroup>
+      groupOrder: ReadonlyArray<string>
+      membership: Readonly<Record<string, string | null>>
+    }>
+  ) => {
+    const options = this.getPersistenceOptions()
+    setSettingsTabLayout(
+      this.props.strip,
+      {
+        version: SettingsTabPersistenceVersion,
+        order: layout.orderIds ?? this.state.orderIds,
+        pinnedIds: this.state.pinnedIds,
+        groups: layout.groups ?? this.state.groups,
+        groupOrder: layout.groupOrder ?? this.state.groupOrder,
+        membership: layout.membership ?? this.state.membership,
+      },
+      options
+    )
+  }
+
   public componentDidMount() {
     this.scheduleMeasure()
   }
@@ -225,9 +334,19 @@ export class SettingsTabStrip extends React.Component<
     if (
       this.props.disabled === true &&
       prevProps.disabled !== true &&
-      this.state.pickerAnchor !== null
+      (this.state.pickerAnchor !== null ||
+        this.state.groupEditorAnchor !== null)
     ) {
-      this.setState({ pickerAnchor: null, pickerScope: null })
+      this.setState({
+        pickerAnchor: null,
+        pickerScope: null,
+        groupPickerId: null,
+        moveTabId: null,
+        groupEditorAnchor: null,
+        groupEditorId: null,
+        groupEditorMode: null,
+        groupEditorName: '',
+      })
       return
     }
     if (this.props.variant === 'browser') {
@@ -373,12 +492,17 @@ export class SettingsTabStrip extends React.Component<
   private get allOrdered() {
     return orderSettingsTabs(
       this.props.allItems ?? this.props.items,
-      this.state.pinnedIds
+      this.state.pinnedIds,
+      this.state.orderIds
     )
   }
 
   private get visibleOrdered() {
-    return orderSettingsTabs(this.props.items, this.state.pinnedIds)
+    return orderSettingsTabs(
+      this.props.items,
+      this.state.pinnedIds,
+      this.state.orderIds
+    )
   }
 
   private getTabPanelId(item: ISettingsTabItem): string | undefined {
@@ -456,6 +580,49 @@ export class SettingsTabStrip extends React.Component<
       return
     }
 
+    const movingForward =
+      event.key === 'ArrowRight' || event.key === 'ArrowDown'
+    if (
+      event.ctrlKey &&
+      (movingForward || event.key === 'ArrowLeft' || event.key === 'ArrowUp')
+    ) {
+      const delta = movingForward ? 1 : -1
+      const targetIndex = Math.max(
+        0,
+        Math.min(index + delta, ordered.length - 1)
+      )
+      if (targetIndex !== index) {
+        if (this.state.pinnedIds.includes(event.currentTarget.value)) {
+          const pinnedIndex = this.state.pinnedIds.indexOf(
+            event.currentTarget.value
+          )
+          const pinnedIds = reorderSettingsTabPinnedOrder(
+            this.props.strip,
+            event.currentTarget.value,
+            pinnedIndex + delta,
+            this.getPersistenceOptions()
+          )
+          this.setState({ pinnedIds })
+          event.preventDefault()
+          return
+        }
+        const orderIds = [...this.state.orderIds]
+        const currentOrderIndex = orderIds.indexOf(event.currentTarget.value)
+        if (currentOrderIndex >= 0) {
+          orderIds.splice(currentOrderIndex, 1)
+          const nextOrderIndex = Math.max(
+            0,
+            Math.min(currentOrderIndex + delta, orderIds.length)
+          )
+          orderIds.splice(nextOrderIndex, 0, event.currentTarget.value)
+          this.persistLayout({ orderIds })
+          this.setState({ orderIds }, () => this.scheduleMeasure())
+        }
+      }
+      event.preventDefault()
+      return
+    }
+
     const nextIndex =
       event.key === 'Home'
         ? 0
@@ -471,7 +638,53 @@ export class SettingsTabStrip extends React.Component<
     event.preventDefault()
   }
 
+  private onRowDragStart = (event: React.DragEvent<HTMLButtonElement>) => {
+    if (this.props.disabled === true) {
+      event.preventDefault()
+      return
+    }
+    event.dataTransfer.setData(
+      'text/settings-tab-id',
+      event.currentTarget.value
+    )
+    event.dataTransfer.effectAllowed = 'move'
+  }
+
+  private onRowDragOver = (event: React.DragEvent<HTMLButtonElement>) => {
+    if (event.dataTransfer.types.includes('text/settings-tab-id')) {
+      event.preventDefault()
+      event.dataTransfer.dropEffect = 'move'
+    }
+  }
+
+  private onRowDrop = (event: React.DragEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    if (this.props.disabled === true) {
+      return
+    }
+    const sourceId = event.dataTransfer.getData('text/settings-tab-id')
+    const targetId = event.currentTarget.value
+    if (sourceId.length === 0 || sourceId === targetId) {
+      return
+    }
+    const orderIds = [...this.state.orderIds]
+    const sourceIndex = orderIds.indexOf(sourceId)
+    const targetIndex = orderIds.indexOf(targetId)
+    if (sourceIndex < 0 || targetIndex < 0) {
+      return
+    }
+    orderIds.splice(sourceIndex, 1)
+    orderIds.splice(
+      Math.max(0, Math.min(targetIndex, orderIds.length)),
+      0,
+      sourceId
+    )
+    this.persistLayout({ orderIds })
+    this.setState({ orderIds }, () => this.scheduleMeasure())
+  }
+
   private onRowContextMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const languageMode = getPersistedLanguageMode()
     if (this.props.disabled === true) {
       return
     }
@@ -483,7 +696,7 @@ export class SettingsTabStrip extends React.Component<
     )
     const label =
       item?.accessibleLabel ?? item?.searchText ?? event.currentTarget.value
-    const items: ReadonlyArray<IMenuItem> = [
+    const items: Array<IMenuItem> = [
       {
         label: pinned
           ? this.props.accessibleLabels?.unpinTab?.(label) ?? `Unpin ${label}`
@@ -497,16 +710,303 @@ export class SettingsTabStrip extends React.Component<
           }
           const persistenceOptions = this.getPersistenceOptions()
           toggleSettingsTabPin(this.props.strip, id, persistenceOptions)
-          this.setState({
-            pinnedIds: getPinnedSettingsTabs(
-              this.props.strip,
-              persistenceOptions
-            ),
-          })
+          const pinnedIds = getPinnedSettingsTabs(
+            this.props.strip,
+            persistenceOptions
+          )
+          setSettingsTabLayout(
+            this.props.strip,
+            {
+              version: SettingsTabPersistenceVersion,
+              order: this.state.orderIds,
+              pinnedIds,
+              groups: this.state.groups,
+              groupOrder: this.state.groupOrder,
+              membership: this.state.membership,
+            },
+            persistenceOptions
+          )
+          this.setState({ pinnedIds })
         },
+      },
+      {
+        label: translate('settings.tabGroupCreate', languageMode),
+        action: () => this.openGroupEditor('create', null, event.currentTarget),
+      },
+      {
+        label: translate('settings.tabGroupMove', languageMode),
+        action: () => this.openMoveGroupPicker(id),
       },
     ]
     showContextualMenu(items)
+  }
+
+  private openMoveGroupPicker = (tabId: string) => {
+    const anchor = this.rowRefs.get(tabId)
+    if (anchor === undefined || this.state.groups.length === 0) {
+      return
+    }
+    this.setState({
+      pickerAnchor: anchor,
+      pickerScope: 'group',
+      groupPickerId: null,
+      moveTabId: tabId,
+    })
+  }
+
+  private onOpenGroupSearch = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (this.props.disabled === true || this.state.groups.length === 0) {
+      return
+    }
+    this.setState({
+      pickerAnchor: event.currentTarget,
+      pickerScope: 'groups',
+      groupPickerId: null,
+      moveTabId: null,
+    })
+  }
+
+  private openGroupEditor = (
+    mode: 'create' | 'rename',
+    group: ISettingsTabGroup | null,
+    anchor: HTMLElement
+  ) => {
+    if (this.props.disabled === true) {
+      return
+    }
+    this.setState({
+      groupEditorAnchor: anchor,
+      groupEditorId: group?.id ?? null,
+      groupEditorMode: mode,
+      groupEditorName: group?.name ?? '',
+    })
+  }
+
+  private onOpenCurrentStripSearch = (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    if (this.props.disabled === true) {
+      return
+    }
+    this.setState({
+      pickerAnchor: event.currentTarget,
+      pickerScope: 'current',
+      groupPickerId: null,
+      moveTabId: null,
+    })
+  }
+
+  private closeGroupEditor = () => {
+    const anchor = this.state.groupEditorAnchor
+    this.setState(
+      {
+        groupEditorAnchor: null,
+        groupEditorId: null,
+        groupEditorMode: null,
+        groupEditorName: '',
+      },
+      () => {
+        if (anchor?.isConnected) {
+          anchor.focus()
+        }
+      }
+    )
+  }
+
+  private saveGroupEditor = () => {
+    const name = normalizeSettingsTabGroupName(this.state.groupEditorName)
+    if (name === null) {
+      return
+    }
+    if (this.state.groupEditorMode === 'rename' && this.state.groupEditorId) {
+      const groups = this.state.groups.map(group =>
+        group.id === this.state.groupEditorId ? { ...group, name } : group
+      )
+      this.persistLayout({ groups })
+      this.setState({ groups }, this.closeGroupEditor)
+      return
+    }
+    if (this.state.groupEditorMode === 'create') {
+      const id = `settings-group-${Date.now().toString(36)}`
+      const group: ISettingsTabGroup = { id, name, color: 'blue' }
+      const groups = [...this.state.groups, group]
+      const groupOrder = [...this.state.groupOrder, id]
+      this.persistLayout({ groups, groupOrder })
+      this.setState({ groups, groupOrder }, this.closeGroupEditor)
+    }
+  }
+
+  private moveTabToGroup = (tabId: string, groupId: string | null) => {
+    if (this.props.disabled === true) {
+      return
+    }
+    const membership = { ...this.state.membership, [tabId]: groupId }
+    this.persistLayout({ membership })
+    setSettingsTabGroupMembership(
+      this.props.strip,
+      tabId,
+      groupId,
+      this.getPersistenceOptions()
+    )
+    this.setState({ membership })
+  }
+
+  private onGroupContextMenu = (
+    event: React.MouseEvent<HTMLElement>,
+    group: ISettingsTabGroup
+  ) => {
+    if (
+      this.props.disabled === true ||
+      (event.target as HTMLElement).closest('.settings-browser-tab-select') !==
+        null
+    ) {
+      return
+    }
+    event.preventDefault()
+    const languageMode = getPersistedLanguageMode()
+    showContextualMenu([
+      {
+        label: translate(
+          group.isCollapsed
+            ? 'settings.tabGroupExpand'
+            : 'settings.tabGroupCollapse',
+          languageMode,
+          { group: group.name }
+        ),
+        action: () => {
+          const isCollapsed = group.isCollapsed !== true
+          setSettingsTabGroupCollapsed(
+            this.props.strip,
+            group.id,
+            isCollapsed,
+            this.getPersistenceOptions()
+          )
+          const groups = this.state.groups.map(candidate =>
+            candidate.id === group.id
+              ? { ...candidate, isCollapsed }
+              : candidate
+          )
+          this.persistLayout({ groups })
+          this.setState({ groups })
+        },
+      },
+      {
+        label: translate('settings.tabGroupRenamePrompt', languageMode),
+        action: () =>
+          this.openGroupEditor('rename', group, event.currentTarget),
+      },
+      {
+        label: translate('settings.tabGroupRemove', languageMode, {
+          group: group.name,
+        }),
+        action: () => {
+          const groups = this.state.groups.filter(
+            candidate => candidate.id !== group.id
+          )
+          const groupOrder = this.state.groupOrder.filter(id => id !== group.id)
+          const membership = Object.fromEntries(
+            Object.entries(this.state.membership).map(([tabId, value]) => [
+              tabId,
+              value === group.id ? null : value,
+            ])
+          )
+          this.persistLayout({ groups, groupOrder, membership })
+          this.setState({ groups, groupOrder, membership })
+        },
+      },
+    ])
+  }
+
+  private onGroupSearch = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    groupId: string
+  ) => {
+    event.stopPropagation()
+    if (this.props.disabled === true) {
+      return
+    }
+    this.setState({
+      pickerAnchor: event.currentTarget,
+      pickerScope: 'all',
+      groupPickerId: groupId,
+      moveTabId: null,
+    })
+  }
+
+  private onGroupDragStart = (event: React.DragEvent<HTMLButtonElement>) => {
+    if (this.props.disabled === true) {
+      event.preventDefault()
+      return
+    }
+    event.dataTransfer.setData(
+      'text/settings-tab-group-id',
+      event.currentTarget
+        .closest('[data-settings-tab-group-id]')
+        ?.getAttribute('data-settings-tab-group-id') ?? ''
+    )
+    event.dataTransfer.effectAllowed = 'move'
+  }
+
+  private onGroupDragOver = (event: React.DragEvent<HTMLButtonElement>) => {
+    if (this.props.disabled === true) {
+      return
+    }
+    if (event.dataTransfer.types.includes('text/settings-tab-group-id')) {
+      event.preventDefault()
+      event.dataTransfer.dropEffect = 'move'
+    }
+  }
+
+  private onGroupDrop = (event: React.DragEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    if (this.props.disabled === true) {
+      return
+    }
+    const sourceId = event.dataTransfer.getData('text/settings-tab-group-id')
+    const targetId = event.currentTarget
+      .closest('[data-settings-tab-group-id]')
+      ?.getAttribute('data-settings-tab-group-id')
+    if (
+      sourceId.length === 0 ||
+      targetId === null ||
+      targetId === undefined ||
+      sourceId === targetId
+    ) {
+      return
+    }
+    const groupOrder = this.state.groupOrder.filter(id => id !== sourceId)
+    const targetIndex = groupOrder.indexOf(targetId)
+    if (targetIndex < 0) {
+      return
+    }
+    groupOrder.splice(targetIndex, 0, sourceId)
+    this.persistLayout({ groupOrder })
+    this.setState({ groupOrder })
+  }
+
+  private onGroupKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    group: ISettingsTabGroup
+  ) => {
+    if (
+      !event.ctrlKey ||
+      !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)
+    ) {
+      return
+    }
+    const delta = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1
+    const index = this.state.groupOrder.indexOf(group.id)
+    if (index < 0) {
+      return
+    }
+    const groupOrder = reorderSettingsTabGroup(
+      this.props.strip,
+      group.id,
+      index + delta,
+      this.getPersistenceOptions()
+    )
+    this.setState({ groupOrder })
+    event.preventDefault()
   }
 
   private onOpenOverflow = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -516,6 +1016,8 @@ export class SettingsTabStrip extends React.Component<
     this.setState({
       pickerAnchor: event.currentTarget,
       pickerScope: 'overflow',
+      groupPickerId: null,
+      moveTabId: null,
     })
   }
 
@@ -523,27 +1025,80 @@ export class SettingsTabStrip extends React.Component<
     if (this.props.disabled === true) {
       return
     }
-    this.setState({ pickerAnchor: event.currentTarget, pickerScope: 'all' })
+    this.setState({
+      pickerAnchor: event.currentTarget,
+      pickerScope: 'all',
+      groupPickerId: null,
+      moveTabId: null,
+    })
   }
 
   private onOpenNewTab = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (this.props.disabled === true) {
       return
     }
-    this.setState({ pickerAnchor: event.currentTarget, pickerScope: 'new' })
+    this.setState({
+      pickerAnchor: event.currentTarget,
+      pickerScope: 'new',
+      groupPickerId: null,
+      moveTabId: null,
+    })
   }
 
   private onPickerClose = () => {
     const anchor = this.state.pickerAnchor
-    this.setState({ pickerAnchor: null, pickerScope: null }, () => {
-      if (anchor !== null && anchor.isConnected) {
-        anchor.focus()
+    this.setState(
+      {
+        pickerAnchor: null,
+        pickerScope: null,
+        groupPickerId: null,
+        moveTabId: null,
+      },
+      () => {
+        if (anchor !== null && anchor.isConnected) {
+          anchor.focus()
+        }
       }
-    })
+    )
   }
 
   private onPickerSelect = (id: string) => {
     if (this.props.disabled === true) {
+      return
+    }
+    if (this.state.moveTabId !== null) {
+      const tabId = this.state.moveTabId
+      this.moveTabToGroup(
+        tabId,
+        id === UngroupedSettingsTabOptionId ? null : id
+      )
+      this.onPickerClose()
+      return
+    }
+    if (this.state.pickerScope === 'groups') {
+      this.setState(
+        {
+          revealedGroupId: id,
+          pickerAnchor: null,
+          pickerScope: null,
+          groupPickerId: null,
+          moveTabId: null,
+        },
+        () => {
+          Array.from(
+            this.list?.querySelectorAll<HTMLElement>(
+              '.settings-browser-tab-group-toggle'
+            ) ?? []
+          )
+            .find(
+              element =>
+                element
+                  .closest('[data-settings-tab-group-id]')
+                  ?.getAttribute('data-settings-tab-group-id') === id
+            )
+            ?.focus()
+        }
+      )
       return
     }
     const openIds =
@@ -557,14 +1112,29 @@ export class SettingsTabStrip extends React.Component<
         this.getPersistenceOptions()
       )
     }
-    this.setState({ pickerAnchor: null, pickerScope: null, openIds }, () => {
-      const row = this.rowRefs.get(id)
-      row?.focus()
-      if (typeof row?.scrollIntoView === 'function') {
-        row.scrollIntoView({ inline: 'nearest', block: 'nearest' })
+    const selectedGroupId = this.state.membership[id] ?? null
+    const selectedGroup = this.state.groups.find(
+      group => group.id === selectedGroupId
+    )
+    this.setState(
+      {
+        pickerAnchor: null,
+        pickerScope: null,
+        groupPickerId: null,
+        moveTabId: null,
+        revealedGroupId:
+          selectedGroup?.isCollapsed === true ? selectedGroup.id : null,
+        openIds,
+      },
+      () => {
+        const row = this.rowRefs.get(id)
+        row?.focus()
+        if (typeof row?.scrollIntoView === 'function') {
+          row.scrollIntoView({ inline: 'nearest', block: 'nearest' })
+        }
+        this.scheduleMeasure()
       }
-      this.scheduleMeasure()
-    })
+    )
     this.props.onSelect(id)
   }
 
@@ -610,8 +1180,45 @@ export class SettingsTabStrip extends React.Component<
 
     const { ordered } = this.allOrdered
     const items =
-      pickerScope === 'overflow'
+      pickerScope === 'group'
+        ? [
+            {
+              id: UngroupedSettingsTabOptionId,
+              label: translate(
+                'settings.tabGroupMoveOut',
+                getPersistedLanguageMode()
+              ),
+              searchText: translate(
+                'settings.tabGroupMoveOut',
+                getPersistedLanguageMode()
+              ),
+              accessibleLabel: translate(
+                'settings.tabGroupMoveOut',
+                getPersistedLanguageMode()
+              ),
+            },
+            ...this.state.groups.map(group => ({
+              id: group.id,
+              label: group.name,
+              searchText: group.name,
+              accessibleLabel: group.name,
+            })),
+          ]
+        : pickerScope === 'groups'
+        ? this.state.groups.map(group => ({
+            id: group.id,
+            label: group.name,
+            searchText: group.name,
+            accessibleLabel: group.name,
+          }))
+        : this.state.groupPickerId !== null
+        ? ordered.filter(
+            item => this.state.membership[item.id] === this.state.groupPickerId
+          )
+        : pickerScope === 'overflow'
         ? ordered.filter(item => this.state.overflowIds.includes(item.id))
+        : pickerScope === 'current'
+        ? this.visibleOrdered.ordered
         : pickerScope === 'new'
         ? ordered.filter(item => !this.state.openIds.includes(item.id))
         : ordered
@@ -621,13 +1228,98 @@ export class SettingsTabStrip extends React.Component<
         items={items}
         selectedId={this.props.selectedId}
         anchor={pickerAnchor}
-        surfaceId={`${this.props.strip}-tabs`}
-        title={this.props.title}
+        surfaceId={`${this.props.strip}-${
+          pickerScope === 'current'
+            ? 'current-strip'
+            : this.props.variant === 'browser'
+            ? 'master-tabs'
+            : 'current-strip'
+        }${
+          pickerScope === 'group'
+            ? '-move-group'
+            : this.state.groupPickerId === null
+            ? ''
+            : `-group-${this.state.groupPickerId}`
+        }`}
+        title={
+          this.state.groupPickerId === null
+            ? this.props.title
+            : this.state.groups.find(
+                group => group.id === this.state.groupPickerId
+              )?.name ?? this.props.title
+        }
         onSelect={this.onPickerSelect}
         onClose={this.onPickerClose}
         pickerId={`settings-${this.props.strip}-tab-picker`}
         accessibleLabels={this.props.accessibleLabels}
       />
+    )
+  }
+
+  private renderGroupEditor() {
+    const { groupEditorAnchor, groupEditorMode, groupEditorName } = this.state
+    if (groupEditorAnchor === null || groupEditorMode === null) {
+      return null
+    }
+    const languageMode = getPersistedLanguageMode()
+    const title = translate(
+      groupEditorMode === 'create'
+        ? 'settings.tabGroupNamePrompt'
+        : 'settings.tabGroupRenamePrompt',
+      languageMode
+    )
+    return (
+      <Popover
+        id={`settings-${this.props.strip}-group-editor`}
+        anchor={groupEditorAnchor}
+        anchorPosition={PopoverAnchorPosition.RightTop}
+        decoration={PopoverDecoration.Balloon}
+        onClickOutside={this.closeGroupEditor}
+        ariaLabelledby={`settings-${this.props.strip}-group-editor-title`}
+        className="settings-tab-group-editor"
+      >
+        <h2
+          id={`settings-${this.props.strip}-group-editor-title`}
+          className="settings-tab-group-editor-title"
+        >
+          {title}
+        </h2>
+        <input
+          autoFocus={true}
+          type="text"
+          value={groupEditorName}
+          aria-label={title}
+          onChange={event =>
+            this.setState({ groupEditorName: event.currentTarget.value })
+          }
+          onKeyDown={event => {
+            if (event.key === 'Enter') {
+              this.saveGroupEditor()
+              event.preventDefault()
+            } else if (event.key === 'Escape') {
+              this.closeGroupEditor()
+              event.preventDefault()
+            }
+          }}
+        />
+        <div className="settings-tab-group-editor-actions">
+          <button type="button" onClick={this.closeGroupEditor}>
+            {translate('tabs.close.cancel', languageMode)}
+          </button>
+          <button
+            type="button"
+            disabled={normalizeSettingsTabGroupName(groupEditorName) === null}
+            onClick={this.saveGroupEditor}
+          >
+            {translate(
+              groupEditorMode === 'create'
+                ? 'repositoryGroups.createAction'
+                : 'repositoryGroups.saveAction',
+              languageMode
+            )}
+          </button>
+        </div>
+      </Popover>
     )
   }
 
@@ -651,7 +1343,7 @@ export class SettingsTabStrip extends React.Component<
             }
             disabled={this.props.disabled}
           >
-            <Octicon symbol={octicons.search} />
+            <MaterialSymbol name="search" />
             <span>Search</span>
           </button>
         )}
@@ -666,7 +1358,7 @@ export class SettingsTabStrip extends React.Component<
             }
             disabled={this.props.disabled}
           >
-            <Octicon symbol={octicons.kebabHorizontal} />
+            <MaterialSymbol name="more_horiz" />
             <span>{overflowCount} more</span>
           </button>
         )}
@@ -674,10 +1366,263 @@ export class SettingsTabStrip extends React.Component<
     )
   }
 
+  private onGroupToggle = (group: ISettingsTabGroup) => {
+    if (this.props.disabled === true) {
+      return
+    }
+    const isCollapsed = group.isCollapsed !== true
+    setSettingsTabGroupCollapsed(
+      this.props.strip,
+      group.id,
+      isCollapsed,
+      this.getPersistenceOptions()
+    )
+    const groups = this.state.groups.map(candidate =>
+      candidate.id === group.id ? { ...candidate, isCollapsed } : candidate
+    )
+    this.persistLayout({ groups })
+    this.setState({ groups, revealedGroupId: null })
+  }
+
+  private renderBrowserTab(
+    item: ISettingsTabItem,
+    index: number,
+    pinnedCount: number,
+    totalCount: number,
+    disabled: boolean
+  ) {
+    const selected = item.id === this.props.selectedId
+    return (
+      <div
+        key={item.id}
+        className={classNames('settings-browser-tab', {
+          active: selected,
+          pinned: index < pinnedCount,
+        })}
+      >
+        <button
+          value={item.id}
+          ref={this.getRowRef(item.id)}
+          id={this.getTabId(item)}
+          data-dm-feature={item.isFeature === true || undefined}
+          data-settings-no-match={item.noSearchMatch === true || undefined}
+          type="button"
+          role="tab"
+          aria-selected={selected}
+          aria-controls={selected ? this.getTabPanelId(item) : undefined}
+          aria-label={item.accessibleLabel ?? item.searchText}
+          tabIndex={selected ? 0 : -1}
+          disabled={disabled}
+          aria-disabled={disabled ? 'true' : undefined}
+          className="settings-browser-tab-select"
+          draggable={true}
+          onClick={this.onRowClick}
+          onKeyDown={this.onRowKeyDown}
+          onContextMenu={this.onRowContextMenu}
+          onDragStart={this.onRowDragStart}
+          onDragOver={this.onRowDragOver}
+          onDrop={this.onRowDrop}
+        >
+          {item.icon}
+          <TooltippedContent
+            tagName="span"
+            className="settings-browser-tab-title"
+            tooltip={item.accessibleLabel ?? item.searchText}
+            onlyWhenOverflowed={true}
+          >
+            {item.label}
+          </TooltippedContent>
+          {item.badge}
+          {index < pinnedCount && (
+            <MaterialSymbol
+              className="settings-browser-tab-pin"
+              name="push_pin"
+            />
+          )}
+        </button>
+        {totalCount > 1 && (
+          <button
+            type="button"
+            value={item.id}
+            className="settings-browser-tab-close"
+            disabled={disabled}
+            aria-label={
+              this.props.accessibleLabels?.closeTab?.(
+                item.accessibleLabel ?? item.searchText
+              ) ?? `Close ${item.searchText} tab`
+            }
+            onClick={this.onCloseTab}
+          >
+            <MaterialSymbol name="close" />
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  private renderBrowserItems(
+    ordered: ReadonlyArray<ISettingsTabItem>,
+    pinnedCount: number,
+    disabled: boolean
+  ) {
+    const languageMode = getPersistedLanguageMode()
+    if (this.state.groups.length === 0) {
+      return ordered.map((item, index) =>
+        this.renderBrowserTab(
+          item,
+          index,
+          pinnedCount,
+          ordered.length,
+          disabled
+        )
+      )
+    }
+
+    const groupsById = new Map(
+      this.state.groups.map(group => [group.id, group])
+    )
+    const grouped = new Set<string>()
+    let index = 0
+    const output: React.ReactNode[] = []
+    // Keep the protected pinned region physically first. Group blocks are
+    // rendered only after it, so an unpinned grouped page can never displace a
+    // pinned page from the first visible slots.
+    for (const item of ordered.slice(0, pinnedCount)) {
+      output.push(
+        this.renderBrowserTab(
+          item,
+          index,
+          pinnedCount,
+          ordered.length,
+          disabled
+        )
+      )
+      index++
+    }
+    const unpinned = ordered.slice(pinnedCount)
+    const orderedGroupIds = [
+      ...this.state.groupOrder,
+      ...this.state.groups
+        .map(group => group.id)
+        .filter(id => !this.state.groupOrder.includes(id)),
+    ]
+    for (const groupId of orderedGroupIds) {
+      const group = groupsById.get(groupId)
+      if (group === undefined) {
+        continue
+      }
+      const members = unpinned.filter(item => {
+        const belongs = this.state.membership[item.id] === group.id
+        if (belongs) {
+          grouped.add(item.id)
+        }
+        return belongs
+      })
+      const collapsed =
+        group.isCollapsed === true && this.state.revealedGroupId !== group.id
+      output.push(
+        <div
+          key={`group-${group.id}`}
+          className={classNames('settings-browser-tab-group', { collapsed })}
+          data-settings-tab-group-id={group.id}
+          onContextMenu={event => this.onGroupContextMenu(event, group)}
+        >
+          <div className="settings-browser-tab-group-header">
+            <button
+              type="button"
+              className="settings-browser-tab-group-toggle"
+              draggable={true}
+              disabled={disabled}
+              aria-disabled={disabled ? 'true' : undefined}
+              aria-expanded={!collapsed}
+              aria-label={translate(
+                collapsed
+                  ? 'settings.tabGroupExpand'
+                  : 'settings.tabGroupCollapse',
+                languageMode,
+                { group: group.name }
+              )}
+              onClick={() => this.onGroupToggle(group)}
+              onKeyDown={event => this.onGroupKeyDown(event, group)}
+              onDragStart={this.onGroupDragStart}
+              onDragOver={this.onGroupDragOver}
+              onDrop={this.onGroupDrop}
+            >
+              <MaterialSymbol
+                name={
+                  collapsed ? 'keyboard_arrow_right' : 'keyboard_arrow_down'
+                }
+              />
+              <span>{group.name}</span>
+              <span className="settings-browser-tab-group-count">
+                {members.length}
+              </span>
+            </button>
+            <button
+              type="button"
+              className="settings-browser-tab-group-search"
+              aria-label={translate(
+                'settings.tabGroupSearchTabs',
+                languageMode,
+                {
+                  group: group.name,
+                }
+              )}
+              aria-haspopup="dialog"
+              disabled={disabled}
+              aria-disabled={disabled ? 'true' : undefined}
+              onClick={event => this.onGroupSearch(event, group.id)}
+            >
+              <MaterialSymbol name="search" />
+            </button>
+          </div>
+          {!collapsed && members.length > 0 && (
+            <div className="settings-browser-tab-group-items">
+              {members.map(item => {
+                const result = this.renderBrowserTab(
+                  item,
+                  index,
+                  pinnedCount,
+                  ordered.length,
+                  disabled
+                )
+                index++
+                return result
+              })}
+            </div>
+          )}
+          {members.length === 0 && (
+            <p className="settings-browser-tab-group-empty" role="status">
+              {translate('settings.tabGroupEmpty', languageMode)}
+            </p>
+          )}
+        </div>
+      )
+    }
+    // The pinned region above already rendered ordered.slice(0, pinnedCount),
+    // and those items are never added to `grouped`. Walking `ordered` here
+    // rendered every pinned tab a second time.
+    for (const item of unpinned) {
+      if (!grouped.has(item.id)) {
+        output.push(
+          this.renderBrowserTab(
+            item,
+            index,
+            pinnedCount,
+            ordered.length,
+            disabled
+          )
+        )
+        index++
+      }
+    }
+    return output
+  }
+
   private renderBrowser() {
     const { ordered, pinnedCount } = this.ordered
     const { ordered: allItems } = this.allOrdered
-    const { selectedId, disabled } = this.props
+    const { disabled } = this.props
     const showNewTab = this.props.showNewTab !== false
     const hasClosedPage = allItems.some(
       item => !this.state.openIds.includes(item.id)
@@ -714,78 +1659,60 @@ export class SettingsTabStrip extends React.Component<
             aria-owns={ordered.map(item => this.getTabId(item)).join(' ')}
           />
           <div className="settings-browser-tab-items">
-            {ordered.map((item, index) => {
-              const selected = item.id === selectedId
-              return (
-                <div
-                  key={item.id}
-                  className={classNames('settings-browser-tab', {
-                    active: selected,
-                    pinned: index < pinnedCount,
-                  })}
-                >
-                  <button
-                    value={item.id}
-                    ref={this.getRowRef(item.id)}
-                    id={this.getTabId(item)}
-                    data-dm-feature={item.isFeature === true || undefined}
-                    data-settings-no-match={
-                      item.noSearchMatch === true || undefined
-                    }
-                    type="button"
-                    role="tab"
-                    aria-selected={selected}
-                    aria-controls={
-                      selected ? this.getTabPanelId(item) : undefined
-                    }
-                    aria-label={item.accessibleLabel ?? item.searchText}
-                    tabIndex={selected ? 0 : -1}
-                    disabled={disabled}
-                    aria-disabled={disabled ? 'true' : undefined}
-                    className="settings-browser-tab-select"
-                    onClick={this.onRowClick}
-                    onKeyDown={this.onRowKeyDown}
-                    onContextMenu={this.onRowContextMenu}
-                  >
-                    {item.icon}
-                    <TooltippedContent
-                      tagName="span"
-                      className="settings-browser-tab-title"
-                      tooltip={item.accessibleLabel ?? item.searchText}
-                      onlyWhenOverflowed={true}
-                    >
-                      {item.label}
-                    </TooltippedContent>
-                    {item.badge}
-                    {index < pinnedCount && (
-                      <Octicon
-                        className="settings-browser-tab-pin"
-                        symbol={octicons.pin}
-                      />
-                    )}
-                  </button>
-                  {ordered.length > 1 && (
-                    <button
-                      type="button"
-                      value={item.id}
-                      className="settings-browser-tab-close"
-                      disabled={disabled}
-                      aria-label={
-                        this.props.accessibleLabels?.closeTab?.(
-                          item.accessibleLabel ?? item.searchText
-                        ) ?? `Close ${item.searchText} tab`
-                      }
-                      onClick={this.onCloseTab}
-                    >
-                      <Octicon symbol={octicons.x} />
-                    </button>
-                  )}
-                </div>
-              )
-            })}
+            {this.renderBrowserItems(ordered, pinnedCount, disabled === true)}
           </div>
         </div>
         <div className="settings-browser-tab-actions">
+          <button
+            type="button"
+            className="settings-browser-tab-action current-search"
+            aria-label={translate(
+              'settings.tabGroupCurrentSearch',
+              getPersistedLanguageMode()
+            )}
+            aria-haspopup="dialog"
+            aria-expanded={this.state.pickerScope === 'current'}
+            disabled={disabled}
+            onClick={this.onOpenCurrentStripSearch}
+          >
+            <MaterialSymbol name="search" />
+          </button>
+          {this.state.groups.length > 0 && (
+            <button
+              type="button"
+              className="settings-browser-tab-action group-search"
+              aria-label={translate(
+                'settings.tabGroupSearch',
+                getPersistedLanguageMode()
+              )}
+              aria-haspopup="dialog"
+              aria-expanded={this.state.pickerScope === 'groups'}
+              disabled={disabled}
+              onClick={this.onOpenGroupSearch}
+            >
+              <MaterialSymbol name="search" />
+              <span>
+                {translate(
+                  'settings.tabGroupSearch',
+                  getPersistedLanguageMode()
+                )}
+              </span>
+            </button>
+          )}
+          <button
+            type="button"
+            className="settings-browser-tab-action group-add"
+            aria-label={translate(
+              'settings.tabGroupCreate',
+              getPersistedLanguageMode()
+            )}
+            disabled={disabled}
+            onClick={event =>
+              this.openGroupEditor('create', null, event.currentTarget)
+            }
+          >
+            <MaterialSymbol name="add" />
+          </button>
           <button
             type="button"
             className="settings-browser-tab-action search"
@@ -796,7 +1723,7 @@ export class SettingsTabStrip extends React.Component<
             disabled={disabled}
             onClick={this.onOpenSearch}
           >
-            <Octicon symbol={octicons.search} />
+            <MaterialSymbol name="search" />
           </button>
           {showNewTab && (
             <button
@@ -810,7 +1737,7 @@ export class SettingsTabStrip extends React.Component<
               disabled={disabled || !hasClosedPage}
               onClick={this.onOpenNewTab}
             >
-              <Octicon symbol={octicons.plus} />
+              <MaterialSymbol name="add" />
             </button>
           )}
           {this.state.overflowIds.length > 0 && (
@@ -829,12 +1756,13 @@ export class SettingsTabStrip extends React.Component<
               disabled={disabled}
               onClick={this.onOpenOverflow}
             >
-              <Octicon symbol={octicons.kebabHorizontal} />
+              <MaterialSymbol name="more_horiz" />
               <span>{this.state.overflowIds.length}</span>
             </button>
           )}
         </div>
         {this.renderPicker()}
+        {this.renderGroupEditor()}
       </div>
     )
   }
@@ -883,17 +1811,21 @@ export class SettingsTabStrip extends React.Component<
                   selected,
                   pinned: index < pinnedCount,
                 })}
+                draggable={true}
                 onClick={this.onRowClick}
                 onKeyDown={this.onRowKeyDown}
                 onContextMenu={this.onRowContextMenu}
+                onDragStart={this.onRowDragStart}
+                onDragOver={this.onRowDragOver}
+                onDrop={this.onRowDrop}
               >
                 {item.icon}
                 <span className="settings-tab-strip-label">{item.label}</span>
                 {item.badge}
                 {index < pinnedCount && (
-                  <Octicon
+                  <MaterialSymbol
+                    name="push_pin"
                     className="settings-tab-strip-pin"
-                    symbol={octicons.pin}
                   />
                 )}
               </button>

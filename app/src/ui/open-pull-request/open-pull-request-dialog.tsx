@@ -7,8 +7,6 @@ import { Repository } from '../../models/repository'
 import { DialogFooter, OkCancelButtonGroup, Dialog } from '../dialog'
 import { Dispatcher } from '../dispatcher'
 import { Ref } from '../lib/ref'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import {
   OpenPullRequestDialogHeader,
   OpenPullRequestDialogId,
@@ -16,6 +14,7 @@ import {
 import { PullRequestFilesChanged } from './pull-request-files-changed'
 import { PullRequestMergeStatus } from './pull-request-merge-status'
 import { ComputedAction } from '../../models/computed-action'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IOpenPullRequestDialogProps {
   readonly repository: Repository
@@ -219,7 +218,7 @@ export class OpenPullRequestDialog extends React.Component<IOpenPullRequestDialo
     return (
       <div className="open-pull-request-message">
         <div>
-          <Octicon symbol={octicons.gitPullRequest} />
+          <MaterialSymbol name="merge_type" />
           <h3>There are no changes.</h3>
           {message}
         </div>
@@ -237,7 +236,7 @@ export class OpenPullRequestDialog extends React.Component<IOpenPullRequestDialo
     return (
       <div className="open-pull-request-message">
         <div>
-          <Octicon symbol={octicons.gitPullRequest} />
+          <MaterialSymbol name="merge_type" />
           <h3>Could not find a default branch to compare against.</h3>
           Select a base branch above.
         </div>
@@ -260,9 +259,7 @@ export class OpenPullRequestDialog extends React.Component<IOpenPullRequestDialo
 
     const okButton = (
       <>
-        {currentBranchHasPullRequest && (
-          <Octicon symbol={octicons.linkExternal} />
-        )}
+        {currentBranchHasPullRequest && <MaterialSymbol name="open_in_new" />}
         {__DARWIN__
           ? `${viewCreate} Pull Request`
           : `${viewCreate} pull request`}

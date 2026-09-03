@@ -170,7 +170,7 @@
       height: 38px;
       padding: 0 18px;
       border: 0;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       background: var(--md-sys-color-secondary-container);
       color: var(--md-sys-color-on-secondary-container);
       transition: background-color 200ms var(--emph), color 200ms var(--emph), border-radius 300ms var(--spring), transform 200ms var(--spring-fast);
@@ -178,7 +178,7 @@
       &:not([aria-disabled='true']):hover {
         background: var(--md-sys-color-primary);
         color: var(--md-sys-color-on-primary);
-        border-radius: 12px;
+        border-radius: var(--md-sys-shape-corner-medium);
         box-shadow: none;
       }
 
@@ -192,7 +192,7 @@
 
         &:not([aria-disabled='true']):hover {
           background: var(--md-sys-color-primary);
-          border-radius: 12px;
+          border-radius: var(--md-sys-shape-corner-medium);
         }
       }
     }

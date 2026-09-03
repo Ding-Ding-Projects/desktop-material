@@ -62,7 +62,7 @@
   // Added co-authors render as MD3 input chips: full-radius secondary-container
   // tokens with a trailing remove control.
   .handle {
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     border: 1px solid transparent;
     background: var(--md-sys-color-secondary-container);
     color: var(--md-sys-color-on-secondary-container);
@@ -94,7 +94,7 @@
 
     &.focused {
       background: var(--box-selected-active-background-color);
-      border-color: var(--co-author-tag-selected-border-color);
+      border-color: var(--md-sys-color-primary);
       color: var(--box-selected-active-text-color);
     }
 

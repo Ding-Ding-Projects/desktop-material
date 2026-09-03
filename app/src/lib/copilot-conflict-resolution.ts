@@ -6,6 +6,7 @@ import {
   IConflictResolutionContext,
   IFileConflictContext,
 } from './copilot-conflict-context'
+import { createHash } from 'crypto'
 
 // ---------------------------------------------------------------------------
 // Types & interfaces
@@ -19,6 +20,18 @@ export interface IFileResolution {
   readonly resolvedContent: string
   /** Human-readable explanation of how and why conflicts were resolved this way. */
   readonly reasoning: string
+  readonly resolutionAction?: 'keep' | 'delete'
+  /**
+   * Identity of the conflicted file that Copilot reviewed. The write path
+   * uses this to avoid replacing a manual or external resolution made after
+   * generation. Older callers may omit it and are rejected by the guarded
+   * write path.
+   */
+  readonly conflictGeneration?: {
+    readonly contentHash: string
+    readonly stageFingerprint: string
+    readonly conflictType: 'text'
+  }
 }
 
 /** Resolution for a single conflict hunk as returned by the model. */
@@ -35,6 +48,7 @@ export interface IRawFileResolution {
   readonly hunks: ReadonlyArray<IHunkResolution>
   /** Human-readable explanation of the resolution strategy for this file. */
   readonly reasoning: string
+  readonly resolutionAction?: 'keep' | 'delete'
 }
 
 /** A reference the model considered material to its decision. */
@@ -160,6 +174,17 @@ export const SinglePromptFileLimit = 20
 /** Maximum number of chunks to resolve concurrently. */
 export const MaxConcurrentChunks = 5
 
+export const MaxConflictResolutionResponseBytes = 2 * 1024 * 1024
+export const MaxConflictResolutionFiles = 100
+export const MaxConflictResolutionHunksPerFile = 100
+export const MaxConflictResolutionPathChars = 4096
+export const MaxConflictResolutionResolvedContentBytes = 1 * 1024 * 1024
+export const MaxConflictResolutionReasoningBytes = 16 * 1024
+export const MaxConflictResolutionSummaryBytes = 32 * 1024
+export const MaxConflictResolutionReferences = 100
+export const MaxConflictResolutionReferenceIdChars = 200
+export const MaxReassembledConflictResolutionBytes = 4 * 1024 * 1024
+
 /**
  * System prompt for the Copilot conflict resolution session.
  */
@@ -247,6 +272,12 @@ function normalizeLLMPath(raw: string): string {
 export function parseCopilotConflictResolution(
   content: string
 ): ICopilotConflictResolutionResponse {
+  if (Buffer.byteLength(content, 'utf8') > MaxConflictResolutionResponseBytes) {
+    throw new CopilotValidationError(
+      'Copilot returned a conflict resolution response larger than the supported limit'
+    )
+  }
+
   // Build a list of JSON candidates from the response, trying different
   // extraction strategies. Non-greedy handles the common single-block and
   // multi-block cases. Greedy handles triple backticks embedded inside JSON
@@ -312,12 +343,25 @@ export function parseCopilotConflictResolution(
     typeof rawSummary === 'string' && rawSummary.trim().length > 0
       ? rawSummary
       : null
+  if (
+    summary !== null &&
+    Buffer.byteLength(summary, 'utf8') > MaxConflictResolutionSummaryBytes
+  ) {
+    throw new CopilotValidationError(
+      'Copilot returned a conflict resolution summary larger than the supported limit'
+    )
+  }
 
   // Soft-fail references the same way. Drop any entry whose shape we don't
   // recognize; never throw — a curated context list is a polish, not a
   // gate on shipping resolutions.
   const references: Array<ICopilotConflictReference> = []
   if (Array.isArray(rawReferences)) {
+    if (rawReferences.length > MaxConflictResolutionReferences) {
+      throw new CopilotValidationError(
+        'Copilot returned too many conflict resolution references'
+      )
+    }
     for (const entry of rawReferences) {
       if (!isPlainObject(entry)) {
         continue
@@ -330,6 +374,11 @@ export function parseCopilotConflictResolution(
         continue
       }
       const trimmed = id.trim().replace(/^#/, '')
+      if (trimmed.length > MaxConflictResolutionReferenceIdChars) {
+        throw new CopilotValidationError(
+          'Copilot returned a conflict resolution reference that is too long'
+        )
+      }
       if (type === 'pullRequest' && !/^\d{1,9}$/.test(trimmed)) {
         continue
       }
@@ -342,6 +391,12 @@ export function parseCopilotConflictResolution(
 
   const validated: Array<IRawFileResolution> = []
 
+  if (resolutions.length > MaxConflictResolutionFiles) {
+    throw new CopilotValidationError(
+      'Copilot returned too many conflict resolutions'
+    )
+  }
+
   for (let i = 0; i < resolutions.length; i++) {
     const entry: unknown = resolutions[i]
 
@@ -352,11 +407,16 @@ export function parseCopilotConflictResolution(
     }
 
     const obj = entry as Record<string, unknown>
-    const { path, hunks: rawHunks, reasoning } = obj
+    const { path, hunks: rawHunks, reasoning, resolutionAction } = obj
 
     if (typeof path !== 'string' || path.trim().length === 0) {
       throw new CopilotValidationError(
         `Copilot returned an invalid conflict resolution payload: "path" at index ${i} must be a non-empty string`
+      )
+    }
+    if (path.length > MaxConflictResolutionPathChars) {
+      throw new CopilotValidationError(
+        `Copilot returned a conflict resolution path at index ${i} that is too long`
       )
     }
 
@@ -369,6 +429,12 @@ export function parseCopilotConflictResolution(
     if (rawHunks.length === 0) {
       throw new CopilotValidationError(
         `Copilot returned an invalid conflict resolution payload: "hunks" at index ${i} must not be empty`
+      )
+    }
+
+    if (rawHunks.length > MaxConflictResolutionHunksPerFile) {
+      throw new CopilotValidationError(
+        `Copilot returned too many conflict hunks for file "${path}"`
       )
     }
 
@@ -387,6 +453,14 @@ export function parseCopilotConflictResolution(
         )
       }
       const rc = hunkObj.resolvedContent
+      if (
+        Buffer.byteLength(rc, 'utf8') >
+        MaxConflictResolutionResolvedContentBytes
+      ) {
+        throw new CopilotValidationError(
+          `Copilot returned resolved content that is too large for file "${path}"`
+        )
+      }
       if (/^<{7}\s/m.test(rc) && /^={7}$/m.test(rc)) {
         throw new CopilotValidationError(
           `Copilot returned an invalid conflict resolution payload: hunk ${j} of file "${path}" still contains conflict markers`
@@ -400,11 +474,28 @@ export function parseCopilotConflictResolution(
         `Copilot returned an invalid conflict resolution payload: "reasoning" at index ${i} must be a non-empty string`
       )
     }
+    if (
+      Buffer.byteLength(reasoning, 'utf8') > MaxConflictResolutionReasoningBytes
+    ) {
+      throw new CopilotValidationError(
+        `Copilot returned reasoning that is too large for file "${path}"`
+      )
+    }
+    if (
+      resolutionAction !== undefined &&
+      resolutionAction !== 'keep' &&
+      resolutionAction !== 'delete'
+    ) {
+      throw new CopilotValidationError(
+        `Copilot returned an invalid resolution action for file "${path}"`
+      )
+    }
 
     validated.push({
       path: normalizeLLMPath(path),
       hunks: validatedHunks,
       reasoning,
+      ...(resolutionAction === undefined ? {} : { resolutionAction }),
     })
   }
 
@@ -561,12 +652,35 @@ export function reassembleResolutions(
         `Cannot reassemble resolution for "${raw.path}": original file content is unavailable`
       )
     }
+    if (ctx.stageFingerprint === undefined || ctx.stageFingerprint === '') {
+      throw new CopilotValidationError(
+        `Cannot reassemble resolution for "${raw.path}": conflict stages were not captured`
+      )
+    }
 
     const resolvedContent = reassembleResolvedFile(ctx.rawContent, raw.hunks)
+    if (
+      Buffer.byteLength(resolvedContent, 'utf8') >
+      MaxReassembledConflictResolutionBytes
+    ) {
+      throw new CopilotValidationError(
+        `Cannot reassemble resolution for "${raw.path}": resolved content is too large`
+      )
+    }
     return {
       path: raw.path,
       resolvedContent,
       reasoning: raw.reasoning,
+      ...(raw.resolutionAction === undefined
+        ? {}
+        : { resolutionAction: raw.resolutionAction }),
+      conflictGeneration: {
+        contentHash: createHash('sha256')
+          .update(ctx.rawContent, 'utf8')
+          .digest('hex'),
+        stageFingerprint: ctx.stageFingerprint,
+        conflictType: 'text',
+      },
     }
   })
 }

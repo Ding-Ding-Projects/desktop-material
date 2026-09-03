@@ -1,10 +1,9 @@
 import * as React from 'react'
 
 import { AppFileStatus, AppFileStatusKind } from '../../models/status'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { PathText } from './path-text'
 import { IMatches } from '../../lib/fuzzy-find'
+import { MaterialSymbol } from './material-symbol'
 
 interface IPathLabelProps {
   /** the current path of the file */
@@ -50,7 +49,7 @@ export class PathLabel extends React.Component<IPathLabelProps, {}> {
       return (
         <span {...props} aria-hidden={this.props.ariaHidden}>
           <PathText path={status.oldPath} availableWidth={segmentWidth} />
-          <Octicon className="rename-arrow" symbol={octicons.arrowRight} />
+          <MaterialSymbol name="arrow_forward" className="rename-arrow" />
           <PathText
             path={this.props.path}
             availableWidth={segmentWidth}

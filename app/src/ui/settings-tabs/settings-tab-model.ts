@@ -410,13 +410,29 @@ export function toggleSettingsTabPin(
  */
 export function orderSettingsTabs<T extends ISettingsTabItem>(
   items: ReadonlyArray<T>,
-  pinnedIds: ReadonlyArray<string>
+  pinnedIds: ReadonlyArray<string>,
+  orderIds?: ReadonlyArray<string>
 ): { readonly ordered: ReadonlyArray<T>; readonly pinnedCount: number } {
+  const byId = new Map(items.map(item => [item.id, item]))
+  const orderedItems: Array<T> = []
+  const seen = new Set<string>()
+  for (const id of orderIds ?? []) {
+    const item = byId.get(id)
+    if (item !== undefined && !seen.has(id)) {
+      orderedItems.push(item)
+      seen.add(id)
+    }
+  }
+  for (const item of items) {
+    if (!seen.has(item.id)) {
+      orderedItems.push(item)
+      seen.add(item.id)
+    }
+  }
   if (pinnedIds.length === 0) {
-    return { ordered: items, pinnedCount: 0 }
+    return { ordered: orderedItems, pinnedCount: 0 }
   }
 
-  const byId = new Map(items.map(item => [item.id, item]))
   const pinned: Array<T> = []
   for (const id of pinnedIds) {
     const item = byId.get(id)
@@ -426,7 +442,576 @@ export function orderSettingsTabs<T extends ISettingsTabItem>(
   }
 
   const pinnedSet = new Set(pinned.map(item => item.id))
-  const rest = items.filter(item => !pinnedSet.has(item.id))
+  const rest = orderedItems.filter(item => !pinnedSet.has(item.id))
 
   return { ordered: [...pinned, ...rest], pinnedCount: pinned.length }
+}
+
+/**
+ * Versioned browser-tab layout persisted by the Settings surfaces.
+ *
+ * The original implementation kept only an open list and a pin list.  Those
+ * keys remain supported for downgrade and migration compatibility, while this
+ * record is the single source of truth for user ordering and named groups.
+ * Unknown fields are retained on read/write so a newer build can round-trip a
+ * profile through an older one without losing data it does not understand.
+ */
+export const SettingsTabPersistenceVersion = 2
+
+/** Hand-written contract inventory for the Settings tab surface. */
+export const SettingsTabCompletenessInventory = [
+  'versioned-persistence',
+  'tab-order',
+  'pinned-order',
+  'named-groups',
+  'group-membership',
+  'group-order',
+  'group-collapse-state',
+  'group-create-rename-remove',
+  'pointer-reorder',
+  'keyboard-reorder',
+  'current-strip-search',
+  'group-search',
+  'master-tab-search',
+  'isolated-regex-builder',
+  'pinned-overflow',
+  'accessible-orientation',
+  'search-result-reveal',
+  'dock-picker-search',
+  'settings-search-teleport',
+  'command-palette-teleport',
+] as const
+
+export const SETTINGS_TAB_COMPLETENESS_INVENTORY =
+  SettingsTabCompletenessInventory
+
+/** Exact implementation boundaries exercised by the red-then-green guard. */
+export const SettingsTabNegativeRegressionInventory = [
+  'settings-tab-model.ts:SettingsTabPersistenceVersion',
+  'settings-tab-model.ts:getSettingsTabLayout',
+  'settings-tab-model.ts:malformed-layout-legacy-fallback',
+  'settings-tab-model.ts:forward-compatible-fields',
+  'settings-tab-model.ts:orphan-membership-rejection',
+  'settings-tab-model.ts:setSettingsTabLayout',
+  'settings-tab-model.ts:orderSettingsTabs',
+  'settings-tab-model.ts:createSettingsTabGroup',
+  'settings-tab-model.ts:renameSettingsTabGroup',
+  'settings-tab-model.ts:removeSettingsTabGroup',
+  'settings-tab-model.ts:setSettingsTabGroupCollapsed',
+  'settings-tab-model.ts:setSettingsTabGroupMembership',
+  'settings-tab-strip.tsx:SettingsTabStrip',
+  'settings-tab-strip.tsx:current-strip-search',
+  'settings-tab-strip.tsx:master-tab-search',
+  'settings-tab-strip.tsx:group-search',
+  'settings-tab-strip.tsx:pointer-reorder',
+  'settings-tab-strip.tsx:keyboard-reorder',
+  'settings-tab-strip.tsx:remount-pinned-order',
+  'settings-tab-strip.tsx:group-pinned-partition',
+  'settings-tab-strip.tsx:collapsed-selected-reveal',
+  'settings-tab-strip.tsx:empty-group-management',
+  'settings-tab-strip.tsx:move-out-of-group',
+  'settings-tab-strip.tsx:disabled-group-interaction',
+  'settings-tab-strip.tsx:invalid-regex-announcement',
+  'settings-tab-strip.tsx:four-dock-orientations',
+  'settings-tab-dock-control.tsx:SearchableSelect',
+  'settings-tab-picker-popover.tsx:FilterModeControl',
+] as const
+
+export const SETTINGS_TAB_NEGATIVE_REGRESSION_INVENTORY =
+  SettingsTabNegativeRegressionInventory
+
+export const SettingsTabGroupColors = [
+  'blue',
+  'green',
+  'yellow',
+  'red',
+  'purple',
+  'grey',
+] as const
+
+export interface ISettingsTabGroup {
+  readonly id: string
+  readonly name: string
+  readonly color?: string
+  readonly isCollapsed?: boolean
+  readonly [key: string]: unknown
+}
+
+export interface ISettingsTabLayoutState {
+  readonly version: number
+  readonly order: ReadonlyArray<string>
+  readonly pinnedIds: ReadonlyArray<string>
+  readonly groups: ReadonlyArray<ISettingsTabGroup>
+  readonly groupOrder: ReadonlyArray<string>
+  readonly membership: Readonly<Record<string, string | null>>
+  readonly [key: string]: unknown
+}
+
+export interface ISettingsTabLayoutOptions
+  extends ISettingsTabPersistenceOptions {
+  /** Optional list of currently declared pages for read-time reconciliation. */
+  readonly allowedGroupIds?: ReadonlyArray<string>
+}
+
+const LayoutKeyPrefix = 'settings-tab-layout'
+const MaximumLayoutItems = 256
+const MaximumGroups = 64
+const MaximumGroupIdLength = 128
+const MaximumGroupNameLength = 64
+const SettingsGroupColors: ReadonlySet<string> = new Set<string>(
+  SettingsTabGroupColors
+)
+
+function layoutKey(strip: SettingsTabStripId, scope?: string): string {
+  return scope === undefined || scope.length === 0
+    ? `${LayoutKeyPrefix}.${strip}`
+    : `${LayoutKeyPrefix}.${strip}.${encodeURIComponent(scope)}`
+}
+
+function isRecordValue(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function normalizeLayoutIds(
+  value: unknown,
+  allowedIds?: ReadonlySet<string>,
+  legacyIdMap?: Readonly<Record<string, string>>
+): ReadonlyArray<string> {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  const output: string[] = []
+  const seen = new Set<string>()
+  for (const raw of value) {
+    if (typeof raw !== 'string' || raw.length === 0 || raw.length > 128) {
+      continue
+    }
+    const id = legacyIdMap?.[raw] ?? raw
+    if (allowedIds !== undefined && !allowedIds.has(id)) {
+      continue
+    }
+    if (seen.has(id)) {
+      continue
+    }
+    seen.add(id)
+    output.push(id)
+    if (output.length >= MaximumLayoutItems) {
+      break
+    }
+  }
+  return output
+}
+
+function normalizeGroupId(value: unknown): string | null {
+  return typeof value === 'string' &&
+    value.length > 0 &&
+    value.length <= MaximumGroupIdLength
+    ? value
+    : null
+}
+
+/** Normalize a user-entered group label without requiring an id. */
+export function normalizeSettingsTabGroupName(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null
+  }
+  const name = value
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, MaximumGroupNameLength)
+  return name.length === 0 ? null : name
+}
+
+function normalizeGroup(value: unknown): ISettingsTabGroup | null {
+  if (!isRecordValue(value)) {
+    return null
+  }
+  const id = normalizeGroupId(value.id)
+  const name = normalizeSettingsTabGroupName(value.name) ?? ''
+  if (id === null || name.length === 0) {
+    return null
+  }
+  const group: Record<string, unknown> = { ...value, id, name }
+  if (
+    typeof value.color !== 'string' ||
+    !SettingsGroupColors.has(value.color)
+  ) {
+    delete group.color
+  }
+  if (typeof value.isCollapsed !== 'boolean') {
+    delete group.isCollapsed
+  }
+  return group as ISettingsTabGroup
+}
+
+function normalizeGroups(
+  value: unknown,
+  allowedGroupIds?: ReadonlySet<string>
+): ReadonlyArray<ISettingsTabGroup> {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  const output: ISettingsTabGroup[] = []
+  const seen = new Set<string>()
+  for (const raw of value) {
+    const group = normalizeGroup(raw)
+    if (
+      group === null ||
+      seen.has(group.id) ||
+      (allowedGroupIds !== undefined && !allowedGroupIds.has(group.id))
+    ) {
+      continue
+    }
+    seen.add(group.id)
+    output.push(group)
+    if (output.length >= MaximumGroups) {
+      break
+    }
+  }
+  return output
+}
+
+function normalizeLayout(
+  value: unknown,
+  options?: ISettingsTabLayoutOptions
+): ISettingsTabLayoutState | null {
+  if (!isRecordValue(value)) {
+    return null
+  }
+  if (
+    typeof value.version !== 'number' ||
+    !Number.isInteger(value.version) ||
+    value.version < 1 ||
+    value.version > SettingsTabPersistenceVersion
+  ) {
+    return null
+  }
+  const allowedIds =
+    options?.allowedIds === undefined ? undefined : new Set(options.allowedIds)
+  const allowedGroupIds =
+    options?.allowedGroupIds === undefined
+      ? undefined
+      : new Set(options.allowedGroupIds)
+  const groups = normalizeGroups(value.groups, allowedGroupIds)
+  const groupIds = new Set(groups.map(group => group.id))
+  const groupOrder = normalizeLayoutIds(value.groupOrder, groupIds)
+  const orderedGroupIds = [
+    ...groupOrder,
+    ...groups.map(group => group.id).filter(id => !groupOrder.includes(id)),
+  ]
+  const membership: Record<string, string | null> = {}
+  if (isRecordValue(value.membership)) {
+    for (const [tabId, rawGroupId] of Object.entries(value.membership)) {
+      if (
+        tabId.length <= 128 &&
+        (allowedIds === undefined || allowedIds.has(tabId)) &&
+        (rawGroupId === null ||
+          (typeof rawGroupId === 'string' && groupIds.has(rawGroupId)))
+      ) {
+        membership[tabId] = rawGroupId
+      }
+    }
+  }
+  const normalized: Record<string, unknown> = { ...value }
+  normalized.version = SettingsTabPersistenceVersion
+  normalized.order = normalizeLayoutIds(
+    value.order,
+    allowedIds,
+    options?.legacyIdMap
+  )
+  normalized.pinnedIds = normalizeLayoutIds(
+    value.pinnedIds,
+    allowedIds,
+    options?.legacyIdMap
+  )
+  normalized.groups = groups
+  normalized.groupOrder = orderedGroupIds
+  normalized.membership = membership
+  return normalized as ISettingsTabLayoutState
+}
+
+/** Read a complete settings-tab layout, migrating the legacy split keys. */
+export function getSettingsTabLayout(
+  strip: SettingsTabStripId,
+  options?: ISettingsTabLayoutOptions
+): ISettingsTabLayoutState {
+  try {
+    const key = layoutKey(strip, options?.scope)
+    const raw = localStorage.getItem(key)
+    let parsed: unknown = null
+    if (raw !== null) {
+      try {
+        parsed = JSON.parse(raw)
+      } catch (e) {
+        // A malformed current record must fall back to the valid split keys.
+        parsed = null
+      }
+    }
+    const normalized = normalizeLayout(parsed, options)
+    if (normalized !== null) {
+      return normalized
+    }
+
+    const allowed = options?.allowedIds
+    const legacyOrder = getOpenSettingsTabs(strip, allowed, options)
+    const order = normalizeLayoutIds(
+      legacyOrder ?? allowed ?? [],
+      allowed === undefined ? undefined : new Set(allowed),
+      options?.legacyIdMap
+    )
+    const migrated: ISettingsTabLayoutState = {
+      version: SettingsTabPersistenceVersion,
+      order,
+      pinnedIds: getPinnedSettingsTabs(strip, options),
+      groups: [],
+      groupOrder: [],
+      membership: {},
+    }
+    if (raw === null) {
+      setSettingsTabLayout(strip, migrated, options)
+    }
+    return migrated
+  } catch (e) {
+    log.warn('Could not read the settings tab layout; using declared order.', e)
+    return {
+      version: SettingsTabPersistenceVersion,
+      order: options?.allowedIds ?? [],
+      pinnedIds: [],
+      groups: [],
+      groupOrder: [],
+      membership: {},
+    }
+  }
+}
+
+/** Persist the complete settings-tab layout as one versioned record. */
+export function setSettingsTabLayout(
+  strip: SettingsTabStripId,
+  layout: ISettingsTabLayoutState,
+  options?: ISettingsTabLayoutOptions
+): void {
+  try {
+    const normalized = normalizeLayout(layout, options)
+    if (normalized !== null) {
+      localStorage.setItem(
+        layoutKey(strip, options?.scope),
+        JSON.stringify(normalized)
+      )
+    }
+  } catch (e) {
+    log.warn('Could not save the settings tab layout.', e)
+  }
+}
+
+export function getSettingsTabOrder(
+  strip: SettingsTabStripId,
+  options?: ISettingsTabLayoutOptions
+): ReadonlyArray<string> {
+  return getSettingsTabLayout(strip, options).order
+}
+
+export function setSettingsTabOrder(
+  strip: SettingsTabStripId,
+  order: ReadonlyArray<string>,
+  options?: ISettingsTabLayoutOptions
+): void {
+  const layout = getSettingsTabLayout(strip, options)
+  setSettingsTabLayout(strip, { ...layout, order }, options)
+}
+
+/** Order items by the persisted order, then apply the protected pin region. */
+export function orderSettingsTabsByLayout<T extends ISettingsTabItem>(
+  items: ReadonlyArray<T>,
+  pinnedIds: ReadonlyArray<string>,
+  orderIds: ReadonlyArray<string>
+): { readonly ordered: ReadonlyArray<T>; readonly pinnedCount: number } {
+  return orderSettingsTabs(items, pinnedIds, orderIds)
+}
+
+/** Move one id within its current ordering, preserving the pinned boundary. */
+export function reorderSettingsTab(
+  strip: SettingsTabStripId,
+  id: string,
+  targetIndex: number,
+  options?: ISettingsTabLayoutOptions
+): ReadonlyArray<string> {
+  const layout = getSettingsTabLayout(strip, options)
+  if (layout.pinnedIds.includes(id)) {
+    const pinnedIds = layout.pinnedIds.filter(candidate => candidate !== id)
+    const bounded = Math.max(0, Math.min(targetIndex, pinnedIds.length))
+    pinnedIds.splice(bounded, 0, id)
+    setSettingsTabLayout(strip, { ...layout, pinnedIds }, options)
+    return layout.order
+  }
+  const order = layout.order.filter(candidate => candidate !== id)
+  const bounded = Math.max(0, Math.min(targetIndex, order.length))
+  order.splice(bounded, 0, id)
+  setSettingsTabOrder(strip, order, options)
+  return order
+}
+
+/** Reorder only the protected pinned region, preserving ordinary tab order. */
+export function reorderSettingsTabPinnedOrder(
+  strip: SettingsTabStripId,
+  id: string,
+  targetIndex: number,
+  options?: ISettingsTabLayoutOptions
+): ReadonlyArray<string> {
+  const layout = getSettingsTabLayout(strip, options)
+  if (!layout.pinnedIds.includes(id)) {
+    return layout.pinnedIds
+  }
+  const pinnedIds = layout.pinnedIds.filter(candidate => candidate !== id)
+  pinnedIds.splice(Math.max(0, Math.min(targetIndex, pinnedIds.length)), 0, id)
+  setSettingsTabLayout(strip, { ...layout, pinnedIds }, options)
+  return pinnedIds
+}
+
+export function getSettingsTabGroups(
+  strip: SettingsTabStripId,
+  options?: ISettingsTabLayoutOptions
+): ReadonlyArray<ISettingsTabGroup> {
+  return getSettingsTabLayout(strip, options).groups
+}
+
+export function setSettingsTabGroups(
+  strip: SettingsTabStripId,
+  groups: ReadonlyArray<ISettingsTabGroup>,
+  options?: ISettingsTabLayoutOptions
+): void {
+  const layout = getSettingsTabLayout(strip, options)
+  setSettingsTabLayout(strip, { ...layout, groups }, options)
+}
+
+export function createSettingsTabGroup(
+  strip: SettingsTabStripId,
+  group: ISettingsTabGroup,
+  options?: ISettingsTabLayoutOptions
+): ISettingsTabGroup | null {
+  const normalized = normalizeGroup(group)
+  if (normalized === null) {
+    return null
+  }
+  const layout = getSettingsTabLayout(strip, options)
+  if (layout.groups.some(candidate => candidate.id === normalized.id)) {
+    return null
+  }
+  setSettingsTabLayout(
+    strip,
+    {
+      ...layout,
+      groups: [...layout.groups, normalized],
+      groupOrder: [...layout.groupOrder, normalized.id],
+    },
+    options
+  )
+  return normalized
+}
+
+export function renameSettingsTabGroup(
+  strip: SettingsTabStripId,
+  id: string,
+  name: string,
+  options?: ISettingsTabLayoutOptions
+): boolean {
+  const normalizedName = normalizeSettingsTabGroupName(name)
+  const layout = getSettingsTabLayout(strip, options)
+  const nextName = normalizedName
+  if (nextName === null) {
+    return false
+  }
+  const groups = layout.groups.map(group =>
+    group.id === id ? { ...group, name: nextName } : group
+  )
+  if (!layout.groups.some(group => group.id === id)) {
+    return false
+  }
+  setSettingsTabLayout(strip, { ...layout, groups }, options)
+  return true
+}
+
+export function removeSettingsTabGroup(
+  strip: SettingsTabStripId,
+  id: string,
+  options?: ISettingsTabLayoutOptions
+): boolean {
+  const layout = getSettingsTabLayout(strip, options)
+  if (!layout.groups.some(group => group.id === id)) {
+    return false
+  }
+  setSettingsTabLayout(
+    strip,
+    {
+      ...layout,
+      groups: layout.groups.filter(group => group.id !== id),
+      groupOrder: layout.groupOrder.filter(groupId => groupId !== id),
+    },
+    options
+  )
+  return true
+}
+
+export function setSettingsTabGroupCollapsed(
+  strip: SettingsTabStripId,
+  id: string,
+  isCollapsed: boolean,
+  options?: ISettingsTabLayoutOptions
+): boolean {
+  const layout = getSettingsTabLayout(strip, options)
+  if (!layout.groups.some(group => group.id === id)) {
+    return false
+  }
+  setSettingsTabLayout(
+    strip,
+    {
+      ...layout,
+      groups: layout.groups.map(group =>
+        group.id === id ? { ...group, isCollapsed } : group
+      ),
+    },
+    options
+  )
+  return true
+}
+
+/** Assign a page to a group, or null to leave all groups. */
+export function setSettingsTabGroupMembership(
+  strip: SettingsTabStripId,
+  tabId: string,
+  groupId: string | null,
+  options?: ISettingsTabLayoutOptions
+): ReadonlyArray<string> {
+  const layout = getSettingsTabLayout(strip, options)
+  if (typeof tabId !== 'string' || tabId.length === 0 || tabId.length > 128) {
+    return layout.order
+  }
+  const membership: Record<string, string | null> = {
+    ...layout.membership,
+  }
+  const validGroup =
+    groupId === null || layout.groups.some(group => group.id === groupId)
+  membership[tabId] = validGroup ? groupId : null
+  setSettingsTabLayout(strip, { ...layout, membership }, options)
+  return layout.order
+}
+
+export function getSettingsTabGroupMembership(
+  strip: SettingsTabStripId,
+  options?: ISettingsTabLayoutOptions
+): Readonly<Record<string, string | null>> {
+  return getSettingsTabLayout(strip, options).membership
+}
+
+export function reorderSettingsTabGroup(
+  strip: SettingsTabStripId,
+  groupId: string,
+  targetIndex: number,
+  options?: ISettingsTabLayoutOptions
+): ReadonlyArray<string> {
+  const layout = getSettingsTabLayout(strip, options)
+  const order = layout.groupOrder.filter(id => id !== groupId)
+  const bounded = Math.max(0, Math.min(targetIndex, order.length))
+  order.splice(bounded, 0, groupId)
+  setSettingsTabLayout(strip, { ...layout, groupOrder: order }, options)
+  return order
 }

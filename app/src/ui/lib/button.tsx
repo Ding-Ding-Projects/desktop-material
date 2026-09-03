@@ -8,6 +8,9 @@ import {
   personalizeHostTextProps,
   personalizeReactNode,
 } from '../../lib/personal-vocabulary-rendering'
+import { singleFlightActions } from '../../lib/single-flight-action'
+
+let nextButtonActionId = 0
 
 export interface IButtonProps {
   /** Stable, non-user-visible hook for deterministic UI verification. */
@@ -19,7 +22,12 @@ export interface IButtonProps {
    * passed along and can be used to prevent the default action
    * or stop the event from bubbling.
    */
-  readonly onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void
+  readonly onClick?: (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => void | PromiseLike<unknown>
+
+  /** Coordinate alternate entry points for the same semantic action. */
+  readonly activationKey?: string
 
   /**
    * A callback which is invoked when the button's context menu
@@ -239,10 +247,27 @@ export interface IButtonProps {
  */
 export class Button extends React.Component<IButtonProps, {}> {
   private innerButtonRef = createObservableRef<HTMLButtonElement>()
+  private readonly instanceActivationKey = `button:${++nextButtonActionId}`
+  private unsubscribeFromAction: (() => void) | null = null
 
   public constructor(props: IButtonProps) {
     super(props)
     this.innerButtonRef.subscribe(button => this.props.onButtonRef?.(button))
+  }
+
+  public componentDidMount() {
+    this.subscribeToAction()
+  }
+
+  public componentDidUpdate(previousProps: IButtonProps) {
+    if (previousProps.activationKey !== this.props.activationKey) {
+      this.subscribeToAction()
+    }
+  }
+
+  public componentWillUnmount() {
+    this.unsubscribeFromAction?.()
+    this.unsubscribeFromAction = null
   }
 
   /**
@@ -264,7 +289,7 @@ export class Button extends React.Component<IButtonProps, {}> {
   }
 
   public render() {
-    const { disabled } = this.props
+    const disabled = this.props.disabled === true || this.isActionActive
     const children = personalizeReactNode(this.props.children)
     const hostTextProps = personalizeHostTextProps({
       'aria-label': this.props.ariaLabel,
@@ -306,7 +331,9 @@ export class Button extends React.Component<IButtonProps, {}> {
         aria-controls={this.props.ariaControls}
         // Emitted only while busy: `aria-busy="false"` is the default state
         // and would only add noise to every control that can ever be busy.
-        aria-busy={this.props.ariaBusy === true ? true : undefined}
+        aria-busy={
+          this.props.ariaBusy === true || this.isActionActive ? true : undefined
+        }
         autoFocus={this.props.autoFocus}
       >
         {tooltip && (
@@ -338,19 +365,26 @@ export class Button extends React.Component<IButtonProps, {}> {
    * utility additionally suppresses ripples under reduced motion.
    */
   private onMouseDown = (event: React.MouseEvent<HTMLButtonElement>) => {
-    if (!this.props.disabled) {
+    if (!this.props.disabled && !this.isActionActive) {
       attachRipple(event.currentTarget, event)
     }
   }
 
   private onClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    if (this.props.onClick) {
-      this.props.onClick(event)
-    }
-
     if (this.props.type === undefined) {
       event.preventDefault()
     }
+
+    const onClick = this.props.onClick
+    if (onClick === undefined || this.props.disabled || this.isActionActive) {
+      return
+    }
+
+    const result = singleFlightActions.run(this.activationKey, () =>
+      onClick(event)
+    )
+    void result.catch(() => {})
+    return result
   }
 
   private onContextMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -359,6 +393,22 @@ export class Button extends React.Component<IButtonProps, {}> {
     if (this.props.type === undefined) {
       event.preventDefault()
     }
+  }
+
+  private get activationKey() {
+    return this.props.activationKey ?? this.instanceActivationKey
+  }
+
+  private get isActionActive() {
+    return singleFlightActions.isActive(this.activationKey)
+  }
+
+  private subscribeToAction() {
+    this.unsubscribeFromAction?.()
+    this.unsubscribeFromAction = singleFlightActions.subscribe(
+      this.activationKey,
+      () => this.forceUpdate()
+    )
   }
 }
 

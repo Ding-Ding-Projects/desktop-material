@@ -9,7 +9,7 @@
 //
 // The scrim's 160ms `dmFade` and the panel's 200ms `dmMenu` are applied
 // through `.md3-anim-fade--overlay` and `.md3-anim-menu` from
-// `_md3-shell.scss`, which already carry the contract's easings and are
+// `app/styles/ui/md3/`, which already carry the contract's easings and are
 // already disabled under `prefers-reduced-motion`.
 
 .md3-menu-overlay {
@@ -21,6 +21,19 @@
   padding: 60px 16px 16px 16px;
   position: fixed;
   z-index: 40;
+}
+
+// An anchored menu is positioned at its trigger by the popover that owns it.
+// The base rule above is the centred fallback: a fixed, full-viewport scrim
+// that fills the window. Without this modifier an anchored menu inherited all
+// of it and painted a whole-window scrim beside its own trigger.
+.md3-menu-overlay--anchored {
+  background: none;
+  inset: auto;
+  justify-content: flex-start;
+  padding: 0;
+  position: static;
+  z-index: auto;
 }
 
 .md3-menu-overlay__panel {
@@ -68,7 +81,7 @@
 // Filter row
 // ---------------------------------------------------------------------------
 //
-// The row itself is `.md3-search-row` from `_md3-shell.scss`, so the geometry
+// The row itself is `.md3-search-row` from `app/styles/ui/md3/`, so the geometry
 // is shared with every other search field in the rewrite. Only the two notes
 // that hang beneath it are declared here.
 
@@ -123,9 +136,9 @@
   flex: none;
   font-size: 12.5px;
   gap: 12px;
-  // 8px of padding either side of a 12.5px label is a 32px row; naming the
-  // floor keeps it a 32px target when a translation renders shorter.
-  min-height: 32px;
+  // The visual anatomy remains the same, but the actual hit area is a full
+  // 40px target so short labels and icon-only rows remain touchable.
+  min-height: 40px;
   padding: 8px 12px;
   text-align: left;
   transition: background-color 180ms cubic-bezier(0.2, 0, 0, 1);

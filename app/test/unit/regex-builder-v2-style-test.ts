@@ -39,7 +39,7 @@ describe('Regex builder v2 style contract', () => {
     )
     assert.match(
       styles,
-      /\.regex-builder-view-tab\s*\{[\s\S]*?flex: 1;[\s\S]*?height: 38px;[\s\S]*?border-radius: 999px;/
+      /\.regex-builder-view-tab\s*\{[\s\S]*?flex: 1;[\s\S]*?height: 38px;[\s\S]*?border-radius: var\(--md-sys-shape-corner-full\);/
     )
     assert.match(
       styles,

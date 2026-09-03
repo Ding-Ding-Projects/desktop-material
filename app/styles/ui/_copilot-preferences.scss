@@ -76,7 +76,7 @@
     .copilot-byok-provider-badge {
       display: inline-block;
       padding: 0 var(--spacing-half);
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       background: var(--box-selected-background-color);
       color: var(--text-secondary-color);
       font-size: var(--font-size-sm);
@@ -128,7 +128,7 @@
     height: 18px;
     padding: 0;
     border: none;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: transparent;
     color: var(--text-secondary-color);
 
@@ -350,5 +350,67 @@
       border-radius: var(--md-sys-shape-corner-small);
       background: var(--box-selected-background-color);
     }
+  }
+}
+
+.copilot-account-snapshot-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing);
+}
+
+.copilot-snapshot-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-half);
+  min-width: 0;
+  padding: var(--spacing);
+  border: 1px solid var(--box-border-color);
+  border-radius: var(--md-sys-shape-corner-medium);
+  background: var(--box-background-color);
+
+  .copilot-snapshot-account {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing);
+    min-width: 0;
+
+    > div:first-child {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    > .button-component {
+      flex: 0 1 auto;
+      max-width: 100%;
+    }
+  }
+
+  ul {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-half);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0 var(--spacing);
+    min-width: 0;
+  }
+
+  li span:last-child,
+  small {
+    color: var(--text-secondary-color);
+    font-size: var(--font-size-sm);
+  }
+
+  li span:last-child {
+    grid-column: 1 / -1;
   }
 }

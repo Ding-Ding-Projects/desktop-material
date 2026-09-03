@@ -4,8 +4,6 @@ import { Dialog, DialogContent, DialogError, DialogFooter } from '../dialog'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { DefaultDialogFooter } from '../dialog/default-dialog-footer'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { Dispatcher } from '../dispatcher'
 import { Repository } from '../../models/repository'
 import { IOpencodeFixFailure } from '../../models/popup'
@@ -21,6 +19,7 @@ import { t } from '../../lib/i18n'
 import { BuildRunViewPhase } from '../../lib/stores/build-run-store'
 import { BuildRunLogStream } from '../../lib/build-run/types'
 import type { IOpencodeLogEvent } from '../../lib/build-run/opencode'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /** Longest opencode output tail kept in the dialog's scrollback. */
 const MAX_DIALOG_LOG_LINES = 400
@@ -494,7 +493,7 @@ export class OpencodeFixDialog extends React.Component<
         <p>{t('buildRun.notInstalledCli', { cli: this.cliName })}</p>
         <pre className="opencode-fix-command">{plan.label}</pre>
         <p className="opencode-fix-note">
-          <Octicon symbol={octicons.shield} />
+          <MaterialSymbol name="shield" />
           <span>{t(safetyKey)}</span>
         </p>
       </DialogContent>
@@ -570,7 +569,7 @@ export class OpencodeFixDialog extends React.Component<
         />
         {autoApprove ? (
           <p className="opencode-fix-warning" role="alert">
-            <Octicon symbol={octicons.alert} />
+            <MaterialSymbol name="warning" />
             <span>
               {this.state.provider === 'codex'
                 ? t('buildRun.codexAutoApproveTrustWarning')
@@ -581,7 +580,7 @@ export class OpencodeFixDialog extends React.Component<
           </p>
         ) : (
           <p className="opencode-fix-note">
-            <Octicon symbol={octicons.info} />
+            <MaterialSymbol name="info" />
             <span>
               {t('buildRun.approvalOnRequestProvider', {
                 provider: this.providerLabel,
@@ -628,7 +627,7 @@ export class OpencodeFixDialog extends React.Component<
       return (
         <DialogContent>
           <p className="opencode-fix-result success" role="status">
-            <Octicon symbol={octicons.checkCircle} />
+            <MaterialSymbol name="check_circle" />
             <span>Fixed — the build now succeeds.</span>
           </p>
         </DialogContent>
@@ -641,7 +640,7 @@ export class OpencodeFixDialog extends React.Component<
     return (
       <DialogContent>
         <p className="opencode-fix-result failure" role="status">
-          <Octicon symbol={octicons.xCircle} />
+          <MaterialSymbol name="cancel" />
           <span>{message}</span>
         </p>
       </DialogContent>

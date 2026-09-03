@@ -18,9 +18,8 @@ import { Button } from '../lib/button'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { Select } from '../lib/select'
 import { TextBox } from '../lib/text-box'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface ISSHWorkingCopyManagerProps {
   readonly repositoryPath: string
@@ -419,7 +418,7 @@ export class SSHWorkingCopyManager extends React.Component<
       >
         <header>
           <div>
-            <Octicon symbol={octicons.server} />
+            <MaterialSymbol name="dns" />
             <h3>SSH Working Copy</h3>
           </div>
           <p>
@@ -560,7 +559,7 @@ export class SSHWorkingCopyManager extends React.Component<
             disabled={busy || sourceRemotes.length === 0}
             onClick={this.onClone}
           >
-            <Octicon symbol={octicons.repoClone} /> Clone
+            <MaterialSymbol name="file_copy" /> Clone
           </Button>
           <Button disabled={busy} onClick={this.onStatus}>
             Status
@@ -575,7 +574,7 @@ export class SSHWorkingCopyManager extends React.Component<
             Push
           </Button>
           <Button disabled={busy} onClick={this.onDeploy}>
-            <Octicon symbol={octicons.container} /> Deploy Docker now
+            <MaterialSymbol name="deployed_code" /> Deploy Docker now
           </Button>
           {runningAction !== null && (
             <Button onClick={this.onCancelOperation}>
@@ -590,7 +589,7 @@ export class SSHWorkingCopyManager extends React.Component<
           </p>
           {this.state.error !== null && (
             <p role="alert" className="add-remote-error">
-              <Octicon symbol={octicons.alert} />
+              <MaterialSymbol name="warning" />
               <span>{this.state.error}</span>
             </p>
           )}

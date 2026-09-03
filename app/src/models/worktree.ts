@@ -1,3 +1,6 @@
+import { shortenSHA } from './commit'
+import * as Path from 'path'
+
 export type WorktreeType = 'main' | 'linked'
 
 export type WorktreeMaintenanceOperation = 'prune' | 'repair'
@@ -20,4 +23,65 @@ export type WorktreeEntry = {
   readonly createdAt?: number
   /** Number of uncommitted entries, or null when the worktree cannot be read. */
   readonly dirtyFileCount?: number | null
+}
+
+/** Compare absolute worktree paths across separator and case differences. */
+export function worktreePathsEqual(first: string, second: string): boolean {
+  const pathModule = process.platform === 'win32' ? Path.win32 : Path.posix
+  const normalize = (path: string) => pathModule.resolve(path)
+  const a = normalize(first)
+  const b = normalize(second)
+  return process.platform === 'win32'
+    ? a.toLowerCase() === b.toLowerCase()
+    : a === b
+}
+
+/** Stable per-repository identity for one worktree-row appearance owner. */
+export function getWorktreeAppearanceId(
+  repositoryId: number,
+  worktreePath: string
+): string {
+  const pathModule = process.platform === 'win32' ? Path.win32 : Path.posix
+  return `worktree:${repositoryId}:${pathModule.resolve(worktreePath)}`
+}
+
+/** Return a worktree's final path segment without assuming one separator. */
+export function getWorktreeDisplayName(worktree: WorktreeEntry): string {
+  const trimmed = worktree.path.replace(/[\\/]+$/, '')
+  if (trimmed.length === 0) {
+    return worktree.path
+  }
+
+  const separator = Math.max(
+    trimmed.lastIndexOf('/'),
+    trimmed.lastIndexOf('\\')
+  )
+  return separator >= 0 ? trimmed.substring(separator + 1) : trimmed
+}
+
+/** Return the branch name or a shortened detached HEAD identifier. */
+export function getWorktreeDescription(worktree: WorktreeEntry): string {
+  return worktree.branch
+    ? worktree.branch.replace(/^refs\/heads\//, '')
+    : shortenSHA(worktree.head)
+}
+
+/** Include observed status in the accessible worktree label when available. */
+export function getWorktreeAriaLabel(worktree: WorktreeEntry): string {
+  const states = [
+    worktree.dirtyFileCount === null ? 'status unavailable' : null,
+    worktree.dirtyFileCount !== undefined &&
+    worktree.dirtyFileCount !== null &&
+    worktree.dirtyFileCount > 0
+      ? `${worktree.dirtyFileCount} uncommitted`
+      : null,
+    worktree.isLocked ? 'locked' : null,
+    worktree.isPrunable ? 'missing' : null,
+  ].filter((state): state is string => state !== null)
+
+  return [
+    getWorktreeDisplayName(worktree),
+    getWorktreeDescription(worktree),
+    ...states,
+  ].join(', ')
 }

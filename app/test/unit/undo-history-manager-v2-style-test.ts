@@ -38,11 +38,11 @@ describe('undo history manager v2 styles', () => {
   it('shapes the actions row as 40px pills with a trailing 28px count chip', () => {
     assert.match(
       style,
-      /\.versioned-store-history-toolbar\s*\{[\s\S]*?gap: 8px;[\s\S]*?padding: 0 16px 12px;[\s\S]*?\.button-component\s*\{[\s\S]*?gap: 7px;[\s\S]*?height: 40px;[\s\S]*?border-radius: 999px;/
+      /\.versioned-store-history-toolbar\s*\{[\s\S]*?gap: 8px;[\s\S]*?padding: 0 16px 12px;[\s\S]*?\.button-component\s*\{[\s\S]*?gap: 7px;[\s\S]*?height: 40px;[\s\S]*?border-radius: var\(--md-sys-shape-corner-full\);/
     )
     assert.match(
       style,
-      /\.versioned-store-history-count\s*\{[\s\S]*?height: 28px;[\s\S]*?border-radius: 999px;[\s\S]*?background: var\(--md-sys-color-surface-container-high\);[\s\S]*?font-size: 11\.5px;/
+      /\.versioned-store-history-count\s*\{[\s\S]*?height: 28px;[\s\S]*?border-radius: var\(--md-sys-shape-corner-full\);[\s\S]*?background: var\(--md-sys-color-surface-container-high\);[\s\S]*?font-size: 11\.5px;/
     )
     // Disabled actions keep the flattened neutral treatment.
     assert.match(
@@ -88,7 +88,7 @@ describe('undo history manager v2 styles', () => {
   it('styles the sha chip, message, and time per the prototype log rows', () => {
     assert.match(
       style,
-      />\s*code\s*\{[\s\S]*?padding: 4px 8px;[\s\S]*?border-radius: 8px;[\s\S]*?font-family: var\(--font-family-monospace\);[\s\S]*?font-size: 11px;[\s\S]*?font-weight: var\(--font-weight-semibold\);/
+      />\s*code\s*\{[\s\S]*?padding: 4px 8px;[\s\S]*?border-radius: var\(--md-sys-shape-corner-small\);[\s\S]*?font-family: var\(--font-family-monospace\);[\s\S]*?font-size: 11px;[\s\S]*?font-weight: var\(--font-weight-semibold\);/
     )
     assert.match(
       style,
@@ -115,11 +115,11 @@ describe('undo history manager v2 styles', () => {
   it('labels the pills Undo and Redo with their matching glyphs', () => {
     assert.match(
       component,
-      /<Octicon symbol=\{octicons\.undo\} \/> \{this\.strings\.undo\}\s*</
+      /<MaterialSymbol name="undo" \/> \{this\.strings\.undo\}\s*</
     )
     assert.match(
       component,
-      /<Octicon symbol=\{octicons\.redo\} \/> \{this\.strings\.redo\}\s*</
+      /<MaterialSymbol name="redo" \/> \{this\.strings\.redo\}\s*</
     )
     assert.match(component, /undo: 'Undo'/)
     assert.match(component, /redo: 'Redo'/)

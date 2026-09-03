@@ -27,7 +27,7 @@
 
   .button-component {
     max-width: 100%;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     white-space: normal;
 
     &.destructive {
@@ -213,7 +213,7 @@
   gap: 3px;
   padding: 11px 13px;
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 16px;
+  border-radius: var(--md-sys-shape-corner-large);
   background: var(--md-sys-color-surface-container-low);
 
   > span,
@@ -627,7 +627,7 @@
   width: 30px;
   height: 30px;
   place-items: center;
-  border-radius: 8px;
+  border-radius: var(--md-sys-shape-corner-small);
 
   &:focus-within {
     outline: 2px solid var(--md-sys-color-primary);
@@ -643,7 +643,7 @@
   gap: 5px 10px;
   padding: 12px 14px;
   border: 1px solid transparent;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   color: var(--md-sys-color-on-surface);
   background: transparent;
   font: inherit;
@@ -731,7 +731,7 @@
   display: inline-flex;
   align-items: center;
   padding: 2px 7px;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   font-size: 12px;
   font-weight: 700;
 }
@@ -820,7 +820,7 @@
 .github-release-state {
   display: inline-block;
   padding: 3px 8px;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-secondary-container);
   background: var(--md-sys-color-secondary-container);
   font-size: 12px;
@@ -843,7 +843,7 @@
   align-items: center;
   padding: 5px 11px;
   border: 1px solid var(--md-sys-color-outline);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-primary);
   font-size: 12px;
   font-weight: 650;
@@ -1024,7 +1024,7 @@
   gap: 9px;
   padding: 11px;
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   background: var(--md-sys-color-surface-container-lowest);
 
   h4 {
@@ -1083,7 +1083,7 @@
 .github-releases-message,
 .github-release-download-result {
   padding: 9px 11px;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   background: var(--md-sys-color-surface-container-high);
   font-size: 12px;
 }
@@ -1104,7 +1104,7 @@
   min-width: 0;
   gap: 8px;
   padding: 9px 11px;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   background: var(--md-sys-color-surface-container-high);
   font-size: 12px;
 
@@ -1123,7 +1123,7 @@
     max-height: 120px;
     padding: 6px 8px;
     overflow: auto;
-    border-radius: 8px;
+    border-radius: var(--md-sys-shape-corner-small);
     background: var(--md-sys-color-surface-container-low);
     font-size: 12px;
   }
@@ -1138,7 +1138,7 @@
   min-width: 0;
   gap: 8px;
   padding: 9px 11px;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   background: var(--md-sys-color-surface-container-high);
   font-size: 12px;
 
@@ -1220,7 +1220,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 9px 11px;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   font-size: 12px;
   color: var(--md-sys-color-on-tertiary-container);
   background: var(--md-sys-color-tertiary-container);
@@ -1419,7 +1419,7 @@
     gap: 7px;
     margin-bottom: 8px;
     padding: 8px;
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
   }
 
   .github-releases-filter-toolbar {
@@ -1702,7 +1702,7 @@
     grid-column: auto;
     gap: 1px;
     padding: 4px 5px;
-    border-radius: 8px;
+    border-radius: var(--md-sys-shape-corner-small);
 
     > span {
       overflow: hidden;
@@ -1740,7 +1740,7 @@
     flex: 0 0 176px;
     order: 1;
     padding: 5px;
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
   }
 
   .github-releases-panel-heading {
@@ -1779,7 +1779,7 @@
     margin: 0 0 3px;
     padding: 3px 6px;
     border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 8px;
+    border-radius: var(--md-sys-shape-corner-small);
     color: var(--md-sys-color-on-surface);
     background: var(--md-sys-color-surface-container);
     font: inherit;

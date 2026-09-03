@@ -6,9 +6,8 @@ import { PopupType } from '../../models/popup'
 import { PreferencesTab } from '../../models/preferences'
 import { ApplicationTheme } from '../lib/application-theme'
 import { getBoolean, setBoolean } from '../../lib/local-storage'
-import { Octicon, OcticonSymbol } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { Button } from '../lib/button'
+import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
 
 /**
  * The localStorage key remembering that the compact first-run checklist has
@@ -43,7 +42,7 @@ interface IChecklistItem {
   readonly label: string
   readonly meta: string
   readonly done: boolean
-  readonly icon: OcticonSymbol
+  readonly icon: MaterialSymbolName
   readonly onClick: () => void
 }
 
@@ -170,7 +169,7 @@ export class FirstRunChecklist extends React.Component<
         label: 'Sign in',
         meta: 'GitHub · GitLab · Bitbucket',
         done: this.props.accountsCount > 0,
-        icon: octicons.signIn,
+        icon: 'login',
         onClick: this.onSignIn,
       },
       {
@@ -178,7 +177,7 @@ export class FirstRunChecklist extends React.Component<
         label: 'Clone your first repository',
         meta: 'multi-clone · org filters',
         done: this.props.repositoryCount > 0,
-        icon: octicons.repoClone,
+        icon: 'file_copy',
         onClick: this.onClone,
       },
       {
@@ -186,7 +185,7 @@ export class FirstRunChecklist extends React.Component<
         label: 'Pick a theme',
         meta: 'light · dark · follow system',
         done: this.props.selectedTheme !== ApplicationTheme.System,
-        icon: octicons.paintbrush,
+        icon: 'brush',
         onClick: this.onPickTheme,
       },
     ]
@@ -202,9 +201,9 @@ export class FirstRunChecklist extends React.Component<
       <li key={item.key}>
         <Button type="button" className={className} onClick={item.onClick}>
           <span className="first-run-checklist-item-icon" aria-hidden="true">
-            <Octicon
-              symbol={item.done ? octicons.checkCircleFill : item.icon}
-              height={22}
+            <MaterialSymbol
+              name={item.done ? 'check_circle' : item.icon}
+              size={22}
             />
           </span>
           <span className="first-run-checklist-item-label">{item.label}</span>
@@ -234,7 +233,7 @@ export class FirstRunChecklist extends React.Component<
       >
         <header className="first-run-checklist-header">
           <span className="first-run-checklist-lockup" aria-hidden="true">
-            <Octicon symbol={octicons.smiley} height={28} />
+            <MaterialSymbol name="mood" size={28} />
           </span>
           <div className="first-run-checklist-heading">
             <h1 id="first-run-checklist-title">Welcome to Desktop Material</h1>

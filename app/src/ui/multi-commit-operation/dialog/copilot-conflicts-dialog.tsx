@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { join } from 'path'
 import { Dialog, DialogContent, DialogFooter } from '../../dialog'
 import { DialogHeader } from '../../dialog/header'
 import { Dispatcher } from '../../dispatcher'
@@ -25,7 +24,7 @@ import { showContextualMenu, IMenuItem } from '../../../lib/menu-item'
 import { OkCancelButtonGroup } from '../../dialog/ok-cancel-button-group'
 import { Button } from '../../lib/button'
 import { Octicon } from '../../octicons'
-import * as octicons from '../../octicons/octicons.generated'
+import { join } from 'path'
 import { PathText } from '../../lib/path-text'
 import {
   OpenWithDefaultProgramLabel,
@@ -40,13 +39,13 @@ import { MultiCommitOperationKind } from '../../../models/multi-commit-operation
 import { TabBar, TabBarType } from '../../tab-bar'
 import { CopilotConflictsChanges } from './copilot-conflicts-changes'
 import { CopilotConflictsEditor } from './copilot-conflicts-editor'
-import { writeFile } from 'fs/promises'
 
 import {
   CopilotFileResolutionChoice,
   getResolutionChoiceForFile,
   resolutionChoices,
 } from './copilot-resolution-helpers'
+import { MaterialSymbol } from '../../lib/material-symbol'
 
 interface ICopilotConflictsDialogProps {
   readonly repository: Repository
@@ -134,32 +133,20 @@ export class CopilotConflictsDialog extends React.Component<
     try {
       // Write Copilot resolutions to disk before continuing the operation.
       // Done here (shared) so it works for merge, rebase, and cherry-pick.
-      await this.props.dispatcher.applyCopilotConflictResolutions(
-        this.props.repository
-      )
-      // Then let any hand-edits made in the Editor tab's result pane
-      // override those files on disk — the user's explicit edit always
-      // wins over whatever Copilot (or ours/theirs) produced.
-      await this.applyEditedResults()
+      const applicationResult =
+        await this.props.dispatcher.applyCopilotConflictResolutions(
+          this.props.repository,
+          this.state.editedResults
+        )
+      if (applicationResult.skipped.length > 0) {
+        this.setState({ isContinuing: false })
+        return
+      }
       await this.props.onContinueAfterConflicts()
     } catch (e) {
       this.setState({ isContinuing: false })
       throw e
     }
-  }
-
-  private async applyEditedResults(): Promise<void> {
-    const { editedResults } = this.state
-    if (editedResults.size === 0) {
-      return
-    }
-
-    const { repository } = this.props
-    await Promise.all(
-      [...editedResults].map(([path, text]) =>
-        writeFile(join(repository.path, path), text, 'utf8')
-      )
-    )
   }
 
   private onEditedResultChange = (path: string, text: string) => {
@@ -317,7 +304,7 @@ export class CopilotConflictsDialog extends React.Component<
           </span>
         </div>
         <div className="green-circle">
-          <Octicon symbol={octicons.check} />
+          <MaterialSymbol name="check" />
         </div>
       </li>
     )
@@ -361,7 +348,7 @@ export class CopilotConflictsDialog extends React.Component<
           >
             <Octicon symbol={choiceIcon} />
             {choiceLabel}
-            <Octicon symbol={octicons.triangleDown} />
+            <MaterialSymbol name="arrow_drop_down" />
           </Button>
           <Button
             className="copilot-overflow-menu"
@@ -369,7 +356,7 @@ export class CopilotConflictsDialog extends React.Component<
             disabled={this.state.isContinuing}
             ariaLabel="File options"
           >
-            <Octicon symbol={octicons.kebabHorizontal} />
+            <MaterialSymbol name="more_horiz" />
           </Button>
         </div>
       </li>
@@ -405,7 +392,7 @@ export class CopilotConflictsDialog extends React.Component<
     return (
       <>
         <h2 className="copilot-conflicts-file-heading">
-          <Octicon symbol={octicons.fileCode} />
+          <MaterialSymbol name="code" />
           {conflictedFiles.length} Conflicted files
         </h2>
         <ul className="copilot-conflicts-file-list">
@@ -521,7 +508,7 @@ export class CopilotConflictsDialog extends React.Component<
               ariaLabel="Configure Copilot in app settings"
               onClick={this.onOpenCopilotSettings}
             >
-              <Octicon symbol={octicons.sliders} />
+              <MaterialSymbol name="tune" />
             </Button>
           </div>
         </DialogHeader>
