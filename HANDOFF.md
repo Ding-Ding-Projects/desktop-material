@@ -1,5 +1,65 @@
 # Desktop Material — Active parity handoff
 
+## Integration, gallery refresh and cleanup -- 2026-09-03
+
+This pass pulled the fork forward, integrated the outstanding lanes, refreshed
+the documentation gallery from the real built application, and closed the two
+open items that were waiting on a proven `main`.
+
+### What landed
+
+| Lane | Commit | State |
+| --- | --- | --- |
+| Copilot conflict review recovery UI | `0d562bc802` | integrated |
+| Guarded conflict application results | `21e6285b55`, `1851e237fd` | integrated |
+| Two-design merge seam repairs | `ce8f3e0250` | integrated |
+| 52 canonical gallery captures | `ec1847a4b2` | integrated |
+| Pre-cleanup archive contract | `d2999c62ff` | integrated |
+| In-app docs for a deleted interface (PR #221) | `1d3d5928cb` | integrated |
+
+### Verification actually performed
+
+| Check | Result |
+| --- | --- |
+| `npx tsc --noEmit -p tsconfig.json` | exit 0, 0 errors |
+| `script/validate-sass/validate-all.ts` | exit 0 |
+| Changed-code suites (9 files) | 357 of 357 passing |
+| `docs-article-paths-test.ts` | 166 of 166 passing, and proven red on a reintroduced dead path |
+| Changelog suites | 25 of 25 passing after regenerating the catalog |
+| Full unit suite | started, and **not** completed - see below |
+
+> [!IMPORTANT]
+> The full suite was launched twice. The first run was killed at 10,136 lines
+> by a harness timeout and reached no verdict; the second was still running
+> under heavy multi-fleet contention at the time of writing, with 0 failures
+> in the lines it had produced. Neither is a pass. The bounded, decisive
+> evidence above is what this integration rests on, and CI runs no tests by
+> repository policy, so no remote verdict exists either.
+
+### One real defect fixed on the way through
+
+`getHunkSkipReason` could never report an oversized conflict region. Its test
+fed it a single 262,145-character line, which is also a line past the
+5,000-character limit, so the long-line reason returned first and the size
+assertion passed on a reason it was not testing. The fixture now uses 3,000
+short lines and reaches the size branch for real.
+
+### Gallery state, honestly
+
+52 of the 131 gallery images were recaptured from the built application at
+`ec1847a4b2`. 68 canonical scenes were attempted and 16 skipped, each with a
+recorded reason in `docs/verification/huishots-20260903/README.md`. The other
+79 images belong to scene sets outside the canonical batch and keep their
+earlier capture dates. Three skips are the harness privacy check refusing to
+photograph an anchored editor that had rendered a local path.
+
+### Still open
+
+- The 79 gallery images outside the canonical batch have not been refreshed.
+- 16 canonical scenes need fixture work before they can be captured at all.
+- The packaged Windows capture ledger keeps its 26 honestly pending rows.
+- Issue #212 (umbrella) remains open with unchecked release and audit items.
+
 ## Linked worktree Merge and Delete context actions -- 2026-09-01
 
 The linked-worktree row context menu now offers **Merge…** when the target has

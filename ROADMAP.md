@@ -2177,6 +2177,28 @@ present:
 
 <!-- markdownlint-disable MD004 -->
 
+## Integration, gallery refresh and cleanup -- 2026-09-03
+
+- [x] Integrate the Copilot conflict review lane into `main`; the guarded
+  application result is unified and the modify/delete branch is reachable.
+- [x] Fix `getHunkSkipReason` so an oversized conflict region can actually be
+  reported; the fixture reached only the long-line branch before.
+- [x] Refresh 52 of the 131 gallery images from the real built application,
+  with all 16 skipped scenes and their reasons recorded.
+- [x] Land PR #221 and prove its article-path guard red on a reintroduced dead
+  path, then green after restoring it.
+- [x] Close issue #219 with an ancestry proof that `c5222a3a98` is on `main`.
+- [x] Record the pre-cleanup archive contract, respecting `.gitignore`.
+- [ ] Refresh the 79 gallery images outside the canonical scene batch.
+- [ ] Repair the fixtures behind the 16 canonical scenes that cannot capture:
+  the Actions inspector split panes, the API explorer, submodule context,
+  pull-request comparison, and the three anchored editors whose privacy check
+  correctly refuses a rendered local path.
+- [ ] Complete a full unit-suite run to a verdict. Two attempts this pass
+  reached no verdict - one killed by a harness timeout, one still running
+  under multi-fleet contention - so neither counts as a pass.
+
+
 - [x] WP1: align the large corner and missing motion tokens with the checked-in
   design reference.
 - [x] WP2: repair TextBox and Button wrapper regressions in changelog and sound

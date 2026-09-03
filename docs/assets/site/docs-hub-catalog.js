@@ -525,6 +525,13 @@
       d: 'The Build & Run log panel keeps long-running compiler and test output readable without changing or discarding the underlying stream. Three header controls let the user jump to…',
     },
     {
+      t: 'Copilot account settings and quota',
+      h: 'features/integrations/copilot-account-settings-and-quota.html',
+      s: 'features/integrations/copilot-account-settings-and-quota.md',
+      c: 'features',
+      d: 'Copilot model choices and usage snapshots are scoped to the signed-in account that owns them. The Preferences surface keeps account identity, model choices, and usage data…',
+    },
+    {
       t: 'Copilot commit-message controls',
       h: 'features/integrations/copilot-commit-message-controls.html',
       s: 'features/integrations/copilot-commit-message-controls.md',
@@ -1876,6 +1883,13 @@
       d: 'Independent confirmation that the production build actually runs, captured through a completely different route from the Playwright-driven fixture used elsewhere in…',
     },
     {
+      t: 'HuiShot refresh — 2026-09-03',
+      h: 'verification/huishots-20260903/',
+      s: 'verification/huishots-20260903/README.md',
+      c: 'verification',
+      d: 'Canonical gallery capture run against a freshly built tree, on a hidden Windows desktop through the cheap headless route. Every image below came from the real built renderer at…',
+    },
+    {
       t: 'Issue #94 and #80 built-app evidence — 2026-07-31',
       h: 'verification/issue-94-80-evidence-2026-07-31/',
       s: 'verification/issue-94-80-evidence-2026-07-31/README.md',
@@ -1923,6 +1937,13 @@
       s: 'verification/linux-tui-revival-2026-08-02/run-manifest.md',
       c: 'verification',
       d: 'This receipt tracks the 2026-08-02 revival of the interactive Linux terminal edition. It is updated only with observed evidence; a planned check is not a passing check.',
+    },
+    {
+      t: 'Pre-Mat-Day archive, 2026-09-03',
+      h: 'verification/mat-day-archive-20260903/',
+      s: 'verification/mat-day-archive-20260903/README.md',
+      c: 'verification',
+      d: 'The shared instructions require a verified archive of the whole Oak Kay before any Mat Day deletion begins. This records the one taken for the 2026-09-03 integrate-and-clean pass.',
     },
     {
       t: 'MD3 Compliance Audit Report',
@@ -2070,6 +2091,13 @@
       s: 'verification/ui-design-audit-2026-07-20/static-findings.md',
       c: 'verification',
       d: 'Date: 2026-07-20 Scope: post-remediation source and verification-harness review Runtime status: pending',
+    },
+    {
+      t: 'Upstream synchronization ledger, 2026-08-28',
+      h: 'verification/upstream-sync-2026-08-28/',
+      s: 'verification/upstream-sync-2026-08-28/README.md',
+      c: 'verification',
+      d: 'This hand-written ledger records every non-merge, patch-equivalent record returned by:',
     },
     {
       t: 'Worktree context-menu acceptance, 2026-09-01',

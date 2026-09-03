@@ -500,6 +500,15 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       sourcePath: 'docs/features/integrations/build-run-output-controls.md',
     },
     {
+      id: 'integrations/copilot-account-settings-and-quota',
+      category: 'integrations',
+      title: 'Copilot account settings and quota',
+      description:
+        'Copilot model choices and usage snapshots are scoped to the signed-in account that owns them. The Preferences surface keeps account identity, model choices, and usage data…',
+      sourcePath:
+        'docs/features/integrations/copilot-account-settings-and-quota.md',
+    },
+    {
       id: 'integrations/copilot-commit-message-controls',
       category: 'integrations',
       title: 'Copilot commit-message controls',
@@ -1430,7 +1439,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'integrations',
     label: 'Integrations',
-    count: 30,
+    count: 31,
   },
   {
     name: 'linux-tui',
@@ -1460,4 +1469,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 164
+export const DocsBrowserArticleCount = 165

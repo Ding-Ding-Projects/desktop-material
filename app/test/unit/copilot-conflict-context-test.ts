@@ -62,8 +62,18 @@ describe('copilot-conflict-context', () => {
       getHunkSkipReason([{ ...hunk, oursContent: 'x'.repeat(5001) }]) ?? '',
       /lines too long/
     )
+    // Many short lines rather than one enormous one. A single 262,145-
+    // character line is also a line over the 5,000-character limit, so it
+    // returns the long-line reason and this branch is never reached - the
+    // assertion passed on a reason it was not testing.
     assert.match(
-      getHunkSkipReason([{ ...hunk, oursContent: 'x'.repeat(262145) }]) ?? '',
+      getHunkSkipReason([
+        {
+          ...hunk,
+          oursContent: `${'x'.repeat(100)}
+`.repeat(3000),
+        },
+      ]) ?? '',
       /region too large/
     )
   })
