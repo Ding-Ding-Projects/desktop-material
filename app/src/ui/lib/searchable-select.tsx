@@ -4,6 +4,7 @@ import classNames from 'classnames'
 import { FilterMode } from '../../lib/fuzzy-find'
 import { filterByMode } from './filter-string-list'
 import { FilterModeControl } from './filter-mode-control'
+import { getPersistedLanguageMode, translate } from '../../lib/i18n'
 
 /** Distinguishes one instance's listbox id from another's within a document. */
 let instanceCount = 0
@@ -30,6 +31,9 @@ interface ISearchableSelectProps {
   readonly placeholder?: string
   readonly disabled?: boolean
   readonly ariaDescribedBy?: string
+  readonly searchLabel?: string
+  readonly noMatchLabel?: string
+  readonly invalidPatternLabel?: (message: string) => string
 }
 
 interface ISearchableSelectState {
@@ -77,13 +81,17 @@ export class SearchableSelect extends React.Component<
   }
 
   private get filtered(): ReadonlyArray<ISearchableSelectOption> {
+    return this.filterResult.items
+  }
+
+  private get filterResult() {
     return filterByMode(
       this.props.options,
       option => [option.label, option.value],
       this.state.query,
       this.state.mode,
       this.state.caseSensitive
-    ).items
+    )
   }
 
   private get selectedLabel(): string {
@@ -238,7 +246,9 @@ export class SearchableSelect extends React.Component<
             type="search"
             value={this.state.query}
             placeholder={this.props.placeholder}
-            aria-label={`Search ${regexBuilderTarget}`}
+            aria-label={
+              this.props.searchLabel ?? `Search ${regexBuilderTarget}`
+            }
             aria-controls={this.listboxId}
             onChange={this.onQueryChanged}
             onKeyDown={this.onSearchKeyDown}
@@ -255,6 +265,18 @@ export class SearchableSelect extends React.Component<
             onRegexPatternApply={this.onRegexPatternApply}
           />
         </div>
+        {this.filterResult.regexError !== null && (
+          <p className="searchable-select-error" role="alert">
+            {this.props.invalidPatternLabel?.(this.filterResult.regexError) ??
+              translate(
+                'settings.tabGroupInvalidRegex',
+                getPersistedLanguageMode(),
+                {
+                  message: this.filterResult.regexError,
+                }
+              )}
+          </p>
+        )}
         {/*
           The click is delegated to the list rather than bound per option, so
           the handler count does not grow with the option count and every
@@ -273,7 +295,7 @@ export class SearchableSelect extends React.Component<
         >
           {options.length === 0 && (
             <li className="searchable-select-empty" role="presentation">
-              No match
+              {this.props.noMatchLabel ?? 'No match'}
             </li>
           )}
           {options.map((option, index) => (

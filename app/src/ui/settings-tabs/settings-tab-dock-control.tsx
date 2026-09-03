@@ -104,6 +104,13 @@ export class SettingsTabDockControl extends React.Component<
             {},
             languageMode
           )}
+          searchLabel={translate('settings.tabsDockSearch', languageMode)}
+          noMatchLabel={translate('settings.tabGroupNoMatch', languageMode)}
+          invalidPatternLabel={message =>
+            translate('settings.tabGroupInvalidRegex', languageMode, {
+              message,
+            })
+          }
           disabled={this.props.disabled}
           ariaDescribedBy={descriptionId}
         />

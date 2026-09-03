@@ -223,4 +223,11 @@
     color: var(--md-sys-color-on-surface-variant);
     padding: 6px 10px;
   }
+
+  .searchable-select-error {
+    color: var(--md-sys-color-error);
+    font-size: 12px;
+    margin: 0 var(--spacing-half) var(--spacing-half);
+    overflow-wrap: anywhere;
+  }
 }

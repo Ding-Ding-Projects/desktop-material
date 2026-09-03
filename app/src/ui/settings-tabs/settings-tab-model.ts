@@ -489,6 +489,9 @@ export const SETTINGS_TAB_COMPLETENESS_INVENTORY =
 export const SettingsTabNegativeRegressionInventory = [
   'settings-tab-model.ts:SettingsTabPersistenceVersion',
   'settings-tab-model.ts:getSettingsTabLayout',
+  'settings-tab-model.ts:malformed-layout-legacy-fallback',
+  'settings-tab-model.ts:forward-compatible-fields',
+  'settings-tab-model.ts:orphan-membership-rejection',
   'settings-tab-model.ts:setSettingsTabLayout',
   'settings-tab-model.ts:orderSettingsTabs',
   'settings-tab-model.ts:createSettingsTabGroup',
@@ -502,6 +505,14 @@ export const SettingsTabNegativeRegressionInventory = [
   'settings-tab-strip.tsx:group-search',
   'settings-tab-strip.tsx:pointer-reorder',
   'settings-tab-strip.tsx:keyboard-reorder',
+  'settings-tab-strip.tsx:remount-pinned-order',
+  'settings-tab-strip.tsx:group-pinned-partition',
+  'settings-tab-strip.tsx:collapsed-selected-reveal',
+  'settings-tab-strip.tsx:empty-group-management',
+  'settings-tab-strip.tsx:move-out-of-group',
+  'settings-tab-strip.tsx:disabled-group-interaction',
+  'settings-tab-strip.tsx:invalid-regex-announcement',
+  'settings-tab-strip.tsx:four-dock-orientations',
   'settings-tab-dock-control.tsx:SearchableSelect',
   'settings-tab-picker-popover.tsx:FilterModeControl',
 ] as const
@@ -691,6 +702,7 @@ function normalizeLayout(
     for (const [tabId, rawGroupId] of Object.entries(value.membership)) {
       if (
         tabId.length <= 128 &&
+        (allowedIds === undefined || allowedIds.has(tabId)) &&
         (rawGroupId === null ||
           (typeof rawGroupId === 'string' && groupIds.has(rawGroupId)))
       ) {
@@ -724,7 +736,15 @@ export function getSettingsTabLayout(
   try {
     const key = layoutKey(strip, options?.scope)
     const raw = localStorage.getItem(key)
-    const parsed = raw === null ? null : JSON.parse(raw)
+    let parsed: unknown = null
+    if (raw !== null) {
+      try {
+        parsed = JSON.parse(raw)
+      } catch (e) {
+        // A malformed current record must fall back to the valid split keys.
+        parsed = null
+      }
+    }
     const normalized = normalizeLayout(parsed, options)
     if (normalized !== null) {
       return normalized
