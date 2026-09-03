@@ -70,6 +70,68 @@ number-format checks, settings-search checks, and root TypeScript no-emit all
 passed. The command-palette suite
 still has one unrelated pre-existing failure at `palette:set-attention-focus`.
 Packaged Windows capture evidence remains open for the next owner.
+## 2026-08-28 upstream synchronization ledger
+
+The upstream ledger milestone is recorded in
+docs/verification/upstream-sync-2026-08-28/README.md. The refreshed command
+git log --right-only --cherry-pick --no-merges --format="%H%x09%s" origin/main...upstream/development
+returned 112 non-merge records at origin/main
+83c91f6964cc1799fcc7e1d4fcd23f90e5e017f6 and upstream/development
+b17e06dd0f0d9a45807eb39a51d223f52eb14da9, from merge base
+d9080117b1fd01193d3eee51ae243714468c8176. The table has rows 001-112
+exactly once and records 108 unique stable patch IDs. The duplicate patch
+pairs are 078/094, 080/095, 081/096, and 082/097. Rows 033-034 record the
+Error-normalization change and its upstream revert as net-zero history.
+
+The source-link and disposition index has 112 exact upstream commit links,
+112 refreshed dispositions, and 112 links to the open parent issue #212. Issue
+#215 remains a separate active lane; none of these source rows overlaps its
+single-flight or canonical-feature work, so no row is assigned to #215. The
+disposition counts are two locally ported but unintegrated adaptations, three already-equivalent, one superseded by
+stronger local behavior, 27 inapplicable because of platform/scope, six
+reverted-history duplicates, and 73 review-required follow-ups in parent
+implementation lanes. This ledger lane did not port product code.
+
+The ledger also records the hard GUI boundary established by commits
+427029d9bc8c86283962b6f02027ce8e400c251d,
+f3f29f6ef0b5803db68e8f8d1199d2b922ae820a,
+3abcee9015145a1d1346022f4673922f625752d5,
+970570b1afd5dc2baebee9c66d6d79f36e060e62,
+8f364cfaf45665face921cb04afed5ac883ba22f,
+ed2f49c68ae4f756fd3a461028061644d1816eca,
+0d04ec40f5989606f7e745c6c0f25f71a9172017, and
+2a211b87a11eb2c0fe36f5fcda6fe1555912a429. The current GUI remains the
+deliberately restored Material Design 3 presentation. This milestone permits compatible
+behavior and control-level repairs only. It does not authorize shell redesign,
+screen reconstruction, navigation replacement, or retired-shell import.
+
+Verification for this milestone:
+
+- The refreshed source range count is 112, with 108 unique stable patch IDs.
+- The hand-written table has 112 numbered rows and the source-link index has
+  112 numbered rows. Duplicate patch IDs are paired exactly as 078/094,
+  080/095, 081/096, and 082/097.
+- Every row includes source SHA, subject, subsystem, disposition, and local
+  evidence or intended implementation lane.
+- Every source SHA is linked to its exact upstream commit and every row carries
+  the open parent issue status.
+- `docs/verification/upstream-sync-2026-08-28/check-ledger.ps1` was watched fail
+  on a temporary copy with row 112 removed (`source-link index has 111 rows,
+expected 112`), then restored and returned `PASS: 112 source records, 108
+unique stable patch IDs, four exact duplicate pairs, and all disposition,
+evidence, URL, baseline, and issue assertions are valid.`
+- The ledger has no external links requiring resolution beyond the exact source
+  commit and parent issue links, and uses no generated line count.
+- Boundary-aware scan of all non-exempt private aliases from the canonical
+  dictionary returned `PUBLIC_VOCABULARY_SCAN=PASS (0 non-exempt aliases)` for
+  the four lane files.
+- Open issue scan: issues #215 and #212 are open on this repository. The upstream
+  repository scan found 1,004 open issues. No issue was changed because this lane
+  only records source history and does not port product code.
+
+Remaining work is intentionally implementation-owned by the parent integration
+lanes. This handoff does not claim that the review-required rows have landed,
+that their focused checks are green, or that a release has been produced.
 
 ## Remaining plain HTML controls converted to shared Material primitives — 2026-08-22
 
@@ -229,6 +291,7 @@ not a renderer client and receives no desktop agent credential. See
 
 No tests, lint, typecheck, build, runtime interaction, or capture was run in
 this assigned accelerated-release lane.
+this assigned rapid-release lane.
 
 ## Local file-converter foundation — 2026-08-21
 
@@ -519,11 +582,13 @@ The focused contract source now validates the exact canonical ID order and
 dimension set, checks repository-relative paths for claimed-present records,
 requires reasons for pending/blocked records, and reports a separate
 completion verdict. Its dedicated completion gate asserts `complete === true`
+completion verdict. Its dedicated completion check asserts `complete === true`
 and prints the exact pending, blocked, or missing-path errors; it is expected
 to be red until the deferred evidence is filled. Its row-by-row mutation
 coverage removes each dimension and mutates either a claimed path or a pending
 reason, so a broad template or commented-out placeholder cannot satisfy the
 contract. The current gate is intentionally red because the accelerated-release pass
+contract. The current check is intentionally red because the ultra-speed pass
 did not run tests, built-artifact interactions, captures, reviews, audits,
 builds, or packaging.
 
@@ -548,6 +613,7 @@ active worktree, removes a redundant linked owner, and continues the existing
 merge, non-force push, exact-tip deletion, and worktree cleanup sequence.
 
 An explicit **force cleanup** checkbox enables the existing preservation path
+An explicit **Force cleanup** checkbox enables the existing preservation path
 for recoverable dirty worktrees: fetch, fast-forward-only pull, commit, and
 push occur before merge. Unsafe work remains retained. Focused candidate and
 renderer coverage passes 4/4; exact-file ESLint and `git diff --check` pass.
@@ -560,6 +626,7 @@ new checkbox remains outstanding.
 
 - The upload parser again accepts the documented canonical `schemaVersion`/`entries` payload and keeps older `schemaVersion`/`terms` and `version`/`terms` cache records readable.
 - The focused unit gate builds 47 distinct mappings, confirms the parsed map keeps all 47, and confirms one replacement pass applies all 47 rather than stopping at the former payload count.
+- The focused unit check builds 47 distinct mappings, confirms the parsed map keeps all 47, and confirms one replacement pass applies all 47 rather than stopping at the former payload count.
 - Directly affected files: `app/src/lib/personal-vocabulary.ts`, `app/src/ui/preferences/personal-vocabulary-control.tsx`, `app/test/unit/personal-vocabulary-test.ts`, and `docs/features/design-system/personal-vocabulary.md`.
 
 ## Eighteen defects, five hunts — 2026-08-19
@@ -871,6 +938,7 @@ dialogs rather than chrome — the destructive-action gate, the regex builder, t
 toasts, the menu overlay, the compose dialog, the authenticator and Support
 Tickets. That is the line the revert itself drew, and the four commits on the
 merged branch restore every setting the shell's removal had stranded
+merged branches restore every setting the shell's removal had stranded
 (`lib/personal-vocabulary`, `lib/school-mode`, `lib/dialog-emoji`,
 `lib/md3-locks`, `lib/authenticator`) into the classic Settings surface.
 
@@ -889,6 +957,7 @@ header-avatar wiring is now covered by focused regression tests for shared
 account-switcher routing, distinct header and rail expanded state, and focus
 return through the invoking avatar anchor. Those tests were added in the
 task-owned issue-195 lane; they have not been run in the accelerated-release pass.
+task-owned issue-195 lane; they have not been run in the rapid-release pass.
 
 Verified for this integration: `npx tsc --noEmit -p tsconfig.json` exit 0, zero
 errors, on the merged tree at `fe1db0dbb5`. The test suite, lint, captures,
@@ -2245,6 +2314,7 @@ on the first merge after it shipped.
 | Item | Outcome |
 | --- | --- |
 | `codex/revive-linux-tui` + its checkout | **Deleted** after its tip was proved an ancestor of the pushed `origin/main` |
+| `codex/revive-linux-tui` + its worktree | **Deleted** after its tip was proved an ancestor of the pushed `origin/main` |
 | `origin/claude/pensive-visvesvaraya-e86ef2` | **Deleted** — proved already an ancestor of `origin/main` |
 | Nine `dependabot/**` branches | **Kept.** Each backs an open pull request (#137–#145). Deleting them closes those PRs, and they are neither agent task branches nor merged |
 | Stashes | None existed |
@@ -2400,6 +2470,7 @@ added the following scoped fixes:
   all 7,238 assertions but died at 318 MiB while the long Agents test batch was
   still emitting its accounting summary; the new workflow change is awaiting
   its own GitHub Actions run for proof.
+  its own GitHub run for proof.
 
 - The Agents creator now uses the shared modal dialog layer, exposes dialog
   semantics, avoids a nested form, and disables the Options disclosure while
@@ -10906,6 +10977,7 @@ keeps the fail-closed behavior intact.
 ### Verification
 
 No tests or captures were run in this lane, per the accelerated-release boundary for
+No tests or captures were run in this lane, per the rapid-release boundary for
 this task.
 
 ### Notes for the next person

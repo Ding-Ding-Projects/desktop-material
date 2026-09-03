@@ -25,6 +25,22 @@
   history and cover storage migration, idempotence, and legacy-key removal.
 - [ ] Capture the packaged Windows surface for account switching and quota
   states through the approved headless route.
+## August 28 - upstream synchronization ledger
+
+- [x] Enumerate the exact 112 non-merge, patch-equivalent records from
+  origin/main...upstream/development at the refreshed origin and upstream tips.
+- [x] Record 108 unique patch effects, duplicate records, the reverted
+  Error-normalization detour, release-only history, workflow-policy records,
+  dependency re-resolution, and macOS out-of-scope work.
+- [x] Record the frozen GUI hard rule and the history that prohibits shell
+  redesign or retired-shell import while allowing control-level repairs.
+- [x] Link every upstream SHA to its exact source commit, record one refreshed
+  disposition and open issue status for every row, and add the executable
+  ledger completeness check.
+- [x] Prove the ledger check red on a missing source-link row and green after
+  restoring the row.
+- [ ] Apply each review-required row in its bounded implementation lane and
+  attach its implementation SHA and focused check receipt to the ledger.
 
 ## August 22 — shared Material control conformance sweep
 
@@ -197,6 +213,7 @@
   captures needed to verify each registered feature. The August 21 ultra-speed
   pass intentionally skipped those activities, so the manifest's completion
   gate remains red until a later evidence pass closes every required record.
+  check remains red until a later evidence pass closes every required record.
 - [ ] Verify changelog Markdown and plain-text exports preserve each recorded
   full commit SHA and its forge URL, and explicitly report entries with no
   recorded commit. The implementation and focused assertions are present in
@@ -220,6 +237,7 @@
 - [x] Move a clean default-branch checkout from another worktree automatically
   instead of failing the entire merge-all operation.
 - [x] Add the explicit **force cleanup** option, with checkpoint, synchronization,
+- [x] Add the explicit **Force cleanup** option, with checkpoint, synchronization,
   and publication of recoverable dirty worktrees before merge and cleanup.
 - [x] Retain locked, divergent, unpublished, stale, or otherwise unproved work;
   no forced push or forced worktree removal is introduced.
