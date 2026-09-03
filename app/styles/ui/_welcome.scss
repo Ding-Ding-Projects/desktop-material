@@ -662,6 +662,12 @@
       justify-self: start;
       color: var(--md-sys-color-primary);
       font-weight: var(--font-weight-semibold);
+      // A standalone action rather than a link inside a sentence, so its own
+      // height is its own responsibility. It measured 180x21 against the 24px
+      // accessible minimum.
+      align-items: center;
+      display: inline-flex;
+      min-height: 24px;
     }
   }
 
@@ -677,7 +683,15 @@
     border-radius: clamp(28px, 3.5vw, 44px);
     background: linear-gradient(150deg, var(--md-sys-color-primary-container), color-mix(in srgb, var(--md-sys-color-primary-container) 70%, var(--md-sys-color-tertiary-container)));
     color: var(--md-sys-color-on-primary-container);
-    overflow: hidden;
+    // The panel is a fixed fraction of the window height, so at the minimum
+    // supported size its content does not fit: measured 65px hidden vertically
+    // and 50px horizontally at 1000x687. Scrolling makes the remainder
+    // reachable instead of silently cutting it off.
+    //
+    // This block already declared `overflow: hidden` further down, so adding a
+    // second declaration above it changed nothing at all: the later one in the
+    // same rule wins. The declaration itself had to move.
+    overflow: auto;
 
     .welcome-showcase-copy {
       position: relative;

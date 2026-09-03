@@ -14,7 +14,11 @@
 import { describe, it, before, after } from 'node:test'
 import assert from 'node:assert'
 import { chromium } from 'playwright'
-import { collectFindings, settleForMeasurement } from './capture-audit.js'
+import {
+  auditSurface,
+  collectFindings,
+  settleForMeasurement,
+} from './capture-audit.js'
 
 let browser = null
 let page = null
@@ -177,6 +181,72 @@ describe('capture audit predicates', () => {
         finding.rule === 'CJ-TARGET-TOO-SMALL' && finding.severity === 'error'
     )
     assert.ok(errors.length > 0, 'CJ-TARGET-TOO-SMALL did not fire as an error')
+  })
+
+  it('exempts a link sitting inside a sentence from the target-size rule', async () => {
+    // WCAG 2.5.8's inline exception: the link's height is decided by the
+    // surrounding line-height, not by the link. Reporting it would be reporting
+    // correct code, and a rule that cries wolf gets switched off.
+    const found = await audit(
+      'p { font: 14px/21px monospace; }',
+      '<p>Read the <a href="#x">documentation</a> before starting.</p>' +
+        '<a href="#y" style="display:block;width:180px;height:21px">Skip</a>'
+    )
+
+    const small = found.findings.filter(
+      finding => finding.rule === 'CJ-TARGET-TOO-SMALL'
+    )
+
+    assert.equal(
+      small.length,
+      1,
+      'exactly the standalone link should be reported, not the inline one'
+    )
+    assert.ok(
+      small[0].path.includes('a'),
+      `unexpected element reported: ${small[0].path}`
+    )
+  })
+
+  it('downgrades an allowed finding and reports an allowance that matched nothing', async () => {
+    await page.setContent(
+      '<!doctype html><meta charset="utf-8"><style>' +
+        '.decor { height: 20px; overflow: hidden; }' +
+        '</style><body><div class="decor"><p>a</p><p>b</p><p>c</p></div></body>'
+    )
+    await settleForMeasurement(page)
+
+    const record = await auditSurface(page, {
+      label: 'allowlist-fixture',
+      allowlist: [
+        {
+          rule: 'CJ-OVERFLOW-Y',
+          path: 'div.decor',
+          reason: 'A decorative frame that clips its own flourish on purpose.',
+        },
+        {
+          rule: 'CJ-OVERFLOW-X',
+          path: 'div.gone',
+          reason: 'Points at an element that no longer exists.',
+        },
+      ],
+    })
+
+    const allowed = record.findings.filter(
+      finding => finding.rule === 'CJ-OVERFLOW-Y'
+    )
+    assert.ok(allowed.length > 0, 'the fixture did not overflow')
+    assert.equal(allowed[0].severity, 'info', 'the allowance did not downgrade')
+    assert.ok(
+      allowed[0].allowedBecause.startsWith('A decorative frame'),
+      'the reason was not carried onto the finding'
+    )
+
+    assert.deepEqual(
+      record.staleAllowlist.map(entry => entry.path),
+      ['div.gone'],
+      'an allowance matching nothing should be reported as stale'
+    )
   })
 
   it('reports text in a box collapsed to zero', async () => {
