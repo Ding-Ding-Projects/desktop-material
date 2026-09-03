@@ -20,7 +20,7 @@
 
 .md3-auth__pane {
   background: var(--md-sys-color-surface-container);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -202,7 +202,7 @@
 
 .md3-auth__badge {
   background: var(--md-sys-color-surface-container-highest);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-surface-variant);
   font-size: 10px;
   padding: 1px 7px;
@@ -280,7 +280,7 @@
 .md3-auth-register__panel {
   background: var(--md-sys-color-surface-container-high);
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 16px;
+  border-radius: var(--md-sys-shape-corner-large);
   box-shadow: 0 18px 46px rgb(0 0 0 / 34%);
   display: flex;
   flex-direction: column;
@@ -320,7 +320,7 @@
   align-items: center;
   background: none;
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-surface-variant);
   cursor: pointer;
   display: flex;
@@ -371,7 +371,7 @@
 .md3-auth-register__input {
   background: var(--md-sys-color-surface-container-low);
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 8px;
+  border-radius: var(--md-sys-shape-corner-small);
   color: var(--md-sys-color-on-surface);
   font: inherit;
   font-size: 12px;
@@ -442,7 +442,7 @@
 
 .md3-auth-register__secret {
   background: var(--md-sys-color-surface-container-lowest);
-  border-radius: 8px;
+  border-radius: var(--md-sys-shape-corner-small);
   color: var(--md-sys-color-on-surface);
   display: block;
   font-family: var(--font-family-monospace);
@@ -457,7 +457,7 @@
 // in both, with the four-module quiet zone painted inside the plate itself.
 .md3-auth-qr {
   background: #ffffff;
-  border-radius: 8px;
+  border-radius: var(--md-sys-shape-corner-small);
   flex: none;
   max-width: 100%;
   height: auto;

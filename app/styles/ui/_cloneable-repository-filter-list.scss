@@ -61,7 +61,7 @@
       margin-left: var(--spacing-half);
       padding: 1px 8px;
       border: 0;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       background: var(--md-sys-color-tertiary-container);
       color: var(--md-sys-color-on-tertiary-container);
       font-size: 11px;
@@ -216,7 +216,7 @@ dialog.clone-repository {
       gap: 4px;
       height: 20px;
       padding: 0 9px;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       box-shadow: inset 0 0 0 1.5px var(--md-sys-color-outline-variant);
       color: var(--md-sys-color-on-surface-variant);
       font-size: 10.5px;
@@ -261,7 +261,7 @@ dialog.clone-repository {
         display: inline-block;
         width: 10px;
         height: 10px;
-        border-radius: 999px;
+        border-radius: var(--md-sys-shape-corner-full);
         flex: 0 0 auto;
       }
     }
@@ -285,7 +285,7 @@ dialog.clone-repository {
       display: inline-block;
       width: 10px;
       height: 10px;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       flex: 0 0 auto;
     }
   }

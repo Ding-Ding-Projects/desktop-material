@@ -110,7 +110,7 @@
             background: var(--md-sys-color-surface-container);
             box-shadow: var(--md-sys-elevation-level1);
             transform: translateY(-2px);
-            border-radius: 16px;
+            border-radius: var(--md-sys-shape-corner-large);
           }
 
           &:not([aria-disabled='true']):active {

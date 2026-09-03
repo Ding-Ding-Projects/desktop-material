@@ -136,7 +136,7 @@
 .md3-destructive-gate__irreversible {
   align-items: baseline;
   background: var(--md-sys-color-error-container);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   color: var(--md-sys-color-on-error-container);
   display: flex;
   flex-wrap: wrap;
@@ -201,7 +201,7 @@
 
 .md3-destructive-gate__keys {
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -302,7 +302,7 @@
       var(--md-sys-color-error-container) var(--md3-gate-progress, 0%),
       var(--md-sys-color-error-container) 100%
     );
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     content: '';
     height: 16px;
     left: 0;
@@ -384,7 +384,7 @@
 
 .md3-destructive-gate__progress {
   background: var(--md-sys-color-surface-container-highest);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   height: 8px;
   overflow: hidden;
   position: relative;
@@ -392,7 +392,7 @@
 
 .md3-destructive-gate__progress-fill {
   background: var(--md-sys-color-error);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   display: block;
   height: 100%;
   transition: width 90ms linear;
@@ -441,7 +441,7 @@
 
 .md3-destructive-gate__error {
   background: var(--md-sys-color-error-container);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   color: var(--md-sys-color-on-error-container);
   font-size: 12px;
   line-height: 1.5;

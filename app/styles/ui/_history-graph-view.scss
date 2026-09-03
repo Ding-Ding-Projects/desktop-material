@@ -116,7 +116,7 @@
     padding: 3px;
     box-sizing: border-box;
     border: 1px solid var(--history-graph-control-color);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: color-mix(in srgb, var(--history-graph-control-color) 10%, var(--md-sys-color-surface));
   }
 
@@ -143,7 +143,7 @@
     min-height: 40px;
     padding: 0 12px;
     border: 1px solid var(--md-sys-color-outline);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: var(--md-sys-color-surface-container);
     color: var(--md-sys-color-on-surface);
     font: inherit;
@@ -261,7 +261,7 @@
     min-width: 0;
     height: 20px;
     padding: 0 8px;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     border: 1px solid var(--history-graph-ref-color);
     background: color-mix(in srgb, var(--history-graph-ref-color) 16%, transparent);
     color: var(--md-sys-color-on-surface);

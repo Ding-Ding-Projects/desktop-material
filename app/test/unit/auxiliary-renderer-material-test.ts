@@ -56,11 +56,11 @@ describe('auxiliary renderer Material contract', () => {
     )
     assert.match(
       browserStyle,
-      /\.internal-browser-find-bar\s*\{[\s\S]*?border-radius: 16px;[\s\S]*?background: var\(--md-sys-color-surface-container-high\);/
+      /\.internal-browser-find-bar\s*\{[\s\S]*?border-radius: var\(--md-sys-shape-corner-large\);[\s\S]*?background: var\(--md-sys-color-surface-container-high\);/
     )
     assert.match(
       browserStyle,
-      /\.internal-browser-address\s*\{[\s\S]*?border-radius: 12px;/
+      /\.internal-browser-address\s*\{[\s\S]*?border-radius: var\(--md-sys-shape-corner-medium\);/
     )
   })
 

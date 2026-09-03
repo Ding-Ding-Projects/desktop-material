@@ -35,7 +35,7 @@ describe('settings workbench Material styling', () => {
     )
     assert.match(
       repositorySettings,
-      /repository-settings-tab-filter-field[\s\S]*?border-radius: 999px/
+      /repository-settings-tab-filter-field[\s\S]*?border-radius: var\(--md-sys-shape-corner-full\)/
     )
     assert.match(
       repositorySettings,

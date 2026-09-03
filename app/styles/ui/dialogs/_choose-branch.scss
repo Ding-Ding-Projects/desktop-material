@@ -128,7 +128,7 @@ dialog#choose-branch {
 
     span {
       background: var(--md-sys-color-secondary-container);
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       color: var(--md-sys-color-on-secondary-container);
       padding: var(--spacing-third) var(--spacing);
       white-space: nowrap;
@@ -138,7 +138,7 @@ dialog#choose-branch {
   .rebase-protected-guidance,
   .rebase-start-error,
   .rebase-start-progress {
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     margin: 0;
     min-width: 0;
     overflow-wrap: break-word;
@@ -164,7 +164,7 @@ dialog#choose-branch {
 
   .rebase-commit-preview {
     background: var(--md-sys-color-surface-container);
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     display: grid;
     gap: var(--spacing-half);
     max-height: 168px;
@@ -228,7 +228,7 @@ dialog.multi-commit-force-push-warning {
 
   .rebase-start-error,
   .rebase-start-progress {
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     margin: var(--spacing) 0 0;
     min-width: 0;
     overflow-wrap: break-word;

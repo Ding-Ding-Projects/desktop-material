@@ -405,7 +405,7 @@
         color: var(--text-secondary-color);
         padding: 0 var(--spacing-half);
         border: var(--base-border);
-        border-radius: 999px;
+        border-radius: var(--md-sys-shape-corner-full);
         flex-shrink: 0;
       }
     }

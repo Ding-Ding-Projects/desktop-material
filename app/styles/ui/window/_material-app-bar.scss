@@ -104,7 +104,7 @@
   // layer wins on equal specificity by load order.
   .toolbar-dropdown:not(.open) > .toolbar-button > button {
     background: transparent;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     color: var(--md-sys-color-on-surface-variant);
     font-size: 12.5px;
     overflow: hidden;
@@ -126,7 +126,7 @@
   // Opened menu — tonal pill.
   .toolbar-dropdown.open > .toolbar-button > button {
     background: var(--md-sys-color-secondary-container);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     color: var(--md-sys-color-on-secondary-container);
     font-size: 12.5px;
     overflow: hidden;

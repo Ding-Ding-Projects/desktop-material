@@ -124,7 +124,7 @@
 
 .docs-browser__list {
   background: var(--md-sys-color-surface-container-low);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   flex: 1;
   list-style: none;
   margin: 0;
@@ -217,7 +217,7 @@
 
 .docs-browser-article {
   background: var(--md-sys-color-surface-container-low);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   display: flex;
   flex-direction: column;
   min-height: 0;

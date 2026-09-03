@@ -77,7 +77,7 @@
 .repository-custom-git-commands .repository-tool-confirmation code {
   display: block;
   padding: 10px;
-  border-radius: 8px;
+  border-radius: var(--md-sys-shape-corner-small);
   background: var(--md-sys-color-surface-container-lowest);
   overflow-wrap: anywhere;
   white-space: pre-wrap;
@@ -241,7 +241,7 @@
 .tag-lifecycle-row {
   align-items: center;
   background: var(--md-sys-color-surface-container-high);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
@@ -345,7 +345,7 @@
   select {
     background: var(--md-sys-color-surface);
     border: 1px solid var(--md-sys-color-outline);
-    border-radius: 8px;
+    border-radius: var(--md-sys-shape-corner-small);
     color: var(--md-sys-color-on-surface);
     font: inherit;
     min-height: 36px;
@@ -443,7 +443,7 @@
   select {
     background: var(--md-sys-color-surface);
     border: 1px solid var(--md-sys-color-outline);
-    border-radius: 8px;
+    border-radius: var(--md-sys-shape-corner-small);
     color: var(--md-sys-color-on-surface);
     font: inherit;
     min-height: 36px;
@@ -502,7 +502,7 @@
 .provider-triage-draft,
 .provider-triage-number,
 .provider-triage-attention li {
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   font-size: 11px;
   font-weight: 600;
   padding: 3px 8px;
@@ -584,7 +584,7 @@
   }
 
   span {
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     font-size: 11px;
     font-weight: 600;
     max-width: 100%;
@@ -625,7 +625,7 @@
   select {
     background: var(--md-sys-color-surface);
     border: 1px solid var(--md-sys-color-outline);
-    border-radius: 8px;
+    border-radius: var(--md-sys-shape-corner-small);
     color: var(--md-sys-color-on-surface);
     font: inherit;
     max-width: 100%;
@@ -651,7 +651,7 @@
 
 .repository-shallow-history-guidance {
   background: var(--md-sys-color-surface-container-highest);
-  border-radius: 8px;
+  border-radius: var(--md-sys-shape-corner-small);
   padding: 10px;
 }
 
@@ -726,7 +726,7 @@
 .repository-bisect-output,
 .repository-shallow-history-output {
   background: var(--md-sys-color-inverse-surface);
-  border-radius: 8px;
+  border-radius: var(--md-sys-shape-corner-small);
   color: var(--md-sys-color-inverse-on-surface);
   font-family: var(--font-family-monospace);
   font-size: 11px;
@@ -771,7 +771,7 @@
   select {
     background: var(--md-sys-color-surface);
     border: 1px solid var(--md-sys-color-outline);
-    border-radius: 8px;
+    border-radius: var(--md-sys-shape-corner-small);
     color: var(--md-sys-color-on-surface);
     font: inherit;
     max-width: 100%;
@@ -856,7 +856,7 @@
 
 .repository-bundle-import-output {
   background: var(--md-sys-color-inverse-surface);
-  border-radius: 8px;
+  border-radius: var(--md-sys-shape-corner-small);
   color: var(--md-sys-color-inverse-on-surface);
   font-family: var(--font-family-monospace);
   font-size: 11px;
@@ -890,7 +890,7 @@
 .repository-tools-modal {
   animation: dmDialog calc(420ms * var(--mdur, 1)) var(--spring) backwards;
   background: var(--md-sys-color-surface-container-low);
-  border-radius: 28px;
+  border-radius: var(--md-sys-shape-corner-extra-large);
   box-shadow: var(--md-sys-elevation-level3);
   display: flex;
   flex: none;
@@ -932,7 +932,7 @@
 .repository-tools-emblem {
   align-items: center;
   background: var(--md-sys-color-primary-container);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   color: var(--md-sys-color-on-primary-container);
   display: flex;
   flex: none;
@@ -955,7 +955,7 @@
 
 .repository-tools-runtime {
   background: var(--md-sys-color-surface-container-highest);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-surface-variant);
   flex: none;
   max-width: 280px;
@@ -1002,7 +1002,7 @@
   align-items: center;
   background: var(--md-sys-color-surface-container-high);
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -1081,7 +1081,7 @@
 .repository-tools-search {
   align-items: center;
   background: var(--md-sys-color-surface-container-high);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-surface-variant);
   display: flex;
   flex: none;
@@ -1140,7 +1140,7 @@
   align-items: center;
   background: transparent;
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 8px;
+  border-radius: var(--md-sys-shape-corner-small);
   color: var(--md-sys-color-on-surface-variant);
   cursor: pointer;
   display: inline-flex;
@@ -1429,7 +1429,7 @@
 .file-converter-category {
   background: var(--md-sys-color-surface);
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   padding: 12px;
 }
 
@@ -1510,7 +1510,7 @@
 }
 .file-converter-state {
   border: 1px solid var(--md-sys-color-outline);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-surface-variant);
   flex: none;
   font-size: 11px;
@@ -1538,7 +1538,7 @@
 .repository-tools-detail-chip {
   align-items: center;
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 8px;
+  border-radius: var(--md-sys-shape-corner-small);
   color: var(--md-sys-color-on-surface-variant);
   display: inline-flex;
   font-family: var(--font-family-monospace);
@@ -1572,7 +1572,7 @@
   textarea {
     background: var(--md-sys-color-surface);
     border: 1px solid var(--md-sys-color-outline);
-    border-radius: 8px;
+    border-radius: var(--md-sys-shape-corner-small);
     color: var(--md-sys-color-on-surface);
     font: inherit;
     max-width: 100%;
@@ -1614,7 +1614,7 @@
 .repository-note-confirm-message {
   background: var(--md-sys-color-surface);
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 8px;
+  border-radius: var(--md-sys-shape-corner-small);
   font-size: 12px;
   margin: 8px 0 0;
   max-height: 140px;
@@ -1657,7 +1657,7 @@
 
 .repository-tools-results {
   background: var(--md-sys-color-surface-container-lowest);
-  border-radius: 16px;
+  border-radius: var(--md-sys-shape-corner-large);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -1666,7 +1666,7 @@
 .repository-tools-status {
   align-self: flex-start;
   background: var(--md-sys-color-surface-container-high);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-surface-variant);
   font-size: 11px;
   font-weight: 700;
@@ -2081,7 +2081,7 @@
   // (`.repository-tools` is `overflow-y: auto`), so everything stays
   // reachable.
   .repository-tools-modal {
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
     height: auto;
     max-height: none;
   }

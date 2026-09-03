@@ -114,7 +114,7 @@
 .md3-support-tickets__disclosure {
   align-items: flex-start;
   background: var(--md-sys-color-secondary-container);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   color: var(--md-sys-color-on-secondary-container);
   display: flex;
   font-size: 12.5px;
@@ -144,7 +144,7 @@
 
 .md3-support-tickets__explain {
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   font-size: 12px;
   padding: 8px 12px;
 
@@ -185,7 +185,7 @@
 .md3-support-tickets__fieldset,
 .md3-support-tickets__options {
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -208,7 +208,7 @@
 .md3-support-tickets__option {
   align-items: center;
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   cursor: pointer;
   display: inline-flex;
   font-size: 12px;
@@ -553,7 +553,7 @@
 
 .md3-support-gate__keys {
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -595,7 +595,7 @@
 
 .md3-support-gate__progress {
   background: var(--md-sys-color-surface-container);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   height: 6px;
   overflow: hidden;
 }

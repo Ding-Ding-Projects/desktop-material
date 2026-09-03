@@ -50,7 +50,7 @@ describe('first-run checklist v2 design contract', () => {
   it('shows a primary product lockup beside the two-line heading', () => {
     assert.match(
       styles,
-      /\.first-run-checklist-lockup\s*\{[\s\S]*?width:\s*52px[\s\S]*?height:\s*52px[\s\S]*?border-radius:\s*16px[\s\S]*?background:\s*var\(--md-sys-color-primary\)[\s\S]*?color:\s*var\(--md-sys-color-on-primary\)/
+      /\.first-run-checklist-lockup\s*\{[\s\S]*?width:\s*52px[\s\S]*?height:\s*52px[\s\S]*?border-radius:\s*var\(--md-sys-shape-corner-large\)[\s\S]*?background:\s*var\(--md-sys-color-primary\)[\s\S]*?color:\s*var\(--md-sys-color-on-primary\)/
     )
     assert.match(component, /className="first-run-checklist-lockup"/)
     assert.match(component, /Welcome to Desktop Material/)
@@ -60,7 +60,7 @@ describe('first-run checklist v2 design contract', () => {
   it('lays the three steps out as tonal rows with done and next states', () => {
     assert.match(
       styles,
-      /\.first-run-checklist-item\s*\{[\s\S]*?gap:\s*12px[\s\S]*?padding:\s*12px 14px[\s\S]*?border-radius:\s*16px[\s\S]*?background:\s*var\(--md-sys-color-surface-container\)/
+      /\.first-run-checklist-item\s*\{[\s\S]*?gap:\s*12px[\s\S]*?padding:\s*12px 14px[\s\S]*?border-radius:\s*var\(--md-sys-shape-corner-large\)[\s\S]*?background:\s*var\(--md-sys-color-surface-container\)/
     )
     assert.match(
       styles,
@@ -70,7 +70,7 @@ describe('first-run checklist v2 design contract', () => {
       styles,
       /\.first-run-checklist-item--done \.first-run-checklist-item-icon\s*\{[\s\S]*?color:\s*var\(--md-sys-color-primary\)/
     )
-    assert.match(component, /octicons\.checkCircleFill/)
+    assert.match(component, /'check_circle'/)
     assert.match(component, /Sign in/)
     assert.match(component, /Clone your first repository/)
     assert.match(component, /Pick a theme/)
@@ -90,7 +90,7 @@ describe('first-run checklist v2 design contract', () => {
     )
     assert.match(
       styles,
-      /\.first-run-checklist-preview-badge\s*\{[\s\S]*?border-radius:\s*999px[\s\S]*?background:\s*var\(--md-sys-color-surface-container-lowest\)[\s\S]*?font-family:\s*var\(--font-family-monospace\)/
+      /\.first-run-checklist-preview-badge\s*\{[\s\S]*?border-radius:\s*var\(--md-sys-shape-corner-full\)[\s\S]*?background:\s*var\(--md-sys-color-surface-container-lowest\)[\s\S]*?font-family:\s*var\(--font-family-monospace\)/
     )
     assert.match(component, /responsive workspace preview/)
   })
@@ -98,7 +98,7 @@ describe('first-run checklist v2 design contract', () => {
   it('closes with pill-shaped skip and get-started actions', () => {
     assert.match(
       styles,
-      /\.first-run-checklist-skip,\s*\.first-run-checklist-start\s*\{[\s\S]*?height:\s*40px[\s\S]*?border-radius:\s*999px/
+      /\.first-run-checklist-skip,\s*\.first-run-checklist-start\s*\{[\s\S]*?height:\s*40px[\s\S]*?border-radius:\s*var\(--md-sys-shape-corner-full\)/
     )
     assert.match(
       styles,

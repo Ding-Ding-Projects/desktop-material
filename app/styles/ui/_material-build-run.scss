@@ -83,7 +83,7 @@
   &.has-progress .build-run-primary > button::after {
     animation: dmBar calc(1100ms * var(--mdur, 1)) var(--emph) infinite;
     background: currentColor;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     bottom: 6px;
     content: '';
     height: 3px;
@@ -109,7 +109,7 @@
 
     &:hover {
       background: var(--md-sys-color-secondary-container);
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       box-shadow: var(--md-sys-elevation-level2);
       color: var(--md-sys-color-on-secondary-container);
     }
@@ -131,7 +131,7 @@
 
 .build-run-panel {
   background: var(--md-sys-color-inverse-surface);
-  border-radius: 16px;
+  border-radius: var(--md-sys-shape-corner-large);
   bottom: 16px;
   box-shadow: var(--md-sys-elevation-level3);
   color: var(--md-sys-color-inverse-on-surface);
@@ -199,7 +199,7 @@
       max-width: 100%;
       flex: none;
       overflow: hidden;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       font-size: 11px;
       font-weight: 700;
       letter-spacing: 0.02em;
@@ -249,7 +249,7 @@
       align-items: center;
       background: transparent;
       border: 0;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       color: var(--md-sys-color-inverse-on-surface);
       display: flex;
       flex: none;

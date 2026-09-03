@@ -5,7 +5,7 @@
   align-items: center;
   animation: dmBounce calc(500ms * var(--mdur)) var(--spring-fast);
   background: var(--md-sys-color-primary);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   box-sizing: border-box;
   color: var(--md-sys-color-on-primary);
   // Never shrink below the count content: the sibling text column is the

@@ -262,13 +262,13 @@ body {
   // Single-button states (fetch, publish): one full-radius tonal pill.
   .push-pull-button > button {
     background: var(--md-sys-color-surface-container-high);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     color: var(--md-sys-color-on-surface);
     padding: 0 20px 0 16px;
 
     &:not(:disabled):hover {
       background: var(--md-sys-color-surface-container-high);
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       box-shadow: var(--md-sys-elevation-level2);
     }
 
@@ -304,7 +304,7 @@ body {
   // are wrapped as one full-radius pill; the inner buttons are flat segments.
   .toolbar-dropdown:has(.push-pull-button) {
     background: var(--md-sys-color-surface-container-high);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     box-shadow: var(--md-sys-elevation-level1);
     overflow: hidden;
     transition: box-shadow 260ms var(--emph);
@@ -344,7 +344,7 @@ body {
     &::after {
       animation: dmBar calc(1100ms * var(--mdur)) var(--emph) infinite;
       background: currentColor;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       bottom: 7px;
       content: '';
       height: 3px;
@@ -455,7 +455,7 @@ body {
     width: 48px;
 
     > button {
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       height: 54px;
       justify-content: center;
       padding: 0;
@@ -506,7 +506,7 @@ body {
 
   .toolbar-overflow-close {
     align-items: center;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     display: flex;
     height: 36px;
     justify-content: center;
@@ -544,7 +544,7 @@ body {
     width: 100%;
     min-width: 0;
     padding: 10px 12px;
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     color: var(--md-sys-color-on-surface);
 
     .material-symbol {
@@ -829,7 +829,7 @@ body[data-dm-toolbar-typography] {
   gap: 8px;
   padding: 28px;
   border: 3px dashed var(--md-sys-color-primary);
-  border-radius: 28px;
+  border-radius: var(--md-sys-shape-corner-extra-large);
   background: color-mix(in srgb, var(--md-sys-color-primary-container) 92%, transparent);
   color: var(--md-sys-color-on-primary-container);
   text-align: center;
@@ -1033,7 +1033,7 @@ body.repository-folder-dragging .repository-drop-overlay {
 dialog {
   background: var(--md-sys-color-surface-container-high);
   border: 0;
-  border-radius: 28px;
+  border-radius: var(--md-sys-shape-corner-extra-large);
   box-shadow: var(--md-sys-elevation-level3);
   color: var(--md-sys-color-on-surface);
   overflow: hidden;
@@ -1079,7 +1079,7 @@ dialog#preferences {
   max-width: calc(100vw - 60px);
   max-height: calc(100vh - 60px);
   background: var(--md-sys-color-surface-container-low);
-  border-radius: 28px;
+  border-radius: var(--md-sys-shape-corner-extra-large);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1218,7 +1218,7 @@ hr,
 ::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--md-sys-color-on-surface-variant) 45%, transparent);
   border: 3px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   background-clip: padding-box;
 }
 

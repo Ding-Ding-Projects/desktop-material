@@ -76,7 +76,7 @@
     .copilot-byok-provider-badge {
       display: inline-block;
       padding: 0 var(--spacing-half);
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       background: var(--box-selected-background-color);
       color: var(--text-secondary-color);
       font-size: var(--font-size-sm);
@@ -128,7 +128,7 @@
     height: 18px;
     padding: 0;
     border: none;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: transparent;
     color: var(--text-secondary-color);
 

@@ -22,7 +22,7 @@
   align-items: flex-start;
   gap: var(--spacing-half);
   padding: var(--spacing);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   background: var(--md-sys-color-secondary-container);
   color: var(--md-sys-color-on-secondary-container);
 
@@ -88,7 +88,7 @@
   gap: var(--spacing-half);
   padding: var(--spacing-half);
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
 
   &.armed {
     border-color: var(--md-sys-color-error);
@@ -183,7 +183,7 @@
   margin: 0;
   padding: var(--spacing-half);
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
 
   legend {
     padding: 0 4px;
@@ -228,7 +228,7 @@
 .notification-automations-legend code,
 .notification-automations-args code {
   padding: 0 3px;
-  border-radius: 4px;
+  border-radius: var(--md-sys-shape-corner-extra-small);
   background: var(--md-sys-color-surface-container-high);
   font-family: var(--font-family-monospace);
   font-size: 11px;
