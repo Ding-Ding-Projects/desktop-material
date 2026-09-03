@@ -96,8 +96,7 @@ export class SignIn extends React.Component<ISignInProps, ISignInState> {
           .then(() => this.props.dispatcher.setSignInEndpoint(state.endpoint))
         break
       case SignInStep.Authentication:
-        this.props.dispatcher.requestBrowserAuthentication()
-        break
+        return this.props.dispatcher.requestBrowserAuthentication()
       case SignInStep.Success:
         this.onDismissed()
         break

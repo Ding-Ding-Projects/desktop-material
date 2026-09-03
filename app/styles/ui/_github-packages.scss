@@ -186,6 +186,42 @@
   text-overflow: ellipsis;
 }
 
+.github-package-value-actions,
+.github-package-version-value {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.github-package-value-actions {
+  flex: 0 0 auto;
+}
+
+.github-package-value-actions .copy-button,
+.github-package-version-value .copy-button {
+  flex: 0 0 auto;
+}
+
+.github-package-version-value code,
+.github-package-version-meta,
+.github-package-row-header strong > span,
+.github-package-select .github-package-muted > span {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.github-package-tag[data-full-value] {
+  max-width: min(100%, 360px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .github-package-virtual-row .github-package-tags {
   flex-wrap: nowrap;
   overflow-x: auto;

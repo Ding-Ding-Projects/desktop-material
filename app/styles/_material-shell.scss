@@ -1175,6 +1175,41 @@ a,
   color: var(--md-sys-color-primary);
 }
 
+// Action-only LinkButtons use a native button for complete keyboard semantics,
+// but retain the same quiet inline appearance as URI anchors.
+button.link-button-component {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: var(--md-sys-color-primary);
+  cursor: pointer;
+  font: inherit;
+  line-height: inherit;
+  margin: 0;
+  min-height: 0;
+  padding: 0;
+  text-align: inherit;
+  transition: color 120ms ease;
+
+  &:hover:not(:disabled) {
+    color: var(--md-sys-color-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
 hr,
 .horizontal-rule {
   border-color: var(--md-sys-color-outline-variant);
