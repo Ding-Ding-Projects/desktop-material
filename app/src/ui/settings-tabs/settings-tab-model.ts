@@ -558,7 +558,9 @@ const MaximumLayoutItems = 256
 const MaximumGroups = 64
 const MaximumGroupIdLength = 128
 const MaximumGroupNameLength = 64
-const SettingsGroupColors = new Set(SettingsTabGroupColors)
+const SettingsGroupColors: ReadonlySet<string> = new Set<string>(
+  SettingsTabGroupColors
+)
 
 function layoutKey(strip: SettingsTabStripId, scope?: string): string {
   return scope === undefined || scope.length === 0

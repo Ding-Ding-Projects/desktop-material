@@ -37,7 +37,6 @@ export class Form extends React.Component<IFormProps, {}> {
         this.props.onSubmit
       )
       void result.catch(() => {})
-      return result
     }
   }
 }

@@ -24,6 +24,7 @@ import { showContextualMenu, IMenuItem } from '../../../lib/menu-item'
 import { OkCancelButtonGroup } from '../../dialog/ok-cancel-button-group'
 import { Button } from '../../lib/button'
 import { Octicon } from '../../octicons'
+import { join } from 'path'
 import { PathText } from '../../lib/path-text'
 import {
   OpenWithDefaultProgramLabel,

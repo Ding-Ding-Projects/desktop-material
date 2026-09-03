@@ -684,6 +684,7 @@ export class SettingsTabStrip extends React.Component<
   }
 
   private onRowContextMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const languageMode = getPersistedLanguageMode()
     if (this.props.disabled === true) {
       return
     }
