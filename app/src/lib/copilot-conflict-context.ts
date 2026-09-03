@@ -35,6 +35,8 @@ export interface IFileConflictContext {
    * resolutions into the original content. Omitted when the file is skipped.
    */
   readonly rawContent?: string
+  /** Exact path-scoped `git ls-files -u -z` fingerprint at capture time. */
+  readonly stageFingerprint?: string
 }
 
 /**
