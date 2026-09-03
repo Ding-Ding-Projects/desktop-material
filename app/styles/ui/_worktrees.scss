@@ -49,7 +49,7 @@
 
   .worktree-maintenance-review {
     background: var(--md-sys-color-secondary-container);
-    border-radius: 8px;
+    border-radius: var(--md-sys-shape-corner-small);
     color: var(--md-sys-color-on-secondary-container);
     padding: var(--spacing);
   }

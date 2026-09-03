@@ -15,27 +15,23 @@ describe('settings workbench Material styling', () => {
   it('uses the shared tonal navigation and content panel roles', () => {
     assert.match(
       settingsTabs,
-      /\.settings-workbench-navigation\s*\{[\s\S]*?surface-container-high/
+      /\.settings-tab-strip-browser\s*\{[^}]*?surface-container/
     )
     assert.match(
       settingsTabs,
-      /\.settings-workbench-content\s*\{[\s\S]*?surface-container-lowest/
-    )
-    assert.match(
-      settingsTabs,
-      /\.settings-browser-tab[\s\S]*?&\.active[\s\S]*?secondary-container/
+      /\.settings-browser-tab[\s\S]*?&\.active[\s\S]*?md-sys-color-surface/
     )
   })
 
   it('keeps both settings surfaces compact and responsive', () => {
-    assert.match(preferences, /preferences-title-icon/)
+    assert.match(preferences, /\.preferences-title\s*\{/)
     assert.match(
       preferences,
-      /@container preferences-dialog \(max-width: 620px\)[\s\S]*?width: 92px/
+      /@container preferences-dialog \(max-width: 620px\)[\s\S]*?width: 72px/
     )
     assert.match(
       repositorySettings,
-      /repository-settings-tab-filter-field[\s\S]*?border-radius: 999px/
+      /repository-settings-tab-filter-field[\s\S]*?border-radius: var\(--md-sys-shape-corner-full\)/
     )
     assert.match(
       repositorySettings,
@@ -43,14 +39,14 @@ describe('settings workbench Material styling', () => {
     )
   })
 
-  it('gives picker and appearance overlays their own elevated surfaces', () => {
+  it('bounds picker and appearance overlays inside the shared elevated popover', () => {
     assert.match(
       settingsTabs,
-      /popover-component\.settings-tab-picker[\s\S]*?border-radius: 20px[\s\S]*?elevation-level3/
+      /\.settings-tab-picker\s*\{[^}]*?max-width: min\(360px/
     )
     assert.match(
       appearance,
-      /popover-component:has\(\.element-appearance-editor\)[\s\S]*?border-radius: 20px[\s\S]*?elevation-level3/
+      /\.element-appearance-editor\s*\{[^}]*?max-height: min\(660px/
     )
   })
 })

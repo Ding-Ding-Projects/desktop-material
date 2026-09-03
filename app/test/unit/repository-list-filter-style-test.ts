@@ -46,7 +46,7 @@ describe('repository list scope filter styles', () => {
     )
     assert.match(
       style,
-      /\.repository-hidden-pill\s*\{[\s\S]*?border-radius: 999px;[\s\S]*?flex: 0 0 auto;/
+      /\.repository-hidden-pill\s*\{[\s\S]*?border-radius: var\(--md-sys-shape-corner-full\);[\s\S]*?flex: 0 0 auto;/
     )
   })
 

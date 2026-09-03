@@ -1,6 +1,5 @@
 import * as React from 'react'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /**
  * A component used for displaying short error messages inline
@@ -17,7 +16,7 @@ export class DialogError extends React.Component {
   public render() {
     return (
       <div className="dialog-banner dialog-error" role="alert">
-        <Octicon symbol={octicons.stop} />
+        <MaterialSymbol name="stop" />
         <div>{this.props.children}</div>
       </div>
     )

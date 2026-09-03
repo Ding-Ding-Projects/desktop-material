@@ -241,7 +241,7 @@
   margin: 8px 10px;
   overflow: hidden;
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 16px;
+  border-radius: var(--md-sys-shape-corner-large);
   background: var(--md-sys-color-surface-container-low);
 
   .stashed-changes-header {
@@ -268,7 +268,7 @@
   .stashed-changes-button {
     min-height: 38px;
     border: 0;
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     background: transparent;
     color: var(--md-sys-color-on-surface);
 
@@ -396,7 +396,7 @@
       margin: 0;
       padding: 8px 10px 10px;
       border: 1px solid var(--md-sys-color-outline-variant);
-      border-radius: 12px;
+      border-radius: var(--md-sys-shape-corner-medium);
       flex-direction: column;
       gap: 7px;
 
@@ -546,7 +546,7 @@
       .count {
         flex: 0 0 auto;
         padding: 2px 7px;
-        border-radius: 999px;
+        border-radius: var(--md-sys-shape-corner-full);
         background: var(--md-sys-color-secondary-container);
         color: var(--md-sys-color-on-secondary-container);
         font-size: 10px;
@@ -564,7 +564,7 @@
       margin-bottom: 5px;
       overflow: hidden;
       border: 1px solid transparent;
-      border-radius: 12px;
+      border-radius: var(--md-sys-shape-corner-medium);
       background: var(--md-sys-color-surface-container);
 
       &.selected {
@@ -607,7 +607,7 @@
     text-align: left;
 
     &:hover {
-      border-radius: 8px;
+      border-radius: var(--md-sys-shape-corner-small);
       background: var(--md-sys-color-surface-container-high);
     }
   }
@@ -627,7 +627,7 @@
   .stash-manager-origin {
     padding: 1px 5px;
     margin-left: 6px;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: var(--md-sys-color-secondary-container);
     color: var(--md-sys-color-on-secondary-container);
     font-size: 9px;
@@ -765,7 +765,7 @@
     min-width: 0;
     padding: 10px;
     border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     background: var(--md-sys-color-surface-container-low);
 
     > * {
@@ -793,7 +793,7 @@
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 10px;
     border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     padding: 12px;
   }
 
@@ -826,7 +826,7 @@
     gap: 8px;
     min-width: 0;
     padding: 12px;
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     background: var(--md-sys-color-secondary-container);
 
     code {
@@ -1011,7 +1011,7 @@
       justify-content: center;
       height: 24px;
       padding: 0 10px;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       background: var(--md-sys-color-secondary-container);
       color: var(--md-sys-color-on-secondary-container);
       font-size: 12.5px;
@@ -1069,7 +1069,7 @@
         // v2 prototype: a taller search pill.
         height: 46px;
         min-height: 46px;
-        border-radius: 999px;
+        border-radius: var(--md-sys-shape-corner-full);
         background: var(--md-sys-color-surface-container-high);
         border: 2px solid transparent;
         padding: 0 10px 0 36px;
@@ -1092,7 +1092,7 @@
       .clear-button {
         width: 28px;
         height: 28px;
-        border-radius: 999px;
+        border-radius: var(--md-sys-shape-corner-full);
         display: grid;
         place-items: center;
         color: var(--md-sys-color-on-surface-variant);
@@ -1122,7 +1122,7 @@
       place-items: center;
       gap: 2px;
       border: 0;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       background: transparent;
       color: var(--md-sys-color-on-surface-variant);
       box-shadow: none;
@@ -1196,7 +1196,7 @@
       height: auto;
       padding: 7px 12px;
       border: 0;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       font-size: 12px;
       font-weight: 700;
       line-height: 1.25;

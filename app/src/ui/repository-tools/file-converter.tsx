@@ -1,7 +1,5 @@
 import * as React from 'react'
 import { Button } from '../lib/button'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import {
   showOpenDialogMultiple,
   inspectFileConverterSource,
@@ -17,6 +15,7 @@ import {
   readFileConverterQueueState,
   writeFileConverterQueueState,
 } from '../../lib/file-converter'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IFileConverterProps {
   /** Injectable seams keep file selection and byte inspection out of the UI. */
@@ -227,7 +226,7 @@ export class FileConverter extends React.Component<
       >
         <header className="file-converter-heading">
           <span className="file-converter-icon" aria-hidden="true">
-            <Octicon symbol={octicons.fileDiff} />
+            <MaterialSymbol name="difference" />
           </span>
           <div>
             <h2 id="file-converter-title">{t('fileConverter.title')}</h2>

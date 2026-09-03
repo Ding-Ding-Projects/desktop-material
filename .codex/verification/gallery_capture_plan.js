@@ -13,11 +13,12 @@
 const fs = require('fs')
 const path = require('path')
 
-const ExpectedPublishedGalleryCount = 96
+const ExpectedPublishedGalleryCount = 98
 const CanonicalCandidateCount = 69
 const DeferredCanonicalOutputs = Object.freeze([
   'material-cheap-lfs-preparing',
   'material-repositories-sheet',
+  'material-worktree-force-mat-day',
 ])
 const DeferredSpecialistOutputs = Object.freeze([])
 const RetainedHistoricalEvidence = Object.freeze({
@@ -464,6 +465,20 @@ const SpecialistCaptureEntries = Object.freeze([
       'Open Choose a branch to merge into main for the disposable repository, activate Not updated with main, verify the stale branch remains while the branch containing main is hidden, then inspect and promote the original client-only frame.',
   },
   {
+    output: 'worktree-context-menu-merge-delete',
+    scene: 'linked-worktree-context-menu-merge-delete',
+    batch: 'windows-ui-state-lowlevel',
+    interaction:
+      'Open the Worktrees foldout for a disposable main plus linked-feature fixture, right-click the clean attached linked row, and leave its filtered context menu showing enabled Merge and Delete actions inside the viewport.',
+  },
+  {
+    output: 'worktree-merge-preview-from-context-menu',
+    scene: 'linked-worktree-context-menu-merge-preview',
+    batch: 'windows-ui-state-lowlevel',
+    interaction:
+      'Activate Merge from the linked worktree context menu and leave the reviewed Merge into main sheet showing the exact feature branch and one pending commit without executing the merge.',
+  },
+  {
     output: 'material-history-view-tabs-graph',
     scene: 'history-view-tabs-graph',
     batch: 'windows-ui-state-lowlevel',
@@ -478,11 +493,18 @@ const SpecialistCaptureEntries = Object.freeze([
       'Open the built repository stash manager in the isolated production profile and preserve its centered Material dialog with Manage, Export, History, and Appearance and voice tabs at the reviewed capture size.',
   },
   {
-    output: 'personal-vocabulary',
-    scene: 'personal-vocabulary',
+    output: 'personal-vocabulary-material-controls-20260821',
+    scene: 'personal-vocabulary-no-file',
     batch: 'windows-personal-vocabulary',
     interaction:
       'Open Settings from the application menu, select Appearance, scroll the Personal vocabulary section into view and drop focus, so the frame is the control in its no-file state rather than mid-hover.',
+  },
+  {
+    output: 'personal-vocabulary-material-controls-loaded-20260821',
+    scene: 'personal-vocabulary-loaded',
+    batch: 'windows-personal-vocabulary',
+    interaction:
+      'Open Settings from the application menu, select Appearance, load the bounded local fixture through the real personal-vocabulary control, and leave its loaded state with Replace and Clear actions visible.',
   },
   {
     output: 'narrator-voice-pickers',

@@ -16,8 +16,6 @@ import { assertNever } from '../../lib/fatal-error'
 import { TabBar } from '../tab-bar'
 
 import { Row } from '../lib/row'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { Button } from '../lib/button'
 
 import { BranchList } from './branch-list'
@@ -44,6 +42,7 @@ import { BulkBranchDelete } from './bulk-branch-delete'
 import { ForkBranchCheckout } from './fork-branch-checkout'
 import { WorktreeEntry } from '../../models/worktree'
 import { findLinkedWorktreeForBranch } from './branch-worktree'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /**
  * Virtualized row height for branch rows inside the branch side sheet.
@@ -167,7 +166,7 @@ export class BranchesContainer extends React.Component<
           onClick={this.onCloseClick}
           aria-label="Close"
         >
-          <Octicon symbol={octicons.x} />
+          <MaterialSymbol name="close" />
         </button>
       </header>
     )
@@ -228,7 +227,7 @@ export class BranchesContainer extends React.Component<
           onClick={this.onMergeClick}
           tooltip={`Choose a branch to merge into ${currentBranch.name}`}
         >
-          <Octicon className="icon" symbol={octicons.gitMerge} />
+          <MaterialSymbol name="merge" className="icon" />
           Choose a branch to merge into <strong>{currentBranch.name}</strong>
         </Button>
         <Button
@@ -236,7 +235,7 @@ export class BranchesContainer extends React.Component<
           onClick={this.onMergeAllClick}
           tooltip={`Merge every eligible local branch into ${currentBranch.name}`}
         >
-          <Octicon className="icon" symbol={octicons.stack} />
+          <MaterialSymbol name="layers" className="icon" />
           Merge all into default
         </Button>
       </Row>
@@ -427,7 +426,7 @@ export class BranchesContainer extends React.Component<
         onMouseLeave={this.onMouseLeaveNewBranchDrop}
         onMouseUp={this.onMouseUpNewBranchDrop}
       >
-        <Octicon className="icon" symbol={octicons.plus} />
+        <MaterialSymbol name="add" className="icon" />
         <div className="name">{label}</div>
       </div>
     )

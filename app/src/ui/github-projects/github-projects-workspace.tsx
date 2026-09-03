@@ -24,8 +24,7 @@ import { Account, getAccountKey } from '../../models/account'
 import { Repository } from '../../models/repository'
 import { Button } from '../lib/button'
 import { LinkButton } from '../lib/link-button'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 export interface IGitHubProjectsClientFactory {
   (account: Account): IGitHubProjectsClient
@@ -436,7 +435,7 @@ export class GitHubProjectsWorkspace extends React.Component<
     if (project === null) {
       return (
         <div className="github-projects-empty" role="status">
-          <Octicon symbol={octicons.project} />
+          <MaterialSymbol name="view_kanban" />
           <strong>{t('projects.emptyTitle')}</strong>
           <span>{t('projects.emptyDescription')}</span>
         </div>
@@ -507,7 +506,7 @@ export class GitHubProjectsWorkspace extends React.Component<
         </header>
         {this.renderStatus()}
         <p className="github-projects-read-only">
-          <Octicon symbol={octicons.eye} /> {t('projects.readOnly')}
+          <MaterialSymbol name="visibility" /> {t('projects.readOnly')}
         </p>
         {this.state.error !== null && (
           <p className="github-projects-error" role="alert">

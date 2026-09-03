@@ -28,7 +28,6 @@ import {
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
 import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { trapActionsDialogFocus } from './actions-dialog-focus'
 import { getWorkflowFileName, getWorkflowGlyph } from './workflow-templates'
 import {
@@ -40,6 +39,7 @@ import {
   WorkflowRunElapsedRefreshIntervalMs,
 } from '../../lib/actions-workflow-run-elapsed'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /** How many quick-pick ref chips the popover shows before falling back. */
 export const WorkflowDispatchRefChipMaximum = 6
@@ -408,11 +408,10 @@ export class WorkflowDispatchDialog extends React.Component<
       })
 
   /** Free-form inputs report their new value directly. */
-  private onTextInputChange =
-    (inputName: string) => (value: string) =>
-      this.setState({
-        values: { ...this.state.values, [inputName]: value },
-      })
+  private onTextInputChange = (inputName: string) => (value: string) =>
+    this.setState({
+      values: { ...this.state.values, [inputName]: value },
+    })
 
   private onFreeformChange = (event: React.FormEvent<HTMLTextAreaElement>) =>
     this.setState({ freeform: event.currentTarget.value })
@@ -533,7 +532,7 @@ export class WorkflowDispatchDialog extends React.Component<
             invalid: regexError !== null,
           })}
         >
-          <Octicon symbol={octicons.search} />
+          <MaterialSymbol name="search" />
           <TextBox
             searchSurfaceId="actions-workflow-dispatch"
             className="workflow-dispatch-search-input"
@@ -612,11 +611,7 @@ export class WorkflowDispatchDialog extends React.Component<
         </span>
         {input.description && <small>{input.description}</small>}
         {input.type === 'choice' ? (
-          <Select
-            name={input.name}
-            value={value}
-            onChange={this.onInputChange}
-          >
+          <Select name={input.name} value={value} onChange={this.onInputChange}>
             {input.options.map(option => (
               <option key={option} value={option}>
                 {option}
@@ -673,7 +668,7 @@ export class WorkflowDispatchDialog extends React.Component<
               onClick={this.props.onDismissed}
               ariaLabel="Close run workflow dialog"
             >
-              <Octicon symbol={octicons.x} />
+              <MaterialSymbol name="close" />
             </Button>
           </header>
           {this.state.error && (
@@ -745,7 +740,7 @@ export class WorkflowDispatchDialog extends React.Component<
               submitting || loadingDefinition || this.state.workflowId === 0
             }
           >
-            <Octicon symbol={octicons.play} />
+            <MaterialSymbol name="play_arrow" />
             {submitting ? 'Starting…' : 'Run workflow'}
           </Button>
         </form>

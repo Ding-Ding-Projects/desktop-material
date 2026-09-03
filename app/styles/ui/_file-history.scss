@@ -12,7 +12,7 @@
   min-height: min(420px, calc(100vh - 20px));
   flex-direction: column;
   overflow: hidden;
-  border-radius: 28px;
+  border-radius: var(--md-sys-shape-corner-extra-large);
   background: var(--md-sys-color-surface-container-low);
   box-shadow: var(--md-sys-elevation-level3);
   color: var(--md-sys-color-on-surface);
@@ -104,14 +104,14 @@
   display: inline-flex;
   max-width: 100%;
   padding: 4px;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   background: var(--md-sys-color-surface-container-high);
 
   button {
     min-width: 0;
     padding: 8px 16px;
     border: 0;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: transparent;
     color: var(--md-sys-color-on-surface-variant);
     font: inherit;
@@ -132,7 +132,7 @@
 
 .file-history-count {
   padding: 7px 11px;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   background: var(--md-sys-color-surface-container-highest);
   color: var(--md-sys-color-on-surface-variant);
   font-size: var(--font-size-sm);

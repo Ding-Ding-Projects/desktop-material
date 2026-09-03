@@ -1,0 +1,40 @@
+// Shared MD3 entrance motion.
+//
+// Five partials (`_md3-compose-dialog`, `_md3-menu-overlay`, `_md3-regex-builder`,
+// `_md3-toast`, and the lock/support/authenticator surfaces) apply these classes
+// and deliberately declare no motion of their own. They previously deferred to a
+// `_md3-shell.scss` that does not exist in this tree, so every one of them
+// animated not at all. The keyframes themselves live in `app/styles/material/_motion.scss`.
+
+.md3-anim-fade--overlay {
+  animation: dmScrim 160ms ease both;
+}
+
+.md3-anim-menu {
+  animation: dmPop 200ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.md3-anim-sheet {
+  animation: dmSheet 260ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.md3-anim-up {
+  animation: dmUp 200ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.md3-anim-toast {
+  animation: dmUp 180ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+// Motion is decoration; the surface must still arrive. Honour the platform
+// preference rather than merely shortening the duration, since a fast animation
+// is still animation.
+@media (prefers-reduced-motion: reduce) {
+  .md3-anim-fade--overlay,
+  .md3-anim-menu,
+  .md3-anim-sheet,
+  .md3-anim-up,
+  .md3-anim-toast {
+    animation: none;
+  }
+}

@@ -11,6 +11,7 @@ import {
   cantoneseTranslations,
   englishTranslations,
 } from '../../src/lib/i18n-resources'
+import { translateWithFunnyLevel } from '../../src/lib/funny-level-text'
 
 describe('recent UI internationalization', () => {
   it('maps Chinese locale hints to Cantonese without adding another UI mode', () => {
@@ -607,5 +608,23 @@ describe('recent UI internationalization', () => {
     assert.equal(getPersistedLanguageMode(), 'english')
     localStorage.removeItem('appearance-customization-v1')
     localStorage.removeItem('language-mode-v1')
+  })
+
+  it('keeps Copilot quota facts localized while funny framing changes by level', () => {
+    const plain = translateWithFunnyLevel(
+      'copilot.quotaLead',
+      'english',
+      { english: 1, cantonese: 1 }
+    )
+    const playful = translateWithFunnyLevel(
+      'copilot.quotaLead',
+      'english',
+      { english: 5, cantonese: 1 }
+    )
+    assert.notEqual(plain, playful)
+    assert.match(translateWithFunnyLevel('copilot.quotaLead', 'cantonese', {
+      english: 1,
+      cantonese: 5,
+    }), /帳戶用量/)
   })
 })

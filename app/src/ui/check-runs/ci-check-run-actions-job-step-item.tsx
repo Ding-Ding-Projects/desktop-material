@@ -1,6 +1,5 @@
 import * as React from 'react'
 import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import classNames from 'classnames'
 import {
   getClassNameForCheck,
@@ -14,6 +13,7 @@ import {
 import { TooltippedContent } from '../lib/tooltipped-content'
 import { TooltipDirection } from '../lib/tooltip'
 import { Button } from '../lib/button'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface ICICheckRunActionsJobStepListItemProps {
   readonly step: IAPIWorkflowJobStep
@@ -80,7 +80,7 @@ export class CICheckRunActionsJobStepListItem extends React.PureComponent<ICIChe
           tooltip={`View ${step.name} on GitHub`}
           ariaLabel={`View ${step.name} on GitHub`}
         >
-          <Octicon symbol={octicons.linkExternal} />
+          <MaterialSymbol name="open_in_new" />
         </Button>
       </li>
     )

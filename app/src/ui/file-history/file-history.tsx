@@ -17,6 +17,7 @@ import { DialogStackContext } from '../dialog'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { RelativeTime } from '../relative-time'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 type FileHistoryView = 'history' | 'blame'
 
@@ -316,17 +317,14 @@ export class FileHistory extends React.Component<
     return (
       <header className="file-history-header">
         <span className="file-history-header-icon" aria-hidden="true">
-          <Octicon symbol={octicons.history} />
+          <MaterialSymbol name="history" />
         </span>
         <span className="file-history-heading-copy">
           <h1 id="file-history-title">File history</h1>
           <small>{this.props.path}</small>
         </span>
         {loading ? (
-          <Octicon
-            className="file-history-progress spin"
-            symbol={octicons.sync}
-          />
+          <MaterialSymbol name="sync" className="file-history-progress spin" />
         ) : null}
         <Button
           className="file-history-refresh"
@@ -335,7 +333,7 @@ export class FileHistory extends React.Component<
           onClick={this.refresh}
           disabled={loading}
         >
-          <Octicon symbol={octicons.sync} />
+          <MaterialSymbol name="sync" />
         </Button>
         <Button
           className="file-history-close"
@@ -343,7 +341,7 @@ export class FileHistory extends React.Component<
           tooltip="Close file history"
           onClick={this.props.onDismissed}
         >
-          <Octicon symbol={octicons.x} />
+          <MaterialSymbol name="close" />
         </Button>
       </header>
     )

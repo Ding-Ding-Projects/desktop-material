@@ -55,7 +55,7 @@
   align-items: center;
   height: 24px;
   padding: 0 10px;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-surface-variant);
   font-size: 12.5px;
   font-weight: 700;
@@ -70,14 +70,14 @@
   height: 38px;
   padding: 0;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-surface-variant);
   background: transparent;
   cursor: pointer;
   transition: background-color 240ms var(--emph), color 240ms var(--emph), border-radius 260ms var(--spring), transform 200ms var(--spring-fast);
 
   &:hover:not(:disabled) {
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     background: var(--md-sys-color-surface-container-high);
   }
 
@@ -108,7 +108,7 @@
   height: 36px;
   padding: 0 14px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-primary-container);
   font-size: 12.5px;
   font-weight: 700;
@@ -117,7 +117,7 @@
   transition: border-radius 280ms var(--spring), transform 200ms var(--spring-fast), background-color 480ms var(--emph);
 
   &:hover:not(:disabled) {
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
   }
 
   &:active:not(:disabled) {
@@ -155,7 +155,7 @@
   height: 46px;
   padding: 0 7px 0 16px;
   border: 2px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   background: var(--md-sys-color-surface-container-high);
   transition: background-color 300ms var(--emph), border-color 240ms var(--emph);
 
@@ -238,7 +238,7 @@
   height: 30px;
   padding: 0 12px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-surface-variant);
   font-size: 12px;
   font-weight: 700;
@@ -288,7 +288,7 @@
       width: 100%;
       height: 38px;
       border-color: var(--md-sys-color-outline-variant);
-      border-radius: 12px;
+      border-radius: var(--md-sys-shape-corner-medium);
       background: var(--md-sys-color-surface-container-high);
     }
   }
@@ -323,7 +323,7 @@
   .button-component {
     max-width: 100%;
     flex: 0 1 auto;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     white-space: normal;
     overflow-wrap: anywhere;
   }
@@ -360,7 +360,7 @@
   height: 32px;
   padding: 0 13px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-primary-container);
   font-size: 12px;
   font-weight: 700;
@@ -389,7 +389,7 @@
   align-items: center;
   min-width: 0;
   padding: 8px 10px;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   background: var(--md-sys-color-surface);
   transition: background-color 480ms var(--emph), opacity 260ms var(--emph);
   animation: dmUp calc(380ms * var(--mdur, 1)) var(--spring) backwards;
@@ -452,7 +452,7 @@
   height: 28px;
   padding: 0;
   border: 2px solid var(--md-sys-color-outline);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   background: var(--md-sys-color-surface-container-highest);
   cursor: pointer;
   transition: background-color 280ms var(--emph), border-color 280ms var(--emph);
@@ -463,7 +463,7 @@
     left: 3px;
     width: 16px;
     height: 16px;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: var(--md-sys-color-outline);
     transform: translateY(-50%);
     transition: transform 320ms var(--spring), width 200ms var(--spring-fast), height 200ms var(--spring-fast), background-color 280ms var(--emph);
@@ -494,7 +494,7 @@
 
 .actions-workflow-state {
   padding: 3px 8px;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-secondary-container);
   font-size: 11px;
   font-weight: 700;
@@ -541,7 +541,7 @@
   align-items: center;
   margin: 8px 0;
   padding: 8px 10px;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   background: var(--md-sys-color-surface-container-low);
 
   > label {
@@ -582,7 +582,7 @@
   justify-content: space-between;
   margin-top: 8px;
   padding: 9px 10px;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   color: var(--md-sys-color-on-surface-variant);
   font-size: 11px;
   background: var(--md-sys-color-surface-container-low);
@@ -646,7 +646,7 @@
   height: 24px;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 8px;
+  border-radius: var(--md-sys-shape-corner-small);
 
   &:focus-within {
     outline: 2px solid var(--md-sys-color-primary);
@@ -660,7 +660,7 @@
   margin: 0;
   padding: 8px 8px 8px 28px;
   overflow: auto;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   background: var(--md-sys-color-surface-container-low);
   font-size: 11px;
 
@@ -684,7 +684,7 @@
   cursor: pointer;
 
   &:focus-visible {
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     outline: 3px solid color-mix(in srgb, var(--md-sys-color-primary) 45%, transparent);
     outline-offset: 4px;
   }
@@ -726,7 +726,7 @@
   align-items: center;
   height: 20px;
   padding: 0 8px;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-surface-variant);
   font-family: var(--font-family-monospace);
   font-size: 10.5px;
@@ -741,7 +741,7 @@
   align-items: center;
   min-height: 24px;
   padding: 0 9px;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
@@ -855,7 +855,7 @@
   .button-component {
     max-width: 100%;
     min-height: 28px;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     white-space: normal;
     overflow-wrap: anywhere;
 
@@ -908,7 +908,7 @@
   > .button-component {
     max-width: 100%;
     flex: 0 0 auto;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
   }
 
   h2 {
@@ -1128,7 +1128,7 @@
 .actions-job-card {
   min-width: 0;
   padding: 12px;
-  border-radius: 16px;
+  border-radius: var(--md-sys-shape-corner-large);
   background: var(--md-sys-color-surface-container);
   transition: background-color 480ms var(--emph);
   animation: dmUp calc(440ms * var(--mdur, 1)) var(--spring) backwards;
@@ -1562,7 +1562,7 @@
   justify-content: space-between;
   margin-top: 10px;
   padding: 10px;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   background: var(--md-sys-color-surface-container-high);
 
   > span,
@@ -1708,7 +1708,7 @@
   flex: 0 0 auto;
   margin-bottom: 10px;
   padding: 9px 12px;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
 
   &.error,
   &.warning {
@@ -1835,7 +1835,7 @@
   gap: 9px;
   padding: 14px;
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 16px;
+  border-radius: var(--md-sys-shape-corner-large);
   background: var(--md-sys-color-surface-container-low);
 }
 
@@ -1857,7 +1857,7 @@
 .actions-runner-status {
   flex: 0 0 auto;
   padding: 3px 8px;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-surface-variant);
   background: var(--md-sys-color-surface-container-high);
   font-size: 12px;
@@ -1888,7 +1888,7 @@
 .actions-runner-remote {
   padding: 14px;
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 16px;
+  border-radius: var(--md-sys-shape-corner-large);
   background: var(--md-sys-color-surface-container-low);
 
   ul {
@@ -2076,7 +2076,7 @@
       width: 100%;
       height: 34px;
       border-color: var(--md-sys-color-outline-variant);
-      border-radius: 12px;
+      border-radius: var(--md-sys-shape-corner-medium);
       background: var(--md-sys-color-surface);
     }
   }
@@ -2120,7 +2120,7 @@
       min-width: 0;
       padding: 0 12px;
       border: 2px solid var(--md-sys-color-outline-variant);
-      border-radius: 12px;
+      border-radius: var(--md-sys-shape-corner-medium);
       color: inherit;
       font-size: 12.5px;
       background: var(--md-sys-color-surface);
@@ -2170,7 +2170,7 @@
   padding: 0 12px;
   overflow: hidden;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-surface-variant);
   font-family: var(--font-family-monospace);
   font-size: 12px;
@@ -2205,7 +2205,7 @@
   height: 42px;
   padding: 0 6px 0 12px;
   border: 2px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   background: var(--md-sys-color-surface-container-high);
   transition: background-color 300ms var(--emph), border-color 240ms var(--emph);
 
@@ -2250,7 +2250,7 @@
   padding: 4px;
   overflow-y: auto;
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 16px;
+  border-radius: var(--md-sys-shape-corner-large);
   background: var(--md-sys-color-surface);
   overscroll-behavior: contain;
 
@@ -2278,7 +2278,7 @@
   min-width: 0;
   padding: 8px 12px;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   color: inherit;
   text-align: left;
   background: transparent;
@@ -2331,7 +2331,7 @@
   .workflow-dispatch-option-state {
     flex: 0 0 auto;
     padding: 2px 8px;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     color: var(--md-sys-color-on-secondary-container);
     font-size: 10.5px;
     font-weight: 700;
@@ -2379,7 +2379,7 @@
   min-height: 42px;
   height: 42px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-primary);
   font-size: 13px;
   font-weight: 700;
@@ -2421,7 +2421,7 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border-radius: 28px;
+  border-radius: var(--md-sys-shape-corner-extra-large);
   background: var(--md-sys-color-surface-container-low);
   box-shadow: var(--md-sys-elevation-level3);
   pointer-events: auto;
@@ -2554,7 +2554,7 @@
   place-items: center;
   width: 34px;
   height: 34px;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   color: var(--md-sys-color-on-secondary-container);
   background: var(--md-sys-color-secondary-container);
   transition: background-color 480ms var(--emph);
@@ -2607,7 +2607,7 @@
   align-items: center;
   height: 20px;
   padding: 0 9px;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   box-shadow: inset 0 0 0 1.5px var(--md-sys-color-outline-variant);
   color: var(--md-sys-color-on-surface-variant);
   font-size: 10.5px;
@@ -2648,7 +2648,7 @@
   height: 32px;
   padding: 0 14px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-primary);
   font-size: 12px;
   font-weight: 700;
@@ -2682,7 +2682,7 @@
   align-items: center;
   height: 30px;
   padding: 0 12px;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--dm-green);
   font-size: 11.5px;
   font-weight: 800;
@@ -2863,7 +2863,7 @@
     .actions-search-pill {
       align-items: center;
       padding: 8px 10px;
-      border-radius: 16px;
+      border-radius: var(--md-sys-shape-corner-large);
     }
 
     input {

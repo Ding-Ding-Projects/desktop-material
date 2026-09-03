@@ -1,7 +1,12 @@
 import * as Path from 'path'
 import * as Fs from 'fs/promises'
 import type { Repository } from '../../models/repository'
-import type { WorktreeEntry, WorktreeType } from '../../models/worktree'
+import {
+  worktreePathsEqual,
+  type WorktreeEntry,
+  type WorktreeType,
+} from '../../models/worktree'
+import { pathExists } from '../path-exists'
 import { git } from './core'
 
 const MaximumRepairWorktrees = 1_000
@@ -134,6 +139,143 @@ export async function listWorktreesFromGitDir(
   )
 
   return addCreationTimes(parseWorktreePorcelainOutput(result.stdout))
+}
+
+async function resolveSafeDirectory(path: string): Promise<string | null> {
+  const resolved = Path.resolve(path)
+  const parsed = Path.parse(resolved)
+  let current = parsed.root
+
+  for (const segment of resolved
+    .substring(parsed.root.length)
+    .split(Path.sep)) {
+    if (segment.length === 0) {
+      continue
+    }
+
+    current = Path.join(current, segment)
+    const stats = await Fs.lstat(current).catch(() => null)
+    if (stats === null || !stats.isDirectory() || stats.isSymbolicLink()) {
+      return null
+    }
+
+    const physical = await Fs.realpath(current).catch(() => null)
+    if (physical === null || !worktreePathsEqual(physical, current)) {
+      return null
+    }
+  }
+
+  return Fs.realpath(resolved).catch(() => null)
+}
+
+async function resolveGitCommonDirectory(
+  path: string,
+  gitDir?: string
+): Promise<string | null> {
+  try {
+    const result = await git(
+      gitDir === undefined
+        ? ['rev-parse', '--git-common-dir']
+        : ['--git-dir', gitDir, 'rev-parse', '--git-common-dir'],
+      gitDir ?? path,
+      'resolveGitCommonDirectory'
+    )
+    const commonDirectory = result.stdout.trim()
+    if (commonDirectory.length === 0) {
+      return null
+    }
+    return Fs.realpath(Path.resolve(gitDir ?? path, commonDirectory)).catch(
+      () => null
+    )
+  } catch {
+    if (gitDir === undefined) {
+      return null
+    }
+
+    // A removed linked worktree also removes its administrative git directory.
+    // Recover the common directory from the recorded standard .git/worktrees
+    // layout, then validate it against the readable main worktree below.
+    const segments = Path.resolve(gitDir).split(/[\\/]+/)
+    const gitMarker = segments.findIndex(
+      segment => segment.toLowerCase() === '.git'
+    )
+    if (
+      gitMarker < 0 ||
+      segments[gitMarker + 1]?.toLowerCase() !== 'worktrees'
+    ) {
+      return null
+    }
+    const commonDirectory = Path.resolve(
+      segments.slice(0, gitMarker + 1).join(Path.sep)
+    )
+    return Fs.realpath(commonDirectory).catch(() => commonDirectory)
+  }
+}
+
+/**
+ * Resolve the main worktree path for a repository selected in a linked
+ * worktree. A persisted path is only a hint: it must still be readable before
+ * it is returned. When it is stale or inaccessible, the administrative git
+ * directory remains the authoritative fallback. If neither source can prove a
+ * main worktree, return null rather than guessing.
+ */
+export async function resolveMainWorktreePath(
+  repository: Repository
+): Promise<string | null> {
+  const { mainWorktreePath, gitDir, path } = repository
+
+  if (
+    mainWorktreePath !== undefined &&
+    worktreePathsEqual(mainWorktreePath, path)
+  ) {
+    return null
+  }
+
+  if (mainWorktreePath !== undefined && (await pathExists(mainWorktreePath))) {
+    try {
+      const safeHintPath = await resolveSafeDirectory(mainWorktreePath)
+      if (safeHintPath === null) {
+        throw new Error(
+          'The recorded main worktree path is not a safe directory.'
+        )
+      }
+
+      const hintWorktrees = await listWorktrees(safeHintPath)
+      const hintMain = hintWorktrees.find(wt => wt.type === 'main')
+      const sourceCommon =
+        gitDir === undefined
+          ? null
+          : await resolveGitCommonDirectory(path, gitDir)
+      const hintCommon =
+        sourceCommon === null
+          ? null
+          : await resolveGitCommonDirectory(safeHintPath)
+      if (
+        hintMain !== undefined &&
+        worktreePathsEqual(hintMain.path, safeHintPath) &&
+        sourceCommon !== null &&
+        hintCommon !== null &&
+        worktreePathsEqual(sourceCommon, hintCommon)
+      ) {
+        return hintMain.path
+      }
+    } catch {
+      // Continue to the authoritative administrative Git-directory fallback.
+    }
+  }
+
+  if (gitDir === undefined) {
+    return null
+  }
+
+  const mainWorktree = (await listWorktreesFromGitDir(gitDir)).find(
+    wt => wt.type === 'main'
+  )
+
+  return mainWorktree === undefined ||
+    worktreePathsEqual(mainWorktree.path, path)
+    ? null
+    : mainWorktree.path
 }
 
 export async function addWorktree(

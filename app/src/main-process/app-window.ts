@@ -33,6 +33,7 @@ import {
 } from '../lib/agent-commands'
 import { ISelfHostedServerProvisioningProgress } from '../lib/self-hosted-server/provisioning'
 import { ISelfHostedRunnerProgress } from '../lib/self-hosted-runner/types'
+import { IBrowserExtensionDownloadProgress } from '../lib/browser-extension-download'
 import {
   AppWindowRendererFailure,
   isFatalRendererLoadFailure,
@@ -617,6 +618,16 @@ export class AppWindow {
     ipcWebContents.send(
       this.window.webContents,
       'self-hosted-runner-progress',
+      progress
+    )
+  }
+
+  public sendBrowserExtensionDownloadProgress(
+    progress: IBrowserExtensionDownloadProgress
+  ) {
+    ipcWebContents.send(
+      this.window.webContents,
+      'browser-extension-download-progress',
       progress
     )
   }

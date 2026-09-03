@@ -8,8 +8,6 @@ import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { SearchableSelect } from '../lib/searchable-select'
 import { TextBox } from '../lib/text-box'
 import { LinkButton } from '../lib/link-button'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { FilterMode } from '../../lib/fuzzy-find'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import {
@@ -39,6 +37,7 @@ import {
   ActionsLocalRunTerminalPhases,
 } from '../../lib/actions-local-run/types'
 import { t, LanguageModeChangedEvent } from '../../lib/i18n'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /** The URLs surfaced when the local-run toolchain is missing. */
 const ActInstallDocsUrl = 'https://nektosact.com/installation/index.html'
@@ -155,7 +154,7 @@ class ActionsLocalRunSecretRow extends React.Component<IActionsLocalRunSecretRow
           ariaLabel={t('actionsLocalRun.removeSecret')}
           onClick={this.onRemove}
         >
-          <Octicon symbol={octicons.trash} />
+          <MaterialSymbol name="delete" />
         </Button>
       </div>
     )

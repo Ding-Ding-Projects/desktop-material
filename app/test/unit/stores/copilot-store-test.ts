@@ -1,9 +1,13 @@
 import type { CopilotClient, CopilotSession } from '@github/copilot-sdk'
-import type { Model } from '@github/copilot-sdk/dist/generated/rpc'
+import type {
+  AccountQuotaSnapshot,
+  Model,
+} from '@github/copilot-sdk/dist/generated/rpc'
 import assert from 'node:assert'
 import { after, before, describe, it } from 'node:test'
 import { getDotComAPIEndpoint } from '../../../src/lib/api'
 import { AccountsStore } from '../../../src/lib/stores/accounts-store'
+import { runBoundedCopilotAccountRefreshes } from '../../../src/lib/stores/app-store'
 import {
   CommitMessageGenerationCancelledError,
   CopilotConflictResolutionAbortError,
@@ -12,10 +16,15 @@ import {
   CopilotStore,
   DefaultCopilotModel,
   getCopilotGHHost,
+  getCopilotAccountCacheKey,
   getCopilotModelCacheKey,
   getLowestReasoningEffort,
   getPreferredDefaultModel,
   getSupportedReasoningEffort,
+  migrateCopilotModelSelectionsToAccounts,
+  migrateCopilotModelSelectionsStorage,
+  readCopilotModelSelectionsByAccount,
+  writeCopilotModelSelectionsByAccount,
   isCopilotConflictResolutionAbortError,
   runConflictResolutionTurn,
 } from '../../../src/lib/stores/copilot-store'
@@ -79,10 +88,10 @@ function makeAccount(overrides: IAccountOverrides = {}): Account {
     overrides.id ?? 1,
     overrides.name ?? login,
     'free',
-    undefined,
-    undefined,
-    undefined,
-    undefined,
+    'https://copilot-proxy.githubusercontent.com',
+    true,
+    ['desktop_enable_copilot_sdk_commit_message_generation'],
+    'COPILOT_INDIVIDUAL',
     overrides.provider ?? 'github'
   )
 }
@@ -141,6 +150,45 @@ function createCopilotStoreWithModels(
     createClientAccounts,
     stopCount: () => stopCount,
   }
+}
+
+function makeQuotaSnapshot(
+  overrides: Partial<AccountQuotaSnapshot> = {}
+): AccountQuotaSnapshot {
+  return {
+    isUnlimitedEntitlement: false,
+    entitlementRequests: 100,
+    usedRequests: 25,
+    usageAllowedWithExhaustedQuota: false,
+    remainingPercentage: 75,
+    overage: 0,
+    overageAllowedWithExhaustedQuota: false,
+    resetDate: new Date(Date.now() + 60_000).toISOString(),
+    ...overrides,
+  }
+}
+
+function createCopilotStoreWithQuota(
+  readQuota: (
+    account: Account
+  ) => Promise<Readonly<Record<string, AccountQuotaSnapshot>>>
+): { readonly accountsStore: AccountsStore; readonly store: CopilotStore } {
+  const accountsStore = createAccountsStore()
+  const store = new CopilotStore(accountsStore)
+  const testableStore = store as unknown as {
+    createClient(account: Account): Promise<CopilotClient>
+  }
+  testableStore.createClient = async account =>
+    ({
+      start: async () => {},
+      stop: async () => {},
+      rpc: {
+        account: {
+          getQuota: async () => ({ quotaSnapshots: await readQuota(account) }),
+        },
+      },
+    } as unknown as CopilotClient)
+  return { accountsStore, store }
 }
 
 function makeModel(
@@ -536,6 +584,203 @@ describe('CopilotStore model cache', () => {
     assert.strictEqual(store.getCachedModelList(account), null)
     assert.strictEqual(await store.listModels(account), freshModels)
     assert.strictEqual(store.getCachedModelList(account), freshModels)
+  })
+})
+
+describe('Copilot account model and quota isolation', () => {
+  let previousPreviewFeatures: string | undefined
+
+  before(() => {
+    previousPreviewFeatures = process.env[PreviewFeaturesEnv]
+    process.env[PreviewFeaturesEnv] = '1'
+  })
+
+  after(() => {
+    if (previousPreviewFeatures === undefined)
+      delete process.env[PreviewFeaturesEnv]
+    else process.env[PreviewFeaturesEnv] = previousPreviewFeatures
+  })
+
+  it('migrates legacy model choices to both accounts without overwriting an override', () => {
+    const first = makeAccount({ id: 1 })
+    const second = makeAccount({ id: 2 })
+    const migrated = migrateCopilotModelSelectionsToAccounts(
+      { 'commit-message-generation': 'legacy' },
+      new Map([
+        [
+          getCopilotAccountCacheKey(first),
+          { 'commit-message-generation': 'first' },
+        ],
+      ]),
+      [first, second]
+    )
+    assert.deepStrictEqual(migrated.get(getCopilotAccountCacheKey(first)), {
+      'commit-message-generation': 'first',
+    })
+    assert.deepStrictEqual(migrated.get(getCopilotAccountCacheKey(second)), {
+      'commit-message-generation': 'legacy',
+    })
+  })
+
+  it('keeps quota snapshots per account and reports no invented data', async () => {
+    const first = makeAccount({ id: 1 })
+    const second = makeAccount({ id: 2 })
+    const { accountsStore, store } = createCopilotStoreWithQuota(
+      async account =>
+        (account.id === 1 ? { chat: makeQuotaSnapshot() } : {}) as Readonly<
+          Record<string, AccountQuotaSnapshot>
+        >
+    )
+    await accountsStore.addAccount(first)
+    await accountsStore.addAccount(second)
+
+    const firstSnapshot = await store.getQuotaSnapshots(first)
+    const secondSnapshot = await store.getQuotaSnapshots(second)
+    assert.strictEqual(firstSnapshot?.get('chat')?.usedRequests, 25)
+    assert.strictEqual(firstSnapshot?.get('chat')?.tokenBasedBilling, false)
+    assert.strictEqual(secondSnapshot?.size, 0)
+    assert.strictEqual(store.getQuotaSnapshotState(second).status, 'available')
+    assert.strictEqual(
+      store.getCachedQuotaSnapshots(makeAccount({ id: 99 })),
+      null
+    )
+  })
+
+  it('drops in-flight quota data after sign-out and never restores it', async () => {
+    const account = makeAccount()
+    const deferred =
+      createDeferred<Readonly<Record<string, AccountQuotaSnapshot>>>()
+    const { accountsStore, store } = createCopilotStoreWithQuota(
+      () => deferred.promise
+    )
+    await accountsStore.addAccount(account)
+    const request = store.getQuotaSnapshots(account)
+    await accountsStore.removeAccount(account)
+    deferred.resolve({ chat: makeQuotaSnapshot() })
+    await request
+    assert.strictEqual(store.getCachedQuotaSnapshots(account), null)
+    assert.strictEqual(
+      store.getQuotaSnapshotState(account).status,
+      'unavailable'
+    )
+  })
+
+  it('does not create transport for an unlicensed account', async () => {
+    const account = makeAccount()
+    const noAccess = new Account(
+      account.login,
+      account.endpoint,
+      account.token,
+      account.emails,
+      account.avatarURL,
+      account.id,
+      account.name,
+      account.plan,
+      account.copilotEndpoint,
+      true,
+      account.features,
+      'NO_ACCESS'
+    )
+    const { accountsStore, store, createClientAccounts } =
+      createCopilotStoreWithModels(() => [])
+    await accountsStore.addAccount(noAccess)
+    assert.strictEqual(await store.listModels(noAccess), null)
+    assert.strictEqual(createClientAccounts.length, 0)
+  })
+
+  it('persists account selections idempotently and removes legacy keys after migration', () => {
+    const values = new Map<string, string>()
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+    }
+    const selections = new Map([
+      ['1:https://api.github.com', { 'commit-message-generation': 'auto' }],
+    ])
+    writeCopilotModelSelectionsByAccount(selections, storage)
+    const first = values.get('selected-copilot-models-by-account')
+    writeCopilotModelSelectionsByAccount(selections, storage)
+    assert.strictEqual(values.get('selected-copilot-models-by-account'), first)
+    assert.deepStrictEqual(
+      readCopilotModelSelectionsByAccount(storage).get(
+        '1:https://api.github.com'
+      ),
+      { 'commit-message-generation': 'auto' }
+    )
+    values.set(
+      'selected-copilot-models',
+      JSON.stringify({ 'conflict-resolution': 'legacy-conflict' })
+    )
+    migrateCopilotModelSelectionsStorage(
+      [makeAccount({ id: 1 }), makeAccount({ id: 2 })],
+      storage
+    )
+    assert.strictEqual(values.has('selected-copilot-models'), false)
+    assert.strictEqual(values.has('selected-copilot-model'), false)
+    assert.deepStrictEqual(
+      readCopilotModelSelectionsByAccount(storage).get(
+        '2:https://api.github.com'
+      ),
+      { 'conflict-resolution': 'legacy-conflict' }
+    )
+  })
+
+  it('does not restore an out-of-order quota response after re-authentication', async () => {
+    const account = makeAccount()
+    const stale =
+      createDeferred<Readonly<Record<string, AccountQuotaSnapshot>>>()
+    let fetchCount = 0
+    const { accountsStore, store } = createCopilotStoreWithQuota(() => {
+      fetchCount += 1
+      return fetchCount === 1
+        ? stale.promise
+        : Promise.resolve({
+            chat: makeQuotaSnapshot({ usedRequests: 80 }),
+          } as Readonly<Record<string, AccountQuotaSnapshot>>)
+    })
+
+    await accountsStore.addAccount(account)
+    const staleRequest = store.getQuotaSnapshots(account)
+    await accountsStore.removeAccount(account)
+    await accountsStore.addAccount(account)
+    const freshRequest = store.getQuotaSnapshots(account)
+    stale.resolve({ chat: makeQuotaSnapshot({ usedRequests: 5 }) })
+
+    await staleRequest
+    await freshRequest
+    assert.strictEqual(
+      store.getCachedQuotaSnapshots(account)?.get('chat')?.usedRequests,
+      80
+    )
+  })
+
+  it('starts the next account as soon as a worker slot frees', async () => {
+    const accounts = [makeAccount({ id: 1 }), makeAccount({ id: 2 }), makeAccount({ id: 3 })]
+    const first = createDeferred<string>()
+    const second = createDeferred<string>()
+    const third = createDeferred<string>()
+    const started: number[] = []
+    const refresh = (account: Account) => {
+      started.push(account.id)
+      if (account.id === 1) return first.promise
+      if (account.id === 3) return third.promise
+      return second.promise
+    }
+    const run = runBoundedCopilotAccountRefreshes(accounts, refresh, 2)
+    await Promise.resolve()
+    assert.deepStrictEqual(started, [1, 2])
+    second.resolve('second')
+    await Promise.resolve()
+    assert.deepStrictEqual(started, [1, 2, 3])
+    first.resolve('first')
+    third.resolve('third')
+    const results = await run
+    assert.deepStrictEqual(results.map(result => result.status), [
+      'fulfilled',
+      'fulfilled',
+      'fulfilled',
+    ])
   })
 })
 

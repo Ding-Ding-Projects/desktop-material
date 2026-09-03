@@ -11,8 +11,6 @@ import { join } from 'path'
 import { Repository } from '../../../models/repository'
 import { Dispatcher } from '../../dispatcher'
 import { showContextualMenu } from '../../../lib/menu-item'
-import { Octicon } from '../../octicons'
-import * as octicons from '../../octicons/octicons.generated'
 import { PathText } from '../path-text'
 import { ManualConflictResolution } from '../../../models/manual-conflict-resolution'
 import {
@@ -31,6 +29,7 @@ import { revealInFileManager } from '../../../lib/app-shell'
 import { externalOpenTarget } from '../../../lib/external-open-guard'
 import { ExternalOpenBusy } from '../external-open-busy'
 import { DialogPreferredFocusClassName } from '../../dialog'
+import { MaterialSymbol } from '../material-symbol'
 
 const defaultConflictsResolvedMessage = 'No conflicts remaining'
 
@@ -148,7 +147,7 @@ const renderResolvedFile: React.FunctionComponent<{
   )
   return (
     <li key={props.path} className="unmerged-file-status-resolved">
-      <Octicon symbol={octicons.fileCode} className="file-octicon" />
+      <MaterialSymbol name="code" className="file-octicon" />
       <div className="column-left" id={props.path}>
         <PathText path={props.path} />
         <div className="file-conflicts-status">{fileStatusSummary}</div>
@@ -167,7 +166,7 @@ const renderResolvedFile: React.FunctionComponent<{
         </Button>
       )}
       <div className="green-circle">
-        <Octicon symbol={octicons.check} />
+        <MaterialSymbol name="check" />
       </div>
     </li>
   )
@@ -235,7 +234,7 @@ const renderManualConflictedFile: React.FunctionComponent<{
           onKeyDown={onDropdownKeyDown}
         >
           Resolve
-          <Octicon symbol={octicons.triangleDown} />
+          <MaterialSymbol name="arrow_drop_down" />
         </Button>
       </div>
     </>
@@ -250,7 +249,7 @@ function renderConflictedFileWrapper(
 ): JSX.Element {
   return (
     <li key={path} className="unmerged-file-status-conflicts">
-      <Octicon symbol={octicons.fileCode} className="file-octicon" />
+      <MaterialSymbol name="code" className="file-octicon" />
       {content}
     </li>
   )
@@ -337,7 +336,7 @@ const renderConflictedFileWithConflictMarkers: React.FunctionComponent<{
           ariaHaspopup="menu"
           ariaExpanded={props.isFileResolutionOptionsMenuOpen}
         >
-          <Octicon symbol={octicons.triangleDown} />
+          <MaterialSymbol name="arrow_drop_down" />
         </Button>
       </div>
     </>

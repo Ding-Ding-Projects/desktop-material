@@ -391,7 +391,6 @@ export function Md3LocksView(props: IMd3LocksViewProps) {
   const [focusIndex, setFocusIndex] = React.useState(0)
   const [exportOpen, setExportOpen] = React.useState(false)
   const [gateOpen, setGateOpen] = React.useState(false)
-  const [builderSeed, setBuilderSeed] = React.useState<string | null>(null)
 
   const anchorIndex = React.useRef<number | null>(null)
   const exportButtonRef = React.useMemo(
@@ -637,12 +636,6 @@ export function Md3LocksView(props: IMd3LocksViewProps) {
   const onOpenGate = React.useCallback(() => setGateOpen(true), [])
   const onCloseGate = React.useCallback(() => setGateOpen(false), [])
 
-  const onMenuOpenBuilder = React.useCallback((pattern: string) => {
-    setExportOpen(false)
-    setBuilderSeed(pattern)
-    setBuilderOpen(true)
-  }, [])
-
   const bulkActions = React.useMemo((): ReadonlyArray<IMd3BulkAction> => {
     return [
       {
@@ -851,15 +844,16 @@ export function Md3LocksView(props: IMd3LocksViewProps) {
         <Md3MenuOverlay
           spec={exportMenuSpec}
           onDismiss={onCloseExport}
-          onOpenRegexBuilder={onMenuOpenBuilder}
           returnFocusTo={exportButtonRef}
+          instanceId="locks-export"
+          anchor={exportButtonRef.current}
         />
       ) : null}
 
       {builderOpen ? (
         <Md3RegexBuilderDialog
           targetLabel={t('md3.locks.search.fieldLabel')}
-          initialPattern={builderSeed ?? query}
+          initialPattern={query}
           sampleItems={builderSamples}
           onApply={onApplyPattern}
           onDismissed={onCloseBuilder}

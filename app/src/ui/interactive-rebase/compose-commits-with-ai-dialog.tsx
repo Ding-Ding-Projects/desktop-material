@@ -6,8 +6,6 @@ import { Dispatcher } from '../dispatcher'
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { Loading } from '../lib/loading'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { RebaseResult } from '../../lib/git'
 import {
   IInteractiveRebasePlan,
@@ -19,6 +17,7 @@ import {
   IInteractiveRebaseEditorLabels,
   InteractiveRebaseEditor,
 } from './interactive-rebase-editor'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IComposeCommitsWithAIDialogProps {
   readonly dispatcher: Dispatcher
@@ -261,7 +260,7 @@ export class ComposeCommitsWithAIDialog extends React.Component<
         return (
           <DialogContent>
             <div className="compose-commits-with-ai-dialog__result">
-              <Octicon symbol={octicons.checkCircleFill} />
+              <MaterialSymbol name="check_circle" />
               <p>History was rewritten successfully.</p>
             </div>
           </DialogContent>

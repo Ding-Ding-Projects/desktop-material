@@ -6,6 +6,7 @@ import { Octicon, OcticonSymbol } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { RelativeTime } from '../relative-time'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IGitHubNotificationListItemProps {
   readonly thread: IAPINotificationThread
@@ -125,7 +126,7 @@ export class GitHubNotificationListItem extends React.PureComponent<IGitHubNotif
             disabled={busy}
             onClick={this.onMarkRead}
           >
-            <Octicon symbol={octicons.check} />
+            <MaterialSymbol name="check" />
           </button>
         ) : null}
         <button
@@ -135,7 +136,7 @@ export class GitHubNotificationListItem extends React.PureComponent<IGitHubNotif
           disabled={busy}
           onClick={this.onRequestDone}
         >
-          <Octicon symbol={octicons.archive} />
+          <MaterialSymbol name="archive" />
         </button>
       </li>
     )

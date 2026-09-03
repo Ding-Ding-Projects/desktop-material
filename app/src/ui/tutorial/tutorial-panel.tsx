@@ -4,8 +4,6 @@ import { LinkButton } from '../lib/link-button'
 import { Button } from '../lib/button'
 import { Repository } from '../../models/repository'
 import { Dispatcher } from '../dispatcher'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import {
   ValidTutorialStep,
   TutorialStep,
@@ -18,6 +16,7 @@ import { Ref } from '../lib/ref'
 import { suggestedExternalEditor } from '../../lib/editors/shared'
 import { TutorialStepInstructions } from './tutorial-step-instruction'
 import { KeyboardShortcut } from '../keyboard-shortcut/keyboard-shortcut'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 const TutorialPanelImage = encodePathAsUrl(
   __dirname,
@@ -257,7 +256,7 @@ export class TutorialPanel extends React.Component<
             <div className="action">
               <Button onClick={this.openPullRequest} role="link">
                 {__DARWIN__ ? 'Open Pull Request' : 'Open pull request'}
-                <Octicon symbol={octicons.linkExternal} />
+                <MaterialSymbol name="open_in_new" />
               </Button>
               <KeyboardShortcut darwinKeys={['⌘', 'R']} keys={['Ctrl', 'R']} />
             </div>

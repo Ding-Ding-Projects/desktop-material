@@ -28,7 +28,7 @@ describe('temporary submodule viewer UI contract', () => {
     )
     assert.match(
       styles,
-      /\.submodule-context-close\.button-component\s*\{[\s\S]*?min-height: 34px;[\s\S]*?border-radius: 999px;/
+      /\.submodule-context-close\.button-component\s*\{[\s\S]*?min-height: 34px;[\s\S]*?border-radius: var\(--md-sys-shape-corner-full\);/
     )
     assert.match(
       styles,

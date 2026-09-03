@@ -4,20 +4,19 @@ import { encodePathAsUrl } from '../../lib/path'
 import { Dispatcher } from '../dispatcher'
 import { Repository } from '../../models/repository'
 import { PopupType } from '../../models/popup'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { SuggestedAction } from '../suggested-actions'
 import { SuggestedActionGroup } from '../suggested-actions'
 import { DefaultAppDisplayName } from '../../models/app-identity'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 const ClappingHandsImage = encodePathAsUrl(
   __dirname,
   'static/admin-mentoring.svg'
 )
 
-const TelescopeOcticon = <Octicon symbol={octicons.telescope} />
-const PlusOcticon = <Octicon symbol={octicons.plus} />
-const FileDirectoryOcticon = <Octicon symbol={octicons.fileDirectory} />
+const TelescopeOcticon = <MaterialSymbol name="travel_explore" />
+const PlusOcticon = <MaterialSymbol name="add" />
+const FileDirectoryOcticon = <MaterialSymbol name="folder" />
 
 interface ITutorialDoneProps {
   readonly dispatcher: Dispatcher

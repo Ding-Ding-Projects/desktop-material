@@ -50,6 +50,38 @@ function literalAttribute(tag: string, attribute: string): string | null {
   return match?.[1] ?? match?.[2] ?? null
 }
 
+function sourceStringConstants(contents: string): ReadonlyMap<string, string> {
+  const constants = new Map<string, string>()
+  for (const match of contents.matchAll(
+    /\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*(['"])([^'"\r\n]+)\2/g
+  )) {
+    constants.set(match[1], match[3])
+  }
+  return constants
+}
+
+function attributeValue(
+  tag: string,
+  attribute: string,
+  constants: ReadonlyMap<string, string>,
+  allowedConstant?: string
+): string | null {
+  const literal = literalAttribute(tag, attribute)
+  if (literal !== null) {
+    return literal
+  }
+  if (allowedConstant === undefined) {
+    return null
+  }
+  const escaped = attribute.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const expression = tag.match(
+    new RegExp(
+      `\\b${escaped}=\\{\\s*(${allowedConstant ?? '[A-Za-z_$][\\w$]*'})\\s*\\}`
+    )
+  )
+  return expression === null ? null : constants.get(expression[1]) ?? null
+}
+
 function literalFilterListIds(contents: string): ReadonlyArray<string> {
   return [
     ...contents.matchAll(
@@ -71,7 +103,14 @@ function markedTags(
 ): ReadonlyArray<IMarkedTag> {
   return [...sources].flatMap(([relativePath, contents]) =>
     jsxTags(contents, component).flatMap(tag => {
-      const id = literalAttribute(tag, attribute)
+      const id = attributeValue(
+        tag,
+        attribute,
+        sourceStringConstants(contents),
+        relativePath === 'tag/tag-lifecycle-manager.tsx'
+          ? 'TagLifecycleFilterListId'
+          : undefined
+      )
       return id === null ? [] : [{ id, source: relativePath, tag }]
     })
   )

@@ -16,7 +16,7 @@ input[type='checkbox'] {
   margin: 0;
   flex: none;
   border: 2px solid var(--md-sys-color-on-surface-variant);
-  border-radius: 4px;
+  border-radius: var(--md-sys-shape-corner-extra-small);
   background: transparent;
   cursor: pointer;
   position: relative;
@@ -124,14 +124,14 @@ input[type='range'] {
   margin: 0;
   padding: 0;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   background: var(--md-sys-color-secondary-container);
   overflow: hidden;
   cursor: pointer;
 
   &::-webkit-slider-runnable-track {
     height: 16px;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: transparent;
   }
 
@@ -163,6 +163,43 @@ input[type='range'] {
   }
 }
 
+// Keep the visible track and thumb compact while giving the shared control a
+// full 40px pointer and keyboard target. The progress fill is painted by the
+// wrapper behind the input, while focus rings stay attached to the real native
+// control.
+.range-slider-input-hit-target {
+  align-items: center;
+  display: flex;
+  min-height: 40px;
+  min-width: 0;
+  position: relative;
+
+  > input[type='range'] {
+    background: transparent;
+    height: 40px;
+    position: relative;
+    width: 100%;
+  }
+
+  &::before {
+    background: linear-gradient(
+      to right,
+      var(--md-sys-color-primary) 0%,
+      var(--md-sys-color-primary) var(--range-slider-progress, 0%),
+      var(--md-sys-color-secondary-container) var(--range-slider-progress, 0%),
+      var(--md-sys-color-secondary-container) 100%
+    );
+    border-radius: var(--md-sys-shape-corner-full);
+    content: '';
+    height: 16px;
+    left: 0;
+    pointer-events: none;
+    position: absolute;
+    right: 0;
+    top: 12px;
+  }
+}
+
 // ---------------------------------------------------------------- progress
 // M3 linear progress: 6px rounded track in secondary-container, primary bar.
 progress {
@@ -170,18 +207,18 @@ progress {
   -webkit-appearance: none;
   height: 6px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   overflow: hidden;
   background: var(--md-sys-color-secondary-container);
 
   &::-webkit-progress-bar {
     background: var(--md-sys-color-secondary-container);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
   }
 
   &::-webkit-progress-value {
     background: var(--md-sys-color-primary);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     transition: width 200ms ease;
   }
 }
@@ -189,7 +226,103 @@ progress {
 // M3 buttons: full-radius pills (filled primary for submit/primary, tonal
 // outline-free secondary), overriding the 6px legacy radius in one place.
 .button-component {
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   min-height: 32px;
   padding: 0 var(--spacing-double);
+}
+
+// ---------------------------------------------------------------------------
+// Bare form controls
+//
+// 297 raw `<button>`, 202 raw `<input>`, 74 native `<select>` and 27
+// `<textarea>` elements are rendered across the tree without going through a
+// wrapper component. Any selector carrying a class outranks a bare element
+// selector, so what these rules actually reach is the set nothing else styles —
+// the controls that were rendering as operating-system chrome in the middle of
+// a Material Design 3 interface.
+//
+// Deliberately the closed state only. A native `<select>` keeps its own arrow
+// and its own option popup: stripping the arrow with `appearance: none` here
+// would leave a field with no affordance at all, and the popup is drawn by the
+// operating system and cannot be reached from CSS. `.select-component` still
+// overrides all of this and overlays a Material chevron of its own, because a
+// class selector wins on specificity.
+// ---------------------------------------------------------------------------
+
+%md-bare-field {
+  background: var(--md-sys-color-surface-container-highest);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-sys-shape-corner-extra-small);
+  color: var(--md-sys-color-on-surface);
+  font: var(--md-sys-typescale-body-medium);
+  // A minimum rather than a fixed height, so a longer value or a larger display
+  // scale grows the control instead of being clipped by it.
+  min-height: 40px;
+  padding: 0 12px;
+
+  &:focus-visible {
+    border-color: var(--md-sys-color-primary);
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: -1px;
+  }
+
+  &:disabled {
+    color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+    cursor: default;
+  }
+
+  &::placeholder {
+    color: var(--md-sys-color-on-surface-variant);
+  }
+}
+
+select {
+  @extend %md-bare-field;
+}
+
+input[type='text'],
+input[type='search'],
+input[type='email'],
+input[type='url'],
+input[type='tel'],
+input[type='number'],
+input[type='password'] {
+  @extend %md-bare-field;
+}
+
+textarea {
+  @extend %md-bare-field;
+
+  // Multi-line by definition, so the single-line padding would crowd the first
+  // and last rows.
+  padding: 8px 12px;
+  resize: vertical;
+}
+
+// A bare `<button>` previously received nothing but `-webkit-app-region`, so
+// 297 of them rendered as operating-system chrome — a grey Windows button
+// sitting inside a Material Design 3 interface.
+//
+// This is the M3 text-button treatment rather than a filled one, and that
+// choice is deliberate: many of these are wrappers around an icon or a whole
+// list row, and giving those a filled background would be a louder mistake than
+// the one being fixed. Anything with a class of its own still overrides all of
+// it.
+button {
+  background: none;
+  border: none;
+  border-radius: var(--md-sys-shape-corner-full);
+  color: inherit;
+  cursor: pointer;
+  font: var(--md-sys-typescale-label-large);
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.38;
+  }
 }

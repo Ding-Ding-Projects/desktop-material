@@ -216,6 +216,10 @@ import { Popup, PopupType, SettingsHistoryScope } from '../../models/popup'
 import { IProfileHistoryPage, ProfileKey } from '../../models/profile'
 import { INotificationInput } from '../../models/notification-centre'
 import { INotificationAutomationRule } from '../../lib/notifications/automation/notification-automation'
+import {
+  BrowserAuthenticationActionKey,
+  singleFlightActions,
+} from '../../lib/single-flight-action'
 import { ErrorPresentationStyle } from '../../models/error-presentation'
 import { CanonicalRemoteVerificationError } from '../../lib/canonical-remote-verification-error'
 import {
@@ -364,6 +368,7 @@ import {
   WorktreeEntry,
   WorktreeMaintenanceOperation,
 } from '../../models/worktree'
+import type { ICopilotConflictApplicationResult } from '../../lib/copilot-conflict-application-safety'
 import { ICreatedGitHubIssue } from '../../lib/github-issue'
 import {
   getGitHubPullRequestHead,
@@ -3125,9 +3130,13 @@ export class Dispatcher {
    * Called when the user confirms the resolutions from the result dialog.
    */
   public applyCopilotConflictResolutions(
-    repository: Repository
-  ): Promise<void> {
-    return this.appStore._applyCopilotConflictResolutions(repository)
+    repository: Repository,
+    editedResults: ReadonlyMap<string, string> = new Map()
+  ): Promise<ICopilotConflictApplicationResult> {
+    return this.appStore._applyCopilotConflictResolutions(
+      repository,
+      editedResults
+    )
   }
 
   /** Remove the given account from the app. */
@@ -3997,18 +4006,29 @@ export class Dispatcher {
     endpoint: string,
     resultCallback?: (result: SignInResult) => void
   ) {
+    if (this.isBrowserAuthenticationActive()) {
+      return
+    }
+
     if (
       endpoint === getDotComAPIEndpoint() ||
       new URL(endpoint).hostname === 'github.com'
     ) {
       this.appStore._beginDotComSignIn(resultCallback)
-      this.requestBrowserAuthentication()
+      return this.requestBrowserAuthentication()
     } else {
       this.appStore._beginEnterpriseSignIn(resultCallback)
-      this.appStore
+      const request = this.appStore
         ._setSignInEndpoint(endpoint)
         .then(() => this.requestBrowserAuthentication())
-        .catch(e => log.error(`Error setting sign in endpoint`, e))
+        .catch(e => {
+          log.error(`Error setting sign in endpoint`, e)
+          throw e
+        })
+      void request.catch(error =>
+        log.error('Browser authentication setup failed', error)
+      )
+      return request
     }
   }
 
@@ -4024,7 +4044,11 @@ export class Dispatcher {
    * this promise will never complete.
    */
   public requestBrowserAuthentication() {
-    this.appStore._requestBrowserAuthentication()
+    const request = this.appStore._requestBrowserAuthentication()
+    void request.catch(error =>
+      log.error('Browser authentication request failed', error)
+    )
+    return request
   }
 
   /**
@@ -4039,8 +4063,18 @@ export class Dispatcher {
   public requestBrowserAuthenticationToDotcom(
     resultCallback?: (result: SignInResult) => void
   ) {
+    if (this.isBrowserAuthenticationActive()) {
+      return
+    }
     this.appStore._beginDotComSignIn(resultCallback)
-    this.requestBrowserAuthentication()
+    return this.requestBrowserAuthentication()
+  }
+
+  private isBrowserAuthenticationActive() {
+    return (
+      singleFlightActions.isActive(BrowserAuthenticationActionKey) ||
+      this.appStore._isBrowserAuthenticationActive()
+    )
   }
 
   /**
@@ -8055,15 +8089,31 @@ export class Dispatcher {
 
   /** Set the selected Copilot model for a specific feature. */
   public setSelectedCopilotModel(
+    account: Account,
     feature: CopilotFeature,
     model: string | null
   ) {
-    return this.appStore._setSelectedCopilotModel(feature, model)
+    const result = this.appStore._setSelectedCopilotModel(
+      account,
+      feature,
+      model
+    )
+    this.profileStore.onAppStateChanged()
+    return result
   }
 
   /** Replace all per-feature Copilot model selections at once. */
   public setSelectedCopilotModels(models: CopilotModelSelections) {
     return this.appStore._setSelectedCopilotModels(models)
+  }
+
+  /** Replace all account-scoped Copilot model selections at once. */
+  public setSelectedCopilotModelsByAccount(
+    models: ReadonlyMap<string, CopilotModelSelections>
+  ) {
+    const result = this.appStore._setSelectedCopilotModelsByAccount(models)
+    this.profileStore.onAppStateChanged()
+    return result
   }
 
   public setAlwaysUseCopilotForConflictResolution(value: boolean): void {
@@ -8073,6 +8123,11 @@ export class Dispatcher {
   /** Fetch the list of available Copilot models from the SDK. */
   public fetchCopilotModels(): Promise<void> {
     return this.appStore._fetchCopilotModels()
+  }
+
+  /** Fetch the account-scoped Copilot quota snapshots. */
+  public fetchCopilotQuotaSnapshots(): Promise<void> {
+    return this.appStore._fetchCopilotQuotaSnapshots()
   }
 
   /**

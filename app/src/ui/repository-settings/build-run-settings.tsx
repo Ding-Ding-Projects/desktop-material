@@ -26,6 +26,7 @@ import {
 } from '../../lib/build-run/codex'
 import { t } from '../../lib/i18n'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IBuildRunSettingsProps {
   readonly repository: Repository
@@ -293,7 +294,7 @@ export class BuildRunSettings extends React.Component<
       return (
         <section className="build-run-section">
           <h3 className="build-run-section-title">
-            <Octicon symbol={octicons.play} />
+            <MaterialSymbol name="play_arrow" />
             Detected projects and build profiles
           </h3>
           <p className="build-run-empty">Detecting build profiles…</p>
@@ -305,7 +306,7 @@ export class BuildRunSettings extends React.Component<
       return (
         <section className="build-run-section">
           <h3 className="build-run-section-title">
-            <Octicon symbol={octicons.play} />
+            <MaterialSymbol name="play_arrow" />
             Detected projects and build profiles
           </h3>
           <p className="build-run-empty">
@@ -324,7 +325,7 @@ export class BuildRunSettings extends React.Component<
     return (
       <section className="build-run-section">
         <h3 className="build-run-section-title">
-          <Octicon symbol={octicons.play} />
+          <MaterialSymbol name="play_arrow" />
           Default project and build profile
         </h3>
         <p className="build-run-section-description">
@@ -369,7 +370,7 @@ export class BuildRunSettings extends React.Component<
     return (
       <section className="build-run-section">
         <h3 className="build-run-section-title">
-          <Octicon symbol={octicons.terminal} />
+          <MaterialSymbol name="terminal" />
           Command overrides — {getBuildProfileDisplayName(active)}
         </h3>
         <p className="build-run-section-description">
@@ -411,7 +412,7 @@ export class BuildRunSettings extends React.Component<
           ariaLiveMessage="Runs the whole chain elevated behind a single UAC prompt. Adaptive output-driven auto-fix is unavailable while elevated; only pre-expanded fallback commands run."
           tooltip="Runs the whole chain elevated behind a single UAC prompt. Because the elevated process runs at a higher integrity level, adaptive output-driven auto-fix is unavailable — only pre-expanded fallback commands run."
         >
-          <Octicon symbol={octicons.info} />
+          <MaterialSymbol name="info" />
         </ToggledtippedContent>
       </span>
     )
@@ -427,7 +428,7 @@ export class BuildRunSettings extends React.Component<
           ariaLiveMessage="When a required toolchain is missing, install it automatically with winget on Windows, Homebrew on macOS, or Corepack, pip and gem anywhere, refresh PATH, and continue the build. May prompt for administrator access on Windows."
           tooltip="When a required toolchain (Node, Python, Go, Rust, .NET, Java, Ruby, PHP…) is missing, install it automatically — winget behind a single UAC prompt on Windows, Homebrew on macOS, Corepack/pip/gem for package managers — refresh PATH, then continue the build."
         >
-          <Octicon symbol={octicons.info} />
+          <MaterialSymbol name="info" />
         </ToggledtippedContent>
       </span>
     )
@@ -441,7 +442,7 @@ export class BuildRunSettings extends React.Component<
           ariaLiveMessage={t('buildRun.offerAgentsHelp')}
           tooltip={t('buildRun.offerAgentsHelp')}
         >
-          <Octicon symbol={octicons.info} />
+          <MaterialSymbol name="info" />
         </ToggledtippedContent>
       </span>
     )
@@ -475,7 +476,7 @@ export class BuildRunSettings extends React.Component<
                 })
           }
         >
-          <Octicon symbol={octicons.alert} />
+          <MaterialSymbol name="warning" />
         </ToggledtippedContent>
       </span>
     )
@@ -483,7 +484,7 @@ export class BuildRunSettings extends React.Component<
     return (
       <section className="build-run-section">
         <h3 className="build-run-section-title">
-          <Octicon symbol={octicons.gear} />
+          <MaterialSymbol name="settings" />
           Behaviour
         </h3>
         <div className="build-run-toggles">

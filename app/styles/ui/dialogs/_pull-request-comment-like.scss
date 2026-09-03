@@ -1,7 +1,10 @@
 #pull-request-review,
 #pull-request-comment {
   --avatar-size: 40px;
-  min-width: 500px;
+  // A 500px floor is not reachable in a window narrower than 500px, so the
+  // dialog overflowed rather than shrinking. Ask for 500px and take less.
+  width: min(500px, 100%);
+  min-width: 0;
 
   .dialog-header {
     height: unset;
@@ -179,7 +182,7 @@
       }
       .sandboxed-markdown-iframe-container {
         padding-left: 15px;
-        border-left: 2px solid var(--border-color);
+        border-left: 2px solid var(--md-sys-color-outline-variant);
         width: 100%;
       }
     }

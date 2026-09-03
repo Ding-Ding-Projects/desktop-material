@@ -1,10 +1,29 @@
 import * as React from 'react'
 import { FilterMode } from '../../lib/fuzzy-find'
 import { t } from '../../lib/i18n'
+import { compileSafeRegex } from '../../lib/safe-regex'
 import { filterByMode } from '../lib/filter-string-list'
 import { MaterialSymbol } from '../lib/material-symbol'
 import { createObservableRef } from '../lib/observable-ref'
-import { Md3IconButton, Md3SearchField, Md3TonalButton } from './md3-primitives'
+import {
+  IRegexFlags,
+  flagsToString,
+} from '../lib/regex-builder/regex-block-model'
+import {
+  md3SearchPatternError,
+  Md3IconButton,
+  Md3SearchField,
+  Md3TonalButton,
+} from './md3-primitives'
+import {
+  IMd3RegexBuilderApplication,
+  Md3RegexBuilderDialog,
+} from './md3-regex-builder-dialog'
+import {
+  Popover,
+  PopoverAnchorPosition,
+  PopoverDecoration,
+} from '../lib/popover'
 import { IMd3MenuItem, IMd3MenuSpec } from './md3-menu-specs'
 
 /**
@@ -45,8 +64,44 @@ export interface IMd3MenuFilterResult {
 export function filterMenuItems(
   items: ReadonlyArray<IMd3MenuItem>,
   query: string,
-  regexEnabled: boolean
+  regexEnabled: boolean,
+  flags: IRegexFlags = {
+    g: false,
+    i: true,
+    m: false,
+    s: false,
+    u: false,
+    y: false,
+  }
 ): IMd3MenuFilterResult {
+  if (regexEnabled) {
+    const pattern = `${flags.m ? '(?m)' : ''}${flags.s ? '(?s)' : ''}${query}`
+    const compilation = compileSafeRegex(pattern, !flags.i)
+    if (compilation.regex === null) {
+      return { items, patternInvalid: true }
+    }
+    const result = filterByMode(
+      items,
+      item => [item.label],
+      pattern,
+      FilterMode.Regex,
+      !flags.i
+    )
+    if (result.regexError !== null) {
+      return { items, patternInvalid: true }
+    }
+    if (!flags.y) {
+      return { items: result.items, patternInvalid: false }
+    }
+    return {
+      items: result.items.filter(item => {
+        const first = compilation.regex?.findAll(item.label, 1).matches[0]
+        return first !== undefined && first.index === 0
+      }),
+      patternInvalid: false,
+    }
+  }
+
   const result = filterByMode(
     items,
     item => [item.label],
@@ -58,6 +113,22 @@ export function filterMenuItems(
     items: result.items,
     patternInvalid: result.regexError !== null,
   }
+}
+
+function menuPatternError(
+  value: string,
+  regexEnabled: boolean,
+  flags: IRegexFlags
+): string | null {
+  const baseError = md3SearchPatternError(value, regexEnabled)
+  if (baseError !== null || !regexEnabled || value.trim().length === 0) {
+    return baseError
+  }
+  const pattern = `${flags.m ? '(?m)' : ''}${flags.s ? '(?s)' : ''}${value}`
+  const compilation = compileSafeRegex(pattern, !flags.i)
+  return compilation.error === null
+    ? null
+    : t('md3.search.invalidPattern', { reason: compilation.error })
 }
 
 /**
@@ -124,7 +195,17 @@ export interface IMd3MenuOverlayProps {
    * Open the regex builder seeded with the filter's current text, as the
    * contract's `openMenuBuilder` does.
    */
-  readonly onOpenRegexBuilder: (pattern: string) => void
+  /** Explicit identity for this concrete menu instance. */
+  readonly instanceId?: string
+
+  /** Alias accepted by callers that name the value as a menu instance. */
+  readonly menuInstanceId?: string
+
+  /** Optional pointer/trigger anchor. Omit for the centered fallback. */
+  readonly anchor?: HTMLElement | null
+
+  /** Preferred Floating UI edge for an anchored menu. */
+  readonly anchorPosition?: PopoverAnchorPosition
 
   /**
    * The control that opened the menu, so focus can go back to it on close.
@@ -155,6 +236,20 @@ interface IMd3MenuOverlayState {
   readonly filter: string
 
   readonly regexEnabled: boolean
+
+  readonly pattern: string
+
+  readonly flags: IRegexFlags
+
+  readonly validation: string | null
+
+  readonly mode: 'substring' | 'regex'
+
+  readonly history: ReadonlyArray<string>
+
+  readonly builderOpen: boolean
+
+  readonly centeredFallback: boolean
 }
 
 /** Focusable descendants of the panel, in tab order. */
@@ -165,23 +260,93 @@ const FocusableSelector = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(', ')
 
+interface IPopoverMenuSurfaceProps {
+  readonly anchor: HTMLElement
+  readonly anchorPosition: PopoverAnchorPosition
+  readonly onDismiss: () => void
+  readonly children: React.ReactNode
+}
+
+/** The bounded Floating UI envelope used by trigger-owned menu instances. */
+function PopoverMenuSurface(props: IPopoverMenuSurfaceProps) {
+  return (
+    <Popover
+      anchor={props.anchor}
+      anchorPosition={props.anchorPosition}
+      decoration={PopoverDecoration.Bordered}
+      isDialog={false}
+      style={{ zIndex: 40 }}
+      onClickOutside={props.onDismiss}
+      onMousedownOutside={props.onDismiss}
+    >
+      {props.children}
+    </Popover>
+  )
+}
+
 export class Md3MenuOverlay extends React.Component<
   IMd3MenuOverlayProps,
   IMd3MenuOverlayState
 > {
+  private static nextInstanceId = 0
+
+  private readonly instanceId: string
+
+  private readonly searchSurfaceId: string
+
   private readonly panelRef = createObservableRef<HTMLDivElement>()
   private readonly listRef = createObservableRef<HTMLDivElement>()
   private readonly filterRef = createObservableRef<HTMLInputElement>()
+  private readonly builderButtonRef = createObservableRef<HTMLButtonElement>()
 
   /** Whatever held focus when the menu opened, restored when it closes. */
   private previouslyFocused: HTMLElement | null = null
 
   public constructor(props: IMd3MenuOverlayProps) {
     super(props)
+    const suppliedId = props.instanceId ?? props.menuInstanceId
+    this.instanceId =
+      suppliedId === undefined || suppliedId.length === 0
+        ? `${props.spec.kind}-${++Md3MenuOverlay.nextInstanceId}`
+        : suppliedId
+    this.searchSurfaceId = `md3-menu-${props.spec.kind}-${this.instanceId}`
+    const initialFilter = props.initialFilter ?? ''
+    const initialRegexEnabled = props.initialRegexEnabled ?? false
     this.state = {
-      filter: props.initialFilter ?? '',
-      regexEnabled: props.initialRegexEnabled ?? false,
+      filter: initialFilter,
+      regexEnabled: initialRegexEnabled,
+      pattern: initialFilter,
+      flags: {
+        g: false,
+        i: initialRegexEnabled,
+        m: false,
+        s: false,
+        u: false,
+        y: false,
+      },
+      validation: menuPatternError(initialFilter, initialRegexEnabled, {
+        g: false,
+        i: initialRegexEnabled,
+        m: false,
+        s: false,
+        u: false,
+        y: false,
+      }),
+      mode: initialRegexEnabled ? 'regex' : 'substring',
+      history: initialFilter.length === 0 ? [] : [initialFilter],
+      builderOpen: false,
+      centeredFallback: this.shouldUseCenteredFallback(),
     }
+  }
+
+  private shouldUseCenteredFallback(): boolean {
+    if (this.props.anchor === undefined || this.props.anchor === null) {
+      return true
+    }
+    if (typeof window === 'undefined') {
+      return true
+    }
+    return window.innerWidth < 620 || window.innerHeight < 560
   }
 
   public componentDidMount() {
@@ -195,11 +360,13 @@ export class Md3MenuOverlay extends React.Component<
     // the filter, an item, the close button — so one listener on the panel is
     // also simply the correct shape for it.
     this.panelRef.current?.addEventListener('keydown', this.onPanelKeyDown)
+    window.addEventListener('resize', this.onViewportResize)
     this.filterRef.current?.focus()
   }
 
   public componentWillUnmount() {
     this.panelRef.current?.removeEventListener('keydown', this.onPanelKeyDown)
+    window.removeEventListener('resize', this.onViewportResize)
     const target = this.props.returnFocusTo?.current ?? this.previouslyFocused
     // The node can have left the document while the menu was up — restoring
     // focus to a detached element silently drops focus onto <body>, so check.
@@ -208,11 +375,19 @@ export class Md3MenuOverlay extends React.Component<
     }
   }
 
+  private onViewportResize = () => {
+    const centeredFallback = this.shouldUseCenteredFallback()
+    if (centeredFallback !== this.state.centeredFallback) {
+      this.setState({ centeredFallback })
+    }
+  }
+
   private get filterResult(): IMd3MenuFilterResult {
     return filterMenuItems(
       this.props.spec.items,
       this.state.filter,
-      this.state.regexEnabled
+      this.state.regexEnabled,
+      this.state.flags
     )
   }
 
@@ -282,8 +457,7 @@ export class Md3MenuOverlay extends React.Component<
       // Escape clears a filter that has something in it, and only closes the
       // menu once there is nothing left to clear.
       if (this.state.filter.length > 0) {
-        this.setState({ filter: '' })
-        this.filterRef.current?.focus()
+        this.onClearFilter()
       } else {
         this.props.onDismiss()
       }
@@ -345,11 +519,19 @@ export class Md3MenuOverlay extends React.Component<
     }
     event.preventDefault()
     const appended = this.state.filter + event.key
-    this.setState({ filter: appended })
+    this.onFilterChange(appended)
     this.filterRef.current?.focus()
   }
 
   private activate(item: IMd3MenuItem) {
+    // A menu's builder action belongs to this menu instance. Treating it as a
+    // view-level command would close this surface and seed whichever search
+    // happened to be mounted there, which is precisely the cross-surface
+    // routing bug this overlay owns.
+    if (item.id === 'openRegexBuilder') {
+      this.onOpenBuilder()
+      return
+    }
     item.onClick()
   }
 
@@ -370,20 +552,73 @@ export class Md3MenuOverlay extends React.Component<
   }
 
   private onFilterChange = (value: string) => {
-    this.setState({ filter: value })
+    const validation = menuPatternError(
+      value,
+      this.state.regexEnabled,
+      this.state.flags
+    )
+    this.setState(previous => ({
+      filter: value,
+      pattern: value,
+      validation,
+      history:
+        value === previous.filter
+          ? previous.history
+          : [...previous.history, value].slice(-20),
+    }))
   }
 
   private onClearFilter = () => {
-    this.setState({ filter: '' })
+    this.onFilterChange('')
     this.filterRef.current?.focus()
   }
 
   private onToggleRegex = () => {
-    this.setState(previous => ({ regexEnabled: !previous.regexEnabled }))
+    this.setState(previous => {
+      const regexEnabled = !previous.regexEnabled
+      return {
+        regexEnabled,
+        mode: regexEnabled ? 'regex' : 'substring',
+        validation: menuPatternError(
+          previous.filter,
+          regexEnabled,
+          regexEnabled ? { ...previous.flags, i: true } : previous.flags
+        ),
+        flags: {
+          ...previous.flags,
+          i: regexEnabled,
+        },
+      }
+    })
   }
 
   private onOpenBuilder = () => {
-    this.props.onOpenRegexBuilder(this.state.filter)
+    this.setState({ builderOpen: true })
+  }
+
+  private onCloseBuilder = () => {
+    this.setState({ builderOpen: false })
+  }
+
+  private onApplyBuilder = (application: IMd3RegexBuilderApplication) => {
+    const validation = menuPatternError(
+      application.pattern,
+      true,
+      application.flags
+    )
+    this.setState(previous => ({
+      filter: application.pattern,
+      pattern: application.pattern,
+      regexEnabled: true,
+      mode: 'regex',
+      flags: application.flags,
+      validation,
+      history:
+        application.pattern === previous.filter
+          ? previous.history
+          : [...previous.history, application.pattern].slice(-20),
+      builderOpen: false,
+    }))
   }
 
   private renderFilterRow() {
@@ -395,18 +630,23 @@ export class Md3MenuOverlay extends React.Component<
 
     const { items, patternInvalid } = this.filterResult
 
-    // One audited surface for every menu, not one per menu kind: there is a
-    // single filter field, owned by this overlay and rendered for whichever
-    // menu is open, exactly as the app's context menus share the
-    // `material-context-menu` surface.
+    // Every concrete menu instance owns a distinct search surface. A shared
+    // registry entry describes the implementation, while this value carries
+    // the instance boundary that keeps simultaneous menus isolated.
     return (
       <Md3SearchField
-        id={`md3-menu-${spec.kind}-filter`}
-        searchSurfaceId="md3-menu-filter"
+        id={`${this.searchSurfaceId}-filter`}
+        searchSurfaceId={this.searchSurfaceId}
         inputRef={this.filterRef}
+        builderButtonRef={this.builderButtonRef}
+        searchPattern={this.state.pattern}
+        searchMode={this.state.mode}
+        searchFlags={flagsToString(this.state.flags)}
+        searchHistory={this.state.history}
+        searchValidation={this.state.validation}
         value={this.state.filter}
         placeholder={spec.filterPlaceholder}
-        fieldLabel={spec.title}
+        fieldLabel={`${spec.title} (${this.instanceId})`}
         regexEnabled={this.state.regexEnabled}
         invalid={patternInvalid}
         matchCount={items.length}
@@ -468,63 +708,128 @@ export class Md3MenuOverlay extends React.Component<
   public render() {
     const { spec } = this.props
     const { items, patternInvalid } = this.filterResult
-    const headingId = `md3-menu-${spec.kind}-title`
+    const headingId = `${this.searchSurfaceId}-title`
+
+    const panel = (
+      <div
+        ref={this.panelRef}
+        className="md3-menu-overlay__panel md3-anim-menu"
+        style={{
+          maxWidth: `${spec.width}px`,
+          width: this.state.centeredFallback ? '100%' : `${spec.width}px`,
+        }}
+        role="dialog"
+        aria-modal={
+          this.props.anchor !== undefined && !this.state.centeredFallback
+            ? false
+            : true
+        }
+        aria-labelledby={headingId}
+        data-menu-kind={spec.kind}
+        data-menu-instance-id={this.instanceId}
+        data-search-surface-id={this.searchSurfaceId}
+      >
+        <div className="md3-menu-overlay__header">
+          <MaterialSymbol
+            name={spec.icon}
+            className="md3-menu-overlay__header-icon"
+            size={18}
+          />
+          <span id={headingId} className="md3-menu-overlay__title">
+            {spec.title}
+          </span>
+          <Md3IconButton
+            small={true}
+            icon="close"
+            iconSize={16}
+            label={t('md3.menuOverlay.close')}
+            onClick={this.props.onDismiss}
+          />
+        </div>
+        {this.renderFilterRow()}
+        {patternInvalid ? (
+          <p
+            className="md3-menu-overlay__note md3-menu-overlay__note--invalid"
+            role="status"
+          >
+            {t('md3.menuOverlay.invalidPattern')}
+          </p>
+        ) : null}
+        <div
+          ref={this.listRef}
+          className="md3-menu-overlay__list"
+          role="menu"
+          aria-label={t('md3.menuOverlay.itemsLabel', { title: spec.title })}
+        >
+          {items.length === 0
+            ? this.renderEmptyState()
+            : items.map(item => this.renderItem(item))}
+        </div>
+        {spec.footer === undefined ? null : (
+          <p className="md3-menu-overlay__footer">{spec.footer}</p>
+        )}
+      </div>
+    )
+
+    const menuSurface =
+      this.props.anchor !== undefined &&
+      this.props.anchor !== null &&
+      !this.state.centeredFallback ? (
+        <div
+          className="md3-menu-overlay md3-menu-overlay--anchored"
+          data-menu-kind={spec.kind}
+          data-menu-instance-id={this.instanceId}
+          data-search-surface-id={this.searchSurfaceId}
+        >
+          {panel}
+        </div>
+      ) : (
+        <div
+          className="md3-menu-overlay md3-anim-fade--overlay"
+          role="presentation"
+          onMouseDown={this.onScrimMouseDown}
+          data-menu-kind={spec.kind}
+          data-menu-instance-id={this.instanceId}
+          data-search-surface-id={this.searchSurfaceId}
+        >
+          {panel}
+        </div>
+      )
+
+    const rendered =
+      this.props.anchor !== undefined &&
+      this.props.anchor !== null &&
+      !this.state.centeredFallback ? (
+        <PopoverMenuSurface
+          anchor={this.props.anchor}
+          anchorPosition={
+            this.props.anchorPosition ?? PopoverAnchorPosition.BottomLeft
+          }
+          onDismiss={this.props.onDismiss}
+        >
+          {panel}
+        </PopoverMenuSurface>
+      ) : (
+        menuSurface
+      )
 
     return (
-      <div
-        className="md3-menu-overlay md3-anim-fade--overlay"
-        role="presentation"
-        onMouseDown={this.onScrimMouseDown}
-      >
-        <div
-          ref={this.panelRef}
-          className="md3-menu-overlay__panel md3-anim-menu"
-          style={{ maxWidth: `${spec.width}px` }}
-          role="dialog"
-          aria-modal={true}
-          aria-labelledby={headingId}
-        >
-          <div className="md3-menu-overlay__header">
-            <MaterialSymbol
-              name={spec.icon}
-              className="md3-menu-overlay__header-icon"
-              size={18}
-            />
-            <span id={headingId} className="md3-menu-overlay__title">
-              {spec.title}
-            </span>
-            <Md3IconButton
-              small={true}
-              icon="close"
-              iconSize={16}
-              label={t('md3.menuOverlay.close')}
-              onClick={this.props.onDismiss}
-            />
-          </div>
-          {this.renderFilterRow()}
-          {patternInvalid ? (
-            <p
-              className="md3-menu-overlay__note md3-menu-overlay__note--invalid"
-              role="status"
-            >
-              {t('md3.menuOverlay.invalidPattern')}
-            </p>
-          ) : null}
-          <div
-            ref={this.listRef}
-            className="md3-menu-overlay__list"
-            role="menu"
-            aria-label={t('md3.menuOverlay.itemsLabel', { title: spec.title })}
-          >
-            {items.length === 0
-              ? this.renderEmptyState()
-              : items.map(item => this.renderItem(item))}
-          </div>
-          {spec.footer === undefined ? null : (
-            <p className="md3-menu-overlay__footer">{spec.footer}</p>
-          )}
-        </div>
-      </div>
+      <>
+        {rendered}
+        {this.state.builderOpen ? (
+          <Md3RegexBuilderDialog
+            targetLabel={`${spec.title} (${this.instanceId})`}
+            searchSurfaceId={this.searchSurfaceId}
+            anchor={this.builderButtonRef.current}
+            anchorPosition={PopoverAnchorPosition.BottomRight}
+            initialPattern={this.state.pattern}
+            initialFlags={this.state.flags}
+            sampleItems={spec.items.map(item => item.label)}
+            onApply={this.onApplyBuilder}
+            onDismissed={this.onCloseBuilder}
+          />
+        ) : null}
+      </>
     )
   }
 }

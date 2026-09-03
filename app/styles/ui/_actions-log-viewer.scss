@@ -56,7 +56,7 @@
     .button-component {
       max-width: 100%;
       flex: 0 1 auto;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       white-space: normal;
       overflow-wrap: anywhere;
     }
@@ -383,7 +383,7 @@
   margin: 12px 0 0;
   padding: 10px 12px;
   border: 1px solid var(--md-sys-color-error);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   color: var(--md-sys-color-on-error-container);
   background: var(--md-sys-color-error-container);
   cursor: pointer;
@@ -436,7 +436,7 @@
     gap: 4px 12px;
     align-items: baseline;
     padding: 9px 10px;
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     background: var(--md-sys-color-surface-container-highest);
   }
 
@@ -464,7 +464,7 @@
   min-width: 0;
   margin: 12px 0 0;
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   color: var(--md-sys-color-on-primary-container);
   background: var(--md-sys-color-primary-container);
   overflow-wrap: anywhere;
@@ -503,7 +503,7 @@
     box-sizing: border-box;
     padding: 9px 10px;
     border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     color: var(--md-sys-color-on-surface);
     background: var(--md-sys-color-surface-container-highest);
     font: inherit;
@@ -652,7 +652,7 @@
     height: 36px;
     padding: 0 12px;
     border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     color: inherit;
     background: var(--md-sys-color-surface-container-highest);
 
@@ -703,7 +703,7 @@
   // its single column to the widest log line so long lines get a real
   // horizontal scrollbar instead of being clipped by this container.
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   color: var(--md-sys-color-inverse-on-surface);
   background: var(--md-sys-color-inverse-surface);
 }
@@ -895,7 +895,7 @@
   .actions-confirmation-dialog {
     max-height: calc(100vh - var(--spacing-double));
     padding: var(--spacing-double);
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
 
     > footer {
       margin-top: var(--spacing);
@@ -950,7 +950,7 @@
   gap: 8px;
 
   .button-component {
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     white-space: normal;
     overflow-wrap: anywhere;
   }
@@ -982,7 +982,7 @@
   justify-content: space-between;
   margin: 12px 0 6px;
   padding: 9px 10px;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   color: var(--md-sys-color-on-surface-variant);
   font-size: 11px;
   background: var(--md-sys-color-surface-container-low);
@@ -1030,13 +1030,13 @@
   min-width: 0;
   padding: 13px;
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 16px;
+  border-radius: var(--md-sys-shape-corner-large);
   background: var(--md-sys-color-surface-container-low);
 
   .destructive {
     color: var(--md-sys-color-on-error);
     background: var(--md-sys-color-error);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     white-space: normal;
     overflow-wrap: anywhere;
   }

@@ -26,6 +26,7 @@ import {
   getResolutionChoiceForFile,
   resolutionChoices,
 } from './copilot-resolution-helpers'
+import { MaterialSymbol } from '../../lib/material-symbol'
 
 interface ICopilotConflictsChangesProps {
   readonly repository: Repository
@@ -447,7 +448,7 @@ export class CopilotConflictsChanges extends React.Component<
                   >
                     <Octicon symbol={choiceIcon} />
                     {choiceLabel}
-                    <Octicon symbol={octicons.triangleDown} />
+                    <MaterialSymbol name="arrow_drop_down" />
                   </Button>
                 </div>
               </div>

@@ -4,13 +4,19 @@ import classNames from 'classnames'
 import { Tooltip } from './tooltip'
 import { createObservableRef } from './observable-ref'
 import { getButtonHint } from './button'
+import { singleFlightActions } from '../../lib/single-flight-action'
+
+let nextLinkButtonActionId = 0
 
 interface ILinkButtonProps {
   /** A URI to open on click. */
   readonly uri?: string
 
   /** A function to call on click. */
-  readonly onClick?: () => void
+  readonly onClick?: () => void | PromiseLike<unknown>
+
+  /** Coordinate alternate controls which start the same consequential action. */
+  readonly activationKey?: string
 
   /** A function to call when mouse is hovered over */
   readonly onMouseOver?: () => void
@@ -41,24 +47,69 @@ interface ILinkButtonProps {
  */
 export class LinkButton extends React.Component<ILinkButtonProps, {}> {
   private readonly anchorRef = createObservableRef<HTMLAnchorElement>()
+  private readonly buttonRef = createObservableRef<HTMLButtonElement>()
+  private readonly instanceActivationKey = `link-button:${++nextLinkButtonActionId}`
+  private unsubscribeFromAction: (() => void) | null = null
+
+  public componentDidMount() {
+    this.subscribeToAction()
+  }
+
+  public componentDidUpdate(previousProps: ILinkButtonProps) {
+    if (previousProps.activationKey !== this.props.activationKey) {
+      this.subscribeToAction()
+    }
+  }
+
+  public componentWillUnmount() {
+    this.unsubscribeFromAction?.()
+    this.unsubscribeFromAction = null
+  }
 
   public render() {
     const href = this.props.uri || ''
-    const disabled = this.props.disabled === true
+    const disabled = this.props.disabled === true || this.isActionActive
     /**
-     * If this component is to open something external like a link, it should
-     * have the role of link as is default by the <a> tag. If this component is
-     * to be used as a button, it should have the role of button. Otherwise,
-     * screen readers may be confused by the results of the click.
-     * */
-    const role = this.props.uri === undefined ? 'button' : undefined
+     * URI targets stay real links. Action-only targets use a native button so
+     * Enter and Space receive the platform's normal keyboard behavior.
+     */
     const className = classNames('link-button-component', this.props.className)
     const tooltip = getButtonHint(
       this.props.title,
       this.props.ariaLabel,
       this.props.children,
-      role === 'button'
+      this.props.uri === undefined
     )
+
+    if (this.props.uri === undefined) {
+      return (
+        <button
+          ref={this.buttonRef}
+          type="button"
+          className={className}
+          onMouseOver={this.props.onMouseOver}
+          onMouseOut={this.props.onMouseOut}
+          onFocus={this.props.onMouseOver}
+          onBlur={this.props.onMouseOut}
+          onClick={this.onClick}
+          tabIndex={disabled ? -1 : this.props.tabIndex}
+          disabled={disabled}
+          aria-label={this.props.ariaLabel}
+          aria-disabled={disabled || undefined}
+          aria-busy={this.isActionActive || undefined}
+        >
+          {tooltip && (
+            <Tooltip
+              target={this.buttonRef}
+              applyAriaDescribedBy={this.props.title !== undefined}
+            >
+              {tooltip}
+            </Tooltip>
+          )}
+          {this.props.children}
+        </button>
+      )
+    }
 
     return (
       <a
@@ -73,7 +124,7 @@ export class LinkButton extends React.Component<ILinkButtonProps, {}> {
         tabIndex={disabled ? -1 : this.props.tabIndex}
         aria-label={this.props.ariaLabel}
         aria-disabled={disabled || undefined}
-        role={role}
+        aria-busy={this.isActionActive || undefined}
       >
         {tooltip && (
           <Tooltip
@@ -88,21 +139,47 @@ export class LinkButton extends React.Component<ILinkButtonProps, {}> {
     )
   }
 
-  private onClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+  private onClick = (
+    event: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>
+  ) => {
     event.preventDefault()
 
-    if (this.props.disabled) {
+    if (this.props.disabled || this.isActionActive) {
       return
     }
 
     const uri = this.props.uri
     if (uri) {
-      shell.openExternal(uri)
+      const onClick = this.props.onClick
+      const result = singleFlightActions.run(this.activationKey, () => {
+        const opened = shell.openExternal(uri)
+        const clicked = onClick?.()
+        return Promise.all([opened, clicked])
+      })
+      void result.catch(() => {})
+      return
     }
 
     const onClick = this.props.onClick
     if (onClick) {
-      onClick()
+      const result = singleFlightActions.run(this.activationKey, onClick)
+      void result.catch(() => {})
     }
+  }
+
+  private get activationKey() {
+    return this.props.activationKey ?? this.instanceActivationKey
+  }
+
+  private get isActionActive() {
+    return singleFlightActions.isActive(this.activationKey)
+  }
+
+  private subscribeToAction() {
+    this.unsubscribeFromAction?.()
+    this.unsubscribeFromAction = singleFlightActions.subscribe(
+      this.activationKey,
+      () => this.forceUpdate()
+    )
   }
 }

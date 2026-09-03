@@ -3,9 +3,12 @@ import {
   IBrowserExtensionDownloadRequest,
   parseBrowserExtensionDownloadRequest,
 } from '../lib/browser-extension-download'
+import { decodeNativeMessagingDownloadRequest } from '../lib/browser-extension-native-messaging'
 
 export interface IBrowserExtensionDownloadHandoffOptions {
-  readonly onDownloadRequested: (request: IBrowserExtensionDownloadRequest) => void
+  readonly onDownloadRequested: (
+    request: IBrowserExtensionDownloadRequest
+  ) => void
 }
 
 /**
@@ -15,7 +18,9 @@ export interface IBrowserExtensionDownloadHandoffOptions {
  * trust boundaries and cannot stand in for a browser-extension handoff.
  */
 export class BrowserExtensionDownloadHandoff {
-  public constructor(private readonly options: IBrowserExtensionDownloadHandoffOptions) {}
+  public constructor(
+    private readonly options: IBrowserExtensionDownloadHandoffOptions
+  ) {}
 
   public acceptNativeMessage(value: unknown): boolean {
     const request = parseBrowserExtensionDownloadRequest(value)
@@ -24,6 +29,13 @@ export class BrowserExtensionDownloadHandoff {
     }
     this.options.onDownloadRequested(request)
     return true
+  }
+
+  public acceptNativeFrame(frame: Uint8Array): boolean {
+    const result = decodeNativeMessagingDownloadRequest(frame)
+    return (
+      result.kind === 'accepted' && this.acceptNativeMessage(result.request)
+    )
   }
 
   /**

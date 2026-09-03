@@ -1,16 +1,20 @@
 import * as Path from 'path'
 
 import { IMenuItem } from '../../lib/menu-item'
+import { Branch } from '../../models/branch'
 import { clipboard } from 'electron'
 
 interface IWorktreeContextMenuConfig {
   readonly path: string
   readonly isMainWorktree: boolean
   readonly isLocked: boolean
+  readonly mergeBranch?: Branch
+  readonly onMergeWorktree?: (branch: Branch) => void
   readonly onRenameWorktree?: (path: string) => void
   readonly onRemoveWorktree?: (path: string) => void
   readonly onLockWorktree?: (path: string) => void
   readonly onUnlockWorktree?: (path: string) => void
+  readonly onEditAppearance?: (path: string) => void
   readonly onOpenInNewWindow?: () => void
 }
 
@@ -21,14 +25,25 @@ export function generateWorktreeContextMenuItems(
     path,
     isMainWorktree,
     isLocked,
+    mergeBranch,
+    onMergeWorktree,
     onRenameWorktree,
     onRemoveWorktree,
     onLockWorktree,
     onUnlockWorktree,
+    onEditAppearance,
     onOpenInNewWindow,
   } = config
   const name = Path.basename(path)
   const items = new Array<IMenuItem>()
+
+  if (onEditAppearance !== undefined) {
+    items.push({
+      label: 'Edit appearance…',
+      action: () => onEditAppearance(path),
+    })
+    items.push({ type: 'separator' })
+  }
 
   if (onOpenInNewWindow !== undefined) {
     items.push({
@@ -69,8 +84,21 @@ export function generateWorktreeContextMenuItems(
     }
   }
 
-  if (onRemoveWorktree !== undefined) {
+  if (
+    (mergeBranch !== undefined && onMergeWorktree !== undefined) ||
+    onRemoveWorktree !== undefined
+  ) {
     items.push({ type: 'separator' })
+  }
+
+  if (mergeBranch !== undefined && onMergeWorktree !== undefined) {
+    items.push({
+      label: 'Merge…',
+      action: () => onMergeWorktree(mergeBranch),
+    })
+  }
+
+  if (onRemoveWorktree !== undefined) {
     items.push({
       label: 'Delete…',
       action: () => onRemoveWorktree(path),

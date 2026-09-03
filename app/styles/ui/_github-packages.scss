@@ -92,7 +92,7 @@
 .github-package-row,
 .github-package-version {
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 16px;
+  border-radius: var(--md-sys-shape-corner-large);
   background: var(--md-sys-color-surface-container-low);
 }
 
@@ -186,6 +186,42 @@
   text-overflow: ellipsis;
 }
 
+.github-package-value-actions,
+.github-package-version-value {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.github-package-value-actions {
+  flex: 0 0 auto;
+}
+
+.github-package-value-actions .copy-button,
+.github-package-version-value .copy-button {
+  flex: 0 0 auto;
+}
+
+.github-package-version-value code,
+.github-package-version-meta,
+.github-package-row-header strong > span,
+.github-package-select .github-package-muted > span {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.github-package-tag[data-full-value] {
+  max-width: min(100%, 360px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .github-package-virtual-row .github-package-tags {
   flex-wrap: nowrap;
   overflow-x: auto;
@@ -223,7 +259,7 @@
   min-height: 24px;
   align-items: center;
   padding: 3px 9px;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-secondary-container);
   background: var(--md-sys-color-secondary-container);
   font-size: 11px;
@@ -242,7 +278,7 @@
   gap: 8px;
   margin-top: 12px;
   padding: 12px;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   background: var(--md-sys-color-surface-container-high);
 }
 

@@ -52,18 +52,29 @@ export function RangeSlider({
           {personalizeOptionalText(valueText)}
         </output>
       </div>
-      <input
-        id={id}
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        disabled={disabled}
-        aria-describedby={ariaDescribedBy}
-        aria-valuetext={personalizeOptionalText(ariaValueText)}
-        onChange={handleValueChange}
-      />
+      <div
+        className="range-slider-input-hit-target"
+        style={
+          {
+            '--range-slider-progress': `${
+              ((value - min) / (max - min)) * 100
+            }%`,
+          } as React.CSSProperties
+        }
+      >
+        <input
+          id={id}
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          disabled={disabled}
+          aria-describedby={ariaDescribedBy}
+          aria-valuetext={personalizeOptionalText(ariaValueText)}
+          onChange={handleValueChange}
+        />
+      </div>
     </div>
   )
 }

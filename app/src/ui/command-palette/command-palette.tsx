@@ -23,8 +23,6 @@ import {
   persistFilterMode,
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { MaterialSymbol } from '../lib/material-symbol'
 import { MaterialSwitch } from '../lib/material-switch'
 import {
@@ -163,9 +161,7 @@ function getPaletteCommandKeys(
     resolvePaletteTitle(command),
     `${resolvePaletteTitle(command)} ${command.group} ${resolvePaletteGroup(
       command.group
-    )} ${
-      command.keywords ?? ''
-    } ${command.event}`,
+    )} ${command.keywords ?? ''} ${command.event}`,
   ]
 }
 
@@ -931,7 +927,7 @@ export class CommandPalette extends React.Component<
       >
         <DialogContent>
           <div className="command-palette-search">
-            <Octicon symbol={octicons.search} />
+            <MaterialSymbol name="search" />
             <input
               data-search-surface-id="command-palette"
               ref={this.inputRef}

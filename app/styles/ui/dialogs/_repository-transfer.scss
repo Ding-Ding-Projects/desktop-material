@@ -32,7 +32,7 @@ dialog#repository-transfer {
       min-width: 0;
       padding: 12px 14px;
       border: 1px solid var(--md-sys-color-outline-variant);
-      border-radius: 16px;
+      border-radius: var(--md-sys-shape-corner-large);
       background: var(--md-sys-color-surface-container);
 
       &:last-child {
@@ -110,7 +110,7 @@ dialog#repository-transfer {
     margin: 16px 0 10px;
     padding: 12px;
     border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
 
     legend {
       grid-column: 1 / -1;
@@ -137,7 +137,7 @@ dialog#repository-transfer {
     margin-bottom: 16px;
     padding: 14px;
     border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
     color: var(--md-sys-color-on-surface);
     background: var(--md-sys-color-surface-container);
     line-height: 1.55;
@@ -238,7 +238,7 @@ dialog#repository-transfer {
   .repository-transfer-complete {
     padding: 14px;
     border: 1px solid var(--md-sys-color-primary);
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
     color: var(--md-sys-color-on-primary-container);
     background: var(--md-sys-color-primary-container);
     animation: dmPop calc(420ms * var(--mdur, 1)) var(--spring-fast);

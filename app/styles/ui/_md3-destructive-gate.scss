@@ -7,7 +7,7 @@
 // the application's `Dialog`. `.md3-destructive-gate` wraps that body in the
 // anchored panel, with its own scrim, header and footer.
 //
-// Motion comes from the shared `.md3-anim-*` classes in `_md3-shell.scss`,
+// Motion comes from the shared `.md3-anim-*` classes in `app/styles/ui/md3/`,
 // which are already disabled under `prefers-reduced-motion`. The two
 // treatments declared here — the sweep while the slider moves and the flash
 // when it completes — are turned off in the same media query at the bottom of
@@ -136,7 +136,7 @@
 .md3-destructive-gate__irreversible {
   align-items: baseline;
   background: var(--md-sys-color-error-container);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   color: var(--md-sys-color-on-error-container);
   display: flex;
   flex-wrap: wrap;
@@ -201,7 +201,7 @@
 
 .md3-destructive-gate__keys {
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -230,7 +230,7 @@
   // 20px is not an adequate target on its own, so the whole row is the target:
   // the label wraps the input, and the row keeps a comfortable minimum height
   // at every display scale.
-  min-height: 32px;
+  min-height: 40px;
 
   > .material-symbol {
     color: var(--md-sys-color-on-surface-variant);
@@ -286,10 +286,39 @@
   min-width: 0;
 }
 
-.md3-destructive-gate__slider-input {
-  accent-color: var(--md-sys-color-error);
+.md3-destructive-gate__slider-input-hit-target {
+  align-items: center;
+  display: flex;
   flex: 1;
+  min-height: 40px;
   min-width: 0;
+  position: relative;
+
+  &::before {
+    background: linear-gradient(
+      to right,
+      var(--md-sys-color-error) 0%,
+      var(--md-sys-color-error) var(--md3-gate-progress, 0%),
+      var(--md-sys-color-error-container) var(--md3-gate-progress, 0%),
+      var(--md-sys-color-error-container) 100%
+    );
+    border-radius: var(--md-sys-shape-corner-full);
+    content: '';
+    height: 16px;
+    left: 0;
+    pointer-events: none;
+    position: absolute;
+    right: 0;
+    top: 12px;
+  }
+}
+
+.md3-destructive-gate__slider-input[type='range'] {
+  accent-color: var(--md-sys-color-error);
+  background: transparent;
+  height: 40px;
+  min-width: 0;
+  width: 100%;
 
   &:disabled {
     cursor: not-allowed;
@@ -355,7 +384,7 @@
 
 .md3-destructive-gate__progress {
   background: var(--md-sys-color-surface-container-highest);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   height: 8px;
   overflow: hidden;
   position: relative;
@@ -363,7 +392,7 @@
 
 .md3-destructive-gate__progress-fill {
   background: var(--md-sys-color-error);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   display: block;
   height: 100%;
   transition: width 90ms linear;
@@ -412,7 +441,7 @@
 
 .md3-destructive-gate__error {
   background: var(--md-sys-color-error-container);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   color: var(--md-sys-color-on-error-container);
   font-size: 12px;
   line-height: 1.5;

@@ -12,8 +12,6 @@ import { SectionFilterList } from '../lib/section-filter-list'
 import { HighlightText } from '../lib/highlight-text'
 import { IMatches } from '../../lib/fuzzy-find'
 import { Ref } from '../lib/ref'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { getBranches } from '../../lib/git'
 import {
   BranchWorktreeContainerName,
@@ -24,6 +22,7 @@ import {
   safelyListWorktrees,
 } from '../../lib/git/branch-worktrees'
 import { IListFilter } from '../lib/filter-list-mode'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 const RowHeight = 48
 
@@ -130,7 +129,7 @@ class BranchWorktreeRow extends React.PureComponent<IBranchWorktreeRowProps> {
           onChange={this.onCheckboxChange}
           ariaLabel={`Check out ${candidate.branchName} as a worktree`}
         />
-        <Octicon className="branch-worktree-icon" symbol={octicons.gitBranch} />
+        <MaterialSymbol name="call_split" className="branch-worktree-icon" />
         <div className="branch-worktree-detail">
           <div className="branch-worktree-name">
             <HighlightText

@@ -16,9 +16,8 @@ import { Button } from '../lib/button'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { Select } from '../lib/select'
 import { TextBox } from '../lib/text-box'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { SelfHostedRunnerRemovalDialog } from './self-hosted-runner-removal-dialog'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface ISelfHostedRunnerManagerProps {
   readonly repository: Repository
@@ -922,7 +921,7 @@ export class SelfHostedRunnerManager extends React.Component<
         <header className="actions-runner-manager-header">
           <div>
             <h2 id="actions-runner-heading">
-              <Octicon symbol={octicons.server} /> Self-hosted runners
+              <MaterialSymbol name="dns" /> Self-hosted runners
             </h2>
             <p>
               Set up repository-scoped GitHub Actions runners on this Windows

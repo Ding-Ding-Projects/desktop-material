@@ -92,7 +92,7 @@
   flex: none;
   padding: 0;
   border: 2px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   background: var(--swatch, var(--md-sys-color-surface-variant));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--md-sys-color-on-surface) 14%, transparent);
   cursor: pointer;
@@ -123,7 +123,7 @@
   height: 34px;
   padding: 0 14px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   background: var(--md-sys-color-surface-container-high);
   color: var(--md-sys-color-on-surface-variant);
   font-size: 12.5px;
@@ -337,7 +337,7 @@
 
   .repository-logo-inherited {
     background: var(--md-sys-color-secondary-container);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     color: var(--md-sys-color-on-secondary-container);
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-semibold);
@@ -506,7 +506,7 @@
     > button {
       background: var(--md-sys-color-surface-container-high);
       border: 1px solid transparent;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       color: var(--md-sys-color-on-surface-variant);
       cursor: pointer;
       flex: 0 0 auto;

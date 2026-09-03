@@ -24,7 +24,7 @@ dialog.clone-repository {
     gap: var(--spacing-half);
     margin-top: var(--spacing-half);
     padding: var(--spacing);
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
     background: var(--md-sys-color-surface-container-high);
 
     .auto-clone-toggle {
@@ -107,7 +107,7 @@ dialog#batch-clone-progress {
     gap: var(--spacing-half);
     margin-bottom: var(--spacing);
     padding: var(--spacing-half) var(--spacing);
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     background: var(--md-sys-color-surface-container-high);
     color: var(--md-sys-color-on-surface-variant);
     font-size: var(--font-size-sm);
@@ -162,7 +162,7 @@ dialog#batch-clone-progress {
       height: 36px;
       padding: 0 var(--spacing);
       border: 1px solid var(--md-sys-color-outline-variant);
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       color: inherit;
       background: var(--md-sys-color-surface-container-highest);
 
@@ -193,7 +193,7 @@ dialog#batch-clone-progress {
     align-items: center;
     gap: var(--spacing);
     padding: var(--spacing-half) var(--spacing);
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
 
     & + .batch-clone-item {
       margin-top: 2px;

@@ -2051,6 +2051,17 @@ or signatures should use reviewed manual operations and remote branch protection
 The Branches and Worktrees views also expose **Merge all branches** and **Merge all worktrees**.
 Confirm the target, follow each row's progress, and review any skipped or failed target. When
 Copilot conflict assistance is available, it participates inside the same guarded workflow.
+For one linked worktree, right-click its row and choose **Merge…** to open
+the normal merge preview with that worktree's local branch selected. Choose the
+separate **Delete…** action only when the worktree should be removed. Delete is
+disabled for the main or a locked worktree, uses non-force removal, and reports
+Git's refusal without discarding files. A merge does not automatically delete
+the worktree.
+
+![Linked worktree right-click menu with Merge and Delete available](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/worktree-context-menu-merge-delete.png)
+
+![Merge into main preview opened from the linked worktree menu](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/worktree-merge-preview-from-context-menu.png)
+
 If the default branch is checked out in another clean worktree, **Merge all worktrees** now moves
 that branch to the active worktree automatically and removes the redundant linked worktree. Select
 **Force Mat Day** to checkpoint, synchronize, and push recoverable dirty worktrees before the same

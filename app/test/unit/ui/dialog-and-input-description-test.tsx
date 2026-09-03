@@ -27,8 +27,8 @@ describe('dialog and input descriptions', () => {
     )
 
     assert.equal(alerts.length, 2)
-    assert.notEqual(errorBanner?.querySelector('svg.octicon'), null)
-    assert.notEqual(successBanner?.querySelector('svg.octicon'), null)
+    assert.notEqual(errorBanner?.querySelector('span.material-symbol'), null)
+    assert.notEqual(successBanner?.querySelector('span.material-symbol'), null)
     assert.ok(screen.getByText('Unable to fetch remotes.'))
     assert.ok(screen.getByText('Branch renamed successfully.'))
   })
@@ -44,7 +44,7 @@ describe('dialog and input descriptions', () => {
 
     assert.notEqual(description, null)
     assert.equal(description?.getAttribute('role'), null)
-    assert.equal(description?.querySelector('svg.octicon'), null)
+    assert.equal(description?.querySelector('span.material-symbol'), null)
     assert.equal(
       view.container.querySelector('.input-description-content')?.textContent,
       'Branch names may include slashes.'
@@ -61,7 +61,7 @@ describe('dialog and input descriptions', () => {
     const alert = screen.getByRole('alert')
 
     assert.ok(alert.classList.contains('input-description-error'))
-    assert.notEqual(alert.querySelector('svg.octicon'), null)
+    assert.notEqual(alert.querySelector('span.material-symbol'), null)
     assert.equal(
       alert.querySelector('.input-description-content')?.textContent,
       'A branch with that name already exists.'
@@ -84,7 +84,7 @@ describe('dialog and input descriptions', () => {
 
     assert.notEqual(warning, null)
     assert.equal(warning?.getAttribute('role'), null)
-    assert.notEqual(warning?.querySelector('svg.octicon'), null)
+    assert.notEqual(warning?.querySelector('span.material-symbol'), null)
     assert.equal(
       warning?.querySelector('.input-description-content')?.textContent,
       'This branch name already exists on the remote.'

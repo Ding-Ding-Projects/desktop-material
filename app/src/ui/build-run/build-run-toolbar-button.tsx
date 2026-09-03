@@ -8,7 +8,7 @@ import {
 } from '../../lib/stores/build-run-store'
 import { ToolbarButton, ToolbarButtonStyle } from '../toolbar/button'
 import { Button } from '../lib/button'
-import { Octicon, OcticonSymbol } from '../octicons'
+import { OcticonSymbol } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { showContextualMenu } from '../../lib/menu-item'
 import { Disposable } from 'event-kit'
@@ -19,6 +19,7 @@ import {
   t,
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IBuildRunToolbarButtonProps {
   readonly repository: Repository
@@ -243,7 +244,7 @@ export class BuildRunToolbarButton extends React.Component<
             ariaLabel={t('buildRun.pill.chooseProfile')}
             ariaHaspopup="menu"
           >
-            <Octicon symbol={octicons.chevronDown} />
+            <MaterialSymbol name="keyboard_arrow_down" />
           </Button>
         )}
       </div>

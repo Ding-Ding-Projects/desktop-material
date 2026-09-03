@@ -22,14 +22,13 @@ import { Loading } from '../lib/loading'
 import { Select } from '../lib/select'
 import { TextBox } from '../lib/text-box'
 import { TooltippedContent } from '../lib/tooltipped-content'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import {
   persistFilterMode,
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /** The per-surface persistence id for the subtree search's filter mode. */
 const SubtreesFilterId = 'subtree-manager'
@@ -851,7 +850,7 @@ export class SubtreeManager extends React.Component<
               onClick={this.onShowAddSubtree}
               tooltip="Choose a hosted repository or URL to add"
             >
-              <Octicon symbol={octicons.plus} />
+              <MaterialSymbol name="add" />
               Add subtree…
             </Button>
           )}
@@ -885,7 +884,7 @@ export class SubtreeManager extends React.Component<
             <section className="subtrees-section">
               <div className="subtrees-section-header">
                 <h3 className="subtrees-section-title">
-                  <Octicon symbol={octicons.gitMerge} />
+                  <MaterialSymbol name="merge" />
                   Subtrees
                 </h3>
                 <div className="subtrees-header-actions">
@@ -898,7 +897,7 @@ export class SubtreeManager extends React.Component<
                     onClick={this.onShowAddSubtree}
                     tooltip="Choose a hosted repository or URL to add"
                   >
-                    <Octicon symbol={octicons.plus} />
+                    <MaterialSymbol name="add" />
                     Add subtree…
                   </Button>
                 </div>
@@ -1039,10 +1038,7 @@ function SubtreeRow(props: ISubtreeRowProps) {
       <div className="subtree-row-body">
         <div className="subtree-row-main">
           <div className="subtree-row-heading">
-            <Octicon
-              className="subtree-row-icon"
-              symbol={octicons.fileDirectory}
-            />
+            <MaterialSymbol name="folder" className="subtree-row-icon" />
             <span className="subtree-row-prefix">{subtree.prefix}</span>
           </div>
           <div className="subtree-row-meta">
@@ -1051,7 +1047,7 @@ function SubtreeRow(props: ISubtreeRowProps) {
               className="subtree-row-sha"
               tooltip={subtree.lastMergedSplitSha ?? 'No split recorded'}
             >
-              <Octicon symbol={octicons.gitBranch} />
+              <MaterialSymbol name="call_split" />
               Upstream split {shortSplitSha}
             </TooltippedContent>
             <TooltippedContent
@@ -1059,7 +1055,7 @@ function SubtreeRow(props: ISubtreeRowProps) {
               className="subtree-row-sha"
               tooltip={subtree.lastMergeSha ?? 'No merge recorded'}
             >
-              <Octicon symbol={octicons.gitCommit} />
+              <MaterialSymbol name="commit" />
               Last merge {shortMergeSha}
             </TooltippedContent>
           </div>

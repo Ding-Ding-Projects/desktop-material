@@ -39,6 +39,8 @@ export interface IFileConflictContext {
   readonly deleteConflict?: {
     readonly deletedSide: 'ours' | 'theirs'
   }
+  /** Exact path-scoped `git ls-files -u -z` fingerprint at capture time. */
+  readonly stageFingerprint?: string
 }
 
 /**

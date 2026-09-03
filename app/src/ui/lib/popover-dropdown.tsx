@@ -1,10 +1,9 @@
 import * as React from 'react'
 import { Button } from './button'
 import { Popover, PopoverAnchorPosition, PopoverDecoration } from './popover'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import classNames from 'classnames'
 import { createUniqueId, releaseUniqueId } from './id-pool'
+import { MaterialSymbol } from './material-symbol'
 
 const maxPopoverContentHeight = 500
 const popoverFocusableSelector = [
@@ -200,7 +199,7 @@ export class PopoverDropdown extends React.Component<
               onClick={this.closePopover}
               aria-label={this.props.closeButtonAriaLabel ?? 'Close'}
             >
-              <Octicon symbol={octicons.x} />
+              <MaterialSymbol name="close" />
             </button>
           </div>
           <div id={dropdownContentId} className="popover-dropdown-content">
@@ -235,7 +234,7 @@ export class PopoverDropdown extends React.Component<
           ariaLabel={this.props.buttonAriaLabel}
         >
           <div className="button-content">{buttonContent}</div>
-          <Octicon symbol={octicons.triangleDown} />
+          <MaterialSymbol name="arrow_drop_down" />
         </Button>
         {this.renderPopover()}
       </div>

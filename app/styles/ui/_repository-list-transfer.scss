@@ -20,7 +20,7 @@ dialog#import-tab-session {
 
   .transfer-large-files-note {
     padding: var(--spacing-half) var(--spacing);
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     background: var(--md-sys-color-secondary-container);
     color: var(--md-sys-color-on-secondary-container);
   }
@@ -38,7 +38,7 @@ dialog#import-tab-session {
     align-items: center;
     gap: var(--spacing);
     padding: var(--spacing-half) var(--spacing);
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
 
     & + .transfer-item {
       margin-top: 2px;
@@ -85,7 +85,7 @@ dialog#import-tab-session {
 
         span {
           padding: 2px 7px;
-          border-radius: 999px;
+          border-radius: var(--md-sys-shape-corner-full);
           background: var(--md-sys-color-secondary-container);
           color: var(--md-sys-color-on-secondary-container);
           font-size: var(--font-size-xs);

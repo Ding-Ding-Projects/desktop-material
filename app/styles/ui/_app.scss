@@ -72,7 +72,7 @@
       max-width: min(360px, 55vw);
       min-height: 34px;
       padding: 5px 12px;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
 
       .octicon {
         flex: 0 0 auto;
@@ -128,7 +128,7 @@
       color: var(--md-sys-color-primary);
       background: transparent;
       border-color: var(--md-sys-color-outline);
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
     }
 
     .submodule-context-close-label {

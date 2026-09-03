@@ -4,8 +4,6 @@ import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { DefaultDialogFooter } from '../dialog/default-dialog-footer'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { TextArea } from '../lib/text-area'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { Dispatcher } from '../dispatcher'
 import { Repository } from '../../models/repository'
 import { IOpencodeSendContext } from '../../models/popup'
@@ -20,6 +18,7 @@ import type { IOpencodeLogEvent } from '../../lib/build-run/opencode'
 import { t } from '../../lib/i18n'
 import { getBuildFixAutoApprove } from '../../models/build-run-preferences'
 import { Select } from '../lib/select'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /** Longest opencode output tail kept in the dialog's scrollback. */
 const MAX_DIALOG_LOG_LINES = 400
@@ -398,7 +397,7 @@ export class OpencodeSendDialog extends React.Component<
         <p>{t('buildRun.notInstalledCli', { cli: this.cliName })}</p>
         <pre className="opencode-fix-command">{plan.label}</pre>
         <p className="opencode-fix-note">
-          <Octicon symbol={octicons.shield} />
+          <MaterialSymbol name="shield" />
           <span>{t(safetyKey)}</span>
         </p>
       </DialogContent>
@@ -480,7 +479,7 @@ export class OpencodeSendDialog extends React.Component<
         />
         {autoApprove ? (
           <p className="opencode-fix-warning" role="alert">
-            <Octicon symbol={octicons.alert} />
+            <MaterialSymbol name="warning" />
             <span>
               {this.state.provider === 'codex'
                 ? t('buildRun.codexAutoApproveTrustWarning')
@@ -491,7 +490,7 @@ export class OpencodeSendDialog extends React.Component<
           </p>
         ) : (
           <p className="opencode-fix-note">
-            <Octicon symbol={octicons.info} />
+            <MaterialSymbol name="info" />
             <span>
               {t('buildRun.approvalOnRequestProvider', {
                 provider: this.providerLabel,

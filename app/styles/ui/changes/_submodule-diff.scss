@@ -6,7 +6,7 @@
     max-width: 100%;
     margin: 4px 0 22px;
     padding: 4px 12px;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     font-family: var(--font-family-monospace);
     font-size: var(--font-size-sm);
     color: var(--md-sys-color-on-surface-variant);
@@ -32,7 +32,7 @@
     width: 100%;
     margin: 0;
     padding: 14px 16px;
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
     background: var(--md-sys-color-surface-container-low);
     font-size: var(--font-size-md);
     line-height: 1.5;

@@ -31,6 +31,7 @@ import {
   removeTemplateSection,
   suggestGitIgnoreTemplates,
 } from '../../lib/gitignore'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IGitIgnoreProps {
   readonly repository: Repository
@@ -97,7 +98,7 @@ class SuggestedChip extends React.Component<{
         )}
         <Octicon symbol={octicons[template.octicon]} />
         <span className="gitignore-chip-label">{template.label}</span>
-        <Octicon className="gitignore-chip-affordance" symbol={octicons.plus} />
+        <MaterialSymbol name="add" className="gitignore-chip-affordance" />
       </button>
     )
   }
@@ -128,7 +129,7 @@ class AppliedChip extends React.Component<{
           onClick={this.onRemove}
         >
           <Tooltip target={this.removeRef}>{removeLabel}</Tooltip>
-          <Octicon symbol={octicons.x} />
+          <MaterialSymbol name="close" />
         </button>
       </span>
     )
@@ -287,7 +288,7 @@ export class GitIgnore extends React.Component<
     return (
       <section className="gitignore-section">
         <h3 className="gitignore-section-title">
-          <Octicon symbol={octicons.lightBulb} />
+          <MaterialSymbol name="lightbulb" />
           Suggested for this repository
         </h3>
         <div className="gitignore-chip-row">
@@ -320,7 +321,7 @@ export class GitIgnore extends React.Component<
     return (
       <section className="gitignore-section">
         <h3 className="gitignore-section-title">
-          <Octicon symbol={octicons.check} />
+          <MaterialSymbol name="check" />
           Applied templates
         </h3>
         <div className="gitignore-chip-row">
@@ -393,9 +394,9 @@ export class GitIgnore extends React.Component<
           <div className="gitignore-browse-card">
             <div className="gitignore-browse-controls">
               <div className="gitignore-search">
-                <Octicon
+                <MaterialSymbol
+                  name="search"
                   className="gitignore-search-icon"
-                  symbol={octicons.search}
                 />
                 <input
                   data-search-surface-id="git-ignore-templates"
@@ -501,7 +502,7 @@ export class GitIgnore extends React.Component<
     return (
       <section className="gitignore-section">
         <h3 className="gitignore-section-title">
-          <Octicon symbol={octicons.file} />
+          <MaterialSymbol name="description" />
           <Ref>.gitignore</Ref>
         </h3>
         <p id="ignored-files-description" className="gitignore-raw-description">

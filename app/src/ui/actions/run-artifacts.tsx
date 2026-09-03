@@ -35,9 +35,8 @@ import {
   externalOpenTarget,
 } from '../../lib/external-open-guard'
 import { ExternalOpenBusy } from '../lib/external-open-busy'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { ActionsArtifactProvenanceDialog } from './actions-artifact-provenance-dialog'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /** Stable audit and localStorage identity for the workflow-artifact search. */
 const ActionsArtifactSearchSurfaceId = 'actions-artifacts'
@@ -1094,7 +1093,7 @@ export class RunArtifacts extends React.Component<
                   invalid: filtered.regexError !== null,
                 })}
               >
-                <Octicon symbol={octicons.search} />
+                <MaterialSymbol name="search" />
                 <input
                   type="search"
                   data-search-surface-id="actions-artifacts"

@@ -17,7 +17,7 @@
     height: 40px;
     width: 40px;
     padding: 0;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     color: var(--md-sys-color-on-surface-variant);
     transition: background-color 120ms ease, color 120ms ease;
 

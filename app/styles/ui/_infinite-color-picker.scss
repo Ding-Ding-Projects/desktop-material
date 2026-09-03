@@ -43,7 +43,7 @@
   margin-inline-start: 8px;
   padding: 6px 10px;
   border: 1px solid var(--md-sys-color-outline-variant, #79747e);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   background: var(--md-sys-color-surface, #fffbfe);
   color: var(--md-sys-color-on-surface, #1d1b20);
   font: inherit;
@@ -80,7 +80,7 @@
   width: min(620px, calc(100vw - 20px));
   max-height: min(760px, calc(100vh - 20px));
   border: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
-  border-radius: 28px;
+  border-radius: var(--md-sys-shape-corner-extra-large);
   background: var(--md-sys-color-surface-container-high, #ece6f0);
   box-shadow: 0 8px 24px rgb(0 0 0 / 24%);
 
@@ -183,7 +183,7 @@
   flex: 0 0 auto;
   width: 52px;
   height: 52px;
-  border-radius: 16px;
+  border-radius: var(--md-sys-shape-corner-large);
 }
 
 .infinite-color-picker-field {
@@ -258,13 +258,13 @@
   }
 
   &:first-of-type input[type='range'] {
-    border-radius: 8px;
+    border-radius: var(--md-sys-shape-corner-small);
     background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
   }
 }
 
 .infinite-color-picker-alpha input[type='range'] {
-  border-radius: 8px;
+  border-radius: var(--md-sys-shape-corner-small);
   background: linear-gradient(to right, transparent, var(--dm-infinite-alpha-color, #000)), linear-gradient(45deg, #c9c9c9 25%, transparent 25%), linear-gradient(-45deg, #c9c9c9 25%, transparent 25%);
   background-size: 100% 100%, 10px 10px, 10px 10px;
 }
@@ -284,7 +284,7 @@
     min-height: 48px;
     padding: 10px 14px;
     border: 1px solid var(--md-sys-color-outline, #79747e);
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     background: var(--md-sys-color-surface, #fef7ff);
     color: var(--md-sys-color-on-surface, #1d1b20);
     font-family: var(--dm-monospace-font, ui-monospace, monospace);
@@ -336,7 +336,7 @@
 .infinite-color-picker-gamut {
   margin: 0;
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   background: var(--md-sys-color-tertiary-container, #ffd8e4);
   color: var(--md-sys-color-on-tertiary-container, #31111d);
   font-size: 0.8125rem;

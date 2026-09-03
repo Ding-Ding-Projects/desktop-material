@@ -1,8 +1,7 @@
 import * as React from 'react'
 import { Ref } from '../lib/ref'
 import { Button } from '../lib/button'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface INoPullRequestsProps {
   /** The name of the repository. */
@@ -36,7 +35,7 @@ export class NoPullRequests extends React.Component<INoPullRequestsProps, {}> {
     return (
       <div className="no-pull-requests">
         <div className="no-pull-requests-icon" aria-hidden="true">
-          <Octicon symbol={octicons.gitMerge} />
+          <MaterialSymbol name="merge" />
         </div>
         {this.renderTitle()}
         {this.renderCallToAction()}

@@ -205,7 +205,7 @@ describe('post-shell MD3 style contracts', () => {
     )
     assert.match(
       style,
-      /\.sandboxed-markdown-iframe-container\s*\{[\s\S]*?border-left: 2px solid var\(--pr-timeline-line-color\);/
+      /\.sandboxed-markdown-iframe-container\s*\{[\s\S]*?border-left: 2px solid var\(--md-sys-color-outline-variant\);/
     )
   })
 

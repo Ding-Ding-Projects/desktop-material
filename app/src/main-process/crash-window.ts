@@ -39,7 +39,11 @@ export class CrashWindow {
       show: false,
       // This fixes subpixel aliasing on Windows
       // See https://github.com/atom/atom/commit/683bef5b9d133cb194b476938c77cc07fd05b972
-      backgroundColor: '#f7fbf2',
+      // The window's prepaint colour, shown for the instant before the renderer
+      // paints. It has to match `--md-sys-color-surface`: it was still the old
+      // green surface after these windows moved onto the application's roles,
+      // so opening one flashed green and then turned blue.
+      backgroundColor: '#f8f9ff',
       webPreferences: {
         // Disable auxclick event
         // See https://developers.google.com/web/updates/2016/10/auxclick

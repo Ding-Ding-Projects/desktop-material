@@ -23,14 +23,13 @@ import { Emoji } from '../../lib/emoji'
 import { getAvatarUsersForCommit, IAvatarUser } from '../../models/avatar'
 import { formatDate } from '../../lib/format-date'
 import { Avatar } from '../lib/avatar'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { buildCommitGraphRows, ICommitGraphRow } from './commit-graph-model'
 import { RelativeTime } from '../relative-time'
 import {
   ICommitContextMenuProps,
   showCommitContextMenu,
 } from './commit-context-menu'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 export { getEffectiveCommitSelection } from './commit-context-menu'
 
@@ -494,7 +493,7 @@ export class CommitList extends React.Component<
           <div>
             <div className="label">
               <span className="unpushed-indicator">
-                <Octicon symbol={octicons.arrowUp} />
+                <MaterialSymbol name="arrow_upward" />
               </span>
             </div>
             <div>

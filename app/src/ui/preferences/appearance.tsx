@@ -26,8 +26,6 @@ import { assertNever } from '../../lib/fatal-error'
 import { BranchSortOrder } from '../../models/branch-sort-order'
 import { ShowBranchNameInRepoListSetting } from '../../models/show-branch-name-in-repo-list'
 import { IAppearanceCustomization } from '../../models/appearance-customization'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { translate, translatedVariable } from '../../lib/i18n'
 import {
   IFunnyLevels,
@@ -59,6 +57,7 @@ import {
   isSchoolModeEnabled,
   SchoolModeChangedEvent,
 } from '../../lib/school-mode'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 type AppearanceSelectKey = 'languageMode'
 
@@ -622,10 +621,10 @@ export class Appearance extends React.Component<
             aria-labelledby="scaling-heading"
             {...teleportAnchor('settings-ui-scale')}
           >
-            <Octicon
+            <MaterialSymbol
+              name="zoom_out"
               className="scaling-zoom-icon scaling-zoom-out"
-              symbol={octicons.zoomOut}
-              height={18}
+              size={18}
             />
             <input
               type="range"
@@ -638,10 +637,10 @@ export class Appearance extends React.Component<
               aria-valuetext={`${percent}%`}
               onChange={this.onZoomSliderChanged}
             />
-            <Octicon
+            <MaterialSymbol
+              name="zoom_in"
               className="scaling-zoom-icon scaling-zoom-in"
-              symbol={octicons.zoomIn}
-              height={20}
+              size={20}
             />
             <span className="scaling-value" aria-hidden={true}>
               {percent}%
@@ -885,7 +884,7 @@ export class Appearance extends React.Component<
         aria-labelledby="appearance-scope-note-title"
       >
         <span className="appearance-scope-note-icon">
-          <Octicon symbol={octicons.paintbrush} height={20} />
+          <MaterialSymbol name="brush" size={20} />
         </span>
         <div>
           <h2 id="appearance-scope-note-title">

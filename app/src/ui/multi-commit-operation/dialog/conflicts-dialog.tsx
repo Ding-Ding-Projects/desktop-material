@@ -25,12 +25,11 @@ import { DialogSuccess } from '../../dialog/success'
 import { enableCopilotConflictResolution } from '../../../lib/feature-flag'
 import { getAccountForCopilotConflictResolution } from '../../../lib/get-account-for-repository'
 import { Account } from '../../../models/account'
-import { Octicon } from '../../octicons'
-import * as octicons from '../../octicons/octicons.generated'
 import { Button } from '../../lib/button'
 import { PopupType } from '../../../models/popup'
 import { buildConflictRepairPrompt } from '../../../lib/build-run/repair-prompts'
 import { t } from '../../../lib/i18n'
+import { MaterialSymbol } from '../../lib/material-symbol'
 
 interface IConflictsDialogProps {
   readonly dispatcher: Dispatcher
@@ -296,7 +295,7 @@ export class ConflictsDialog extends React.Component<
             : 'Use Copilot to suggest resolutions for conflicted files'
         }
       >
-        <Octicon symbol={octicons.copilot} />
+        <MaterialSymbol name="smart_toy" />
         {' Resolve with Copilot'}
       </Button>
     )
@@ -347,7 +346,7 @@ export class ConflictsDialog extends React.Component<
           disabled={this.state.isAborting}
           tooltip="Open a bounded local repair task and choose Codex or OpenCode"
         >
-          <Octicon symbol={octicons.tools} />
+          <MaterialSymbol name="build" />
           {` ${t('conflicts.resolveWithAgent')}`}
         </Button>
       ) : null

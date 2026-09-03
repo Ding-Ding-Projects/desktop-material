@@ -1,6 +1,6 @@
 // The Support Tickets desk — the joke recovery route.
 //
-// Shared classes come from `_md3-shell.scss` (`.md3-row`, `.md3-row__detail`,
+// Shared classes come from `app/styles/ui/md3/` (`.md3-row`, `.md3-row__detail`,
 // `.md3-empty-state`, `.md3-search-row`, `.md3-chip-row`, the `.md3-anim-*`
 // motion classes); nothing they already declare is restated here.
 //
@@ -114,7 +114,7 @@
 .md3-support-tickets__disclosure {
   align-items: flex-start;
   background: var(--md-sys-color-secondary-container);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   color: var(--md-sys-color-on-secondary-container);
   display: flex;
   font-size: 12.5px;
@@ -144,7 +144,7 @@
 
 .md3-support-tickets__explain {
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   font-size: 12px;
   padding: 8px 12px;
 
@@ -185,7 +185,7 @@
 .md3-support-tickets__fieldset,
 .md3-support-tickets__options {
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -208,7 +208,7 @@
 .md3-support-tickets__option {
   align-items: center;
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   cursor: pointer;
   display: inline-flex;
   font-size: 12px;
@@ -553,7 +553,7 @@
 
 .md3-support-gate__keys {
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -595,7 +595,7 @@
 
 .md3-support-gate__progress {
   background: var(--md-sys-color-surface-container);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   height: 6px;
   overflow: hidden;
 }
@@ -658,4 +658,59 @@
   .md3-support-tickets__list {
     max-height: none;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Controls that previously had no declaration at all
+// ---------------------------------------------------------------------------
+
+.md3-support-tickets__submit {
+  align-items: center;
+  appearance: none;
+  background-color: var(--md-sys-color-primary);
+  border: none;
+  border-radius: var(--md-sys-shape-corner-full);
+  color: var(--md-sys-color-on-primary);
+  cursor: pointer;
+  display: inline-flex;
+  gap: 8px;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 20px;
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.38;
+  }
+}
+
+.md3-support-gate__cancel {
+  align-items: center;
+  appearance: none;
+  background: none;
+  border: none;
+  border-radius: var(--md-sys-shape-corner-full);
+  color: var(--md-sys-color-primary);
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 20px;
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+// The gate's slider is in motion. The class marks the state so the progress fill
+// can be styled while it moves; the accessible state is carried by the control
+// itself, never by this class alone.
+.md3-support-gate__progress--moving {
+  transition: none;
 }

@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Dialog, DialogContent } from '../dialog'
-import * as octicons from './octicons.generated'
 import { Octicon, OcticonSymbolVariant, OcticonSymbolVariants } from '.'
+import * as octicons from './octicons.generated'
 
 interface IIconPreviewDialogProps {
   readonly onDismissed: () => void

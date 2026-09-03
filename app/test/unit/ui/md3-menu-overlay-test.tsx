@@ -1,0 +1,525 @@
+import assert from 'node:assert'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { describe, it } from 'node:test'
+import * as React from 'react'
+
+import '../../helpers/ui/setup'
+import {
+  Md3MenuOverlayCanonicalRegistry,
+  Md3MenuOverlayCompletenessRegistry,
+} from '../../../src/lib/collection-surface-registry'
+import {
+  filterMenuItems,
+  Md3MenuOverlay,
+} from '../../../src/ui/md3/md3-menu-overlay'
+import { IMd3MenuSpec } from '../../../src/ui/md3/md3-menu-specs'
+import { fireEvent, render, screen, within } from '../../helpers/ui/render'
+
+// Independent contract boundary. This list is intentionally test-owned and
+// does not import MenuKinds or any runtime registry, so one correlated source
+// deletion cannot shrink both the expectation and the implementation check.
+const ExpectedMenuKinds = Object.freeze([
+  'palette',
+  'settings',
+  'account',
+  'repoMenu',
+  'branchMenu',
+  'paneMenu',
+  'listMenu',
+  'diffOptions',
+  'fileMenu',
+  'rowMenu',
+  'changesMenu',
+  'changeRowMenu',
+  'branchRowMenu',
+  'runMenu',
+  'repoRowMenu',
+  'compose',
+  'agentAccess',
+  'inboxRowMenu',
+  'agentRowMenu',
+  'terminalMenu',
+  'drawerMenu',
+  'searchMenu',
+  'guide',
+] as const)
+
+const spec = (kind: IMd3MenuSpec['kind'], title: string): IMd3MenuSpec => ({
+  kind,
+  title,
+  icon: 'menu',
+  width: 320,
+  hasFilter: true,
+  filterPlaceholder: 'Search actions',
+  items: [
+    {
+      id: 'export',
+      label: 'Export record',
+      icon: 'cloud_download',
+      hint: '',
+      onClick: () => undefined,
+    },
+    {
+      id: 'openRegexBuilder',
+      label: 'Open regex builder',
+      icon: 'construction',
+      hint: '',
+      onClick: () => undefined,
+    },
+  ],
+})
+
+describe('MD3 menu overlay completeness', () => {
+  it('keeps one explicit registry row for every menu kind', () => {
+    assert.deepEqual(
+      Md3MenuOverlayCanonicalRegistry.map(entry => entry.kind),
+      ExpectedMenuKinds
+    )
+    assert.equal(
+      new Set(Md3MenuOverlayCanonicalRegistry.map(entry => entry.kind)).size,
+      ExpectedMenuKinds.length
+    )
+    assert.equal(ExpectedMenuKinds.length, 23)
+    assert.deepEqual(
+      Md3MenuOverlayCompletenessRegistry.map(entry => entry.kind),
+      ['rowMenu', 'listMenu']
+    )
+    for (const entry of [
+      ...Md3MenuOverlayCanonicalRegistry,
+      ...Md3MenuOverlayCompletenessRegistry,
+    ]) {
+      assert.equal(entry.implementation, 'Md3MenuOverlay')
+      assert.equal(entry.supportsAnchoring, true)
+      assert.equal(entry.supportsCenteredFallback, true)
+      assert.ok(entry.searchSurfacePrefix.endsWith('-'))
+    }
+    assert.deepEqual(Md3MenuOverlayCompletenessRegistry[0].liveConsumers, [
+      'md3-authenticator-view.tsx',
+      'md3-support-tickets-view.tsx',
+    ])
+    assert.deepEqual(Md3MenuOverlayCompletenessRegistry[1].liveConsumers, [
+      'md3-authenticator-view.tsx',
+      'md3-locks-view.tsx',
+      'md3-support-tickets-view.tsx',
+    ])
+  })
+
+  it('binds every canonical kind to a factory case and live kinds to consumers', () => {
+    const menuSpecs = readFileSync(
+      join(process.cwd(), 'app', 'src', 'ui', 'md3', 'md3-menu-specs.ts'),
+      'utf8'
+    )
+    for (const kind of ExpectedMenuKinds) {
+      assert.match(
+        menuSpecs,
+        new RegExp(`^\\s*case '${kind}':`, 'm'),
+        `Missing getMenuSpec case for ${kind}`
+      )
+    }
+    for (const entry of Md3MenuOverlayCompletenessRegistry) {
+      assert.ok(entry.liveConsumers !== undefined)
+      for (const consumer of entry.liveConsumers) {
+        const consumerSource = readFileSync(
+          join(process.cwd(), 'app', 'src', 'ui', 'md3', consumer),
+          'utf8'
+        )
+        assert.match(consumerSource, /<Md3MenuOverlay\b/)
+        assert.match(consumerSource, /\binstanceId=/)
+        assert.match(consumerSource, /\banchor=/)
+      }
+    }
+  })
+
+  it('turns red when a factory case is removed, then returns green restored', () => {
+    const menuSpecsPath = join(
+      process.cwd(),
+      'app',
+      'src',
+      'ui',
+      'md3',
+      'md3-menu-specs.ts'
+    )
+    const original = readFileSync(menuSpecsPath, 'utf8')
+    const assertImplementationContract = (contents: string) => {
+      for (const kind of ExpectedMenuKinds) {
+        assert.match(contents, new RegExp(`\\| '${kind}'`))
+        assert.match(contents, new RegExp(`kind: '${kind}'`))
+        assert.match(contents, new RegExp(`^\\s*case '${kind}':`, 'm'))
+      }
+    }
+    assertImplementationContract(original)
+    const removed = original
+      .replaceAll("| 'rowMenu'", '')
+      .replaceAll("kind: 'rowMenu'", '')
+      .replaceAll("case 'rowMenu':", '')
+    assert.throws(() => assertImplementationContract(removed))
+    assertImplementationContract(original)
+  })
+
+  it('filters invalid patterns without hiding actions and reports no matches', () => {
+    const items = spec('rowMenu', 'Row actions').items
+    const invalid = filterMenuItems(items, '(', true)
+    assert.equal(invalid.patternInvalid, true)
+    assert.equal(invalid.items.length, items.length)
+
+    const empty = filterMenuItems(items, 'missing', false)
+    assert.equal(empty.patternInvalid, false)
+    assert.equal(empty.items.length, 0)
+  })
+
+  it('applies regex flags to membership, validation, and count', () => {
+    const multiline = [
+      {
+        ...spec('rowMenu', 'Rows').items[0],
+        label: 'first\nsecond',
+      },
+      {
+        ...spec('rowMenu', 'Rows').items[1],
+        label: 'SECOND',
+      },
+    ]
+    const caseSensitive = filterMenuItems(multiline, '^second$', true, {
+      g: false,
+      i: false,
+      m: true,
+      s: false,
+      u: true,
+      y: false,
+    })
+    assert.equal(caseSensitive.patternInvalid, false)
+    assert.deepEqual(
+      caseSensitive.items.map(item => item.label),
+      ['first\nsecond']
+    )
+
+    const caseInsensitive = filterMenuItems(multiline, '^second$', true, {
+      g: false,
+      i: true,
+      m: true,
+      s: false,
+      u: true,
+      y: false,
+    })
+    assert.deepEqual(
+      caseInsensitive.items.map(item => item.label),
+      ['first\nsecond', 'SECOND']
+    )
+
+    const dotAll = filterMenuItems(multiline, '^first.second$', true, {
+      g: false,
+      i: true,
+      m: false,
+      s: true,
+      u: true,
+      y: false,
+    })
+    assert.deepEqual(
+      dotAll.items.map(item => item.label),
+      ['first\nsecond']
+    )
+
+    const sticky = filterMenuItems(multiline, 'second$', true, {
+      g: false,
+      i: true,
+      m: false,
+      s: false,
+      u: true,
+      y: true,
+    })
+    assert.deepEqual(
+      sticky.items.map(item => item.label),
+      ['SECOND']
+    )
+  })
+
+  it('gives two mounted menu instances isolated state and originating fields', () => {
+    render(
+      <>
+        <Md3MenuOverlay
+          spec={spec('rowMenu', 'First row')}
+          instanceId="first"
+          onDismiss={() => undefined}
+        />
+        <Md3MenuOverlay
+          spec={spec('rowMenu', 'Second row')}
+          instanceId="second"
+          onDismiss={() => undefined}
+        />
+      </>
+    )
+
+    const firstPanel = document.querySelector('[data-menu-instance-id="first"]')
+    const secondPanel = document.querySelector(
+      '[data-menu-instance-id="second"]'
+    )
+    assert.ok(firstPanel)
+    assert.ok(secondPanel)
+    const firstInput = within(firstPanel as HTMLElement).getByRole(
+      'searchbox'
+    ) as HTMLInputElement
+    const secondInput = within(secondPanel as HTMLElement).getByRole(
+      'searchbox'
+    ) as HTMLInputElement
+    assert.notEqual(firstInput.id, secondInput.id)
+    assert.notEqual(
+      firstInput.getAttribute('data-search-surface-id'),
+      secondInput.getAttribute('data-search-surface-id')
+    )
+    assert.match(
+      firstInput.getAttribute('data-search-surface-id') ?? '',
+      /md3-menu-rowMenu-first/
+    )
+    assert.match(
+      secondInput.getAttribute('data-search-surface-id') ?? '',
+      /md3-menu-rowMenu-second/
+    )
+    fireEvent.change(firstInput, { target: { value: 'Export' } })
+    fireEvent.click(
+      within(firstPanel as HTMLElement).getByRole('button', {
+        name: /Regex mode for First row/,
+      })
+    )
+    assert.equal(firstInput.dataset.searchMode, 'regex')
+    assert.equal(secondInput.value, '')
+
+    fireEvent.click(
+      within(firstPanel as HTMLElement).getByRole('button', {
+        name: /Regex builder for First row/,
+      })
+    )
+    const firstBuilder = screen.getByRole('dialog', {
+      name: /Regex builder .*First row \(first\)/,
+    })
+    fireEvent.click(
+      within(firstBuilder).getByRole('button', { name: 'Flag g — global' })
+    )
+    fireEvent.click(
+      within(firstBuilder).getByRole('button', {
+        name: 'Flag m — multiline',
+      })
+    )
+    fireEvent.click(
+      within(firstBuilder).getByRole('button', { name: 'Flag s — dotall' })
+    )
+    fireEvent.click(
+      within(firstBuilder).getByRole('button', { name: 'Flag y — sticky' })
+    )
+    fireEvent.change(
+      within(firstBuilder).getByLabelText('Regular expression pattern'),
+      { target: { value: '^Export' } }
+    )
+    fireEvent.click(
+      within(firstBuilder).getByRole('button', {
+        name: /Insert \$ — end/,
+      })
+    )
+    fireEvent.click(
+      within(firstBuilder).getByRole('button', {
+        name: /Apply to search First row \(first\)/,
+      })
+    )
+    assert.equal(firstInput.value, '^Export$')
+    assert.match(firstInput.dataset.searchFlags ?? '', /g/)
+    assert.match(firstInput.dataset.searchFlags ?? '', /i/)
+    assert.match(firstInput.dataset.searchFlags ?? '', /m/)
+    assert.match(firstInput.dataset.searchFlags ?? '', /s/)
+    assert.match(firstInput.dataset.searchFlags ?? '', /y/)
+    assert.ok(document.querySelector('[data-menu-instance-id="first"]'))
+
+    fireEvent.change(secondInput, { target: { value: 'missing' } })
+    assert.equal(firstInput.value, '^Export$')
+    assert.match(secondInput.dataset.searchHistory ?? '', /missing/)
+    assert.doesNotMatch(firstInput.dataset.searchHistory ?? '', /missing/)
+    fireEvent.click(
+      within(secondPanel as HTMLElement).getByRole('button', {
+        name: /Regex builder for Second row/,
+      })
+    )
+    const secondBuilder = screen.getByRole('dialog', {
+      name: /Regex builder .*Second row \(second\)/,
+    })
+    fireEvent.click(
+      within(secondBuilder).getByRole('button', {
+        name: 'Close the regex builder',
+      })
+    )
+    assert.equal(document.querySelector('.md3-regex-builder'), null)
+    assert.ok(document.querySelector('[data-menu-instance-id="first"]'))
+    assert.ok(document.querySelector('[data-menu-instance-id="second"]'))
+  })
+
+  it('keeps the menu mounted while its own builder applies and cancels', () => {
+    render(
+      <Md3MenuOverlay
+        spec={spec('listMenu', 'Export actions')}
+        instanceId="export-one"
+        onDismiss={() => undefined}
+      />
+    )
+
+    const input = screen.getByRole('searchbox') as HTMLInputElement
+    fireEvent.change(input, { target: { value: 'export' } })
+    assert.equal(input.dataset.searchMode, 'substring')
+    assert.equal(input.dataset.searchPattern, 'export')
+    assert.match(input.dataset.searchHistory ?? '', /export/)
+    fireEvent.click(screen.getByRole('button', { name: /Regex builder for/ }))
+    assert.ok(document.querySelector('.md3-regex-builder'))
+    assert.match(
+      screen
+        .getByRole('dialog', {
+          name: /Regex builder .*Export actions \(export-one\)/,
+        })
+        .getAttribute('data-search-surface-id') ?? '',
+      /md3-menu-listMenu-export-one/
+    )
+    assert.ok(document.querySelector('[data-menu-instance-id="export-one"]'))
+
+    fireEvent.change(screen.getByLabelText('Regular expression pattern'), {
+      target: { value: '^export' },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: /Apply to search Export actions/ })
+    )
+    assert.equal(input.value, '^export')
+    assert.equal(input.getAttribute('aria-invalid'), null)
+
+    fireEvent.click(screen.getByRole('button', { name: /Regex builder for/ }))
+    fireEvent.keyDown(screen.getByLabelText('Regular expression pattern'), {
+      key: 'Escape',
+    })
+    assert.equal(document.querySelector('.md3-regex-builder'), null)
+    assert.ok(document.querySelector('[data-menu-instance-id="export-one"]'))
+  })
+
+  it('keeps invalid regex input visible and shows an honest no-match state', () => {
+    render(
+      <Md3MenuOverlay
+        spec={spec('rowMenu', 'Filterable row')}
+        instanceId="invalid"
+        onDismiss={() => undefined}
+      />
+    )
+    const input = screen.getByRole('searchbox')
+    fireEvent.click(screen.getByRole('button', { name: /Regex mode for/ }))
+    fireEvent.change(input, { target: { value: '(' } })
+    assert.equal(screen.getAllByRole('menuitem').length, 2)
+    assert.ok(screen.getByText(/not a valid regular expression/i))
+    fireEvent.click(
+      screen.getByRole('button', { name: /Clear Filterable row/ })
+    )
+    fireEvent.change(input, { target: { value: 'missing' } })
+    assert.equal(
+      screen.queryByRole('menuitem', { name: 'Open regex builder' }),
+      null
+    )
+    assert.ok(screen.getByText(/Nothing in Filterable row matches/))
+  })
+
+  it('uses the centered fallback only for a constrained anchored viewport', () => {
+    const originalWidth = window.innerWidth
+    const originalHeight = window.innerHeight
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 320,
+    })
+    Object.defineProperty(window, 'innerHeight', {
+      configurable: true,
+      value: 480,
+    })
+    const anchor = document.createElement('button')
+    document.body.appendChild(anchor)
+    render(
+      <Md3MenuOverlay
+        spec={spec('rowMenu', 'Constrained row')}
+        instanceId="constrained"
+        anchor={anchor}
+        onDismiss={() => undefined}
+      />
+    )
+    assert.ok(document.querySelector('.md3-menu-overlay'))
+    assert.equal(document.querySelector('.popover-component'), null)
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: originalWidth,
+    })
+    Object.defineProperty(window, 'innerHeight', {
+      configurable: true,
+      value: originalHeight,
+    })
+    anchor.remove()
+  })
+
+  it('keeps an anchored parent open across every nested builder interaction', () => {
+    const anchor = document.createElement('button')
+    document.body.appendChild(anchor)
+    const originalWidth = window.innerWidth
+    const originalHeight = window.innerHeight
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 1024,
+    })
+    Object.defineProperty(window, 'innerHeight', {
+      configurable: true,
+      value: 768,
+    })
+    let dismissed = 0
+    render(
+      <Md3MenuOverlay
+        spec={spec('rowMenu', 'Nested row')}
+        instanceId="nested"
+        anchor={anchor}
+        onDismiss={() => dismissed++}
+      />
+    )
+    const opener = screen.getByRole('button', { name: /Regex builder for/ })
+    fireEvent.click(opener)
+    const builder = document.querySelector('.md3-regex-builder')
+    assert.ok(builder)
+    assert.equal(
+      document
+        .querySelector('.md3-regex-builder-owned-portal')
+        ?.getAttribute('data-search-surface-id'),
+      'md3-menu-rowMenu-nested'
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Flag g — global' }))
+    fireEvent.change(screen.getByLabelText('Regular expression pattern'), {
+      target: { value: '^Export' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Insert $ — end' }))
+    assert.ok(document.querySelector('.md3-menu-overlay__panel'))
+    fireEvent.click(
+      screen.getByRole('button', { name: /Apply to search Nested row/ })
+    )
+    assert.equal(document.querySelector('.md3-regex-builder'), null)
+    assert.equal(dismissed, 0)
+    assert.ok(document.querySelector('[data-menu-instance-id="nested"]'))
+
+    fireEvent.click(opener)
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Close the regex builder' })
+    )
+    assert.equal(document.querySelector('.md3-regex-builder'), null)
+    assert.equal(dismissed, 0)
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: originalWidth,
+    })
+    Object.defineProperty(window, 'innerHeight', {
+      configurable: true,
+      value: originalHeight,
+    })
+    anchor.remove()
+  })
+
+  it('keeps each menu item at the accessible 40px hit-area floor', () => {
+    const styles = readFileSync(
+      join(process.cwd(), 'app', 'styles', 'ui', '_md3-menu-overlay.scss'),
+      'utf8'
+    )
+    assert.match(
+      styles,
+      /\.md3-menu-overlay__item\s*\{[\s\S]*?min-height:\s*40px;/
+    )
+  })
+})

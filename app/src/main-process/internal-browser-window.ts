@@ -126,7 +126,11 @@ export class InternalBrowserWindow {
       minHeight: 520,
       show: false,
       title: DefaultAppDisplayName,
-      backgroundColor: '#f7fbf2',
+      // The window's prepaint colour, shown for the instant before the renderer
+      // paints. It has to match `--md-sys-color-surface`: it was still the old
+      // green surface after these windows moved onto the application's roles,
+      // so opening one flashed green and then turned blue.
+      backgroundColor: '#f8f9ff',
       webPreferences: {
         disableBlinkFeatures: 'Auxclick',
         nodeIntegration: true,

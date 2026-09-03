@@ -8,8 +8,6 @@ import {
   getCheapLfsUploadConcurrency,
 } from '../../models/build-run-preferences'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { ToggledtippedContent } from '../lib/toggletipped-content'
 import { Select } from '../lib/select'
 import { Button } from '../lib/button'
@@ -24,6 +22,7 @@ import {
 } from '../../lib/cheap-lfs/payload-encryption-credentials'
 import { verifyCheapLfsEncryptionSecret } from '../../lib/cheap-lfs/payload-encryption'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 type CheapLfsCredentialStatus = 'checking' | 'saved' | 'missing' | 'unavailable'
 
@@ -511,7 +510,7 @@ export class CheapLfsSettings extends React.Component<
           ariaLiveMessage={t('cheapLfs.settings.autoPinHelp')}
           tooltip={t('cheapLfs.settings.autoPinHelp')}
         >
-          <Octicon symbol={octicons.info} />
+          <MaterialSymbol name="info" />
         </ToggledtippedContent>
       </span>
     )
@@ -535,7 +534,7 @@ export class CheapLfsSettings extends React.Component<
               : t('cheapLfs.cloud.privateHelp')
           }
         >
-          <Octicon symbol={octicons.info} />
+          <MaterialSymbol name="info" />
         </ToggledtippedContent>
       </span>
     )
@@ -545,7 +544,7 @@ export class CheapLfsSettings extends React.Component<
         <div className="build-run-settings cheap-lfs-settings">
           <section className="build-run-section">
             <h3 className="build-run-section-title">
-              <Octicon symbol={octicons.database} />
+              <MaterialSymbol name="database" />
               {t('cheapLfs.settings.sectionHeading')}
             </h3>
             <div className="build-run-toggles">

@@ -31,7 +31,7 @@ dialog.clone-repository {
     // Unselected chips are borderless tonal fills rather than outlined
     // transparent pills.
     border: 0;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     color: var(--md-sys-color-on-surface-variant);
     background: var(--md-sys-color-surface-container-high);
     font: inherit;
@@ -41,7 +41,7 @@ dialog.clone-repository {
     transition: background-color 180ms ease, border-radius 220ms var(--spring), transform 160ms var(--spring-fast);
 
     &:hover {
-      border-radius: 12px;
+      border-radius: var(--md-sys-shape-corner-medium);
       background: var(--md-sys-color-surface-container-highest);
     }
 
@@ -86,7 +86,7 @@ dialog.clone-repository {
     gap: 12px;
     margin: 0 20px 10px;
     padding: 9px 12px;
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     color: var(--md-sys-color-on-error-container);
     background: var(--md-sys-color-error-container);
     font-size: 12.5px;
@@ -95,7 +95,7 @@ dialog.clone-repository {
       flex: 0 0 auto;
       min-height: 32px;
       padding: 0 12px;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
     }
   }
 }

@@ -44,7 +44,7 @@
     color: var(--md-sys-color-on-surface-variant);
     background: transparent;
     border-color: transparent;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
   }
 
   .select-component {

@@ -15,8 +15,6 @@ import {
   PopoverDecoration,
 } from '../lib/popover'
 import { Select } from '../lib/select'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import {
   AnchoredAppearanceEditor,
   appearanceLockTargetProps,
@@ -25,6 +23,7 @@ import {
   openAppearanceEditorFromKeyDown,
 } from '../appearance'
 import { IVersionedStoreHistorySource } from '../version-history'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface ISubmoduleBackButtonProps {
   readonly appearanceCustomization: IAppearanceCustomization
@@ -152,7 +151,7 @@ export class SubmoduleBackAppearanceEditor extends React.Component<ISubmoduleBac
               tooltip={localize('submodule.managerClose')}
               onClick={this.props.onClose}
             >
-              <Octicon symbol={octicons.x} />
+              <MaterialSymbol name="close" />
             </Button>
           </div>
           {controls}
@@ -277,7 +276,7 @@ export class SubmoduleBackButton extends React.Component<
           tooltip={accessibleLabel}
           autoFocus={this.props.autoFocus}
         >
-          <Octicon symbol={octicons.arrowLeft} />
+          <MaterialSymbol name="arrow_back" />
           {visibleLabel === null ? null : (
             <span className="submodule-context-back-label">{visibleLabel}</span>
           )}

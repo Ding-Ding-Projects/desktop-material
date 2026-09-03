@@ -83,6 +83,10 @@ export const profileSettingsRegistry: ReadonlyArray<IProfileSettingEntry> = [
   { key: 'timeFormat', label: 'time format' },
   { key: 'numberFormat', label: 'number format' },
   { key: 'preferAbsoluteDates', label: 'absolute date preference' },
+  {
+    key: 'selected-copilot-models-by-account',
+    label: 'Copilot model selections by account',
+  },
   { key: 'tab-style-recent-colors', label: 'recent tab colors' },
   { key: 'image-diff-type', label: 'image diff type' },
   {

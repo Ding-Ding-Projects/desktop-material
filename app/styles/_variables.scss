@@ -29,7 +29,7 @@ $overlay-background-color: rgba(0, 0, 0, 0.4);
   --button-height: 40px;
 
   --button-background: #{$blue};
-  --button-border-radius: 999px;
+  --button-border-radius: var(--md-sys-shape-corner-full);
   --button-hover-background: #{lighten($blue, 5%)};
   --button-text-color: #{$white};
   --button-focus-border-color: #{$blue-100};
@@ -76,7 +76,9 @@ $overlay-background-color: rgba(0, 0, 0, 0.4);
   /**
    * Font weight to use for semibold text
    */
+  --font-weight-medium: 500;
   --font-weight-semibold: 600;
+  --font-weight-bold: 700;
 
   /**
    * Font weight to use for light text
@@ -251,6 +253,7 @@ $overlay-background-color: rgba(0, 0, 0, 0.4);
   --spacing-quint: calc(var(--spacing) * 5);
   --spacing-half: calc(var(--spacing) / 2);
   --spacing-third: calc(var(--spacing) / 3);
+  --spacing-quarter: calc(var(--spacing) / 4);
 
   --border-radius: 6px;
   // When we use the regular border radius (6px) the outline

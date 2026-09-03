@@ -4,7 +4,7 @@
 // Every size, radius, weight and colour below is the contract's. The scrim's
 // `dmFade 160ms ease both` and the panel's `dmMenu 200ms cubic-bezier(0.2,0,0,1)
 // both` are applied through the shared `.md3-anim-fade--overlay` and
-// `.md3-anim-menu` classes in `_md3-shell.scss`, which are already disabled
+// `.md3-anim-menu` classes in `app/styles/ui/md3/`, which are already disabled
 // under `prefers-reduced-motion`.
 //
 // One addition throughout: the contract sets `outline: none` on both text
@@ -200,7 +200,7 @@
 .md3-compose-dialog__action {
   align-items: center;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   cursor: pointer;
   display: flex;
   flex: 1;

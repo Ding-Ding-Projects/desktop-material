@@ -1,5 +1,8 @@
 import * as React from 'react'
 import classNames from 'classnames'
+import { createObservableRef } from './observable-ref'
+import { Tooltip } from './tooltip'
+import { TooltipDirection } from './tooltip'
 
 /**
  * The exact ligatures bundled in the Material Symbols Rounded WOFF2 subset.
@@ -7,14 +10,22 @@ import classNames from 'classnames'
  * unit contract compares the two so an unbundled glyph cannot slip into UI.
  */
 export const MaterialSymbolNames = [
+  'accessibility',
   'account_circle',
   'account_tree',
   'add',
+  'add_box',
   'add_circle',
   'alt_route',
   'alternate_email',
   'anchor',
+  'apps',
+  'archive',
+  'arrow_back',
   'arrow_downward',
+  'arrow_drop_down',
+  'arrow_forward',
+  'arrow_right',
   'arrow_upward',
   'auto_awesome',
   'autoplay',
@@ -24,13 +35,17 @@ export const MaterialSymbolNames = [
   'block',
   'bolt',
   'book_2',
+  'book_5',
+  'brush',
   'build',
   'build_circle',
   'calendar_month',
+  'calendar_today',
   'call_merge',
   'call_split',
   'cancel',
   'category',
+  'chat_bubble',
   'check',
   'check_box',
   'check_box_outline_blank',
@@ -43,6 +58,7 @@ export const MaterialSymbolNames = [
   'cloud_done',
   'cloud_download',
   'code',
+  'code_blocks',
   'commit',
   'construction',
   'content_copy',
@@ -57,47 +73,76 @@ export const MaterialSymbolNames = [
   'delete_sweep',
   'deployed_code',
   'description',
+  'desktop_windows',
+  'devices',
   'difference',
+  'disabled_by_default',
   'dns',
   'do_not_disturb_on',
   'done_all',
+  'download',
+  'drive_file_rename_outline',
   'edit',
   'edit_note',
   'edit_square',
   'error',
   'expand_more',
   'extension',
+  'fiber_manual_record',
+  'file_copy',
+  'filter_alt',
+  'filter_alt_off',
   'filter_list',
   'first_page',
   'flag',
   'folder',
   'folder_open',
+  'folder_special',
+  'folder_zip',
   'fork_right',
   'format_align_center',
   'format_align_left',
   'format_align_right',
   'format_bold',
   'format_italic',
+  'format_list_bulleted',
+  'format_strikethrough',
   'format_underlined',
+  'forum',
+  'group',
   'group_add',
   'handyman',
   'help',
   'history',
   'history_toggle_off',
+  'home',
+  'hourglass_empty',
+  'image',
   'inbox',
   'indeterminate_check_box',
+  'info',
+  'install_desktop',
   'inventory_2',
   'join_inner',
   'key',
   'keyboard_arrow_down',
+  'keyboard_arrow_left',
+  'keyboard_arrow_right',
+  'keyboard_arrow_up',
+  'keyboard_double_arrow_down',
+  'keyboard_double_arrow_up',
   'keyboard_return',
   'label',
   'last_page',
+  'layers',
   'library_add_check',
   'light_mode',
+  'lightbulb',
+  'link',
   'list',
   'live_help',
   'lock',
+  'login',
   'low_priority',
   'manage_history',
   'mark_email_read',
@@ -108,21 +153,27 @@ export const MaterialSymbolNames = [
   'merge',
   'merge_type',
   'monitoring',
+  'mood',
+  'more_horiz',
   'more_vert',
   'notifications',
+  'notifications_active',
   'notifications_off',
   'open_in_new',
   'package_2',
   'palette',
   'pause',
   'pause_circle',
+  'pending',
   'person',
   'person_add',
   'person_search',
   'play_arrow',
   'play_circle',
+  'policy',
   'progress_activity',
   'public',
+  'publish',
   'push_pin',
   'rate_review',
   'redo',
@@ -134,6 +185,7 @@ export const MaterialSymbolNames = [
   'rocket_launch',
   'schedule',
   'school',
+  'science',
   'search',
   'search_off',
   'security',
@@ -141,11 +193,17 @@ export const MaterialSymbolNames = [
   'send',
   'settings',
   'shield',
+  'skip_next',
   'smart_toy',
+  'smartphone',
   'sort',
   'space_bar',
+  'speed',
+  'square',
   'stacks',
   'star',
+  'sticky_note_2',
+  'stop',
   'subject',
   'swap_horiz',
   'sync',
@@ -154,12 +212,21 @@ export const MaterialSymbolNames = [
   'terminal',
   'text_fields',
   'text_format',
+  'timeline',
+  'travel_explore',
   'tune',
   'undo',
+  'unfold_less',
   'unfold_more',
+  'upload',
+  'verified_user',
+  'vertical_align_bottom',
   'vertical_split',
+  'view_kanban',
   'view_stream',
   'visibility',
+  'visibility_off',
+  'volume_up',
   'warning',
   'waving_hand',
   'wrap_text',
@@ -182,6 +249,22 @@ export interface IMaterialSymbolProps {
   readonly grade?: number
   /** Optical size. Clamped to the bundled 20–48 range. */
   readonly opticalSize?: number
+
+  /**
+   * An accessible name for the icon, also shown as a tooltip.
+   *
+   * An icon with no title is decoration and stays hidden from assistive
+   * technology; an icon carrying meaning needs a name, or the only thing a
+   * screen reader can announce is the ligature text, which is the glyph's
+   * English name rather than what it means here.
+   *
+   * Mirrors `Octicon`'s prop of the same name so a call site can move between
+   * the two without silently losing its accessible name on the way.
+   */
+  readonly title?: string
+
+  /** Where the tooltip sits. Icons are small, so an explicit side helps. */
+  readonly tooltipDirection?: TooltipDirection
 }
 
 function clampFinite(
@@ -209,15 +292,28 @@ export function MaterialSymbol(props: IMaterialSymbolProps) {
   const grade = clampFinite(props.grade, 0, 0, 0)
   const opticalSize = clampFinite(props.opticalSize, 20, 48, 24)
 
+  const { title, tooltipDirection } = props
+  const ref = React.useMemo(() => createObservableRef<HTMLSpanElement>(), [])
+
   return (
     <span
+      ref={ref}
       className={classNames('material-symbol', props.className)}
-      aria-hidden={true}
+      aria-hidden={title === undefined ? true : undefined}
+      aria-label={title}
       style={{
         fontSize: `${size}px`,
         fontVariationSettings: `'FILL' ${fill}, 'wght' ${weight}, 'GRAD' ${grade}, 'opsz' ${opticalSize}`,
       }}
     >
+      {title !== undefined && (
+        <Tooltip
+          target={ref}
+          direction={tooltipDirection ?? TooltipDirection.NORTH}
+        >
+          {title}
+        </Tooltip>
+      )}
       {props.name}
     </span>
   )

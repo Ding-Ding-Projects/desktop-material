@@ -40,7 +40,7 @@
 
 #preferences .self-hosted-server-error {
   border: 1px solid var(--md-sys-color-error);
-  border-radius: 8px;
+  border-radius: var(--md-sys-shape-corner-small);
   padding: 10px 12px;
   margin: 12px 0;
 

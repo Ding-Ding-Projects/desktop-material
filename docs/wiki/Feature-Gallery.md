@@ -4,7 +4,7 @@
 
 Treat every gallery entry as part of a workflow: find the capability, open its named surface, review the exact scope, and keep the resulting evidence.
 
-This page maps 91 named, user-facing visual functions and states to a
+This page maps 98 named, user-facing visual functions and states to a
 one-screenshot-per-function Windows acceptance target. Every view
 uses synthetic accounts, repositories, issues, pull requests, workflow runs, logs, and artifact
 metadata except the purpose-built live Cheap LFS acceptance repositories. No personal path,
@@ -238,8 +238,9 @@ promoted.
 | `material-responsive-overflow-fixed.png` | Exact-size responsive overflow regression proof |
 | `material-history-power-tools.png` | Searchable History and commit ancestry graph |
 | `material-branch-merge-all.png` | Merge All branches/worktrees with per-target state |
-| `material-worktree-force-mat-day.png` | Merge All worktrees with Force Mat Day preservation enabled |
 | `not-updated-with-main-filter.png` | Merge into main chooser filtered to branches not updated with main |
+| `worktree-context-menu-merge-delete.png` | Linked worktree context menu with reviewed Merge and guarded Delete actions |
+| `worktree-merge-preview-from-context-menu.png` | Merge into main preview opened from a linked worktree context menu |
 | `material-create-pull-request.png` | Native pull-request completion state |
 | `material-effective-branch-rules.png` | Effective protection and ruleset policy |
 | `material-actions-artifacts.png` | Artifact digest and attestation-presence context |
@@ -813,9 +814,11 @@ reachable without page-level horizontal clipping.
 
 ![Merge All branches and worktrees with per-target state](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-branch-merge-all.png)
 
-![Merge All worktrees with Force Mat Day preservation enabled](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-worktree-force-mat-day.png)
-
 ![Merge into main chooser with Not updated with main active](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/not-updated-with-main-filter.png)
+
+![Linked worktree context menu with Merge and Delete available](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/worktree-context-menu-merge-delete.png)
+
+![Merge into main preview opened from a linked worktree menu](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/worktree-merge-preview-from-context-menu.png)
 
 ![Git-backed notification centre](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-notification-center.png)
 

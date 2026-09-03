@@ -1,6 +1,4 @@
 import * as React from 'react'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { CopyButton } from '../copy-button'
 import {
   ISecretLocation,
@@ -8,6 +6,7 @@ import {
 } from './push-protection-error-dialog'
 import { PathText } from '../lib/path-text'
 import { Button } from '../lib/button'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IPushProtectionErrorLocationProps {
   readonly secret: ISecretScanResult
@@ -39,7 +38,7 @@ export class PushProtectionErrorLocation extends React.Component<
     return (
       <span className="secret-location-details">
         <span className="commit-sha">
-          <Octicon symbol={octicons.gitCommit} />
+          <MaterialSymbol name="commit" />
           <span className="ref selectable-text">
             {location.commitSha.substring(0, 7)}
           </span>
@@ -83,7 +82,7 @@ export class PushProtectionErrorLocation extends React.Component<
               ariaLabel={toggleText}
               onClick={this.onClickShowMoreLocations}
             >
-              <Octicon symbol={octicons.kebabHorizontal} />
+              <MaterialSymbol name="more_horiz" />
             </Button>
           )}
         </span>

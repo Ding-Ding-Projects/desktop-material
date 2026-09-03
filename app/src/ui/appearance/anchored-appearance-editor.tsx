@@ -11,13 +11,12 @@ import {
   PopoverAnchorPosition,
   PopoverDecoration,
 } from '../lib/popover'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { AppearanceLockControl } from './appearance-lock-control'
 import {
   IVersionedStoreHistorySource,
   VersionedStoreHistory,
 } from '../version-history'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /** Actions exposed to an element-owned editor rendered inside the shell. */
 export interface IAnchoredAppearanceEditorControls {
@@ -405,7 +404,7 @@ export class AnchoredAppearanceEditor extends React.Component<
             tooltip={`Close ${this.props.title}`}
             onClick={this.requestClose}
           >
-            <Octicon symbol={octicons.x} />
+            <MaterialSymbol name="close" />
           </Button>
         </>
       )
@@ -415,7 +414,7 @@ export class AnchoredAppearanceEditor extends React.Component<
       <>
         <header className="anchored-appearance-editor-header">
           <span className="anchored-appearance-editor-heading-icon">
-            <Octicon symbol={octicons.paintbrush} />
+            <MaterialSymbol name="brush" />
           </span>
           <h2 id={this.titleId}>{this.props.title}</h2>
           <Button
@@ -425,7 +424,7 @@ export class AnchoredAppearanceEditor extends React.Component<
             tooltip={`Close ${this.props.title}`}
             onClick={this.requestClose}
           >
-            <Octicon symbol={octicons.x} />
+            <MaterialSymbol name="close" />
           </Button>
         </header>
         <div
@@ -440,7 +439,7 @@ export class AnchoredAppearanceEditor extends React.Component<
             aria-selected="true"
             aria-controls={this.contentId}
           >
-            <Octicon symbol={octicons.paintbrush} />
+            <MaterialSymbol name="brush" />
             Customize
           </button>
           <button
@@ -449,7 +448,7 @@ export class AnchoredAppearanceEditor extends React.Component<
             aria-selected="false"
             onClick={this.showHistory}
           >
-            <Octicon symbol={octicons.history} />
+            <MaterialSymbol name="history" />
             History
           </button>
         </div>
@@ -467,7 +466,7 @@ export class AnchoredAppearanceEditor extends React.Component<
         className="anchored-appearance-editor-repository"
         aria-label="Element settings repository"
       >
-        <Octicon symbol={octicons.repo} />
+        <MaterialSymbol name="book_5" />
         <span>
           <strong>Local Git repository</strong>
           <code title="Private root hidden; copy the exact path">
@@ -481,7 +480,7 @@ export class AnchoredAppearanceEditor extends React.Component<
           tooltip="Copy local Git repository path"
           onClick={this.copyRepositoryPath}
         >
-          <Octicon symbol={octicons.copy} />
+          <MaterialSymbol name="content_copy" />
         </Button>
       </footer>
     )

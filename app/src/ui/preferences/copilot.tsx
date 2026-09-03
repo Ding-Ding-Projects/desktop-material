@@ -18,9 +18,15 @@ import { isGHES } from '../../lib/endpoint-capabilities'
 import {
   DefaultCopilotModel,
   type CopilotFeature,
+  getCopilotAccountCacheKey,
+  type CopilotModelsByAccount,
   type CopilotModelSelections,
+  type CopilotQuotaSnapshots,
+  type CopilotQuotaSnapshotsByAccount,
+  type CopilotQuotaStatesByAccount,
+  isCopilotAccountEligible,
 } from '../../lib/stores/copilot-store'
-import type { Account } from '../../models/account'
+import { CopilotLicenseTypeNoAccess, type Account } from '../../models/account'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import {
   OllamaModelManager,
@@ -40,16 +46,24 @@ import {
 import { LinkButton } from '../lib/link-button'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { Row } from '../lib/row'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { TabBar } from '../tab-bar'
 import { CopilotModelSelectionInfo } from './copilot-model-selection-info'
+import { SnapshotCard } from './snapshot-card'
 import type { Model } from '@github/copilot-sdk/dist/generated/rpc'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface ICopilotPreferencesProps {
   readonly selectedCopilotModels: CopilotModelSelections
+  readonly selectedCopilotModelsByAccount?: ReadonlyMap<
+    string,
+    CopilotModelSelections
+  >
   readonly copilotModels: ReadonlyArray<Model> | null
+  readonly copilotModelsByAccount?: CopilotModelsByAccount
+  readonly copilotQuotaSnapshots?: CopilotQuotaSnapshots | null
+  readonly copilotQuotaSnapshotsByAccount?: CopilotQuotaSnapshotsByAccount
+  readonly copilotQuotaStatesByAccount?: CopilotQuotaStatesByAccount
   readonly accounts: ReadonlyArray<Account>
   readonly byokProviders: ReadonlyArray<IBYOKProvider>
   readonly showBYOKSettings: boolean
@@ -61,12 +75,18 @@ interface ICopilotPreferencesProps {
     feature: CopilotFeature,
     model: string | null
   ) => void
+  readonly onSelectedCopilotModelChangedForAccount?: (
+    account: Account,
+    feature: CopilotFeature,
+    model: string | null
+  ) => void
   readonly onAlwaysUseCopilotForConflictResolutionChanged: (
     checked: boolean
   ) => void
   readonly onAddBYOKProvider: () => void
   readonly onEditBYOKProvider: (provider: IBYOKProvider) => void
   readonly onDeleteBYOKProvider: (provider: IBYOKProvider) => void
+  readonly onConfigureModels?: (account: Account) => void
   readonly onUpdateBYOKProvider: (
     provider: IBYOKProvider
   ) => Promise<void> | void
@@ -78,6 +98,7 @@ interface ICopilotPreferencesState {
   readonly selectedTabIndex: number
   readonly managedOllamaProviderId: string | null
   readonly languageMode: LanguageMode
+  readonly configuringAccount: Account | null
 }
 
 type CopilotAccessState =
@@ -87,7 +108,6 @@ type CopilotAccessState =
   | 'desktop-disabled'
   | 'enabled'
 
-const CopilotLicenseTypeNoAccess = 'NO_ACCESS'
 export class CopilotPreferences extends React.Component<
   ICopilotPreferencesProps,
   ICopilotPreferencesState
@@ -98,6 +118,7 @@ export class CopilotPreferences extends React.Component<
       selectedTabIndex: 0,
       managedOllamaProviderId: null,
       languageMode: getPersistedLanguageMode(),
+      configuringAccount: null,
     }
   }
 
@@ -142,11 +163,35 @@ export class CopilotPreferences extends React.Component<
   }
 
   private onCommitMessageModelChanged = (model: string) => {
-    this.props.onSelectedCopilotModelChanged('commit-message-generation', model)
+    const account = this.getActiveCopilotAccount()
+    if (account === undefined) return
+    this.notifySelectedCopilotModelChanged(
+      account,
+      'commit-message-generation',
+      model
+    )
   }
 
   private onConflictResolutionModelChanged = (model: string) => {
-    this.props.onSelectedCopilotModelChanged('conflict-resolution', model)
+    const account = this.getActiveCopilotAccount()
+    if (account === undefined) return
+    this.notifySelectedCopilotModelChanged(
+      account,
+      'conflict-resolution',
+      model
+    )
+  }
+
+  private notifySelectedCopilotModelChanged(
+    account: Account,
+    feature: CopilotFeature,
+    model: string | null
+  ): void {
+    if (this.props.onSelectedCopilotModelChangedForAccount !== undefined) {
+      this.props.onSelectedCopilotModelChangedForAccount(account, feature, model)
+    } else {
+      this.props.onSelectedCopilotModelChanged(feature, model)
+    }
   }
 
   private onAlwaysUseCopilotForConflictResolutionChanged = (
@@ -214,6 +259,51 @@ export class CopilotPreferences extends React.Component<
   }
 
   public render() {
+    const accounts = this.getCopilotSettingsAccounts()
+    if (this.state.configuringAccount !== null) {
+      return (
+        <DialogContent className="copilot-tab">
+          <div className="copilot-tab-content">
+            <div className="copilot-section">
+              <Button onClick={this.onBackToAccountSnapshots}>
+                Back to accounts
+              </Button>
+              {this.renderModelPicker()}
+            </div>
+          </div>
+        </DialogContent>
+      )
+    }
+    if (accounts.length > 1) {
+      return (
+        <DialogContent className="copilot-tab">
+          <div className="copilot-tab-content">
+            <div className="copilot-section copilot-account-snapshot-groups">
+              {accounts.map((account, index) => (
+                <SnapshotCard
+                  key={getCopilotAccountCacheKey(account)}
+                  account={account}
+                  snapshots={
+                    this.props.copilotQuotaSnapshotsByAccount?.has(
+                      getCopilotAccountCacheKey(account)
+                    )
+                      ? this.props.copilotQuotaSnapshotsByAccount.get(
+                          getCopilotAccountCacheKey(account)
+                        ) ?? null
+                      : null
+                  }
+                  quotaState={this.props.copilotQuotaStatesByAccount?.get(
+                    getCopilotAccountCacheKey(account)
+                  )}
+                  isDefaultAccount={index === 0}
+                  onConfigureModels={this.onConfigureModels}
+                />
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      )
+    }
     const accessState = this.getCopilotAccessState()
     const showBYOK = this.props.showBYOKSettings
 
@@ -247,6 +337,18 @@ export class CopilotPreferences extends React.Component<
         </div>
       </DialogContent>
     )
+  }
+
+  private onConfigureModels = (account: Account) => {
+    this.setState({ configuringAccount: account })
+  }
+
+  private onBackToAccountSnapshots = () => {
+    this.setState({ configuringAccount: null })
+  }
+
+  private getActiveCopilotAccount(): Account | undefined {
+    return this.state.configuringAccount ?? this.getCopilotSettingsAccounts()[0]
   }
 
   private renderCurrentTab(accessState: CopilotAccessState) {
@@ -307,6 +409,12 @@ export class CopilotPreferences extends React.Component<
     return 'checking'
   }
 
+  private getCopilotSettingsAccounts(): ReadonlyArray<Account> {
+    return this.props.accounts.filter(account =>
+      isCopilotAccountEligible(account)
+    )
+  }
+
   private renderAccessState(accessState: CopilotAccessState): JSX.Element {
     switch (accessState) {
       case 'signed-out':
@@ -355,14 +463,32 @@ export class CopilotPreferences extends React.Component<
   }
 
   private renderModelPicker() {
-    const { copilotModels, byokProviders } = this.props
+    const { byokProviders } = this.props
+    const account = this.getActiveCopilotAccount()
+    const accountKey =
+      account === undefined ? null : getCopilotAccountCacheKey(account)
+    const accountModels =
+      accountKey !== null && this.props.copilotModelsByAccount?.has(accountKey)
+        ? this.props.copilotModelsByAccount.get(accountKey) ?? null
+        : this.props.copilotModels
+    const copilotModels = accountModels
 
     if (copilotModels === null) {
-      return <p>Loading available models…</p>
+      return (
+        <>
+          <p>Loading available models…</p>
+          {this.renderQuotaCard(account)}
+        </>
+      )
     }
 
     if (!hasCopilotModelPickerItems(copilotModels, byokProviders)) {
-      return <p>No Copilot models available.</p>
+      return (
+        <>
+          <p>No Copilot models available.</p>
+          {this.renderQuotaCard(account)}
+        </>
+      )
     }
 
     return (
@@ -423,7 +549,25 @@ export class CopilotPreferences extends React.Component<
             </div>
           </>
         )}
+        {this.renderQuotaCard(account)}
       </>
+    )
+  }
+
+  private renderQuotaCard(account: Account | undefined): JSX.Element | null {
+    if (account === undefined) return null
+    const key = getCopilotAccountCacheKey(account)
+    const snapshots = this.props.copilotQuotaSnapshotsByAccount?.has(key)
+      ? this.props.copilotQuotaSnapshotsByAccount.get(key) ?? null
+      : this.props.copilotQuotaSnapshots ?? null
+    return (
+      <SnapshotCard
+        account={account}
+        snapshots={snapshots}
+        quotaState={this.props.copilotQuotaStatesByAccount?.get(key)}
+        onConfigureModels={this.onConfigureModels}
+        isDefaultAccount
+      />
     )
   }
 
@@ -434,7 +578,15 @@ export class CopilotPreferences extends React.Component<
     onChange: (model: string) => void,
     maxHeight?: number
   ): JSX.Element {
-    const { byokProviders, selectedCopilotModels } = this.props
+    const { byokProviders } = this.props
+    const account = this.getActiveCopilotAccount()
+    const accountKey =
+      account === undefined ? null : getCopilotAccountCacheKey(account)
+    const selectedCopilotModels =
+      accountKey !== null &&
+      this.props.selectedCopilotModelsByAccount?.has(accountKey)
+        ? this.props.selectedCopilotModelsByAccount.get(accountKey) ?? {}
+        : this.props.selectedCopilotModels
 
     const rawSelection = selectedCopilotModels[feature] ?? null
     const value = this.resolveSelectionValue(
@@ -597,13 +749,13 @@ export class CopilotPreferences extends React.Component<
             onClick={this.onEditBYOKProviderClick(provider)}
             ariaLabel={`Edit ${provider.name}`}
           >
-            <Octicon symbol={octicons.pencil} />
+            <MaterialSymbol name="edit" />
           </Button>
           <Button
             onClick={this.onDeleteBYOKProviderClick(provider)}
             ariaLabel={`Remove ${provider.name}`}
           >
-            <Octicon symbol={octicons.trash} />
+            <MaterialSymbol name="delete" />
           </Button>
         </div>
       </li>

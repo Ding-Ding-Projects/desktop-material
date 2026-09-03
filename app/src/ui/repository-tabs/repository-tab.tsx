@@ -31,6 +31,7 @@ import {
   guardAppearanceElementActivation,
   openAppearanceEditorFromContextMenu,
 } from '../appearance'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IRepositoryTabProps {
   readonly tab: IRepositoryTab
@@ -356,7 +357,7 @@ export class RepositoryTab extends React.Component<
         />
       )
     }
-    return <Octicon className="repository-tab-icon" symbol={octicons.repo} />
+    return <MaterialSymbol name="book_5" className="repository-tab-icon" />
   }
 
   public render() {
@@ -443,7 +444,7 @@ export class RepositoryTab extends React.Component<
         {this.renderIcon()}
         {tab.isPinned === true && (
           <span className="repository-tab-pin" aria-hidden="true">
-            <Octicon symbol={octicons.pin} />
+            <MaterialSymbol name="push_pin" />
           </span>
         )}
         <button
@@ -469,6 +470,7 @@ export class RepositoryTab extends React.Component<
           // that does nothing for text truncated inside a tab that is visible.
           // The accessible name already carried the full text; a sighted mouse
           // user had nothing.
+          title={this.label}
           aria-label={this.label}
           style={tabTitleStyleToCss(tab.titleStyle)}
           data-context-menu-owner="tab-title-appearance"
@@ -487,7 +489,7 @@ export class RepositoryTab extends React.Component<
             aria-label="Customize tab appearance"
             onClick={this.onFormatClick}
           >
-            <Octicon symbol={octicons.typography} />
+            <MaterialSymbol name="text_fields" />
           </button>
         )}
         <button
@@ -495,7 +497,7 @@ export class RepositoryTab extends React.Component<
           aria-label="Close tab"
           onClick={this.onCloseClick}
         >
-          <Octicon symbol={octicons.x} />
+          <MaterialSymbol name="close" />
         </button>
       </div>
     )

@@ -1,49 +1,16 @@
+@import '../../../styles/material/standalone-roles';
+
 // Standalone Material Design 3 styling for the quick-action window.
 //
 // This window is a separate bundle from the main renderer and deliberately does
 // not pull in the app's full stylesheet — loading it would defeat the point of
-// a fast-opening panel. The tokens below mirror the app's M3 roles closely
-// enough that the panel reads as the same product, and both colour schemes are
-// defined so the panel follows the OS setting without a theme store.
+// a fast-opening panel. It does include the shared role declarations, which are
+// custom properties and nothing else, so the panel now renders the application's
+// own Material Design 3 roles rather than a private palette that had drifted to
+// a different hue entirely. Theming follows the operating system preference,
+// because this window has no access to the application's theme store.
 
-:root {
-  --qa-primary: #1c6b34;
-  --qa-on-primary: #ffffff;
-  --qa-primary-container: #a9f6b4;
-  --qa-on-primary-container: #00210b;
-  --qa-surface: #f7fbf2;
-  --qa-surface-container-low: #f1f5ec;
-  --qa-surface-container: #ebefe6;
-  --qa-surface-container-high: #e5e9e1;
-  --qa-on-surface: #191d18;
-  --qa-on-surface-variant: #424940;
-  --qa-outline: #72796f;
-  --qa-outline-variant: #c2c9bd;
-  --qa-error: #ba1a1a;
-  --qa-success: #146c2e;
-  --qa-radius-l: 20px;
-  --qa-radius-m: 12px;
-  --qa-radius-s: 8px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --qa-primary: #8ed99a;
-    --qa-on-primary: #003918;
-    --qa-primary-container: #005322;
-    --qa-on-primary-container: #a9f6b4;
-    --qa-surface: #101410;
-    --qa-surface-container-low: #181d18;
-    --qa-surface-container: #1c211c;
-    --qa-surface-container-high: #262b26;
-    --qa-on-surface: #e0e4dc;
-    --qa-on-surface-variant: #c0c9bf;
-    --qa-outline: #8a938a;
-    --qa-outline-variant: #414941;
-    --qa-error: #ffb4ab;
-    --qa-success: #7cdc94;
-  }
-}
+@include md-standalone-roles;
 
 * {
   box-sizing: border-box;
@@ -54,8 +21,8 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: var(--qa-surface-container-low);
-  color: var(--qa-on-surface);
+  background: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-on-surface);
   font-family: system-ui, 'Segoe UI Variable Text', 'Segoe UI', 'Noto Sans HK', 'Microsoft JhengHei', sans-serif;
   font-size: 14px;
   line-height: 1.45;
@@ -79,9 +46,9 @@ body {
   -webkit-app-region: drag;
   padding: 14px 16px;
   flex: 0 0 auto;
-  border-radius: var(--qa-radius-l);
-  background: var(--qa-primary-container);
-  color: var(--qa-on-primary-container);
+  border-radius: var(--md-sys-shape-corner-large);
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
 }
 
 .quick-action-title {
@@ -128,19 +95,19 @@ body {
   min-height: 0;
   padding: 14px;
   overflow-y: auto;
-  border: 1px solid var(--qa-outline-variant);
-  border-radius: var(--qa-radius-l);
-  background: var(--qa-surface);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-large);
+  background: var(--md-sys-color-surface);
 }
 
 .quick-action-status {
   min-height: 20px;
   margin: 0;
   font-size: 13px;
-  color: var(--qa-on-surface-variant);
+  color: var(--md-sys-color-on-surface-variant);
 
   &.quick-action-status-success {
-    color: var(--qa-success);
+    color: var(--md-sys-color-success);
     font-weight: 500;
   }
 }
@@ -148,7 +115,7 @@ body {
 .quick-action-label {
   font-size: 12px;
   font-weight: 500;
-  color: var(--qa-on-surface-variant);
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 .quick-action-summary {
@@ -157,16 +124,16 @@ body {
   width: 100%;
   min-height: 44px;
   padding: 10px 14px;
-  border-radius: var(--qa-radius-m);
+  border-radius: var(--md-sys-shape-corner-medium);
   border: 1px solid transparent;
-  background: var(--qa-surface-container-high);
+  background: var(--md-sys-color-surface-container-high);
   color: inherit;
   font: inherit;
 
   &:focus-visible {
-    outline: 2px solid var(--qa-primary);
+    outline: 2px solid var(--md-sys-color-primary);
     outline-offset: 1px;
-    border-color: var(--qa-primary);
+    border-color: var(--md-sys-color-primary);
   }
 
   &:disabled {
@@ -193,7 +160,7 @@ body {
   cursor: pointer;
 
   &:focus-visible {
-    outline: 2px solid var(--qa-primary);
+    outline: 2px solid var(--md-sys-color-primary);
     outline-offset: 2px;
   }
 
@@ -205,14 +172,14 @@ body {
 
 .quick-action-primary {
   border: none;
-  background: var(--qa-primary);
-  color: var(--qa-on-primary);
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
 }
 
 .quick-action-secondary {
-  border: 1px solid var(--qa-outline-variant);
-  background: var(--qa-surface-container);
-  color: var(--qa-primary);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  background: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-primary);
 }
 
 .quick-action-live {
@@ -225,11 +192,11 @@ body {
 }
 
 .quick-action-progress {
-  color: var(--qa-on-surface-variant);
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 .quick-action-error {
-  color: var(--qa-error);
+  color: var(--md-sys-color-error);
 }
 
 @media (max-width: 420px), (max-height: 350px) {

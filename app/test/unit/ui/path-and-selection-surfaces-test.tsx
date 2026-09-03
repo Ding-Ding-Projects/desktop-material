@@ -53,7 +53,9 @@ describe('path and selection surfaces', () => {
     const labels = Array.from(
       view.container.querySelectorAll('.path-text-component')
     )
-    const renameArrow = view.container.querySelector('.rename-arrow.octicon')
+    const renameArrow = view.container.querySelector(
+      '.rename-arrow.material-symbol'
+    )
 
     assert.equal(labels.length, 2)
     assert.notEqual(renameArrow, null)

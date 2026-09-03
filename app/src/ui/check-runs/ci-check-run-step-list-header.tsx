@@ -1,9 +1,8 @@
 import * as React from 'react'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { Button } from '../lib/button'
 import { getCombinedStatusSummary } from './ci-check-run-popover'
 import { IRefCheck } from '../../lib/ci-checks/ci-checks'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface ICICheckRunStepListHeaderProps {
   /** The check run to display **/
@@ -38,7 +37,7 @@ export class CICheckRunStepListHeader extends React.PureComponent<ICICheckRunSte
         onClick={this.onRerunJob}
         ariaLabel={tooltip}
       >
-        <Octicon symbol={octicons.sync} />
+        <MaterialSymbol name="sync" />
       </Button>
     )
   }
@@ -59,7 +58,7 @@ export class CICheckRunStepListHeader extends React.PureComponent<ICICheckRunSte
         tooltip={label}
         ariaLabel={label}
       >
-        <Octicon symbol={octicons.linkExternal} />
+        <MaterialSymbol name="open_in_new" />
       </Button>
     )
   }

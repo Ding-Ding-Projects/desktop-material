@@ -55,7 +55,8 @@ export async function preflightFileConverterStorage(
     destinationPath,
     requiredBytes,
     availableBytes,
-    canProceed: Number.isFinite(availableBytes) && availableBytes >= requiredBytes,
+    canProceed:
+      Number.isFinite(availableBytes) && availableBytes >= requiredBytes,
     reason:
       Number.isFinite(availableBytes) && availableBytes >= requiredBytes
         ? null
@@ -93,30 +94,48 @@ function detectFileSignature(bytes: Buffer): {
   readonly category: FileConverterCategory | null
 } {
   if (bytes.subarray(0, 5).toString('ascii') === '%PDF-') {
-    return { format: 'pdf', mimeType: 'application/pdf', category: 'Documents/PDF' }
+    return {
+      format: 'pdf',
+      mimeType: 'application/pdf',
+      category: 'Documents/PDF',
+    }
   }
-  if (bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
+  if (
+    bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+  ) {
     return { format: 'png', mimeType: 'image/png', category: 'Images' }
   }
   if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
     return { format: 'jpeg', mimeType: 'image/jpeg', category: 'Images' }
   }
-  if (bytes.subarray(0, 6).toString('ascii') === 'GIF87a' || bytes.subarray(0, 6).toString('ascii') === 'GIF89a') {
+  if (
+    bytes.subarray(0, 6).toString('ascii') === 'GIF87a' ||
+    bytes.subarray(0, 6).toString('ascii') === 'GIF89a'
+  ) {
     return { format: 'gif', mimeType: 'image/gif', category: 'Images' }
   }
-  if (bytes.subarray(0, 4).toString('ascii') === 'RIFF' && bytes.subarray(8, 12).toString('ascii') === 'WEBP') {
+  if (
+    bytes.subarray(0, 4).toString('ascii') === 'RIFF' &&
+    bytes.subarray(8, 12).toString('ascii') === 'WEBP'
+  ) {
     return { format: 'webp', mimeType: 'image/webp', category: 'Images' }
   }
   if (bytes.subarray(0, 4).equals(Buffer.from([80, 75, 3, 4]))) {
     return { format: 'zip', mimeType: 'application/zip', category: 'Archives' }
   }
-  if (bytes.subarray(0, 4).toString('ascii') === 'RIFF' && bytes.subarray(8, 12).toString('ascii') === 'WAVE') {
+  if (
+    bytes.subarray(0, 4).toString('ascii') === 'RIFF' &&
+    bytes.subarray(8, 12).toString('ascii') === 'WAVE'
+  ) {
     return { format: 'wav', mimeType: 'audio/wav', category: 'Audio' }
   }
   if (bytes.subarray(0, 4).toString('ascii') === 'fLaC') {
     return { format: 'flac', mimeType: 'audio/flac', category: 'Audio' }
   }
-  if (bytes.subarray(0, 3).toString('ascii') === 'ID3' || (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0)) {
+  if (
+    bytes.subarray(0, 3).toString('ascii') === 'ID3' ||
+    (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0)
+  ) {
     return { format: 'mp3', mimeType: 'audio/mpeg', category: 'Audio' }
   }
   return { format: 'unknown', mimeType: null, category: null }
@@ -131,7 +150,9 @@ async function findExistingDirectory(path: string): Promise<string> {
     } catch {
       const parent = Path.dirname(current)
       if (parent === current) {
-        throw new Error('No existing directory is available for the selected conversion destination.')
+        throw new Error(
+          'No existing directory is available for the selected conversion destination.'
+        )
       }
       current = parent
     }
