@@ -626,7 +626,10 @@ describe('Copilot account model and quota isolation', () => {
     const first = makeAccount({ id: 1 })
     const second = makeAccount({ id: 2 })
     const { accountsStore, store } = createCopilotStoreWithQuota(
-      async account => (account.id === 1 ? { chat: makeQuotaSnapshot() } : {})
+      async account =>
+        (account.id === 1 ? { chat: makeQuotaSnapshot() } : {}) as Readonly<
+          Record<string, AccountQuotaSnapshot>
+        >
     )
     await accountsStore.addAccount(first)
     await accountsStore.addAccount(second)
@@ -732,7 +735,9 @@ describe('Copilot account model and quota isolation', () => {
       fetchCount += 1
       return fetchCount === 1
         ? stale.promise
-        : Promise.resolve({ chat: makeQuotaSnapshot({ usedRequests: 80 }) })
+        : Promise.resolve({
+            chat: makeQuotaSnapshot({ usedRequests: 80 }),
+          } as Readonly<Record<string, AccountQuotaSnapshot>>)
     })
 
     await accountsStore.addAccount(account)

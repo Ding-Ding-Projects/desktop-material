@@ -72,13 +72,15 @@ interface ICopilotPreferencesProps {
   readonly onOpenCopilotPlans: () => void
   readonly onOpenCopilotFeatureSettings: () => void
   readonly alwaysUseCopilotForConflictResolution: boolean
-  readonly onSelectedCopilotModelChanged:
-    | ((
-        account: Account,
-        feature: CopilotFeature,
-        model: string | null
-      ) => void)
-    | ((feature: CopilotFeature, model: string | null) => void)
+  readonly onSelectedCopilotModelChanged: (
+    feature: CopilotFeature,
+    model: string | null
+  ) => void
+  readonly onSelectedCopilotModelChangedForAccount?: (
+    account: Account,
+    feature: CopilotFeature,
+    model: string | null
+  ) => void
   readonly onAlwaysUseCopilotForConflictResolutionChanged: (
     checked: boolean
   ) => void
@@ -186,18 +188,10 @@ export class CopilotPreferences extends React.Component<
     feature: CopilotFeature,
     model: string | null
   ): void {
-    const callback = this.props.onSelectedCopilotModelChanged
-    if (callback.length >= 3) {
-      ;(callback as (a: Account, f: CopilotFeature, m: string | null) => void)(
-        account,
-        feature,
-        model
-      )
+    if (this.props.onSelectedCopilotModelChangedForAccount !== undefined) {
+      this.props.onSelectedCopilotModelChangedForAccount(account, feature, model)
     } else {
-      ;(callback as (f: CopilotFeature, m: string | null) => void)(
-        feature,
-        model
-      )
+      this.props.onSelectedCopilotModelChanged(feature, model)
     }
   }
 
@@ -481,11 +475,21 @@ export class CopilotPreferences extends React.Component<
     const copilotModels = accountModels
 
     if (copilotModels === null) {
-      return <p>Loading available models…</p>
+      return (
+        <>
+          <p>Loading available models…</p>
+          {this.renderQuotaCard(account)}
+        </>
+      )
     }
 
     if (!hasCopilotModelPickerItems(copilotModels, byokProviders)) {
-      return <p>No Copilot models available.</p>
+      return (
+        <>
+          <p>No Copilot models available.</p>
+          {this.renderQuotaCard(account)}
+        </>
+      )
     }
 
     return (
@@ -546,26 +550,25 @@ export class CopilotPreferences extends React.Component<
             </div>
           </>
         )}
-        {account !== undefined && (
-          <SnapshotCard
-            account={account}
-            snapshots={
-              this.props.copilotQuotaSnapshotsByAccount?.has(
-                getCopilotAccountCacheKey(account)
-              )
-                ? this.props.copilotQuotaSnapshotsByAccount.get(
-                    getCopilotAccountCacheKey(account)
-                  ) ?? null
-                : this.props.copilotQuotaSnapshots ?? null
-            }
-            quotaState={this.props.copilotQuotaStatesByAccount?.get(
-              getCopilotAccountCacheKey(account)
-            )}
-            onConfigureModels={this.onConfigureModels}
-            isDefaultAccount
-          />
-        )}
+        {this.renderQuotaCard(account)}
       </>
+    )
+  }
+
+  private renderQuotaCard(account: Account | undefined): JSX.Element | null {
+    if (account === undefined) return null
+    const key = getCopilotAccountCacheKey(account)
+    const snapshots = this.props.copilotQuotaSnapshotsByAccount?.has(key)
+      ? this.props.copilotQuotaSnapshotsByAccount.get(key) ?? null
+      : this.props.copilotQuotaSnapshots ?? null
+    return (
+      <SnapshotCard
+        account={account}
+        snapshots={snapshots}
+        quotaState={this.props.copilotQuotaStatesByAccount?.get(key)}
+        onConfigureModels={this.onConfigureModels}
+        isDefaultAccount
+      />
     )
   }
 

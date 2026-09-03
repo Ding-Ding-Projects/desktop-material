@@ -33,15 +33,15 @@ import type {
   CopilotQuotaSnapshots,
   CopilotQuotaSnapshotsByAccount,
   CopilotQuotaStatesByAccount,
-  readCopilotModelSelectionsByAccount,
-  writeCopilotModelSelectionsByAccount,
-  migrateCopilotModelSelectionsStorage,
 } from './copilot-store'
 import {
   CommitMessageGenerationCancelledError,
   getCopilotAccountCacheKey,
   getConflictResolutionAIProviderBinding,
   isCopilotAccountEligible,
+  readCopilotModelSelectionsByAccount,
+  writeCopilotModelSelectionsByAccount,
+  migrateCopilotModelSelectionsStorage,
 } from './copilot-store'
 import { FileBatchCloneStagingManager } from './batch-clone-staging'
 import {
@@ -818,7 +818,6 @@ import {
   enableCustomIntegration,
   enableWorktreeSupport,
 } from '../feature-flag'
-import { isGHES } from '../endpoint-capabilities'
 import { Banner, BannerType } from '../../models/banner'
 import { ComputedAction } from '../../models/computed-action'
 import {
@@ -2888,14 +2887,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   private getCopilotSettingsAccounts(): ReadonlyArray<Account> {
     return this.accounts.filter(account => isCopilotAccountEligible(account))
-  }
-
-  private getCopilotModelsAccount(): Account | undefined {
-    return this.getCopilotSettingsAccounts()[0]
-  }
-
-  private getCopilotQuotaSnapshotsAccount(): Account | undefined {
-    return this.getCopilotSettingsAccounts()[0]
   }
 
   private syncCopilotModelsFromCache(): void {

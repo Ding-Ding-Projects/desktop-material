@@ -1174,7 +1174,10 @@ export class Preferences extends React.Component<
             alwaysUseCopilotForConflictResolution={
               this.state.alwaysUseCopilotForConflictResolution
             }
-            onSelectedCopilotModelChanged={this.onSelectedCopilotModelChanged}
+            onSelectedCopilotModelChanged={() => {}}
+            onSelectedCopilotModelChangedForAccount={
+              this.onSelectedCopilotModelChanged
+            }
             onAlwaysUseCopilotForConflictResolutionChanged={
               this.onAlwaysUseCopilotForConflictResolutionChanged
             }

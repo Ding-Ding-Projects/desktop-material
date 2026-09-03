@@ -159,6 +159,7 @@ const quotaSnapshots: CopilotQuotaSnapshots = new Map([
       overage: 0,
       overageAllowedWithExhaustedQuota: false,
       resetDate: '2030-01-01T00:00:00.000Z',
+      tokenBasedBilling: false,
     },
   ],
 ])
