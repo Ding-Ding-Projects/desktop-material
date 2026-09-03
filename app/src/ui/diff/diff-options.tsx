@@ -1,7 +1,5 @@
 import * as React from 'react'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { RadioButton } from '../lib/radio-button'
 import {
   Popover,
@@ -12,6 +10,7 @@ import { Tooltip, TooltipDirection } from '../lib/tooltip'
 import { createObservableRef } from '../lib/observable-ref'
 import { DiffContextPreferencesControl } from './diff-context-preferences-control'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IDiffOptionsProps {
   readonly isInteractiveDiff: boolean
@@ -102,9 +101,9 @@ export class DiffOptions extends React.Component<
             {buttonLabel}
           </Tooltip>
           <span ref={this.gearIconRef}>
-            <Octicon symbol={octicons.gear} />
+            <MaterialSymbol name="settings" />
           </span>
-          <Octicon symbol={octicons.triangleDown} />
+          <MaterialSymbol name="arrow_drop_down" />
         </button>
         {this.state.isPopoverOpen && this.renderPopover()}
       </div>

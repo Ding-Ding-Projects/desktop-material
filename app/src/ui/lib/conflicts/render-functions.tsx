@@ -1,7 +1,6 @@
 import * as React from 'react'
-import { Octicon } from '../../octicons'
-import * as octicons from '../../octicons/octicons.generated'
 import { LinkButton } from '../link-button'
+import { MaterialSymbol } from '../material-symbol'
 
 export function renderUnmergedFilesSummary(conflictedFilesCount: number) {
   // localization, it burns :vampire:
@@ -16,7 +15,7 @@ export function renderAllResolved() {
   return (
     <div className="all-conflicts-resolved">
       <div className="green-circle">
-        <Octicon symbol={octicons.check} />
+        <MaterialSymbol name="check" />
       </div>
       <div className="message">All conflicts resolved</div>
     </div>

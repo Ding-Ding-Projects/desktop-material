@@ -37,7 +37,10 @@ export type BrowserExtensionDownloadQueueListener = (
  */
 export class BrowserExtensionDownloadQueue {
   private readonly controllers = new Map<string, AbortController>()
-  private readonly current = new Map<string, IBrowserExtensionDownloadProgress>()
+  private readonly current = new Map<
+    string,
+    IBrowserExtensionDownloadProgress
+  >()
 
   public constructor(
     private readonly executor: IBrowserExtensionDownloadExecutor,
@@ -133,7 +136,10 @@ export class BrowserExtensionDownloadQueue {
 
   public async pause(requestId: string): Promise<void> {
     const progress = this.current.get(requestId)
-    if (progress?.phase !== 'downloading' || this.executor.pause === undefined) {
+    if (
+      progress?.phase !== 'downloading' ||
+      this.executor.pause === undefined
+    ) {
       return
     }
     await this.executor.pause(requestId)

@@ -25,7 +25,6 @@ import { showContextualMenu, IMenuItem } from '../../../lib/menu-item'
 import { OkCancelButtonGroup } from '../../dialog/ok-cancel-button-group'
 import { Button } from '../../lib/button'
 import { Octicon } from '../../octicons'
-import * as octicons from '../../octicons/octicons.generated'
 import { PathText } from '../../lib/path-text'
 import {
   OpenWithDefaultProgramLabel,
@@ -47,6 +46,7 @@ import {
   getResolutionChoiceForFile,
   resolutionChoices,
 } from './copilot-resolution-helpers'
+import { MaterialSymbol } from '../../lib/material-symbol'
 
 interface ICopilotConflictsDialogProps {
   readonly repository: Repository
@@ -317,7 +317,7 @@ export class CopilotConflictsDialog extends React.Component<
           </span>
         </div>
         <div className="green-circle">
-          <Octicon symbol={octicons.check} />
+          <MaterialSymbol name="check" />
         </div>
       </li>
     )
@@ -361,7 +361,7 @@ export class CopilotConflictsDialog extends React.Component<
           >
             <Octicon symbol={choiceIcon} />
             {choiceLabel}
-            <Octicon symbol={octicons.triangleDown} />
+            <MaterialSymbol name="arrow_drop_down" />
           </Button>
           <Button
             className="copilot-overflow-menu"
@@ -369,7 +369,7 @@ export class CopilotConflictsDialog extends React.Component<
             disabled={this.state.isContinuing}
             ariaLabel="File options"
           >
-            <Octicon symbol={octicons.kebabHorizontal} />
+            <MaterialSymbol name="more_horiz" />
           </Button>
         </div>
       </li>
@@ -405,7 +405,7 @@ export class CopilotConflictsDialog extends React.Component<
     return (
       <>
         <h2 className="copilot-conflicts-file-heading">
-          <Octicon symbol={octicons.fileCode} />
+          <MaterialSymbol name="code" />
           {conflictedFiles.length} Conflicted files
         </h2>
         <ul className="copilot-conflicts-file-list">
@@ -521,7 +521,7 @@ export class CopilotConflictsDialog extends React.Component<
               ariaLabel="Configure Copilot in app settings"
               onClick={this.onOpenCopilotSettings}
             >
-              <Octicon symbol={octicons.sliders} />
+              <MaterialSymbol name="tune" />
             </Button>
           </div>
         </DialogHeader>

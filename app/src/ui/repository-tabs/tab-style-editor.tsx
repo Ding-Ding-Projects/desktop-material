@@ -4,8 +4,6 @@ import {
   PopoverAnchorPosition,
   PopoverDecoration,
 } from '../lib/popover'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import {
   IRepositoryTab,
   ITabTitleStyle,
@@ -39,6 +37,7 @@ import {
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import { InfiniteColorPicker } from '../appearance/infinite-color-picker'
 import { Button } from '../lib/button'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface ITabStyleEditorProps {
   readonly tab: IRepositoryTab
@@ -413,12 +412,12 @@ export class TabStyleEditor extends React.Component<
             onClick={this.onFontToggle}
           >
             <span className="tab-style-font-name">{label}</span>
-            <Octicon symbol={octicons.triangleDown} />
+            <MaterialSymbol name="arrow_drop_down" />
           </button>
           {this.state.fontMenuOpen && (
             <div className="tab-style-font-menu">
               <div className="tab-style-font-search">
-                <Octicon symbol={octicons.search} />
+                <MaterialSymbol name="search" />
                 <input
                   data-search-surface-id="tab-style-font"
                   type="text"
@@ -459,7 +458,7 @@ export class TabStyleEditor extends React.Component<
                       onClick={this.onFontSelect}
                     >
                       <span className="tab-style-font-check">
-                        {selected && <Octicon symbol={octicons.check} />}
+                        {selected && <MaterialSymbol name="check" />}
                       </span>
                       <span className="tab-style-font-option-name">
                         {o.label}
@@ -675,7 +674,7 @@ export class TabStyleEditor extends React.Component<
                 onClick={this.props.onShowHistory}
                 ariaLabel={this.accessibleText('tabs.style.historyAria')}
               >
-                <Octicon symbol={octicons.history} />
+                <MaterialSymbol name="history" />
                 {this.text('tabs.style.history')}
               </Button>
             )}
@@ -713,7 +712,7 @@ export class TabStyleEditor extends React.Component<
           )}
           {this.renderToggle(
             'strikeThrough',
-            <Octicon symbol={octicons.strikethrough} />,
+            <MaterialSymbol name="format_strikethrough" />,
             'style-strike',
             this.accessibleText('tabs.style.strikethrough')
           )}

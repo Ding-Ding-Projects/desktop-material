@@ -1,8 +1,7 @@
 import * as React from 'react'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { Banner } from './banner'
 import { LinkButton } from '../lib/link-button'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface ICherryPickConflictsBannerProps {
   /** branch the user is rebasing into */
@@ -35,7 +34,7 @@ export class CherryPickConflictsBanner extends React.Component<
         dismissable={false}
         onDismissed={this.onDismissed}
       >
-        <Octicon className="alert-icon" symbol={octicons.alert} />
+        <MaterialSymbol name="warning" className="alert-icon" />
         <div className="banner-message">
           <span>
             Resolve conflicts to continue cherry-picking onto{' '}

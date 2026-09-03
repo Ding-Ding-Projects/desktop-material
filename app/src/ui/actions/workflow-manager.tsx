@@ -8,7 +8,6 @@ import {
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
 import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { getWorkflowStateAction } from './workflow-state-control'
 import { getWorkflowFileName, getWorkflowGlyph } from './workflow-templates'
 import {
@@ -27,6 +26,7 @@ import {
   translate,
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /** localStorage key used to persist the workflow filter mode. */
 const WorkflowManagerFilterListId = 'actions-workflows'
@@ -319,7 +319,7 @@ export class WorkflowManager extends React.PureComponent<
             onClick={this.props.onNewWorkflow}
             aria-haspopup="dialog"
           >
-            <Octicon symbol={octicons.plus} />
+            <MaterialSymbol name="add" />
             New workflow
           </button>
         </header>
@@ -330,7 +330,7 @@ export class WorkflowManager extends React.PureComponent<
                 invalid: regexError !== null,
               })}
             >
-              <Octicon symbol={octicons.search} />
+              <MaterialSymbol name="search" />
               <input
                 data-search-surface-id="actions-workflows"
                 value={this.state.filterText}

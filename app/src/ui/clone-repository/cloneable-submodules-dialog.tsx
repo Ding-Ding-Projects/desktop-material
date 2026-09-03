@@ -6,10 +6,9 @@ import {
   resolveSubmoduleCloneUrl,
 } from '../../lib/git/gitmodules'
 import { Button } from '../lib/button'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { Ref } from '../lib/ref'
 import { TooltippedContent } from '../lib/tooltipped-content'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface ICloneableSubmodulesDialogProps {
   /** The `owner/name` (or friendly name) of the inspected repository. */
@@ -104,14 +103,14 @@ function CloneableSubmoduleRow(props: ICloneableSubmoduleRowProps) {
     <li className="cloneable-submodule-row">
       <div className="cloneable-submodule-main">
         <div className="cloneable-submodule-heading">
-          <Octicon
+          <MaterialSymbol
+            name="folder_special"
             className="cloneable-submodule-icon"
-            symbol={octicons.fileSubmodule}
           />
           <span className="cloneable-submodule-path">{entry.path}</span>
           {entry.branch !== null && (
             <span className="cloneable-submodule-branch">
-              <Octicon symbol={octicons.gitBranch} />
+              <MaterialSymbol name="call_split" />
               {entry.branch}
             </span>
           )}

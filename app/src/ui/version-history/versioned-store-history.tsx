@@ -3,7 +3,6 @@ import * as React from 'react'
 import classNames from 'classnames'
 import memoizeOne from 'memoize-one'
 import { Button } from '../lib/button'
-import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { RelativeTime } from '../relative-time'
 import { TextBox } from '../lib/text-box'
@@ -11,6 +10,7 @@ import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import { DialogStackContext } from '../dialog'
 import { isDemoModeEnabled, redactForDemo } from '../../lib/demo-mode'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 const VersionHistoryPageSize = 50
 
@@ -850,14 +850,14 @@ export class VersionedStoreHistory extends React.Component<
               onClick={this.undo}
               disabled={busy || page === null || !page.canUndo}
             >
-              <Octicon symbol={octicons.undo} /> {this.strings.undo}
+              <MaterialSymbol name="undo" /> {this.strings.undo}
             </Button>
             <Button
               className="versioned-store-history-redo"
               onClick={this.redo}
               disabled={busy || page === null || !page.canRedo}
             >
-              <Octicon symbol={octicons.redo} /> {this.strings.redo}
+              <MaterialSymbol name="redo" /> {this.strings.redo}
             </Button>
           </>
         )}
@@ -946,7 +946,7 @@ export class VersionedStoreHistory extends React.Component<
               // eslint-disable-next-line react/jsx-no-bind
               onClick={() => this.confirmRestore(entry.sha)}
             >
-              <Octicon symbol={octicons.history} />
+              <MaterialSymbol name="history" />
             </Button>
           )}
         </div>
@@ -979,7 +979,7 @@ export class VersionedStoreHistory extends React.Component<
     if (loadingHistory) {
       return (
         <div className="versioned-store-history-empty">
-          <Octicon className="spin" symbol={octicons.sync} />{' '}
+          <MaterialSymbol name="sync" className="spin" />{' '}
           {this.strings.loadingHistory}
         </div>
       )
@@ -988,7 +988,7 @@ export class VersionedStoreHistory extends React.Component<
     if (page === null || page.entries.length === 0) {
       return (
         <div className="versioned-store-history-empty">
-          <Octicon symbol={octicons.history} />
+          <MaterialSymbol name="history" />
           <strong>
             {this.props.emptyTitle ?? this.strings.noHistoryTitle}
           </strong>
@@ -1007,7 +1007,7 @@ export class VersionedStoreHistory extends React.Component<
         {this.renderFilter(result)}
         {result.entries.length === 0 ? (
           <div className="versioned-store-history-empty filtered">
-            <Octicon symbol={octicons.search} />
+            <MaterialSymbol name="search" />
             <strong>{this.strings.noMatchesTitle}</strong>
             <span>{this.strings.noMatchesDescription}</span>
           </div>
@@ -1048,7 +1048,7 @@ export class VersionedStoreHistory extends React.Component<
     if (this.state.loadingDiff) {
       return (
         <div className="versioned-store-history-diff-empty">
-          <Octicon className="spin" symbol={octicons.sync} />{' '}
+          <MaterialSymbol name="sync" className="spin" />{' '}
           {this.strings.loadingDiff}
         </div>
       )
@@ -1057,7 +1057,7 @@ export class VersionedStoreHistory extends React.Component<
     if (this.state.diff === null || this.state.diff.length === 0) {
       return (
         <div className="versioned-store-history-diff-empty">
-          <Octicon symbol={octicons.fileDiff} />
+          <MaterialSymbol name="difference" />
           <span>{this.strings.noTextChanges}</span>
         </div>
       )
@@ -1100,7 +1100,7 @@ export class VersionedStoreHistory extends React.Component<
     if (entry === undefined) {
       return (
         <div className="versioned-store-history-details-empty">
-          <Octicon symbol={octicons.gitCommit} />
+          <MaterialSymbol name="commit" />
           <span>{this.strings.selectCommit}</span>
         </div>
       )
@@ -1142,7 +1142,7 @@ export class VersionedStoreHistory extends React.Component<
                 // eslint-disable-next-line react/jsx-no-bind
                 onClick={() => this.selectFile(file)}
               >
-                <Octicon symbol={octicons.file} /> {file}
+                <MaterialSymbol name="description" /> {file}
               </button>
             ))}
           </div>
@@ -1157,7 +1157,7 @@ export class VersionedStoreHistory extends React.Component<
   private renderError() {
     return this.state.error === null ? null : (
       <div className="versioned-store-history-error" role="alert">
-        <Octicon symbol={octicons.xCircle} />
+        <MaterialSymbol name="cancel" />
         <span>{this.state.error}</span>
         <Button
           size="small"
@@ -1177,16 +1177,16 @@ export class VersionedStoreHistory extends React.Component<
           className="versioned-store-history-header-icon"
           aria-hidden="true"
         >
-          <Octicon symbol={octicons.history} />
+          <MaterialSymbol name="history" />
         </span>
         <span className="versioned-store-history-header-copy">
           <h1>{this.props.title}</h1>
           <small>{this.props.timelineLabel}</small>
         </span>
         {this.state.operation !== null ? (
-          <Octicon
+          <MaterialSymbol
+            name="sync"
             className="versioned-store-history-header-progress spin"
-            symbol={octicons.sync}
           />
         ) : null}
         <Button
@@ -1195,7 +1195,7 @@ export class VersionedStoreHistory extends React.Component<
           tooltip={this.strings.closeLabel(this.props.title)}
           onClick={this.props.onDismissed}
         >
-          <Octicon symbol={octicons.x} />
+          <MaterialSymbol name="close" />
         </Button>
       </header>
     )

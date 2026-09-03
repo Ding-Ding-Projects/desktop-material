@@ -5,7 +5,9 @@ import {
 } from '../lib/browser-extension-download'
 
 export interface IBrowserExtensionDownloadHandoffOptions {
-  readonly onDownloadRequested: (request: IBrowserExtensionDownloadRequest) => void
+  readonly onDownloadRequested: (
+    request: IBrowserExtensionDownloadRequest
+  ) => void
 }
 
 /**
@@ -15,7 +17,9 @@ export interface IBrowserExtensionDownloadHandoffOptions {
  * trust boundaries and cannot stand in for a browser-extension handoff.
  */
 export class BrowserExtensionDownloadHandoff {
-  public constructor(private readonly options: IBrowserExtensionDownloadHandoffOptions) {}
+  public constructor(
+    private readonly options: IBrowserExtensionDownloadHandoffOptions
+  ) {}
 
   public acceptNativeMessage(value: unknown): boolean {
     const request = parseBrowserExtensionDownloadRequest(value)

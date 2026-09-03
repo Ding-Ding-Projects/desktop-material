@@ -5,8 +5,6 @@ import { TextBox } from '../lib/text-box'
 import { Select } from '../lib/select'
 import { Button } from '../lib/button'
 import { Row } from '../lib/row'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import {
   IBYOKProvider,
   IBYOKModel,
@@ -21,6 +19,7 @@ import { formatReasoningEffort } from '../../lib/stores/copilot-store'
 import { Dispatcher } from '../dispatcher'
 import { PopupType } from '../../models/popup'
 import { t } from '../../lib/i18n'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IEditCopilotBYOKProviderDialogProps {
   readonly dispatcher: Dispatcher
@@ -93,10 +92,10 @@ class ModelRow extends React.Component<IModelRowProps> {
         </div>
         <div className="copilot-byok-entry-actions">
           <Button onClick={this.onEdit} ariaLabel={`Edit ${heading}`}>
-            <Octicon symbol={octicons.pencil} />
+            <MaterialSymbol name="edit" />
           </Button>
           <Button onClick={this.onRemove} ariaLabel={`Remove ${heading}`}>
-            <Octicon symbol={octicons.trash} />
+            <MaterialSymbol name="delete" />
           </Button>
         </div>
       </li>

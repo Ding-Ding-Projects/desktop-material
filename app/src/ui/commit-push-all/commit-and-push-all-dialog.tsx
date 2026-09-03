@@ -14,8 +14,6 @@ import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { FilterMode } from '../../lib/fuzzy-find'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import { filterByMode } from '../lib/filter-string-list'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import {
   getPersistedLanguageMode,
   LanguageModeChangedEvent,
@@ -25,6 +23,7 @@ import {
   TranslationVariables,
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /** A suggested default the user can accept or replace before confirming. */
 export const DefaultCommitAndPushAllMessage = translate(
@@ -645,7 +644,7 @@ export class CommitAndPushAllDialog extends React.Component<
             </p>
             {isRunning && (
               <p className="pull-all-running">
-                <Octicon symbol={octicons.sync} className="spin" />{' '}
+                <MaterialSymbol name="sync" className="spin" />{' '}
                 {this.text('commitPushAll.concurrencyHint')}
               </p>
             )}

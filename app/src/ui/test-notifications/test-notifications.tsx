@@ -30,6 +30,7 @@ import {
   supportsNotificationsPermissionRequest,
 } from 'desktop-notifications'
 import { LinkButton } from '../lib/link-button'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 enum TestNotificationType {
   PullRequestReview,
@@ -138,7 +139,7 @@ class TestNotificationItemRowContent extends React.Component<{
               title={linkButtonDescription}
               ariaLabel={linkButtonDescription}
             >
-              <Octicon symbol={octicons.linkExternal} />
+              <MaterialSymbol name="open_in_new" />
             </LinkButton>
           </div>
         )}

@@ -10,8 +10,6 @@ import {
   IRepositoryBuildRunState,
 } from '../../lib/stores/build-run-store'
 import { Button } from '../lib/button'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { MaterialSymbol } from '../lib/material-symbol'
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
@@ -411,7 +409,7 @@ export class BuildRunPanel extends React.Component<
         ariaLabel={t('buildRun.closePanel')}
         tooltip={running ? t('buildRun.hideRunningPanel') : undefined}
       >
-        <Octicon symbol={octicons.x} />
+        <MaterialSymbol name="close" />
       </Button>
     )
   }
@@ -524,7 +522,7 @@ export class BuildRunPanel extends React.Component<
       return (
         <div className="build-run-panel is-minimized">
           <div className="build-run-panel-header">
-            <Octicon className="header-icon" symbol={octicons.terminal} />
+            <MaterialSymbol name="terminal" className="header-icon" />
             <span className="header-title">{title}</span>
             {this.renderStatusChip()}
             {this.renderBackgroundProgress(true)}
@@ -534,7 +532,7 @@ export class BuildRunPanel extends React.Component<
               onClick={this.onRestore}
               ariaLabel={t('buildRun.restorePanel')}
             >
-              <Octicon symbol={octicons.chevronUp} />
+              <MaterialSymbol name="keyboard_arrow_up" />
             </Button>
             {this.renderCloseButton()}
           </div>
@@ -546,7 +544,7 @@ export class BuildRunPanel extends React.Component<
     return (
       <div className="build-run-panel">
         <div className="build-run-panel-header">
-          <Octicon className="header-icon" symbol={octicons.terminal} />
+          <MaterialSymbol name="terminal" className="header-icon" />
           <span className="header-title">{title}</span>
           {this.renderStatusChip()}
           <div className="header-spacer" />
@@ -560,7 +558,7 @@ export class BuildRunPanel extends React.Component<
                   provider: buildFixProviderLabel,
                 })}
               >
-                <Octicon symbol={octicons.paperAirplane} />
+                <MaterialSymbol name="send" />
                 <span>
                   {t('buildRun.sendToProvider', {
                     provider: buildFixProviderLabel,
@@ -579,7 +577,7 @@ export class BuildRunPanel extends React.Component<
                   provider: buildFixProviderLabel,
                 })}
               >
-                <Octicon symbol={octicons.tools} />
+                <MaterialSymbol name="build" />
                 <span>
                   {t('buildRun.fixWithProvider', {
                     provider: buildFixProviderLabel,
@@ -593,7 +591,7 @@ export class BuildRunPanel extends React.Component<
               onClick={this.onStop}
               ariaLabel={t('buildRun.stop')}
             >
-              <Octicon symbol={octicons.squareFill} />
+              <MaterialSymbol name="square" />
               <span>{t('buildRun.stop')}</span>
             </Button>
           )}
@@ -603,7 +601,7 @@ export class BuildRunPanel extends React.Component<
             ariaLabel={t('buildRun.scrollToBottom')}
             dataVerification="build-run-scroll-to-bottom"
           >
-            <Octicon symbol={octicons.moveToBottom} />
+            <MaterialSymbol name="vertical_align_bottom" />
           </Button>
           <Button
             className="header-action output-toggle"
@@ -612,7 +610,7 @@ export class BuildRunPanel extends React.Component<
             ariaPressed={this.state.autoScroll}
             dataVerification="build-run-auto-scroll"
           >
-            <Octicon symbol={octicons.sync} />
+            <MaterialSymbol name="sync" />
           </Button>
           <Button
             className="header-action output-toggle"
@@ -621,28 +619,28 @@ export class BuildRunPanel extends React.Component<
             ariaPressed={this.state.truncateOutput}
             dataVerification="build-run-truncate-output"
           >
-            <Octicon symbol={octicons.fold} />
+            <MaterialSymbol name="unfold_less" />
           </Button>
           <Button
             className="header-action"
             onClick={this.onCopyAll}
             ariaLabel={t('buildRun.copyAll')}
           >
-            <Octicon symbol={octicons.copy} />
+            <MaterialSymbol name="content_copy" />
           </Button>
           <Button
             className="header-action"
             onClick={this.onClear}
             ariaLabel={t('buildRun.clearOutput')}
           >
-            <Octicon symbol={octicons.trash} />
+            <MaterialSymbol name="delete" />
           </Button>
           <Button
             className="header-action"
             onClick={this.onMinimize}
             ariaLabel={t('buildRun.minimizePanel')}
           >
-            <Octicon symbol={octicons.dash} />
+            <MaterialSymbol name="remove" />
           </Button>
           {this.renderCloseButton()}
         </div>

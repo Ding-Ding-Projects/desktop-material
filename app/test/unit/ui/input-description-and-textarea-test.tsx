@@ -43,8 +43,8 @@ describe('input description and textarea surfaces', () => {
     const error = screen.getByRole('alert')
 
     assert.notEqual(caption, null)
-    assert.equal(caption?.querySelector('svg.octicon'), null)
-    assert.notEqual(warning?.querySelector('svg.octicon'), null)
+    assert.equal(caption?.querySelector('span.material-symbol'), null)
+    assert.notEqual(warning?.querySelector('span.material-symbol'), null)
     assert.ok(error.classList.contains('input-description-error'))
     assert.ok(view.container.textContent?.includes('Optional description.'))
     assert.ok(

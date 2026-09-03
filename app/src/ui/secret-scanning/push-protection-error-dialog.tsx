@@ -4,8 +4,7 @@ import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { LinkButton } from '../lib/link-button'
 import { PushProtectionErrorLocation } from './push-protection-error-location'
 import { IAPICreatePushProtectionBypassResponse } from '../../lib/api'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /** Represents the location of a detected secret detected on push  */
 export interface ISecretLocation {
@@ -153,8 +152,7 @@ export class PushProtectionErrorDialog extends React.Component<
     if (this.state.secretsBypassed.get(secret.id)) {
       return (
         <span className="bypass-success">
-          Bypassed{' '}
-          <Octicon symbol={octicons.check} className="bypass-success" />{' '}
+          Bypassed <MaterialSymbol name="check" className="bypass-success" />{' '}
         </span>
       )
     }

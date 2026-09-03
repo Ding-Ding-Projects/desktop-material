@@ -5,8 +5,7 @@ import { Dispatcher } from '../dispatcher'
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { Button } from '../lib/button'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IMergeAllDialogProps {
   readonly repository: Repository
@@ -130,7 +129,7 @@ export class MergeAllDialog extends React.Component<
           )}
           {state?.currentBranch && (
             <div className="merge-all-current" role="status">
-              <Octicon symbol={octicons.sync} />
+              <MaterialSymbol name="sync" />
               <span>
                 {state.phase}: <strong>{state.currentBranch}</strong>
               </span>
@@ -138,7 +137,7 @@ export class MergeAllDialog extends React.Component<
           )}
           {state?.copilotProgress && (
             <p className="merge-all-copilot">
-              <Octicon symbol={octicons.copilot} /> {state.copilotProgress}
+              <MaterialSymbol name="smart_toy" /> {state.copilotProgress}
             </p>
           )}
           <div

@@ -6,8 +6,6 @@ import {
   lastShowCaseVersionSeen,
   updateStore,
 } from '../lib/update-store'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { PopupType } from '../../models/popup'
 import { shell } from '../../lib/app-shell'
 
@@ -17,6 +15,7 @@ import { ReleaseNotesUri } from '../lib/releases'
 import { RichText } from '../lib/rich-text'
 import { Emoji } from '../../lib/emoji'
 import { DefaultAppDisplayName } from '../../models/app-identity'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IUpdateAvailableProps {
   readonly dispatcher: Dispatcher
@@ -62,12 +61,10 @@ export class UpdateAvailable extends React.Component<IUpdateAvailableProps> {
     }
 
     if (this.props.prioritizeUpdate) {
-      return <Octicon className="warning-icon" symbol={octicons.alert} />
+      return <MaterialSymbol name="warning" className="warning-icon" />
     }
 
-    return (
-      <Octicon className="download-icon" symbol={octicons.desktopDownload} />
-    )
+    return <MaterialSymbol name="install_desktop" className="download-icon" />
   }
 
   private renderMessage = () => {

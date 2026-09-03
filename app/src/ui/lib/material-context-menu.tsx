@@ -17,6 +17,7 @@ import {
 } from '../../lib/i18n'
 import { LanguageMode } from '../../models/language-mode'
 import { roleAccelerator } from '../../lib/menu-accelerators'
+import { MaterialSymbol } from './material-symbol'
 
 /**
  * The Material Design in-app context menu.
@@ -485,8 +486,8 @@ class MaterialContextMenu extends React.Component<
       >
         <span className="context-menu-item-leading">
           {item.type === 'checkbox' ? (
-            <Octicon
-              symbol={octicons.check}
+            <MaterialSymbol
+              name="check"
               className={classNames('context-menu-check', {
                 unchecked: item.checked !== true,
               })}
@@ -546,7 +547,7 @@ class MaterialContextMenu extends React.Component<
           onKeyDown={this.onKeyDown}
         >
           <div className="context-menu-filter">
-            <Octicon symbol={octicons.filter} />
+            <MaterialSymbol name="filter_alt" />
             <input
               data-search-surface-id="material-context-menu"
               ref={this.filterRef}

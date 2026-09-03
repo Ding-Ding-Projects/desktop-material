@@ -1,8 +1,6 @@
 import * as React from 'react'
 import classNames from 'classnames'
 
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { TooltippedContent } from '../lib/tooltipped-content'
 import { showContextualMenu, IMenuItem } from '../../lib/menu-item'
 import { SettingsTabPickerPopover } from './settings-tab-picker-popover'
@@ -18,6 +16,7 @@ import {
   SettingsTabStripId,
   toggleSettingsTabPin,
 } from './settings-tab-model'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface ISettingsTabStripProps {
   /** Which strip this is. Scopes the pins and the search surface id. */
@@ -651,7 +650,7 @@ export class SettingsTabStrip extends React.Component<
             }
             disabled={this.props.disabled}
           >
-            <Octicon symbol={octicons.search} />
+            <MaterialSymbol name="search" />
             <span>Search</span>
           </button>
         )}
@@ -666,7 +665,7 @@ export class SettingsTabStrip extends React.Component<
             }
             disabled={this.props.disabled}
           >
-            <Octicon symbol={octicons.kebabHorizontal} />
+            <MaterialSymbol name="more_horiz" />
             <span>{overflowCount} more</span>
           </button>
         )}
@@ -758,9 +757,9 @@ export class SettingsTabStrip extends React.Component<
                     </TooltippedContent>
                     {item.badge}
                     {index < pinnedCount && (
-                      <Octicon
+                      <MaterialSymbol
+                        name="push_pin"
                         className="settings-browser-tab-pin"
-                        symbol={octicons.pin}
                       />
                     )}
                   </button>
@@ -777,7 +776,7 @@ export class SettingsTabStrip extends React.Component<
                       }
                       onClick={this.onCloseTab}
                     >
-                      <Octicon symbol={octicons.x} />
+                      <MaterialSymbol name="close" />
                     </button>
                   )}
                 </div>
@@ -796,7 +795,7 @@ export class SettingsTabStrip extends React.Component<
             disabled={disabled}
             onClick={this.onOpenSearch}
           >
-            <Octicon symbol={octicons.search} />
+            <MaterialSymbol name="search" />
           </button>
           {showNewTab && (
             <button
@@ -810,7 +809,7 @@ export class SettingsTabStrip extends React.Component<
               disabled={disabled || !hasClosedPage}
               onClick={this.onOpenNewTab}
             >
-              <Octicon symbol={octicons.plus} />
+              <MaterialSymbol name="add" />
             </button>
           )}
           {this.state.overflowIds.length > 0 && (
@@ -829,7 +828,7 @@ export class SettingsTabStrip extends React.Component<
               disabled={disabled}
               onClick={this.onOpenOverflow}
             >
-              <Octicon symbol={octicons.kebabHorizontal} />
+              <MaterialSymbol name="more_horiz" />
               <span>{this.state.overflowIds.length}</span>
             </button>
           )}
@@ -891,9 +890,9 @@ export class SettingsTabStrip extends React.Component<
                 <span className="settings-tab-strip-label">{item.label}</span>
                 {item.badge}
                 {index < pinnedCount && (
-                  <Octicon
+                  <MaterialSymbol
+                    name="push_pin"
                     className="settings-tab-strip-pin"
-                    symbol={octicons.pin}
                   />
                 )}
               </button>

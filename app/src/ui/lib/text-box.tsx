@@ -9,6 +9,7 @@ import {
   personalizeOptionalText,
   personalizeReactNode,
 } from '../../lib/personal-vocabulary-rendering'
+import { MaterialSymbol } from './material-symbol'
 
 export interface ITextBoxProps {
   /** Stable audit identity when this text box is a collection search input. */
@@ -366,7 +367,7 @@ export class TextBox extends React.Component<ITextBoxProps, ITextBoxState> {
               )}
               onClick={this.clearSearchText}
             >
-              <Octicon symbol={octicons.x} />
+              <MaterialSymbol name="close" />
             </button>
           )}
         {this.state.valueCleared && (

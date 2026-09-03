@@ -25,6 +25,7 @@ import {
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import { LocalizedText } from '../lib/localized-text'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IAgentAccessProps {
   readonly openInBrowser: (url: string) => Promise<boolean>
@@ -67,7 +68,7 @@ class AgentDeviceRow extends React.Component<IAgentDeviceRowProps> {
     return (
       <li>
         <span className="agent-device-icon" aria-hidden="true">
-          <Octicon symbol={octicons.deviceMobile} />
+          <MaterialSymbol name="smartphone" />
         </span>
         <span className="agent-device-copy">
           <strong>{device.name}</strong>
@@ -80,7 +81,7 @@ class AgentDeviceRow extends React.Component<IAgentDeviceRowProps> {
           disabled={busy}
           aria-label={`Revoke ${device.name}`}
         >
-          <Octicon symbol={octicons.trash} />
+          <MaterialSymbol name="delete" />
           Revoke
         </button>
       </li>
@@ -204,7 +205,7 @@ export class AgentAccess extends React.Component<
 
         {unsafe && (
           <section className="agent-unsafe-warning" role="alert">
-            <Octicon symbol={octicons.alertFill} />
+            <MaterialSymbol name="warning" />
             <div>
               <strong>Authentication is completely disabled</strong>
               <p>
@@ -218,7 +219,7 @@ export class AgentAccess extends React.Component<
 
         <section className="agent-access-card connection-card">
           <div className="agent-access-card-title">
-            <Octicon symbol={octicons.server} />
+            <MaterialSymbol name="dns" />
             <h3>Connection</h3>
           </div>
           <span className="agent-field-label" id="agent-server-address-label">
@@ -272,7 +273,7 @@ export class AgentAccess extends React.Component<
                 )}
               </div>
               <p id="agent-token-help" className="agent-security-note">
-                <Octicon symbol={octicons.shieldLock} />
+                <MaterialSymbol name="security" />
                 Keep this desktop token private. Paired-device tokens are stored
                 separately in the OS credential vault.
               </p>
@@ -282,7 +283,7 @@ export class AgentAccess extends React.Component<
                 onClick={this.regenerateToken}
                 disabled={!running || busy}
               >
-                <Octicon symbol={octicons.sync} />
+                <MaterialSymbol name="sync" />
                 Regenerate desktop token
               </button>
             </>
@@ -295,7 +296,7 @@ export class AgentAccess extends React.Component<
 
         <section className="agent-access-card agent-connect-card">
           <div className="agent-access-card-title">
-            <Octicon symbol={octicons.terminal} />
+            <MaterialSymbol name="terminal" />
             <h3>Connect an agent</h3>
           </div>
           <p>
@@ -328,7 +329,7 @@ export class AgentAccess extends React.Component<
     return (
       <section className="agent-access-card agent-remote-config-card">
         <div className="agent-access-card-title">
-          <Octicon symbol={octicons.link} />
+          <MaterialSymbol name="link" />
           <h3>Mobile site and transport</h3>
         </div>
 
@@ -386,7 +387,7 @@ export class AgentAccess extends React.Component<
 
         {transport === 'lan-http' ? (
           <div className="agent-transport-warning" role="note">
-            <Octicon symbol={octicons.alert} />
+            <MaterialSymbol name="warning" />
             <p>
               Pairing authenticates devices, but direct LAN HTTP does not
               encrypt traffic. Use only on a trusted network, or configure an
@@ -395,7 +396,7 @@ export class AgentAccess extends React.Component<
           </div>
         ) : (
           <div className="agent-secure-transport" role="note">
-            <Octicon symbol={octicons.shieldCheck} />
+            <MaterialSymbol name="verified_user" />
             The QR code uses the configured HTTPS gateway.
           </div>
         )}
@@ -414,7 +415,7 @@ export class AgentAccess extends React.Component<
         {...teleportAnchor('settings-agent-pairing')}
       >
         <div className="agent-access-card-title">
-          <Octicon symbol={octicons.deviceMobile} />
+          <MaterialSymbol name="smartphone" />
           <h3>
             <LocalizedText
               translationKey="settings.mobileConnectionHeading"
@@ -496,7 +497,7 @@ export class AgentAccess extends React.Component<
             onClick={this.regeneratePairing}
             disabled={!pairedMode || !running || this.state.busy}
           >
-            <Octicon symbol={octicons.sync} />
+            <MaterialSymbol name="sync" />
             {pairing === null ? 'Create pairing code' : 'Replace pairing code'}
           </button>
           <button
@@ -506,7 +507,7 @@ export class AgentAccess extends React.Component<
             disabled={!pairedMode || !running || this.state.busy}
             data-verification="open-mobile-connection-page"
           >
-            <Octicon symbol={octicons.linkExternal} />
+            <MaterialSymbol name="open_in_new" />
             <LocalizedText
               translationKey="settings.mobileConnectionOpen"
               languageMode={this.state.languageMode}
@@ -522,7 +523,7 @@ export class AgentAccess extends React.Component<
     return (
       <section className="agent-access-card agent-devices-card">
         <div className="agent-access-card-title">
-          <Octicon symbol={octicons.devices} />
+          <MaterialSymbol name="devices" />
           <h3>Paired devices</h3>
         </div>
         {devices.length === 0 ? (

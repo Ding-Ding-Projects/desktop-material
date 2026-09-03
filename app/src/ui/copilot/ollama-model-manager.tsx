@@ -58,7 +58,11 @@ export interface IOllamaChatDelta {
 
 export interface IOllamaChatOptions extends IOllamaRequestOptions {
   readonly onChunk?: (delta: IOllamaChatDelta) => void
-  readonly parameters?: { readonly temperature: number; readonly topP: number; readonly numPredict: number }
+  readonly parameters?: {
+    readonly temperature: number
+    readonly topP: number
+    readonly numPredict: number
+  }
 }
 
 export interface IOllamaVersion {
@@ -1742,9 +1746,16 @@ export class OllamaModelManager extends React.Component<
     return (this.state.models ?? []).map(model => model.name)
   }
 
-  private getChatModelCapabilities(): Readonly<Record<string, ReadonlyArray<string> | undefined>> {
-    return (this.state.models ?? []).reduce<Record<string, ReadonlyArray<string> | undefined>>(
-      (capabilities, model) => ({ ...capabilities, [model.name]: model.capabilities }),
+  private getChatModelCapabilities(): Readonly<
+    Record<string, ReadonlyArray<string> | undefined>
+  > {
+    return (this.state.models ?? []).reduce<
+      Record<string, ReadonlyArray<string> | undefined>
+    >(
+      (capabilities, model) => ({
+        ...capabilities,
+        [model.name]: model.capabilities,
+      }),
       {}
     )
   }

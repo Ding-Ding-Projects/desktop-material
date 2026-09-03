@@ -27,7 +27,7 @@ describe('clone dialog v2 header', () => {
   it('renders a leading icon chip, title and subtitle inside the dialog title', () => {
     assert.match(
       cloneDialog,
-      /<span className="clone-dialog-icon-chip" aria-hidden="true">\s*<Octicon symbol=\{octicons\.desktopDownload\} \/>/
+      /<span className="clone-dialog-icon-chip" aria-hidden="true">\s*<MaterialSymbol name="install_desktop" \/>/
     )
     assert.match(cloneDialog, /className="clone-dialog-title-block"/)
     assert.match(cloneDialog, /className="clone-dialog-subtitle"/)

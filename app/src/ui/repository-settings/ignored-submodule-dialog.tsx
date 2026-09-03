@@ -8,8 +8,6 @@ import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { Loading } from '../lib/loading'
 import { Row } from '../lib/row'
 import { TextBox } from '../lib/text-box'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import {
@@ -49,6 +47,7 @@ import {
   listIgnoredFileInventory,
   stageIgnoredFilesIntoLocalSubmodule,
 } from '../../lib/cheap-lfs/ignored-submodule-local'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /** The per-surface persistence id for this search's filter mode. */
 const IgnoredSubmoduleFilterId = 'ignored-submodule-files'
@@ -516,7 +515,7 @@ export class IgnoredSubmoduleDialog extends React.Component<
         </p>
         {inventory?.truncated === true && (
           <p className="ignored-submodule-truncated" role="status">
-            <Octicon symbol={octicons.info} />
+            <MaterialSymbol name="info" />
             <LocalizedText
               translationKey="ignoredSubmodule.truncated"
               variables={{ count: String(inventory.candidates.length) }}
@@ -597,7 +596,7 @@ export class IgnoredSubmoduleDialog extends React.Component<
     return (
       <>
         <h3 className="ignored-submodule-will-heading">
-          <Octicon symbol={octicons.check} />
+          <MaterialSymbol name="check" />
           <LocalizedText
             translationKey="ignoredSubmodule.willHeading"
             languageMode={this.state.languageMode}
@@ -615,7 +614,7 @@ export class IgnoredSubmoduleDialog extends React.Component<
           ))}
         </ul>
         <h3 className="ignored-submodule-wont-heading">
-          <Octicon symbol={octicons.x} />
+          <MaterialSymbol name="close" />
           <LocalizedText
             translationKey="ignoredSubmodule.wontHeading"
             languageMode={this.state.languageMode}
@@ -769,7 +768,7 @@ export class IgnoredSubmoduleDialog extends React.Component<
     return (
       <>
         <DialogContent className="ignored-submodule-success">
-          <Octicon symbol={octicons.checkCircleFill} />
+          <MaterialSymbol name="check_circle" />
           <div>
             <h2>
               <LocalizedText

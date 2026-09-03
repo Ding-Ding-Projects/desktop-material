@@ -4,8 +4,6 @@ import {
   PopoverAnchorPosition,
   PopoverDecoration,
 } from '../lib/popover'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import {
   IRepositoryTab,
   tabTitleStyleToCss,
@@ -30,6 +28,7 @@ import {
   translateWithTabFunnyLevel,
 } from './tab-action-helpers'
 import { tabOverflowFilterCountKey } from './tab-count-copy'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface ITabOverflowPopoverProps {
   /** The tabs that did not fit in the strip, in their original order. */
@@ -371,7 +370,7 @@ export class TabOverflowPopover extends React.Component<
           onClick={this.onCustomizeClick}
           onKeyDown={this.onCustomizeKeyDown}
         >
-          <Octicon symbol={octicons.paintbrush} />
+          <MaterialSymbol name="brush" />
         </button>
       </li>
     )

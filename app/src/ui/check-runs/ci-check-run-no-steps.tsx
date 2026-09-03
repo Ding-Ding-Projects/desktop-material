@@ -1,8 +1,7 @@
 import * as React from 'react'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { Button } from '../lib/button'
 import { encodePathAsUrl } from '../../lib/path'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 const PaperStackImage = encodePathAsUrl(__dirname, 'static/paper-stack.svg')
 
@@ -24,7 +23,7 @@ export class CICheckRunNoStepItem extends React.PureComponent<ICICheckRunNoStepP
             role="link"
           >
             View check details
-            <Octicon symbol={octicons.linkExternal} />
+            <MaterialSymbol name="open_in_new" />
           </Button>
         </p>
 

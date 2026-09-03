@@ -9,8 +9,6 @@ import {
   isEnterpriseAccount,
   isGitLabAccount,
 } from '../../models/account'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { IAvatarUser } from '../../models/avatar'
 import { lookupPreferredEmail } from '../../lib/email'
 import { assertNever } from '../../lib/fatal-error'
@@ -40,6 +38,7 @@ import {
 } from '../../lib/issue-trackers/trello-client'
 import { getIssueTrackerAuthErrorMessage } from '../../lib/issue-trackers/issue-tracker-auth-error'
 import { IssueTrackerReference } from './issue-tracker-reference'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IAccountsProps {
   readonly accounts: ReadonlyArray<Account>
@@ -182,9 +181,9 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
                   <div className="login">{this.state.jiraEndpoint}</div>
                 </div>
                 <span className="account-active-chip">
-                  <Octicon
+                  <MaterialSymbol
+                    name="check"
                     className="account-active-check"
-                    symbol={octicons.check}
                   />
                   Connected
                 </span>
@@ -287,9 +286,9 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
                   </div>
                 </div>
                 <span className="account-active-chip">
-                  <Octicon
+                  <MaterialSymbol
+                    name="check"
                     className="account-active-check"
-                    symbol={octicons.check}
                   />
                   Connected
                 </span>
@@ -730,10 +729,7 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
           </div>
           {active && (
             <span className="account-active-chip">
-              <Octicon
-                className="account-active-check"
-                symbol={octicons.check}
-              />
+              <MaterialSymbol name="check" className="account-active-check" />
               Active
             </span>
           )}

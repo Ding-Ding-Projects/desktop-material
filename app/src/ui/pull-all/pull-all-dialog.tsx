@@ -11,8 +11,6 @@ import { Dispatcher } from '../dispatcher'
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { Button } from '../lib/button'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import {
   getPersistedLanguageMode,
   LanguageModeChangedEvent,
@@ -21,6 +19,7 @@ import {
   TranslationVariables,
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IPullAllDialogProps {
   readonly dispatcher: Dispatcher
@@ -608,7 +607,7 @@ export class PullAllDialog extends React.Component<
             </p>
             {isRunning && (
               <p className="pull-all-running">
-                <Octicon symbol={octicons.sync} className="spin" />{' '}
+                <MaterialSymbol name="sync" className="spin" />{' '}
                 {this.localize('batchSync.backgroundNote')}
               </p>
             )}

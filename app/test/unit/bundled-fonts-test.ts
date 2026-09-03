@@ -108,11 +108,11 @@ const expectedAssets = new Map<
     },
   ],
   [
-    'material-symbols-rounded-subset-158',
+    'material-symbols-rounded-subset-222',
     {
-      bytes: 122224,
+      bytes: 159608,
       sha256:
-        '2b6bc8becaebdc4f280caa4ff9df49d8fe7c1aa2a336ec510c81cdaac6efa34f',
+        'ec769a345b3ba7c065ccf78d03b3a6548a0f3633a8c4a160785c7810f2f63c0d',
     },
   ],
 ])
@@ -164,7 +164,7 @@ const expectedLicenses = new Map<
 ])
 
 const expectedIconNames =
-  'account_circle,account_tree,add,add_circle,alt_route,alternate_email,anchor,arrow_downward,arrow_upward,auto_awesome,autoplay,autorenew,backspace,badge,block,bolt,book_2,build,build_circle,calendar_month,call_merge,call_split,cancel,category,check,check_box,check_box_outline_blank,check_circle,checklist,chevron_right,circle,close,cloud,cloud_done,cloud_download,code,commit,construction,content_copy,content_paste,content_paste_go,contrast,crop_square,dark_mode,data_object,database,delete,delete_sweep,deployed_code,description,difference,dns,do_not_disturb_on,done_all,edit,edit_note,edit_square,error,expand_more,extension,filter_list,first_page,flag,folder,folder_open,fork_right,format_align_center,format_align_left,format_align_right,format_bold,format_italic,format_underlined,group_add,handyman,help,history,history_toggle_off,inbox,indeterminate_check_box,inventory_2,join_inner,key,keyboard_arrow_down,keyboard_return,label,last_page,library_add_check,light_mode,list,live_help,lock,low_priority,manage_history,mark_email_read,mark_email_unread,menu,menu_book,menu_open,merge,merge_type,monitoring,more_vert,notifications,notifications_off,open_in_new,package_2,palette,pause,pause_circle,person,person_add,person_search,play_arrow,play_circle,progress_activity,public,push_pin,rate_review,redo,refresh,remove,repeat,replay,restart_alt,rocket_launch,schedule,school,search,search_off,security,sell,send,settings,shield,smart_toy,sort,space_bar,stacks,star,subject,swap_horiz,sync,sync_problem,task_alt,terminal,text_fields,text_format,tune,undo,unfold_more,vertical_split,view_stream,visibility,warning,waving_hand,wrap_text,zoom_in,zoom_out'.split(
+  'accessibility,account_circle,account_tree,add,add_box,add_circle,alt_route,alternate_email,anchor,apps,archive,arrow_back,arrow_downward,arrow_drop_down,arrow_forward,arrow_right,arrow_upward,auto_awesome,autoplay,autorenew,backspace,badge,block,bolt,book_2,book_5,brush,build,build_circle,calendar_month,calendar_today,call_merge,call_split,cancel,category,chat_bubble,check,check_box,check_box_outline_blank,check_circle,checklist,chevron_right,circle,close,cloud,cloud_done,cloud_download,code,code_blocks,commit,construction,content_copy,content_paste,content_paste_go,contrast,crop_square,dark_mode,data_object,database,delete,delete_sweep,deployed_code,description,desktop_windows,devices,difference,disabled_by_default,dns,do_not_disturb_on,done_all,download,drive_file_rename_outline,edit,edit_note,edit_square,error,expand_more,extension,fiber_manual_record,file_copy,filter_alt,filter_alt_off,filter_list,first_page,flag,folder,folder_open,folder_special,folder_zip,fork_right,format_align_center,format_align_left,format_align_right,format_bold,format_italic,format_list_bulleted,format_strikethrough,format_underlined,forum,group,group_add,handyman,help,history,history_toggle_off,home,hourglass_empty,image,inbox,indeterminate_check_box,info,install_desktop,inventory_2,join_inner,key,keyboard_arrow_down,keyboard_arrow_left,keyboard_arrow_right,keyboard_arrow_up,keyboard_double_arrow_down,keyboard_double_arrow_up,keyboard_return,label,last_page,layers,library_add_check,light_mode,lightbulb,link,list,live_help,lock,login,low_priority,manage_history,mark_email_read,mark_email_unread,menu,menu_book,menu_open,merge,merge_type,monitoring,mood,more_horiz,more_vert,notifications,notifications_active,notifications_off,open_in_new,package_2,palette,pause,pause_circle,pending,person,person_add,person_search,play_arrow,play_circle,policy,progress_activity,public,publish,push_pin,rate_review,redo,refresh,remove,repeat,replay,restart_alt,rocket_launch,schedule,school,science,search,search_off,security,sell,send,settings,shield,skip_next,smart_toy,smartphone,sort,space_bar,speed,square,stacks,star,sticky_note_2,stop,subject,swap_horiz,sync,sync_problem,task_alt,terminal,text_fields,text_format,timeline,travel_explore,tune,undo,unfold_less,unfold_more,upload,verified_user,vertical_align_bottom,vertical_split,view_kanban,view_stream,visibility,visibility_off,volume_up,warning,waving_hand,wrap_text,zoom_in,zoom_out'.split(
     ','
   )
 
@@ -201,15 +201,15 @@ describe('bundled Desktop Material fonts', () => {
     }
   })
 
-  it('pins the exact 158-name official Material Symbols request and axes', () => {
+  it('pins the exact 222-name official Material Symbols request and axes', () => {
     const symbols = manifest.assets.find(
-      asset => asset.id === 'material-symbols-rounded-subset-158'
+      asset => asset.id === 'material-symbols-rounded-subset-222'
     )
     assert.ok(symbols !== undefined)
-    assert.equal(expectedIconNames.length, 158)
-    assert.equal(new Set(expectedIconNames).size, 158)
+    assert.equal(expectedIconNames.length, 222)
+    assert.equal(new Set(expectedIconNames).size, 222)
     assert.deepEqual([...expectedIconNames].sort(), expectedIconNames)
-    assert.equal(symbols.requestedIconNameCount, 158)
+    assert.equal(symbols.requestedIconNameCount, 222)
     assert.deepEqual(symbols.requestedIconNames, expectedIconNames)
     assert.match(
       symbols.cssRequest.url,

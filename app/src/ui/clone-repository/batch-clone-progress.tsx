@@ -4,8 +4,6 @@ import { Dispatcher } from '../dispatcher'
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { Button } from '../lib/button'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { TooltippedContent } from '../lib/tooltipped-content'
 import { isTopMostDialog } from '../dialog/is-top-most'
 import {
@@ -34,6 +32,7 @@ import {
 } from '../../lib/app-state'
 import { CheapLfsRestoreProgress } from '../lib/cheap-lfs-restore-progress'
 import { OperationProgressRow } from '../lib/operation-progress-row'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /** localStorage id used to persist the clone-queue filter mode. */
 const BatchCloneFilterListId = 'batch-clone-queue'
@@ -219,28 +218,27 @@ export class BatchCloneProgress extends React.Component<
     switch (kind) {
       case 'done':
         return status?.finalized !== true ? (
-          <Octicon className="status review" symbol={octicons.alertFill} />
+          <MaterialSymbol name="warning" className="status review" />
         ) : (
-          <Octicon className="status done" symbol={octicons.check} />
+          <MaterialSymbol name="check" className="status done" />
         )
       case 'failed':
-        return <Octicon className="status failed" symbol={octicons.x} />
+        return <MaterialSymbol name="close" className="status failed" />
       case 'review':
-        return <Octicon className="status review" symbol={octicons.alertFill} />
+        return <MaterialSymbol name="warning" className="status review" />
       case 'interrupted':
-        return (
-          <Octicon className="status interrupted" symbol={octicons.clock} />
-        )
+        return <MaterialSymbol name="schedule" className="status interrupted" />
       case 'skipped':
-        return (
-          <Octicon className="status skipped" symbol={octicons.circleSlash} />
-        )
+        return <MaterialSymbol name="block" className="status skipped" />
       case 'cloning':
-        return (
-          <Octicon className="status cloning spin" symbol={octicons.sync} />
-        )
+        return <MaterialSymbol name="sync" className="status cloning spin" />
       default:
-        return <Octicon className="status pending" symbol={octicons.dotFill} />
+        return (
+          <MaterialSymbol
+            name="fiber_manual_record"
+            className="status pending"
+          />
+        )
     }
   }
 
@@ -510,7 +508,7 @@ export class BatchCloneProgress extends React.Component<
         <DialogContent>
           {state.recoveryUnavailable && (
             <div className="batch-clone-recovery-notice" role="status">
-              <Octicon symbol={octicons.alert} />
+              <MaterialSymbol name="warning" />
               <span>
                 Crash recovery is paused because the recovery file can't be
                 saved right now. Cloning continues, and recovery resumes

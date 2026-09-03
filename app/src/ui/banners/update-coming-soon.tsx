@@ -8,13 +8,12 @@ import {
   IUpdateComingSoonSignal,
   updateComingSoonTargetKey,
 } from '../../lib/update-coming-soon-estimate'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import {
   UpdateComingSoonDetails,
   updateArrivalEstimateText,
 } from '../updates/update-coming-soon-details'
 import { Banner } from './banner'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IUpdateComingSoonProps {
   readonly signal: IUpdateComingSoonSignal
@@ -65,7 +64,7 @@ export class UpdateComingSoon extends React.Component<
         dismissable={true}
         onDismissed={this.onDismissed}
       >
-        <Octicon className="coming-soon-icon" symbol={octicons.clock} />
+        <MaterialSymbol name="schedule" className="coming-soon-icon" />
         <div className="update-coming-soon-body">
           <span role="status" className="update-coming-soon-summary">
             <span className="update-coming-soon-headline">

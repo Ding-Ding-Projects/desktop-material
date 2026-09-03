@@ -53,6 +53,7 @@ import {
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
 import { StashExportPanel } from './stash-export-panel'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 const StashManagerPanelId = 'desktop-material-stash-manager-panel'
 const StashNameInputId = 'desktop-material-stash-name'
@@ -1467,9 +1468,7 @@ export class StashManagerDialog extends React.Component<
     })
   }
 
-  private changeLanguageMode = (
-    event: React.FormEvent<HTMLSelectElement>
-  ) => {
+  private changeLanguageMode = (event: React.FormEvent<HTMLSelectElement>) => {
     const languageMode = setLanguageModePreference(event.currentTarget.value)
     this.setState({ languageMode })
     document.dispatchEvent(
@@ -1515,7 +1514,7 @@ export class StashManagerDialog extends React.Component<
         label: this.localized('stashManager.manageTab'),
         searchText: 'Manage',
         accessibleLabel: this.accessibleText('stashManager.manageTab'),
-        icon: <Octicon symbol={octicons.stack} />,
+        icon: <MaterialSymbol name="layers" />,
       },
       {
         id: 'export',
@@ -1523,7 +1522,7 @@ export class StashManagerDialog extends React.Component<
         label: this.localized('stashManager.exportTab'),
         searchText: 'Export',
         accessibleLabel: this.accessibleText('stashManager.exportTab'),
-        icon: <Octicon symbol={octicons.download} />,
+        icon: <MaterialSymbol name="download" />,
       },
       {
         id: 'history',
@@ -1531,7 +1530,7 @@ export class StashManagerDialog extends React.Component<
         label: this.localized('stashManager.historyTab'),
         searchText: 'History',
         accessibleLabel: this.accessibleText('stashManager.historyTab'),
-        icon: <Octicon symbol={octicons.history} />,
+        icon: <MaterialSymbol name="history" />,
       },
       {
         id: 'appearance',
@@ -1539,7 +1538,7 @@ export class StashManagerDialog extends React.Component<
         label: this.localized('stashManager.appearanceTab'),
         searchText: 'Appearance and voice',
         accessibleLabel: this.accessibleText('stashManager.appearanceTab'),
-        icon: <Octicon symbol={octicons.paintbrush} />,
+        icon: <MaterialSymbol name="brush" />,
       },
     ]
   }

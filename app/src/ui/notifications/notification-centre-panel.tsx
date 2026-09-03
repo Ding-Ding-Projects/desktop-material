@@ -27,8 +27,6 @@ import {
 import { PopupType } from '../../models/popup'
 import { Repository } from '../../models/repository'
 import { Dispatcher } from '../dispatcher'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { Button } from '../lib/button'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { TextBox } from '../lib/text-box'
@@ -43,6 +41,7 @@ import { TooltippedContent } from '../lib/tooltipped-content'
 import { TooltipDirection } from '../lib/tooltip'
 import { OperationProgressRow } from '../lib/operation-progress-row'
 import { t, translateForAccessibleName } from '../../lib/i18n'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 const NotificationSearchFilterId = 'notification-centre-search'
 
@@ -1098,7 +1097,7 @@ export class NotificationCentrePanel extends React.Component<
     return (
       <header className="notification-centre-header">
         <span className="notification-centre-header-icon" aria-hidden="true">
-          <Octicon symbol={octicons.bellFill} />
+          <MaterialSymbol name="notifications_active" />
         </span>
         <span className="notification-centre-header-copy">
           <h1>Notifications</h1>
@@ -1127,7 +1126,7 @@ export class NotificationCentrePanel extends React.Component<
                 disabled={this.props.unreadCount === 0}
                 onClick={this.onMarkAllRead}
               >
-                <Octicon symbol={octicons.checklist} />
+                <MaterialSymbol name="checklist" />
               </button>
             </TooltippedContent>
             <TooltippedContent
@@ -1142,7 +1141,7 @@ export class NotificationCentrePanel extends React.Component<
                 aria-label="Notification history"
                 onClick={this.onShowHistory}
               >
-                <Octicon symbol={octicons.history} />
+                <MaterialSymbol name="history" />
               </button>
             </TooltippedContent>
           </>
@@ -1159,7 +1158,7 @@ export class NotificationCentrePanel extends React.Component<
             aria-label="Close notifications"
             onClick={this.onClose}
           >
-            <Octicon symbol={octicons.x} />
+            <MaterialSymbol name="close" />
           </button>
         </TooltippedContent>
       </header>
@@ -1455,7 +1454,11 @@ export class NotificationCentrePanel extends React.Component<
               } done and removes them from the selected GitHub inbox. Any failures stay visible so you can retry.`}
         </span>
         <span className="notification-centre-confirmation-actions">
-          <Button type="button" inferTooltip={false} onClick={this.onCancelClearAll}>
+          <Button
+            type="button"
+            inferTooltip={false}
+            onClick={this.onCancelClearAll}
+          >
             Cancel
           </Button>
           <Button
@@ -1682,7 +1685,7 @@ export class NotificationCentrePanel extends React.Component<
           disabled={github.loading || accounts.length === 0}
           onClick={this.onRefreshGitHub}
         >
-          <Octicon symbol={octicons.sync} />
+          <MaterialSymbol name="sync" />
           Refresh
         </button>
       </div>
@@ -1699,9 +1702,13 @@ export class NotificationCentrePanel extends React.Component<
         className={`github-notifications-error kind-${error.kind}`}
         role="alert"
       >
-        <Octicon symbol={octicons.alert} />
+        <MaterialSymbol name="warning" />
         <span>{error.message}</span>
-        <Button type="button" inferTooltip={false} onClick={this.onRefreshGitHub}>
+        <Button
+          type="button"
+          inferTooltip={false}
+          onClick={this.onRefreshGitHub}
+        >
           Try again
         </Button>
       </div>
@@ -1841,7 +1848,7 @@ export class NotificationCentrePanel extends React.Component<
   private renderEmpty(message: string) {
     return (
       <div className="notification-centre-empty">
-        <Octicon symbol={octicons.bellSlash} />
+        <MaterialSymbol name="notifications_off" />
         <span>{message}</span>
       </div>
     )
@@ -1854,7 +1861,7 @@ export class NotificationCentrePanel extends React.Component<
         role="status"
         aria-label={message}
       >
-        <Octicon symbol={octicons.sync} />
+        <MaterialSymbol name="sync" />
         <span>{message}</span>
       </div>
     )

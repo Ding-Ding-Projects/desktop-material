@@ -16,11 +16,10 @@ import { Account, getAccountKey } from '../../models/account'
 import { API, IAPIFullRepository, IAPIOrganization } from '../../lib/api'
 import { LinkButton } from '../lib/link-button'
 import { PopupType } from '../../models/popup'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { Select } from '../lib/select'
 import { TextBox } from '../lib/text-box'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /**
  * How the copy is produced.
@@ -374,7 +373,7 @@ export class CreateForkDialog extends React.Component<
             <DialogContent>
               <div className="create-fork-intro">
                 <span className="create-fork-icon" aria-hidden="true">
-                  <Octicon symbol={octicons.repoForked} height={24} />
+                  <MaterialSymbol name="fork_right" size={24} />
                 </span>
                 <div className="create-fork-copy">
                   <strong>
@@ -400,10 +399,10 @@ export class CreateForkDialog extends React.Component<
                     {this.props.repository.gitHubRepository.fullName}
                   </strong>
                 </div>
-                <Octicon
+                <MaterialSymbol
+                  name="arrow_forward"
                   className="create-fork-arrow"
-                  symbol={octicons.arrowRight}
-                  height={18}
+                  size={18}
                 />
                 <div className="create-fork-endpoint create-fork-endpoint--destination">
                   <span>{copying ? 'New repository' : 'Your fork'}</span>

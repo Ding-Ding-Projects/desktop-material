@@ -40,12 +40,11 @@ import {
 import { LinkButton } from '../lib/link-button'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { Row } from '../lib/row'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { TabBar } from '../tab-bar'
 import { CopilotModelSelectionInfo } from './copilot-model-selection-info'
 import type { Model } from '@github/copilot-sdk/dist/generated/rpc'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface ICopilotPreferencesProps {
   readonly selectedCopilotModels: CopilotModelSelections
@@ -597,13 +596,13 @@ export class CopilotPreferences extends React.Component<
             onClick={this.onEditBYOKProviderClick(provider)}
             ariaLabel={`Edit ${provider.name}`}
           >
-            <Octicon symbol={octicons.pencil} />
+            <MaterialSymbol name="edit" />
           </Button>
           <Button
             onClick={this.onDeleteBYOKProviderClick(provider)}
             ariaLabel={`Remove ${provider.name}`}
           >
-            <Octicon symbol={octicons.trash} />
+            <MaterialSymbol name="delete" />
           </Button>
         </div>
       </li>

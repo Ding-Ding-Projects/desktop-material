@@ -48,8 +48,6 @@ import {
   Foldout,
 } from '../../lib/app-state'
 import { ContinueRebase } from './continue-rebase'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { IStashEntry } from '../../models/stash-entry'
 import { hasWritePermission } from '../../models/github-repository'
 import { hasConflictedFiles } from '../../lib/status'
@@ -109,6 +107,7 @@ import {
   IWorkingDirectoryFileSize,
 } from '../../lib/large-files'
 import { menuAccelerator } from '../../lib/menu-accelerators'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 export interface IChangesListItem extends IFilterListItem {
   readonly id: string
@@ -1601,7 +1600,7 @@ export class FilterChangesList extends React.Component<
           this.state.languageMode
         )}
       >
-        <Octicon symbol={octicons.fileDirectory} />
+        <MaterialSymbol name="folder" />
         <span>{path}</span>
       </div>
     )
@@ -1887,7 +1886,7 @@ export class FilterChangesList extends React.Component<
 
     return (
       <div className="hidden-changes-warning" id="hidden-changes-warning">
-        <Octicon symbol={octicons.alert} />
+        <MaterialSymbol name="warning" />
         <span className="hidden-changes-warning-message">
           <span className="sr-only">Warning:</span>
           <span>Hidden changes will be committed. </span>

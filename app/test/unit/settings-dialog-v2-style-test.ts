@@ -100,7 +100,7 @@ describe('settings dialog v2 style contracts', () => {
     assert.match(appearance, /className="scaling-card"/)
     assert.match(
       appearance,
-      /scaling-zoom-out"[\s\S]{0,80}?symbol=\{octicons\.zoomOut\}[\s\S]*?className="scaling-slider"[\s\S]*?scaling-zoom-in"[\s\S]{0,80}?symbol=\{octicons\.zoomIn\}[\s\S]*?className="scaling-value"/
+      /name="zoom_out"[\s\S]{0,80}?scaling-zoom-out"[\s\S]*?className="scaling-slider"[\s\S]*?name="zoom_in"[\s\S]{0,80}?scaling-zoom-in"[\s\S]*?className="scaling-value"/
     )
     // The prototype card has no tick row under the slider.
     assert.doesNotMatch(appearance, /scaling-ticks/)

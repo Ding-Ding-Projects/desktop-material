@@ -6,6 +6,7 @@ import * as octicons from '../../octicons/octicons.generated'
 import { getFullTextForAuthor, getDisplayTextForAuthor } from './author-text'
 import { Tooltip } from '../tooltip'
 import { createObservableRef } from '../observable-ref'
+import { MaterialSymbol } from '../material-symbol'
 
 interface IAuthorHandleProps {
   /** Author to render */
@@ -148,7 +149,7 @@ export class AuthorHandle extends React.Component<IAuthorHandleProps> {
           onClick={this.onRemoveClick}
           tabIndex={-1}
         >
-          <Octicon className="delete" symbol={octicons.x} />
+          <MaterialSymbol name="close" className="delete" />
         </button>
       </div>
     )

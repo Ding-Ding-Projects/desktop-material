@@ -12,8 +12,7 @@ import { CopyButton } from '../../copy-button'
 import { SandboxedMarkdown } from '../../lib/sandboxed-markdown'
 import { LinkButton } from '../../lib/link-button'
 import { Ref } from '../../lib/ref'
-import { Octicon } from '../../octicons'
-import * as octicons from '../../octicons/octicons.generated'
+import { MaterialSymbol } from '../../lib/material-symbol'
 
 interface ICopilotConflictsResolutionSummaryProps {
   readonly summary: ICopilotResolutionSummary
@@ -119,8 +118,8 @@ export class CopilotConflictsResolutionSummary extends React.Component<ICopilotC
     return (
       <div className="copilot-conflicts-summary">
         <h2 className="copilot-conflicts-summary-theme">
-          <Octicon
-            symbol={octicons.copilot}
+          <MaterialSymbol
+            name="smart_toy"
             className="copilot-conflicts-summary-copilot-icon"
           />
           <span className="copilot-conflicts-summary-theme-label">
@@ -222,8 +221,8 @@ function renderReference(
     case 'pullRequest':
       return (
         <>
-          <Octicon
-            symbol={octicons.gitPullRequest}
+          <MaterialSymbol
+            name="merge_type"
             className="copilot-conflicts-summary-reference-icon"
           />
           {renderTitle(
@@ -239,8 +238,8 @@ function renderReference(
     case 'commit':
       return (
         <>
-          <Octicon
-            symbol={octicons.gitCommit}
+          <MaterialSymbol
+            name="commit"
             className="copilot-conflicts-summary-reference-icon"
           />
           {renderTitle(

@@ -11,8 +11,7 @@ import {
   persistFilterMode,
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /** localStorage key used to persist the cache filter mode. */
 const CacheManagerFilterListId = 'actions-caches'
@@ -362,7 +361,7 @@ export class ActionsCacheManager extends React.PureComponent<
               invalid: this.getFilteredCaches().regexError !== null,
             })}
           >
-            <Octicon symbol={octicons.search} />
+            <MaterialSymbol name="search" />
             <input
               data-search-surface-id="actions-caches"
               value={this.state.filterText}

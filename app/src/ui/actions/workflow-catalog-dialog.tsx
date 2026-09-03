@@ -11,7 +11,6 @@ import {
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
 import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { trapActionsDialogFocus } from './actions-dialog-focus'
 import {
   IWorkflowTemplate,
@@ -19,6 +18,7 @@ import {
   WorkflowTemplateCategory,
   WorkflowTemplates,
 } from './workflow-templates'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /** localStorage key used to persist the template search filter mode. */
 const WorkflowCatalogFilterListId = 'actions-workflow-catalog'
@@ -267,7 +267,7 @@ export class WorkflowCatalogDialog extends React.Component<
         data-category={category}
         onClick={this.onCategoryChipClick}
       >
-        {on && <Octicon symbol={octicons.check} />}
+        {on && <MaterialSymbol name="check" />}
         {category}
       </button>
     )
@@ -304,12 +304,12 @@ export class WorkflowCatalogDialog extends React.Component<
         <p className="workflow-template-description">{template.description}</p>
         <footer>
           <span className="workflow-template-trigger">
-            <Octicon symbol={octicons.zap} />
+            <MaterialSymbol name="bolt" />
             {template.trigger}
           </span>
           {installed ? (
             <span className="workflow-template-added">
-              <Octicon symbol={octicons.check} />
+              <MaterialSymbol name="check" />
               Added
             </span>
           ) : (
@@ -321,7 +321,7 @@ export class WorkflowCatalogDialog extends React.Component<
               disabled={this.state.busyId !== null}
               aria-label={`Use workflow template: ${template.name}`}
             >
-              <Octicon symbol={octicons.plus} />
+              <MaterialSymbol name="add" />
               {busy ? 'Adding…' : 'Use workflow'}
             </button>
           )}
@@ -348,7 +348,7 @@ export class WorkflowCatalogDialog extends React.Component<
         >
           <header className="workflow-catalog-header">
             <span className="workflow-catalog-glyph" aria-hidden="true">
-              <Octicon symbol={octicons.workflow} />
+              <MaterialSymbol name="account_tree" />
             </span>
             <div className="workflow-catalog-heading">
               <h2 id="workflow-catalog-title">New workflow</h2>
@@ -363,7 +363,7 @@ export class WorkflowCatalogDialog extends React.Component<
               onClick={this.props.onDismissed}
               aria-label="Close new workflow dialog"
             >
-              <Octicon symbol={octicons.x} />
+              <MaterialSymbol name="close" />
             </button>
           </header>
           {this.state.error && (
@@ -379,7 +379,7 @@ export class WorkflowCatalogDialog extends React.Component<
                 { invalid: regexError !== null }
               )}
             >
-              <Octicon symbol={octicons.search} />
+              <MaterialSymbol name="search" />
               <input
                 data-search-surface-id="actions-workflow-catalog"
                 value={query}
@@ -409,7 +409,7 @@ export class WorkflowCatalogDialog extends React.Component<
                 aria-label="Search filters"
                 onClick={this.toggleFilters}
               >
-                <Octicon symbol={octicons.filter} />
+                <MaterialSymbol name="filter_alt" />
               </button>
             </div>
             {filtersOpen && (
@@ -426,7 +426,7 @@ export class WorkflowCatalogDialog extends React.Component<
             {visible.map(this.renderTemplate)}
             {visible.length === 0 && (
               <div className="workflow-catalog-empty" role="status">
-                <Octicon symbol={octicons.filterRemove} />
+                <MaterialSymbol name="filter_alt_off" />
                 <div>No templates match your search or filters</div>
               </div>
             )}

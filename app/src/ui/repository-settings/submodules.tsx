@@ -9,8 +9,6 @@ import {
 } from '../../lib/git'
 import { Button } from '../lib/button'
 import { Loading } from '../lib/loading'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { TooltippedContent } from '../lib/tooltipped-content'
 import { PopupType } from '../../models/popup'
 import { TextBox } from '../lib/text-box'
@@ -35,6 +33,7 @@ import { LocalizedText } from '../lib/localized-text'
 import { IAppearanceCustomization } from '../../models/appearance-customization'
 import { SubmoduleBackButton } from '../submodules/submodule-back-button'
 import { ProfileAppearanceElementId } from '../../models/element-appearance'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface ISubmodulesProps {
   readonly repository: Repository
@@ -674,7 +673,7 @@ export class Submodules extends React.Component<
       >
         <div className="submodule-appearance-copy">
           <h3 id="submodule-appearance-heading">
-            <Octicon symbol={octicons.paintbrush} />
+            <MaterialSymbol name="brush" />
             {localize('submodule.appearanceHeading')}
           </h3>
           <p>{localize('submodule.appearanceDescription')}</p>
@@ -760,7 +759,7 @@ export class Submodules extends React.Component<
           <section className="submodules-section">
             <div className="submodules-section-header">
               <h3 className="submodules-section-title">
-                <Octicon symbol={octicons.fileSubmodule} />
+                <MaterialSymbol name="folder_special" />
                 <LocalizedText translationKey="submodule.title" />
               </h3>
               <div className="submodules-header-actions">
@@ -773,7 +772,7 @@ export class Submodules extends React.Component<
                   ariaLabel={translateForAccessibleName('submodule.addAction')}
                   tooltip={t('submodule.addTooltip')}
                 >
-                  <Octicon symbol={octicons.plus} />
+                  <MaterialSymbol name="add" />
                   <LocalizedText translationKey="submodule.addAction" />
                 </Button>
                 <Button
@@ -787,7 +786,7 @@ export class Submodules extends React.Component<
                   )}
                   tooltip={t('ignoredSubmodule.openTooltip')}
                 >
-                  <Octicon symbol={octicons.fileDirectory} />
+                  <MaterialSymbol name="folder" />
                   <LocalizedText translationKey="ignoredSubmodule.openAction" />
                 </Button>
                 {hasSubmodules && (
@@ -809,7 +808,7 @@ export class Submodules extends React.Component<
               </div>
             </div>
             <p className="submodules-temporary-open-note">
-              <Octicon symbol={octicons.info} />
+              <MaterialSymbol name="info" />
               <LocalizedText translationKey="submodule.temporaryOpenDescription" />
             </p>
             {this.renderSummary()}
@@ -892,9 +891,9 @@ function SubmoduleRow(props: ISubmoduleRowProps) {
     <li className="submodule-row">
       <div className="submodule-row-main">
         <div className="submodule-row-heading">
-          <Octicon
+          <MaterialSymbol
+            name="folder_special"
             className="submodule-row-icon"
-            symbol={octicons.fileSubmodule}
           />
           <span className="submodule-row-path">{submodule.path}</span>
           {statusPill}
@@ -912,7 +911,7 @@ function SubmoduleRow(props: ISubmoduleRowProps) {
           )}
           {submodule.branch !== null && (
             <span className="submodule-row-branch">
-              <Octicon symbol={octicons.gitBranch} />
+              <MaterialSymbol name="call_split" />
               {submodule.branch}
             </span>
           )}
@@ -921,12 +920,12 @@ function SubmoduleRow(props: ISubmoduleRowProps) {
             className="submodule-row-sha"
             tooltip={submodule.sha ?? ''}
           >
-            <Octicon symbol={octicons.gitCommit} />
+            <MaterialSymbol name="commit" />
             {shortSha}
           </TooltippedContent>
           {!hasValidTopology && (
             <span className="submodule-row-topology-guidance">
-              <Octicon symbol={octicons.alert} />
+              <MaterialSymbol name="warning" />
               <LocalizedText
                 translationKey={TopologyTooltipKey[submodule.topology]}
               />
@@ -950,7 +949,7 @@ function SubmoduleRow(props: ISubmoduleRowProps) {
               : t('submodule.temporaryOpenDescription'))
           }
         >
-          <Octicon symbol={octicons.repo} />
+          <MaterialSymbol name="book_5" />
           <LocalizedText translationKey="submodule.openAsRepository" />
         </Button>
         <Button

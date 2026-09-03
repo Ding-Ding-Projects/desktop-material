@@ -1,8 +1,7 @@
 import * as React from 'react'
 
 import { Button } from '../lib/button'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /** Stable keys shared by element-owned editors and their history stores. */
 export enum AppearanceEditorElementId {
@@ -58,7 +57,7 @@ export function AppearanceEditorPanel(
           ariaLabel={`Open ${props.title.toLocaleLowerCase()} history`}
           onClick={props.onShowHistory}
         >
-          <Octicon symbol={octicons.history} />
+          <MaterialSymbol name="history" />
           <span>History</span>
         </Button>
       </header>

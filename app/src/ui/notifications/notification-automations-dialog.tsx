@@ -27,8 +27,7 @@ import { TextBox } from '../lib/text-box'
 import { TextArea } from '../lib/text-area'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import { RegexBuilder } from '../lib/regex-builder/regex-builder'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /** Human-readable label for each notification kind, shown in the trigger picker. */
 const kindLabels: Readonly<Record<NotificationCentreKind, string>> = {
@@ -337,9 +336,7 @@ export class NotificationAutomationsDialog extends React.Component<
     this.updateDraft({ titlePattern: event.currentTarget.value })
   }
 
-  private onActionTypeChange = (
-    event: React.FormEvent<HTMLSelectElement>
-  ) => {
+  private onActionTypeChange = (event: React.FormEvent<HTMLSelectElement>) => {
     this.updateDraft({
       actionType: event.currentTarget.value as AutomationActionType,
     })
@@ -488,7 +485,7 @@ export class NotificationAutomationsDialog extends React.Component<
   private renderSafetyBanner() {
     return (
       <div className="notification-automations-safety" role="note">
-        <Octicon symbol={octicons.shield} />
+        <MaterialSymbol name="shield" />
         <div>
           <strong>Automations never fire until you arm them.</strong>
           <p>
@@ -514,7 +511,7 @@ export class NotificationAutomationsDialog extends React.Component<
     if (this.state.loading) {
       return (
         <div className="notification-automations-empty" role="status">
-          <Octicon symbol={octicons.sync} />
+          <MaterialSymbol name="sync" />
           <span>Loading automations…</span>
         </div>
       )
@@ -533,9 +530,7 @@ export class NotificationAutomationsDialog extends React.Component<
               value={this.state.query}
               ariaLabel="Search automations by name"
               ariaInvalid={regexError !== null}
-              ariaDescribedBy={
-                regexError === null ? undefined : queryErrorId
-              }
+              ariaDescribedBy={regexError === null ? undefined : queryErrorId}
               placeholder="Automation name"
               onValueChanged={this.onQueryChange}
             />
@@ -563,7 +558,7 @@ export class NotificationAutomationsDialog extends React.Component<
         )}
         {rules.length === 0 ? (
           <div className="notification-automations-empty">
-            <Octicon symbol={octicons.workflow} />
+            <MaterialSymbol name="account_tree" />
             <span>
               {this.state.rules.length === 0
                 ? 'No automations yet. Create one to react to notifications.'
@@ -629,9 +624,8 @@ export class NotificationAutomationsDialog extends React.Component<
               className="notification-automation-state pattern-warning"
               role="status"
             >
-              <Octicon symbol={octicons.alert} /> Pattern needs review before
-              this automation can be armed. Choose Edit to migrate it to safe
-              RE2.
+              <MaterialSymbol name="warning" /> Pattern needs review before this
+              automation can be armed. Choose Edit to migrate it to safe RE2.
             </span>
           ) : (
             <span
@@ -641,7 +635,7 @@ export class NotificationAutomationsDialog extends React.Component<
             >
               {rule.enabled ? (
                 <>
-                  <Octicon symbol={octicons.alert} /> Armed — runs automatically
+                  <MaterialSymbol name="warning" /> Armed — runs automatically
                   when a matching notification arrives
                 </>
               ) : (

@@ -1,5 +1,8 @@
 import * as React from 'react'
 import classNames from 'classnames'
+import { createObservableRef } from './observable-ref'
+import { Tooltip } from './tooltip'
+import { TooltipDirection } from './tooltip'
 
 /**
  * The exact ligatures bundled in the Material Symbols Rounded WOFF2 subset.
@@ -246,6 +249,22 @@ export interface IMaterialSymbolProps {
   readonly grade?: number
   /** Optical size. Clamped to the bundled 20–48 range. */
   readonly opticalSize?: number
+
+  /**
+   * An accessible name for the icon, also shown as a tooltip.
+   *
+   * An icon with no title is decoration and stays hidden from assistive
+   * technology; an icon carrying meaning needs a name, or the only thing a
+   * screen reader can announce is the ligature text, which is the glyph's
+   * English name rather than what it means here.
+   *
+   * Mirrors `Octicon`'s prop of the same name so a call site can move between
+   * the two without silently losing its accessible name on the way.
+   */
+  readonly title?: string
+
+  /** Where the tooltip sits. Icons are small, so an explicit side helps. */
+  readonly tooltipDirection?: TooltipDirection
 }
 
 function clampFinite(
@@ -273,15 +292,28 @@ export function MaterialSymbol(props: IMaterialSymbolProps) {
   const grade = clampFinite(props.grade, 0, 0, 0)
   const opticalSize = clampFinite(props.opticalSize, 20, 48, 24)
 
+  const { title, tooltipDirection } = props
+  const ref = React.useMemo(() => createObservableRef<HTMLSpanElement>(), [])
+
   return (
     <span
+      ref={ref}
       className={classNames('material-symbol', props.className)}
-      aria-hidden={true}
+      aria-hidden={title === undefined ? true : undefined}
+      aria-label={title}
       style={{
         fontSize: `${size}px`,
         fontVariationSettings: `'FILL' ${fill}, 'wght' ${weight}, 'GRAD' ${grade}, 'opsz' ${opticalSize}`,
       }}
     >
+      {title !== undefined && (
+        <Tooltip
+          target={ref}
+          direction={tooltipDirection ?? TooltipDirection.NORTH}
+        >
+          {title}
+        </Tooltip>
+      )}
       {props.name}
     </span>
   )
