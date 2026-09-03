@@ -26,10 +26,22 @@ import {
   SignInStore,
   UpstreamRemoteName,
 } from '.'
-import type { CopilotFeature, CopilotModelSelections } from './copilot-store'
+import type {
+  CopilotFeature,
+  CopilotModelSelections,
+  CopilotModelsByAccount,
+  CopilotQuotaSnapshots,
+  CopilotQuotaSnapshotsByAccount,
+  CopilotQuotaStatesByAccount,
+} from './copilot-store'
 import {
   CommitMessageGenerationCancelledError,
+  getCopilotAccountCacheKey,
   getConflictResolutionAIProviderBinding,
+  isCopilotAccountEligible,
+  readCopilotModelSelectionsByAccount,
+  writeCopilotModelSelectionsByAccount,
+  migrateCopilotModelSelectionsStorage,
 } from './copilot-store'
 import { FileBatchCloneStagingManager } from './batch-clone-staging'
 import {
@@ -806,7 +818,6 @@ import {
   enableCustomIntegration,
   enableWorktreeSupport,
 } from '../feature-flag'
-import { isGHES } from '../endpoint-capabilities'
 import { Banner, BannerType } from '../../models/banner'
 import { ComputedAction } from '../../models/computed-action'
 import {
@@ -1236,6 +1247,35 @@ interface ICheapLfsMaterializeOwner {
 interface ICheapLfsRestoreRun {
   readonly id: number
   progress: ICheapLfsRestoreState | null
+}
+
+export async function runBoundedCopilotAccountRefreshes<T>(
+  accounts: ReadonlyArray<Account>,
+  refresh: (account: Account) => Promise<T>,
+  concurrency: number = 2
+): Promise<ReadonlyArray<PromiseSettledResult<T>>> {
+  const results: Array<PromiseSettledResult<T>> = new Array(accounts.length)
+  let nextIndex = 0
+  const worker = async () => {
+    while (true) {
+      const index = nextIndex++
+      if (index >= accounts.length) return
+      try {
+        results[index] = {
+          status: 'fulfilled',
+          value: await refresh(accounts[index]),
+        }
+      } catch (reason) {
+        results[index] = { status: 'rejected', reason }
+      }
+    }
+  }
+  const workers = Array.from(
+    { length: Math.max(1, Math.min(concurrency, accounts.length)) },
+    () => worker()
+  )
+  await Promise.all(workers)
+  return results
 }
 
 interface ICheapLfsMaterializeBatchOptions {
@@ -2043,6 +2083,17 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   private selectedCopilotModels: CopilotModelSelections = {}
   private copilotModels: ReadonlyArray<Model> | null = null
+  private selectedCopilotModelsByAccount: ReadonlyMap<
+    string,
+    CopilotModelSelections
+  > = new Map()
+  private copilotModelsByAccount: CopilotModelsByAccount = new Map()
+  private readonly copilotModelsRequestGeneration = new Map<string, number>()
+  private copilotQuotaSnapshots: CopilotQuotaSnapshots | null = null
+  private copilotQuotaSnapshotsByAccount: CopilotQuotaSnapshotsByAccount =
+    new Map()
+  private copilotQuotaStatesByAccount: CopilotQuotaStatesByAccount = new Map()
+  private readonly copilotQuotaRequestGeneration = new Map<string, number>()
   private byokProviders: ReadonlyArray<IBYOKProvider> = []
 
   /** Mirror of the notification centre store's state (see NotificationCentreStore). */
@@ -2735,8 +2786,16 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     this.accountsStore.onDidUpdate(accounts => {
       this.accounts = accounts
+      const accountKeys = new Set(accounts.map(getCopilotAccountCacheKey))
+      this.selectedCopilotModelsByAccount = new Map(
+        [...this.selectedCopilotModelsByAccount].filter(([key]) =>
+          accountKeys.has(key)
+        )
+      )
+      this.saveCopilotModelSelectionsByAccount()
       this.syncCopilotModelsFromCache()
       this.updateCopilotModelsForCurrentAccount()
+      this.updateCopilotQuotaSnapshotsForCurrentAccounts()
       const endpointTokens = accounts.map<EndpointToken>(account => ({
         endpoint: account.endpoint,
         token: account.token,
@@ -2847,17 +2906,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.emitUpdate()
   }
 
-  private getCopilotModelsAccount(): Account | undefined {
-    return this.accounts.find(
-      account =>
-        !isGHES(account.endpoint) &&
-        enableCopilotSdkCommitMessageGeneration(account) &&
-        account.isCopilotDesktopEnabled
-    )
+  private getCopilotSettingsAccounts(): ReadonlyArray<Account> {
+    return this.accounts.filter(account => isCopilotAccountEligible(account))
   }
 
   private syncCopilotModelsFromCache(): void {
-    const account = this.getCopilotModelsAccount()
+    const accounts = this.getCopilotSettingsAccounts()
+    const byAccount = new Map<string, ReadonlyArray<Model> | null>()
+    for (const account of accounts) {
+      byAccount.set(
+        getCopilotAccountCacheKey(account),
+        this.copilotStore.getCachedModelList(account)
+      )
+    }
+    this.copilotModelsByAccount = byAccount
+    const account = accounts[0]
 
     if (account === undefined) {
       this.copilotModels = null
@@ -2865,21 +2928,63 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     this.copilotModels = this.copilotStore.getCachedModelList(account)
+
+    const quotaByAccount = new Map<string, CopilotQuotaSnapshots | null>()
+    const quotaStatesByAccount = new Map<
+      string,
+      ReturnType<CopilotStore['getQuotaSnapshotState']>
+    >()
+    for (const quotaAccount of accounts) {
+      const key = getCopilotAccountCacheKey(quotaAccount)
+      quotaByAccount.set(
+        key,
+        this.copilotStore.getCachedQuotaSnapshots(quotaAccount)
+      )
+      quotaStatesByAccount.set(
+        key,
+        this.copilotStore.getQuotaSnapshotState(quotaAccount)
+      )
+    }
+    this.copilotQuotaSnapshotsByAccount = quotaByAccount
+    this.copilotQuotaStatesByAccount = quotaStatesByAccount
+    this.copilotQuotaSnapshots =
+      quotaByAccount.get(getCopilotAccountCacheKey(account)) ?? null
   }
 
   private updateCopilotModelsForCurrentAccount(): void {
-    const account = this.getCopilotModelsAccount()
+    const accounts = this.getCopilotSettingsAccounts()
 
     if (
-      account === undefined ||
-      this.copilotStore.getCachedModelList(account) !== null
+      accounts.length === 0 ||
+      accounts.every(
+        account => this.copilotStore.getCachedModelList(account) !== null
+      )
     ) {
       return
     }
 
-    this.fetchCopilotModelsForCurrentAccount().catch(e => {
+    this.fetchCopilotModelsForCurrentAccounts().catch(e => {
       log.warn(
         'AppStore: Failed to fetch Copilot models after account update',
+        e
+      )
+    })
+  }
+
+  private updateCopilotQuotaSnapshotsForCurrentAccounts(): void {
+    const accounts = this.getCopilotSettingsAccounts()
+    if (
+      accounts.length === 0 ||
+      accounts.every(
+        account => this.copilotStore.getCachedQuotaSnapshots(account) !== null
+      )
+    ) {
+      return
+    }
+
+    this.fetchCopilotQuotaSnapshotsForCurrentAccounts().catch(e => {
+      log.warn(
+        'AppStore: Failed to fetch Copilot quota snapshots after account update',
         e
       )
     })
@@ -3091,7 +3196,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
         this.alwaysUseCopilotForConflictResolution,
       showChangesFilter: this.showChangesFilter,
       selectedCopilotModels: this.selectedCopilotModels,
+      selectedCopilotModelsByAccount: this.selectedCopilotModelsByAccount,
       copilotModels: this.copilotModels,
+      copilotModelsByAccount: this.copilotModelsByAccount,
+      copilotQuotaSnapshots: this.copilotQuotaSnapshots,
+      copilotQuotaSnapshotsByAccount: this.copilotQuotaSnapshotsByAccount,
+      copilotQuotaStatesByAccount: this.copilotQuotaStatesByAccount,
       byokProviders: this.byokProviders,
       notifications: this.notifications,
       unreadNotificationCount: this.unreadNotificationCount,
@@ -5254,6 +5364,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
     )
 
     this.selectedCopilotModels = this.loadCopilotModelSelections()
+    this.selectedCopilotModelsByAccount =
+      this.loadCopilotModelSelectionsByAccount()
+    this.migrateCopilotModelSelections()
     this.byokProviders = loadBYOKProviders()
 
     this.emitUpdateNow()
@@ -10431,7 +10544,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
               diff,
               repository.path,
               await this.resolveCopilotModelRequest(
-                this.selectedCopilotModels['commit-message-generation'] ?? null
+                this.getSelectedCopilotModels(account)[
+                  'commit-message-generation'
+                ] ?? null
               ),
               this.repositoryStateCache
                 .get(repository)
@@ -10606,7 +10721,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       if (ownerStatus.stdout.trim().length > 0) {
         if (!options.forceMatDay) {
           throw new Error(
-            'The default branch worktree has uncommitted changes. Select Force Mat Day to preserve and publish them first.'
+            'The default checkout has uncommitted changes. Select force cleanup to preserve and publish them first.'
           )
         }
         const checkpointFailure = await this.checkpointDirtyMergeAllWorktree(
@@ -16343,7 +16458,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
         let response: { readonly title: string; readonly description: string }
         if (enableCopilotSdkCommitMessageGeneration(account)) {
           const modelRequest = await this.resolveCopilotModelRequest(
-            this.selectedCopilotModels['commit-message-generation'] ?? null
+            this.getSelectedCopilotModels(account)[
+              'commit-message-generation'
+            ] ?? null
           )
           if (!this.isTemporaryRepositoryActive(repository)) {
             return false
@@ -16589,7 +16706,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         repository
       )
       const modelRequest = await this.resolveCopilotModelRequest(
-        this.selectedCopilotModels['conflict-resolution'] ?? null
+        this.getSelectedCopilotModels(account)['conflict-resolution'] ?? null
       )
       if (signal?.aborted || !this.isTemporaryRepositoryActive(repository)) {
         return null
@@ -17427,7 +17544,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
     // clicks "Stop" (see _abortCopilotConflictResolution).
     const abortController = new AbortController()
     const copilotResolutionModel = getConflictResolutionModelDisplay(
-      this.selectedCopilotModels['conflict-resolution'] ?? null,
+      this.getSelectedCopilotModels(
+        getAccountForCopilotConflictResolution(this.accounts, repository) ??
+          Account.anonymous()
+      )['conflict-resolution'] ?? null,
       this.copilotModels,
       this.byokProviders
     )
@@ -27547,22 +27667,30 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   /** This shouldn't be called directly. See 'Dispatcher'. */
   public _setSelectedCopilotModel(
+    account: Account,
     feature: CopilotFeature,
     model: string | null
   ) {
-    const current = this.selectedCopilotModels[feature] ?? null
+    const accountKey = getCopilotAccountCacheKey(account)
+    const currentSelections =
+      this.selectedCopilotModelsByAccount.get(accountKey) ?? {}
+    const current = currentSelections[feature] ?? null
     if (model !== current) {
+      const updatedSelections = { ...currentSelections }
       if (model === null) {
-        const updated = { ...this.selectedCopilotModels }
-        delete updated[feature]
-        this.selectedCopilotModels = updated
+        delete updatedSelections[feature]
       } else {
-        this.selectedCopilotModels = {
-          ...this.selectedCopilotModels,
-          [feature]: model,
-        }
+        updatedSelections[feature] = model
       }
-      this.saveCopilotModelSelections()
+      const updatedByAccount = new Map(this.selectedCopilotModelsByAccount)
+      if (Object.keys(updatedSelections).length === 0) {
+        updatedByAccount.delete(accountKey)
+      } else {
+        updatedByAccount.set(accountKey, updatedSelections)
+      }
+      this.selectedCopilotModelsByAccount = updatedByAccount
+      this.saveCopilotModelSelectionsByAccount()
+      this.emitUpdate()
     }
   }
 
@@ -27608,6 +27736,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
   /** This shouldn't be called directly. See 'Dispatcher'. */
   public _setSelectedCopilotModels(models: CopilotModelSelections) {
     this.selectedCopilotModels = { ...models }
+    const byAccount = new Map(this.selectedCopilotModelsByAccount)
+    for (const account of this.accounts) {
+      const key = getCopilotAccountCacheKey(account)
+      byAccount.set(key, { ...models, ...byAccount.get(key) })
+    }
+    this.selectedCopilotModelsByAccount = byAccount
+    this.selectedCopilotModels = {}
     // The Preferences dialog keeps its own copy of the selections in
     // component state. If the user deletes/edits a BYOK provider through
     // the popup stack while the dialog is open, that local copy can still
@@ -27615,6 +27750,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     // resurrect a stale selection.
     this.scrubMissingCopilotModelSelections()
     this.saveCopilotModelSelections()
+    this.saveCopilotModelSelectionsByAccount()
+    this.emitUpdate()
   }
 
   /**
@@ -27777,66 +27914,201 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * so a transient empty list doesn't downgrade valid selections.
    */
   private scrubMissingCopilotModelSelections(): void {
-    const updated: CopilotModelSelections = {}
-    let changed = false
-    const copilotModels = this.copilotModels
-    for (const [feature, raw] of Object.entries(this.selectedCopilotModels)) {
-      if (raw === undefined) {
-        continue
-      }
-      const key = parseModelKey(raw)
-      if (key.kind === 'byok') {
-        const provider = this.byokProviders.find(p => p.id === key.providerId)
-        if (
-          provider === undefined ||
-          !provider.models.some(m => m.id === key.modelId)
+    const scrub = (
+      selections: CopilotModelSelections,
+      models: ReadonlyArray<Model> | null
+    ): CopilotModelSelections => {
+      const updated: CopilotModelSelections = {}
+      for (const [feature, raw] of Object.entries(selections)) {
+        if (raw === undefined) continue
+        const key = parseModelKey(raw)
+        if (key.kind === 'byok') {
+          const provider = this.byokProviders.find(p => p.id === key.providerId)
+          if (
+            provider === undefined ||
+            !provider.models.some(m => m.id === key.modelId)
+          ) {
+            continue
+          }
+        } else if (
+          key.modelId !== '' &&
+          models !== null &&
+          !models.some(m => m.id === key.modelId)
         ) {
-          changed = true
           continue
         }
-      } else if (
-        key.kind === 'copilot' &&
-        key.modelId !== '' &&
-        copilotModels !== null &&
-        !copilotModels.some(m => m.id === key.modelId)
-      ) {
-        changed = true
-        continue
+        updated[feature as CopilotFeature] = raw
       }
-      updated[feature as CopilotFeature] = raw
+      return updated
     }
 
-    if (changed) {
-      this.selectedCopilotModels = updated
+    const legacy = scrub(this.selectedCopilotModels, this.copilotModels)
+    if (
+      Object.keys(legacy).length !==
+      Object.keys(this.selectedCopilotModels).length
+    ) {
+      this.selectedCopilotModels = legacy
       this.saveCopilotModelSelections()
     }
+
+    const updatedByAccount = new Map<string, CopilotModelSelections>()
+    for (const [accountKey, selections] of this
+      .selectedCopilotModelsByAccount) {
+      const updated = scrub(
+        selections,
+        this.copilotModelsByAccount.get(accountKey) ?? null
+      )
+      if (Object.keys(updated).length > 0)
+        updatedByAccount.set(accountKey, updated)
+    }
+    this.selectedCopilotModelsByAccount = updatedByAccount
+    this.saveCopilotModelSelectionsByAccount()
   }
 
   /** This shouldn't be called directly. See 'Dispatcher'. */
   public async _fetchCopilotModels(): Promise<void> {
-    return this.fetchCopilotModelsForCurrentAccount()
+    return this.fetchCopilotModelsForCurrentAccounts()
   }
 
-  private async fetchCopilotModelsForCurrentAccount(): Promise<void> {
-    const account = this.getCopilotModelsAccount()
-    if (account === undefined) {
+  private loadCopilotModelSelectionsByAccount(): ReadonlyMap<
+    string,
+    CopilotModelSelections
+  > {
+    return readCopilotModelSelectionsByAccount()
+  }
+
+  private saveCopilotModelSelectionsByAccount(): void {
+    writeCopilotModelSelectionsByAccount(this.selectedCopilotModelsByAccount)
+  }
+
+  private migrateCopilotModelSelections(): void {
+    const migrated = migrateCopilotModelSelectionsStorage(this.accounts)
+    this.selectedCopilotModelsByAccount = migrated
+    this.selectedCopilotModels = {}
+    this.saveCopilotModelSelections()
+    this.selectedCopilotModelsByAccount = migrated
+  }
+
+  private getSelectedCopilotModels(account: Account): CopilotModelSelections {
+    return {
+      ...this.selectedCopilotModels,
+      ...this.selectedCopilotModelsByAccount.get(
+        getCopilotAccountCacheKey(account)
+      ),
+    }
+  }
+
+  public _setSelectedCopilotModelsByAccount(
+    modelsByAccount: ReadonlyMap<string, CopilotModelSelections>
+  ) {
+    this.selectedCopilotModelsByAccount = new Map(
+      [...modelsByAccount].map(([key, models]) => [key, { ...models }])
+    )
+    this.scrubMissingCopilotModelSelections()
+    this.saveCopilotModelSelectionsByAccount()
+    this.emitUpdate()
+  }
+
+  private async fetchCopilotModelsForCurrentAccounts(): Promise<void> {
+    const accounts = this.getCopilotSettingsAccounts()
+    if (accounts.length === 0) {
       this.copilotModels = null
+      this.copilotModelsByAccount = new Map()
       this.emitUpdate()
       return
     }
 
-    const models = await this.copilotStore.listModels(account)
-    // Only overwrite the cached model list when we actually got a list back.
-    // listModels() returns null when the result is unknown (the selected
-    // account cannot use the SDK or an SDK failure has no prior cache);
-    // treating that as an empty list would scrub the user's Copilot model
-    // selections.
-    if (models !== null) {
-      this.copilotModels = [...models]
-      this.scrubMissingCopilotModelSelections()
-    } else {
-      this.syncCopilotModelsFromCache()
+    const byAccount = new Map(this.copilotModelsByAccount)
+    const generations = accounts.map(account => {
+      const accountKey = getCopilotAccountCacheKey(account)
+      const generation =
+        (this.copilotModelsRequestGeneration.get(accountKey) ?? 0) + 1
+      this.copilotModelsRequestGeneration.set(accountKey, generation)
+      return { accountKey, generation }
+    })
+    const results = await runBoundedCopilotAccountRefreshes(
+      accounts,
+      account => this.copilotStore.listModels(account),
+      2
+    )
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        log.warn(
+          'AppStore: Copilot model refresh failed for one account',
+          result.reason
+        )
+        return
+      }
+      const { accountKey, generation } = generations[index]
+      const models = result.value
+      if (
+        this.copilotModelsRequestGeneration.get(accountKey) !== generation ||
+        !this.accounts.some(
+          current => getCopilotAccountCacheKey(current) === accountKey
+        )
+      )
+        return
+      byAccount.set(accountKey, models === null ? null : [...models])
+      this.copilotModelsByAccount = new Map(byAccount)
+      this.emitUpdate()
+    })
+    const currentModelsByAccount = this.copilotModelsByAccount
+    this.copilotModels =
+      currentModelsByAccount.get(getCopilotAccountCacheKey(accounts[0])) ?? null
+    if (this.copilotModels !== null) this.scrubMissingCopilotModelSelections()
+    this.emitUpdate()
+  }
+
+  public async _fetchCopilotQuotaSnapshots(): Promise<void> {
+    return this.fetchCopilotQuotaSnapshotsForCurrentAccounts()
+  }
+
+  private async fetchCopilotQuotaSnapshotsForCurrentAccounts(): Promise<void> {
+    const accounts = this.getCopilotSettingsAccounts()
+    if (accounts.length === 0) {
+      this.copilotQuotaSnapshots = null
+      this.copilotQuotaSnapshotsByAccount = new Map()
+      this.emitUpdate()
+      return
     }
+
+    const byAccount = new Map(this.copilotQuotaSnapshotsByAccount)
+    const generations = accounts.map(account => {
+      const accountKey = getCopilotAccountCacheKey(account)
+      const generation =
+        (this.copilotQuotaRequestGeneration.get(accountKey) ?? 0) + 1
+      this.copilotQuotaRequestGeneration.set(accountKey, generation)
+      return { accountKey, generation }
+    })
+    const results = await runBoundedCopilotAccountRefreshes(
+      accounts,
+      account => this.copilotStore.getQuotaSnapshots(account),
+      2
+    )
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        log.warn(
+          'AppStore: Copilot quota refresh failed for one account',
+          result.reason
+        )
+        return
+      }
+      const { accountKey, generation } = generations[index]
+      const snapshots = result.value
+      if (
+        this.copilotQuotaRequestGeneration.get(accountKey) !== generation ||
+        !this.accounts.some(
+          current => getCopilotAccountCacheKey(current) === accountKey
+        )
+      )
+        return
+      byAccount.set(accountKey, snapshots)
+      this.copilotQuotaSnapshotsByAccount = new Map(byAccount)
+      this.emitUpdate()
+    })
+    const currentQuotaByAccount = this.copilotQuotaSnapshotsByAccount
+    this.copilotQuotaSnapshots =
+      currentQuotaByAccount.get(getCopilotAccountCacheKey(accounts[0])) ?? null
     this.emitUpdate()
   }
 

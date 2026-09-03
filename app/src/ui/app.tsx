@@ -365,6 +365,7 @@ import memoizeOne from 'memoize-one'
 import { AheadBehindStore } from '../lib/stores/ahead-behind-store'
 import {
   getAccountForCommitMessageGeneration,
+  getAccountForCopilotConflictResolution,
   getAccountForRepository,
 } from '../lib/get-account-for-repository'
 import { CommitOneLine } from '../models/commit'
@@ -4949,7 +4950,16 @@ export class App extends React.Component<IAppProps, IAppState> {
             underlineLinks={this.state.underlineLinks}
             showDiffCheckMarks={this.state.showDiffCheckMarks}
             selectedCopilotModels={this.state.selectedCopilotModels}
+            selectedCopilotModelsByAccount={
+              this.state.selectedCopilotModelsByAccount
+            }
             copilotModels={this.state.copilotModels}
+            copilotModelsByAccount={this.state.copilotModelsByAccount}
+            copilotQuotaSnapshots={this.state.copilotQuotaSnapshots}
+            copilotQuotaSnapshotsByAccount={
+              this.state.copilotQuotaSnapshotsByAccount
+            }
+            copilotQuotaStatesByAccount={this.state.copilotQuotaStatesByAccount}
             byokProviders={this.state.byokProviders}
             alwaysUseCopilotForConflictResolution={
               this.state.alwaysUseCopilotForConflictResolution
@@ -6187,6 +6197,25 @@ export class App extends React.Component<IAppProps, IAppState> {
           return null
         }
 
+        const conflictAccount = getAccountForCopilotConflictResolution(
+          this.state.accounts,
+          popup.repository
+        )
+        const conflictAccountKey =
+          conflictAccount === null || conflictAccount === undefined
+            ? null
+            : `${conflictAccount.id}:${conflictAccount.endpoint}`
+        const conflictModels =
+          conflictAccountKey === null
+            ? null
+            : this.state.copilotModelsByAccount.get(conflictAccountKey) ?? null
+        const conflictSelection =
+          conflictAccountKey === null
+            ? null
+            : this.state.selectedCopilotModelsByAccount.get(
+                conflictAccountKey
+              )?.['conflict-resolution'] ?? null
+
         return (
           <MultiCommitOperation
             key="multi-commit-operation"
@@ -6205,8 +6234,8 @@ export class App extends React.Component<IAppProps, IAppState> {
               this.state.copilotConflictResolutionClickCount === 0
             }
             copilotConflictResolutionModel={getConflictResolutionModelDisplay(
-              this.state.selectedCopilotModels['conflict-resolution'] ?? null,
-              this.state.copilotModels,
+              conflictSelection,
+              conflictModels,
               this.state.byokProviders
             )}
             openFileInExternalEditor={this.openFileInExternalEditor}

@@ -2,6 +2,9 @@ import { getDotComAPIEndpoint, getHTMLURL, IAPIEmail } from '../lib/api'
 
 export type AccountProvider = 'github' | 'gitlab' | 'bitbucket' | 'self-hosted'
 
+/** Account metadata value used when Copilot access is not licensed. */
+export const CopilotLicenseTypeNoAccess = 'NO_ACCESS'
+
 /**
  * Returns a value indicating whether two account instances
  * can be considered equal. Equality is determined by comparing

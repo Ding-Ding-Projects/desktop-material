@@ -163,6 +163,8 @@ export type TimeFormat =
 export interface INumberFormat {
   readonly thousandsSeparator: ',' | '.' | ' ' | ''
   readonly decimalSeparator: ',' | '.'
+  /** Maximum decimal places, bounded to keep zero-fraction output tidy. */
+  readonly maximumFractionDigits?: 0 | 1 | 2 | 3 | 4 | 5 | 6
 }
 
 /**

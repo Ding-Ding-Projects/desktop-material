@@ -170,6 +170,30 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
       descriptionKey: 'settingsSearch.entry.copilotModels.desc',
       keywords: ['ai', 'model', 'copilot', 'gpt', 'byok', 'ollama', '模型'],
     },
+    {
+      id: 'copilot-account-overview',
+      tab: PreferencesTab.Copilot,
+      titleKey: 'settingsSearch.entry.copilotAccountOverview.title',
+      descriptionKey: 'settingsSearch.entry.copilotAccountOverview.desc',
+      teleportTargetId: 'settingsCopilotAccountOverview',
+      keywords: ['copilot', 'account', 'signed in', '帳戶', '登入'],
+    },
+    {
+      id: 'copilot-quota',
+      tab: PreferencesTab.Copilot,
+      titleKey: 'settingsSearch.entry.copilotQuota.title',
+      descriptionKey: 'settingsSearch.entry.copilotQuota.desc',
+      teleportTargetId: 'settingsCopilotQuota',
+      keywords: ['copilot', 'quota', 'usage', 'available', 'used', '配額'],
+    },
+    {
+      id: 'copilot-configure-models',
+      tab: PreferencesTab.Copilot,
+      titleKey: 'settingsSearch.entry.copilotConfigureModels.title',
+      descriptionKey: 'settingsSearch.entry.copilotConfigureModels.desc',
+      teleportTargetId: 'settingsCopilotConfigureModels',
+      keywords: ['copilot', 'configure', 'models', 'account', '模型'],
+    },
     // Ollama — the manager and its chat workspace have their own tab, so the
     // search results point at that tab rather than at Copilot's provider list.
     {

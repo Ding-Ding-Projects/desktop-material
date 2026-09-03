@@ -14,9 +14,13 @@ import {
   resetTestTimers,
 } from '../../helpers/ui/timers'
 import { CopilotPreferences } from '../../../src/ui/preferences/copilot'
+import { SnapshotCard } from '../../../src/ui/preferences/snapshot-card'
+import { getCopilotAccountTargetSuffix } from '../../../src/ui/preferences/snapshot-card'
+import type { CopilotQuotaSnapshots } from '../../../src/lib/stores/copilot-store'
 import {
   DefaultCopilotModel,
   type CopilotFeature,
+  getCopilotAccountCacheKey,
 } from '../../../src/lib/stores/copilot-store'
 import {
   encodeModelKey,
@@ -61,7 +65,7 @@ function makeAccount(options: IAccountOptions = {}): Account {
     'free',
     'https://copilot-proxy.githubusercontent.com',
     isCopilotDesktopEnabled,
-    [],
+    ['desktop_enable_copilot_sdk_commit_message_generation'],
     copilotLicenseType
   )
 }
@@ -142,6 +146,23 @@ const models: ReadonlyArray<Model> = [
   otherModel,
   usageBilledModel,
 ]
+
+const quotaSnapshots: CopilotQuotaSnapshots = new Map([
+  [
+    'chat',
+    {
+      isUnlimitedEntitlement: false,
+      entitlementRequests: 100,
+      usedRequests: 25,
+      usageAllowedWithExhaustedQuota: false,
+      remainingPercentage: 75,
+      overage: 0,
+      overageAllowedWithExhaustedQuota: false,
+      resetDate: '2030-01-01T00:00:00.000Z',
+      tokenBasedBilling: false,
+    },
+  ],
+])
 
 const ollamaProvider: IBYOKProvider = {
   id: 'ollama-id',
@@ -351,6 +372,154 @@ function getCostDetailsValue(container: HTMLElement, label: string): string {
 }
 
 describe('CopilotPreferences', () => {
+  it('uses stable sanitized target suffixes for each account card', () => {
+    const first = makeAccount({ id: 1, endpoint: 'https://api.example.com/a' })
+    const second = makeAccount({ id: 2, endpoint: 'https://api.example.com/a' })
+    assert.notStrictEqual(
+      getCopilotAccountTargetSuffix(first),
+      getCopilotAccountTargetSuffix(second)
+    )
+    assert.match(getCopilotAccountTargetSuffix(first), /^[a-zA-Z0-9_-]+$/)
+  })
+
+  it('renders one deterministic generic target set plus unique account targets', () => {
+    const first = makeAccount({ id: 1, login: 'first' })
+    const second = makeAccount({ id: 2, login: 'second' })
+    const view = render(
+      <CopilotPreferences
+        {...defaults()}
+        accounts={[first, second]}
+        copilotModelsByAccount={
+          new Map([
+            [getCopilotAccountCacheKey(first), models],
+            [getCopilotAccountCacheKey(second), models],
+          ])
+        }
+        copilotQuotaSnapshotsByAccount={
+          new Map([
+            [getCopilotAccountCacheKey(first), null],
+            [getCopilotAccountCacheKey(second), null],
+          ])
+        }
+      />
+    )
+    assert.strictEqual(
+      view.container.querySelectorAll(
+        '[data-teleport-target="settings-copilot-account-overview"]'
+      ).length,
+      1
+    )
+    assert.strictEqual(
+      view.container.querySelectorAll(
+        '[data-teleport-target="settings-copilot-quota"]'
+      ).length,
+      1
+    )
+    assert.strictEqual(
+      view.container.querySelectorAll(
+        '[data-teleport-target="settings-copilot-configure-models"]'
+      ).length,
+      1
+    )
+    for (const account of [first, second]) {
+      const suffix = getCopilotAccountTargetSuffix(account)
+      assert.ok(
+        view.container.querySelector(
+          `[data-teleport-target="settings-copilot-account-overview-${suffix}"]`
+        )
+      )
+    }
+  })
+  it('does not fall back to global model or quota props for a known scoped account', () => {
+    const account = makeAccount({ id: 42 })
+    render(
+      <CopilotPreferences
+        {...defaults()}
+        accounts={[account]}
+        copilotModelsByAccount={
+          new Map([[getCopilotAccountCacheKey(account), null]])
+        }
+        copilotQuotaSnapshotsByAccount={
+          new Map([[getCopilotAccountCacheKey(account), null]])
+        }
+      />
+    )
+    assert.ok(screen.getByText('Loading available models…'))
+    assert.strictEqual(screen.queryByText('Auto'), null)
+  })
+
+  it('exposes account identity and factual quota values accessibly', () => {
+    render(
+      <SnapshotCard
+        account={makeAccount({ login: 'mona' })}
+        snapshots={quotaSnapshots}
+        quotaState={{
+          status: 'available',
+          snapshots: quotaSnapshots,
+          fetchedAt: Date.parse('2026-08-31T12:00:00.000Z'),
+        }}
+      />
+    )
+    assert.ok(screen.getByRole('region', { name: 'Copilot usage for mona' }))
+    assert.ok(screen.getByText(/25 used of 100 available/))
+    assert.strictEqual(
+      screen.getByRole('progressbar').getAttribute('aria-valuenow'),
+      '25'
+    )
+    assert.ok(screen.getByText(/Updated/))
+  })
+
+  it('uses determinate progress semantics for unlimited quota', () => {
+    const unlimited: CopilotQuotaSnapshots = new Map([
+      [
+        'chat',
+        {
+          ...quotaSnapshots.get('chat')!,
+          isUnlimitedEntitlement: true,
+        },
+      ],
+    ])
+    render(<SnapshotCard account={makeAccount()} snapshots={unlimited} />)
+    const progress = screen.getByRole('progressbar')
+    assert.strictEqual(
+      progress.getAttribute('aria-valuetext'),
+      'No usage limit'
+    )
+    assert.strictEqual(progress.getAttribute('aria-valuenow'), null)
+  })
+
+  it('reports stale, unavailable, and error quota states without inventing values', () => {
+    const { rerender } = render(
+      <SnapshotCard
+        account={makeAccount()}
+        snapshots={quotaSnapshots}
+        quotaState={{
+          status: 'stale',
+          snapshots: quotaSnapshots,
+          fetchedAt: 1,
+        }}
+      />
+    )
+    assert.ok(screen.getByText('Showing stale Copilot usage data.'))
+    rerender(
+      <SnapshotCard
+        account={makeAccount()}
+        snapshots={null}
+        quotaState={{ status: 'unavailable', snapshots: null, fetchedAt: null }}
+      />
+    )
+    assert.ok(screen.getByText('Copilot usage unavailable for this account.'))
+    assert.strictEqual(screen.queryByText(/available$/), null)
+    rerender(
+      <SnapshotCard
+        account={makeAccount()}
+        snapshots={null}
+        quotaState={{ status: 'error', snapshots: null, fetchedAt: null }}
+      />
+    )
+    assert.ok(screen.getByRole('alert'))
+  })
+
   it('shows sign-in call to action when no account is available', () => {
     let called = 0
 

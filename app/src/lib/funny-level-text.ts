@@ -150,6 +150,7 @@ export type FunnyLevelTextBase =
   | 'md3.agents.emptyNoSessions'
   | 'md3.inbox.empty.caughtUp'
   | 'md3.terminal.noSessions'
+  | 'copilot.quotaLead'
 
 /** Read the persisted per-language funny levels, defaulting when unreadable. */
 export function readFunnyLevels(): IFunnyLevels {
