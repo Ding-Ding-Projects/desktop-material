@@ -88,14 +88,24 @@ and a good deal of it still does not. Re-measured across `app/src` and
 | native `<select>` | 74 | **5** |
 | native `<button>` | 297 | **13** |
 | raw `border-radius: <n>` | 1,014 | **992** |
-| raw `font-size: <n>` | 964 | **965** |
+| raw `font-size: <n>` | 964 | **965** (see below) |
 | `var()` uses still on legacy tokens | about half | **4,597 of 9,505** |
 
-The icon and control columns are nearly finished; the raw radii and font sizes
-are barely touched and are now the bulk of the work. Converting those in place
-is ordinary, wanted work. Re-measure before trusting this table — it is a
-snapshot, and the commands that produced it are `git grep -oE` counts over
-`app/src` and `app/styles`.
+The icon and control columns are nearly finished. The radii are done as far as
+they safely go: 594 declarations that matched a shape token exactly now use it,
+and the rest are off-scale values whose conversion would change the design.
+
+**The font sizes are not a mechanical conversion, and treating them as one
+would restyle the product.** The typescale tokens are `font` shorthands that
+carry weight and line-height as well as size, so `font-size: 12px` cannot
+become `var(--md-sys-typescale-body-small)` without also changing those two.
+The raw sizes do not line up with the scale either: 92 at 11.5px, 72 at 12.5px,
+35 at 13.5px and 34 at 10.5px sit between steps. Converting this column is a
+typography pass with per-surface decisions, not a refactor, and it needs the
+repository owner to ask for it.
+
+Re-measure before trusting this table -- it is a snapshot, and the commands that
+produced it are `git grep -oE` counts over `app/src` and `app/styles`.
 
 Ordinary work continues normally: the `md3-*` **dialogs and primitives** that
 survived the revert are live, and styling a class a live component actually

@@ -1,9 +1,8 @@
+import { MaterialSymbol } from '../ui/lib/material-symbol'
 import * as React from 'react'
 import { ErrorType, ICrashDetails } from './shared'
 import { TitleBar } from '../ui/window/title-bar'
 import { WindowState } from '../lib/window-state'
-import { Octicon } from '../ui/octicons'
-import * as octicons from '../ui/octicons/octicons.generated'
 import { Button } from '../ui/lib/button'
 import { LinkButton } from '../ui/lib/link-button'
 import { getVersion } from '../ui/lib/app-proxy'
@@ -145,7 +144,7 @@ export class CrashApp extends React.Component<ICrashAppProps, ICrashAppState> {
 
     return (
       <header className="crash-heading">
-        <Octicon symbol={octicons.stop} className="error-icon" />
+        <MaterialSymbol className="error-icon" name="stop" />
         <div>
           <span className="crash-heading-kicker">Application recovery</span>
           <h1 id="crash-title">{message}</h1>

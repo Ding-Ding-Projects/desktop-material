@@ -1,3 +1,4 @@
+import { MaterialSymbol } from './lib/material-symbol'
 import * as React from 'react'
 import * as Path from 'path'
 import { randomUUID } from 'crypto'
@@ -158,8 +159,6 @@ import {
   ThemeToggleButton,
 } from './toolbar'
 import { canAutoCommitPush } from '../lib/automation/automation-guards'
-import { Octicon } from './octicons'
-import * as octicons from './octicons/octicons.generated'
 import {
   showCertificateTrustDialog,
   sendReady,
@@ -7345,7 +7344,7 @@ export class App extends React.Component<IAppProps, IAppState> {
           )}
           tooltip={t('submodule.closeTemporaryViewer')}
         >
-          <Octicon symbol={octicons.x} />
+          <MaterialSymbol name="close" />
           <span className="submodule-context-close-label">
             <LocalizedText
               translationKey="submodule.closeTemporaryViewer"
@@ -8079,7 +8078,7 @@ export class App extends React.Component<IAppProps, IAppState> {
           aria-live="polite"
         >
           <span className="repository-drop-overlay-icon">
-            <Octicon symbol={octicons.repoPush} height={28} />
+            <MaterialSymbol size={28} name="publish" />
           </span>
           <strong>Drop repository folders to open tabs</strong>
           <span>
