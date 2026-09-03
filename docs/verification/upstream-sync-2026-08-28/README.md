@@ -7,7 +7,7 @@ This hand-written ledger records every non-merge, patch-equivalent record return
     git log --right-only --cherry-pick --no-merges --format="%H%x09%s" origin/main...upstream/development
 
 The refreshed command was run against `origin/main` at
-`83c91f6964cc1799fcc7e1d4fcd23f90e5e017f6` and `upstream/development` at
+`83c91f6964cc1799fcc7e1d4fcd23f90e5e017f6``a5428c07d91830c109a37323fcee67ee4433a655` and `upstream/development` at
 `b17e06dd0f0d9a45807eb39a51d223f52eb14da9`, with merge base
 `d9080117b1fd01193d3eee51ae243714468c8176`. It returned 112 records in the
 isolated ledger checkout. Stable patch IDs identify 108 unique patch effects.
@@ -45,6 +45,42 @@ used to decide whether an upstream record is accounted for.
 | reverted-history duplicate | 6 | Parent issue #212 remains open; no replay is authorized. |
 | review required | 73 | Parent issue #212 remains open; implementation or focused verification is an actionable parent-lane follow-up, not a blocker. |
 | **Total** | **112** | **Current local issue: [#212](https://github.com/Ding-Ding-Projects/desktop-material/issues/212), open.** |
+
+## Re-verification, 2026-09-03
+
+The counting baseline in this ledger was `origin/main` at `83c91f6964`. That
+tip has since advanced to `a5428c07d9`, carrying nineteen integrated task
+lanes. The canonical query was re-run against the new tip and still returns
+**112 records**, which is the expected result and worth stating plainly: this
+fork reimplements upstream behaviour rather than cherry-picking it, so
+`--cherry-pick` cannot match the patches. The record count does not move; only
+dispositions do.
+
+Two rows were corrected. Rows 002 and 099 said their local adaptation was not
+in `origin/main`; both are now ancestors of it and the evidence says so.
+
+**No `review required` row has been flipped without per-row verification, and
+that is deliberate.** Several areas the ledger lists as review-required now
+have real implementations on `main`, and a reviewer can work through them
+against these commits:
+
+| Ledger area | Rows | Implementation now on `main` |
+| --- | --- | --- |
+| hook stdin | 086-088 | `app/src/lib/hooks/hook-stdin-spool.ts`, bounded at 64 MiB |
+| protected branches | 077 | `protectedBranchRefreshGenerations` in `app-store.ts` |
+| clone safety | 075 | `83dddea6e3`, retained direct clone recovery |
+| dialog focus | 068-070 | `onDialogFocusIn` lifecycle in `app/src/ui/dialog/dialog.tsx` |
+| worktree recovery | 064, 066-067 | `mainWorktreePath` in `repositories-database.ts` and `git/worktree.ts` |
+| Copilot quota | 003-011, 018, 025-038 | `acd41a8d20`, per-account settings and quota cards |
+
+Naming the implementation is not the same as proving the upstream behaviour is
+matched, which is why the dispositions still read `review required`. Flipping
+them on subject similarity alone would make this ledger assert something nobody
+checked, and a ledger that does that is worse than a stale one.
+
+The `copilot-conflict-ui` lane is **not** integrated. It and upstream row 015
+(delete-vs-modify conflicts) describe two parallel designs of the same code
+paths; merging it mechanically would drop one of them.
 
 ## Hard GUI boundary
 
@@ -102,7 +138,7 @@ architecture and define the intended implementation lane.
 | # | SHA | Subject | Subsystem | Disposition | Local evidence or intended lane |
 | --- | --- | --- | --- | --- | --- |
 | 001 | 45bd1e743cbb92e5dc4d2fc828fb5a38bcd3c428 | Fix image diff sub-pixel misalignment on non-Retina displays | image diff | superseded by stronger local behavior | IMG, local antecedents `ec12749f2a` and `15f14b622a` established the behavior before the stronger local correction. |
-| 002 | cd3693f347b4b747aef5b94ea63ef27203cd5e37 | Fix image diff sub-pixel misalignment | image diff | ported | IMG, local adaptation `0179541f33` is on this task branch and is not in `origin/main`; it is not an integrated equivalent yet. |
+| 002 | cd3693f347b4b747aef5b94ea63ef27203cd5e37 | Fix image diff sub-pixel misalignment | image diff | ported | IMG, local adaptation `0179541f33` is an ancestor of `origin/main` as of 2026-09-03; verified with `git merge-base --is-ancestor`. |
 | 003 | 0e30e78f6cad03ebd5880ed9348139cb0dfabdbd | Create "usage snapshot card" | Copilot quota | review required | COP, implement the card in the existing preferences surface. |
 | 004 | 9c5d1a1728c792ddf6191a8108d21e7752de564b | Extract Copilot settings to a component for a given account | Copilot settings | review required | COP, account-owned component boundary. |
 | 005 | 87ac06f7b72bf18538ab1926dd85d7211d75facc | Support multi-account Copilot settings in preferences | Copilot settings | review required | COP, preserve existing account and provider state. |
@@ -199,7 +235,7 @@ architecture and define the intended implementation lane.
 | 096 | 6e5fa0e5d9ae4287b1cc3ffb966d36177d5753d7 | Pin cross-compiled Copilot packages to the lockfile | CI dependency | reverted-history duplicate | DEP and WF, duplicate of row 081. |
 | 097 | 28955b81295df6a3232857c15caba933bd7cd03b | Restore platform-specific packaging icons | packaging | reverted-history duplicate | PKG, duplicate of row 082. |
 | 098 | 8a555fe5ec2e14652d888f60569fb0c380d2805f | Bump postcss from 8.5.12 to 8.5.26 | dependency | review required | DEP, re-resolve current lockfile and verify package consumers. |
-| 099 | 6b4304f2c4e0e6bc65d44a70172ab1fbfd49ebc5 | Bump dompurify from 3.4.11 to 3.4.13 in /app | dependency | ported | DEP, local adaptation `1eed3b1a4d` is on this task branch and is not in `origin/main`; it is not an integrated equivalent yet. |
+| 099 | 6b4304f2c4e0e6bc65d44a70172ab1fbfd49ebc5 | Bump dompurify from 3.4.11 to 3.4.13 in /app | dependency | ported | DEP, local adaptation `1eed3b1a4d` is an ancestor of `origin/main` as of 2026-09-03; verified with `git merge-base --is-ancestor`. |
 | 100 | 9a91f5bd32b54d9f0cdad5181757b3f6f99de923 | Draft release 3.6.5-beta1 | release metadata | inapplicable because of platform/scope | REL, historical metadata only. |
 | 101 | 30651b4d1325078ce128ae7b075f39921cb45830 | Update changelog.json | changelog | inapplicable because of platform/scope | REL, preserve factual history without stale version replacement. |
 | 102 | 34abbfcb56d43c9c1053b07e00f8ace770d44499 | Upgrade gh-aw to v0.85.4 | workflow tooling | inapplicable because of platform/scope | WF, current workflow and no-remote-test policy must be reconciled first. |

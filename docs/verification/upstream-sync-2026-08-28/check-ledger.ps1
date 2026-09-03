@@ -38,7 +38,7 @@ if (-not (Test-Path -LiteralPath $LedgerPath -PathType Leaf)) {
   Fail "ledger file is missing: $LedgerPath"
 }
 
-$expectedOrigin = '83c91f6964cc1799fcc7e1d4fcd23f90e5e017f6'
+$expectedOrigin = 'a5428c07d91830c109a37323fcee67ee4433a655'
 $expectedUpstream = 'b17e06dd0f0d9a45807eb39a51d223f52eb14da9'
 $expectedMergeBase = 'd9080117b1fd01193d3eee51ae243714468c8176'
 $origin = Read-Ref 'origin/main'
