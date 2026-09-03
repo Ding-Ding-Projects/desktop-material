@@ -66,6 +66,7 @@ import {
 } from './md3-regex-builder-dialog'
 import { Md3SupportTicketDeleteGate } from './md3-support-ticket-delete-gate'
 import { notify } from './md3-toast'
+import { PopoverAnchorPosition } from '../lib/popover'
 
 /**
  * Support Tickets — the joke recovery desk, and the only route back into a
@@ -140,12 +141,13 @@ type PendingDeletion = {
 }
 
 type OpenMenu =
-  | { readonly kind: 'row'; readonly id: string }
-  | { readonly kind: 'list' }
+  | { readonly kind: 'row'; readonly id: string; readonly anchor: HTMLElement }
+  | { readonly kind: 'list'; readonly anchor: HTMLElement | null }
   | {
       readonly kind: 'export'
       /** `null` exports the current scope; an id exports that ticket alone. */
       readonly only: string | null
+      readonly anchor: HTMLElement | null
     }
   | null
 
@@ -610,6 +612,10 @@ export function Md3SupportTicketsDesk(props: IMd3SupportTicketsDeskProps) {
     []
   )
   const listMenuButtonRef = React.useMemo(
+    () => createObservableRef<HTMLButtonElement>(),
+    []
+  )
+  const exportMenuButtonRef = React.useMemo(
     () => createObservableRef<HTMLButtonElement>(),
     []
   )
@@ -1314,7 +1320,11 @@ export function Md3SupportTicketsDesk(props: IMd3SupportTicketsDeskProps) {
           return
         case 'ContextMenu':
           event.preventDefault()
-          setMenu({ kind: 'row', id: ticket.id })
+          setMenu({
+            kind: 'row',
+            id: ticket.id,
+            anchor: rowElements.current.get(ticket.id) ?? row,
+          })
           return
         default:
           return
@@ -1342,7 +1352,7 @@ export function Md3SupportTicketsDesk(props: IMd3SupportTicketsDeskProps) {
       event.preventDefault()
       event.stopPropagation()
       setFocusIndex(index)
-      setMenu({ kind: 'row', id: ticket.id })
+      setMenu({ kind: 'row', id: ticket.id, anchor: event.currentTarget })
     },
     []
   )
@@ -1444,7 +1454,12 @@ export function Md3SupportTicketsDesk(props: IMd3SupportTicketsDeskProps) {
         label: t('supportTickets.rowMenu.export'),
         icon: 'cloud_download',
         hint: '',
-        onClick: () => setMenu({ kind: 'export', only: ticket.id }),
+        onClick: () =>
+          setMenu({
+            kind: 'export',
+            only: ticket.id,
+            anchor: rowElements.current.get(ticket.id) ?? null,
+          }),
       },
       {
         id: 'delete',
@@ -1531,7 +1546,12 @@ export function Md3SupportTicketsDesk(props: IMd3SupportTicketsDeskProps) {
         }),
         icon: 'cloud_download',
         hint: '',
-        onClick: () => setMenu({ kind: 'export', only: null }),
+        onClick: () =>
+          setMenu({
+            kind: 'export',
+            only: null,
+            anchor: listMenuButtonRef.current,
+          }),
       },
       {
         id: 'bulkDelete',
@@ -1587,26 +1607,20 @@ export function Md3SupportTicketsDesk(props: IMd3SupportTicketsDeskProps) {
     [runExport, exportOnly]
   )
 
-  const onOpenListMenu = React.useCallback(() => setMenu({ kind: 'list' }), [])
-
-  const onOpenBulkExport = React.useCallback(
-    () => setMenu({ kind: 'export', only: null }),
-    []
+  const onOpenListMenu = React.useCallback(
+    () => setMenu({ kind: 'list', anchor: listMenuButtonRef.current }),
+    [listMenuButtonRef]
   )
 
-  /**
-   * The regex builder reached from a menu's own filter row.
-   *
-   * `Md3MenuOverlay` owns its filter text and has no way to receive a pattern
-   * back, so the builder it opens targets the ticket search instead, seeded
-   * with whatever the menu filter already holds. The dialog names that target
-   * in its own title, so nobody applies a pattern without seeing where it lands.
-   */
-  const onOpenMenuBuilder = React.useCallback((pattern: string) => {
-    setQuery(pattern)
-    setMenu(null)
-    setBuilderOpen(true)
-  }, [])
+  const onOpenBulkExport = React.useCallback(
+    () =>
+      setMenu({
+        kind: 'export',
+        only: null,
+        anchor: exportMenuButtonRef.current,
+      }),
+    [exportMenuButtonRef]
+  )
 
   // ---------------------------------------------------------------------
   // Render
@@ -1921,6 +1935,7 @@ export function Md3SupportTicketsDesk(props: IMd3SupportTicketsDeskProps) {
                 scope: scopeDescription,
               })}
               icon="cloud_download"
+              buttonRef={exportMenuButtonRef}
               hasPopup="menu"
               disabled={scopeTickets.length === 0}
               onClick={onOpenBulkExport}
@@ -2081,7 +2096,10 @@ export function Md3SupportTicketsDesk(props: IMd3SupportTicketsDeskProps) {
         <Md3MenuOverlay
           spec={rowMenuSpec}
           onDismiss={closeMenu}
-          onOpenRegexBuilder={onOpenMenuBuilder}
+          instanceId={`row-${menu.id}`}
+          anchor={menu.anchor}
+          anchorPosition={PopoverAnchorPosition.RightTop}
+          returnFocusTo={{ current: menu.anchor }}
         />
       ) : null}
 
@@ -2089,8 +2107,9 @@ export function Md3SupportTicketsDesk(props: IMd3SupportTicketsDeskProps) {
         <Md3MenuOverlay
           spec={listMenuSpec}
           onDismiss={closeMenu}
-          onOpenRegexBuilder={onOpenMenuBuilder}
           returnFocusTo={listMenuButtonRef}
+          instanceId="list"
+          anchor={menu.anchor}
         />
       ) : null}
 
@@ -2098,7 +2117,9 @@ export function Md3SupportTicketsDesk(props: IMd3SupportTicketsDeskProps) {
         <Md3MenuOverlay
           spec={exportMenuSpec}
           onDismiss={closeMenu}
-          onOpenRegexBuilder={onOpenMenuBuilder}
+          returnFocusTo={exportMenuButtonRef}
+          instanceId={`export-${menu.only ?? 'all'}`}
+          anchor={menu.anchor}
         />
       ) : null}
 

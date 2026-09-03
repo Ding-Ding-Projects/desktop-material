@@ -344,6 +344,24 @@ export interface IMd3SearchFieldProps {
   readonly className?: string
 
   readonly inputRef?: React.Ref<HTMLInputElement>
+
+  /**
+   * Ref for the regex-builder launcher. Menu overlays use this as the anchor
+   * for their instance-owned builder, while other surfaces may leave it
+   * unset and retain the shared focus behavior.
+   */
+  readonly builderButtonRef?: ObservableRef<HTMLButtonElement>
+
+  /** Instance-owned regex/filter state exposed for audits and diagnostics. */
+  readonly searchPattern?: string
+
+  readonly searchMode?: 'substring' | 'regex'
+
+  readonly searchFlags?: string
+
+  readonly searchHistory?: ReadonlyArray<string>
+
+  readonly searchValidation?: string | null
 }
 
 /**
@@ -437,6 +455,15 @@ export function Md3SearchField(props: IMd3SearchFieldProps) {
           ref={props.inputRef}
           id={props.id}
           data-search-surface-id={props.searchSurfaceId}
+          data-search-pattern={props.searchPattern}
+          data-search-mode={props.searchMode}
+          data-search-flags={props.searchFlags}
+          data-search-history={
+            props.searchHistory === undefined
+              ? undefined
+              : JSON.stringify(props.searchHistory)
+          }
+          data-search-validation={props.searchValidation ?? undefined}
           type="text"
           role="searchbox"
           className="md3-search-row__input"
@@ -484,6 +511,7 @@ export function Md3SearchField(props: IMd3SearchFieldProps) {
           iconSize={props.builderIconSize}
           label={builderLabel}
           hasPopup="dialog"
+          buttonRef={props.builderButtonRef}
           onClick={props.onOpenBuilder}
         />
         {showHits ? (
