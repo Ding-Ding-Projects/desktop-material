@@ -68,8 +68,6 @@ import * as ipcRenderer from '../../lib/ipc-renderer'
 import { getAutoClonePolicy } from '../../lib/stores/auto-clone-store'
 import { Repository } from '../../models/repository'
 import { CloningRepository } from '../../models/cloning-repository'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { GitModulesProbe } from '../../lib/submodules/gitmodules-probe'
 import {
   CheapLfsCloneInventoryProbe,
@@ -82,6 +80,7 @@ import {
   getCheapLfsCloneSelectionIdentity,
   ICheapLfsCloneSelection,
 } from '../../models/cheap-lfs-clone-selection'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface ICloneRepositoryProps {
   readonly dispatcher: Dispatcher
@@ -735,7 +734,7 @@ export class CloneRepository extends React.Component<
     return (
       <>
         <span className="clone-dialog-icon-chip" aria-hidden="true">
-          <Octicon symbol={octicons.desktopDownload} />
+          <MaterialSymbol name="install_desktop" />
         </span>
         <span className="clone-dialog-title-block">
           <span className="clone-dialog-title">

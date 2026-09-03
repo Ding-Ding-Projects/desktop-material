@@ -14,11 +14,15 @@ export interface IBrowserExtensionDownloadSurfacesProps {
   readonly availability: BrowserExtensionIntegrationAvailability
   readonly progress: IBrowserExtensionDownloadProgress | null
   readonly onConfirm: (request: IBrowserExtensionDownloadRequest) => void
-  readonly onCancelBeforeStart: (request: IBrowserExtensionDownloadRequest) => void
+  readonly onCancelBeforeStart: (
+    request: IBrowserExtensionDownloadRequest
+  ) => void
   readonly onPause: (request: IBrowserExtensionDownloadRequest) => void
   readonly onResume: (request: IBrowserExtensionDownloadRequest) => void
   readonly onCancel: (request: IBrowserExtensionDownloadRequest) => void
-  readonly onDismissCompleted: (request: IBrowserExtensionDownloadRequest) => void
+  readonly onDismissCompleted: (
+    request: IBrowserExtensionDownloadRequest
+  ) => void
 }
 
 function formatBytes(value: number): string {
@@ -81,7 +85,9 @@ export function BrowserExtensionDownloadSurfaces(
     const detail =
       progress.totalBytes === null
         ? formatBytes(progress.downloadedBytes)
-        : `${formatBytes(progress.downloadedBytes)} / ${formatBytes(progress.totalBytes)}`
+        : `${formatBytes(progress.downloadedBytes)} / ${formatBytes(
+            progress.totalBytes
+          )}`
     return (
       <Dialog
         title={t('browserDownload.progress.title')}
@@ -138,7 +144,11 @@ export function BrowserExtensionDownloadSurfaces(
         emojiDecoration="success"
       >
         <DialogContent>
-          <p>{t('browserDownload.completed.body', { file: request.suggestedFileName })}</p>
+          <p>
+            {t('browserDownload.completed.body', {
+              file: request.suggestedFileName,
+            })}
+          </p>
           <p>{request.destination}</p>
         </DialogContent>
         <DialogFooter>

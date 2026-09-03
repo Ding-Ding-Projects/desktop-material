@@ -15,6 +15,7 @@ import {
   personalizeTextBoundary,
   type IPersonalVocabularyTextBoundary,
 } from '../../lib/personal-vocabulary-rendering'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface INotificationListItemProps {
   readonly entry: INotificationEntry
@@ -188,7 +189,7 @@ export class NotificationListItem extends React.PureComponent<INotificationListI
           aria-label={personalizeText('Delete notification')}
           onClick={this.onDelete}
         >
-          <Octicon symbol={octicons.trash} />
+          <MaterialSymbol name="delete" />
         </button>
       </li>
     )

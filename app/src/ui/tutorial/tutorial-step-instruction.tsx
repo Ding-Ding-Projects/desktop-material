@@ -3,8 +3,7 @@ import {
   ValidTutorialStep,
   orderedTutorialSteps,
 } from '../../models/tutorial-step'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface ITutorialStepInstructionsProps {
   /** Text displayed to summarize this step */
@@ -63,7 +62,7 @@ export class TutorialStepInstructions extends React.Component<ITutorialStepInstr
           {shouldShowSkipLink ? (
             this.props.skipLinkButton
           ) : (
-            <Octicon symbol={octicons.chevronDown} />
+            <MaterialSymbol name="keyboard_arrow_down" />
           )}
         </span>
       </summary>
@@ -74,7 +73,7 @@ export class TutorialStepInstructions extends React.Component<ITutorialStepInstr
     if (this.props.isComplete(this.props.sectionId)) {
       return (
         <div className="green-circle">
-          <Octicon symbol={octicons.check} />
+          <MaterialSymbol name="check" />
         </div>
       )
     }

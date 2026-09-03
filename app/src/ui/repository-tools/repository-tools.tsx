@@ -84,6 +84,7 @@ import { teleportAnchor } from '../../lib/teleport-targets'
 import { GitflowManager } from './gitflow'
 import { RepositoryCommitRewrite } from './commit-rewrite'
 import { FileConverter } from './file-converter'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 const MaxOutputBytes = 4 * 1024 * 1024
 type RepositoryToolResultID =
@@ -1870,8 +1871,8 @@ export class RepositoryTools extends React.Component<
           <article className="repository-tool-card">
             <div>
               <div className="repository-tool-card-heading">
-                <Octicon
-                  symbol={octicons.fileSubmodule}
+                <MaterialSymbol
+                  name="folder_special"
                   className="repository-tool-card-icon"
                 />
                 <h3>Submodule manager</h3>
@@ -1921,8 +1922,8 @@ export class RepositoryTools extends React.Component<
           <article className="repository-tool-card">
             <div>
               <div className="repository-tool-card-heading">
-                <Octicon
-                  symbol={octicons.gitMerge}
+                <MaterialSymbol
+                  name="merge"
                   className="repository-tool-card-icon"
                 />
                 <h3>Subtree manager</h3>
@@ -2043,8 +2044,8 @@ export class RepositoryTools extends React.Component<
         <article className="repository-tool-card repository-archive-card">
           <div>
             <div className="repository-tool-card-heading">
-              <Octicon
-                symbol={octicons.upload}
+              <MaterialSymbol
+                name="upload"
                 className="repository-tool-card-icon"
               />
               <h3>Export repository artifacts</h3>
@@ -2329,8 +2330,8 @@ export class RepositoryTools extends React.Component<
       <article className="repository-tool-card">
         <div>
           <div className="repository-tool-card-heading">
-            <Octicon
-              symbol={octicons.person}
+            <MaterialSymbol
+              name="person"
               className="repository-tool-card-icon"
             />
             <h3>Line authorship</h3>
@@ -2362,8 +2363,8 @@ export class RepositoryTools extends React.Component<
       <article className="repository-tool-card">
         <div>
           <div className="repository-tool-card-heading">
-            <Octicon
-              symbol={octicons.codescan}
+            <MaterialSymbol
+              name="policy"
               className="repository-tool-card-icon"
             />
             <h3>Search tracked content</h3>
@@ -2475,10 +2476,7 @@ export class RepositoryTools extends React.Component<
       <article className="repository-tool-card">
         <div>
           <div className="repository-tool-card-heading">
-            <Octicon
-              symbol={octicons.pencil}
-              className="repository-tool-card-icon"
-            />
+            <MaterialSymbol name="edit" className="repository-tool-card-icon" />
             <h3>Edit commit notes</h3>
           </div>
           <p>
@@ -2763,7 +2761,7 @@ export class RepositoryTools extends React.Component<
           {this.renderToolListItem(this.signingHubEntry)}
         </nav>
         <div className="repository-tools-search">
-          <Octicon symbol={octicons.search} />
+          <MaterialSymbol name="search" />
           <input
             data-search-surface-id="repository-tools"
             type="search"
@@ -2900,7 +2898,7 @@ export class RepositoryTools extends React.Component<
         <div className="repository-tools-modal">
           <header className="repository-tools-header">
             <span className="repository-tools-emblem">
-              <Octicon symbol={octicons.tools} />
+              <MaterialSymbol name="build" />
             </span>
             <div className="repository-tools-heading">
               <h1>Repository tools</h1>

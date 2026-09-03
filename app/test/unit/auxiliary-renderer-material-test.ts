@@ -31,26 +31,32 @@ describe('auxiliary renderer Material contract', () => {
     )
     assert.match(crashApp, /<h1 id="crash-title">/)
     assert.doesNotMatch(crashApp, /background-graphic/)
-    assert.match(crashStyle, /--crash-primary: #1c6b34;/)
+    // The private green palette this used to pin is gone. These windows now
+    // resolve the application's own Material Design 3 roles, which is what
+    // `standalone-window-roles-test.ts` asserts the values of; here we assert
+    // only that the window reaches for a role rather than a colour of its own.
+    assert.match(crashStyle, /@include md-standalone-roles;/)
+    assert.doesNotMatch(crashStyle, /#[0-9a-fA-F]{6}/)
     assert.match(
       crashStyle,
-      /\.crash-card\s*\{[\s\S]*?border-radius: 24px;[\s\S]*?background: var\(--crash-surface\);/
+      /\.crash-card\s*\{[\s\S]*?border-radius: 24px;[\s\S]*?background: var\(--md-sys-color-surface\);/
     )
     assert.match(
       crashStyle,
-      /\.crash-heading\s*\{[\s\S]*?background: var\(--crash-error-container\);/
+      /\.crash-heading\s*\{[\s\S]*?background: var\(--md-sys-color-error-container\);/
     )
   })
 
-  it('uses the green tonal hierarchy for browser chrome and anchored search', () => {
-    assert.match(browserStyle, /--browser-primary: #1c6b34;/)
+  it('uses the shared tonal hierarchy for browser chrome and anchored search', () => {
+    assert.match(browserStyle, /@include md-standalone-color-roles-light;/)
+    assert.doesNotMatch(browserStyle, /#[0-9a-fA-F]{6}/)
     assert.match(
       browserStyle,
-      /\.internal-browser-tab\.active|&\.active\s*\{[\s\S]*?background: var\(--browser-primary-container\);/
+      /\.internal-browser-tab\.active|&\.active\s*\{[\s\S]*?background: var\(--md-sys-color-primary-container\);/
     )
     assert.match(
       browserStyle,
-      /\.internal-browser-find-bar\s*\{[\s\S]*?border-radius: 16px;[\s\S]*?background: var\(--browser-surface-container-high\);/
+      /\.internal-browser-find-bar\s*\{[\s\S]*?border-radius: 16px;[\s\S]*?background: var\(--md-sys-color-surface-container-high\);/
     )
     assert.match(
       browserStyle,
@@ -59,14 +65,15 @@ describe('auxiliary renderer Material contract', () => {
   })
 
   it('renders quick actions as responsive tonal header and dialog cards', () => {
-    assert.match(quickActionStyle, /--qa-primary: #1c6b34;/)
+    assert.match(quickActionStyle, /@include md-standalone-roles;/)
+    assert.doesNotMatch(quickActionStyle, /#[0-9a-fA-F]{6}/)
     assert.match(
       quickActionStyle,
-      /\.quick-action-header\s*\{[\s\S]*?background: var\(--qa-primary-container\);/
+      /\.quick-action-header\s*\{[\s\S]*?background: var\(--md-sys-color-primary-container\);/
     )
     assert.match(
       quickActionStyle,
-      /\.quick-action-body\s*\{[\s\S]*?border-radius: var\(--qa-radius-l\);[\s\S]*?background: var\(--qa-surface\);/
+      /\.quick-action-body\s*\{[\s\S]*?border-radius: var\(--md-sys-shape-corner-large\);[\s\S]*?background: var\(--md-sys-color-surface\);/
     )
     assert.match(
       quickActionStyle,
@@ -80,7 +87,7 @@ describe('auxiliary renderer Material contract', () => {
       read('app', 'src', 'main-process', 'internal-browser-window.ts'),
       read('app', 'src', 'main-process', 'quick-action-window.ts'),
     ]) {
-      assert.match(source, /backgroundColor: '#f7fbf2'/)
+      assert.match(source, /backgroundColor: '#f8f9ff'/)
     }
   })
 })

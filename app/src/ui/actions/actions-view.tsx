@@ -34,7 +34,6 @@ import {
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
 import { Octicon, syncClockwise } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { RunList } from './run-list'
 import { RunDetails } from './run-details'
 import { TabBar } from '../tab-bar'
@@ -68,6 +67,7 @@ import {
   readCollapsibleState,
   writeCollapsibleState,
 } from '../../lib/collapsed-state'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 type ActionsConfirmation =
   | {
@@ -1098,8 +1098,7 @@ export class ActionsView extends React.Component<
   private onRunQueryPatternApply = (runQuery: string) =>
     this.setState({ runQuery })
 
-  private onRunQueryChanged = (runQuery: string) =>
-    this.setState({ runQuery })
+  private onRunQueryChanged = (runQuery: string) => this.setState({ runQuery })
 
   private openCatalog = () => {
     this.logController?.abort()
@@ -1246,9 +1245,7 @@ export class ActionsView extends React.Component<
     })
   }
 
-  private toggleAllVisibleRuns = (
-    event: React.FormEvent<HTMLInputElement>
-  ) => {
+  private toggleAllVisibleRuns = (event: React.FormEvent<HTMLInputElement>) => {
     const checked = event.currentTarget.checked
     const visibleRuns = this.getFilteredRuns()
     this.setState(state => {
@@ -2084,7 +2081,7 @@ export class ActionsView extends React.Component<
               ariaExpanded={this.state.activeTab === 'workflows'}
               ariaLabel="Manage workflows"
             >
-              <Octicon symbol={octicons.workflow} />
+              <MaterialSymbol name="account_tree" />
             </Button>
             <Button
               className="actions-icon-button"
@@ -2101,7 +2098,7 @@ export class ActionsView extends React.Component<
               disabled={!actions.workflows.some(x => x.state === 'active')}
               ariaHaspopup="dialog"
             >
-              <Octicon symbol={octicons.play} />
+              <MaterialSymbol name="play_arrow" />
               Run workflow
             </Button>
           </div>
@@ -2149,7 +2146,7 @@ export class ActionsView extends React.Component<
                   invalid: runQueryError !== null,
                 })}
               >
-                <Octicon symbol={octicons.search} />
+                <MaterialSymbol name="search" />
                 <TextBox
                   searchSurfaceId="actions-runs"
                   value={this.state.runQuery}
@@ -2184,7 +2181,7 @@ export class ActionsView extends React.Component<
                   ariaLabel="Search filters"
                   onClick={this.toggleFilters}
                 >
-                  <Octicon symbol={octicons.filter} />
+                  <MaterialSymbol name="filter_alt" />
                 </Button>
               </div>
               {runQueryError === null ? null : (

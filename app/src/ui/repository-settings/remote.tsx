@@ -18,9 +18,8 @@ import { Button } from '../lib/button'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { Select } from '../lib/select'
 import { DialogContent } from '../dialog'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { SSHWorkingCopyManager } from './ssh-working-copy'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IRemoteProps {
   readonly repositoryPath: string
@@ -332,7 +331,7 @@ export class Remote extends React.Component<IRemoteProps, IRemoteState> {
               this.state.newRemoteUrl.trim().length === 0
             }
           >
-            <Octicon symbol={octicons.plus} />
+            <MaterialSymbol name="add" />
             {__DARWIN__ ? 'Add Remote' : 'Add remote'}
           </Button>
           {this.state.drafts.length === 0 && (
@@ -403,7 +402,7 @@ export class Remote extends React.Component<IRemoteProps, IRemoteState> {
             </Button>
             {this.state.confirmed && (
               <span className="remote-confirmed">
-                <Octicon symbol={octicons.check} /> Confirmed for Save
+                <MaterialSymbol name="check" /> Confirmed for Save
               </span>
             )}
           </div>
@@ -413,7 +412,7 @@ export class Remote extends React.Component<IRemoteProps, IRemoteState> {
             </p>
             {this.state.error !== null && (
               <p className="add-remote-error" role="alert">
-                <Octicon symbol={octicons.alert} />
+                <MaterialSymbol name="warning" />
                 <span>{this.state.error}</span>
               </p>
             )}
@@ -488,7 +487,7 @@ function RemoteRow(props: IRemoteRowProps) {
     <article className="remote-row" role="listitem">
       <header>
         <div>
-          <Octicon className="remote-icon" symbol={octicons.server} />
+          <MaterialSymbol name="dns" className="remote-icon" />
           <strong>{labelName}</strong>
           {remote.originalName === null && (
             <span className="remote-badge">New</span>
@@ -502,7 +501,7 @@ function RemoteRow(props: IRemoteRowProps) {
           disabled={disabled}
           onClick={onRemove}
         >
-          <Octicon symbol={octicons.trash} />
+          <MaterialSymbol name="delete" />
         </Button>
       </header>
       <div className="remote-fields">

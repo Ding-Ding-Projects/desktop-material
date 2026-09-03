@@ -1,7 +1,6 @@
 import * as React from 'react'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { Banner } from './banner'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 export function BranchAlreadyUpToDate({
   ourBranch,
@@ -29,7 +28,7 @@ export function BranchAlreadyUpToDate({
   return (
     <Banner id="successful-merge" timeout={5000} onDismissed={onDismissed}>
       <div className="green-circle">
-        <Octicon className="check-icon" symbol={octicons.check} />
+        <MaterialSymbol name="check" className="check-icon" />
       </div>
       <div className="banner-message">{message}</div>
     </Banner>

@@ -16,8 +16,7 @@ import { Repository, SubmoduleRepository } from '../../models/repository'
 import { DialogStackContext } from '../dialog'
 import { getNonModalSheetCascadeStyle } from '../dialog/non-modal-sheet-cascade'
 import { Button } from '../lib/button'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 export interface ISparseCheckoutClient {
   readonly getState: (
@@ -942,7 +941,7 @@ export class SparseCheckoutManager extends React.Component<
       >
         <header className="sparse-checkout-header">
           <span className="sparse-checkout-header-icon" aria-hidden="true">
-            <Octicon symbol={octicons.fileDirectory} />
+            <MaterialSymbol name="folder" />
           </span>
           <span className="sparse-checkout-heading-copy">
             <h1 id="sparse-checkout-title">Sparse checkout</h1>
@@ -951,9 +950,9 @@ export class SparseCheckoutManager extends React.Component<
             </small>
           </span>
           {this.state.loading || this.state.busy ? (
-            <Octicon
+            <MaterialSymbol
+              name="sync"
               className="sparse-checkout-progress spin"
-              symbol={octicons.sync}
             />
           ) : null}
           <Button
@@ -968,7 +967,7 @@ export class SparseCheckoutManager extends React.Component<
             onButtonRef={this.onRefreshButtonRef}
             onClick={this.refreshState}
           >
-            <Octicon symbol={octicons.sync} />
+            <MaterialSymbol name="sync" />
           </Button>
           <Button
             className="sparse-checkout-icon-button"
@@ -978,7 +977,7 @@ export class SparseCheckoutManager extends React.Component<
             onButtonRef={this.onCloseButtonRef}
             onClick={this.props.onDismissed}
           >
-            <Octicon symbol={octicons.x} />
+            <MaterialSymbol name="close" />
           </Button>
         </header>
         <div className="sparse-checkout-toolbar">

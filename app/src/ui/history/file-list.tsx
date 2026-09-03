@@ -20,8 +20,7 @@ import {
   translateForAccessibleName,
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IFileListProps {
   readonly files: ReadonlyArray<CommittedFileChange>
@@ -122,7 +121,7 @@ export class FileList extends React.Component<IFileListProps, IFileListState> {
       } as React.CSSProperties
       return (
         <div className="changed-file-tree-directory" style={treeStyle}>
-          <Octicon symbol={octicons.fileDirectory} />
+          <MaterialSymbol name="folder" />
           <span>{item.path}</span>
         </div>
       )

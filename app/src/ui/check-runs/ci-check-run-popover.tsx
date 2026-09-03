@@ -24,7 +24,6 @@ import {
 import { CICheckRunList } from './ci-check-run-list'
 import { encodePathAsUrl } from '../../lib/path'
 import { PopupType } from '../../models/popup'
-import * as octicons from '../octicons/octicons.generated'
 import { Donut } from '../donut'
 import {
   supportsRerunningChecks,
@@ -34,6 +33,7 @@ import { getPullRequestCommitRef } from '../../models/pull-request'
 import { CICheckReRunButton } from './ci-check-re-run-button'
 import groupBy from 'lodash/groupBy'
 import { toSentence } from '../../lib/to_sentence'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 const BlankSlateImage = encodePathAsUrl(
   __dirname,
@@ -245,16 +245,16 @@ export class CICheckRunPopover extends React.PureComponent<
     switch (true) {
       case allSuccess:
         return (
-          <Octicon
+          <MaterialSymbol
+            name="check_circle"
             className={'completeness-indicator-success'}
-            symbol={octicons.checkCircleFill}
           />
         )
       case allFailure: {
         return (
-          <Octicon
+          <MaterialSymbol
+            name="cancel"
             className={'completeness-indicator-error'}
-            symbol={octicons.xCircleFill}
           />
         )
       }

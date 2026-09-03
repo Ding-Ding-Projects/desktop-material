@@ -28,6 +28,7 @@ import {
   translate,
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IRunListProps {
   readonly runs: ReadonlyArray<IAPIWorkflowRun>
@@ -252,7 +253,7 @@ class RunListItem extends React.PureComponent<
                 ariaLabel={`Cancel workflow run ${run.run_number ?? run.id}`}
                 ariaHaspopup="dialog"
               >
-                <Octicon symbol={octicons.stop} />
+                <MaterialSymbol name="stop" />
               </Button>
             ) : (
               <>
@@ -264,7 +265,7 @@ class RunListItem extends React.PureComponent<
                     onClick={this.rerunFailed}
                     ariaLabel="Re-run failed"
                   >
-                    <Octicon symbol={octicons.alert} />
+                    <MaterialSymbol name="warning" />
                   </Button>
                 )}
                 <Button
@@ -274,7 +275,7 @@ class RunListItem extends React.PureComponent<
                   onClick={this.rerun}
                   ariaLabel="Re-run"
                 >
-                  <Octicon symbol={octicons.sync} />
+                  <MaterialSymbol name="sync" />
                 </Button>
               </>
             )}

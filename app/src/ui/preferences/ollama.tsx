@@ -27,9 +27,8 @@ import { Button } from '../lib/button'
 import { LinkButton } from '../lib/link-button'
 import { LocalizedText } from '../lib/localized-text'
 import { TextBox } from '../lib/text-box'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /** The address a stock Ollama install listens on. */
 export const DefaultOllamaEndpoint = 'http://127.0.0.1:11434'
@@ -270,7 +269,7 @@ export class OllamaPreferences extends React.Component<
       <DialogContent className="ollama-tab">
         <section className="ollama-tab-heading" data-verification="ollama-tab">
           <div className="ollama-tab-heading-icon" aria-hidden={true}>
-            <Octicon symbol={octicons.hubot} />
+            <MaterialSymbol name="smart_toy" />
           </div>
           <div>
             <h2>
@@ -420,7 +419,7 @@ export class OllamaPreferences extends React.Component<
             id={EndpointErrorId}
             role="alert"
           >
-            <Octicon symbol={octicons.alert} />
+            <MaterialSymbol name="warning" />
             <LocalizedText
               translationKey={errorKey}
               languageMode={languageMode}

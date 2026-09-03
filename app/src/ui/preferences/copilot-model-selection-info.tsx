@@ -8,8 +8,7 @@ import {
   PopoverAnchorPosition,
   PopoverDecoration,
 } from '../lib/popover'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface ICopilotModelSelectionInfoProps {
   readonly feature: CopilotFeature
@@ -172,7 +171,7 @@ export class CopilotModelSelectionInfo extends React.Component<
             size="small"
             tooltip="Show credit costs"
           >
-            <Octicon symbol={octicons.info} />
+            <MaterialSymbol name="info" />
           </Button>
         ) : null}
         <span>{this.props.selectionInfo.summary}</span>

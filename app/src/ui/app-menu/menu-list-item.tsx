@@ -1,12 +1,11 @@
 import * as React from 'react'
 import classNames from 'classnames'
 
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { MenuItem } from '../../models/app-menu'
 import { AccessText } from '../lib/access-text'
 import { getPlatformSpecificNameOrSymbolForModifier } from '../../lib/menu-item'
 import { isDesktopMaterialFeatureEntryPoint } from '../../lib/desktop-material-features'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IMenuListItemProps {
   readonly item: MenuItem
@@ -96,9 +95,9 @@ export class MenuListItem extends React.Component<IMenuListItemProps, {}> {
 
   private getIcon(item: MenuItem): JSX.Element | null {
     if (item.type === 'checkbox' && item.checked) {
-      return <Octicon className="icon" symbol={octicons.check} />
+      return <MaterialSymbol name="check" className="icon" />
     } else if (item.type === 'radio' && item.checked) {
-      return <Octicon className="icon" symbol={octicons.dotFill} />
+      return <MaterialSymbol name="fiber_manual_record" className="icon" />
     }
 
     return null
@@ -154,7 +153,7 @@ export class MenuListItem extends React.Component<IMenuListItemProps, {}> {
 
     const arrow =
       item.type === 'submenuItem' && this.props.renderSubMenuArrow !== false ? (
-        <Octicon className="submenu-arrow" symbol={octicons.triangleRight} />
+        <MaterialSymbol name="arrow_right" className="submenu-arrow" />
       ) : null
 
     const accelerator =

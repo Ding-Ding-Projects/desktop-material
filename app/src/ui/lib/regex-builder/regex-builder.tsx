@@ -25,6 +25,7 @@ import {
   LanguageMode,
   normalizeLanguageMode,
 } from '../../../models/language-mode'
+import { MaterialSymbol } from '../material-symbol'
 
 /** The maximum number of visible items used to seed the tester's sample. */
 const MaxSampleItems = 50
@@ -603,15 +604,13 @@ export class RegexBuilder extends React.Component<
 
   private renderValidityIcon() {
     if (this.state.pattern.length === 0) {
-      return (
-        <Octicon className="regex-validity empty" symbol={octicons.pencil} />
-      )
+      return <MaterialSymbol name="edit" className="regex-validity empty" />
     }
 
     return this.validationError() === null ? (
-      <Octicon className="regex-validity valid" symbol={octicons.checkCircle} />
+      <MaterialSymbol name="check_circle" className="regex-validity valid" />
     ) : (
-      <Octicon className="regex-validity invalid" symbol={octicons.alert} />
+      <MaterialSymbol name="warning" className="regex-validity invalid" />
     )
   }
 
@@ -662,7 +661,7 @@ export class RegexBuilder extends React.Component<
               aria-label={this.accessibleText('regex.builder.close')}
               onClick={this.props.onDismissed}
             >
-              <Octicon symbol={octicons.x} />
+              <MaterialSymbol name="close" />
             </button>
           </div>
 
@@ -706,7 +705,7 @@ export class RegexBuilder extends React.Component<
                 aria-label={this.accessibleText('regex.builder.clear')}
                 onClick={this.onClear}
               >
-                <Octicon symbol={octicons.trash} />
+                <MaterialSymbol name="delete" />
               </button>
             </div>
 
@@ -760,7 +759,7 @@ export class RegexBuilder extends React.Component<
               disabled={invalid}
               onClick={this.onApply}
             >
-              <Octicon symbol={octicons.check} />
+              <MaterialSymbol name="check" />
               {this.text('regex.builder.apply', {
                 target: this.props.targetLabel,
               })}

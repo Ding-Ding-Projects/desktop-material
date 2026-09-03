@@ -6,8 +6,6 @@ import { Branch } from '../../models/branch'
 import { Commit } from '../../models/commit'
 import { Emoji } from '../../lib/emoji'
 import { List } from '../lib/list'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { RichText } from '../lib/rich-text'
 import { TooltippedContent } from '../lib/tooltipped-content'
 import { CommitGraphColumnWidth, CommitGraphViewport } from './commit-graph'
@@ -24,6 +22,7 @@ import {
   ICommitContextMenuProps,
   showCommitContextMenu,
 } from './commit-context-menu'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /**
  * The row pitch, deliberately identical to the commit list's. The two views
@@ -479,7 +478,7 @@ export class HistoryGraphView extends React.Component<
         }
       >
         {ref.isCurrent ? (
-          <Octicon className="ref-chip-check" symbol={octicons.check} />
+          <MaterialSymbol name="check" className="ref-chip-check" />
         ) : null}
         {/*
           A chip narrow enough to truncate is exactly the chip a reader needs

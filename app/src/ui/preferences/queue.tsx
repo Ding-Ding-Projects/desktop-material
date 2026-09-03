@@ -14,10 +14,9 @@ import { DialogContent } from '../dialog'
 import type { Dispatcher } from '../dispatcher'
 import { LocalizedText } from '../lib/localized-text'
 import { MaterialSwitch } from '../lib/material-switch'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { showOpenDialog } from '../main-process-proxy'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IQueuePreferencesProps {
   readonly accounts: ReadonlyArray<Account>
@@ -110,7 +109,7 @@ export class QueuePreferences extends React.Component<
           {...teleportAnchor('settings-queue-accounts')}
         >
           <div className="queue-heading-icon" aria-hidden={true}>
-            <Octicon symbol={octicons.stack} />
+            <MaterialSymbol name="layers" />
           </div>
           <div>
             <h2>
@@ -130,7 +129,7 @@ export class QueuePreferences extends React.Component<
 
         {this.props.accounts.length === 0 ? (
           <div className="queue-empty-state" role="status">
-            <Octicon symbol={octicons.person} />
+            <MaterialSymbol name="person" />
             <LocalizedText
               translationKey="settings.queueNoAccounts"
               languageMode={languageMode}
@@ -145,7 +144,7 @@ export class QueuePreferences extends React.Component<
         )}
 
         <section className="queue-safety-note" role="note">
-          <Octicon symbol={octicons.shieldCheck} />
+          <MaterialSymbol name="verified_user" />
           <LocalizedText
             translationKey="settings.queueSafetyNote"
             languageMode={languageMode}
@@ -229,7 +228,7 @@ export class QueuePreferences extends React.Component<
               className="queue-tonal-button"
               onClick={() => this.chooseDirectory(account)}
             >
-              <Octicon symbol={octicons.fileDirectoryOpenFill} />
+              <MaterialSymbol name="folder_open" />
               <LocalizedText
                 translationKey="settings.queueChooseDirectory"
                 languageMode={this.state.languageMode}

@@ -9,6 +9,7 @@ import { getBoolean, setBoolean } from '../../lib/local-storage'
 import { Octicon, OcticonSymbol } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { Button } from '../lib/button'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /**
  * The localStorage key remembering that the compact first-run checklist has
@@ -234,7 +235,7 @@ export class FirstRunChecklist extends React.Component<
       >
         <header className="first-run-checklist-header">
           <span className="first-run-checklist-lockup" aria-hidden="true">
-            <Octicon symbol={octicons.smiley} height={28} />
+            <MaterialSymbol name="mood" size={28} />
           </span>
           <div className="first-run-checklist-heading">
             <h1 id="first-run-checklist-title">Welcome to Desktop Material</h1>

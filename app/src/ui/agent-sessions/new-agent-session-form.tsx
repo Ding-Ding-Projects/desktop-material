@@ -391,7 +391,9 @@ export class NewAgentSessionForm extends React.Component<
         {retry.skippedCommandCount > 0 && (
           <label>
             <Checkbox
-              value={this.state.restartSetup ? CheckboxValue.On : CheckboxValue.Off}
+              value={
+                this.state.restartSetup ? CheckboxValue.On : CheckboxValue.Off
+              }
               onChange={this.onRestartSetupChanged}
               disabled={this.props.isStarting}
             />

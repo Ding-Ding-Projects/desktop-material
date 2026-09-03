@@ -37,8 +37,6 @@ import {
   ListRowProps,
 } from 'react-virtualized'
 import { Button } from '../lib/button'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import {
   persistFilterMode,
@@ -59,6 +57,7 @@ import {
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { Popup, PopupType } from '../../models/popup'
 import { RepositorySettingsTab } from '../repository-settings/repository-settings'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /**
  * The dispatcher surface the cheap-LFS panel drives. The real `Dispatcher`
@@ -1773,7 +1772,7 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
           </div>
         </div>
         <div className="cheap-lfs-search">
-          <Octicon symbol={octicons.search} />
+          <MaterialSymbol name="search" />
           <input
             data-search-surface-id="cheap-lfs"
             type="search"

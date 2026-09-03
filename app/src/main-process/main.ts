@@ -1236,7 +1236,9 @@ app.on('ready', () => {
   ipcMain.handle('fetch-scheduled-settings', async (_event, endpoint) =>
     fetchScheduledSettingsAPI(endpoint)
   )
-  ipcMain.handle('get-status-hub-status', async () => statusHubClient.getStatus())
+  ipcMain.handle('get-status-hub-status', async () =>
+    statusHubClient.getStatus()
+  )
   ipcMain.handle('publish-status-hub-session', async (_event, projection) =>
     statusHubClient.publish(projection)
   )
@@ -2007,8 +2009,9 @@ app.on('ready', () => {
    * File conversion performs every byte inspection in the privileged process.
    * The renderer receives bounded format metadata only, never source bytes.
    */
-  ipcMain.handle('file-converter-inspect-source', async (_event, path: string) =>
-    inspectLocalFileForConversion(path)
+  ipcMain.handle(
+    'file-converter-inspect-source',
+    async (_event, path: string) => inspectLocalFileForConversion(path)
   )
 
   ipcMain.handle(

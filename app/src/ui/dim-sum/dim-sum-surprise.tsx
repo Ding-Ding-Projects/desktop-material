@@ -6,8 +6,7 @@ import { composeDimSumCard } from '../../lib/dim-sum-copy'
 import { IDimSumDish, DimSumSurpriseDurationMs } from '../../models/dim-sum'
 import { IFunnyLevels } from '../../lib/funny-level-text'
 import { LanguageMode } from '../../models/language-mode'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IDimSumSurpriseProps {
   readonly dish: IDimSumDish
@@ -183,7 +182,7 @@ export class DimSumSurprise extends React.PureComponent<
           aria-label={content.dismiss}
           onClick={this.onDismissClicked}
         >
-          <Octicon symbol={octicons.x} />
+          <MaterialSymbol name="close" />
         </button>
       </aside>
     )

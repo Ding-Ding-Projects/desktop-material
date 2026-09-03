@@ -50,7 +50,6 @@ import { Emoji } from '../../lib/emoji'
 import { formatNumber } from '../../lib/format-number'
 import { getCommitSearchKeys } from '../../lib/commit-search'
 import { Button } from '../lib/button'
-import { Octicon } from '../octicons'
 import { getBoolean, setBoolean } from '../../lib/local-storage'
 import { RegexBuilder } from '../lib/regex-builder/regex-builder'
 import { isAttributableEmailFor } from '../../lib/email'
@@ -66,6 +65,7 @@ import { LocalizedText } from '../lib/localized-text'
 import { CollapsibleSection } from '../lib/collapsible-section'
 import { collapsibleRepositoryKey } from '../../lib/collapsed-state'
 import { HistoryGraphView } from './history-graph-view'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface ICompareSidebarProps {
   readonly repository: Repository
@@ -772,7 +772,7 @@ export class CompareSidebar extends React.Component<
               ariaExpanded={this.state.showCommitFilterChips}
               onClick={this.onToggleCommitFilterChips}
             >
-              <Octicon symbol={octicons.filter} />
+              <MaterialSymbol name="filter_alt" />
             </Button>
             {!this.props.graphOnly && (
               <Button
@@ -782,7 +782,7 @@ export class CompareSidebar extends React.Component<
                 ariaPressed={this.state.showCommitGraph}
                 onClick={this.onCommitGraphToggle}
               >
-                <Octicon symbol={octicons.gitMerge} />
+                <MaterialSymbol name="merge" />
               </Button>
             )}
           </div>
@@ -880,9 +880,7 @@ export class CompareSidebar extends React.Component<
             data-chip-id={chip.id}
             onClick={this.onCommitFilterChipToggle}
           >
-            {chip.on && (
-              <Octicon className="chip-check" symbol={octicons.check} />
-            )}
+            {chip.on && <MaterialSymbol name="check" className="chip-check" />}
             <span className="chip-label">{chip.label}</span>
           </button>
         ))}

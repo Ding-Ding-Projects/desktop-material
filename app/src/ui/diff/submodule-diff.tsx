@@ -14,6 +14,7 @@ import { TooltippedContent } from '../lib/tooltipped-content'
 import { shortenSHA } from '../../models/commit'
 import { LocalizedText } from '../lib/localized-text'
 import { t } from '../../lib/i18n'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 type SubmoduleItemIcon =
   | {
@@ -60,7 +61,7 @@ export class SubmoduleDiff extends React.Component<ISubmoduleDiffProps> {
         <div className="content">
           <div className="interstitial-header">
             <div className="interstitial-icon">
-              <Octicon symbol={octicons.fileSubmodule} />
+              <MaterialSymbol name="folder_special" />
             </div>
             <div className="text">
               <h1>Submodule changes</h1>
@@ -143,7 +144,7 @@ export class SubmoduleDiff extends React.Component<ISubmoduleDiffProps> {
           This submodule now points at a different commit.{suffix}
           <div className="sha-transition">
             {this.renderCommitSHA(oldSHA, 'previous')}
-            <Octicon className="sha-arrow" symbol={octicons.arrowRight} />
+            <MaterialSymbol name="arrow_forward" className="sha-arrow" />
             {this.renderCommitSHA(newSHA, 'new')}
           </div>
         </>
@@ -240,7 +241,7 @@ export class SubmoduleDiff extends React.Component<ISubmoduleDiffProps> {
           buttonText={
             <LocalizedText translationKey="submodule.diffTemporaryViewerAction" />
           }
-          image={<Octicon symbol={octicons.repoClone} />}
+          image={<MaterialSymbol name="file_copy" />}
           type="primary"
           onClick={this.onOpenSubmoduleClick}
         />
@@ -263,7 +264,7 @@ export class SubmoduleDiff extends React.Component<ISubmoduleDiffProps> {
         title={`View on ${host}`}
         description="Browse this submodule's repository, commits, and branches in your web browser."
         buttonText={__DARWIN__ ? 'Open in Browser' : 'Open in browser'}
-        image={<Octicon symbol={octicons.linkExternal} />}
+        image={<MaterialSymbol name="open_in_new" />}
         onClick={this.onViewOnHostClick}
       />
     )

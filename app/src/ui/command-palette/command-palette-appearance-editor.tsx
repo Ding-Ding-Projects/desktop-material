@@ -103,9 +103,7 @@ export class CommandPaletteAppearanceEditor extends React.Component<
     })
   }
 
-  private onShowGroupsChanged = (
-    event: React.FormEvent<HTMLInputElement>
-  ) => {
+  private onShowGroupsChanged = (event: React.FormEvent<HTMLInputElement>) => {
     this.props.onChange({
       ...this.props.appearance,
       showGroups: event.currentTarget.checked,

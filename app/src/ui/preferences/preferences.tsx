@@ -132,6 +132,7 @@ import {
   IScheduledSettingsConfig,
   serializeScheduledSettings,
 } from '../../models/scheduled-settings'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IPreferencesProps {
   readonly dispatcher: Dispatcher
@@ -912,7 +913,7 @@ export class Preferences extends React.Component<
                 onClick={this.onCancel}
                 aria-label={translateForAccessibleName('settings.closeAction')}
               >
-                <Octicon symbol={octicons.x} />
+                <MaterialSymbol name="close" />
               </button>
             </div>
             {this.renderActiveTab()}

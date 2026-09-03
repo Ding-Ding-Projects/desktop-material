@@ -16,6 +16,7 @@ import { AccountPicker } from '../account-picker'
 import { GitModulesProbe } from '../../lib/submodules/gitmodules-probe'
 import { IGitModulesEntry } from '../../lib/git/gitmodules'
 import { DefaultAppDisplayName } from '../../models/app-identity'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface INoRepositoriesProps {
   /** A function to call when the user chooses to create a repository. */
@@ -461,7 +462,7 @@ export class NoRepositoriesView extends React.Component<
         </div>
 
         <div className="drag-drop-info">
-          <Octicon symbol={octicons.lightBulb} />
+          <MaterialSymbol name="lightbulb" />
           <div>
             <strong>ProTip!</strong> You can drag &amp; drop an existing
             repository folder here to add it to Desktop

@@ -4,11 +4,11 @@ import { AppFileStatus } from '../../models/status'
 import { IDiff, DiffType } from '../../models/diff'
 import { DiffLineType } from '../../models/diff/diff-line'
 import { Octicon, iconForStatus } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { mapStatus } from '../../lib/status'
 import { DiffOptions } from './diff-options'
 import { externalOpenTarget } from '../../lib/external-open-guard'
 import { ExternalOpenBusy } from '../lib/external-open-busy'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 interface IDiffHeaderProps {
   readonly path: string
@@ -176,7 +176,7 @@ export class DiffHeader extends React.Component<IDiffHeaderProps, {}> {
             aria-busy={isOpening || undefined}
             aria-label={label}
           >
-            <Octicon symbol={octicons.code} />
+            <MaterialSymbol name="code" />
           </button>
         )}
       </ExternalOpenBusy>

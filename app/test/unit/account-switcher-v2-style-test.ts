@@ -190,18 +190,18 @@ describe('Account switcher v2 component contract', () => {
     assert.match(component, /regexError !== null/)
   })
 
-  it('marks the active row and pops a check-circle octicon on it', () => {
+  it('marks the active row and pops a check-circle symbol on it', () => {
     assert.match(component, /aria-current=\{active \? 'true' : undefined\}/)
     assert.match(
       component,
-      /\{active && \([\s\S]*?className="account-switcher-check"[\s\S]*?octicons\.checkCircle/
+      /\{active && \([\s\S]*?className="account-switcher-check"[\s\S]*?MaterialSymbol name="check_circle"/
     )
   })
 
   it('offers the person-add action row', () => {
     assert.match(
       component,
-      /className="account-switcher-add"[\s\S]*?octicons\.personAdd[\s\S]*?accounts\.picker\.add/
+      /className="account-switcher-add"[\s\S]*?MaterialSymbol name="person_add"[\s\S]*?accounts\.picker\.add/
     )
   })
 })

@@ -130,7 +130,11 @@ describe('tutorial welcome surfaces', () => {
       </TutorialStepInstructions>
     )
 
-    assert.notEqual(view.container.querySelector('.green-circle svg'), null)
+    // The completed-step tick is a Material Symbol now, not an inline SVG.
+    assert.notEqual(
+      view.container.querySelector('.green-circle .material-symbol'),
+      null
+    )
   })
 
   it('focuses tutorial completion once and routes suggested actions through the dispatcher', () => {

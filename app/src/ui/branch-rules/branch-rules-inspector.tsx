@@ -13,8 +13,6 @@ import { DialogStackContext } from '../dialog'
 import { getNonModalSheetCascadeStyle } from '../dialog/non-modal-sheet-cascade'
 import { Button } from '../lib/button'
 import { LinkButton } from '../lib/link-button'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { FilterMode } from '../../lib/fuzzy-find'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import {
@@ -26,6 +24,7 @@ import {
   filterBranchRuleValues,
 } from './branch-rules-filter'
 import { t, LanguageModeChangedEvent } from '../../lib/i18n'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 /** localStorage id used to persist the result-list filter mode. */
 const BranchRulesFilterListId = 'branch-rules-results'
@@ -1115,7 +1114,7 @@ export class BranchRulesInspector extends React.Component<
       >
         <header className="branch-rules-header">
           <span className="branch-rules-header-icon" aria-hidden="true">
-            <Octicon symbol={octicons.shieldCheck} />
+            <MaterialSymbol name="verified_user" />
           </span>
           <span className="branch-rules-heading-copy">
             <h1 id={DialogTitleId}>Effective branch rules</h1>
@@ -1129,9 +1128,9 @@ export class BranchRulesInspector extends React.Component<
             </small>
           </span>
           {this.state.phase === 'loading' ? (
-            <Octicon
+            <MaterialSymbol
+              name="sync"
               className="branch-rules-progress spin"
-              symbol={octicons.sync}
             />
           ) : null}
           <Button
@@ -1141,7 +1140,7 @@ export class BranchRulesInspector extends React.Component<
             disabled={!this.canLoad() || this.state.phase === 'loading'}
             onClick={this.refreshLoad}
           >
-            <Octicon symbol={octicons.sync} />
+            <MaterialSymbol name="sync" />
           </Button>
           <Button
             className="branch-rules-icon-button"
@@ -1150,7 +1149,7 @@ export class BranchRulesInspector extends React.Component<
             onButtonRef={this.setCloseButtonRef}
             onClick={this.props.onDismissed}
           >
-            <Octicon symbol={octicons.x} />
+            <MaterialSymbol name="close" />
           </Button>
         </header>
 

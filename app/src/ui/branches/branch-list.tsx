@@ -8,8 +8,6 @@ import { SelectionSource } from '../lib/filter-list'
 import { IMatches } from '../../lib/fuzzy-find'
 import { Button } from '../lib/button'
 import { TextBox } from '../lib/text-box'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 
 import {
   groupBranches,
@@ -38,6 +36,7 @@ import {
 } from '../../lib/branch-visibility'
 import { WorktreeEntry } from '../../models/worktree'
 import { findLinkedWorktreeForBranch } from './branch-worktree'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 const RowHeight = 30
 
@@ -602,7 +601,7 @@ export class BranchList extends React.Component<
     // sheet lifts this button into a bottom-right FAB purely via CSS.
     return this.props.canCreateNewBranch ? (
       <Button className="new-branch-button" onClick={this.onCreateNewBranch}>
-        <Octicon symbol={octicons.plus} />
+        <MaterialSymbol name="add" />
         {__DARWIN__ ? 'New Branch' : 'New branch'}
       </Button>
     ) : null

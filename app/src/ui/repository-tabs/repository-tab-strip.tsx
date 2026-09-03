@@ -1928,7 +1928,7 @@ export class RepositoryTabStrip extends React.Component<
           aria-expanded={this.state.membersGroupId === group.id}
           onClick={this.onGroupMembersClick}
         >
-          <Octicon symbol={octicons.kebabHorizontal} />
+          <MaterialSymbol name="more_horiz" />
         </button>
       </span>
     )
@@ -2170,7 +2170,7 @@ export class RepositoryTabStrip extends React.Component<
         aria-expanded={this.state.overflowAnchor !== null}
         onClick={this.onOverflowButtonClick}
       >
-        <Octicon symbol={octicons.chevronDown} />
+        <MaterialSymbol name="keyboard_arrow_down" />
         <span className="repository-tab-overflow-count">{count}</span>
       </button>
     )
@@ -2218,7 +2218,7 @@ export class RepositoryTabStrip extends React.Component<
           aria-expanded={this.state.searchAnchor !== null}
           onClick={this.onSearchButtonClick}
         >
-          <Octicon symbol={octicons.search} />
+          <MaterialSymbol name="search" />
         </button>
         <button
           className="repository-tab-arrange"
@@ -2228,7 +2228,7 @@ export class RepositoryTabStrip extends React.Component<
           aria-expanded={this.state.arrangeAnchor !== null}
           onClick={this.onArrangeButtonClick}
         >
-          <Octicon symbol={octicons.sortAsc} />
+          <MaterialSymbol name="sort" />
         </button>
         <button
           className="repository-tab-new"
@@ -2236,7 +2236,7 @@ export class RepositoryTabStrip extends React.Component<
           aria-label={this.accessibleText('tabs.openRepositoryNewTab')}
           onClick={this.onNewTab}
         >
-          <Octicon symbol={octicons.plus} />
+          <MaterialSymbol name="add" />
         </button>
         <div className="repository-tab-strip-trailing">
           <NotificationBellButton

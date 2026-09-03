@@ -1,8 +1,6 @@
 import * as React from 'react'
 import classNames from 'classnames'
 
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import {
   DateRangePresetId,
   DateRangePresetIds,
@@ -24,6 +22,7 @@ import {
   translateForAccessibleName,
 } from '../../lib/i18n'
 import { LanguageMode } from '../../models/language-mode'
+import { MaterialSymbol } from './material-symbol'
 
 /**
  * An inclusive date-range picker: a month grid with month and year jumps,
@@ -529,7 +528,7 @@ export class DateRangePicker extends React.Component<
             aria-label={this.accessibleText('dateRange.previousMonth')}
             onClick={this.onPreviousMonth}
           >
-            <Octicon symbol={octicons.chevronLeft} />
+            <MaterialSymbol name="keyboard_arrow_left" />
           </button>
           <select
             className="date-range-month"
@@ -561,7 +560,7 @@ export class DateRangePicker extends React.Component<
             aria-label={this.accessibleText('dateRange.nextMonth')}
             onClick={this.onNextMonth}
           >
-            <Octicon symbol={octicons.chevronRight} />
+            <MaterialSymbol name="keyboard_arrow_right" />
           </button>
         </div>
         {this.renderGrid()}

@@ -1,9 +1,8 @@
 import * as React from 'react'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { Form } from './form'
 import { Button } from './button'
 import { DefaultAppDisplayName } from '../../models/app-identity'
+import { MaterialSymbol } from './material-symbol'
 
 /** Text to let the user know their browser will send them back to the app */
 export const BrowserRedirectMessage = `Your browser will redirect you back to ${DefaultAppDisplayName} once you've signed in. If your browser asks for your permission to launch ${DefaultAppDisplayName} please allow it to.`
@@ -48,7 +47,7 @@ export class AuthenticationForm extends React.Component<IAuthenticationFormProps
           role="link"
         >
           Sign in using your browser
-          <Octicon symbol={octicons.linkExternal} />
+          <MaterialSymbol name="open_in_new" />
         </Button>
         {this.props.additionalButtons}
       </>

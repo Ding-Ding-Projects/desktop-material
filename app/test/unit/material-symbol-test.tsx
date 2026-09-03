@@ -37,17 +37,17 @@ const fontManifest = () =>
 
 const symbolsAsset = () =>
   fontManifest().assets.find(
-    candidate => candidate.id === 'material-symbols-rounded-subset-158'
+    candidate => candidate.id === 'material-symbols-rounded-subset-222'
   )
 
 describe('MaterialSymbol', () => {
-  it('exposes exactly the 158 ligatures requested by the bundled manifest', () => {
+  it('exposes exactly the 222 ligatures requested by the bundled manifest', () => {
     const asset = symbolsAsset()
 
     assert.ok(asset !== undefined)
-    assert.equal(MaterialSymbolNames.length, 158)
-    assert.equal(new Set(MaterialSymbolNames).size, 158)
-    assert.equal(asset.requestedIconNameCount, 158)
+    assert.equal(MaterialSymbolNames.length, 222)
+    assert.equal(new Set(MaterialSymbolNames).size, 222)
+    assert.equal(asset.requestedIconNameCount, 222)
     assert.deepEqual(MaterialSymbolNames, asset.requestedIconNames)
   })
 

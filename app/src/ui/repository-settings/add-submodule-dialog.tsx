@@ -45,8 +45,6 @@ import { Row } from '../lib/row'
 import { TextBox } from '../lib/text-box'
 import { Select } from '../lib/select'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { TabBar } from '../tab-bar'
 import { ClickSource } from '../lib/list'
 import {
@@ -67,6 +65,7 @@ import {
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import { LocalizedText } from '../lib/localized-text'
+import { MaterialSymbol } from '../lib/material-symbol'
 
 type HostedTab =
   | CloneRepositoryTab.DotCom
@@ -1154,7 +1153,7 @@ export class AddSubmoduleDialog extends React.Component<
     if (this.state.createdRemote !== null) {
       return (
         <DialogContent className="add-submodule-created-remote">
-          <Octicon symbol={octicons.checkCircleFill} />
+          <MaterialSymbol name="check_circle" />
           <div>
             <strong>
               <LocalizedText
@@ -1624,7 +1623,7 @@ export class AddSubmoduleDialog extends React.Component<
     return (
       <>
         <DialogContent className="add-submodule-success">
-          <Octicon symbol={octicons.checkCircleFill} />
+          <MaterialSymbol name="check_circle" />
           <div>
             <h2>
               <LocalizedText
