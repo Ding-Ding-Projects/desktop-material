@@ -1,88 +1,119 @@
 import assert from 'node:assert'
+import { execFile } from 'node:child_process'
 import { describe, it } from 'node:test'
 import * as FsAsync from 'node:fs/promises'
 import * as Path from 'node:path'
+import { promisify } from 'node:util'
 
-/**
- * The interface shell is frozen.
- *
- * This is not a style rule. Twice now an agent has read a line of documentation
- * as a mandate, decided the application chrome was "missing", and rebuilt tens
- * of thousands of lines of a shell nobody asked for. Both waves were reverted.
- *
- * Prose did not stop the second one, so this is the executable version: if the
- * shell comes back, the suite goes red and says why. The list below is
- * hand-written on purpose — a rule that only inspects what it already finds
- * cannot notice a file that reappeared.
- */
+import {
+  SOURCE_EXTENSIONS,
+  findRendererWiringIssues,
+  findRetiredFamilyIssues,
+  findRetiredImportIssues,
+  findUnretainedRendererMd3Issues,
+  readSourceFiles,
+  type FrozenInterfaceShellContract,
+  type SourceRecord,
+} from './interface-shell-frozen-validator'
 
 const repoRoot = Path.resolve(__dirname, '..', '..', '..')
 const md3Dir = Path.join(repoRoot, 'app', 'src', 'ui', 'md3')
 const stylesDir = Path.join(repoRoot, 'app', 'styles', 'ui')
+const contractPath = Path.join(
+  repoRoot,
+  'app',
+  'test',
+  'fixtures',
+  'frozen-interface-shell-contract.json'
+)
+const contract = JSON.parse(
+  // This is a checked-in, public-safe contract. Loading it at test time keeps
+  // the hand-written inventory separate from the source under test.
+  require('node:fs').readFileSync(contractPath, 'utf8')
+) as FrozenInterfaceShellContract
+const execFileAsync = promisify(execFile)
 
-/** Shell modules removed on 2026-08-19. None of these may come back. */
-const FORBIDDEN_SHELL_MODULES = [
-  'md3-shell.tsx',
-  'md3-shell-carryover.ts',
-  'md3-app-header.tsx',
-  'md3-navigation-rail.tsx',
-  'md3-navigation-drawer.tsx',
-  'md3-pane-header.tsx',
-  'md3-resizable-pane.tsx',
-  'md3-diff-pane.tsx',
-  'md3-virtual-window.tsx',
-  'md3-view-props.ts',
-  'md3-destination-adapters.ts',
-  'md3-menu-bindings.ts',
-  'md3-changes-view.tsx',
-  'md3-history-view.tsx',
-  'md3-branches-view.tsx',
-  'md3-repositories-view.tsx',
-  'md3-actions-view.tsx',
-  'md3-agents-view.tsx',
-  'md3-inbox-view.tsx',
-  'md3-terminal-view.tsx',
-]
+function assertContractShape(): void {
+  assert.equal(contract.schemaVersion, 1)
+  assert.equal(contract.baseline.presentation, '2026-08-07')
+  assert.equal(contract.baseline.restoredOn, '2026-08-15')
+  assert.equal(
+    contract.changePolicy.frozenBoundary,
+    'application chrome, whole-screen views, and their shell styles'
+  )
+  assert.deepEqual(contract.changePolicy.allowedWithinBoundary, [
+    'control-level bug fixes',
+    'Material Design 3 conformance for retained controls and dialogs',
+  ])
+  assert.equal(
+    contract.changePolicy.requiresExplicitRequest,
+    'replacing, re-skinning, re-shelling, or restoring the application chrome'
+  )
 
-/** Shell stylesheets removed at the same time. */
-const FORBIDDEN_SHELL_STYLESHEETS = [
-  '_md3-shell.scss',
-  '_md3-shell-layout.scss',
-  '_md3-app-header.scss',
-  '_md3-navigation-rail.scss',
-  '_md3-navigation-drawer.scss',
-  '_md3-pane-header.scss',
-  '_md3-changes-view.scss',
-  '_md3-history-view.scss',
-  '_md3-branches.scss',
-  '_md3-repositories.scss',
-  '_md3-actions.scss',
-  '_md3-agents.scss',
-  '_md3-inbox.scss',
-  '_md3-terminal.scss',
-  '_md3-diff-pane.scss',
-]
+  const allPaths = [
+    ...contract.retiredShell.barrelPaths,
+    ...contract.retiredShell.modulePaths,
+    ...contract.retiredShell.stylesheetPaths,
+    ...contract.survivingControls,
+  ]
+  assert.ok(allPaths.length > 0)
+  assert.equal(new Set(allPaths).size, allPaths.length)
+  assert.ok(contract.retiredShell.familyPrefixes.length > 0)
+  assert.equal(
+    new Set(contract.retiredShell.familyPrefixes).size,
+    contract.retiredShell.familyPrefixes.length
+  )
+  assert.ok(contract.provenance.length > 0)
+  assert.equal(
+    new Set(contract.provenance.map(entry => entry.sha)).size,
+    contract.provenance.length
+  )
+  assert.deepEqual(
+    contract.currentRenderer.acceptedSourceExtensions,
+    SOURCE_EXTENSIONS
+  )
+  assert.deepEqual(contract.currentRenderer.aliases, {})
+  assert.deepEqual(contract.currentRenderer.mountedComponent, {
+    exportName: 'App',
+    renderMethod: 'render',
+  })
+  assert.equal(contract.retiredShell.barrelPaths[0], 'app/src/ui/md3/index.ts')
+  assert.deepEqual(contract.negativeRegression.requiredDimensions, [
+    'retired-path-resolution',
+    'accepted-source-extensions',
+    'alias-import-resolution',
+    'comment-free-import-detection',
+    'renderer-boundary-markers',
+    'renderer-retired-imports',
+    'renderer-import-bindings',
+    'retired-family-reservation',
+    'renderer-root-reachability',
+    'renderer-public-entry-root',
+    'renderer-nested-closure-scope',
+    'renderer-nested-class-scope',
+    'renderer-unrelated-path-scope',
+    'renderer-local-symbol-calls',
+    'renderer-cycle-bounds',
+    'renderer-public-entry-elements',
+    'renderer-dead-control-flow',
+  ])
+}
 
-/**
- * Controls and dialogs that survived the revert and are genuinely in use. If
- * one of these disappears, the revert has been over-applied — which is the
- * opposite failure and just as worth catching.
- */
-const REQUIRED_SURVIVING_MODULES = [
-  'md3-primitives.tsx',
-  'md3-destructive-gate.tsx',
-  'md3-toast.tsx',
-  'md3-regex-builder-dialog.tsx',
-  'md3-locks-view.tsx',
-  'md3-authenticator-view.tsx',
-  'md3-support-tickets-view.tsx',
-  'md3-menu-specs.ts',
-  'md3-style-contract.ts',
-]
+function rendererRecord(source: string): SourceRecord {
+  return {
+    path: Path.join(repoRoot, contract.currentRenderer.entry),
+    source,
+  }
+}
 
 describe('the interface shell stays frozen', () => {
-  for (const name of FORBIDDEN_SHELL_MODULES) {
-    it(`does not reintroduce app/src/ui/md3/${name}`, async () => {
+  it('loads a complete, exact-boundary contract', () => {
+    assertContractShape()
+    assert.match(contract.baseline.rule, /frozen/i)
+  })
+
+  for (const name of contract.retiredShell.modulePaths) {
+    it('does not reintroduce app/src/ui/md3/' + name, async () => {
       const exists = await FsAsync.access(Path.join(md3Dir, name)).then(
         () => true,
         () => false
@@ -90,13 +121,14 @@ describe('the interface shell stays frozen', () => {
       assert.equal(
         exists,
         false,
-        `${name} is back. The application chrome is frozen: see "The interface shell is frozen" in AGENTS.md. If the repository owner asked for this in the current session, delete this entry deliberately and say so in the commit.`
+        name +
+          ' is back. The application chrome is frozen: see the frozen-shell contract in AGENTS.md.'
       )
     })
   }
 
-  for (const name of FORBIDDEN_SHELL_STYLESHEETS) {
-    it(`does not reintroduce app/styles/ui/${name}`, async () => {
+  for (const name of contract.retiredShell.stylesheetPaths) {
+    it('does not reintroduce app/styles/ui/' + name, async () => {
       const exists = await FsAsync.access(Path.join(stylesDir, name)).then(
         () => true,
         () => false
@@ -104,13 +136,23 @@ describe('the interface shell stays frozen', () => {
       assert.equal(
         exists,
         false,
-        `${name} is back. The application chrome is frozen: see AGENTS.md.`
+        name + ' is back. The application chrome is frozen: see AGENTS.md.'
       )
     })
   }
 
-  for (const name of REQUIRED_SURVIVING_MODULES) {
-    it(`keeps the surviving control app/src/ui/md3/${name}`, async () => {
+  for (const name of contract.retiredShell.barrelPaths) {
+    it('reserves the retired barrel ' + name, async () => {
+      const exists = await FsAsync.access(Path.join(repoRoot, name)).then(
+        () => true,
+        () => false
+      )
+      assert.equal(exists, false, name + ' is a retired shell barrel.')
+    })
+  }
+
+  for (const name of contract.survivingControls) {
+    it('keeps the surviving control app/src/ui/md3/' + name, async () => {
       const exists = await FsAsync.access(Path.join(md3Dir, name)).then(
         () => true,
         () => false
@@ -118,40 +160,91 @@ describe('the interface shell stays frozen', () => {
       assert.equal(
         exists,
         true,
-        `${name} is gone. Material Design 3 controls and dialogs survived the revert deliberately; only the shell was removed.`
+        name +
+          ' is gone. Shared Material Design 3 controls and dialogs survive the revert deliberately.'
       )
     })
   }
 
-  it('does not let app.tsx import a shell module', async () => {
-    const appSource = await FsAsync.readFile(
-      Path.join(repoRoot, 'app', 'src', 'ui', 'app.tsx'),
-      'utf8'
-    )
-    // Checked line by line rather than with one big pattern: a commented-out
-    // import must not satisfy this, and a renamed symbol must not carry the old
-    // name along inside a longer one. Both are ways a guard quietly stops
-    // guarding, and this repository has been bitten by each of them.
-    const importLines = appSource
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.startsWith('import ') || line.startsWith('export '))
+  it('keeps retired shell names reserved as a family', async () => {
+    const [md3Files, styleFiles] = await Promise.all([
+      FsAsync.readdir(md3Dir),
+      FsAsync.readdir(stylesDir),
+    ])
+    const issues = findRetiredFamilyIssues({
+      contract,
+      paths: [
+        ...md3Files.map(file => Path.join(md3Dir, file)),
+        ...styleFiles.map(file => Path.join(stylesDir, file)),
+      ],
+    })
+    assert.deepEqual(issues, [], 'A retired shell family member returned.')
+  })
 
-    for (const name of FORBIDDEN_SHELL_MODULES) {
-      const base = name.replace('.tsx', '').replace('.ts', '')
-      const single = "'./md3/" + base + "'"
-      const double = '"./md3/' + base + '"'
-      const offender = importLines.find(
-        line => line.includes(single) || line.includes(double)
+  it('rejects static, dynamic, and require imports of retired shell modules', async () => {
+    const sourceFiles = await readSourceFiles(
+      Path.join(repoRoot, 'app', 'src'),
+      contract.currentRenderer.acceptedSourceExtensions
+    )
+    const issues = findRetiredImportIssues({
+      contract,
+      repoRoot,
+      files: sourceFiles,
+    })
+    assert.deepEqual(issues, [], 'A source file imports the retired shell.')
+  })
+
+  it('does not let app.tsx import a retired shell module', async () => {
+    const appPath = Path.join(repoRoot, contract.currentRenderer.entry)
+    const appSource = await FsAsync.readFile(appPath, 'utf8')
+    const issues = findRetiredImportIssues({
+      contract,
+      repoRoot,
+      files: [{ path: appPath, source: appSource }],
+    })
+    assert.deepEqual(issues, [])
+  })
+
+  it('keeps renderer shell imports within the retained control inventory', async () => {
+    const appPath = Path.join(repoRoot, contract.currentRenderer.entry)
+    const appSource = await FsAsync.readFile(appPath, 'utf8')
+    const issues = findUnretainedRendererMd3Issues({
+      contract,
+      repoRoot,
+      renderer: { path: appPath, source: appSource },
+    })
+    assert.deepEqual(issues, [])
+  })
+
+  it('records and verifies the exact revert provenance', async () => {
+    assert.equal(contract.schemaVersion, 1)
+    assert.equal(contract.baseline.presentation, '2026-08-07')
+    assert.equal(contract.baseline.restoredOn, '2026-08-15')
+    assert.match(contract.baseline.rule, /frozen/i)
+    assert.equal(contract.provenance.length, 8)
+
+    for (const entry of contract.provenance) {
+      assert.match(entry.sha, /^[0-9a-f]{40}$/)
+      const result = await execFileAsync(
+        'git',
+        ['show', '-s', '--format=%H%x00%s', entry.sha],
+        { cwd: repoRoot, windowsHide: true }
       )
-      assert.equal(
-        offender,
-        undefined,
-        'app.tsx imports ./md3/' +
-          base +
-          '. The shell is frozen: see AGENTS.md.'
-      )
+      const [sha, subject] = result.stdout.trim().split('\0')
+      assert.equal(sha, entry.sha)
+      assert.equal(subject, entry.subject)
+      assert.notEqual(entry.role.trim(), '')
     }
+  })
+
+  it('keeps the current renderer entry and control-level Material Design 3 wiring', async () => {
+    const appPath = Path.join(repoRoot, contract.currentRenderer.entry)
+    const appSource = await FsAsync.readFile(appPath, 'utf8')
+    const issues = findRendererWiringIssues({
+      contract,
+      renderer: rendererRecord(appSource),
+    })
+    assert.deepEqual(issues, [])
   })
 })
 
