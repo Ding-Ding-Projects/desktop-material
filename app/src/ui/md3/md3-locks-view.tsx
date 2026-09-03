@@ -391,7 +391,6 @@ export function Md3LocksView(props: IMd3LocksViewProps) {
   const [focusIndex, setFocusIndex] = React.useState(0)
   const [exportOpen, setExportOpen] = React.useState(false)
   const [gateOpen, setGateOpen] = React.useState(false)
-  const [builderSeed, setBuilderSeed] = React.useState<string | null>(null)
 
   const anchorIndex = React.useRef<number | null>(null)
   const exportButtonRef = React.useMemo(
@@ -854,7 +853,7 @@ export function Md3LocksView(props: IMd3LocksViewProps) {
       {builderOpen ? (
         <Md3RegexBuilderDialog
           targetLabel={t('md3.locks.search.fieldLabel')}
-          initialPattern={builderSeed ?? query}
+          initialPattern={query}
           sampleItems={builderSamples}
           onApply={onApplyPattern}
           onDismissed={onCloseBuilder}

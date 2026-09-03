@@ -360,6 +360,8 @@ export interface IMd3SearchFieldProps {
   readonly searchFlags?: string
 
   readonly searchHistory?: ReadonlyArray<string>
+
+  readonly searchValidation?: string | null
 }
 
 /**
@@ -461,6 +463,7 @@ export function Md3SearchField(props: IMd3SearchFieldProps) {
               ? undefined
               : JSON.stringify(props.searchHistory)
           }
+          data-search-validation={props.searchValidation ?? undefined}
           type="text"
           role="searchbox"
           className="md3-search-row__input"

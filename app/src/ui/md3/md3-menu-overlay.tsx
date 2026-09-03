@@ -195,13 +195,6 @@ export interface IMd3MenuOverlayProps {
    * Open the regex builder seeded with the filter's current text, as the
    * contract's `openMenuBuilder` does.
    */
-  /**
-   * Legacy host callback retained for menu-spec compatibility. The overlay
-   * now owns its builder, so a menu filter never routes into another view's
-   * search state.
-   */
-  readonly onOpenRegexBuilder?: (pattern: string) => void
-
   /** Explicit identity for this concrete menu instance. */
   readonly instanceId?: string
 
@@ -650,6 +643,7 @@ export class Md3MenuOverlay extends React.Component<
         searchMode={this.state.mode}
         searchFlags={flagsToString(this.state.flags)}
         searchHistory={this.state.history}
+        searchValidation={this.state.validation}
         value={this.state.filter}
         placeholder={spec.filterPlaceholder}
         fieldLabel={`${spec.title} (${this.instanceId})`}
