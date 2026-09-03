@@ -148,7 +148,12 @@ export function assessCopilotConflictApplication(
   if (action.includes('rename')) {
     return { applicable: false, reason: 'rename-conflict' }
   }
-  if (!('conflictMarkerCount' in currentFile.status)) {
+  // A delete/modify conflict is always a manual conflict in the model, so it
+  // never carries a marker count. Applying this guard to it made the explicit
+  // resolutionAction allowance above unreachable: every keep/delete decision
+  // fell through to manual-only-conflict. The marker requirement belongs to
+  // conflicts resolved by writing merged text, which this is not.
+  if (!isDeleteModify && !('conflictMarkerCount' in currentFile.status)) {
     return { applicable: false, reason: 'manual-only-conflict' }
   }
 

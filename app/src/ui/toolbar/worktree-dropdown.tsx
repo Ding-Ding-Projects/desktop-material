@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as Path from 'path'
 import { Dispatcher } from '../dispatcher'
+import { listWorktrees } from '../../lib/git'
 import { Branch } from '../../models/branch'
 import { Repository, SubmoduleRepository } from '../../models/repository'
 import { ToolbarDropdown, DropdownState } from './dropdown'
@@ -152,14 +153,6 @@ export class WorktreeDropdown extends React.Component<
     this.props.dispatcher.requestDeleteWorktree(this.props.repository, path)
   }
 
-  private onMergeWorktree = (branch: Branch) => {
-    startWorktreeMergeFromMenu(
-      this.props.dispatcher,
-      this.props.repository,
-      branch
-    )
-  }
-
   private onLockWorktree = (path: string) => {
     void this.props.dispatcher.setWorktreeLocked(
       this.props.repository,
@@ -229,12 +222,10 @@ export class WorktreeDropdown extends React.Component<
           return
         }
 
-        this.props.dispatcher.closeFoldout(FoldoutType.Worktree)
-        this.props.dispatcher.startMergeBranchOperation(
+        startWorktreeMergeFromMenu(
+          this.props.dispatcher,
           this.props.repository,
-          false,
-          currentBranch,
-          false
+          currentBranch
         )
       })
       .catch(error => this.props.dispatcher.postError(error))

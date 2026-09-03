@@ -960,7 +960,7 @@ describe('SettingsTabStrip', () => {
     assert.match(view.getByRole('status').textContent ?? '', /No tabs/)
     assert.strictEqual(
       view
-        .getByRole('button', { name: 'Expand Empty' })
+        .getByRole('button', { name: 'Collapse Empty' })
         .hasAttribute('disabled'),
       true
     )

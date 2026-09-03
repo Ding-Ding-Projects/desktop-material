@@ -113,6 +113,7 @@ describe('IPC channel contract', () => {
     'codex-log',
     'cli-command-output',
     'cli-command-state',
+    'browser-extension-download-progress',
   ] as const
 
   const expectedResponseChannels = [
@@ -215,6 +216,11 @@ describe('IPC channel contract', () => {
     'get-cli-workbench-runtime',
     'start-cli-command',
     'cancel-cli-command',
+    'browser-extension-download-confirm',
+    'browser-extension-download-cancel',
+    'browser-extension-download-pause',
+    'browser-extension-download-resume',
+    'browser-extension-download-accept-native-frame',
   ] as const
 
   describe('RequestChannels', () => {

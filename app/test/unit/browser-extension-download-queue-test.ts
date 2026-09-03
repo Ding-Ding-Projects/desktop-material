@@ -70,7 +70,7 @@ describe('BrowserExtensionDownloadQueue', { concurrency: false }, () => {
     await queue.confirm(first.id)
     await queue.confirm(second.id)
     assert.equal(calls, 1)
-    resolveDownload?.()
+    resolveDownload!()
     await started
   })
 
@@ -97,7 +97,7 @@ describe('BrowserExtensionDownloadQueue', { concurrency: false }, () => {
     await queue.pause(value.id)
     await queue.resume(value.id)
     queue.cancel(value.id)
-    resolveDownload?.()
+    resolveDownload!()
     await started
     assert.deepEqual(phases, [
       'awaiting-confirmation',

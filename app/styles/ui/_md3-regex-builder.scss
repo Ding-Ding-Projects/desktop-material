@@ -1,3 +1,12 @@
+// The wrapper the builder renders inside an anchored popover. The popover owns
+// the surface; this only has to be a column that can actually shrink, or the
+// builder's own content sets the popover width and overflows a narrow window.
+.md3-regex-builder-owned-portal {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
 // The MD3 regex builder dialog.
 //
 // Every literal below is copied from the `builderOpen` overlay of

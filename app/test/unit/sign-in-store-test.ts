@@ -260,9 +260,10 @@ describe('SignInStore', () => {
 
         assert.equal(await second, undefined)
         assert.equal(launchCount, 1)
+        const currentState = signInStore.getState()
         assert.equal(
-          signInStore.getState()?.kind === SignInStep.Authentication
-            ? signInStore.getState()?.oauthState?.state
+          currentState?.kind === SignInStep.Authentication
+            ? currentState.oauthState?.state
             : undefined,
           firstState?.kind === SignInStep.Authentication
             ? firstState.oauthState?.state

@@ -16690,13 +16690,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
       const captureStageFingerprints = async () =>
         new Map(
           await Promise.all(
-            conflictedFiles.map(async file => [
-              file.path,
-              await this.getCopilotConflictStageFingerprint(
-                repository,
-                file.path
-              ),
-            ])
+            conflictedFiles.map(
+              async (file): Promise<[string, string]> => [
+                file.path,
+                await this.getCopilotConflictStageFingerprint(
+                  repository,
+                  file.path
+                ),
+              ]
+            )
           )
         )
       const generationStagesBefore = await captureStageFingerprints()
@@ -16800,7 +16802,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
             conflictGeneration: {
               contentHash: hashCopilotConflictContent(sourceContext.rawContent),
               stageFingerprint: sourceContext.stageFingerprint,
-              conflictType: 'text',
+              conflictType: 'text' as const,
             },
           }
         })
@@ -17927,7 +17929,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         conflictGeneration: {
           contentHash: hashCopilotConflictContent(currentContent),
           stageFingerprint,
-          conflictType: 'text',
+          conflictType: 'text' as const,
         },
       }
     } catch {
@@ -18173,7 +18175,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
             : 'resolution application failed'
         log.warn(
           `Copilot resolution skipped: ${resolution.path}: ${reason}`,
-          error instanceof Error && error.cause
+          error instanceof Error && error.cause instanceof Error
+            ? error.cause
+            : undefined
         )
         skipped.push({ path: resolution.path, reason })
       }

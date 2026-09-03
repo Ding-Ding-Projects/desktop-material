@@ -77,7 +77,7 @@ describe('single-flight activation controls', () => {
 
   it('keeps synchronous controls repeatable', async () => {
     let calls = 0
-    render(<Button onClick={() => calls++}>Next match</Button>)
+    render(<Button onClick={() => void calls++}>Next match</Button>)
     const button = screen.getByRole('button', { name: 'Next match' })
 
     fireEvent.click(button)
@@ -106,7 +106,7 @@ describe('single-flight activation controls', () => {
   it('uses native disabled semantics and blocks every action-only key route', () => {
     let calls = 0
     render(
-      <LinkButton disabled={true} onClick={() => calls++}>
+      <LinkButton disabled={true} onClick={() => void calls++}>
         Retry
       </LinkButton>
     )

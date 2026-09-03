@@ -966,7 +966,12 @@ export class SettingsTabStrip extends React.Component<
     const targetId = event.currentTarget
       .closest('[data-settings-tab-group-id]')
       ?.getAttribute('data-settings-tab-group-id')
-    if (sourceId.length === 0 || targetId === null || sourceId === targetId) {
+    if (
+      sourceId.length === 0 ||
+      targetId === null ||
+      targetId === undefined ||
+      sourceId === targetId
+    ) {
       return
     }
     const groupOrder = this.state.groupOrder.filter(id => id !== sourceId)
@@ -1429,9 +1434,9 @@ export class SettingsTabStrip extends React.Component<
           </TooltippedContent>
           {item.badge}
           {index < pinnedCount && (
-            <Octicon
+            <MaterialSymbol
               className="settings-browser-tab-pin"
-              symbol={octicons.pin}
+              name="push_pin"
             />
           )}
         </button>
@@ -1448,7 +1453,7 @@ export class SettingsTabStrip extends React.Component<
             }
             onClick={this.onCloseTab}
           >
-            <Octicon symbol={octicons.x} />
+            <MaterialSymbol name="close" />
           </button>
         )}
       </div>
@@ -1543,9 +1548,9 @@ export class SettingsTabStrip extends React.Component<
               onDragOver={this.onGroupDragOver}
               onDrop={this.onGroupDrop}
             >
-              <Octicon
-                symbol={
-                  collapsed ? octicons.chevronRight : octicons.chevronDown
+              <MaterialSymbol
+                name={
+                  collapsed ? 'keyboard_arrow_right' : 'keyboard_arrow_down'
                 }
               />
               <span>{group.name}</span>
@@ -1568,7 +1573,7 @@ export class SettingsTabStrip extends React.Component<
               aria-disabled={disabled ? 'true' : undefined}
               onClick={event => this.onGroupSearch(event, group.id)}
             >
-              <Octicon symbol={octicons.search} />
+              <MaterialSymbol name="search" />
             </button>
           </div>
           {!collapsed && members.length > 0 && (
@@ -1594,7 +1599,10 @@ export class SettingsTabStrip extends React.Component<
         </div>
       )
     }
-    for (const item of ordered) {
+    // The pinned region above already rendered ordered.slice(0, pinnedCount),
+    // and those items are never added to `grouped`. Walking `ordered` here
+    // rendered every pinned tab a second time.
+    for (const item of unpinned) {
       if (!grouped.has(item.id)) {
         output.push(
           this.renderBrowserTab(
@@ -1614,7 +1622,7 @@ export class SettingsTabStrip extends React.Component<
   private renderBrowser() {
     const { ordered, pinnedCount } = this.ordered
     const { ordered: allItems } = this.allOrdered
-    const { selectedId, disabled } = this.props
+    const { disabled } = this.props
     const showNewTab = this.props.showNewTab !== false
     const hasClosedPage = allItems.some(
       item => !this.state.openIds.includes(item.id)
@@ -1651,7 +1659,7 @@ export class SettingsTabStrip extends React.Component<
             aria-owns={ordered.map(item => this.getTabId(item)).join(' ')}
           />
           <div className="settings-browser-tab-items">
-            {this.renderBrowserItems(ordered, pinnedCount, disabled)}
+            {this.renderBrowserItems(ordered, pinnedCount, disabled === true)}
           </div>
         </div>
         <div className="settings-browser-tab-actions">
@@ -1667,7 +1675,7 @@ export class SettingsTabStrip extends React.Component<
             disabled={disabled}
             onClick={this.onOpenCurrentStripSearch}
           >
-            <Octicon symbol={octicons.search} />
+            <MaterialSymbol name="search" />
           </button>
           {this.state.groups.length > 0 && (
             <button
@@ -1682,7 +1690,7 @@ export class SettingsTabStrip extends React.Component<
               disabled={disabled}
               onClick={this.onOpenGroupSearch}
             >
-              <Octicon symbol={octicons.search} />
+              <MaterialSymbol name="search" />
               <span>
                 {translate(
                   'settings.tabGroupSearch',
@@ -1703,7 +1711,7 @@ export class SettingsTabStrip extends React.Component<
               this.openGroupEditor('create', null, event.currentTarget)
             }
           >
-            <Octicon symbol={octicons.plus} />
+            <MaterialSymbol name="add" />
           </button>
           <button
             type="button"

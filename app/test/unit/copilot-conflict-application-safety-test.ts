@@ -9,6 +9,8 @@ import {
   AppFileStatus,
   AppFileStatusKind,
   GitStatusEntry,
+  ConflictsWithMarkers,
+  ManualConflict,
   UnmergedEntrySummary,
   WorkingDirectoryFileChange,
 } from '../../src/models/status'
@@ -37,7 +39,7 @@ const reviewedContent = [
   'after',
 ].join('\n')
 
-const bothModifiedStatus = {
+const bothModifiedStatus: ConflictsWithMarkers = {
   kind: AppFileStatusKind.Conflicted as const,
   entry: {
     kind: 'conflicted' as const,
@@ -48,7 +50,7 @@ const bothModifiedStatus = {
   conflictMarkerCount: 1,
 }
 
-const bothAddedStatus = {
+const bothAddedStatus: ConflictsWithMarkers = {
   kind: AppFileStatusKind.Conflicted as const,
   entry: {
     kind: 'conflicted' as const,
@@ -74,6 +76,15 @@ const reviewedStages = [
   },
 ]
 
+const deletedByThemStatus: ManualConflict = {
+  kind: AppFileStatusKind.Conflicted,
+  entry: {
+    kind: 'conflicted',
+    action: UnmergedEntrySummary.DeletedByThem,
+    us: GitStatusEntry.UpdatedButUnmerged,
+    them: GitStatusEntry.Deleted,
+  },
+}
 const reviewedStageFingerprint = fingerprintCopilotConflictStages(
   'src/file.ts',
   reviewedStages
@@ -119,6 +130,7 @@ describe('Copilot conflict application safety', () => {
   it('refuses a file resolved externally after generation', () => {
     const result = assessCopilotConflictApplication(
       resolution('src/file.ts'),
+      undefined,
       undefined,
       undefined
     )
@@ -365,13 +377,7 @@ describe('Copilot conflict application safety', () => {
 
     const deleteModify = assessCopilotConflictApplication(
       resolution('src/file.ts'),
-      file('src/file.ts', {
-        ...bothModifiedStatus,
-        entry: {
-          ...bothModifiedStatus.entry,
-          action: UnmergedEntrySummary.DeletedByThem,
-        },
-      }),
+      file('src/file.ts', deletedByThemStatus),
       reviewedContent,
       reviewedStageFingerprint
     )
@@ -387,13 +393,7 @@ describe('Copilot conflict application safety', () => {
 
     const allowedDeleteModifyAction = assessCopilotConflictApplication(
       { ...resolution('src/file.ts'), resolutionAction: 'keep' },
-      file('src/file.ts', {
-        ...bothModifiedStatus,
-        entry: {
-          ...bothModifiedStatus.entry,
-          action: UnmergedEntrySummary.DeletedByThem,
-        },
-      }),
+      file('src/file.ts', deletedByThemStatus),
       reviewedContent,
       reviewedStageFingerprint
     )

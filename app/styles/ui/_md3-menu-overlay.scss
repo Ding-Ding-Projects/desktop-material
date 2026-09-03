@@ -23,6 +23,19 @@
   z-index: 40;
 }
 
+// An anchored menu is positioned at its trigger by the popover that owns it.
+// The base rule above is the centred fallback: a fixed, full-viewport scrim
+// that fills the window. Without this modifier an anchored menu inherited all
+// of it and painted a whole-window scrim beside its own trigger.
+.md3-menu-overlay--anchored {
+  background: none;
+  inset: auto;
+  justify-content: flex-start;
+  padding: 0;
+  position: static;
+  z-index: auto;
+}
+
 .md3-menu-overlay__panel {
   background: var(--md-sys-color-surface-container-high);
   border-radius: 20px;
