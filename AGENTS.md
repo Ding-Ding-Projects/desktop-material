@@ -59,9 +59,15 @@ describe:
   `app/test/fixtures/md3-contract.json` (also absent), and nothing consumes it
 - the in-app docs-browser article describing the shell, its eight destinations
   and a conformance test that does not exist
-- a run of pre-existing red style contracts (`post-shell-style-test.ts`,
-  `overlay-material-language-test.ts` and neighbours) that assert against the
-  removed chrome
+- `overlay-material-language-test.ts` **is gone** (2026-09-03). All eleven of
+  its assertions demanded the reverted overlay styling back, so it did not just
+  fail to prevent a rebuild, it read as an order for one. Its replacement in
+  `interface-shell-frozen-test.ts` asserts the opposite: ten line-anchored
+  markers that go red if the reverted dialog, banner, toast, blank-state,
+  welcome or notification-centre treatments reappear
+- `post-shell-style-test.ts` is **not** a leftover. It is a live narrow-window
+  and token contract, 30/30 green as of 2026-09-03, and it should be kept
+  running rather than retired
 
 `design/Desktop Material v2.dc.html` is the sole parity authority, confirmed by
 the repository owner on 2026-09-02. Finding one of these pointers is not a
@@ -72,11 +78,24 @@ shell back.
 full.** The revert removed one particular shell, not the design language. So
 "do not rebuild the shell" never means "this surface is exempt from Material
 Design 3" — the chrome that is shipping today is the chrome that has to conform,
-and as of 2026-09-02 a great deal of it does not: 464 Octicons against 174
-Material Symbols, 74 native `<select>` elements, 297 raw `<button>` elements,
-roughly nineteen hand-rolled Material lookalikes, 1,014 raw border radii and 964
-raw font sizes, and about half of all CSS variable use still on the legacy
-Primer token set. Converting those in place is ordinary, wanted work.
+and a good deal of it still does not. Re-measured across `app/src` and
+`app/styles` on **2026-09-03**, after the Octicon conversion landed on `main`:
+
+| Measure | 2026-09-02 | 2026-09-03 |
+| --- | --- | --- |
+| `<Octicon>` call sites | 464 | **96** |
+| `<MaterialSymbol>` call sites | 174 | **543** |
+| native `<select>` | 74 | **5** |
+| native `<button>` | 297 | **13** |
+| raw `border-radius: <n>` | 1,014 | **992** |
+| raw `font-size: <n>` | 964 | **965** |
+| `var()` uses still on legacy tokens | about half | **4,597 of 9,505** |
+
+The icon and control columns are nearly finished; the raw radii and font sizes
+are barely touched and are now the bulk of the work. Converting those in place
+is ordinary, wanted work. Re-measure before trusting this table — it is a
+snapshot, and the commands that produced it are `git grep -oE` counts over
+`app/src` and `app/styles`.
 
 Ordinary work continues normally: the `md3-*` **dialogs and primitives** that
 survived the revert are live, and styling a class a live component actually

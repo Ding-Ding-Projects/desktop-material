@@ -142,3 +142,118 @@ describe('the interface shell stays frozen', () => {
     }
   })
 })
+
+/**
+ * The revert took stylesheet treatments too, and nothing was watching them.
+ *
+ * The module list above guards files that must not come back. It cannot see a
+ * property restored inside a stylesheet that legitimately survived, so on
+ * 2026-09-03 an agent restored the reverted dialog, banner, toast, blank-state,
+ * welcome and notification-centre treatments from `0af7ce4698` and this suite
+ * stayed green the whole time.
+ *
+ * What made that easy was not an absent guard but a present one pointing the
+ * wrong way: `overlay-material-language-test.ts` asserted the reverted styling
+ * still existed, so it had been red since the revert and read as a repair
+ * order. It has been deleted. These markers are its replacement, pointing the
+ * way the owner actually decided.
+ *
+ * Each marker is anchored to a whole line, so a commented-out declaration does
+ * not satisfy one, and none uses a lazy `[\s\S]*?` bridge, which reaches past
+ * the rule it was written for. Every marker was checked in both directions
+ * before being trusted: absent from the tree as it stands, present in
+ * `0af7ce4698`.
+ */
+const REVERTED_STYLE_MARKERS: ReadonlyArray<{
+  readonly file: string
+  readonly marker: RegExp
+  readonly surface: string
+}> = [
+  {
+    file: '_banners.scss',
+    surface: 'the banner tonal card',
+    marker: /^\s*max-width: 920px;\s*$/m,
+  },
+  {
+    file: '_banners.scss',
+    surface: 'the banner elevation',
+    marker: /^\s*box-shadow: var\(--md-sys-elevation-level1\);\s*$/m,
+  },
+  {
+    file: 'window/_toast-notification.scss',
+    surface: 'the toast snackbar offset',
+    marker: /^\s*bottom: 18px;\s*$/m,
+  },
+  {
+    file: 'window/_toast-notification.scss',
+    surface: 'the toast inverse surface',
+    marker: /^\s*background: var\(--md-sys-color-inverse-surface\);\s*$/m,
+  },
+  {
+    file: '_dialog.scss',
+    surface: 'the dialog high container',
+    marker:
+      /^\s*background: var\(--md-sys-color-surface-container-high\);\s*$/m,
+  },
+  {
+    file: '_dialog.scss',
+    surface: 'the dialog header height',
+    marker: /^\s*min-height: 48px;\s*$/m,
+  },
+  {
+    file: '_no-repositories.scss',
+    surface: 'the blank-state pane radius',
+    marker: /^\s*border-radius: 24px;\s*$/m,
+  },
+  {
+    file: '_no-repositories.scss',
+    surface: 'the blank-state narrow stack',
+    marker: /^\s*@media screen and \(max-width: 880px\) \{\s*$/m,
+  },
+  {
+    file: '_welcome.scss',
+    surface: 'the welcome narrow block',
+    marker: /^\s*@media screen and \(max-width: 420px\) \{\s*$/m,
+  },
+  {
+    file: '_notification-centre.scss',
+    surface: 'the notification panel full-bleed width',
+    marker: /^\s*width: calc\(100vw - 8px\);\s*$/m,
+  },
+]
+
+describe('the reverted style wave stays reverted', () => {
+  for (const { file, marker, surface } of REVERTED_STYLE_MARKERS) {
+    it(`does not restore ${surface} in app/styles/ui/${file}`, () => {
+      const source = Fs.readFileSync(Path.join(stylesDir, file), 'utf8')
+      assert.equal(
+        marker.test(source),
+        false,
+        `${file} has ${surface} back. That treatment was removed by 427029d9bc, ` +
+          '"Revert the interface to 2026-08-07, before both MD3 waves". The current interface is Material Design 3 already; it simply is not that ' +
+          'wave. Restoring it is the third unrequested rebuild AGENTS.md warns about. If the repository owner asked for it in this session, in their own ' +
+          'words, delete this entry deliberately and say so in the commit.'
+      )
+    })
+  }
+
+  it('keeps a marker for every surface the wave touched', () => {
+    // A list-based guard only checks what is on its list, so the list itself
+    // needs a floor. Six stylesheets were reverted; each must still be named.
+    const covered = new Set(REVERTED_STYLE_MARKERS.map(entry => entry.file))
+    for (const file of [
+      '_dialog.scss',
+      '_banners.scss',
+      'window/_toast-notification.scss',
+      '_welcome.scss',
+      '_no-repositories.scss',
+      '_notification-centre.scss',
+    ]) {
+      assert.equal(
+        covered.has(file),
+        true,
+        `${file} was part of the reverted wave and has no marker guarding it.`
+      )
+    }
+  })
+})
