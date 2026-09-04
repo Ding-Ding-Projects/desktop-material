@@ -10,7 +10,7 @@ export const AttentionAccommodationModes = [
 ] as const
 
 export type AttentionAccommodationMode =
-  (typeof AttentionAccommodationModes)[number]
+  typeof AttentionAccommodationModes[number]
 
 export interface IAttentionAccommodationPreferences {
   readonly version: 1
@@ -23,23 +23,29 @@ export interface IAttentionAccommodationPreferences {
   readonly lastChangedAt: number
 }
 
-export const AttentionAccommodationStorageKey = 'attention-accommodation-preferences'
+export const AttentionAccommodationStorageKey =
+  'attention-accommodation-preferences'
 export const AttentionAccommodationChangedEvent =
   'desktop-material-attention-accommodation-changed'
 
-export const DefaultAttentionAccommodationPreferences: IAttentionAccommodationPreferences = {
-  version: 1,
-  enabled: {
-    focus: false,
-    lowStimulation: false,
-    timeAwareness: false,
-    oneThingAtATime: false,
-    momentum: false,
-  },
-  nextAction: '',
-  momentumDeferredUntil: null,
-  lastChangedAt: 0,
-}
+export type AttentionAccommodationProvenance =
+  | 'compiled-default'
+  | 'stored-choice'
+
+export const DefaultAttentionAccommodationPreferences: IAttentionAccommodationPreferences =
+  {
+    version: 1,
+    enabled: {
+      focus: false,
+      lowStimulation: false,
+      timeAwareness: false,
+      oneThingAtATime: false,
+      momentum: false,
+    },
+    nextAction: '',
+    momentumDeferredUntil: null,
+    lastChangedAt: 0,
+  }
 
 const MaximumNextActionLength = 240
 const MaximumTimestamp = 4102444800000 // 2100-01-01, bounds corrupt input.
@@ -53,10 +59,13 @@ function isFiniteTimestamp(value: unknown): value is number {
   )
 }
 
-function coerceEnabled(value: unknown): Readonly<Record<AttentionAccommodationMode, boolean>> {
-  const raw = typeof value === 'object' && value !== null
-    ? (value as Record<string, unknown>)
-    : {}
+function coerceEnabled(
+  value: unknown
+): Readonly<Record<AttentionAccommodationMode, boolean>> {
+  const raw =
+    typeof value === 'object' && value !== null
+      ? (value as Record<string, unknown>)
+      : {}
 
   return {
     focus: raw.focus === true,
@@ -70,9 +79,10 @@ function coerceEnabled(value: unknown): Readonly<Record<AttentionAccommodationMo
 export function coerceAttentionAccommodationPreferences(
   value: unknown
 ): IAttentionAccommodationPreferences {
-  const raw = typeof value === 'object' && value !== null
-    ? (value as Record<string, unknown>)
-    : {}
+  const raw =
+    typeof value === 'object' && value !== null
+      ? (value as Record<string, unknown>)
+      : {}
   const rawAction = typeof raw.nextAction === 'string' ? raw.nextAction : ''
 
   return {
@@ -84,11 +94,9 @@ export function coerceAttentionAccommodationPreferences(
       raw.momentumDeferredUntil === undefined
         ? null
         : isFiniteTimestamp(raw.momentumDeferredUntil)
-          ? raw.momentumDeferredUntil
-          : null,
-    lastChangedAt: isFiniteTimestamp(raw.lastChangedAt)
-      ? raw.lastChangedAt
-      : 0,
+        ? raw.momentumDeferredUntil
+        : null,
+    lastChangedAt: isFiniteTimestamp(raw.lastChangedAt) ? raw.lastChangedAt : 0,
   }
 }
 
@@ -96,6 +104,28 @@ export function readAttentionAccommodationPreferences(): IAttentionAccommodation
   return coerceAttentionAccommodationPreferences(
     getObject<unknown>(AttentionAccommodationStorageKey)
   )
+}
+
+/**
+ * Distinguish a real saved profile from the compiled fallback.
+ *
+ * Reading the normalized value alone cannot make this distinction because an
+ * explicitly saved all-off profile is byte-for-byte equivalent to the shipped
+ * values. The settings surface needs the source as well as the value so its
+ * provenance line never calls a recorded choice a default.
+ */
+export function getAttentionAccommodationProvenance(): AttentionAccommodationProvenance {
+  if (typeof localStorage === 'undefined') {
+    return 'compiled-default'
+  }
+
+  try {
+    return localStorage.getItem(AttentionAccommodationStorageKey) === null
+      ? 'compiled-default'
+      : 'stored-choice'
+  } catch {
+    return 'compiled-default'
+  }
 }
 
 export function saveAttentionAccommodationPreferences(
@@ -128,18 +158,24 @@ export function setAttentionAccommodationEnabled(
   mode: AttentionAccommodationMode,
   enabled: boolean
 ): IAttentionAccommodationPreferences {
-  const enabledChange: Partial<
-    Record<AttentionAccommodationMode, boolean>
-  > = { [mode]: enabled }
+  const enabledChange: Partial<Record<AttentionAccommodationMode, boolean>> = {
+    [mode]: enabled,
+  }
   return updateAttentionAccommodationPreferences({ enabled: enabledChange })
 }
 
-export function setAttentionNextAction(nextAction: string): IAttentionAccommodationPreferences {
+export function setAttentionNextAction(
+  nextAction: string
+): IAttentionAccommodationPreferences {
   return updateAttentionAccommodationPreferences({ nextAction })
 }
 
-export function deferAttentionMomentum(until: number): IAttentionAccommodationPreferences {
-  return updateAttentionAccommodationPreferences({ momentumDeferredUntil: until })
+export function deferAttentionMomentum(
+  until: number
+): IAttentionAccommodationPreferences {
+  return updateAttentionAccommodationPreferences({
+    momentumDeferredUntil: until,
+  })
 }
 
 /** Session facts intentionally start fresh for each renderer launch. */
@@ -160,4 +196,3 @@ export function formatAttentionElapsed(milliseconds: number): string {
   }
   return `${seconds}s`
 }
-

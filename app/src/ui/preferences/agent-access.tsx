@@ -56,6 +56,17 @@ function modeDescription(mode: AgentServerMode): string {
   }
 }
 
+function modeDescriptionCantonese(mode: AgentServerMode): string {
+  switch (mode) {
+    case 'local':
+      return '只限 loopback 存取，配隨機 bearer token。'
+    case 'paired-lan':
+      return '私人 LAN 存取，配一次性配對同逐裝置 token。'
+    case 'yolo-lan':
+      return '驗證已停用，所有現有命令都會向私人 LAN 開放。'
+  }
+}
+
 interface IAgentDeviceRowProps {
   readonly device: IAgentPairedDevice
   readonly busy: boolean
@@ -98,6 +109,16 @@ export class AgentAccess extends React.Component<
   IAgentAccessProps,
   IAgentAccessState
 > {
+  private localize(english: string, cantonese: string): string {
+    switch (this.state.languageMode) {
+      case 'cantonese':
+        return cantonese
+      case 'bilingual':
+        return `${english} · ${cantonese}`
+      default:
+        return english
+    }
+  }
   public constructor(props: IAgentAccessProps) {
     super(props)
     this.state = {
@@ -173,12 +194,35 @@ export class AgentAccess extends React.Component<
             value={mode}
             onChange={this.onModeChanged}
             disabled={busy}
+            aria-describedby={
+              settingExplanationDescriptionIds('agent-access-mode')
+                .ariaDescribedBy
+            }
           >
             <option value="local">Local only (recommended)</option>
             <option value="paired-lan">Paired LAN devices</option>
             <option value="yolo-lan">YOLO LAN — no authentication</option>
           </select>
-          <p>{modeDescription(mode)}</p>
+          <SettingExplanation
+            settingId="agent-access-mode"
+            summary={translate(
+              'dialogEmoji.explanationSummary',
+              this.state.languageMode
+            )}
+            explanation={this.localize(
+              modeDescription(mode),
+              modeDescriptionCantonese(mode)
+            )}
+            source="main-process-config"
+            provenance={this.localize(
+              mode === 'local'
+                ? 'Current value from the managed server configuration: local only. Shipped value: local only.'
+                : `Current value from the managed server configuration: ${mode}. Shipped value: local only.`,
+              mode === 'local'
+                ? '目前值來自受管理伺服器設定：只限本機。出廠值：只限本機。'
+                : `目前值來自受管理伺服器設定：${mode}。出廠值：只限本機。`
+            )}
+          />
 
           <div
             className="agent-toggle-row"
@@ -199,8 +243,20 @@ export class AgentAccess extends React.Component<
               value={enabled ? CheckboxValue.On : CheckboxValue.Off}
               onChange={this.onEnabledChanged}
               disabled={busy}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('agent-access-enabled')
+                  .ariaDescribedBy
+              }
             />
           </div>
+          <BooleanSettingExplanation
+            settingId="agent-access-enabled"
+            explanationEnglish="Starts or stops the local agent server using the selected access mode. The server remains off by default."
+            explanationCantonese="用所選存取模式啟動或者停止本機 agent server。伺服器預設保持關閉。"
+            value={enabled}
+            shippedValue={false}
+            storageKey="agent-server-enabled"
+          />
         </section>
 
         {unsafe && (
@@ -247,7 +303,11 @@ export class AgentAccess extends React.Component<
                   value={token}
                   readOnly={true}
                   autoComplete="off"
-                  aria-describedby="agent-token-help"
+                  aria-describedby={`agent-token-help ${
+                    settingExplanationDescriptionIds(
+                      'agent-access-desktop-token'
+                    ).ariaDescribedBy
+                  }`}
                 />
                 <button
                   type="button"
@@ -277,6 +337,22 @@ export class AgentAccess extends React.Component<
                 Keep this desktop token private. Paired-device tokens are stored
                 separately in the OS credential vault.
               </p>
+              <SettingExplanation
+                settingId="agent-access-desktop-token"
+                summary={translate(
+                  'dialogEmoji.explanationSummary',
+                  this.state.languageMode
+                )}
+                explanation={this.localize(
+                  'Provides the runtime-generated bearer credential used by local command clients. Reveal and copy remain explicit actions.',
+                  '提供本地命令客戶端使用嘅執行期 bearer 憑證；顯示同複製仍然係明確動作。'
+                )}
+                provenance={this.localize(
+                  'Source: operating-system credential vault. Credential content and characteristics are intentionally omitted; the shipped state generates a new value only while the server is enabled.',
+                  '來源：作業系統憑證庫。憑證內容同特徵刻意省略；出廠狀態只會喺伺服器開啟期間產生新值。'
+                )}
+                source="credential-vault"
+              />
               <button
                 type="button"
                 className="agent-tonal-button"
@@ -338,6 +414,10 @@ export class AgentAccess extends React.Component<
           id="agent-remote-site-url"
           type="url"
           value={this.state.siteURLInput}
+          aria-describedby={
+            settingExplanationDescriptionIds('agent-access-site-url')
+              .ariaDescribedBy
+          }
           onChange={this.onSiteURLChanged}
           disabled={this.state.busy}
           spellCheck={false}
@@ -347,6 +427,16 @@ export class AgentAccess extends React.Component<
           selected LAN IPv4 address in the QR code. A deployed HTTPS site can be
           entered instead.
         </p>
+        <SelectionSettingExplanation
+          settingId="agent-access-site-url"
+          explanationEnglish="Sets the base URL encoded into pairing pages for the mobile connection surface."
+          explanationCantonese="設定流動連線配對頁面編碼使用嘅基本網址。"
+          currentEnglish={this.state.siteURLInput}
+          currentCantonese={this.state.siteURLInput}
+          shippedEnglish={DefaultAgentRemoteSiteURL}
+          shippedCantonese={DefaultAgentRemoteSiteURL}
+          storageKey={AgentServerSiteURLStorageKey}
+        />
 
         <label htmlFor="agent-gateway-url">
           HTTPS agent gateway <span>Optional</span>
@@ -355,6 +445,10 @@ export class AgentAccess extends React.Component<
           id="agent-gateway-url"
           type="url"
           value={this.state.gatewayURLInput}
+          aria-describedby={
+            settingExplanationDescriptionIds('agent-access-gateway-url')
+              .ariaDescribedBy
+          }
           onChange={this.onGatewayURLChanged}
           disabled={this.state.busy}
           placeholder="https://agent.example.test"
@@ -365,6 +459,16 @@ export class AgentAccess extends React.Component<
           the displayed LAN host. The gateway is used as the QR agent URL;
           Desktop Material still listens on the private LAN address below.
         </p>
+        <SelectionSettingExplanation
+          settingId="agent-access-gateway-url"
+          explanationEnglish="Sets the optional HTTPS gateway used as the command URL in pairing output while the local server keeps listening on its private-LAN address."
+          explanationCantonese="設定配對輸出用嘅可選 HTTPS gateway 命令網址，而本地伺服器仍然喺私人 LAN 地址監聽。"
+          currentEnglish={this.state.gatewayURLInput || 'empty'}
+          currentCantonese={this.state.gatewayURLInput || '留空'}
+          shippedEnglish="empty"
+          shippedCantonese="留空"
+          storageKey={AgentServerGatewayURLStorageKey}
+        />
 
         <button
           type="button"

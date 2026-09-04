@@ -60,7 +60,7 @@ type OnPullRequestCommentCallback = (
  * The localStorage key for whether the user has enabled high-signal
  * notifications.
  */
-const NotificationsEnabledKey = 'high-signal-notifications-enabled'
+export const NotificationsEnabledKey = 'high-signal-notifications-enabled'
 
 /** Whether or not the user has enabled high-signal notifications */
 export function getNotificationsEnabled() {

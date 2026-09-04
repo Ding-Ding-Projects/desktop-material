@@ -1126,37 +1126,40 @@ const worktreeDropdownWidthConfigKey: string = 'worktree-dropdown-width'
 
 const defaultPushPullButtonWidth: number = 230
 const pushPullButtonWidthConfigKey: string = 'push-pull-button-width'
+export const zoomFactorKey = 'zoom-factor'
+export const autoFitZoomEnabledKey = 'zoom-auto-fit-enabled'
 
 const askToMoveToApplicationsFolderDefault: boolean = true
-const confirmRepoRemovalDefault: boolean = true
+export const confirmRepoRemovalDefault: boolean = true
 const showCommitLengthWarningDefault: boolean = false
-const confirmDiscardChangesDefault: boolean = true
-const confirmDiscardChangesPermanentlyDefault: boolean = true
-const confirmDiscardStashDefault: boolean = true
-const confirmCheckoutCommitDefault: boolean = true
-const askForConfirmationOnForcePushDefault = true
-const confirmUndoCommitDefault: boolean = true
-const confirmCommitFilteredChangesDefault: boolean = true
-const confirmCommitMessageOverrideDefault: boolean = true
-const confirmWorktreeRemovalDefault: boolean = true
+export const confirmDiscardChangesDefault: boolean = true
+export const confirmDiscardChangesPermanentlyDefault: boolean = true
+export const confirmDiscardStashDefault: boolean = true
+export const confirmCheckoutCommitDefault: boolean = true
+export const askForConfirmationOnForcePushDefault = true
+export const confirmUndoCommitDefault: boolean = true
+export const confirmCommitFilteredChangesDefault: boolean = true
+export const confirmCommitMessageOverrideDefault: boolean = true
+export const confirmWorktreeRemovalDefault: boolean = true
 const askToMoveToApplicationsFolderKey: string = 'askToMoveToApplicationsFolder'
-const confirmRepoRemovalKey: string = 'confirmRepoRemoval'
-const showCommitLengthWarningKey: string = 'showCommitLengthWarning'
-const confirmDiscardChangesKey: string = 'confirmDiscardChanges'
-const confirmDiscardStashKey: string = 'confirmDiscardStash'
-const confirmCheckoutCommitKey: string = 'confirmCheckoutCommit'
-const confirmDiscardChangesPermanentlyKey: string =
+export const confirmRepoRemovalKey: string = 'confirmRepoRemoval'
+export const showCommitLengthWarningKey: string = 'showCommitLengthWarning'
+export const confirmDiscardChangesKey: string = 'confirmDiscardChanges'
+export const confirmDiscardStashKey: string = 'confirmDiscardStash'
+export const confirmCheckoutCommitKey: string = 'confirmCheckoutCommit'
+export const confirmDiscardChangesPermanentlyKey: string =
   'confirmDiscardChangesPermanentlyKey'
-const confirmForcePushKey: string = 'confirmForcePush'
-const confirmUndoCommitKey: string = 'confirmUndoCommit'
-const confirmCommitFilteredChangesKey: string =
+export const confirmForcePushKey: string = 'confirmForcePush'
+export const confirmUndoCommitKey: string = 'confirmUndoCommit'
+export const confirmCommitFilteredChangesKey: string =
   'confirmCommitFilteredChangesKey'
-const confirmCommitMessageOverrideKey: string = 'confirmCommitMessageOverride'
-const confirmWorktreeRemovalKey: string = 'confirmWorktreeRemoval'
+export const confirmCommitMessageOverrideKey: string =
+  'confirmCommitMessageOverride'
+export const confirmWorktreeRemovalKey: string = 'confirmWorktreeRemoval'
 
-const uncommittedChangesStrategyKey = 'uncommittedChangesStrategyKind'
+export const uncommittedChangesStrategyKey = 'uncommittedChangesStrategyKind'
 
-const externalEditorKey: string = 'externalEditor'
+export const externalEditorKey: string = 'externalEditor'
 
 const imageDiffTypeDefault = ImageDiffType.TwoUp
 const imageDiffTypeKey = 'image-diff-type'
@@ -1173,15 +1176,15 @@ const commitSpellcheckEnabledDefault = true
 const commitSpellcheckEnabledKey = 'commit-spellcheck-enabled'
 
 export const tabSizeDefault: number = 4
-const tabSizeKey: string = 'tab-size'
+export const tabSizeKey: string = 'tab-size'
 
-const shellKey = 'shell'
+export const shellKey = 'shell'
 
-const showRecentRepositoriesKey = 'show-recent-repositories'
-const showBranchNameInRepoListKey = 'show-branch-name-in-repo-list'
-const repositoryIndicatorsEnabledKey = 'enable-repository-indicators'
-const branchSortOrderKey = 'branch-sort-order'
-const verboseLoggingKey = 'verboseLogging'
+export const showRecentRepositoriesKey = 'show-recent-repositories'
+export const showBranchNameInRepoListKey = 'show-branch-name-in-repo-list'
+export const repositoryIndicatorsEnabledKey = 'enable-repository-indicators'
+export const branchSortOrderKey = 'branch-sort-order'
+export const verboseLoggingKey = 'verboseLogging'
 
 // background fetching should occur hourly when Desktop is active, but this
 // lower interval ensures user interactions like switching repositories and
@@ -1206,11 +1209,11 @@ const pullRequestSuggestedNextActionKey =
   'pull-request-suggested-next-action-key'
 
 export const useCustomEditorKey = 'use-custom-editor'
-const customEditorKey = 'custom-editor'
+export const customEditorKey = 'custom-editor'
 
 export const useCustomShellKey = 'use-custom-shell'
-const customShellKey = 'custom-shell'
-const branchPresetScriptKey = 'branch-preset-script'
+export const customShellKey = 'custom-shell'
+export const branchPresetScriptKey = 'branch-preset-script'
 
 export const underlineLinksKey = 'underline-links'
 export const underlineLinksDefault = true
@@ -1230,12 +1233,12 @@ const copilotConflictResolutionDisclaimerLastSeenKey =
 const copilotConflictResolutionClickCountKey =
   'copilot-conflict-resolution-button-clicked'
 
-const alwaysUseCopilotForConflictResolutionKey =
+export const alwaysUseCopilotForConflictResolutionKey =
   'always-use-copilot-for-conflict-resolution'
 
 export const showChangesFilterKey = 'show-changes-filter'
 
-const selectedCopilotModelsKey = 'selected-copilot-models'
+export const selectedCopilotModelsKey = 'selected-copilot-models'
 export const showChangesFilterDefault = true
 
 interface IScheduledAutomationFence {
@@ -2363,9 +2366,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
     // migration — the old applied-zoom value becomes the new base).
     const recovered = await this.getWindowZoomFactor()
     this.zoomBaseFactor = clampZoom(
-      getFloatNumber('zoom-factor', recovered ?? 1)
+      getFloatNumber(zoomFactorKey, recovered ?? 1)
     )
-    this.autoFitZoomEnabled = getBoolean('zoom-auto-fit-enabled', true)
+    this.autoFitZoomEnabled = getBoolean(autoFitZoomEnabledKey, true)
 
     // Seed the applied value with the base so the first auto-fit computation has
     // a sensible currently-applied zoom to reconstruct DIPs from.
@@ -2541,7 +2544,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return
     }
     this.zoomBaseFactor = base
-    setNumber('zoom-factor', base)
+    setNumber(zoomFactorKey, base)
     // Re-derive the multiplier against the new base, then apply.
     this.recomputeAutoFit()
     // Always emit so the (controlled) scale slider reflects the new base even
@@ -2556,7 +2559,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return
     }
     this.autoFitZoomEnabled = enabled
-    setBoolean('zoom-auto-fit-enabled', enabled)
+    setBoolean(autoFitZoomEnabledKey, enabled)
     this.recomputeAutoFit()
     // Always emit so the auto-fit checkbox reflects the new value even when the
     // applied effective zoom didn't change.
@@ -2579,7 +2582,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return zoomFactor
     }
 
-    const locallyStoredZoomFactor = getFloatNumber('zoom-factor')
+    const locallyStoredZoomFactor = getFloatNumber(zoomFactorKey)
     if (
       locallyStoredZoomFactor !== undefined &&
       locallyStoredZoomFactor !== zoomFactor
@@ -25854,8 +25857,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.scheduledBaseAppearanceCustomization = this.appearanceCustomization
     this.applyScheduledSettingsValue(this.scheduledSettingsValue)
     this.selectedTabSize = getNumber(tabSizeKey, tabSizeDefault)
-    this.zoomBaseFactor = clampZoom(getFloatNumber('zoom-factor', 1))
-    this.autoFitZoomEnabled = getBoolean('zoom-auto-fit-enabled', true)
+    this.zoomBaseFactor = clampZoom(getFloatNumber(zoomFactorKey, 1))
+    this.autoFitZoomEnabled = getBoolean(autoFitZoomEnabledKey, true)
     this.recomputeAutoFit()
     this.showRecentRepositories = getBoolean(showRecentRepositoriesKey) ?? true
     this.showBranchNameInRepoList =

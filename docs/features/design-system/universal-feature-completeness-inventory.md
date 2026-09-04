@@ -86,6 +86,21 @@ Every evidence field remains accountable to the artifact it names, and any
 field without current evidence remains incomplete until that evidence is
 produced in a later verification pass.
 
+The companion
+[`canonical-surfaces.json`](../../../app/test/fixtures/feature-completeness/canonical-surfaces.json)
+prevents a whole user-facing surface from disappearing between feature rows.
+It explicitly repeats all 62 canonical feature IDs for the Windows desktop,
+Linux terminal, and documentation-page families. Its current route inventory
+contains 299 desktop popup/teleport routes, 13 terminal screens, and 131 served
+HTML pages. A focused test derives the live route sets independently and fails
+when a feature, route, or source inventory is removed, added without review, or
+stale.
+
+Surface enumeration and feature evidence remain separate verdicts. A complete
+surface matrix proves that every feature has an accountable destination; it
+does not turn a pending implementation, localization, persistence, test,
+built-artifact interaction, or real capture into present evidence.
+
 ## Security and privacy
 
 Inventory entries contain stable identifiers and repository-relative evidence

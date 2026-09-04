@@ -47,6 +47,24 @@ describe('Scheduled settings preferences', () => {
     assert.ok(screen.getByText('About the value source'))
     assert.ok(document.querySelector('.scheduled-settings-target-start-date'))
     assert.ok(document.querySelector('.scheduled-settings-target-weekdays'))
+    const explanationRows = Array.from(
+      view.container.querySelectorAll('[data-setting-explanation-id]')
+    )
+    assert.equal(explanationRows.length, 33)
+    assert.equal(
+      new Set(
+        explanationRows.map(row =>
+          row.getAttribute('data-setting-explanation-id')
+        )
+      ).size,
+      27
+    )
+    assert.equal(
+      screen
+        .getByLabelText('Start date (optional)')
+        .getAttribute('aria-describedby'),
+      'scheduled-1-scheduled-start-date-setting-explanation scheduled-1-scheduled-start-date-setting-provenance'
+    )
     assert.equal(
       screen.getByLabelText('Start date (optional)').getAttribute('type'),
       'date'

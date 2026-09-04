@@ -50,6 +50,19 @@ describe('Notifications preferences', () => {
     assert.ok(preview.classList.contains('notice'))
     assert.ok(screen.getByText(/Errors that only need acknowledgement/))
     assert.ok(screen.getByText(/always remain dialogs/))
+    for (const id of [
+      'notifications-enabled',
+      'notifications-error-presentation',
+    ]) {
+      assert.ok(
+        view.container.querySelector(`[data-setting-explanation-id="${id}"]`),
+        `missing setting explanation ${id}`
+      )
+    }
+    assert.match(
+      group.getAttribute('aria-describedby') ?? '',
+      /notifications-error-presentation-setting-explanation/
+    )
 
     fireEvent.click(dialog)
     assert.deepEqual(changed, [ErrorPresentationStyle.Dialog])

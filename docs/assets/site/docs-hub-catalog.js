@@ -308,6 +308,13 @@
       d: 'A local JSON file that renames the words this app shows you. Load it from Settings → Appearance → Personal vocabulary. Nothing ships with it, nothing is uploaded, and until you…',
     },
     {
+      t: 'Isolated provider-authored markup rendering',
+      h: 'features/design-system/provider-markup-renderer.html',
+      s: 'features/design-system/provider-markup-renderer.md',
+      c: 'features',
+      d: 'Provider-authored Markdown is rendered as formatted content rather than printed as source text. One shared renderer serves release notes, pull request content, comments,…',
+    },
+    {
       t: 'Design-system features / 設計系統功能',
       h: 'features/design-system/',
       s: 'features/design-system/README.md',
@@ -334,6 +341,13 @@
       s: 'features/design-system/sfx-event-mapping.md',
       c: 'features',
       d: 'Builds on the audio system to give each meaningful app event its own recognizable sound effect instead of routing everything through the shared commit / auto-commit cue. It…',
+    },
+    {
+      t: 'Shared-link preview graphic',
+      h: 'features/design-system/shared-link-embed.html',
+      s: 'features/design-system/shared-link-embed.md',
+      c: 'features',
+      d: 'Desktop Material publishes one product-specific social preview at the repository root and one byte-identical served copy for the documentation site. The image shows the real…',
     },
     {
       t: 'Status Hub projection',
@@ -915,6 +929,13 @@
       s: 'features/quality-and-reliability/root-renderer-resource-lifecycle.md',
       c: 'features',
       d: 'The root App owns every long-lived renderer subscription and polling timer it starts. Store, updater, drag-manager, and IPC listeners are collected in one CompositeDisposable;…',
+    },
+    {
+      t: 'Single-flight user actions',
+      h: 'features/quality-and-reliability/single-flight-actions.html',
+      s: 'features/quality-and-reliability/single-flight-actions.md',
+      c: 'features',
+      d: 'Desktop Material prevents a rapid double-click, repeated Enter or Space key, or a second control from starting the same consequential asynchronous action twice. The protection…',
     },
     {
       t: 'Supply-chain and CI hardening',
@@ -1720,6 +1741,13 @@
       s: 'verification/bug-hunt-2026-07-28/run-manifest.md',
       c: 'verification',
       d: 'Run ID: bug-hunt-20260728-final',
+    },
+    {
+      t: 'Root build bootstrap verification, 2026-08-31',
+      h: 'verification/build-bootstrap-2026-08-31.html',
+      s: 'verification/build-bootstrap-2026-08-31.md',
+      c: 'verification',
+      d: "The repository's committed build.bat /s path was run from the isolated task worktree at commit c2f0fb6de969329628bc3dd60feef2dfe994d3fb. The command ran its own dependency…",
     },
     {
       t: 'Cheap LFS Bambu build cloud, clone, and batching acceptance — 2026-07-23',

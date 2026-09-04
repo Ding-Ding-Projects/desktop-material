@@ -240,6 +240,14 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       sourcePath: 'docs/features/design-system/personal-vocabulary.md',
     },
     {
+      id: 'design-system/provider-markup-renderer',
+      category: 'design-system',
+      title: 'Isolated provider-authored markup rendering',
+      description:
+        'Provider-authored Markdown is rendered as formatted content rather than printed as source text. One shared renderer serves release notes, pull request content, comments,…',
+      sourcePath: 'docs/features/design-system/provider-markup-renderer.md',
+    },
+    {
       id: 'design-system/README',
       category: 'design-system',
       title: 'Design-system features / 設計系統功能',
@@ -263,12 +271,28 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       sourcePath: 'docs/features/design-system/school-mode.md',
     },
     {
+      id: 'design-system/settings-explanations',
+      category: 'design-system',
+      title: 'Progressive settings explanations and provenance',
+      description:
+        'Desktop Material is adding one shared presentation contract for settings: every setting needs a full behavioral explanation behind progressive disclosure and a factual…',
+      sourcePath: 'docs/features/design-system/settings-explanations.md',
+    },
+    {
       id: 'design-system/sfx-event-mapping',
       category: 'design-system',
       title: 'Distinct sound-effect event mapping',
       description:
         'Builds on the audio system to give each meaningful app event its own recognizable sound effect instead of routing everything through the shared commit / auto-commit cue. It…',
       sourcePath: 'docs/features/design-system/sfx-event-mapping.md',
+    },
+    {
+      id: 'design-system/shared-link-embed',
+      category: 'design-system',
+      title: 'Shared-link preview graphic',
+      description:
+        'Desktop Material publishes one product-specific social preview at the repository root and one byte-identical served copy for the documentation site. The image shows the real…',
+      sourcePath: 'docs/features/design-system/shared-link-embed.md',
     },
     {
       id: 'design-system/status-hub',
@@ -965,6 +989,15 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
         'docs/features/quality-and-reliability/root-renderer-resource-lifecycle.md',
     },
     {
+      id: 'quality-and-reliability/single-flight-actions',
+      category: 'quality-and-reliability',
+      title: 'Single-flight user actions',
+      description:
+        'Desktop Material prevents a rapid double-click, repeated Enter or Space key, or a second control from starting the same consequential asynchronous action twice. The protection…',
+      sourcePath:
+        'docs/features/quality-and-reliability/single-flight-actions.md',
+    },
+    {
       id: 'quality-and-reliability/supply-chain-and-ci-hardening',
       category: 'quality-and-reliability',
       title: 'Supply-chain and CI hardening',
@@ -1429,7 +1462,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'design-system',
     label: 'Design System',
-    count: 25,
+    count: 28,
   },
   {
     name: 'identity-and-workspace',
@@ -1449,7 +1482,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'quality-and-reliability',
     label: 'Quality And Reliability',
-    count: 15,
+    count: 16,
   },
   {
     name: 'repository-management',

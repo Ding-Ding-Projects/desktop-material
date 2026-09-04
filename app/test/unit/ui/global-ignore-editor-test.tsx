@@ -20,7 +20,7 @@ const initial: IGlobalIgnoreDocument = {
 describe('GlobalIgnoreEditor', () => {
   it('loads, edits, saves, and reports the activated scope', async () => {
     const saves: Array<{ path: string; contents: string }> = []
-    render(
+    const view = render(
       <GlobalIgnoreEditor
         load={async () => initial}
         save={async (path, contents) => {
@@ -31,6 +31,12 @@ describe('GlobalIgnoreEditor', () => {
     )
 
     await screen.findByDisplayValue(initial.path)
+    for (const id of ['global-ignore-path', 'global-ignore-rules']) {
+      assert.ok(
+        view.container.querySelector(`[data-setting-explanation-id="${id}"]`),
+        `missing setting explanation ${id}`
+      )
+    }
     fireEvent.click(screen.getByRole('button', { name: 'Add OS files' }))
     const editor = screen.getByRole('textbox', {
       name: 'Global ignore rules',

@@ -46,6 +46,7 @@ from .application.path_input import (
     inspect_clone_destination,
     path_from_user_input,
 )
+from .ui.action_flight import single_flight_actions
 from .ui.screens.advanced import AdvancedPane
 from .ui.screens.cheap_lfs import CheapLfsPane
 from .ui.screens.dialogs import (
@@ -1387,42 +1388,28 @@ class DesktopMaterialTUI(App[None]):
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         button_id = event.button.id
-        if button_id == "repository-open":
-            self.action_open_repository()
-        elif button_id == "repository-clone":
-            self._show_clone_dialog()
-        elif button_id == "repository-new":
-            self._show_create_repository_dialog()
-        elif button_id == "toolbar-fetch":
-            self.action_fetch()
-        elif button_id == "toolbar-pull":
-            self.action_pull()
-        elif button_id == "toolbar-push":
-            self.action_push()
-        elif button_id == "toolbar-editor":
-            self.open_external_editor()
-        elif button_id == "repository-tabs-menu":
-            self.action_manage_repository_tabs()
-        elif button_id == "settings-save":
-            self._save_settings()
-        elif button_id == "settings-preview":
-            self._preview_settings()
-        elif button_id == "settings-detect-editors":
-            self._detect_editors()
-        elif button_id == "settings-reset-element":
-            self._reset_element_appearance()
-        elif button_id == "settings-undo":
-            self._undo_settings()
-        elif button_id == "settings-redo":
-            self._redo_settings()
-        elif button_id == "settings-history":
-            self._open_settings_history()
-        elif button_id == "notifications-refresh":
-            self._refresh_notification_centre()
-        elif button_id == "notifications-read":
-            self._mark_notifications_read()
-        elif button_id == "notifications-clear":
-            self._confirm_clear_notifications()
+        actions: dict[str, Callable[[], object]] = {
+            "repository-open": self.action_open_repository,
+            "repository-clone": self._show_clone_dialog,
+            "repository-new": self._show_create_repository_dialog,
+            "toolbar-fetch": self.action_fetch,
+            "toolbar-pull": self.action_pull,
+            "toolbar-push": self.action_push,
+            "toolbar-editor": self.open_external_editor,
+            "repository-tabs-menu": self.action_manage_repository_tabs,
+            "settings-save": self._save_settings,
+            "settings-preview": self._preview_settings,
+            "settings-detect-editors": self._detect_editors,
+            "settings-reset-element": self._reset_element_appearance,
+            "settings-undo": self._undo_settings,
+            "settings-redo": self._redo_settings,
+            "settings-history": self._open_settings_history,
+            "notifications-refresh": self._refresh_notification_centre,
+            "notifications-read": self._mark_notifications_read,
+            "notifications-clear": self._confirm_clear_notifications,
+        }
+        if button_id is not None and (action := actions.get(button_id)) is not None:
+            single_flight_actions.start(self, event.button, f"app:{button_id}", action)
 
     def action_open_repository(self) -> None:
         initial = str(self.active_repository.parent) if self.active_repository else ""

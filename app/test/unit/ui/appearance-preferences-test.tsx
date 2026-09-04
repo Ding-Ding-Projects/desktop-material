@@ -112,9 +112,45 @@ describe('Appearance preferences', () => {
     assert.ok(
       screen.getByRole('checkbox', { name: 'Show recent repositories' })
     )
-    assert.ok(screen.getByLabelText('Show branch name'))
+    assert.ok(
+      screen.getByLabelText(
+        translate('palette.setBranchNameInRepoList', 'english')
+      )
+    )
     assert.ok(screen.getByRole('heading', { name: 'Sort branches' }))
-    assert.ok(screen.getByLabelText('Tab size'))
+    assert.ok(screen.getByLabelText(translate('palette.tabSize', 'english')))
+
+    const requiredExplanationIds = [
+      'appearance-dialog-emoji',
+      'appearance-language-mode',
+      'appearance-funny-english',
+      'appearance-funny-cantonese',
+      'appearance-ui-scale',
+      'appearance-auto-fit-zoom',
+      'appearance-theme',
+      'appearance-branch-sort',
+      'surface-locks-manager',
+      'appearance-tab-size',
+      'appearance-show-recent-repositories',
+      'appearance-show-branch-name',
+    ]
+    if (
+      screen.queryByLabelText(translate('palette.setDateFormat', 'english'))
+    ) {
+      requiredExplanationIds.push(
+        'appearance-date-format',
+        'appearance-time-format',
+        'appearance-number-format',
+        'appearance-prefer-absolute-dates'
+      )
+    }
+    for (const id of requiredExplanationIds) {
+      const explanation = view.container.querySelector(
+        `[data-setting-explanation-id="${id}"]`
+      )
+      assert.ok(explanation, `missing setting explanation ${id}`)
+      assert.ok(explanation.querySelector('.setting-explanation__provenance'))
+    }
 
     const visualLabels = [
       'Highlight Desktop Material features',

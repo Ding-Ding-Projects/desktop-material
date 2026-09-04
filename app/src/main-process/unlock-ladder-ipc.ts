@@ -1,5 +1,10 @@
+import { app } from 'electron'
+import { randomUUID } from 'crypto'
+import { join } from 'path'
+
 import { handle } from './ipc-main'
-import { unlockLadderService } from './unlock-ladder'
+import { UnlockLadderService } from './unlock-ladder'
+import { FileUnlockLadderAllowanceStore } from './unlock-ladder-allowance-store'
 import type {
   IUnlockLadderMoleHitRequest,
   IUnlockLadderServiceResult,
@@ -13,6 +18,13 @@ import type {
  * inspect the answer store or turn a correct grade into a session.
  */
 export function registerUnlockLadderIpc(): void {
+  const unlockLadderService = new UnlockLadderService(
+    () => Date.now(),
+    () => randomUUID(),
+    new FileUnlockLadderAllowanceStore(
+      join(app.getPath('userData'), 'unlock-ladder', 'allowance.json')
+    )
+  )
   handle('unlock-ladder-start', async (_event, request) =>
     unlockLadderService.start(request as IUnlockLadderStartRequest)
   )

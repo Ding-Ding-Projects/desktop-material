@@ -7,7 +7,9 @@ import { DialogContent } from '../dialog'
 import { teleportAnchor } from '../../lib/teleport-targets'
 import {
   AttentionAccommodationMode,
+  AttentionAccommodationProvenance,
   deferAttentionMomentum,
+  getAttentionAccommodationProvenance,
   IAttentionAccommodationPreferences,
   readAttentionAccommodationPreferences,
   setAttentionAccommodationEnabled,
@@ -19,9 +21,14 @@ import {
 } from '../../lib/i18n'
 import { readFunnyLevels } from '../../lib/funny-level-text'
 import type { TeleportTargetId } from '../../lib/teleport-targets'
+import {
+  SettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 
 interface IAttentionAccommodationState {
   readonly preferences: IAttentionAccommodationPreferences
+  readonly provenance: AttentionAccommodationProvenance
   readonly momentumDeferMinutes: number
 }
 
@@ -88,6 +95,14 @@ const ModeTargets: Readonly<
   momentum: 'settingsAttentionMomentum',
 }
 
+const ModeSettingIds: Readonly<Record<AttentionAccommodationMode, string>> = {
+  focus: 'attention-focus',
+  lowStimulation: 'attention-low-stimulation',
+  timeAwareness: 'attention-time-awareness',
+  oneThingAtATime: 'attention-one-thing-at-a-time',
+  momentum: 'attention-momentum',
+}
+
 function localize(english: string, cantonese: string): string {
   switch (getPersistedLanguageMode()) {
     case 'cantonese':
@@ -107,6 +122,7 @@ export class AttentionAccommodations extends React.Component<
     super(props)
     this.state = {
       preferences: readAttentionAccommodationPreferences(),
+      provenance: getAttentionAccommodationProvenance(),
       momentumDeferMinutes: 30,
     }
   }
@@ -167,19 +183,37 @@ export class AttentionAccommodations extends React.Component<
                   'Write one concrete next action',
                   '寫低一件具體下一步'
                 )}
-                ariaDescribedBy="attention-next-action-help"
+                ariaDescribedBy={
+                  settingExplanationDescriptionIds('attention-next-action')
+                    .ariaDescribedBy
+                }
                 onValueChanged={this.onNextActionChanged}
                 onBlur={this.persistNextAction}
               />
-              <p
-                id="attention-next-action-help"
-                className="settings-description"
-              >
-                {localize(
-                  'This text stays on this computer and remains until you change or clear it.',
-                  '呢段文字只留喺呢部電腦，直到你修改或者清除。'
+              <SettingExplanation
+                settingId="attention-next-action"
+                summary={localize(
+                  'What this setting changes',
+                  '呢個設定會改咩'
                 )}
-              </p>
+                explanation={localize(
+                  'Keeps one user-chosen next action visible. The text stays on this computer until you change or clear it.',
+                  '保留一件由你揀嘅下一步。呢段文字只留喺呢部電腦，直到你修改或者清除。'
+                )}
+                source="stored-choice"
+                provenance={localize(
+                  `A choice is recorded on this computer. Current value: ${
+                    this.state.preferences.nextAction.length === 0
+                      ? 'empty'
+                      : 'text saved'
+                  }. Shipped value: empty.`,
+                  `呢部電腦記錄咗選擇。目前值：${
+                    this.state.preferences.nextAction.length === 0
+                      ? '空白'
+                      : '已儲存文字'
+                  }。出廠值：空白。`
+                )}
+              />
             </div>
           )}
 
@@ -193,6 +227,11 @@ export class AttentionAccommodations extends React.Component<
                 label={localize('Prompt defer interval', '提示延後時間')}
                 value={String(this.state.momentumDeferMinutes)}
                 onChange={this.onMomentumDeferChanged}
+                ariaDescribedBy={
+                  settingExplanationDescriptionIds(
+                    'attention-momentum-defer-interval'
+                  ).ariaDescribedBy
+                }
               >
                 {[15, 30, 60, 120].map(minutes => (
                   <option key={minutes} value={minutes}>
@@ -200,6 +239,22 @@ export class AttentionAccommodations extends React.Component<
                   </option>
                 ))}
               </Select>
+              <SettingExplanation
+                settingId="attention-momentum-defer-interval"
+                summary={localize(
+                  'What this setting changes',
+                  '呢個設定會改咩'
+                )}
+                explanation={localize(
+                  'Chooses how long the next Momentum prompt stays deferred when you use the adjacent action.',
+                  '揀你撳旁邊動作之後，下一次動力提示要延後幾耐。'
+                )}
+                source="runtime-only"
+                provenance={localize(
+                  `This value is temporary for the current settings session. Current value: ${this.state.momentumDeferMinutes} minutes. Shipped value: 30 minutes.`,
+                  `呢個值只喺今次設定工作階段暫時使用。目前值：${this.state.momentumDeferMinutes} 分鐘。出廠值：30 分鐘。`
+                )}
+              />
               <Button type="button" onClick={this.deferMomentum}>
                 {localize('Defer the next prompt', '延後下一次提示')}
               </Button>
@@ -233,15 +288,15 @@ export class AttentionAccommodations extends React.Component<
           onChange={handleModeChange}
           ariaDescribedBy={descriptionId}
         />
-        <p id={descriptionId} className="settings-description">
-          {localize(mode.description, mode.descriptionCantonese)}
-        </p>
       </div>
     )
   }
 
   private onPreferencesChanged = () => {
-    this.setState({ preferences: readAttentionAccommodationPreferences() })
+    this.setState({
+      preferences: readAttentionAccommodationPreferences(),
+      provenance: getAttentionAccommodationProvenance(),
+    })
   }
 
   private onLanguageChanged = () => {
@@ -254,6 +309,7 @@ export class AttentionAccommodations extends React.Component<
   ) => {
     this.setState({
       preferences: setAttentionAccommodationEnabled(mode, enabled),
+      provenance: 'stored-choice',
     })
   }
 
@@ -268,7 +324,10 @@ export class AttentionAccommodations extends React.Component<
 
   private persistNextAction = (value: string) => {
     const nextAction = value.slice(0, 240)
-    this.setState({ preferences: setAttentionNextAction(nextAction) })
+    this.setState({
+      preferences: setAttentionNextAction(nextAction),
+      provenance: 'stored-choice',
+    })
   }
 
   private onMomentumDeferChanged = (
@@ -279,6 +338,9 @@ export class AttentionAccommodations extends React.Component<
 
   private deferMomentum = () => {
     const until = Date.now() + this.state.momentumDeferMinutes * 60 * 1000
-    this.setState({ preferences: deferAttentionMomentum(until) })
+    this.setState({
+      preferences: deferAttentionMomentum(until),
+      provenance: 'stored-choice',
+    })
   }
 }

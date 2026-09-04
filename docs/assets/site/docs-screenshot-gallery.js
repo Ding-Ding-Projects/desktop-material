@@ -994,7 +994,7 @@
 
     if (text === '') {
       failed()
-      return
+      return Promise.resolve(false)
     }
 
     if (
@@ -1002,20 +1002,27 @@
       global.navigator.clipboard &&
       typeof global.navigator.clipboard.writeText === 'function'
     ) {
-      global.navigator.clipboard.writeText(text).then(done, function () {
-        if (!legacyCopy(text)) {
-          failed()
-          return
+      return global.navigator.clipboard.writeText(text).then(
+        function () {
+          done()
+          return true
+        },
+        function () {
+          if (!legacyCopy(text)) {
+            failed()
+            return false
+          }
+          done()
+          return true
         }
-        done()
-      })
-      return
+      )
     }
     if (legacyCopy(text)) {
       done()
-      return
+      return Promise.resolve(true)
     }
     failed()
+    return Promise.resolve(false)
   }
 
   function legacyCopy(text) {
@@ -1327,16 +1334,27 @@
       copy.textContent = label('noCommand')
     } else {
       copy.addEventListener('click', function () {
-        copyText(command, {
-          onDone: function () {
-            flashButton(copy, label, 'copied', 'copyFailed', true)
-            context.announce(label('copied'))
-          },
-          onFail: function () {
-            flashButton(copy, label, 'copied', 'copyFailed', false)
-            context.announce(label('copyFailed'))
-          },
-        })
+        var copyCommand = function () {
+          return copyText(command, {
+            onDone: function () {
+              flashButton(copy, label, 'copied', 'copyFailed', true)
+              context.announce(label('copied'))
+            },
+            onFail: function () {
+              flashButton(copy, label, 'copied', 'copyFailed', false)
+              context.announce(label('copyFailed'))
+            },
+          })
+        }
+        if (global.DesktopMaterialActionFlight !== undefined) {
+          void global.DesktopMaterialActionFlight.run(
+            'copy-command:' + item.file,
+            copy,
+            copyCommand
+          )
+        } else {
+          void copyCommand()
+        }
       })
     }
     actions.appendChild(copy)
@@ -2147,16 +2165,27 @@
       copyButton.textContent = label('noCommand')
     } else {
       copyButton.addEventListener('click', function () {
-        copyText(command, {
-          onDone: function () {
-            flashButton(copyButton, label, 'copied', 'copyFailed', true)
-            live.textContent = label('copied')
-          },
-          onFail: function () {
-            flashButton(copyButton, label, 'copied', 'copyFailed', false)
-            live.textContent = label('copyFailed')
-          },
-        })
+        var copyCommand = function () {
+          return copyText(command, {
+            onDone: function () {
+              flashButton(copyButton, label, 'copied', 'copyFailed', true)
+              live.textContent = label('copied')
+            },
+            onFail: function () {
+              flashButton(copyButton, label, 'copied', 'copyFailed', false)
+              live.textContent = label('copyFailed')
+            },
+          })
+        }
+        if (global.DesktopMaterialActionFlight !== undefined) {
+          void global.DesktopMaterialActionFlight.run(
+            'copy-command:' + item.file,
+            copyButton,
+            copyCommand
+          )
+        } else {
+          void copyCommand()
+        }
       })
     }
     actions.appendChild(copyButton)

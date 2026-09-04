@@ -19,7 +19,9 @@ import { Repository } from '../../models/repository'
 import { showOpenDialog } from '../main-process-proxy'
 import { AudioCueStore } from '../../lib/audio/audio-cue-store'
 import {
+  AudioSettingsStorageKey,
   AudioCueCategory,
+  DefaultAudioSystemSettings,
   IAudioSystemSettings,
   MaxTtsPitch,
   MaxTtsRate,
@@ -43,6 +45,12 @@ import {
   readInstalledVoices,
   voicesForLanguage,
 } from '../../lib/audio/narrator-voices'
+import {
+  BooleanSettingExplanation,
+  SelectionSettingExplanation,
+  SettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 
 /**
  * The auditionable sound-effect cues, grouped by their motif family so the
@@ -236,13 +244,28 @@ export class SoundPreferences extends React.Component<
           searchSurfaceId={`settings-sound-narrator-voice-${language}`}
           regexBuilderTarget={label}
           placeholder={label}
-          ariaDescribedBy={statusId}
+          ariaDescribedBy={`${statusId} ${
+            settingExplanationDescriptionIds(`sound-narrator-voice-${language}`)
+              .ariaDescribedBy
+          }`}
           disabled={available.length === 0}
           onChange={onChange}
         />
         <p className="settings-description" id={statusId} role="status">
           {translate(statusKey, languageMode, variables)}
         </p>
+        <SelectionSettingExplanation
+          settingId={`sound-narrator-voice-${language}`}
+          explanationEnglish={`Chooses the installed ${language} voice used by the narrator, or lets the platform choose automatically.`}
+          explanationCantonese={`揀旁白使用嘅${
+            language === 'english' ? '英文' : '廣東話'
+          }已安裝聲音，或者交畀平台自動選擇。`}
+          currentEnglish={chosen || 'automatic'}
+          currentCantonese={chosen || '自動'}
+          shippedEnglish="automatic"
+          shippedCantonese="自動"
+          storageKey={AudioSettingsStorageKey}
+        />
       </div>
     )
   }
@@ -559,6 +582,16 @@ export class SoundPreferences extends React.Component<
     id: string
   ) {
     const { languageMode } = this.state
+    const shippedValues: Readonly<Record<string, boolean>> = {
+      'sound-master': DefaultAudioSystemSettings.masterEnabled,
+      'sound-sfx': DefaultAudioSystemSettings.sfxEnabled,
+      'sound-tts': DefaultAudioSystemSettings.ttsEnabled,
+      'sound-recorded-narration':
+        DefaultAudioSystemSettings.useRecordedNarration,
+      'sound-music': DefaultAudioSystemSettings.musicEnabled,
+      'sound-quiet': DefaultAudioSystemSettings.quietHours.enabled,
+      'sound-reduced-motion': DefaultAudioSystemSettings.respectReducedMotion,
+    }
     return (
       <div className="preference-toggle-card">
         <div className="preference-toggle-row">
@@ -580,9 +613,19 @@ export class SoundPreferences extends React.Component<
             checked={checked}
             onChange={onChange}
             ariaLabelledBy={`${id}-title`}
-            ariaDescribedBy={`${id}-description`}
+            ariaDescribedBy={`${id}-description ${
+              settingExplanationDescriptionIds(id).ariaDescribedBy
+            }`}
           />
         </div>
+        <BooleanSettingExplanation
+          settingId={id}
+          explanationEnglish={translate(descriptionKey, 'english')}
+          explanationCantonese={translate(descriptionKey, 'cantonese')}
+          value={checked}
+          shippedValue={shippedValues[id] ?? false}
+          storageKey={AudioSettingsStorageKey}
+        />
       </div>
     )
   }
@@ -595,19 +638,44 @@ export class SoundPreferences extends React.Component<
   ) {
     const label = translate(labelKey, this.state.languageMode)
     const percent = Math.round(value * 100)
+    const shippedValues: Readonly<Record<string, number>> = {
+      'sound-sfx-volume': DefaultAudioSystemSettings.sfxVolume,
+      'sound-tts-volume': DefaultAudioSystemSettings.ttsVolume,
+      'sound-music-volume': DefaultAudioSystemSettings.musicVolume,
+    }
+    const shippedPercent = Math.round((shippedValues[id] ?? 1) * 100)
     return (
-      <RangeSlider
-        id={id}
-        className="sound-range-slider"
-        label={label}
-        min={0}
-        max={100}
-        step={1}
-        value={percent}
-        valueText={`${percent}%`}
-        ariaValueText={`${percent}%`}
-        onChange={percent => onChange(percent / 100)}
-      />
+      <>
+        <RangeSlider
+          id={id}
+          className="sound-range-slider"
+          label={label}
+          min={0}
+          max={100}
+          step={1}
+          value={percent}
+          valueText={`${percent}%`}
+          ariaValueText={`${percent}%`}
+          ariaDescribedBy={settingExplanationDescriptionIds(id).ariaDescribedBy}
+          onChange={percent => onChange(percent / 100)}
+        />
+        <SelectionSettingExplanation
+          settingId={id}
+          explanationEnglish={`Sets ${translate(
+            labelKey,
+            'english'
+          ).toLocaleLowerCase()} without changing whether that sound category is enabled.`}
+          explanationCantonese={`設定${translate(
+            labelKey,
+            'cantonese'
+          )}，但唔會改嗰個聲音類別係咪開啟。`}
+          currentEnglish={`${percent}%`}
+          currentCantonese={`${percent}%`}
+          shippedEnglish={`${shippedPercent}%`}
+          shippedCantonese={`${shippedPercent}%`}
+          storageKey={AudioSettingsStorageKey}
+        />
+      </>
     )
   }
 
@@ -615,21 +683,41 @@ export class SoundPreferences extends React.Component<
     const { languageMode, settings } = this.state
     const label = translate('settings.soundTtsCooldownLabel', languageMode)
     const seconds = Math.round(settings.ttsCooldownMs / 1000)
+    const settingId = 'sound-tts-cooldown'
     return (
-      <RangeSlider
-        id="sound-tts-cooldown"
-        className="sound-range-slider"
-        label={label}
-        min={2}
-        max={60}
-        step={1}
-        value={seconds}
-        valueText={`${seconds}s`}
-        ariaValueText={`${seconds}s`}
-        onChange={nextSeconds =>
-          this.update({ ttsCooldownMs: nextSeconds * 1000 })
-        }
-      />
+      <>
+        <RangeSlider
+          id={settingId}
+          className="sound-range-slider"
+          label={label}
+          min={2}
+          max={60}
+          step={1}
+          value={seconds}
+          valueText={`${seconds}s`}
+          ariaValueText={`${seconds}s`}
+          ariaDescribedBy={
+            settingExplanationDescriptionIds(settingId).ariaDescribedBy
+          }
+          onChange={nextSeconds =>
+            this.update({ ttsCooldownMs: nextSeconds * 1000 })
+          }
+        />
+        <SelectionSettingExplanation
+          settingId={settingId}
+          explanationEnglish="Sets the minimum number of seconds between ordinary narrator lines. Essential error narration is not suppressed."
+          explanationCantonese="設定普通旁白句子之間最少相隔幾多秒；必要錯誤旁白唔會被抑制。"
+          currentEnglish={`${seconds} seconds`}
+          currentCantonese={`${seconds} 秒`}
+          shippedEnglish={`${Math.round(
+            DefaultAudioSystemSettings.ttsCooldownMs / 1000
+          )} seconds`}
+          shippedCantonese={`${Math.round(
+            DefaultAudioSystemSettings.ttsCooldownMs / 1000
+          )} 秒`}
+          storageKey={AudioSettingsStorageKey}
+        />
+      </>
     )
   }
 
@@ -667,19 +755,40 @@ export class SoundPreferences extends React.Component<
   ) {
     const label = translate(labelKey, this.state.languageMode)
     const valueText = value.toFixed(1)
+    const shipped =
+      id === 'sound-tts-rate'
+        ? DefaultAudioSystemSettings.ttsRate
+        : DefaultAudioSystemSettings.ttsPitch
     return (
-      <RangeSlider
-        id={id}
-        className="sound-range-slider"
-        label={label}
-        min={min}
-        max={max}
-        step={0.1}
-        value={value}
-        valueText={valueText}
-        ariaValueText={valueText}
-        onChange={onChange}
-      />
+      <>
+        <RangeSlider
+          id={id}
+          className="sound-range-slider"
+          label={label}
+          min={min}
+          max={max}
+          step={0.1}
+          value={value}
+          valueText={valueText}
+          ariaValueText={valueText}
+          ariaDescribedBy={settingExplanationDescriptionIds(id).ariaDescribedBy}
+          onChange={onChange}
+        />
+        <SelectionSettingExplanation
+          settingId={id}
+          explanationEnglish={`Sets the narrator ${
+            id === 'sound-tts-rate' ? 'speaking rate' : 'pitch'
+          } within the platform-supported range.`}
+          explanationCantonese={`設定旁白嘅${
+            id === 'sound-tts-rate' ? '講話速度' : '音調'
+          }，範圍跟平台支援限制。`}
+          currentEnglish={valueText}
+          currentCantonese={valueText}
+          shippedEnglish={shipped.toFixed(1)}
+          shippedCantonese={shipped.toFixed(1)}
+          storageKey={AudioSettingsStorageKey}
+        />
+      </>
     )
   }
 
@@ -691,6 +800,13 @@ export class SoundPreferences extends React.Component<
   ) {
     const label = translate(labelKey, this.state.languageMode)
     const hours = Array.from({ length: 24 }, (_, hour) => hour)
+    const isStart = id.includes('start')
+    const settingId = isStart
+      ? 'sound-quiet-hours-start'
+      : 'sound-quiet-hours-end'
+    const shipped = isStart
+      ? DefaultAudioSystemSettings.quietHours.startHour
+      : DefaultAudioSystemSettings.quietHours.endHour
     return (
       <div className="sound-field-group">
         <Select
@@ -698,6 +814,9 @@ export class SoundPreferences extends React.Component<
           label={label}
           value={value.toString()}
           onChange={event => onChange(Number(event.currentTarget.value))}
+          ariaDescribedBy={
+            settingExplanationDescriptionIds(settingId).ariaDescribedBy
+          }
         >
           {hours.map(hour => (
             <option key={hour} value={hour}>
@@ -705,6 +824,24 @@ export class SoundPreferences extends React.Component<
             </option>
           ))}
         </Select>
+        <SelectionSettingExplanation
+          settingId={settingId}
+          explanationEnglish={
+            isStart
+              ? 'Chooses the local hour when quiet hours begin suppressing non-essential audio.'
+              : 'Chooses the local hour when quiet hours stop suppressing non-essential audio.'
+          }
+          explanationCantonese={
+            isStart
+              ? '揀安靜時段開始抑制非必要聲音嘅本地時間。'
+              : '揀安靜時段停止抑制非必要聲音嘅本地時間。'
+          }
+          currentEnglish={`${value.toString().padStart(2, '0')}:00`}
+          currentCantonese={`${value.toString().padStart(2, '0')}:00`}
+          shippedEnglish={`${shipped.toString().padStart(2, '0')}:00`}
+          shippedCantonese={`${shipped.toString().padStart(2, '0')}:00`}
+          storageKey={AudioSettingsStorageKey}
+        />
       </div>
     )
   }
@@ -746,6 +883,30 @@ export class SoundPreferences extends React.Component<
       : isCustom
       ? 'settings.soundThemeStateCustom'
       : 'settings.soundThemeStateTheme'
+    const currentTrackEnglish = isOff
+      ? 'off'
+      : isCustom
+      ? 'custom track selected'
+      : 'generated repository theme'
+    const currentTrackCantonese = isOff
+      ? '關'
+      : isCustom
+      ? '已揀自訂曲目'
+      : '已產生儲存庫主題'
+    const trackProvenanceEnglish =
+      repositoryOverride === null
+        ? 'No repository override is recorded. Current and shipped value: generated repository theme.'
+        : `A repository override is recorded. Current value: ${currentTrackEnglish}. Shipped value: generated repository theme.`
+    const trackProvenanceCantonese =
+      repositoryOverride === null
+        ? '未記錄逐儲存庫覆寫。目前值同出廠值：已產生儲存庫主題。'
+        : `已記錄逐儲存庫覆寫。目前值：${currentTrackCantonese}。出廠值：已產生儲存庫主題。`
+    const trackProvenance =
+      languageMode === 'cantonese'
+        ? trackProvenanceCantonese
+        : languageMode === 'bilingual'
+        ? `${trackProvenanceEnglish} · ${trackProvenanceCantonese}`
+        : trackProvenanceEnglish
     const trackLabel = translate('settings.soundMusicRepoLabel', languageMode, {
       repository: bilingualVariable(repository.name, repository.name),
     })
@@ -799,6 +960,10 @@ export class SoundPreferences extends React.Component<
                 'settings.soundMusicNoTrack',
                 languageMode
               )}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('sound-repository-track')
+                  .ariaDescribedBy
+              }
             />
             <Button
               type="button"
@@ -811,6 +976,18 @@ export class SoundPreferences extends React.Component<
               />
             </Button>
           </div>
+          <SettingExplanation
+            settingId="sound-repository-track"
+            summary={translate('dialogEmoji.explanationSummary', languageMode)}
+            explanation={translate(
+              'settings.soundThemeExplanation',
+              languageMode
+            )}
+            source={
+              repositoryOverride === null ? 'compiled-default' : 'stored-choice'
+            }
+            provenance={trackProvenance}
+          />
         </div>
 
         <div className="sound-theme-actions">

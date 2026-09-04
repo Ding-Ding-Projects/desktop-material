@@ -182,6 +182,15 @@ describe('personal vocabulary reaches typed React boundaries', () => {
       '[data-verification="personal-vocabulary-choose-file"]'
     )
     assert.ok(chooseButton)
+    assert.ok(
+      container.querySelector(
+        '[data-setting-explanation-id="personal-vocabulary-file"]'
+      )
+    )
+    assert.match(
+      chooseButton.getAttribute('aria-describedby') ?? '',
+      /personal-vocabulary-file-setting-explanation/
+    )
     assert.ok(chooseButton.classList.contains('button-component'))
     assert.equal(input.getAttribute('aria-hidden'), 'true')
     assert.equal(input.getAttribute('tabindex'), '-1')

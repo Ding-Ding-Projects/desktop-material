@@ -13,9 +13,14 @@ import {
 } from '../lib/searchable-select'
 import {
   isSettingsTabDockPosition,
+  settingsTabDockPositionStorageKey,
   SettingsTabDockPosition,
   SettingsTabStripId,
 } from './settings-tab-model'
+import {
+  SelectionSettingExplanation,
+  settingExplanationDescriptionIds,
+} from '../preferences/settings-explanation'
 
 interface ISettingsTabDockControlProps {
   readonly strip: SettingsTabStripId
@@ -117,6 +122,16 @@ export class SettingsTabDockControl extends React.Component<
         <p id={descriptionId}>
           {translate('settings.tabsDockDescription', languageMode)}
         </p>
+        <SelectionSettingExplanation
+          settingId={settingId}
+          explanationEnglish="Chooses which edge holds this settings tab strip. The strip changes orientation without rotating its labels."
+          explanationCantonese="揀呢個設定分頁列停靠邊一條邊；分頁列會改方向，但唔會旋轉文字。"
+          currentEnglish={this.props.position}
+          currentCantonese={this.props.position}
+          shippedEnglish={DefaultSettingsTabDockPosition}
+          shippedCantonese={DefaultSettingsTabDockPosition}
+          storageKey={settingsTabDockPositionStorageKey(this.props.strip)}
+        />
       </div>
     )
   }

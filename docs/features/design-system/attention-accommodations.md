@@ -52,11 +52,29 @@ can be unavailable without preventing the app from starting.
 
 ## Verification status
 
-The implementation and settings/search/palette registration are present on the
-attention-accommodation feature lane. Tests, lint, type checks, packaged
-interactions, runtime captures, and release verification were intentionally not
-  run in the ultra-speed implementation lane; those checks remain with the owning
-integration lane.
+The implementation, local persistence, English/Cantonese/bilingual copy,
+settings search, command-palette registration, and seven focused unit/UI tests
+are verified in `app/test/unit/attention-accommodation-test.tsx`. The focused test
+also removes one required mode from a copy of the hand-written five-mode
+inventory and verifies that the exact inventory check rejects it before
+validating the restored list. It also proves hidden overlays are excluded from
+Focus and focused descendants resolve to real top-level workspace regions.
+
+The exact `74159be0d9d4da10254ad18873496bb9bd1f5928` production build was
+driven on a cheap-Lowlevel hidden Windows desktop with an isolated profile and
+disposable repository. Every mode was enabled, conditional controls were
+reached by keyboard, and a restart proved Focus kept the normally hidden
+repository-drop overlay invisible while Time awareness continued reporting
+live session and activity facts. Release packaging remains pending and is not
+implied by this unpackaged production-build evidence.
+
+### Current built captures
+
+![All five attention accommodations enabled in Settings](../../assets/screenshots/preferences-attention.png)
+
+![One thing at a time and Momentum conditional controls](../../assets/screenshots/attention-one-thing.png)
+
+![Focus workspace with the hidden repository-drop overlay still hidden](../../assets/screenshots/attention-focus.png)
 
 ## Suggested articles
 

@@ -12,7 +12,12 @@ import {
   requestNotificationsPermission,
 } from '../main-process-proxy'
 import { RadioGroup } from '../lib/radio-group'
-import { ErrorPresentationStyle } from '../../models/error-presentation'
+import {
+  DefaultErrorPresentationStyle,
+  ErrorPresentationStyle,
+  ErrorPresentationStyleKey,
+} from '../../models/error-presentation'
+import { NotificationsEnabledKey } from '../../lib/stores/notifications-store'
 import { DefaultAppDisplayName } from '../../models/app-identity'
 import {
   getPersistedLanguageMode,
@@ -21,6 +26,11 @@ import {
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import {
+  BooleanSettingExplanation,
+  SelectionSettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 
 interface INotificationPreferencesProps {
   readonly notificationsEnabled: boolean
@@ -133,9 +143,20 @@ export class Notifications extends React.Component<
                 checked={this.props.notificationsEnabled}
                 onChange={this.props.onNotificationsEnabledChanged}
                 ariaLabelledBy="notifications-enable-title"
-                ariaDescribedBy="notifications-enable-description"
+                ariaDescribedBy={`notifications-enable-description ${
+                  settingExplanationDescriptionIds('notifications-enabled')
+                    .ariaDescribedBy
+                }`}
               />
             </div>
+            <BooleanSettingExplanation
+              settingId="notifications-enabled"
+              explanationEnglish="Controls whether high-signal desktop notifications are shown when the application is not focused."
+              explanationCantonese="控制應用程式未聚焦時係咪顯示高訊號桌面通知。"
+              value={this.props.notificationsEnabled}
+              shippedValue={true}
+              storageKey={NotificationsEnabledKey}
+            />
           </div>
         </div>
         <div className="advanced-section error-presentation-preferences">
@@ -148,6 +169,11 @@ export class Notifications extends React.Component<
           <div {...teleportAnchor('settings-error-presentation')}>
             <RadioGroup<ErrorPresentationStyle>
               ariaLabelledBy="error-presentation-heading"
+              ariaDescribedBy={
+                settingExplanationDescriptionIds(
+                  'notifications-error-presentation'
+                ).ariaDescribedBy
+              }
               selectedKey={this.props.errorPresentationStyle}
               radioButtonKeys={[
                 ErrorPresentationStyle.Notice,
@@ -156,6 +182,16 @@ export class Notifications extends React.Component<
               onSelectionChanged={this.onErrorPresentationStyleChanged}
               renderRadioButtonLabelContents={this.renderErrorPresentationLabel}
               className="error-presentation-options"
+            />
+            <SelectionSettingExplanation
+              settingId="notifications-error-presentation"
+              explanationEnglish="Chooses whether acknowledgement-only application errors appear as non-blocking notices or blocking dialogs. Errors requiring a decision remain dialogs."
+              explanationCantonese="揀只需確認嘅應用程式錯誤用非阻塞通知定阻塞對話框顯示；需要決定嘅錯誤仍然用對話框。"
+              currentEnglish={this.props.errorPresentationStyle}
+              currentCantonese={this.props.errorPresentationStyle}
+              shippedEnglish={DefaultErrorPresentationStyle}
+              shippedCantonese={DefaultErrorPresentationStyle}
+              storageKey={ErrorPresentationStyleKey}
             />
           </div>
           <div

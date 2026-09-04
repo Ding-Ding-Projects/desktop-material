@@ -46,6 +46,15 @@ The typed IPC contract is declared in `app/src/lib/ipc-shared.ts`, proxied by
 must call `registerUnlockLadderIpc()` alongside the other main-process
 registrations before exposing the panel.
 
+`app/src/main-process/unlock-ladder-allowance-store.ts` persists only the
+successful wait-skip timestamps in
+`<userData>/unlock-ladder/allowance.json`. The versioned file is bounded to
+4 KiB and 64 records, rejects malformed values, prunes entries outside the
+rolling hour, and atomically publishes a unique temporary file through the
+shared Windows rename-retry boundary. Writes are serialized, so simultaneous
+lockouts cannot both spend the final slot. A corrupt or unreadable file fails
+closed by leaving the original wait in place; it never resets the allowance.
+
 ## Renderer surface
 
 `app/src/ui/unlock-ladder/unlock-ladder.tsx` is a non-modal, keyboard-first
@@ -91,20 +100,24 @@ explicit at every level.
   next state to the original clock.
 - Exhausting the rolling-hour allowance leaves the original clock available and
   does not shorten the wait.
+- Restarting the application reloads the same rolling-hour allowance. Advancing
+  the system clock past the window prunes the expired entries on the next read.
 
-The feature is intentionally local to the app process. It does not send
-challenge answers to a network service, persist credentials, or expose private
-answer material in exports, logs, or UI state.
+The feature is intentionally local to the application. It does not send
+challenge answers to a network service, persist credentials or authentication
+state, or expose private answer material in exports, logs, or UI state. The
+durable file contains timestamps only.
 
 ## Evidence boundary
 
-The focused model/service tests cover nonce single-use and expiry, each rung
-transition, School mode start, rolling-hour limits, no-authentication/no-refund
-invariants, and clearing only the retry deadline. Prompt integration coverage
-must keep the credential field as the only authentication path and verify that
-the ladder is mounted only while this real prompt is waiting. Built-artifact
-and visual interaction evidence remain separate from these source-level
-checks.
+Eight focused model/service tests cover nonce single-use and expiry, each rung
+transition, School mode start, rolling-hour limits, restart persistence,
+serialized concurrent spending, malformed-file refusal,
+no-authentication/no-refund invariants, and clearing only the retry deadline.
+Prompt integration coverage must keep the credential field as the only
+authentication path and verify that the ladder is mounted only while this real
+prompt is waiting. Built-artifact and visual interaction evidence remain
+separate from these source-level checks.
 
 Suggested articles: [School mode](school-mode.md),
 [Surface locks](surface-locks.md), and

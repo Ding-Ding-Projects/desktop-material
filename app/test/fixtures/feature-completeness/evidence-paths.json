@@ -605,44 +605,79 @@
       "evidence": {
         "implementation": [
           {
-            "status": "pending",
-            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+            "status": "present",
+            "paths": [
+              "app/src/models/attention-accommodation.ts",
+              "app/src/ui/attention/attention-accommodation-runtime.tsx",
+              "app/src/ui/preferences/attention-accommodations.tsx",
+              "app/styles/ui/_attention-accommodations.scss"
+            ],
+            "note": "The five independent off-by-default modes are mounted at the app root and wired to live settings, runtime state, and existing shell regions without replacing the shell."
           }
         ],
         "documentation": [
           {
-            "status": "pending",
-            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "docs/features/design-system/attention-accommodations.md"
+            ],
+            "note": "The dedicated article documents behavior, persistence, privacy, accessibility, localization, failure boundaries, verification, and suggested articles."
           }
         ],
         "localization": [
           {
-            "status": "pending",
-            "reason": "Localization evidence was not independently inspected or verified in this pass."
+            "status": "present",
+            "paths": [
+              "app/src/ui/preferences/attention-accommodations.tsx",
+              "app/src/ui/attention/attention-accommodation-runtime.tsx",
+              "app/src/lib/i18n-resources.ts"
+            ],
+            "note": "Focused UI evidence covers English and bilingual labels, while settings-search catalog entries carry English and Cantonese resources."
           }
         ],
         "persistence": [
           {
-            "status": "pending",
-            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+            "status": "present",
+            "paths": [
+              "app/src/models/attention-accommodation.ts",
+              "app/test/unit/attention-accommodation-test.tsx"
+            ],
+            "note": "A versioned local record stores independent mode state, the bounded next action, defer timestamp, and last-change timestamp; corrupt values normalize to safe defaults."
           }
         ],
         "focusedTest": [
           {
-            "status": "pending",
-            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "app/test/unit/attention-accommodation-test.tsx"
+            ],
+            "note": "Six focused tests cover the exact five-mode inventory, deliberate missing-mode rejection, safe coercion, independent persistence, search/palette registration, accessible conditional controls, bilingual copy, and factual duration formatting."
           }
         ],
         "builtArtifactInteraction": [
           {
-            "status": "pending",
-            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+            "status": "present",
+            "paths": [
+              ".codex/run-manifests/2026-08-31-status-hub-attention-headless.md",
+              "docs/assets/screenshots/attention-focus.png",
+              "docs/assets/screenshots/preferences-attention.png",
+              "docs/assets/screenshots/attention-one-thing.png"
+            ],
+            "note": "The exact 74159be0d9 build was driven on a cheap-Lowlevel hidden desktop: every mode was enabled, conditional controls were reached by keyboard, the Time awareness card rendered live facts, and a restart proved Focus kept the hidden repository-drop overlay invisible."
           }
         ],
         "realCapture": [
           {
-            "status": "pending",
-            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "docs/assets/screenshots/preferences-attention.png",
+              "docs/assets/screenshots/attention-focus.png",
+              "docs/assets/screenshots/attention-low-stimulation.png",
+              "docs/assets/screenshots/attention-time-awareness.png",
+              "docs/assets/screenshots/attention-one-thing.png",
+              "docs/assets/screenshots/attention-momentum.png"
+            ],
+            "note": "Original-resolution 960x660 captures show all five enabled settings, next-action and defer controls, and the repaired Focus workspace without the normally hidden drop overlay."
           }
         ]
       }
@@ -2211,32 +2246,53 @@
       "evidence": {
         "implementation": [
           {
-            "status": "pending",
-            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+            "status": "present",
+            "paths": [
+              "script/generate-social-preview.ps1",
+              "social-preview.png",
+              "docs/assets/social-preview.png",
+              "docs/index.html",
+              "script/generate-screenshot-docs.mjs"
+            ],
+            "note": "The root and served preview are generated byte-identically from a real built-surface capture, and static metadata is emitted on every page."
           }
         ],
         "documentation": [
           {
-            "status": "pending",
-            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "docs/features/design-system/shared-link-embed.md"
+            ],
+            "note": "The feature article records generation, metadata, cache, privacy, failure, and live-verification boundaries."
           }
         ],
         "localization": [
           {
-            "status": "pending",
-            "reason": "Localization evidence was not independently inspected or verified in this pass."
+            "status": "present",
+            "paths": [
+              "docs/index.html",
+              "script/generate-screenshot-docs.mjs"
+            ],
+            "note": "Pre-authentication metadata uses fixed ordinary product copy and meaningful alternative text on every page; private vocabulary is never rendered."
           }
         ],
         "persistence": [
           {
-            "status": "pending",
-            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+            "status": "present",
+            "paths": [
+              "script/generate-social-preview.ps1",
+              "script/social-preview-test.mjs"
+            ],
+            "note": "The preview is versioned at the root and copied byte-identically to the served path; it has no mutable visitor state."
           }
         ],
         "focusedTest": [
           {
-            "status": "pending",
-            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "script/social-preview-test.mjs"
+            ],
+            "note": "Focused checks cover bytes, dimensions, all page routes, complete static metadata, absolute HTTPS image use, and deliberate removal mutations."
           }
         ],
         "builtArtifactInteraction": [
@@ -2247,8 +2303,12 @@
         ],
         "realCapture": [
           {
-            "status": "pending",
-            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "social-preview.png",
+              "docs/assets/screenshots/material-workspace-changes.png"
+            ],
+            "note": "The generated graphic visibly embeds the real built repository changes workspace from the checked-in capture plan."
           }
         ]
       }
@@ -2258,32 +2318,53 @@
       "evidence": {
         "implementation": [
           {
-            "status": "pending",
-            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+            "status": "present",
+            "paths": [
+              "app/src/ui/lib/sandboxed-markdown.tsx",
+              "tui/src/desktop_material_tui/ui/screens/github.py",
+              "script/generate-docs-browser-bundle.mjs"
+            ],
+            "note": "The desktop uses one sanitized sandboxed iframe renderer, the terminal uses local Textual Markdown, and documentation is rendered statically and bundled offline."
           }
         ],
         "documentation": [
           {
-            "status": "pending",
-            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "docs/features/design-system/provider-markup-renderer.md"
+            ],
+            "note": "The article documents behavior, configuration, failure recovery, isolation, security, and all three surface equivalents."
           }
         ],
         "localization": [
           {
-            "status": "pending",
-            "reason": "Localization evidence was not independently inspected or verified in this pass."
+            "status": "present",
+            "paths": [
+              "app/src/ui/lib/sandboxed-markdown.tsx",
+              "app/src/lib/i18n-resources.ts"
+            ],
+            "note": "Provider content stays exact while every owning surface supplies localized labels and factual empty states through the shared catalog."
           }
         ],
         "persistence": [
           {
-            "status": "pending",
-            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+            "status": "present",
+            "paths": [
+              "app/src/ui/lib/sandboxed-markdown.tsx",
+              "docs/features/design-system/provider-markup-renderer.md"
+            ],
+            "note": "The renderer owns no provider-content persistence; owning features persist their source records, while render generations and iframe state are deliberately ephemeral."
           }
         ],
         "focusedTest": [
           {
-            "status": "pending",
-            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "app/test/unit/ui/sandboxed-markdown-lifecycle-test.tsx",
+              "app/test/unit/release-notes-markdown-contract-test.ts",
+              "app/test/unit/docs-browser-wiring-test.ts"
+            ],
+            "note": "Focused coverage proves lifecycle ownership, cancellation, real release-note consumers, and offline documentation wiring."
           }
         ],
         "builtArtifactInteraction": [
@@ -2305,44 +2386,83 @@
       "evidence": {
         "implementation": [
           {
-            "status": "pending",
-            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+            "status": "present",
+            "paths": [
+              "app/src/models/status-hub.ts",
+              "app/src/main-process/status-hub-client.ts",
+              "app/src/main-process/status-hub-configuration-store.ts",
+              "app/src/ui/agent-sessions/agent-sessions-panel.tsx",
+              "app/src/ui/preferences/status-hub-owner-settings.tsx",
+              "app/src/main-process/main.ts"
+            ],
+            "note": "The typed projection, main-process transport, owner endpoint and vault configuration, IPC routes, searchable settings surface, and honest local/connected renderer states are implemented."
           }
         ],
         "documentation": [
           {
-            "status": "pending",
-            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "docs/features/design-system/status-hub.md"
+            ],
+            "note": "The article documents projection, authorization, reply confirmation, local fallback, privacy, and remaining configuration boundaries."
           }
         ],
         "localization": [
           {
-            "status": "pending",
-            "reason": "Localization evidence was not independently inspected or verified in this pass."
+            "status": "present",
+            "paths": [
+              "app/src/lib/i18n-resources.ts",
+              "app/src/ui/agent-sessions/agent-sessions-panel.tsx",
+              "app/src/ui/preferences/status-hub-owner-settings.tsx",
+              "app/test/unit/ui/status-hub-panel-test.tsx",
+              "app/test/unit/ui/status-hub-owner-settings-test.tsx"
+            ],
+            "note": "Connection states, owner endpoint/vault controls, save/check/clear actions, and factual status copy cover English, Cantonese, and bilingual rendering through the shared catalog and focused UI tests."
           }
         ],
         "persistence": [
           {
-            "status": "pending",
-            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+            "status": "present",
+            "paths": [
+              "app/src/main-process/status-hub-configuration-store.ts",
+              "app/src/main-process/main.ts",
+              "app/src/ui/preferences/status-hub-owner-settings.tsx",
+              "app/test/unit/status-hub-configuration-store-test.ts",
+              "app/test/unit/ui/status-hub-owner-settings-test.tsx"
+            ],
+            "note": "A bounded versioned endpoint file is atomically stored below userData while authorization remains write-only in the operating-system credential vault; restart, preserve, replace, clear, unsafe-input, and malformed-file paths are verified."
           }
         ],
         "focusedTest": [
           {
-            "status": "pending",
-            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "app/test/unit/status-hub-client-test.ts",
+              "app/test/unit/status-hub-configuration-store-test.ts",
+              "app/test/unit/ui/status-hub-panel-test.tsx",
+              "app/test/unit/ui/status-hub-owner-settings-test.tsx"
+            ],
+            "note": "Focused tests cover endpoint validation, vault persistence, write-only authorization, restart reload, preserve/replace/clear actions, unsafe and malformed input, bounded publishing, reply filtering, delivery confirmation, bilingual controls, and every renderer connection state."
           }
         ],
         "builtArtifactInteraction": [
           {
-            "status": "pending",
-            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+            "status": "present",
+            "paths": [
+              ".codex/run-manifests/2026-08-31-status-hub-attention-headless.md",
+              "docs/assets/screenshots/status-hub-owner-settings.png"
+            ],
+            "note": "The exact 74159be0d9 build was driven through Settings > Integrations and Check connection; the main-process local-only result rendered in the credential-help live region while every action remained fully above the fixed footer."
           }
         ],
         "realCapture": [
           {
-            "status": "pending",
-            "reason": "Real built-artifact capture evidence was intentionally not produced in this ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "docs/assets/screenshots/status-hub-owner-settings.png",
+              "docs/assets/screenshots/material-status-hub-owner-settings-20260831.png"
+            ],
+            "note": "The accepted privacy-safe 960x660 frame shows the endpoint, write-only authorization field, local-only connection result, and complete save/check/clear controls."
           }
         ]
       }
@@ -2460,32 +2580,54 @@
       "evidence": {
         "implementation": [
           {
-            "status": "pending",
-            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+            "status": "present",
+            "paths": [
+              "app/src/models/unlock-ladder.ts",
+              "app/src/main-process/unlock-ladder.ts",
+              "app/src/main-process/unlock-ladder-allowance-store.ts",
+              "app/src/main-process/unlock-ladder-ipc.ts",
+              "app/src/ui/unlock-ladder/unlock-ladder.tsx"
+            ],
+            "note": "Server-graded single-use challenges, wait-only outcomes, all ladder rungs, School-mode start behavior, durable serialized rolling-budget persistence, and renderer interaction are implemented."
           }
         ],
         "documentation": [
           {
-            "status": "pending",
-            "reason": "No per-feature documentation evidence was promoted by the 2026-08-21 ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "docs/features/design-system/unlock-ladder.md"
+            ],
+            "note": "The article records wait-only safety, attempt budget, challenge grading, rungs, School mode, accessibility, and verification."
           }
         ],
         "localization": [
           {
-            "status": "pending",
-            "reason": "Localization evidence was not independently inspected or verified in this pass."
+            "status": "present",
+            "paths": [
+              "app/src/ui/unlock-ladder/unlock-ladder-localization.ts",
+              "app/src/ui/unlock-ladder/unlock-ladder.tsx"
+            ],
+            "note": "Every rung and factual safety state has English and Cantonese copy across the supported tone bands."
           }
         ],
         "persistence": [
           {
-            "status": "pending",
-            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+            "status": "present",
+            "paths": [
+              "app/src/main-process/unlock-ladder-allowance-store.ts",
+              "app/src/main-process/unlock-ladder-ipc.ts",
+              "app/test/unit/unlock-ladder-test.ts"
+            ],
+            "note": "The application reloads a bounded versioned timestamp-only file from userData, atomically serializes simultaneous spends, prunes the rolling window, and fails closed on malformed state."
           }
         ],
         "focusedTest": [
           {
-            "status": "pending",
-            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "app/test/unit/unlock-ladder-test.ts"
+            ],
+            "note": "Eight focused tests pass for School-mode start, rolling cap, wrong-answer escalation, nonce consumption, no authentication, no attempt refund, wait-deadline clearing, restart persistence, serialized concurrent spending, and malformed-file refusal."
           }
         ],
         "builtArtifactInteraction": [
@@ -3151,8 +3293,15 @@
       "evidence": {
         "implementation": [
           {
-            "status": "pending",
-            "reason": "No implementation evidence was promoted by the 2026-08-21 ultra-speed pass; source may exist but completion is not asserted."
+            "status": "present",
+            "paths": [
+              "build.bat",
+              "build-installer.bat",
+              "download-dependencies.bat",
+              "script/build-windows.ps1",
+              "script/windows-dependency-manifest.json"
+            ],
+            "note": "The root entrypoints share one pinned dependency-first implementation with silent mode, interactive-only elevation, runnable build, installer sequencing, and unsigned output verification."
           }
         ],
         "documentation": [
@@ -3172,20 +3321,30 @@
         ],
         "persistence": [
           {
-            "status": "pending",
-            "reason": "Persistence evidence was not independently inspected or verified in this pass."
+            "status": "present",
+            "paths": [
+              "script/windows-dependency-manifest.json",
+              "script/build-windows.ps1"
+            ],
+            "note": "Pinned versions and digests are committed, while verified warm dependency/native outputs are reused without changing the manifest."
           }
         ],
         "focusedTest": [
           {
-            "status": "pending",
-            "reason": "Focused test evidence was intentionally not run in this ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "script/build-windows-contract-test.mjs"
+            ],
+            "note": "Sixteen focused root-build contract tests passed on 2026-08-31."
           }
         ],
         "builtArtifactInteraction": [
           {
-            "status": "pending",
-            "reason": "Built-artifact interaction evidence was intentionally not run in this ultra-speed pass."
+            "status": "present",
+            "paths": [
+              "docs/verification/build-bootstrap-2026-08-31.md"
+            ],
+            "note": "The committed root build completed against c2f0fb6de969329628bc3dd60feef2dfe994d3fb and recorded exact output sizes, hashes, unsigned state, duration, and the preceding transient access violation."
           }
         ],
         "realCapture": [

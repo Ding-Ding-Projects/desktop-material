@@ -2,6 +2,7 @@ import * as React from 'react'
 import { LanguageMode } from '../../models/language-mode'
 import {
   hasSchoolModeCredential,
+  DefaultSchoolModeName,
   isValidSchoolModeCredential,
   readSchoolMode,
   setSchoolModeCredential,
@@ -9,6 +10,7 @@ import {
   writeSchoolMode,
   ISchoolModeState as SchoolModeState,
   SchoolModeChangedEvent,
+  SchoolModeStorageKey,
 } from '../../lib/school-mode'
 import { translate } from '../../lib/i18n'
 import { Button } from '../lib/button'
@@ -23,6 +25,12 @@ import {
   translateWithFunnyLevel,
 } from '../../lib/funny-level-text'
 import type { TranslationVariables } from '../../lib/i18n'
+import {
+  BooleanSettingExplanation,
+  SelectionSettingExplanation,
+  SettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 
 interface ISchoolModeProps {
   readonly languageMode: LanguageMode
@@ -82,6 +90,17 @@ export class SchoolModePreferences extends React.Component<
     key: Parameters<typeof translate>[0],
     variables: TranslationVariables = {}
   ) => translate(key, this.props.languageMode, variables)
+
+  private localizeText(english: string, cantonese: string): string {
+    switch (this.props.languageMode) {
+      case 'cantonese':
+        return cantonese
+      case 'bilingual':
+        return `${english} · ${cantonese}`
+      default:
+        return english
+    }
+  }
 
   private onToggle = (event: React.FormEvent<HTMLInputElement>) => {
     const checked = event.currentTarget.checked
@@ -214,13 +233,45 @@ export class SchoolModePreferences extends React.Component<
           label={this.localize('appearance.schoolModeCredential')}
           value={this.state.setupCredential}
           onValueChanged={this.onSetupCredentialChanged}
-          ariaDescribedBy="school-mode-credential-description"
+          ariaDescribedBy={`school-mode-credential-description ${
+            settingExplanationDescriptionIds('school-mode-setup-credential')
+              .ariaDescribedBy
+          }`}
+        />
+        <SettingExplanation
+          settingId="school-mode-setup-credential"
+          summary={this.localize('dialogEmoji.explanationSummary')}
+          explanation={this.localizeText(
+            'Supplies the new local unlock credential while enabling this presentation lock.',
+            '開啟呢個呈現鎖時提供新本地解鎖憑證。'
+          )}
+          provenance={this.localizeText(
+            'Source: runtime-only setup input. Current and shipped credential values and characteristics are intentionally unavailable.',
+            '來源：只限執行期嘅設定輸入。目前同出廠憑證內容及特徵刻意不可用。'
+          )}
+          source="runtime-only"
         />
         <PasswordTextBox
           label={this.localize('appearance.schoolModeCredentialConfirm')}
           value={this.state.setupConfirmation}
           onValueChanged={this.onSetupConfirmationChanged}
-          ariaDescribedBy="school-mode-credential-description"
+          ariaDescribedBy={`school-mode-credential-description ${
+            settingExplanationDescriptionIds('school-mode-setup-confirmation')
+              .ariaDescribedBy
+          }`}
+        />
+        <SettingExplanation
+          settingId="school-mode-setup-confirmation"
+          summary={this.localize('dialogEmoji.explanationSummary')}
+          explanation={this.localizeText(
+            'Confirms the new local unlock credential before the presentation lock is enabled.',
+            '呈現鎖開啟之前確認新本地解鎖憑證。'
+          )}
+          provenance={this.localizeText(
+            'Source: runtime-only confirmation input. Current and shipped credential values and characteristics are intentionally unavailable.',
+            '來源：只限執行期嘅確認輸入。目前同出廠憑證內容及特徵刻意不可用。'
+          )}
+          source="runtime-only"
         />
         <Button disabled={this.state.busy} onClick={this.onEnable}>
           {this.localize('appearance.schoolModeEnable', nameVariables)}
@@ -240,7 +291,23 @@ export class SchoolModePreferences extends React.Component<
           label={this.localize('appearance.schoolModeCredential')}
           value={this.state.unlockCredential}
           onValueChanged={this.onUnlockCredentialChanged}
-          ariaDescribedBy="school-mode-unlock-description"
+          ariaDescribedBy={`school-mode-unlock-description ${
+            settingExplanationDescriptionIds('school-mode-unlock-credential')
+              .ariaDescribedBy
+          }`}
+        />
+        <SettingExplanation
+          settingId="school-mode-unlock-credential"
+          summary={this.localize('dialogEmoji.explanationSummary')}
+          explanation={this.localizeText(
+            'Verifies the local unlock credential before turning the presentation lock off.',
+            '關閉呈現鎖之前驗證本地解鎖憑證。'
+          )}
+          provenance={this.localizeText(
+            'Source: operating-system credential vault plus runtime-only input. Current and shipped credential values and characteristics are intentionally unavailable.',
+            '來源：作業系統憑證庫加只限執行期輸入。目前同出廠憑證內容及特徵刻意不可用。'
+          )}
+          source="credential-vault"
         />
         <Button disabled={this.state.busy} onClick={this.onDisable}>
           {this.localize('appearance.schoolModeDisable', nameVariables)}
@@ -279,16 +346,39 @@ export class SchoolModePreferences extends React.Component<
           value={this.state.name}
           onValueChanged={this.onNameChanged}
           onBlur={this.onNameBlur}
-          ariaDescribedBy="school-mode-name-description"
+          ariaDescribedBy={`school-mode-name-description ${
+            settingExplanationDescriptionIds('school-mode-name').ariaDescribedBy
+          }`}
         />
         <p id="school-mode-name-description" className="settings-description">
           {this.localize('appearance.schoolModeNameDescription', nameVariables)}
         </p>
+        <SelectionSettingExplanation
+          settingId="school-mode-name"
+          explanationEnglish="Sets the user-visible name used for this shared presentation lock across every surface. Stable application identity is unchanged."
+          explanationCantonese="設定呢個共用呈現鎖喺所有畫面使用嘅用戶可見名稱；穩定應用程式身份唔會改。"
+          currentEnglish={this.state.name}
+          currentCantonese={this.state.name}
+          shippedEnglish={DefaultSchoolModeName}
+          shippedCantonese={DefaultSchoolModeName}
+          storageKey={SchoolModeStorageKey}
+        />
         <Checkbox
           label={this.localize('appearance.schoolModeEnabled', nameVariables)}
           value={enabled ? CheckboxValue.On : CheckboxValue.Off}
           onChange={this.onToggle}
-          ariaDescribedBy="school-mode-description"
+          ariaDescribedBy={`school-mode-description ${
+            settingExplanationDescriptionIds('school-mode-enabled')
+              .ariaDescribedBy
+          }`}
+        />
+        <BooleanSettingExplanation
+          settingId="school-mode-enabled"
+          explanationEnglish="Controls whether the shared presentation lock forces English and suppresses Cantonese, bilingual, playfulness, personal-vocabulary, and dim-sum features."
+          explanationCantonese="控制共用呈現鎖係咪強制英文，並抑制廣東話、雙語、搞笑程度、個人詞彙同點心功能。"
+          value={schoolMode.enabled}
+          shippedValue={false}
+          storageKey={SchoolModeStorageKey}
         />
         {this.renderSetup()}
         {schoolMode.enabled && credentialReady ? (

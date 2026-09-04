@@ -532,6 +532,16 @@
   min-width: 260px;
 }
 
+.settings-tab-picker-header {
+  padding: var(--spacing-half) var(--spacing);
+
+  h2 {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+  }
+}
+
 .settings-tab-picker-field {
   align-items: center;
   display: flex;

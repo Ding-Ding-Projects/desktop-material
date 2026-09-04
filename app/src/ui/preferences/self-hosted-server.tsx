@@ -19,6 +19,11 @@ import {
   reduceSelfHostedServerWizardState,
   wizardStepState,
 } from './self-hosted-server-wizard-state'
+import { getPersistedLanguageMode } from '../../lib/i18n'
+import {
+  SettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 
 interface ISelfHostedServerPreferencesState
   extends ISelfHostedServerWizardState {
@@ -44,6 +49,26 @@ export class SelfHostedServerPreferences extends React.Component<
   ISelfHostedServerPreferencesProps,
   ISelfHostedServerPreferencesState
 > {
+  private localize(english: string, cantonese: string): string {
+    switch (getPersistedLanguageMode()) {
+      case 'cantonese':
+        return cantonese
+      case 'bilingual':
+        return `${english} · ${cantonese}`
+      default:
+        return english
+    }
+  }
+
+  private enteredState(value: string): {
+    readonly english: string
+    readonly cantonese: string
+  } {
+    return value.trim().length === 0
+      ? { english: 'empty', cantonese: '空白' }
+      : { english: 'entered', cantonese: '已輸入' }
+  }
+
   public constructor(props: ISelfHostedServerPreferencesProps) {
     super(props)
     this.state = {
@@ -242,27 +267,81 @@ export class SelfHostedServerPreferences extends React.Component<
             </div>
 
             <TextBox
-              label="Public HTTPS address (or https://localhost:PORT for local-only)"
+              label={this.localize(
+                'Public HTTPS address (or https://localhost:PORT for local-only)',
+                '公開 HTTPS 地址（或者本機專用 https://localhost:PORT）'
+              )}
               value={this.state.publicOriginInput}
               disabled={running}
               onValueChanged={this.onPublicOriginChanged}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds(
+                  'self-hosted-server-public-origin'
+                ).ariaDescribedBy
+              }
+            />
+            <SettingExplanation
+              settingId="self-hosted-server-public-origin"
+              summary={this.localize(
+                'What this setting changes',
+                '呢個設定會改咩'
+              )}
+              explanation={this.localize(
+                'Chooses the HTTPS origin used by the managed server, its health check, sign-in, and one-time join links.',
+                '揀受管理伺服器、健康檢查、登入同一次性 join link 使用嘅 HTTPS origin。'
+              )}
+              source={
+                status.configured ? 'main-process-config' : 'runtime-only'
+              }
+              provenance={this.localize(
+                status.configured
+                  ? `The current value comes from the managed main-process configuration: ${this.state.publicOriginInput}. Shipped value: https://localhost:8787.`
+                  : `This value is the current wizard draft. Current value: ${this.state.publicOriginInput}. Shipped value: https://localhost:8787.`,
+                status.configured
+                  ? `目前值來自受管理主程序設定：${this.state.publicOriginInput}。出廠值：https://localhost:8787。`
+                  : `呢個值係目前 wizard 草稿。目前值：${this.state.publicOriginInput}。出廠值：https://localhost:8787。`
+              )}
             />
 
             {!status.configured && (
-              <TextArea
-                label="Optional SAML identity-provider metadata XML"
-                rows={6}
-                value={this.state.samlMetadataXml}
-                disabled={running}
-                onValueChanged={this.onSamlMetadataChanged}
-                ariaDescribedBy="self-hosted-saml-metadata-help"
-              />
+              <>
+                <TextArea
+                  label={this.localize(
+                    'Optional SAML identity-provider metadata XML',
+                    '可選 SAML 身分供應商 metadata XML'
+                  )}
+                  rows={6}
+                  value={this.state.samlMetadataXml}
+                  disabled={running}
+                  onValueChanged={this.onSamlMetadataChanged}
+                  ariaDescribedBy={
+                    settingExplanationDescriptionIds(
+                      'self-hosted-server-saml-metadata'
+                    ).ariaDescribedBy
+                  }
+                />
+                <SettingExplanation
+                  settingId="self-hosted-server-saml-metadata"
+                  summary={this.localize(
+                    'What this setting changes',
+                    '呢個設定會改咩'
+                  )}
+                  explanation={this.localize(
+                    'Provides optional SAML identity-provider metadata for validation and a future signed adapter. OAuth remains the active sign-in path.',
+                    '提供可選 SAML 身分供應商 metadata 作驗證同未來 signed adapter 使用；OAuth 仍然係目前登入路徑。'
+                  )}
+                  source="runtime-only"
+                  provenance={this.localize(
+                    `This value is temporary for the current wizard. Current value: ${
+                      this.enteredState(this.state.samlMetadataXml).english
+                    }. Shipped value: empty.`,
+                    `呢個值只喺目前 wizard 暫時使用。目前值：${
+                      this.enteredState(this.state.samlMetadataXml).cantonese
+                    }。出廠值：空白。`
+                  )}
+                />
+              </>
             )}
-            <p id="self-hosted-saml-metadata-help">
-              Metadata is validated and exposed for a future signed SAML
-              adapter. This wizard does not claim to authenticate through an
-              identity provider yet; OAuth remains the active sign-in path.
-            </p>
 
             {this.renderSteps()}
 
@@ -291,9 +370,34 @@ export class SelfHostedServerPreferences extends React.Component<
             {joinUrl !== null && (
               <div className="self-hosted-server-join-url">
                 <div className="self-hosted-server-join-url-row">
-                  <TextBox label="Join URL" value={joinUrl} readOnly={true} />
+                  <TextBox
+                    label={this.localize('Join URL', 'Join URL')}
+                    value={joinUrl}
+                    readOnly={true}
+                    ariaDescribedBy={
+                      settingExplanationDescriptionIds(
+                        'self-hosted-server-join-url'
+                      ).ariaDescribedBy
+                    }
+                  />
                   <CopyButton ariaLabel="Copy join URL" copyContent={joinUrl} />
                 </div>
+                <SettingExplanation
+                  settingId="self-hosted-server-join-url"
+                  summary={this.localize(
+                    'What this value does',
+                    '呢個值有咩用'
+                  )}
+                  explanation={this.localize(
+                    'Shows the generated one-time join link for the second machine. It expires after one use or fifteen minutes.',
+                    '顯示畀第二部機用嘅一次性 join link；使用一次或者十五分鐘後失效。'
+                  )}
+                  source="runtime-only"
+                  provenance={this.localize(
+                    'The current wizard generated a join link. Its value is shown only in the read-only field above. Shipped value: none.',
+                    '目前 wizard 已產生 join link；個值只會顯示喺上面嘅唯讀欄位。出廠值：冇。'
+                  )}
+                />
                 <p>
                   Give this link to the second machine. It expires after one use
                   or fifteen minutes, whichever comes first.

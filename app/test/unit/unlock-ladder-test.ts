@@ -1,5 +1,8 @@
 import assert from 'node:assert'
 import { describe, it, afterEach } from 'node:test'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 import {
   advanceUnlockLadder,
@@ -10,6 +13,10 @@ import {
   UnlockLadderRollingWindowMs,
 } from '../../src/models/unlock-ladder'
 import { UnlockLadderService } from '../../src/main-process/unlock-ladder'
+import {
+  FileUnlockLadderAllowanceStore,
+  UnlockLadderAllowanceSchemaVersion,
+} from '../../src/main-process/unlock-ladder-allowance-store'
 import {
   clearAllMd3LockAttempts,
   clearMd3LockWait,
@@ -76,36 +83,109 @@ describe('the credential wait ladder', () => {
     assert.equal(next.waitingClearedAt, null)
   })
 
-  it('consumes a nonce before grading and never authenticates a ladder win', () => {
+  it('consumes a nonce before grading and never authenticates a ladder win', async () => {
     let now = 1_000
     const service = new UnlockLadderService(
       () => now,
       () => 'challenge-1'
     )
-    service.start({
+    await service.start({
       lockoutId: 'nonce-lock',
       lockoutLevel: 3,
       attemptsRemaining: 0,
       waitUntil: 2_000,
       schoolMode: false,
     })
-    const challenge = service.issueChallenge('nonce-lock')
+    const challenge = await service.issueChallenge('nonce-lock')
     const submission = {
       challengeId: challenge.challengeId,
       nonce: challenge.nonce,
       answer: { kind: 'dim-sum-choice' as const, choiceId: 'not-a-dish' },
     }
-    const first = service.submit('nonce-lock', submission)
+    const first = await service.submit('nonce-lock', submission)
     assert.equal(first.authenticated, false)
     assert.equal(first.attemptsRefunded, 0)
     assert.equal(first.waitingCleared, false)
 
-    const replay = service.submit('nonce-lock', submission)
+    const replay = await service.submit('nonce-lock', submission)
     assert.equal(replay.authenticated, false)
     assert.equal(replay.grade.outcome, 'incorrect')
 
     now += 1
     assert.equal(service.get('nonce-lock')?.waitingClearedAt, null)
+  })
+
+  it('persists the rolling-hour allowance across service restarts', async t => {
+    const root = await mkdtemp(join(tmpdir(), 'unlock-ladder-allowance-'))
+    t.after(() => rm(root, { recursive: true, force: true }))
+    const path = join(root, 'allowance.json')
+    const now = 100_000
+
+    const firstStore = new FileUnlockLadderAllowanceStore(path)
+    for (
+      let index = 0;
+      index < UnlockLadderMaxSkipsPerRollingHour;
+      index += 1
+    ) {
+      assert.ok(await firstStore.tryRecordSkip(now + index))
+    }
+
+    const restartedStore = new FileUnlockLadderAllowanceStore(path)
+    assert.equal((await restartedStore.read(now + 10)).length, 3)
+    assert.equal(await restartedStore.tryRecordSkip(now + 10), null)
+
+    const service = new UnlockLadderService(
+      () => now + 10,
+      () => 'durable-challenge',
+      restartedStore
+    )
+    const state = await service.start({
+      lockoutId: 'durable-lockout',
+      lockoutLevel: 4,
+      attemptsRemaining: 0,
+      waitUntil: now + 1_000,
+      schoolMode: false,
+    })
+    assert.equal(state.ladderSkipTimestamps.length, 3)
+    await assert.rejects(
+      service.issueChallenge('durable-lockout'),
+      /allowance is exhausted/
+    )
+
+    const file = JSON.parse(await readFile(path, 'utf8'))
+    assert.equal(file.schemaVersion, UnlockLadderAllowanceSchemaVersion)
+    assert.deepEqual(file.skipTimestamps, [now, now + 1, now + 2])
+  })
+
+  it('serializes simultaneous spends so only three can land', async t => {
+    const root = await mkdtemp(join(tmpdir(), 'unlock-ladder-race-'))
+    t.after(() => rm(root, { recursive: true, force: true }))
+    const store = new FileUnlockLadderAllowanceStore(
+      join(root, 'allowance.json')
+    )
+
+    const outcomes = await Promise.all(
+      Array.from({ length: 4 }, (_, index) =>
+        store.tryRecordSkip(200_000 + index)
+      )
+    )
+    assert.equal(outcomes.filter(value => value !== null).length, 3)
+    assert.equal(outcomes.filter(value => value === null).length, 1)
+    assert.equal((await store.read(200_010)).length, 3)
+  })
+
+  it('fails closed when durable allowance data is malformed', async t => {
+    const root = await mkdtemp(join(tmpdir(), 'unlock-ladder-invalid-'))
+    t.after(() => rm(root, { recursive: true, force: true }))
+    const path = join(root, 'allowance.json')
+    await writeFile(path, '{"schemaVersion":1,"skipTimestamps":["nope"]}')
+
+    const store = new FileUnlockLadderAllowanceStore(path)
+    await assert.rejects(store.read(300_000), /allowance data is invalid/)
+    await assert.rejects(
+      store.tryRecordSkip(300_000),
+      /allowance data is invalid/
+    )
   })
 
   it('clears only the current retry deadline after a credential wait recovery', async () => {

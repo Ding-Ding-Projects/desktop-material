@@ -9,6 +9,11 @@ import type {
   IIssueTrackerItemLinkInput,
   LinkedIssueTrackerProvider,
 } from '../../lib/issue-trackers/issue-tracker-links'
+import { getPersistedLanguageMode } from '../../lib/i18n'
+import {
+  SettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 
 interface IIssueTrackerReferenceProps {
   readonly provider: LinkedIssueTrackerProvider
@@ -30,6 +35,52 @@ export class IssueTrackerReference extends React.Component<
   IIssueTrackerReferenceProps,
   IIssueTrackerReferenceState
 > {
+  private localize(english: string, cantonese: string): string {
+    switch (getPersistedLanguageMode()) {
+      case 'cantonese':
+        return cantonese
+      case 'bilingual':
+        return `${english} · ${cantonese}`
+      default:
+        return english
+    }
+  }
+
+  private referenceValue(value: string): {
+    readonly english: string
+    readonly cantonese: string
+  } {
+    return value.trim().length === 0
+      ? { english: 'empty', cantonese: '空白' }
+      : { english: 'entered for this link', cantonese: '今次連結已輸入' }
+  }
+
+  private renderReferenceExplanation(
+    kind: 'scope' | 'item',
+    value: string
+  ): JSX.Element {
+    const settingId = `issue-reference-${this.props.provider}-${kind}`
+    const current = this.referenceValue(value)
+    const label = kind === 'scope' ? this.scopeLabel : this.itemLabel
+    return (
+      <SettingExplanation
+        settingId={settingId}
+        summary={this.localize('What this setting changes', '呢個設定會改咩')}
+        explanation={this.localize(
+          `Provides the ${label.toLowerCase()} used to construct one ${
+            this.providerName
+          } link from the verified connection. It is not added to the provider credential.`,
+          `提供由已驗證連線建立一條 ${this.providerName} 連結所用嘅 ${label}；唔會加入供應商憑證。`
+        )}
+        source="runtime-only"
+        provenance={this.localize(
+          `This value is temporary for the current reference form. Current value: ${current.english}. Shipped value: empty.`,
+          `呢個值只喺目前 reference 表格暫時使用。目前值：${current.cantonese}。出廠值：空白。`
+        )}
+      />
+    )
+  }
+
   public state: IIssueTrackerReferenceState = {
     scopeId: '',
     itemId: '',
@@ -121,17 +172,37 @@ export class IssueTrackerReference extends React.Component<
           <>
             <div className="issue-tracker-reference-fields">
               <TextBox
-                label={this.scopeLabel}
+                label={this.localize(
+                  this.scopeLabel,
+                  this.props.provider === 'trello' ? 'Board ID' : 'Project key'
+                )}
                 value={this.state.scopeId}
                 disabled={this.state.opening}
                 onValueChanged={this.onScopeChanged}
+                ariaDescribedBy={
+                  settingExplanationDescriptionIds(
+                    `issue-reference-${this.props.provider}-scope`
+                  ).ariaDescribedBy
+                }
               />
+              {this.renderReferenceExplanation('scope', this.state.scopeId)}
               <TextBox
-                label={this.itemLabel}
+                label={this.localize(
+                  this.itemLabel,
+                  this.props.provider === 'trello'
+                    ? 'Card link ID'
+                    : 'Issue key'
+                )}
                 value={this.state.itemId}
                 disabled={this.state.opening}
                 onValueChanged={this.onItemChanged}
+                ariaDescribedBy={
+                  settingExplanationDescriptionIds(
+                    `issue-reference-${this.props.provider}-item`
+                  ).ariaDescribedBy
+                }
               />
+              {this.renderReferenceExplanation('item', this.state.itemId)}
               <Button disabled={disabled} onClick={this.openReference}>
                 {this.state.opening
                   ? 'Opening…'

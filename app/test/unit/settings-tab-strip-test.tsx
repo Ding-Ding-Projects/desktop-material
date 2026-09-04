@@ -266,6 +266,20 @@ describe('settings tab docking', () => {
     )
     fireEvent.click(view.getByRole('option', { name: 'Right', hidden: true }))
     assert.deepStrictEqual(changes, ['right'])
+    view.unmount()
+
+    const repositoryView = render(
+      <SettingsTabDockControl
+        strip="repository-settings"
+        position="left"
+        onChange={() => undefined}
+      />
+    )
+    assert.ok(
+      repositoryView.container.querySelector(
+        '[data-setting-explanation-id="settings-tab-dock-repository-settings"]'
+      )
+    )
   })
 })
 

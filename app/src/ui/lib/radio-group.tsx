@@ -5,6 +5,9 @@ interface IRadioGroupProps<T> {
   /** The id of the element that serves as the menu's accessibility label */
   readonly ariaLabelledBy?: string
 
+  /** Ids of the elements that describe this radio group in more detail. */
+  readonly ariaDescribedBy?: string
+
   /**
    * The currently selected item, denoted by its key.
    */
@@ -79,6 +82,7 @@ export class RadioGroup<T extends React.Key> extends React.Component<
       <div
         role="radiogroup"
         aria-labelledby={this.props.ariaLabelledBy}
+        aria-describedby={this.props.ariaDescribedBy}
         className={this.props.className}
       >
         {this.renderRadioButtons()}

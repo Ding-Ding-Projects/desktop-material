@@ -9,7 +9,11 @@ export type StatusHubConnectionState =
   | 'authentication-unavailable'
   | 'delivery-unconfirmed'
 
-export type StatusHubEvidenceState = 'verified' | 'running' | 'unrun' | 'blocked'
+export type StatusHubEvidenceState =
+  | 'verified'
+  | 'running'
+  | 'unrun'
+  | 'blocked'
 
 export interface IStatusHubEvidence {
   readonly id: string
@@ -57,9 +61,25 @@ export interface IStatusHubStatus {
   readonly lastUpdatedAt: number | null
 }
 
+/** Credential-free owner settings returned to the renderer. */
+export interface IStatusHubOwnerConfiguration {
+  readonly endpoint: string | null
+  readonly authorizationPresent: boolean
+}
+
+/**
+ * An owner update. Omit authorization to keep the vault value unchanged, pass
+ * a non-empty value to replace it, or use the dedicated clear action.
+ */
+export interface IStatusHubOwnerConfigurationUpdate {
+  readonly endpoint: string | null
+  readonly authorization?: string
+}
+
 export const LocalStatusHubFallback: IStatusHubStatus = Object.freeze({
   connection: 'unavailable',
   stableURL: null,
-  message: 'Status Hub is unavailable; this app is showing local session state only.',
+  message:
+    'Status Hub is unavailable; this app is showing local session state only.',
   lastUpdatedAt: null,
 })

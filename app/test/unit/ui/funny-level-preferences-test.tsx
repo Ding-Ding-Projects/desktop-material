@@ -172,6 +172,32 @@ describe('Sound funny-level pointer', () => {
       screen.queryByRole('slider', { name: 'Cantonese playfulness' }),
       null
     )
+    for (const id of [
+      'sound-master',
+      'sound-sfx',
+      'sound-sfx-volume',
+      'sound-tts',
+      'sound-recorded-narration',
+      'sound-narrator-voice-english',
+      'sound-narrator-voice-cantonese',
+      'sound-tts-rate',
+      'sound-tts-pitch',
+      'sound-tts-volume',
+      'sound-tts-cooldown',
+      'sound-music',
+      'sound-music-volume',
+      'sound-quiet',
+      'sound-quiet-hours-start',
+      'sound-quiet-hours-end',
+      'sound-reduced-motion',
+    ]) {
+      assert.ok(
+        english.container.querySelector(
+          `[data-setting-explanation-id="${id}"]`
+        ),
+        `missing setting explanation ${id}`
+      )
+    }
     english.unmount()
 
     localStorage.setItem('language-mode-v1', 'cantonese')

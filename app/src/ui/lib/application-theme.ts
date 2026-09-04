@@ -62,7 +62,7 @@ function migrateAutomaticallySwitchSetting(): string | null {
 
 // The key under which the currently selected theme is persisted
 // in localStorage.
-const applicationThemeKey = 'theme'
+export const applicationThemeKey = 'theme'
 
 /**
  * Returns User's theme preference or 'system' if not set or parsable

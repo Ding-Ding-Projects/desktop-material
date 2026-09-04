@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import Any, ClassVar
 
 from textual import on, work
@@ -20,6 +20,7 @@ from ...application.cheap_lfs import (
     CheapLfsTrackPlan,
 )
 from ...application.search import RegexFlags, SearchMode, SearchService
+from ..action_flight import single_flight_actions
 from ..i18n import Translator, get_translator
 from ..widgets.responsive_layout import ScrollableToolbar
 from ..widgets.search_bar import SearchBar, SearchState
@@ -262,16 +263,17 @@ class CheapLfsPane(RepositoryPane):
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         button_id = event.button.id
-        if button_id == "cheap-lfs-refresh":
-            self.reload()
-        elif button_id == "cheap-lfs-preview":
-            self._preview_track()
-        elif button_id == "cheap-lfs-track":
-            self._confirm_track()
-        elif button_id == "cheap-lfs-verify":
-            self._verify()
-        elif button_id == "cheap-lfs-restore":
-            self._confirm_restore()
+        actions: dict[str, Callable[[], object]] = {
+            "cheap-lfs-refresh": self.reload,
+            "cheap-lfs-preview": self._preview_track,
+            "cheap-lfs-track": self._confirm_track,
+            "cheap-lfs-verify": self._verify,
+            "cheap-lfs-restore": self._confirm_restore,
+        }
+        if button_id is not None and (action := actions.get(button_id)) is not None:
+            single_flight_actions.start(
+                self, event.button, f"cheap-lfs:{button_id}", action
+            )
 
     def _values(self) -> tuple[str, str, str | None]:
         path = self.query_one("#cheap-lfs-path", Input).value.strip()

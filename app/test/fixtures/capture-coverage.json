@@ -24,8 +24,12 @@
       "reason": "No packaged Windows capture exists at or after frozen baseline a5b74008b61094ca9af8c74b893bbfd696feb3cd; historical gallery frames do not prove this current renderer state."
     },
     "preferences-attention": {
-      "state": "pending",
-      "reason": "No packaged Windows capture exists at or after frozen baseline a5b74008b61094ca9af8c74b893bbfd696feb3cd; historical gallery frames do not prove this current renderer state."
+      "state": "captured",
+      "commit": "74159be0d9d4da10254ad18873496bb9bd1f5928"
+    },
+    "status-hub-owner-settings": {
+      "state": "captured",
+      "commit": "74159be0d9d4da10254ad18873496bb9bd1f5928"
     },
     "command-palette": {
       "state": "pending",
@@ -64,24 +68,24 @@
       "reason": "No packaged Windows capture exists at or after frozen baseline a5b74008b61094ca9af8c74b893bbfd696feb3cd; historical gallery frames do not prove this current renderer state."
     },
     "attention-focus": {
-      "state": "pending",
-      "reason": "No packaged Windows capture exists at or after frozen baseline a5b74008b61094ca9af8c74b893bbfd696feb3cd; historical gallery frames do not prove this current renderer state."
+      "state": "captured",
+      "commit": "74159be0d9d4da10254ad18873496bb9bd1f5928"
     },
     "attention-low-stimulation": {
-      "state": "pending",
-      "reason": "No packaged Windows capture exists at or after frozen baseline a5b74008b61094ca9af8c74b893bbfd696feb3cd; historical gallery frames do not prove this current renderer state."
+      "state": "captured",
+      "commit": "74159be0d9d4da10254ad18873496bb9bd1f5928"
     },
     "attention-time-awareness": {
-      "state": "pending",
-      "reason": "No packaged Windows capture exists at or after frozen baseline a5b74008b61094ca9af8c74b893bbfd696feb3cd; historical gallery frames do not prove this current renderer state."
+      "state": "captured",
+      "commit": "74159be0d9d4da10254ad18873496bb9bd1f5928"
     },
     "attention-one-thing": {
-      "state": "pending",
-      "reason": "No packaged Windows capture exists at or after frozen baseline a5b74008b61094ca9af8c74b893bbfd696feb3cd; historical gallery frames do not prove this current renderer state."
+      "state": "captured",
+      "commit": "74159be0d9d4da10254ad18873496bb9bd1f5928"
     },
     "attention-momentum": {
-      "state": "pending",
-      "reason": "No packaged Windows capture exists at or after frozen baseline a5b74008b61094ca9af8c74b893bbfd696feb3cd; historical gallery frames do not prove this current renderer state."
+      "state": "captured",
+      "commit": "74159be0d9d4da10254ad18873496bb9bd1f5928"
     },
     "support-tickets-help-route": {
       "state": "pending",
@@ -108,7 +112,7 @@
       "reason": "No packaged Windows capture exists at or after frozen baseline a5b74008b61094ca9af8c74b893bbfd696feb3cd; historical gallery frames do not prove this current renderer state."
     }
   },
-  "requiredCount": 26,
+  "requiredCount": 27,
   "required": [
     {
       "id": "workspace-changes",
@@ -157,6 +161,16 @@
       "sourcePaths": [
         "app/src/ui/preferences/preferences.tsx",
         "app/src/ui/preferences/attention-accommodations.tsx"
+      ]
+    },
+    {
+      "id": "status-hub-owner-settings",
+      "source": "current-renderer",
+      "shows": "Status Hub owner endpoint, write-only authorization, live local-only result, and complete action row.",
+      "sourcePaths": [
+        "app/src/ui/preferences/status-hub-owner-settings.tsx",
+        "app/src/main-process/status-hub-configuration-store.ts",
+        "app/src/main-process/status-hub-client.ts"
       ]
     },
     {

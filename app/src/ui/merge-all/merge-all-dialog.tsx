@@ -117,7 +117,7 @@ export class MergeAllDialog extends React.Component<
                 value={
                   this.state.forceMatDay ? CheckboxValue.On : CheckboxValue.Off
                 }
-                label="Force Mat Day"
+                label="Preserve dirty worktrees before merge"
                 onChange={this.onForceMatDayChanged}
               />
               <p className="merge-all-option-help">

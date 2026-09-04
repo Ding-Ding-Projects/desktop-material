@@ -20,6 +20,40 @@ interface IAttentionRuntimeState {
 }
 
 const MomentumIdleThresholdMs = 15 * 60 * 1000
+const AttentionRegionExcludedSelector =
+  '.repository-drop-overlay, [data-attention-runtime="true"]'
+
+/**
+ * Mark only real workspace regions. Hidden overlays must keep their own
+ * opacity contract; Focus previously made the repository-drop overlay visible
+ * by assigning it the generic inactive-region opacity.
+ */
+export function collectAttentionRegions(
+  contents: HTMLElement
+): ReadonlyArray<HTMLElement> {
+  const regions: HTMLElement[] = []
+  for (const child of Array.from(contents.children)) {
+    const element = child as HTMLElement
+    if (element.matches(AttentionRegionExcludedSelector)) {
+      element.removeAttribute('data-attention-region')
+      element.removeAttribute('data-attention-active')
+      continue
+    }
+    element.setAttribute('data-attention-region', 'true')
+    regions.push(element)
+  }
+  return regions
+}
+
+/** Resolve a focused descendant to the top-level region Focus actually dims. */
+export function attentionRegionForTarget(
+  regions: ReadonlyArray<HTMLElement>,
+  target: HTMLElement
+): HTMLElement | null {
+  return (
+    regions.find(region => region === target || region.contains(target)) ?? null
+  )
+}
 
 function localize(english: string, cantonese: string): string {
   switch (getPersistedLanguageMode()) {
@@ -168,15 +202,13 @@ export class AttentionAccommodationRuntime extends React.Component<
     if (!(target instanceof HTMLElement)) {
       return
     }
-    const region = target.closest<HTMLElement>(
-      '[data-attention-region], [data-customization-surface], [role="dialog"]'
-    )
-    if (region === null || region.dataset.attentionRuntime === 'true') {
+    const contents = document.getElementById('desktop-app-contents')
+    if (contents === null) {
       return
     }
-    this.activeRegion?.removeAttribute('data-attention-active')
-    this.activeRegion = region
-    region.setAttribute('data-attention-active', 'true')
+    this.activateRegion(
+      attentionRegionForTarget(collectAttentionRegions(contents), target)
+    )
   }
 
   private applyDocumentState() {
@@ -219,13 +251,37 @@ export class AttentionAccommodationRuntime extends React.Component<
 
     const contents = document.getElementById('desktop-app-contents')
     if (contents !== null) {
-      for (const child of Array.from(contents.children)) {
-        const element = child as HTMLElement
-        if (element.dataset.attentionRuntime !== 'true') {
-          element.setAttribute('data-attention-region', 'true')
-        }
+      const regions = collectAttentionRegions(contents)
+      if (
+        this.state.preferences.enabled.focus &&
+        (this.activeRegion === null || !this.activeRegion.isConnected)
+      ) {
+        const focused =
+          document.activeElement instanceof HTMLElement
+            ? attentionRegionForTarget(regions, document.activeElement)
+            : null
+        const dialog = contents.querySelector<HTMLElement>('[role="dialog"]')
+        const dialogRegion =
+          dialog === null ? null : attentionRegionForTarget(regions, dialog)
+        const repository = document.getElementById('repository')
+        const repositoryRegion =
+          repository === null
+            ? null
+            : attentionRegionForTarget(regions, repository)
+        this.activateRegion(
+          focused ?? dialogRegion ?? repositoryRegion ?? regions[0] ?? null
+        )
       }
     }
+  }
+
+  private activateRegion(region: HTMLElement | null) {
+    if (region === null || region === this.activeRegion) {
+      return
+    }
+    this.activeRegion?.removeAttribute('data-attention-active')
+    this.activeRegion = region
+    region.setAttribute('data-attention-active', 'true')
   }
 
   private deferMomentum = () => {

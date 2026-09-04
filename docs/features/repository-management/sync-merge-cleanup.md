@@ -45,7 +45,7 @@ that worktree at its unchanged commit, checks out the default branch in the
 active worktree, and removes the old worktree only when it is an ordinary
 unlocked linked worktree. A primary worktree is retained.
 
-The explicit **Force Mat Day** checkbox also enables checkpointing for dirty
+The explicit **Preserve dirty worktrees before merge** checkbox also enables checkpointing for dirty
 linked worktrees. Each recoverable worktree must fetch its tracked remote,
 fast-forward incoming history, commit its exact pending changes, and push that
 checkpoint before it becomes a merge candidate. Divergence, missing tracking,

@@ -9,6 +9,29 @@
       content="Documentation hub for Desktop Material, a Windows-only Material Design 3 (M3 Expressive) remake of GitHub Desktop: features, installation, references, verification records and contributor guides."
     />
     <meta name="color-scheme" content="light dark" />
+    <meta property="og:title" content="Desktop Material documentation" />
+    <meta
+      property="og:description"
+      content="Documentation, downloads, settings, status, and verification for Desktop Material."
+    />
+    <meta
+      property="og:url"
+      content="https://ding-ding-projects.github.io/desktop-material/"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Desktop Material" />
+    <meta
+      property="og:image"
+      content="https://ding-ding-projects.github.io/desktop-material/assets/social-preview.png"
+    />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="640" />
+    <meta
+      property="og:image:alt"
+      content="Desktop Material title beside the real repository changes workspace"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#12161c" />
     <link rel="stylesheet" href="assets/site/docs-hub.css" />
     <link rel="stylesheet" href="assets/site/docs-changelog.css" />
     <link rel="stylesheet" href="assets/site/docs-dim-sum.css" />
@@ -1275,7 +1298,7 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             Design system
           </h3>
           <p class="md-body subpanel__meta">
-            <strong>24</strong>
+            <strong>26</strong>
             <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
             <a href="features/design-system/"
               ><span class="i18n-inline" data-i18n="categoryIndex"
@@ -1529,6 +1552,21 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             <li>
               <a
                 class="doc-link"
+                href="features/design-system/provider-markup-renderer.html"
+                ><span class="doc-link__title"
+                  >Isolated provider-authored markup rendering</span
+                ><span class="doc-link__desc"
+                  >Provider-authored Markdown is rendered as formatted content
+                  rather than printed as source text. One shared renderer serves
+                  release notes, pull request content, comments,…</span
+                ><span class="doc-link__path"
+                  >features/design-system/provider-markup-renderer.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
                 href="features/design-system/repository-theme-music.html"
                 ><span class="doc-link__title">Repository-themed music</span
                 ><span class="doc-link__desc"
@@ -1566,6 +1604,21 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
                   It…</span
                 ><span class="doc-link__path"
                   >features/design-system/sfx-event-mapping.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/design-system/shared-link-embed.html"
+                ><span class="doc-link__title">Shared-link preview graphic</span
+                ><span class="doc-link__desc"
+                  >Desktop Material publishes one product-specific social
+                  preview at the repository root and one byte-identical served
+                  copy for the documentation site. The image shows the
+                  real…</span
+                ><span class="doc-link__path"
+                  >features/design-system/shared-link-embed.md</span
                 ></a
               >
             </li>
@@ -2598,7 +2651,7 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             Quality and reliability
           </h3>
           <p class="md-body subpanel__meta">
-            <strong>14</strong>
+            <strong>15</strong>
             <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
             <a href="features/quality-and-reliability/"
               ><span class="i18n-inline" data-i18n="categoryIndex"
@@ -2801,6 +2854,20 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
                   listeners are collected in one CompositeDisposable;…</span
                 ><span class="doc-link__path"
                   >features/quality-and-reliability/root-renderer-resource-lifecycle.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/quality-and-reliability/single-flight-actions.html"
+                ><span class="doc-link__title">Single-flight user actions</span
+                ><span class="doc-link__desc"
+                  >Desktop Material prevents a rapid double-click, repeated
+                  Enter or Space key, or a second control from starting the same
+                  consequential asynchronous action twice. The protection…</span
+                ><span class="doc-link__path"
+                  >features/quality-and-reliability/single-flight-actions.md</span
                 ></a
               >
             </li>
@@ -4837,6 +4904,22 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             <li>
               <a
                 class="doc-link"
+                href="verification/build-bootstrap-2026-08-31.html"
+                ><span class="doc-link__title"
+                  >Root build bootstrap verification, 2026-08-31</span
+                ><span class="doc-link__desc"
+                  >The repository's committed build.bat /s path was run from the
+                  isolated task worktree at commit
+                  c2f0fb6de969329628bc3dd60feef2dfe994d3fb. The command ran its
+                  own dependency…</span
+                ><span class="doc-link__path"
+                  >verification/build-bootstrap-2026-08-31.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
                 href="verification/cheap-lfs-bambu-build-2026-07-23.html"
                 ><span class="doc-link__title"
                   >Cheap LFS Bambu build cloud, clone, and batching acceptance —
@@ -5876,6 +5959,7 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
     <script src="assets/site/docs-hub-strings.js"></script>
     <script src="assets/site/docs-hub-catalog.js"></script>
     <script src="assets/site/docs-regex-job.js"></script>
+    <script src="assets/site/docs-action-flight.js"></script>
     <script src="assets/site/docs-hub.js"></script>
     <!--
       The changelog catalog is 542 KB and its viewer another 105 KB, for a tab

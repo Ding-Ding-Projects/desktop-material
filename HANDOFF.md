@@ -277,9 +277,13 @@ count remains, the attempt budget is not refunded, and the prompt returns to its
 ordinary credential field. The ladder result cannot create an unlock, session,
 cookie, or authenticated state.
 
-Focused evidence: `app/test/unit/unlock-ladder-test.ts`, 5/5 tests passing. The
-packaged Windows interaction and screenshots remain pending because the approved
-cheap headless route was not run in this lane.
+Focused evidence: `app/test/unit/unlock-ladder-test.ts`, 8/8 tests passing. The
+main process now persists a bounded, versioned, timestamp-only allowance below
+the application user-data directory. A new process reloads the same rolling
+hour, simultaneous spends serialize so only three land, and malformed state
+leaves the wait intact. No credential, attempt count, answer, or authentication
+state enters the file. The packaged Windows interaction and screenshots remain
+pending because the approved cheap headless route was not run in this lane.
 
 ## Current frozen-renderer capture ledger — 2026-08-21
 
@@ -11148,3 +11152,112 @@ hidden selections.
 - Record that final remote proof externally for the reason stated above.
 - Remove only this task branch and linked worktree after remote ancestry proof.
   Do not touch the unrelated dirty personal-vocabulary worktree.
+
+## 2026-08-31 progressive settings-explanation foundation
+
+### Scope
+
+The current universal-feature task added a shared progressive explanation and
+provenance component without changing the frozen application shell. The first
+ hand-written inventory covers 202 settings across Accounts, issue references,
+Accessibility, Advanced, AI policy, Appearance and application identity, agent access, Git, Copilot, Sound, Prompts, self-hosted server setup,
+ Attention accommodations, and Status Hub.
+
+### Implemented behavior
+
+- Every covered control points `aria-describedby` at stable explanation and
+  provenance IDs.
+- The native disclosure remains collapsed by default while assistive
+  technology receives both descriptions.
+- Attention provenance distinguishes a missing local-storage key from an
+  explicitly saved all-off profile.
+- Accessibility provenance distinguishes the shipped-on link underline and
+  diff check-mark values from explicit stored choices.
+- Advanced provenance covers automatic account switching, repository status
+  indicators, usage reporting, verbose logging, Git Credential Manager,
+  large-repository detection and repack, browser-open mode, and the contextual
+  first-run OpenSSH default.
+- Prompts provenance covers ten confirmation switches, the uncommitted-change
+  branch-switch strategy, and the commit-length warning.
+- Account sign-in provenance covers eleven transient fields and reports secret
+  entries only as empty or entered, never by value, length, or composition.
+- AI-policy provenance covers the master boundary, both provider permissions,
+  and default repository eligibility, including fail-closed stored-policy
+  behavior.
+- Issue-reference provenance covers all Jira Cloud, Jira Data Center, and
+  Trello scope/item fields as transient link inputs.
+- Copilot provenance covers both model choices and automatic conflict use,
+  with dropdown buttons pointing at both explanation IDs.
+- Appearance provenance covers dialog emoji, language, auto-fit scale,
+  both playfulness levels, base scale, theme, branch sorting, formatting
+  patterns, absolute dates, diff tab size, recent repositories, and branch-name
+  visibility.
+- Application-identity provenance covers the custom logo image plus logo and
+  display-name typography selectors, plus every logo/name color, geometry,
+  opacity, visibility, and format control without repeating a local image path.
+- Agent-access provenance covers the managed access mode, server-enabled state,
+  secret-safe runtime credential, mobile-site URL, and optional HTTPS gateway.
+- Automation provenance covers both global enabled states and intervals plus
+  every repeated per-account inherit/override field. Repeated account rows keep
+  unique accessible-description IDs and one conceptual inventory ID.
+- Notification provenance covers both the high-signal desktop-notification
+  switch and the acknowledgement-only error-presentation choice.
+- Clone-queue provenance covers every repeated account switch, selected-folder
+  state, and parallel/sequential mode without repeating the private directory.
+- Settings-navigation provenance covers the independently persisted Preferences
+  and Repository Settings tab-strip dock positions.
+- The searchable settings-page picker again renders its title in a visible
+  Material panel header. The focused 43-test strip batch now passes completely.
+- Ollama provenance covers the runtime provider selection and trusted loopback
+  endpoint draft, naming that persistence begins only after a successful save.
+- Authenticator and surface-lock manager entry rows now use the shared
+  explanation component and keep their factual local-entry counts, existing
+  history/manager flows, and accessible button linkage.
+- Personal-vocabulary provenance reports only original wording versus a valid
+  local cache, never source path, metadata, or private mappings. Its focused
+  boundary test also exposed and repaired six stale exact source-line anchors.
+- School-mode provenance covers its shared name and enabled state plus the
+  conditional setup, confirmation, and unlock inputs. Credential rows name
+  their runtime or vault boundary while withholding all secret facts.
+- Global-ignore provenance distinguishes unconfigured, configured existing,
+  and configured new files without repeating the private path, and reports the
+  current non-empty pattern count separately.
+- Integration provenance covers external editor and shell selection, all six
+  custom executable/argument fields, and the three live Explorer registration
+  controls. Private paths and argument contents are not repeated.
+- Git provenance covers global author identity, default branch, effective
+  identity display, and hook environment settings.
+- Sound provenance covers the full global audio system, effects, narrator,
+  recorded narration, both voice choices, rate, pitch, cooldown, music,
+  quiet-hours and reduced-motion controls, plus repository music selection
+  without repeating a custom path.
+- Self-hosted server provenance covers the managed public origin, transient
+  SAML metadata, and generated one-time join link without repeating the link.
+- Scheduled-settings provenance covers every standard rule, date/time,
+  weekday, source, endpoint, Home Assistant, language, theme, and appearance
+  control. Repeated rule instances keep unique accessible-description IDs while
+  linking to one exact conceptual inventory row; credential provenance remains
+  presence-only.
+- Status Hub provenance distinguishes an unconfigured endpoint, stored
+  application-data endpoint, absent authorization, and presence-only
+  credential-vault state without reading a credential back into the renderer.
+- The Momentum defer interval is reported honestly as runtime-only rather than
+  pretending it persists.
+
+### Verification
+
+- TypeScript no-emit passed.
+- One hundred eighty-four focused tests passed across twenty-one selected files
+  covering the shared component and every direct settings surface.
+- Documentation-bundle coverage passed with 168 bundled feature articles.
+- Changelog validation and `git diff --check` passed.
+
+### Remaining work
+
+The `settings-explanations` canonical feature remains pending only on built
+interaction and real capture evidence. Every direct Preferences and settings
+navigation control now has localized behavioral copy, exact
+current/source/shipped-value provenance, an explicit accessible-description
+binding, a hand-written inventory row, and focused source proof. Entry-specific
+controls inside the authenticator, locks, and Ollama managers remain governed
+by those managers' own feature inventories rather than duplicated here.

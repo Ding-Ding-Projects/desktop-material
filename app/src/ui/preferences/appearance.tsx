@@ -1,6 +1,7 @@
 import * as React from 'react'
 import {
   ApplicationTheme,
+  applicationThemeKey,
   supportsSystemThemeChanges,
   getCurrentlyAppliedTheme,
 } from '../lib/application-theme'
@@ -10,7 +11,15 @@ import { RadioGroup } from '../lib/radio-group'
 import { RangeSlider } from '../lib/range-slider'
 import { Select } from '../lib/select'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
-import { tabSizeDefault } from '../../lib/stores/app-store'
+import {
+  autoFitZoomEnabledKey,
+  branchSortOrderKey,
+  showBranchNameInRepoListKey,
+  showRecentRepositoriesKey,
+  tabSizeDefault,
+  tabSizeKey,
+  zoomFactorKey,
+} from '../../lib/stores/app-store'
 import { enableFormattingPreferences } from '../../lib/feature-flag'
 import {
   DateFormat,
@@ -20,6 +29,13 @@ import {
   timeFormats,
   numberFormats,
   numberFormatToKey,
+  dateFormatKey,
+  defaultDateFormat,
+  defaultNumberFormat,
+  defaultTimeFormat,
+  numberFormatKey,
+  preferAbsoluteDatesKey,
+  timeFormatKey,
 } from '../../models/formatting-preferences'
 import { formatNumber } from '../../lib/format-number'
 import { assertNever } from '../../lib/fatal-error'
@@ -33,6 +49,7 @@ import {
 } from '../../lib/funny-level-text'
 import {
   clampFunnyLevel,
+  AudioSettingsStorageKey,
   IAudioSystemSettings,
 } from '../../lib/audio/audio-settings'
 import {
@@ -47,6 +64,8 @@ import {
   DialogEmojiProvenance,
   getShowDialogEmoji,
   getShowDialogEmojiProvenance,
+  ShowDialogEmojiDefault,
+  ShowDialogEmojiKey,
   setShowDialogEmoji,
 } from '../../lib/dialog-emoji'
 import {
@@ -207,18 +226,7 @@ export class Appearance extends React.Component<
     }
 
     const enabled = this.state.showDialogEmoji
-    const provenance = translate(
-      this.state.showDialogEmojiProvenance === 'stored'
-        ? 'dialogEmoji.provenanceStored'
-        : 'dialogEmoji.provenanceDefault',
-      languageMode,
-      {
-        value: translatedVariable(
-          enabled ? 'dialogEmoji.stateOn' : 'dialogEmoji.stateOff'
-        ),
-      }
-    )
-
+    const settingId = 'appearance-dialog-emoji'
     return (
       <div
         className="appearance-section appearance-customization-section appearance-dialog-emoji"
@@ -229,27 +237,26 @@ export class Appearance extends React.Component<
           label={localize('dialogEmoji.toggleLabel')}
           value={enabled ? CheckboxValue.On : CheckboxValue.Off}
           onChange={this.onShowDialogEmojiChanged}
-          ariaDescribedBy="dialog-emoji-provenance"
+          ariaDescribedBy={
+            settingExplanationDescriptionIds(settingId).ariaDescribedBy
+          }
         />
-        <details className="appearance-dialog-emoji-explanation">
-          <summary>{localize('dialogEmoji.explanationSummary')}</summary>
-          <p className="appearance-customization-caption">
-            {translateWithFunnyLevel(
-              'dialogEmoji.explanation',
-              languageMode,
-              levels
-            )}
-          </p>
-          <p className="appearance-customization-caption">
-            {localize('dialogEmoji.boundaryNote')}
-          </p>
-        </details>
-        <p
-          id="dialog-emoji-provenance"
-          className="appearance-customization-caption appearance-dialog-emoji-provenance"
-        >
-          {provenance}
-        </p>
+        <BooleanSettingExplanation
+          settingId={settingId}
+          explanationEnglish={`${translateWithFunnyLevel(
+            'dialogEmoji.explanation',
+            'english',
+            levels
+          )} ${translate('dialogEmoji.boundaryNote', 'english')}`}
+          explanationCantonese={`${translateWithFunnyLevel(
+            'dialogEmoji.explanation',
+            'cantonese',
+            levels
+          )} ${translate('dialogEmoji.boundaryNote', 'cantonese')}`}
+          value={enabled}
+          shippedValue={ShowDialogEmojiDefault}
+          storageKey={ShowDialogEmojiKey}
+        />
       </div>
     )
   }
@@ -281,19 +288,37 @@ export class Appearance extends React.Component<
     label: string,
     options: ReadonlyArray<{ readonly value: string; readonly label: string }>
   ) {
+    const settingId = 'appearance-language-mode'
+    const current = this.props.appearanceCustomization[key]
+    const shipped = DefaultAppearanceCustomization[key]
     return (
-      <Select
-        name={key}
-        label={label}
-        value={this.props.appearanceCustomization[key]}
-        onChange={this.onCustomizationChanged}
-      >
-        {options.map(option => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </Select>
+      <>
+        <Select
+          name={key}
+          label={label}
+          value={this.props.appearanceCustomization[key]}
+          onChange={this.onCustomizationChanged}
+          ariaDescribedBy={
+            settingExplanationDescriptionIds(settingId).ariaDescribedBy
+          }
+        >
+          {options.map(option => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </Select>
+        <SelectionSettingExplanation
+          settingId={settingId}
+          explanationEnglish="Chooses English, playful Hong Kong Cantonese, or compact bilingual copy across the interface."
+          explanationCantonese="揀成個介面使用英文、玩味香港廣東話，定係緊湊雙語文案。"
+          currentEnglish={current}
+          currentCantonese={current}
+          shippedEnglish={shipped}
+          shippedCantonese={shipped}
+          storageKey={LanguageModeStorageKey}
+        />
+      </>
     )
   }
 
@@ -366,6 +391,7 @@ export class Appearance extends React.Component<
     const languageMode = this.props.appearanceCustomization.languageMode
     const id = `appearance-playfulness-${language}`
     const outputId = `${id}-value`
+    const settingId = `appearance-funny-${language}`
     const label = translate(labelKey, languageMode)
     const valueText = translate('appearance.playfulnessValue', languageMode, {
       value: value.toString(),
@@ -390,7 +416,9 @@ export class Appearance extends React.Component<
           value={value}
           valueText={value.toString()}
           ariaValueText={valueText}
-          ariaDescribedBy={`appearance-playfulness-description ${outputId}`}
+          ariaDescribedBy={`appearance-playfulness-description ${outputId} ${
+            settingExplanationDescriptionIds(settingId).ariaDescribedBy
+          }`}
           onChange={onChange}
         />
         <div className="appearance-playfulness-scale" aria-hidden={true}>
@@ -401,6 +429,18 @@ export class Appearance extends React.Component<
             {translate('appearance.playfulnessMaximum', languageMode)}
           </span>
         </div>
+        <SelectionSettingExplanation
+          settingId={settingId}
+          explanationEnglish={`Sets the ${language} playfulness level used to style every message category without changing its facts.`}
+          explanationCantonese={`設定${
+            language === 'english' ? '英文' : '廣東話'
+          }搞笑程度，用嚟調整所有訊息類別嘅語氣，但唔會改事實。`}
+          currentEnglish={value.toString()}
+          currentCantonese={value.toString()}
+          shippedEnglish="5"
+          shippedCantonese="5"
+          storageKey={AudioSettingsStorageKey}
+        />
       </div>
     )
   }
@@ -635,6 +675,10 @@ export class Appearance extends React.Component<
               value={percent}
               aria-labelledby="scaling-heading"
               aria-valuetext={`${percent}%`}
+              aria-describedby={
+                settingExplanationDescriptionIds('appearance-ui-scale')
+                  .ariaDescribedBy
+              }
               onChange={this.onZoomSliderChanged}
             />
             <MaterialSymbol
@@ -646,6 +690,16 @@ export class Appearance extends React.Component<
               {percent}%
             </span>
           </div>
+          <SelectionSettingExplanation
+            settingId="appearance-ui-scale"
+            explanationEnglish="Sets the preferred base interface scale from 50% to 200%. Auto-fit may temporarily reduce the effective scale without changing this value."
+            explanationCantonese="設定 50% 至 200% 嘅偏好基礎介面比例；自動配合可以暫時降低有效比例，但唔會改呢個值。"
+            currentEnglish={`${percent}%`}
+            currentCantonese={`${percent}%`}
+            shippedEnglish="100%"
+            shippedCantonese="100%"
+            storageKey={zoomFactorKey}
+          />
 
           <div {...teleportAnchor('settings-auto-fit-zoom')}>
             <Checkbox
@@ -657,6 +711,18 @@ export class Appearance extends React.Component<
                   : CheckboxValue.Off
               }
               onChange={this.onAutoFitZoomEnabledChanged}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('appearance-auto-fit-zoom')
+                  .ariaDescribedBy
+              }
+            />
+            <BooleanSettingExplanation
+              settingId="appearance-auto-fit-zoom"
+              explanationEnglish="Automatically reduces the effective interface scale when the selected base scale would not fit the current window. It never enlarges beyond the selected base."
+              explanationCantonese="當所選基礎介面比例放唔落目前視窗時，自動降低有效比例；永遠唔會放大過所選基礎值。"
+              value={this.props.autoFitZoomEnabled}
+              shippedValue={true}
+              storageKey={autoFitZoomEnabledKey}
             />
           </div>
 
@@ -698,11 +764,24 @@ export class Appearance extends React.Component<
 
         <RadioGroup<ApplicationTheme>
           ariaLabelledBy="theme-heading"
+          ariaDescribedBy={
+            settingExplanationDescriptionIds('appearance-theme').ariaDescribedBy
+          }
           className="theme-selector"
           selectedKey={selectedTheme}
           radioButtonKeys={themes}
           onSelectionChanged={this.onSelectedThemeChanged}
           renderRadioButtonLabelContents={this.renderThemeSwatch}
+        />
+        <SelectionSettingExplanation
+          settingId="appearance-theme"
+          explanationEnglish="Chooses a light theme, a dark theme, or automatic matching to the operating-system theme."
+          explanationCantonese="揀淺色、深色，或者自動跟隨作業系統主題。"
+          currentEnglish={selectedTheme}
+          currentCantonese={selectedTheme}
+          shippedEnglish={ApplicationTheme.System}
+          shippedCantonese={ApplicationTheme.System}
+          storageKey={applicationThemeKey}
         />
       </div>
     )
@@ -723,9 +802,16 @@ export class Appearance extends React.Component<
             {...teleportAnchor('settings-date-format')}
           >
             <Select
-              label={__DARWIN__ ? 'Date Format' : 'Date format'}
+              label={translate(
+                'palette.setDateFormat',
+                this.props.appearanceCustomization.languageMode
+              )}
               value={this.props.selectedDateFormat}
               onChange={this.onDateFormatChanged}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('appearance-date-format')
+                  .ariaDescribedBy
+              }
             >
               {dateFormats.map(({ pattern, example }) => (
                 <option key={pattern} value={pattern}>
@@ -733,6 +819,16 @@ export class Appearance extends React.Component<
                 </option>
               ))}
             </Select>
+            <SelectionSettingExplanation
+              settingId="appearance-date-format"
+              explanationEnglish="Chooses the date pattern used for absolute dates in the interface."
+              explanationCantonese="揀介面絕對日期使用嘅日期格式。"
+              currentEnglish={this.props.selectedDateFormat}
+              currentCantonese={this.props.selectedDateFormat}
+              shippedEnglish={defaultDateFormat}
+              shippedCantonese={defaultDateFormat}
+              storageKey={dateFormatKey}
+            />
           </div>
 
           <div
@@ -740,9 +836,16 @@ export class Appearance extends React.Component<
             {...teleportAnchor('settings-time-format')}
           >
             <Select
-              label={__DARWIN__ ? 'Time Format' : 'Time format'}
+              label={translate(
+                'palette.setTimeFormat',
+                this.props.appearanceCustomization.languageMode
+              )}
               value={this.props.selectedTimeFormat}
               onChange={this.onTimeFormatChanged}
+              ariaDescribedBy={
+                settingExplanationDescriptionIds('appearance-time-format')
+                  .ariaDescribedBy
+              }
             >
               {timeFormats.map(({ pattern, example }) => (
                 <option key={pattern} value={pattern}>
@@ -750,14 +853,31 @@ export class Appearance extends React.Component<
                 </option>
               ))}
             </Select>
+            <SelectionSettingExplanation
+              settingId="appearance-time-format"
+              explanationEnglish="Chooses the clock pattern used for absolute times in the interface."
+              explanationCantonese="揀介面絕對時間使用嘅時鐘格式。"
+              currentEnglish={this.props.selectedTimeFormat}
+              currentCantonese={this.props.selectedTimeFormat}
+              shippedEnglish={defaultTimeFormat}
+              shippedCantonese={defaultTimeFormat}
+              storageKey={timeFormatKey}
+            />
           </div>
         </Row>
 
         <div {...teleportAnchor('settings-number-format')}>
           <Select
-            label={__DARWIN__ ? 'Number Format' : 'Number format'}
+            label={translate(
+              'palette.setNumberFormat',
+              this.props.appearanceCustomization.languageMode
+            )}
             value={numberFormatToKey(this.props.selectedNumberFormat)}
             onChange={this.onNumberFormatChanged}
+            ariaDescribedBy={
+              settingExplanationDescriptionIds('appearance-number-format')
+                .ariaDescribedBy
+            }
           >
             {numberFormats.map(format => (
               <option
@@ -768,18 +888,46 @@ export class Appearance extends React.Component<
               </option>
             ))}
           </Select>
+          <SelectionSettingExplanation
+            settingId="appearance-number-format"
+            explanationEnglish="Chooses the thousands and decimal separators used when the interface formats numbers."
+            explanationCantonese="揀介面格式化數字時使用嘅千位同小數分隔符。"
+            currentEnglish={numberFormatToKey(this.props.selectedNumberFormat)}
+            currentCantonese={numberFormatToKey(
+              this.props.selectedNumberFormat
+            )}
+            shippedEnglish={numberFormatToKey(defaultNumberFormat)}
+            shippedCantonese={numberFormatToKey(defaultNumberFormat)}
+            storageKey={numberFormatKey}
+          />
         </div>
 
         <div {...teleportAnchor('settings-prefer-absolute-dates')}>
           <Checkbox
             className="prefer-absolute-dates"
-            label="Prefer absolute dates over relative"
+            label={translate(
+              'palette.setPreferAbsoluteDates',
+              this.props.appearanceCustomization.languageMode
+            )}
             value={
               this.props.preferAbsoluteDates
                 ? CheckboxValue.On
                 : CheckboxValue.Off
             }
             onChange={this.onPreferAbsoluteDatesChanged}
+            ariaDescribedBy={
+              settingExplanationDescriptionIds(
+                'appearance-prefer-absolute-dates'
+              ).ariaDescribedBy
+            }
+          />
+          <BooleanSettingExplanation
+            settingId="appearance-prefer-absolute-dates"
+            explanationEnglish="Uses full absolute dates in lists instead of relative phrases such as two hours ago."
+            explanationCantonese="清單使用完整絕對日期，而唔係「兩個鐘前」之類相對時間。"
+            value={this.props.preferAbsoluteDates}
+            shippedValue={false}
+            storageKey={preferAbsoluteDatesKey}
           />
         </div>
       </div>
@@ -798,8 +946,15 @@ export class Appearance extends React.Component<
 
         <Select
           value={this.state.selectedTabSize.toString()}
-          label={__DARWIN__ ? 'Tab Size' : 'Tab size'}
+          label={translate(
+            'palette.tabSize',
+            this.props.appearanceCustomization.languageMode
+          )}
           onChange={this.onSelectedTabSizeChanged}
+          ariaDescribedBy={
+            settingExplanationDescriptionIds('appearance-tab-size')
+              .ariaDescribedBy
+          }
         >
           {availableTabSizes.map(n => (
             <option key={n} value={n}>
@@ -807,6 +962,16 @@ export class Appearance extends React.Component<
             </option>
           ))}
         </Select>
+        <SelectionSettingExplanation
+          settingId="appearance-tab-size"
+          explanationEnglish="Chooses how many spaces a tab represents in diff and text views."
+          explanationCantonese="揀 diff 同文字檢視入面一個 tab 代表幾多個空格。"
+          currentEnglish={this.state.selectedTabSize.toString()}
+          currentCantonese={this.state.selectedTabSize.toString()}
+          shippedEnglish={tabSizeDefault.toString()}
+          shippedCantonese={tabSizeDefault.toString()}
+          storageKey={tabSizeKey}
+        />
       </div>
     )
   }
@@ -817,20 +982,43 @@ export class Appearance extends React.Component<
         <h2 id="repository-list-heading">Repository list</h2>
         <div {...teleportAnchor('settings-show-recent-repositories')}>
           <Checkbox
-            label="Show recent repositories"
+            label={translate(
+              'palette.setShowRecentRepositories',
+              this.props.appearanceCustomization.languageMode
+            )}
             value={
               this.props.showRecentRepositories
                 ? CheckboxValue.On
                 : CheckboxValue.Off
             }
             onChange={this.onShowRecentRepositoriesChanged}
+            ariaDescribedBy={
+              settingExplanationDescriptionIds(
+                'appearance-show-recent-repositories'
+              ).ariaDescribedBy
+            }
+          />
+          <BooleanSettingExplanation
+            settingId="appearance-show-recent-repositories"
+            explanationEnglish="Shows the Recent group in the repository list so recently opened repositories remain easy to reach."
+            explanationCantonese="喺儲存庫清單顯示「最近使用」群組，方便再開最近用過嘅儲存庫。"
+            value={this.props.showRecentRepositories}
+            shippedValue={true}
+            storageKey={showRecentRepositoriesKey}
           />
         </div>
         <div {...teleportAnchor('settings-branch-name-in-repo-list')}>
           <Select
-            label="Show branch name"
+            label={translate(
+              'palette.setBranchNameInRepoList',
+              this.props.appearanceCustomization.languageMode
+            )}
             value={this.props.showBranchNameInRepoList}
             onChange={this.onShowBranchNameInRepoListChanged}
+            ariaDescribedBy={
+              settingExplanationDescriptionIds('appearance-show-branch-name')
+                .ariaDescribedBy
+            }
           >
             <option value={ShowBranchNameInRepoListSetting.Always}>
               Always
@@ -840,6 +1028,16 @@ export class Appearance extends React.Component<
             </option>
             <option value={ShowBranchNameInRepoListSetting.Never}>Never</option>
           </Select>
+          <SelectionSettingExplanation
+            settingId="appearance-show-branch-name"
+            explanationEnglish="Chooses whether repository rows always show the current branch name, show it only away from the default branch, or never show it."
+            explanationCantonese="揀儲存庫列一律顯示目前分支名、只喺離開預設分支時顯示，定係永遠唔顯示。"
+            currentEnglish={this.props.showBranchNameInRepoList}
+            currentCantonese={this.props.showBranchNameInRepoList}
+            shippedEnglish={defaultShowBranchNameInRepoListSetting}
+            shippedCantonese={defaultShowBranchNameInRepoListSetting}
+            storageKey={showBranchNameInRepoListKey}
+          />
         </div>
       </div>
     )
@@ -854,6 +1052,10 @@ export class Appearance extends React.Component<
         <h2 id="branch-sort-order-heading">Sort branches</h2>
         <RadioGroup<BranchSortOrder>
           ariaLabelledBy="branch-sort-order-heading"
+          ariaDescribedBy={
+            settingExplanationDescriptionIds('appearance-branch-sort')
+              .ariaDescribedBy
+          }
           selectedKey={this.props.branchSortOrder}
           radioButtonKeys={[
             BranchSortOrder.LastModified,
@@ -861,6 +1063,16 @@ export class Appearance extends React.Component<
           ]}
           onSelectionChanged={this.onBranchSortOrderChanged}
           renderRadioButtonLabelContents={this.renderBranchSortOptionLabel}
+        />
+        <SelectionSettingExplanation
+          settingId="appearance-branch-sort"
+          explanationEnglish="Chooses whether branch lists are ordered by recent activity or alphabetically."
+          explanationCantonese="揀分支清單按最近活動定係字母次序排列。"
+          currentEnglish={this.props.branchSortOrder}
+          currentCantonese={this.props.branchSortOrder}
+          shippedEnglish={DefaultBranchSortOrder}
+          shippedCantonese={DefaultBranchSortOrder}
+          storageKey={branchSortOrderKey}
         />
       </div>
     )

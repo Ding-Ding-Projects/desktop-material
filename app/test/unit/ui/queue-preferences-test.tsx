@@ -58,9 +58,22 @@ describe('Clone queue preferences', () => {
     }
     openDialogBehavior = async () => 'C:\\Repositories'
 
-    render(
+    const view = render(
       <QueuePreferences accounts={[account]} dispatcher={dispatcher as never} />
     )
+
+    for (const id of [
+      'queue-auto-clone-enabled',
+      'queue-base-directory',
+      'queue-mode',
+    ]) {
+      assert.equal(
+        view.container.querySelectorAll(`[data-setting-explanation-id="${id}"]`)
+          .length,
+        1,
+        `missing queue setting explanation ${id}`
+      )
+    }
 
     const queueSwitch = screen.getByRole('switch', {
       name: 'Automatically clone new repositories',

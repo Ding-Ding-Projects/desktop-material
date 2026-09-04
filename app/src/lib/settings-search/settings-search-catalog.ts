@@ -162,6 +162,23 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
         '檔案總管',
       ],
     },
+    {
+      id: 'integrations-status-hub',
+      tab: PreferencesTab.Integrations,
+      titleKey: 'settings.statusHubTitle',
+      descriptionKey: 'settings.statusHubDescription',
+      keywords: [
+        'status',
+        'hub',
+        'endpoint',
+        'authorization',
+        'credential vault',
+        '狀態',
+        '授權',
+        '憑證保險箱',
+      ],
+      teleportTargetId: 'settingsStatusHub',
+    },
     // Copilot
     {
       id: 'copilot-models',

@@ -256,9 +256,9 @@ export const defaultNumberFormat: INumberFormat = {
   decimalSeparator: prefersDecimalPoint() ? '.' : ',',
 }
 
-const dateFormatKey = 'dateFormat'
-const timeFormatKey = 'timeFormat'
-const numberFormatKey = 'numberFormat'
+export const dateFormatKey = 'dateFormat'
+export const timeFormatKey = 'timeFormat'
+export const numberFormatKey = 'numberFormat'
 
 /** Get the user's preferred date format from localStorage. */
 export function getDateFormatPreference(): DateFormat {
@@ -312,7 +312,7 @@ export function numberFormatFromKey(key: string): INumberFormat {
   return match ?? defaultNumberFormat
 }
 
-const preferAbsoluteDatesKey = 'preferAbsoluteDates'
+export const preferAbsoluteDatesKey = 'preferAbsoluteDates'
 
 /**
  * Whether to prefer absolute dates over relative time in lists.

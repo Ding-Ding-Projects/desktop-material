@@ -10,12 +10,17 @@ import {
   TargetPathArgument,
   WindowsExecutableExtensions,
 } from '../../lib/custom-integration'
+import {
+  SelectionSettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 
 interface ICustomIntegrationFormProps {
   /** ID used to prefix the IDs of some child elements */
   readonly id: string
   readonly path: string
   readonly arguments: string
+  readonly storageKey?: string
   readonly hideArgumentsWhenPathEmpty?: boolean
   readonly allowEmptyPath?: boolean
   readonly requireTargetPathArgument?: boolean
@@ -70,6 +75,23 @@ export class CustomIntegrationForm extends React.Component<
   public render() {
     const hideArguments =
       this.props.hideArgumentsWhenPathEmpty === true && this.state.path === ''
+    const pathSettingId = `${this.props.id}-path`
+    const argumentsSettingId = `${this.props.id}-arguments`
+    const pathDescription = [
+      `${this.props.id}-custom-integration-path-error`,
+      ...(this.props.storageKey === undefined
+        ? []
+        : [settingExplanationDescriptionIds(pathSettingId).ariaDescribedBy]),
+    ].join(' ')
+    const argumentsDescription = [
+      `${this.props.id}-custom-integration-args-error`,
+      ...(this.props.storageKey === undefined
+        ? []
+        : [
+            settingExplanationDescriptionIds(argumentsSettingId)
+              .ariaDescribedBy,
+          ]),
+    ].join(' ')
     return (
       <div className="custom-integration-form-container">
         <div className="custom-integration-form-path-container">
@@ -79,11 +101,27 @@ export class CustomIntegrationForm extends React.Component<
             ref={this.pathInputRef}
             onValueChanged={this.onPathChanged}
             placeholder="Path to executable"
-            ariaDescribedBy={`${this.props.id}-custom-integration-path-error`}
+            ariaDescribedBy={pathDescription}
           />
           <Button onClick={this.onChoosePath}>Choose…</Button>
         </div>
         {this.renderPathErrors()}
+        {this.props.storageKey === undefined ? null : (
+          <SelectionSettingExplanation
+            settingId={pathSettingId}
+            explanationEnglish="Chooses the local executable used by this integration. The selected private path is not repeated in provenance copy."
+            explanationCantonese="揀呢個整合使用嘅本地可執行檔；所選私人路徑唔會喺來源文字重複。"
+            currentEnglish={
+              this.state.path.trim().length > 0 ? 'selected' : 'empty'
+            }
+            currentCantonese={
+              this.state.path.trim().length > 0 ? '已選擇' : '留空'
+            }
+            shippedEnglish="empty"
+            shippedCantonese="留空"
+            storageKey={this.props.storageKey}
+          />
+        )}
         {hideArguments ? null : (
           <>
             <TextBox
@@ -91,9 +129,27 @@ export class CustomIntegrationForm extends React.Component<
               value={this.state.arguments}
               onValueChanged={this.onParamsChanged}
               placeholder="Command line arguments"
-              ariaDescribedBy={`${this.props.id}-custom-integration-args-error`}
+              ariaDescribedBy={argumentsDescription}
             />
             {this.renderArgsErrors()}
+            {this.props.storageKey === undefined ? null : (
+              <SelectionSettingExplanation
+                settingId={argumentsSettingId}
+                explanationEnglish="Sets the validated command-line argument template used by this integration. Argument content is not repeated in provenance copy."
+                explanationCantonese="設定呢個整合使用嘅已驗證命令列參數範本；參數內容唔會喺來源文字重複。"
+                currentEnglish={
+                  this.state.arguments.trim().length > 0
+                    ? 'configured'
+                    : 'empty'
+                }
+                currentCantonese={
+                  this.state.arguments.trim().length > 0 ? '已設定' : '留空'
+                }
+                shippedEnglish="empty"
+                shippedCantonese="留空"
+                storageKey={this.props.storageKey}
+              />
+            )}
           </>
         )}
       </div>

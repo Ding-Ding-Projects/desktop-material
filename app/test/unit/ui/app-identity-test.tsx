@@ -10,7 +10,7 @@ import { fireEvent, render, screen } from '../../helpers/ui/render'
 
 describe('AppIdentity', () => {
   it('exposes the complete labelled identity editor and live preview', () => {
-    render(
+    const view = render(
       <AppIdentity
         value={DefaultAppIdentityCustomization}
         onChange={() => {}}
@@ -42,6 +42,57 @@ describe('AppIdentity', () => {
     assert.ok(screen.getByRole('button', { name: 'Underline' }))
     assert.ok(screen.getByRole('button', { name: 'Strikethrough' }))
     assert.ok(screen.getByRole('button', { name: 'Small caps' }))
+    const explanationIds = [
+      'app-identity-bold',
+      'app-identity-brand-gap',
+      'app-identity-character-spacing',
+      'app-identity-custom-logo-image',
+      'app-identity-display-name',
+      'app-identity-logo-shape',
+      'app-identity-logo-border',
+      'app-identity-logo-border-color',
+      'app-identity-logo-choice',
+      'app-identity-logo-color',
+      'app-identity-logo-inset',
+      'app-identity-logo-rotation',
+      'app-identity-logo-size',
+      'app-identity-logo-shadow',
+      'app-identity-font-family',
+      'app-identity-font-size',
+      'app-identity-font-weight',
+      'app-identity-font-width',
+      'app-identity-highlight-color',
+      'app-identity-italic',
+      'app-identity-letter-case',
+      'app-identity-name-color',
+      'app-identity-name-opacity',
+      'app-identity-show-logo',
+      'app-identity-smallCaps',
+      'app-identity-strikeThrough',
+      'app-identity-text-effect',
+      'app-identity-highlight',
+      'app-identity-underline',
+    ]
+    assert.equal(explanationIds.length, 29)
+    for (const id of explanationIds) {
+      const explanation = view.container.querySelector(
+        `[data-setting-explanation-id="${id}"]`
+      )
+      assert.ok(explanation, `missing setting explanation ${id}`)
+      assert.ok(explanation.querySelector('.setting-explanation__provenance'))
+    }
+    assert.equal(
+      screen
+        .getByRole('slider', { name: 'Logo size' })
+        .getAttribute('aria-describedby'),
+      'app-identity-logo-size-setting-explanation app-identity-logo-size-setting-provenance'
+    )
+    assert.equal(
+      screen
+        .getByRole('button', { name: 'Logo color picker' })
+        .getAttribute('aria-describedby'),
+      'app-identity-logo-color-setting-explanation app-identity-logo-color-setting-provenance'
+    )
   })
 
   it('reports valid live changes and does not apply a blank name', () => {

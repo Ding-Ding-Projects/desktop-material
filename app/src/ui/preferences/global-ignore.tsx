@@ -16,6 +16,10 @@ import { Button } from '../lib/button'
 import { LocalizedText } from '../lib/localized-text'
 import { TextArea } from '../lib/text-area'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import {
+  SettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 
 interface IGlobalIgnoreEditorProps {
   readonly load?: () => Promise<IGlobalIgnoreDocument>
@@ -60,6 +64,17 @@ export class GlobalIgnoreEditor extends React.Component<
   IGlobalIgnoreEditorState
 > {
   private mounted = false
+
+  private localizeText(english: string, cantonese: string): string {
+    switch (this.state.languageMode) {
+      case 'cantonese':
+        return cantonese
+      case 'bilingual':
+        return `${english} · ${cantonese}`
+      default:
+        return english
+    }
+  }
 
   public constructor(props: IGlobalIgnoreEditorProps) {
     super(props)
@@ -230,7 +245,10 @@ export class GlobalIgnoreEditor extends React.Component<
           value={this.state.path}
           disabled={busy}
           onChange={this.onPathChanged}
-          aria-describedby="global-ignore-path-state"
+          aria-describedby={`global-ignore-path-state ${
+            settingExplanationDescriptionIds('global-ignore-path')
+              .ariaDescribedBy
+          }`}
         />
         <p id="global-ignore-path-state" className="settings-description">
           {this.state.loading ? (
@@ -254,6 +272,34 @@ export class GlobalIgnoreEditor extends React.Component<
             />
           )}
         </p>
+        <SettingExplanation
+          settingId="global-ignore-path"
+          summary={this.localizeText(
+            'What this setting changes',
+            '呢個設定會改咩'
+          )}
+          explanation={this.localizeText(
+            "Chooses the file registered in Git's global core.excludesFile configuration. Saving creates the file when it does not exist.",
+            '揀 Git 全域 core.excludesFile 設定登記嘅檔案；檔案唔存在時，儲存會建立佢。'
+          )}
+          provenance={this.localizeText(
+            `Current value: ${
+              this.state.configured
+                ? this.state.exists
+                  ? 'configured existing file'
+                  : 'configured new file'
+                : 'unconfigured'
+            }. Shipped value: unconfigured. Source: managed Git configuration.`,
+            `目前值：${
+              this.state.configured
+                ? this.state.exists
+                  ? '已設定現有檔案'
+                  : '已設定新檔案'
+                : '未設定'
+            }。出廠值：未設定。來源：受管理 Git 設定。`
+          )}
+          source="main-process-config"
+        />
 
         <div
           className="global-ignore-starters"
@@ -300,7 +346,10 @@ export class GlobalIgnoreEditor extends React.Component<
             {},
             languageMode
           )}
-          ariaDescribedBy="global-ignore-description"
+          ariaDescribedBy={`global-ignore-description ${
+            settingExplanationDescriptionIds('global-ignore-rules')
+              .ariaDescribedBy
+          }`}
           placeholder={translateForAccessibleName(
             'globalIgnore.patternPlaceholder',
             {},
@@ -310,6 +359,30 @@ export class GlobalIgnoreEditor extends React.Component<
           disabled={busy}
           onValueChanged={this.onContentsChanged}
           textareaClassName="global-ignore-rules"
+        />
+        <SettingExplanation
+          settingId="global-ignore-rules"
+          summary={this.localizeText(
+            'What this setting changes',
+            '呢個設定會改咩'
+          )}
+          explanation={this.localizeText(
+            'Edits the ignore patterns stored in the selected global excludes file. Repository-specific ignore files remain unchanged.',
+            '編輯所選全域 excludes 檔案入面嘅忽略規則；個別儲存庫嘅忽略檔案唔會改。'
+          )}
+          provenance={this.localizeText(
+            `Current value: ${
+              this.state.contents
+                .split(/\r?\n/)
+                .filter(line => line.trim().length > 0).length
+            } non-empty patterns. Shipped value: 0 patterns. Source: selected file contents.`,
+            `目前值：${
+              this.state.contents
+                .split(/\r?\n/)
+                .filter(line => line.trim().length > 0).length
+            } 條非空規則。出廠值：0 條規則。來源：所選檔案內容。`
+          )}
+          source="main-process-config"
         />
 
         <div className="global-ignore-actions">

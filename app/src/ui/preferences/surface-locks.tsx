@@ -28,6 +28,10 @@ import {
   forgetAppearanceUnlock,
   getAppearanceUnlocks,
 } from '../appearance/appearance-lock-gate'
+import {
+  SettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 
 /**
  * Settings → Appearance → the lock manager's own row.
@@ -134,6 +138,17 @@ export class SurfaceLocksPreferences extends React.Component<
   private t = (key: TranslationKey, variables?: Record<string, string>) =>
     translate(key, this.props.languageMode, variables)
 
+  private localize(english: string, cantonese: string): string {
+    switch (this.props.languageMode) {
+      case 'cantonese':
+        return cantonese
+      case 'bilingual':
+        return `${english} · ${cantonese}`
+      default:
+        return english
+    }
+  }
+
   private funnyLevels(): IFunnyLevels {
     return readFunnyLevels()
   }
@@ -202,20 +217,18 @@ export class SurfaceLocksPreferences extends React.Component<
    * the count itself: none recorded, or exactly how many. "Default" would say
    * nothing a reader could check.
    */
-  private renderProvenance() {
+  private provenance(): string {
     const count = this.state.locks.length
-    return (
-      <p
-        id="surface-locks-provenance"
-        className="appearance-customization-caption surface-locks-provenance"
-      >
-        {count === 0
-          ? this.t('surfaceLocks.provenanceNone')
-          : count === 1
-          ? this.t('surfaceLocks.provenanceOne')
-          : this.t('surfaceLocks.provenanceMany', { count: String(count) })}
-      </p>
-    )
+    const existing =
+      count === 0
+        ? this.t('surfaceLocks.provenanceNone')
+        : count === 1
+        ? this.t('surfaceLocks.provenanceOne')
+        : this.t('surfaceLocks.provenanceMany', { count: String(count) })
+    return `${existing} ${this.localize(
+      `Current value: ${count} recorded locks. Shipped value: 0 recorded locks.`,
+      `目前值：${count} 個已記錄鎖。出廠值：0 個已記錄鎖。`
+    )}`
   }
 
   private renderManager() {
@@ -271,25 +284,25 @@ export class SurfaceLocksPreferences extends React.Component<
           type="button"
           className="surface-locks-open"
           onClick={this.onOpen}
-          aria-describedby="surface-locks-provenance"
+          aria-describedby={
+            settingExplanationDescriptionIds('surface-locks-manager')
+              .ariaDescribedBy
+          }
           aria-expanded={this.state.open}
         >
           {this.t('surfaceLocks.manage')}
         </button>
-        <details className="surface-locks-explanation">
-          <summary>{this.t('surfaceLocks.explanationSummary')}</summary>
-          <p className="appearance-customization-caption">
-            {translateWithFunnyLevel(
-              'surfaceLocks.explanation',
-              this.props.languageMode,
-              levels
-            )}
-          </p>
-          <p className="appearance-customization-caption">
-            {this.t('surfaceLocks.boundaryNote')}
-          </p>
-        </details>
-        {this.renderProvenance()}
+        <SettingExplanation
+          settingId="surface-locks-manager"
+          summary={this.t('surfaceLocks.explanationSummary')}
+          explanation={`${translateWithFunnyLevel(
+            'surfaceLocks.explanation',
+            this.props.languageMode,
+            levels
+          )} ${this.t('surfaceLocks.boundaryNote')}`}
+          provenance={this.provenance()}
+          source="stored-choice"
+        />
         {this.renderManager()}
       </div>
     )

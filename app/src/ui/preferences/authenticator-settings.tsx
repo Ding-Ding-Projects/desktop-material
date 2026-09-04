@@ -30,6 +30,10 @@ import {
 import { IMd3RegistrationResult } from '../md3/md3-authenticator-registration'
 import { Button } from '../lib/button'
 import { VersionedStoreHistory } from '../version-history'
+import {
+  SettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 
 /**
  * Settings → Advanced → the app's own authenticator.
@@ -121,6 +125,17 @@ export class AuthenticatorPreferences extends React.Component<
 
   private t = (key: TranslationKey, variables?: Record<string, string>) =>
     translate(key, this.props.languageMode, variables)
+
+  private localize(english: string, cantonese: string): string {
+    switch (this.props.languageMode) {
+      case 'cantonese':
+        return cantonese
+      case 'bilingual':
+        return `${english} · ${cantonese}`
+      default:
+        return english
+    }
+  }
 
   private funnyLevels(): IFunnyLevels {
     return readFunnyLevels()
@@ -314,25 +329,28 @@ export class AuthenticatorPreferences extends React.Component<
    * A registered-factor list has no shipped default, so the honest line names
    * what is on this computer: nothing registered yet, or exactly how many.
    */
-  private renderProvenance() {
+  private provenance(): string {
     const count = this.state.document?.entries.length ?? 0
     const unread = this.state.document === null
-    return (
-      <p
-        id="authenticator-provenance"
-        className="appearance-customization-caption authenticator-provenance"
-      >
-        {unread
-          ? this.t('authenticatorSettings.provenanceUnread')
-          : count === 0
-          ? this.t('authenticatorSettings.provenanceNone')
-          : count === 1
-          ? this.t('authenticatorSettings.provenanceOne')
-          : this.t('authenticatorSettings.provenanceMany', {
-              count: String(count),
-            })}
-      </p>
-    )
+    const existing = unread
+      ? this.t('authenticatorSettings.provenanceUnread')
+      : count === 0
+      ? this.t('authenticatorSettings.provenanceNone')
+      : count === 1
+      ? this.t('authenticatorSettings.provenanceOne')
+      : this.t('authenticatorSettings.provenanceMany', {
+          count: String(count),
+        })
+    const factual = unread
+      ? this.localize(
+          'Current value: unavailable until local history loads. Shipped value: 0 registered entries.',
+          '目前值：本地歷史載入前不可用。出廠值：0 個已登記項目。'
+        )
+      : this.localize(
+          `Current value: ${count} registered entries. Shipped value: 0 registered entries.`,
+          `目前值：${count} 個已登記項目。出廠值：0 個已登記項目。`
+        )
+    return `${existing} ${factual}`
   }
 
   private renderList() {
@@ -442,7 +460,10 @@ export class AuthenticatorPreferences extends React.Component<
           type="button"
           className="authenticator-open"
           onClick={this.onOpen}
-          aria-describedby="authenticator-provenance"
+          aria-describedby={
+            settingExplanationDescriptionIds('authenticator-manager')
+              .ariaDescribedBy
+          }
           aria-expanded={this.state.open}
         >
           {this.t('authenticatorSettings.manage')}
@@ -455,22 +476,17 @@ export class AuthenticatorPreferences extends React.Component<
         >
           {this.t('authenticatorSettings.history.open')}
         </Button>
-        <details className="authenticator-explanation">
-          <summary>
-            {this.t('authenticatorSettings.explanationSummary')}
-          </summary>
-          <p className="appearance-customization-caption">
-            {translateWithFunnyLevel(
-              'authenticatorSettings.explanation',
-              this.props.languageMode,
-              this.funnyLevels()
-            )}
-          </p>
-          <p className="appearance-customization-caption">
-            {this.t('authenticatorSettings.boundaryNote')}
-          </p>
-        </details>
-        {this.renderProvenance()}
+        <SettingExplanation
+          settingId="authenticator-manager"
+          summary={this.t('authenticatorSettings.explanationSummary')}
+          explanation={`${translateWithFunnyLevel(
+            'authenticatorSettings.explanation',
+            this.props.languageMode,
+            this.funnyLevels()
+          )} ${this.t('authenticatorSettings.boundaryNote')}`}
+          provenance={this.provenance()}
+          source="local-history"
+        />
         {this.missingSecretCount() > 0 ? (
           <p className="settings-description" role="status">
             {this.t('authenticatorSettings.history.missingSecrets', {

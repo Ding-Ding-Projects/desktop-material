@@ -5,6 +5,7 @@ import {
   MaxVocabularyBytes,
   MaxVocabularyEntries,
   PersonalVocabularySchemaVersion,
+  PersonalVocabularyStorageKey,
   cachePersonalVocabulary,
   clearPersonalVocabulary,
   parsePersonalVocabulary,
@@ -18,6 +19,10 @@ import {
   type TranslationVariables,
 } from '../../lib/i18n'
 import { Button } from '../lib/button'
+import {
+  SelectionSettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 
 /**
  * Where the user uploads their own vocabulary file.
@@ -217,7 +222,10 @@ export class PersonalVocabularyControl extends React.Component<
           <Button
             type="button"
             dataVerification="personal-vocabulary-choose-file"
-            ariaDescribedBy={this.statusId}
+            ariaDescribedBy={`${this.statusId} ${
+              settingExplanationDescriptionIds('personal-vocabulary-file')
+                .ariaDescribedBy
+            }`}
             onClick={this.openFilePicker}
           >
             {this.text('settings.personalVocabularyChooseFile')}
@@ -242,6 +250,18 @@ export class PersonalVocabularyControl extends React.Component<
           ) : null}
         </div>
         {this.renderStatus()}
+        <SelectionSettingExplanation
+          settingId="personal-vocabulary-file"
+          explanationEnglish="Loads, replaces, or clears one validated local-only vocabulary file. Invalid input never partially applies, and clearing restores the original shipped wording."
+          explanationCantonese="載入、更換或者清除一個經驗證嘅純本地詞彙檔案；無效輸入永遠唔會局部套用，清除後會恢復原本出廠字句。"
+          currentEnglish={
+            loaded ? 'valid local cache loaded' : 'original wording'
+          }
+          currentCantonese={loaded ? '已載入有效本地快取' : '原本字句'}
+          shippedEnglish="original wording"
+          shippedCantonese="原本字句"
+          storageKey={PersonalVocabularyStorageKey}
+        />
         <details>
           <summary>
             {this.text('settings.personalVocabularyFileShapeSummary')}

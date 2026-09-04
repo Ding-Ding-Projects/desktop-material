@@ -24,6 +24,10 @@ import type {
   UnlockLadderAnswer,
   UnlockLadderRung,
 } from '../models/unlock-ladder'
+import {
+  IUnlockLadderAllowanceStore,
+  MemoryUnlockLadderAllowanceStore,
+} from './unlock-ladder-allowance-store'
 
 export type {
   IUnlockLadderMoleHitRequest,
@@ -46,8 +50,6 @@ const dimSumChoices: ReadonlyArray<IUnlockLadderDimSumChoice> = [
 ]
 
 /**
- * In-memory service for one renderer/main-process lifetime.
- *
  * It is intentionally not a credential store. `waitingClearedAt` is an audit
  * fact, while the separate credential flow remains responsible for sign-in.
  * The challenge map is private to the main process: the renderer receives
@@ -60,12 +62,18 @@ export class UnlockLadderService {
 
   public constructor(
     private readonly clock: () => number = () => Date.now(),
-    private readonly uuid: () => string = () => randomUUID()
+    private readonly uuid: () => string = () => randomUUID(),
+    private readonly allowance: IUnlockLadderAllowanceStore = new MemoryUnlockLadderAllowanceStore()
   ) {}
 
-  public start(request: IUnlockLadderStartRequest): IUnlockLadderLockoutState {
+  public async start(
+    request: IUnlockLadderStartRequest
+  ): Promise<IUnlockLadderLockoutState> {
     const now = this.clock()
-    const state = createUnlockLadderLockoutState(request, now)
+    const state = {
+      ...createUnlockLadderLockoutState(request, now),
+      ladderSkipTimestamps: await this.allowance.read(now),
+    }
     this.lockouts.set(state.lockoutId, state)
     return state
   }
@@ -74,9 +82,16 @@ export class UnlockLadderService {
     return this.lockouts.get(lockoutId) ?? null
   }
 
-  public issueChallenge(lockoutId: string): IUnlockLadderChallenge {
-    const state = this.requireLockout(lockoutId)
+  public async issueChallenge(
+    lockoutId: string
+  ): Promise<IUnlockLadderChallenge> {
+    const current = this.requireLockout(lockoutId)
     const now = this.clock()
+    const state = {
+      ...current,
+      ladderSkipTimestamps: await this.allowance.read(now),
+    }
+    this.lockouts.set(lockoutId, state)
     if (state.waitingClearedAt !== null || state.rung === 'clock') {
       throw new Error(
         'The lockout ladder is no longer available for this wait.'
@@ -112,10 +127,10 @@ export class UnlockLadderService {
     return challenge
   }
 
-  public submit(
+  public async submit(
     lockoutId: string,
     submission: IUnlockLadderSubmission
-  ): IUnlockLadderServiceResult {
+  ): Promise<IUnlockLadderServiceResult> {
     const state = this.requireLockout(lockoutId)
     const now = this.clock()
     const stored = this.challenges.get(submission.challengeId)
@@ -168,7 +183,7 @@ export class UnlockLadderService {
     }
     if (
       grade.outcome === 'correct' &&
-      !canUseUnlockLadder(state.ladderSkipTimestamps, now)
+      !canUseUnlockLadder(await this.allowance.read(now), now)
     ) {
       return this.result(
         state,
@@ -176,7 +191,27 @@ export class UnlockLadderService {
         false
       )
     }
-    const next = advanceUnlockLadder(state, grade, now)
+    let next: IUnlockLadderLockoutState
+    if (grade.outcome === 'correct') {
+      const committedTimestamps = await this.allowance.tryRecordSkip(now)
+      if (committedTimestamps === null) {
+        return this.result(
+          state,
+          { outcome: 'incorrect', reason: 'wrong-answer' },
+          false
+        )
+      }
+      next = advanceUnlockLadder(
+        {
+          ...state,
+          ladderSkipTimestamps: committedTimestamps.slice(0, -1),
+        },
+        grade,
+        now
+      )
+    } else {
+      next = advanceUnlockLadder(state, grade, now)
+    }
     this.lockouts.set(lockoutId, next)
     return this.result(next, grade, grade.outcome === 'correct')
   }
@@ -330,5 +365,3 @@ export class UnlockLadderService {
     }
   }
 }
-
-export const unlockLadderService = new UnlockLadderService()

@@ -2064,7 +2064,7 @@ the worktree.
 
 If the default branch is checked out in another clean worktree, **Merge all worktrees** now moves
 that branch to the active worktree automatically and removes the redundant linked worktree. Select
-**Force Mat Day** to checkpoint, synchronize, and push recoverable dirty worktrees before the same
+**Preserve dirty worktrees before merge** to checkpoint, synchronize, and push recoverable dirty worktrees before the same
 merge, push, ancestry-proof, and cleanup sequence. Locked, divergent, unpublished, or otherwise
 unproved work remains in place and is reported instead of being forced or deleted.
 

@@ -11,6 +11,8 @@ import {
   IAutomationSettingsState,
 } from '../../src/lib/automation/automation-settings'
 import { Default as DefaultShell } from '../../src/lib/shells'
+import { Account } from '../../src/models/account'
+import { getDotComAPIEndpoint } from '../../src/lib/api'
 import {
   cantoneseTranslations,
   englishTranslations,
@@ -75,6 +77,15 @@ describe('Automation preferences switch + interval chips', () => {
       name: 'Automatically commit and push',
     })
     assert.equal(toggle.getAttribute('aria-checked'), 'false')
+    for (const id of [
+      'automation-auto-commit-push-enabled',
+      'automation-auto-pull-enabled',
+    ]) {
+      assert.ok(
+        view.container.querySelector(`[data-setting-explanation-id="${id}"]`),
+        `missing setting explanation ${id}`
+      )
+    }
     fireEvent.click(toggle)
     assert.equal(changes.length, 1)
     assert.equal(changes[0].global.autoCommitPushEnabled, true)
@@ -96,6 +107,11 @@ describe('Automation preferences switch + interval chips', () => {
     // Only the enabled commit toggle exposes an interval group.
     assert.equal(view.getAllByRole('radiogroup').length, 1)
     assert.equal(view.getAllByRole('radio').length, 4)
+    assert.ok(
+      view.container.querySelector(
+        '[data-setting-explanation-id="automation-auto-commit-push-interval"]'
+      )
+    )
     assert.equal(
       view.getByRole('radio', { name: '30 min' }).getAttribute('aria-checked'),
       'true'
@@ -124,9 +140,86 @@ describe('Automation preferences switch + interval chips', () => {
     assert.equal(changes.length, 1)
     assert.equal(changes[0].global.autoCommitPushInterval, 15)
   })
+
+  it('maps repeated account overrides to exact conceptual inventory rows', () => {
+    const account = new Account(
+      'octocat',
+      getDotComAPIEndpoint(),
+      'token',
+      [],
+      '',
+      1,
+      'Octo Cat',
+      'free'
+    )
+    const view = render(
+      <AutomationPreferences
+        accounts={[account]}
+        settings={automationState({})}
+        onSettingsChanged={() => undefined}
+      />
+    )
+
+    for (const id of [
+      'automation-account-auto-commit-push-enabled',
+      'automation-account-auto-commit-push-interval',
+      'automation-account-auto-pull-enabled',
+      'automation-account-auto-pull-interval',
+    ]) {
+      assert.equal(
+        view.container.querySelectorAll(`[data-setting-explanation-id="${id}"]`)
+          .length,
+        1,
+        `missing account override explanation ${id}`
+      )
+    }
+    assert.match(
+      screen
+        .getByLabelText('Commit and push')
+        .getAttribute('aria-describedby') ?? '',
+      /automation-account-commit-enabled-setting-explanation/
+    )
+  })
 })
 
 describe('Advanced preferences disclosure rows', () => {
+  it('renders progressive explanations and exact source lines for every unconditional standard setting', () => {
+    const view = render(<Advanced {...advancedProps} />)
+    const expected = [
+      'advanced-auto-switch-account',
+      'advanced-repository-indicators',
+      'advanced-verbose-logging',
+      'advanced-external-credential-helper',
+      'advanced-large-repository-auto-detect',
+      'advanced-large-repository-auto-repack',
+      'advanced-browser-open-mode',
+      'authenticator-manager',
+    ]
+
+    for (const id of expected) {
+      const explanation = view.container.querySelector(
+        `[data-setting-explanation-id="${id}"]`
+      )
+      assert.ok(explanation, `missing setting explanation ${id}`)
+      assert.equal(
+        explanation.querySelector('details')?.hasAttribute('open'),
+        false
+      )
+      assert.match(
+        explanation.querySelector('.setting-explanation__provenance')
+          ?.textContent ?? '',
+        /Current|current|shipped/
+      )
+    }
+
+    assert.equal(
+      view
+        .getByRole('radiogroup', { name: 'Open web links' })
+        .getAttribute('aria-describedby'),
+      'advanced-browser-open-mode-setting-explanation advanced-browser-open-mode-setting-provenance'
+    )
+  })
+
   it('always renders the usage-stats and credential-storage disclosures', () => {
     const view = render(<Advanced {...advancedProps} />)
 
@@ -224,6 +317,24 @@ describe('Integrations application cards', () => {
     })
     assert.match(editorButton.textContent ?? '', /Visual Studio Code/)
     assert.match(editorButton.textContent ?? '', /unfold_more/)
+    for (const id of ['integrations-external-editor', 'integrations-shell']) {
+      assert.ok(
+        view.container.querySelector(`[data-setting-explanation-id="${id}"]`),
+        `missing setting explanation ${id}`
+      )
+    }
+    if (__WIN32__) {
+      for (const id of [
+        'integrations-context-menu-opencode',
+        'integrations-context-menu-desktop-material',
+        'integrations-context-menu-modern',
+      ]) {
+        assert.ok(
+          view.container.querySelector(`[data-setting-explanation-id="${id}"]`),
+          `missing setting explanation ${id}`
+        )
+      }
+    }
     // No native <select> remains in the applications cards section.
     const cards = view.container.querySelector('.integration-application-cards')
     assert.ok(cards !== null)
@@ -249,6 +360,32 @@ describe('Integrations application cards', () => {
     fireEvent.click(atom)
 
     await waitFor(() => assert.deepEqual(dispatched, ['Atom']))
+  })
+
+  it('covers every custom integration path and argument field', () => {
+    const view = render(
+      <Integrations
+        {...integrationProps}
+        useCustomEditor={true}
+        useCustomShell={true}
+        branchPresetScript={{ path: 'C:\\preset.exe', arguments: '' }}
+        onSelectedEditorChanged={() => undefined}
+      />
+    )
+
+    for (const id of [
+      'custom-editor-path',
+      'custom-editor-arguments',
+      'custom-shell-path',
+      'custom-shell-arguments',
+      'branch-preset-script-path',
+      'branch-preset-script-arguments',
+    ]) {
+      assert.ok(
+        view.container.querySelector(`[data-setting-explanation-id="${id}"]`),
+        `missing setting explanation ${id}`
+      )
+    }
   })
 })
 

@@ -178,7 +178,11 @@ import {
   agentSetupCommandRunner,
   registerAgentSetupCommandRunnerIpc,
 } from './agent-setup-command-runner'
-import { createUnconfiguredStatusHubClient } from './status-hub-client'
+import {
+  createUnconfiguredStatusHubClient,
+  StatusHubClient,
+} from './status-hub-client'
+import { StatusHubConfigurationStore } from './status-hub-configuration-store'
 import {
   createBrowserExtensionDownloadRuntime,
   runBrowserExtensionNativeHost,
@@ -199,7 +203,8 @@ let updateInstallTerminalInProgress = false
 const profileRepositoryLocks = new ProfileRepositoryLockRegistry()
 // Until the owner supplies an endpoint and OS-vault credential through the
 // Status Hub owner surface, IPC reports the explicit local-only fallback.
-const statusHubClient = createUnconfiguredStatusHubClient()
+let statusHubClient = createUnconfiguredStatusHubClient()
+let statusHubConfigurationStore: StatusHubConfigurationStore | null = null
 interface IProfileRepositoryLockSenderState {
   documentId: number
   destroyed: boolean
@@ -1170,6 +1175,13 @@ app.on('ready', () => {
   }
 
   readyTime = now() - launchTime
+  statusHubConfigurationStore = new StatusHubConfigurationStore(
+    Path.join(app.getPath('userData'), 'status-hub', 'configuration.json')
+  )
+  statusHubClient = new StatusHubClient({
+    getEndpoint: () => statusHubConfigurationStore!.readEndpoint(),
+    getAuthorization: () => statusHubConfigurationStore!.getAuthorization(),
+  })
 
   possibleProtocols.forEach(protocol => setAsDefaultProtocolClient(protocol))
 

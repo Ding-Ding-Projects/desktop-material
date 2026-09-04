@@ -4,6 +4,8 @@ import { Account, getAccountKey } from '../../models/account'
 import {
   AutomationInterval,
   AutomationIntervals,
+  DefaultAutomationSettings,
+  GlobalAutomationSettingsKey,
   IAutomationSettings,
   IAutomationSettingsOverrides,
   IAutomationSettingsState,
@@ -19,6 +21,11 @@ import {
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import {
+  BooleanSettingExplanation,
+  SelectionSettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 
 interface IAutomationPreferencesProps {
   readonly accounts: ReadonlyArray<Account>
@@ -143,6 +150,8 @@ export class AutomationPreferences extends React.Component<
                 <div className="automation-account-row" key={key}>
                   <strong>{account.login}</strong>
                   <OverrideSelect
+                    settingId={`${key}-automation-account-commit-enabled`}
+                    inventoryId="automation-account-auto-commit-push-enabled"
                     label="Commit and push"
                     value={overrides.autoCommitPushEnabled}
                     onChange={value =>
@@ -152,6 +161,8 @@ export class AutomationPreferences extends React.Component<
                     }
                   />
                   <OverrideIntervalSelect
+                    settingId={`${key}-automation-account-commit-interval`}
+                    inventoryId="automation-account-auto-commit-push-interval"
                     label="Commit interval"
                     value={overrides.autoCommitPushInterval}
                     globalValue={settings.autoCommitPushInterval}
@@ -162,6 +173,8 @@ export class AutomationPreferences extends React.Component<
                     }
                   />
                   <OverrideSelect
+                    settingId={`${key}-automation-account-pull-enabled`}
+                    inventoryId="automation-account-auto-pull-enabled"
                     label="Pull"
                     value={overrides.autoPullEnabled}
                     onChange={value =>
@@ -169,6 +182,8 @@ export class AutomationPreferences extends React.Component<
                     }
                   />
                   <OverrideIntervalSelect
+                    settingId={`${key}-automation-account-pull-interval`}
+                    inventoryId="automation-account-auto-pull-interval"
                     label="Pull interval"
                     value={overrides.autoPullInterval}
                     globalValue={settings.autoPullInterval}
@@ -187,32 +202,51 @@ export class AutomationPreferences extends React.Component<
 }
 
 function OverrideIntervalSelect(props: {
+  readonly settingId: string
+  readonly inventoryId: string
   readonly label: string
   readonly value: AutomationInterval | undefined
   readonly globalValue: AutomationInterval
   readonly onChange: (value: AutomationInterval | undefined) => void
 }) {
+  const current = props.value ?? 'inherit'
   return (
-    <label>
-      <span>{props.label}</span>
-      <select
-        value={props.value ?? 'inherit'}
-        onChange={event =>
-          props.onChange(
-            event.currentTarget.value === 'inherit'
-              ? undefined
-              : (Number(event.currentTarget.value) as AutomationInterval)
-          )
-        }
-      >
-        <option value="inherit">Use global ({props.globalValue} min)</option>
-        {AutomationIntervals.map(interval => (
-          <option key={interval} value={interval}>
-            Every {interval} minutes
-          </option>
-        ))}
-      </select>
-    </label>
+    <div>
+      <label>
+        <span>{props.label}</span>
+        <select
+          value={props.value ?? 'inherit'}
+          aria-describedby={
+            settingExplanationDescriptionIds(props.settingId).ariaDescribedBy
+          }
+          onChange={event =>
+            props.onChange(
+              event.currentTarget.value === 'inherit'
+                ? undefined
+                : (Number(event.currentTarget.value) as AutomationInterval)
+            )
+          }
+        >
+          <option value="inherit">Use global ({props.globalValue} min)</option>
+          {AutomationIntervals.map(interval => (
+            <option key={interval} value={interval}>
+              Every {interval} minutes
+            </option>
+          ))}
+        </select>
+      </label>
+      <SelectionSettingExplanation
+        settingId={props.settingId}
+        inventoryId={props.inventoryId}
+        explanationEnglish="Overrides the global interval for this account, or inherits the global value."
+        explanationCantonese="覆蓋呢個帳戶嘅全域間隔，或者繼承全域值。"
+        currentEnglish={String(current)}
+        currentCantonese={String(current)}
+        shippedEnglish="inherit"
+        shippedCantonese="繼承"
+        storageKey={GlobalAutomationSettingsKey}
+      />
+    </div>
   )
 }
 
@@ -229,8 +263,17 @@ function AutomationToggle(props: {
   const { idPrefix, titleKey, descriptionKey, languageMode } = props
   const titleId = `${idPrefix}-title`
   const descriptionId = `${idPrefix}-description`
+  const enabledSettingId = `automation-${idPrefix}-enabled`
+  const intervalSettingId = `automation-${idPrefix}-interval`
   const title = translate(titleKey, languageMode)
   const description = translate(descriptionKey, languageMode)
+  const isCommitAutomation = idPrefix === 'auto-commit-push'
+  const shippedEnabled = isCommitAutomation
+    ? DefaultAutomationSettings.autoCommitPushEnabled
+    : DefaultAutomationSettings.autoPullEnabled
+  const shippedInterval = isCommitAutomation
+    ? DefaultAutomationSettings.autoCommitPushInterval
+    : DefaultAutomationSettings.autoPullInterval
 
   // A single-language accessible name for the interval group; the visible chip
   // labels supply each option's name.
@@ -258,14 +301,27 @@ function AutomationToggle(props: {
           checked={props.enabled}
           onChange={props.onEnabledChanged}
           ariaLabelledBy={titleId}
-          ariaDescribedBy={descriptionId}
+          ariaDescribedBy={`${descriptionId} ${
+            settingExplanationDescriptionIds(enabledSettingId).ariaDescribedBy
+          }`}
         />
       </div>
+      <BooleanSettingExplanation
+        settingId={enabledSettingId}
+        explanationEnglish="Controls whether this automated action runs in the background for the selected repository."
+        explanationCantonese="控制呢個自動動作係咪喺背景為所選儲存庫執行。"
+        value={props.enabled}
+        shippedValue={shippedEnabled}
+        storageKey={GlobalAutomationSettingsKey}
+      />
       {props.enabled && (
         <div
           className="preference-interval-group"
           role="radiogroup"
           aria-label={groupLabel}
+          aria-describedby={
+            settingExplanationDescriptionIds(intervalSettingId).ariaDescribedBy
+          }
           {...teleportAnchor(`settings-${idPrefix}-interval`)}
         >
           <span className="preference-interval-label" aria-hidden={true}>
@@ -285,6 +341,16 @@ function AutomationToggle(props: {
               })}
             </button>
           ))}
+          <SelectionSettingExplanation
+            settingId={intervalSettingId}
+            explanationEnglish="Sets the minutes between attempts while this automated action is enabled."
+            explanationCantonese="設定呢個自動動作開啟時，每次嘗試之間隔幾多分鐘。"
+            currentEnglish={`${props.interval} minutes`}
+            currentCantonese={`${props.interval} 分鐘`}
+            shippedEnglish={`${shippedInterval} minutes`}
+            shippedCantonese={`${shippedInterval} 分鐘`}
+            storageKey={GlobalAutomationSettingsKey}
+          />
         </div>
       )}
     </div>
@@ -292,6 +358,8 @@ function AutomationToggle(props: {
 }
 
 function OverrideSelect(props: {
+  readonly settingId: string
+  readonly inventoryId: string
   readonly label: string
   readonly value: boolean | undefined
   readonly onChange: (value: boolean | undefined) => void
@@ -299,22 +367,40 @@ function OverrideSelect(props: {
   const value =
     props.value === undefined ? 'inherit' : props.value ? 'on' : 'off'
   return (
-    <label>
-      <span>{props.label}</span>
-      <select
-        value={value}
-        onChange={event =>
-          props.onChange(
-            event.currentTarget.value === 'inherit'
-              ? undefined
-              : event.currentTarget.value === 'on'
-          )
+    <div>
+      <label>
+        <span>{props.label}</span>
+        <select
+          value={value}
+          aria-describedby={
+            settingExplanationDescriptionIds(props.settingId).ariaDescribedBy
+          }
+          onChange={event =>
+            props.onChange(
+              event.currentTarget.value === 'inherit'
+                ? undefined
+                : event.currentTarget.value === 'on'
+            )
+          }
+        >
+          <option value="inherit">Use global</option>
+          <option value="on">On</option>
+          <option value="off">Off</option>
+        </select>
+      </label>
+      <SelectionSettingExplanation
+        settingId={props.settingId}
+        inventoryId={props.inventoryId}
+        explanationEnglish="Overrides the global enabled state for this account, or inherits the global value."
+        explanationCantonese="覆蓋呢個帳戶嘅全域開關狀態，或者繼承全域值。"
+        currentEnglish={value}
+        currentCantonese={
+          value === 'inherit' ? '繼承' : value === 'on' ? '開' : '關'
         }
-      >
-        <option value="inherit">Use global</option>
-        <option value="on">On</option>
-        <option value="off">Off</option>
-      </select>
-    </label>
+        shippedEnglish="inherit"
+        shippedCantonese="繼承"
+        storageKey={GlobalAutomationSettingsKey}
+      />
+    </div>
   )
 }

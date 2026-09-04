@@ -27,6 +27,18 @@ describe('Agent access preferences', () => {
     assert.match(markup, /role="textbox"/)
     assert.match(markup, /aria-readonly="true"/)
     assert.match(markup, /aria-pressed="false"/)
+    assert.match(markup, /data-setting-explanation-id="agent-access-mode"/)
+    assert.match(markup, /data-setting-explanation-id="agent-access-enabled"/)
+    assert.match(
+      markup,
+      /data-setting-explanation-id="agent-access-desktop-token"/
+    )
+    assert.match(source, /settingId="agent-access-site-url"/)
+    assert.match(source, /settingId="agent-access-gateway-url"/)
+    assert.match(
+      markup,
+      /aria-describedby="agent-access-mode-setting-explanation agent-access-mode-setting-provenance"/
+    )
   })
 
   it('renders a theme-independent QR quiet zone with an explicit warning mode', () => {

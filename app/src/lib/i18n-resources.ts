@@ -2343,6 +2343,8 @@ export type TranslationKey =
   | 'browserDownload.unavailable'
   | 'settings.browserExtensionDownloadTitle'
   | 'settings.browserExtensionDownloadSubtitle'
+  | 'settings.statusHubTitle'
+  | 'settings.statusHubDescription'
   | 'browser.error.rendererGone'
   | 'browser.error.tooManyTabs'
   | 'settings.integrationsExternalEditorTitle'
@@ -2572,6 +2574,7 @@ export type TranslationKey =
   | 'palette.setContextMenuModern'
   | 'palette.branchPresetScript'
   | 'palette.customIntegrations'
+  | 'palette.statusHub'
   | 'palette.setAgentServerEnabled'
   | 'palette.agentAccessMode'
   | 'palette.agentPairing'
@@ -8738,6 +8741,9 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settings.browserExtensionDownloadTitle': 'Browser-extension downloads',
   'settings.browserExtensionDownloadSubtitle':
     'Installed extensions can hand off a user-confirmed download here. This build states when no native-messaging host is installed.',
+  'settings.statusHubTitle': 'Status Hub',
+  'settings.statusHubDescription':
+    'Configure the owner endpoint and operating-system-vault authorization used for project and session status.',
   'browser.error.rendererGone':
     'This page stopped unexpectedly. Refresh it or open it externally.',
   'browser.error.tooManyTabs':
@@ -9013,6 +9019,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'palette.setContextMenuModern': 'Show in the main Windows 11 menu',
   'palette.branchPresetScript': 'Branch name preset script',
   'palette.customIntegrations': 'Custom editor and shell commands',
+  'palette.statusHub': 'Status Hub owner settings',
   'palette.setAgentServerEnabled': 'Agent server',
   'palette.agentAccessMode': 'Agent access mode',
   'palette.agentPairing': 'Pair a mobile device',
@@ -15789,6 +15796,9 @@ export const cantoneseTranslations: Readonly<
   'settings.browserExtensionDownloadTitle': '瀏覽器 extension 下載',
   'settings.browserExtensionDownloadSubtitle':
     '已安裝嘅 extension 可以喺呢度交接已確認嘅下載；呢個版本冇 native-messaging host 就會如實講。',
+  'settings.statusHubTitle': 'Status Hub',
+  'settings.statusHubDescription':
+    '設定擁有人 endpoint，同埋存喺作業系統憑證保險箱嘅項目／工作階段狀態授權資料。',
   'browser.error.rendererGone':
     '呢個頁面意外停止咗。請重新整理，或者喺外部開啟。',
   'browser.error.tooManyTabs':
@@ -16044,6 +16054,7 @@ export const cantoneseTranslations: Readonly<
   'palette.setContextMenuModern': '擺埋喺 Windows 11 主選單度',
   'palette.branchPresetScript': '分支名預設腳本',
   'palette.customIntegrations': '自訂編輯器同 shell 指令',
+  'palette.statusHub': 'Status Hub 擁有人設定',
   'palette.setAgentServerEnabled': 'Agent 伺服器',
   'palette.agentAccessMode': 'Agent 存取模式',
   'palette.agentPairing': '配對手機',

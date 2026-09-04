@@ -10,7 +10,9 @@ const StatusHubRequestTimeoutMs = 10_000
 
 export interface IStatusHubClientConfiguration {
   /** Owner-configured HTTPS endpoint. Kept out of renderer state. */
-  readonly endpoint: string | null
+  readonly endpoint?: string | null
+  /** Dynamic owner setting provider used by the installed application. */
+  readonly getEndpoint?: () => Promise<string | null>
   /**
    * A main-process-only authorization provider. It must return null when the
    * owner has not registered the read-plus-reply credential in the OS vault.
@@ -26,7 +28,11 @@ function normalizeEndpoint(value: string | null): URL | null {
   }
   try {
     const url = new URL(value)
-    return url.protocol === 'https:' || url.hostname === '127.0.0.1'
+    if (url.username.length > 0 || url.password.length > 0) {
+      return null
+    }
+    return url.protocol === 'https:' ||
+      (url.protocol === 'http:' && url.hostname === '127.0.0.1')
       ? url
       : null
   } catch {
@@ -52,7 +58,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * through the same authenticated session route.
  */
 export class StatusHubClient {
-  private readonly endpoint: URL | null
   private readonly request: typeof fetch
   private readonly now: () => number
 
@@ -80,7 +85,7 @@ export class StatusHubClient {
     }
     return {
       connection: 'connected',
-      stableURL: this.endpoint.toString(),
+      stableURL: endpoint.toString(),
       message: 'Status Hub is available through the main-process boundary.',
       lastUpdatedAt: this.now(),
     }
@@ -129,7 +134,8 @@ export class StatusHubClient {
     cursor: string | null
   ): Promise<IStatusHubReplyPollResult> {
     const status = await this.getStatus()
-    if (status.connection !== 'connected' || this.endpoint === null) {
+    const endpoint = await this.getEndpoint()
+    if (status.connection !== 'connected' || endpoint === null) {
       return { replies: [], nextCursor: cursor, deliveryConfirmed: false }
     }
     const authorization = await this.configuration.getAuthorization()
@@ -171,6 +177,13 @@ export class StatusHubClient {
     } catch {
       return { replies: [], nextCursor: cursor, deliveryConfirmed: false }
     }
+  }
+
+  private async getEndpoint(): Promise<URL | null> {
+    const value = this.configuration.getEndpoint
+      ? await this.configuration.getEndpoint()
+      : this.configuration.endpoint ?? null
+    return normalizeStatusHubEndpoint(value)
   }
 }
 
