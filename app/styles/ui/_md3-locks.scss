@@ -18,7 +18,7 @@ $md3-lock-setup-width: 340px;
 @mixin md3-lock-anchored-panel($width) {
   background: var(--md-sys-color-surface-container-high);
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 16px;
+  border-radius: var(--md-sys-shape-corner-large);
   box-shadow: var(--dm-elev3);
   box-sizing: border-box;
   color: var(--md-sys-color-on-surface);
@@ -65,7 +65,7 @@ $md3-lock-setup-width: 340px;
 
 @mixin md3-lock-fieldset {
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -438,7 +438,7 @@ $md3-lock-setup-width: 340px;
 
 .md3-lock-gate__progress {
   background: var(--md-sys-color-surface-container-highest);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   height: 6px;
   overflow: hidden;
 }
@@ -555,7 +555,7 @@ $md3-lock-setup-width: 340px;
   align-items: center;
   background: var(--md-sys-color-surface-container-low);
   border: 1px solid transparent;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   display: flex;
   gap: 8px;
   min-height: 48px;

@@ -2,8 +2,12 @@
 
 #release-notes {
   max-height: 500px;
+  // 800px when the window allows it, and never wider than the window: a
+  // `min-width` floor cannot be honoured by a viewport narrower than the
+  // floor, so the dialog simply overflowed instead of shrinking.
+  width: min(800px, calc(100vw - var(--spacing-quad)));
   max-width: 800px;
-  min-width: 550px;
+  min-width: 0;
 
   .dialog-content {
     // we'll own the layout inside here
@@ -54,6 +58,21 @@
   a.close {
     align-self: flex-start;
     z-index: 1;
+  }
+
+  // Below this the two release-note columns cannot both hold their 275px
+  // basis, and the centred header text reaches the decorative artwork on
+  // either side.
+  @media (max-width: 680px) {
+    .container {
+      flex-direction: column;
+    }
+
+    .dialog-header {
+      // 64px of artwork plus its --spacing-double inset, each side.
+      padding-inline: 72px;
+      background-size: auto 64px, auto 64px;
+    }
   }
 
   .container {

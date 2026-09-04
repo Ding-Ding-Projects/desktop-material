@@ -1,8 +1,7 @@
+import { MaterialSymbol } from './lib/material-symbol'
 import classNames from 'classnames'
 import React from 'react'
 import { Button } from './lib/button'
-import { Octicon } from './octicons'
-import * as octicons from './octicons/octicons.generated'
 import { MenuPane } from './app-menu'
 import { ICheckboxMenuItem, MenuItem } from '../models/app-menu'
 import { ClickSource, SelectionSource } from './lib/list'
@@ -391,7 +390,7 @@ export class DropdownSelectButton extends React.Component<
             ariaHaspopup={true}
             ariaLabel={dropdownAriaLabel}
           >
-            <Octicon symbol={octicons.triangleDown} />
+            <MaterialSymbol name="arrow_drop_down" />
           </Button>
         </div>
         {this.renderSplitButtonOptions()}

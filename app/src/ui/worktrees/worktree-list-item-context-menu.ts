@@ -14,6 +14,7 @@ interface IWorktreeContextMenuConfig {
   readonly onRemoveWorktree?: (path: string) => void
   readonly onLockWorktree?: (path: string) => void
   readonly onUnlockWorktree?: (path: string) => void
+  readonly onEditAppearance?: (path: string) => void
   readonly onOpenInNewWindow?: () => void
 }
 
@@ -30,10 +31,19 @@ export function generateWorktreeContextMenuItems(
     onRemoveWorktree,
     onLockWorktree,
     onUnlockWorktree,
+    onEditAppearance,
     onOpenInNewWindow,
   } = config
   const name = Path.basename(path)
   const items = new Array<IMenuItem>()
+
+  if (onEditAppearance !== undefined) {
+    items.push({
+      label: 'Edit appearance…',
+      action: () => onEditAppearance(path),
+    })
+    items.push({ type: 'separator' })
+  }
 
   if (onOpenInNewWindow !== undefined) {
     items.push({

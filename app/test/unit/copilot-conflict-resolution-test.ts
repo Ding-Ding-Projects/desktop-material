@@ -3,11 +3,13 @@ import assert from 'node:assert'
 
 import {
   parseCopilotConflictResolution,
+  reassembleResolutions,
   reassembleResolvedFile,
   extractSymbols,
   createDependencyAwareChunks,
   selectReferencedContext,
   fallbackReferencedContext,
+  CopilotValidationError,
 } from '../../src/lib/copilot-conflict-resolution'
 import {
   IFileConflictContext,
@@ -1040,5 +1042,61 @@ describe('fallbackReferencedContext', () => {
 
   it('returns empty when there are no commits or pull requests', () => {
     assert.equal(fallbackReferencedContext(makeResolutionContext()).length, 0)
+  })
+})
+
+describe('modify/delete and skipped conflict contracts', () => {
+  it('parses a delete action without requiring hunk content', () => {
+    const parsed = parseCopilotConflictResolution(
+      JSON.stringify({
+        resolutions: [
+          {
+            path: 'removed.txt',
+            action: 'delete',
+            hunks: [],
+            reasoning: 'The deletion is intentional.',
+          },
+        ],
+      })
+    )
+    assert.equal(parsed.resolutions[0].action, 'delete')
+    assert.deepEqual(parsed.resolutions[0].hunks, [])
+  })
+
+  it('rejects an invalid delete action instead of guessing', () => {
+    assert.throws(
+      () =>
+        parseCopilotConflictResolution(
+          JSON.stringify({
+            resolutions: [
+              {
+                path: 'removed.txt',
+                action: 'maybe',
+                hunks: [],
+                reasoning: 'Unknown action.',
+              },
+            ],
+          })
+        ),
+      CopilotValidationError
+    )
+  })
+
+  it('rejects a delete action when the context is a text conflict', () => {
+    assert.throws(
+      () =>
+        reassembleResolutions(
+          [
+            {
+              path: 'file.txt',
+              action: 'keep',
+              hunks: [],
+              reasoning: 'Not valid for a text conflict.',
+            },
+          ],
+          [makeFile('file.txt', 'ours', 'theirs')]
+        ),
+      CopilotValidationError
+    )
   })
 })

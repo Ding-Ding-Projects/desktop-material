@@ -88,7 +88,7 @@
     top: 5px;
     bottom: 5px;
     width: 4px;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: var(--md-sys-color-primary);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-sys-color-primary) 22%, transparent), 0 0 14px color-mix(in srgb, var(--md-sys-color-primary) 80%, transparent);
     animation: dmTabDropPulse 700ms var(--emph) infinite alternate;
@@ -191,7 +191,7 @@
     height: 26px;
     padding: 0;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--md-sys-shape-corner-small);
     background: transparent;
     color: inherit;
     cursor: pointer;
@@ -221,7 +221,7 @@
     height: 24px;
     padding: 0;
     border: none;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: transparent;
     color: inherit;
     cursor: pointer;
@@ -307,7 +307,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
   margin-bottom: 2px;
   padding: 0;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   background: transparent;
   color: var(--md-sys-color-on-surface-variant);
   cursor: pointer;
@@ -315,7 +315,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
 
   &:hover {
     background: var(--md-sys-color-surface-container-highest);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
   }
 
   &:active {
@@ -334,7 +334,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
   margin-bottom: 2px;
   padding: 0;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   background: transparent;
   color: var(--md-sys-color-on-surface-variant);
   cursor: pointer;
@@ -371,7 +371,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
   margin-bottom: 2px;
   padding: 0 8px;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   background: var(--md-sys-color-surface-container-high);
   color: var(--md-sys-color-on-surface-variant);
   cursor: pointer;
@@ -669,7 +669,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
   flex: none;
   height: 30px;
   padding: 0 12px;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   background: var(--md-sys-color-surface-container-highest);
   color: var(--md-sys-color-on-surface-variant);
   font-family: var(--font-family-monospace);
@@ -762,7 +762,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
       min-height: 36px;
       padding: 4px 12px;
       border: none;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       background: transparent;
       color: var(--md-sys-color-primary);
       font-size: var(--font-size-sm);
@@ -792,7 +792,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     flex-direction: column;
     gap: 6px;
     padding: 10px;
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
     background: var(--md-sys-color-surface-container);
 
     .tab-style-preview-label {
@@ -841,7 +841,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     padding: 0;
     min-height: 40px;
     border-color: transparent;
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     background: var(--md-sys-color-surface-container-high);
     color: var(--md-sys-color-on-surface-variant);
     cursor: pointer;
@@ -986,7 +986,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     .tab-style-choice {
       padding: 0 10px;
       border: 0;
-      border-radius: 12px;
+      border-radius: var(--md-sys-shape-corner-medium);
       background: var(--md-sys-color-surface-container-high);
       color: var(--md-sys-color-on-surface-variant);
       font-family: inherit;
@@ -1035,7 +1035,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
       height: 40px;
       padding: 0 12px;
       border: 0;
-      border-radius: 12px;
+      border-radius: var(--md-sys-shape-corner-medium);
       background: var(--md-sys-color-surface-container-high);
       color: var(--md-sys-color-on-surface);
       font-size: 14px;
@@ -1068,7 +1068,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
       z-index: 1;
       display: flex;
       flex-direction: column;
-      border-radius: 16px;
+      border-radius: var(--md-sys-shape-corner-large);
       background: var(--md-sys-color-surface-container-high);
       box-shadow: var(--md-sys-elevation-level3);
       overflow: hidden;
@@ -1128,7 +1128,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
       width: 100%;
       padding: 8px 10px;
       border: 0;
-      border-radius: 8px;
+      border-radius: var(--md-sys-shape-corner-small);
       background: transparent;
       color: var(--md-sys-color-on-surface);
       font-size: 15px;
@@ -1203,7 +1203,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
       min-height: 32px;
       padding: 4px 10px;
       border: 0;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       background: transparent;
       color: var(--md-sys-color-primary);
       font-family: inherit;
@@ -1228,7 +1228,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
       align-items: center;
       gap: 8px;
       padding: 4px 10px 4px 4px;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       background: var(--md-sys-color-surface-container-high);
       cursor: pointer;
       transition: background-color 200ms var(--emph);
@@ -1241,7 +1241,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
         width: 22px;
         height: 22px;
         border: 2px solid var(--md-sys-color-outline-variant);
-        border-radius: 999px;
+        border-radius: var(--md-sys-shape-corner-full);
       }
 
       .tab-style-color-custom-label {
@@ -1284,7 +1284,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
       height: 26px;
       padding: 0;
       border: 2.5px solid var(--md-sys-color-outline-variant);
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       cursor: pointer;
       transition: transform 200ms var(--spring-fast), border-color 200ms var(--emph);
 
@@ -1378,7 +1378,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     min-width: 0;
     min-height: 40px;
     padding: 0 6px 0 12px;
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     background: var(--md-sys-color-surface-container-high);
 
     &:focus-within {
@@ -1439,7 +1439,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
       min-height: 36px;
       padding: 0 16px;
       border: 0;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       font-size: var(--font-size-sm);
       font-weight: var(--font-weight-semibold);
       cursor: pointer;
@@ -1631,7 +1631,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
       min-height: 40px;
       padding: 0 16px;
       border: 0;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       font-size: var(--font-size-sm);
       font-weight: var(--font-weight-semibold);
       cursor: pointer;
@@ -1720,7 +1720,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     min-height: 38px;
     padding: 7px 11px;
     border: 1px solid var(--md-sys-color-outline);
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     background: var(--md-sys-color-surface-container-low);
     color: var(--md-sys-color-on-surface);
     font: inherit;
@@ -1738,7 +1738,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     margin: 0;
     padding: 18px 12px;
     border: 1px dashed var(--md-sys-color-outline-variant);
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
     color: var(--md-sys-color-on-surface-variant);
     text-align: center;
   }
@@ -1762,7 +1762,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     overflow-x: hidden;
     overflow-y: auto;
     border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
     list-style: none;
   }
 
@@ -1772,7 +1772,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     gap: 8px;
     min-width: 0;
     padding: 6px;
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
 
     &:nth-child(odd) {
       background: var(--md-sys-color-surface-container-low);
@@ -1799,7 +1799,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
   .arrange-tabs-chip {
     flex-shrink: 0;
     padding: 2px 7px;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: var(--md-sys-color-tertiary-container);
     color: var(--md-sys-color-on-tertiary-container);
     font-size: 10px;
@@ -1821,7 +1821,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
       min-height: 32px;
       padding: 0 8px;
       border: 0;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       background: transparent;
       color: var(--md-sys-color-primary);
       font-size: 11px;
@@ -1844,7 +1844,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
       min-height: 40px;
       padding: 6px 10px;
       border: 1px solid var(--md-sys-color-outline);
-      border-radius: 12px;
+      border-radius: var(--md-sys-shape-corner-medium);
       background: transparent;
       color: var(--md-sys-color-primary);
       font-size: 12px;
@@ -1896,7 +1896,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
       min-height: 40px;
       padding: 0 18px;
       border: 0;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       background: var(--md-sys-color-primary);
       color: var(--md-sys-color-on-primary);
       font-size: 12px;
@@ -1969,7 +1969,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     overflow-x: hidden;
     overflow-y: auto;
     border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
     list-style: none;
   }
 
@@ -1982,7 +1982,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     min-width: 0;
     padding: 9px 10px;
     border: 0;
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     background: transparent;
     color: inherit;
     text-align: left;
@@ -2035,7 +2035,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
 
     > span {
       padding: 2px 6px;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       background: var(--md-sys-color-surface-container-highest);
       font-size: 9px;
       font-weight: var(--font-weight-semibold);
@@ -2139,7 +2139,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     overflow-x: hidden;
     overflow-y: auto;
     border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
     list-style: none;
 
     &:focus-visible {
@@ -2166,7 +2166,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     height: 32px;
     padding: 0;
     border: 0;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: transparent;
     color: var(--md-sys-color-on-surface-variant);
     cursor: pointer;
@@ -2191,7 +2191,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     min-width: 0;
     padding: 9px 10px;
     border: 0;
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     background: transparent;
     color: inherit;
     text-align: left;
@@ -2244,7 +2244,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
 
     > span {
       padding: 2px 6px;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       background: var(--md-sys-color-surface-container-highest);
       font-size: 9px;
       font-weight: var(--font-weight-semibold);
@@ -2481,7 +2481,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
   margin-bottom: 4px;
   padding: 0 9px;
   border: 1px solid color-mix(in srgb, var(--dm-tab-group-color) 48%, transparent);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   background: color-mix(in srgb, var(--dm-tab-group-color) 12%, var(--md-sys-color-surface-container-lowest));
   color: var(--md-sys-color-on-surface);
   cursor: pointer;
@@ -2672,7 +2672,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     overflow-y: auto;
     border: 1px solid var(--md-sys-color-outline-variant);
     border-left: 3px solid var(--dm-tab-group-color);
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
     list-style: none;
 
     &:focus-visible {
@@ -2696,7 +2696,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     min-width: 0;
     padding: 9px 10px;
     border: 0;
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     background: transparent;
     color: inherit;
     text-align: left;
@@ -2749,7 +2749,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
 
     > span {
       padding: 2px 6px;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       background: var(--md-sys-color-surface-container-highest);
       font-size: 9px;
       font-weight: var(--font-weight-semibold);
@@ -2778,7 +2778,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     min-height: 32px;
     padding: 0 12px;
     border: 1px solid var(--md-sys-color-outline);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: transparent;
     color: inherit;
     font-size: 11px;
@@ -2885,7 +2885,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     height: 28px;
     padding: 0;
     border: 2px solid transparent;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     cursor: pointer;
 
     &.selected {
@@ -2945,7 +2945,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     min-height: 40px;
     padding: 8px 12px;
     border: 1px solid var(--md-sys-color-outline);
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     outline: none;
     background: var(--md-sys-color-surface-container-low);
     color: var(--md-sys-color-on-surface);
@@ -2973,7 +2973,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     overflow-y: auto;
     overscroll-behavior: contain;
     border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
     background: var(--md-sys-color-surface-container-low);
     list-style: none;
 
@@ -2992,7 +2992,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     min-height: 44px;
     padding: 8px 10px;
     border: 0;
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     background: transparent;
     color: var(--md-sys-color-on-surface);
     font: inherit;
@@ -3015,7 +3015,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     flex: 0 0 auto;
     width: 18px;
     height: 18px;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
   }
 
   .move-tab-to-group-color {
@@ -3042,7 +3042,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     margin: 12px 0 0;
     padding: 18px 14px;
     border: 1px dashed var(--md-sys-color-outline-variant);
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
     color: var(--md-sys-color-on-surface-variant);
     text-align: center;
   }

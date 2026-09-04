@@ -1,3 +1,4 @@
+import { MaterialSymbol } from './lib/material-symbol'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import { PullRequest } from '../models/pull-request'
@@ -178,7 +179,7 @@ export class PullRequestQuickView extends React.Component<
   private renderHeader = (): JSX.Element => {
     return (
       <header className="header">
-        <Octicon symbol={octicons.listUnordered} />
+        <MaterialSymbol name="format_list_bulleted" />
         <div className="action-needed">
           {translate('reviewRequest.reviewRequested', this.state.languageMode)}
         </div>
@@ -188,7 +189,7 @@ export class PullRequestQuickView extends React.Component<
           role="link"
         >
           {translate('reviewRequest.openInBrowser', this.state.languageMode)}
-          <Octicon symbol={octicons.linkExternal} />
+          <MaterialSymbol name="open_in_new" />
         </Button>
       </header>
     )

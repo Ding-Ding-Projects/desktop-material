@@ -57,7 +57,7 @@ describe('repository tools hub responsive contracts', () => {
     )
     assert.match(
       tools,
-      /\.repository-tools-sidebar-pane \{[\s\S]*?min-height: 0;/,
+      /\.repository-tools-sidebar \{[^}]*?min-height: 0;/,
       'the pane wrapper must let its contents scroll rather than grow'
     )
   })
@@ -65,7 +65,7 @@ describe('repository tools hub responsive contracts', () => {
   it('lets chips and the search pill grow instead of clipping wrapped text', () => {
     assert.match(
       tools,
-      /\.repository-tools-search \{[\s\S]*?height: auto;[\s\S]*?max-width: 100%;[\s\S]*?min-height: 38px;/
+      /\.repository-tools-search \{[\s\S]*?height: auto;[\s\S]*?max-width: 100%;[\s\S]*?min-height: 44px;/
     )
     assert.match(
       tools,

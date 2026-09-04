@@ -12,7 +12,7 @@
 .md-ripple {
   position: absolute;
   pointer-events: none;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   background-color: currentColor;
   opacity: 0.22;
   transform: scale(0);
@@ -36,7 +36,7 @@
   inset: -60vmax;
   z-index: 100;
   pointer-events: none;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   transform-origin: 78% 8%;
   background: radial-gradient(circle, color-mix(in srgb, var(--md-sys-color-primary) 32%, transparent) 0%, transparent 62%);
   animation: dmReveal calc(750ms * var(--mdur, 1)) var(--emph, cubic-bezier(0.2, 0, 0, 1)) forwards;

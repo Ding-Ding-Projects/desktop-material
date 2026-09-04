@@ -1,10 +1,17 @@
-import type { CopilotModelSelections } from './stores/copilot-store'
+import type {
+  CopilotModelSelections,
+  CopilotModelsByAccount,
+  CopilotQuotaSnapshots,
+  CopilotQuotaSnapshotsByAccount,
+  CopilotQuotaStatesByAccount,
+} from './stores/copilot-store'
 import type { IBYOKProvider } from './copilot/byok'
 import type { IConflictResolutionModelDisplay } from './copilot/conflict-resolution-model'
 import type {
   IFileResolution,
   IConflictResolutionProgress,
   ICopilotResolutionSummary,
+  ICopilotSkippedFile,
 } from './copilot-conflict-resolution'
 import { Account } from '../models/account'
 import { INotificationEntry } from '../models/notification-centre'
@@ -548,11 +555,29 @@ export interface IAppState {
    */
   readonly selectedCopilotModels: CopilotModelSelections
 
+  /** Account-scoped Copilot model selections. */
+  readonly selectedCopilotModelsByAccount: ReadonlyMap<
+    string,
+    CopilotModelSelections
+  >
+
   /**
    * The list of available Copilot models fetched from the SDK.
    * Null when the list has not been fetched yet.
    */
   readonly copilotModels: ReadonlyArray<Model> | null
+
+  /** Available Copilot models keyed by the account that supplied them. */
+  readonly copilotModelsByAccount: CopilotModelsByAccount
+
+  /** Latest quota snapshot keyed by account, or null when unavailable. */
+  readonly copilotQuotaSnapshots: CopilotQuotaSnapshots | null
+
+  /** Quota snapshots keyed by account, preserving account isolation. */
+  readonly copilotQuotaSnapshotsByAccount: CopilotQuotaSnapshotsByAccount
+
+  /** Honest freshness and failure state for each account's quota snapshot. */
+  readonly copilotQuotaStatesByAccount: CopilotQuotaStatesByAccount
 
   /**
    * The list of user-configured Copilot model providers (BYOK). Empty when
@@ -1327,6 +1352,9 @@ export interface IMultiCommitOperationState {
    * Null when Copilot hasn't been invoked or has not yet completed.
    */
   readonly copilotResolutionSummary: ICopilotResolutionSummary | null
+
+  /** Files Copilot skipped, each with its stable reason for manual recovery. */
+  readonly copilotSkippedFiles: ReadonlyArray<ICopilotSkippedFile> | null
 
   /**
    * Controller used to cancel the in-flight Copilot conflict resolution. Set

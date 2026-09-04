@@ -3,6 +3,10 @@ import { Form } from './form'
 import { Button } from './button'
 import { DefaultAppDisplayName } from '../../models/app-identity'
 import { MaterialSymbol } from './material-symbol'
+import { BrowserAuthenticationActionKey } from '../../lib/single-flight-action'
+
+/** Public name for the store-owned browser authentication action key. */
+export const BrowserSignInActionKey = BrowserAuthenticationActionKey
 
 /** Text to let the user know their browser will send them back to the app */
 export const BrowserRedirectMessage = `Your browser will redirect you back to ${DefaultAppDisplayName} once you've signed in. If your browser asks for your permission to launch ${DefaultAppDisplayName} please allow it to.`
@@ -12,7 +16,7 @@ interface IAuthenticationFormProps {
    * A callback which is invoked if the user requests OAuth sign in using
    * their system configured browser.
    */
-  readonly onBrowserSignInRequested: () => void
+  readonly onBrowserSignInRequested: () => void | PromiseLike<unknown>
 
   /**
    * An array of additional buttons to render after the "Sign In" button.
@@ -56,6 +60,6 @@ export class AuthenticationForm extends React.Component<IAuthenticationFormProps
 
   private signInWithBrowser = (event?: React.MouseEvent<HTMLButtonElement>) => {
     event?.preventDefault()
-    this.props.onBrowserSignInRequested()
+    return this.props.onBrowserSignInRequested()
   }
 }

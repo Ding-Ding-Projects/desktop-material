@@ -21,7 +21,9 @@ export interface IStatusHubClientConfiguration {
 }
 
 function normalizeEndpoint(value: string | null): URL | null {
-  if (value === null) return null
+  if (value === null) {
+    return null
+  }
   try {
     const url = new URL(value)
     return url.protocol === 'https:' || url.hostname === '127.0.0.1'
@@ -63,7 +65,9 @@ export class StatusHubClient {
   }
 
   public async getStatus(): Promise<IStatusHubStatus> {
-    if (this.endpoint === null) return LocalStatusHubFallback
+    if (this.endpoint === null) {
+      return LocalStatusHubFallback
+    }
     const authorization = await this.configuration.getAuthorization()
     if (authorization === null) {
       return {
@@ -143,23 +147,21 @@ export class StatusHubClient {
       const value = await readBoundedJSON(response)
       if (!isRecord(value) || !Array.isArray(value.replies))
         return { replies: [], nextCursor: cursor, deliveryConfirmed: false }
-      const replies = value.replies
-        .filter(isRecord)
-        .flatMap(reply =>
-          typeof reply.id === 'string' &&
-          typeof reply.questionId === 'string' &&
-          typeof reply.text === 'string' &&
-          typeof reply.receivedAt === 'number'
-            ? [
-                {
-                  id: reply.id,
-                  questionId: reply.questionId,
-                  text: reply.text,
-                  receivedAt: reply.receivedAt,
-                },
-              ]
-            : []
-        )
+      const replies = value.replies.filter(isRecord).flatMap(reply =>
+        typeof reply.id === 'string' &&
+        typeof reply.questionId === 'string' &&
+        typeof reply.text === 'string' &&
+        typeof reply.receivedAt === 'number'
+          ? [
+              {
+                id: reply.id,
+                questionId: reply.questionId,
+                text: reply.text,
+                receivedAt: reply.receivedAt,
+              },
+            ]
+          : []
+      )
       return {
         replies,
         nextCursor:

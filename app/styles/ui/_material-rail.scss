@@ -93,7 +93,7 @@
   // Pill indicator (58x34) shared by Changes / History / Branches.
   .rail-pill {
     align-items: center;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     color: var(--md-sys-color-on-surface-variant);
     display: grid;
     height: 34px;
@@ -120,7 +120,7 @@
   .tab-bar.vertical .tab-bar-item:hover .rail-pill,
   .rail-nav-button:hover .rail-pill {
     background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
   }
 
   // Press feedback.
@@ -132,7 +132,7 @@
   // Active section: filled secondary-container pill + bolder on-surface label.
   .tab-bar.vertical .tab-bar-item.selected .rail-pill {
     background: var(--md-sys-color-secondary-container);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     color: var(--md-sys-color-on-secondary-container);
   }
 
@@ -158,7 +158,7 @@
   .rail-pill .counter {
     align-items: center;
     background: var(--md-sys-color-error);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     box-sizing: border-box;
     color: var(--md-sys-color-on-error);
     display: grid;
@@ -200,7 +200,7 @@
 
   .rail-settings {
     background: transparent;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     color: var(--md-sys-color-on-surface-variant);
     height: 40px;
     transition: background-color 260ms var(--emph), transform 240ms var(--spring-fast), border-radius 280ms var(--spring);
@@ -218,7 +218,7 @@
 
   .rail-avatar {
     background: var(--md-sys-color-primary-container);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     color: var(--md-sys-color-on-primary-container);
     font-size: 13px;
     font-weight: 700;
@@ -228,7 +228,7 @@
     width: 38px;
 
     &:hover {
-      border-radius: 12px;
+      border-radius: var(--md-sys-shape-corner-medium);
       transform: scale(1.08);
     }
 

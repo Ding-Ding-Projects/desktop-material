@@ -37,8 +37,8 @@ describe('git/diff/getResolutionDiff (stage mode)', () => {
     // Diff: on-disk (conflict markers) → :2 (master's version)
     const diff = await getResolutionDiff(repo, 'file.txt', { stage: 'ours' })
 
-    assert.equal(diff.kind, DiffType.Text)
-    const textDiff = diff as ITextDiff
+    assert.equal(diff.diff.kind, DiffType.Text)
+    const textDiff = diff.diff as ITextDiff
     assert(textDiff.hunks.length > 0)
     // The conflict markers from the on-disk file should appear as removed
     assert(
@@ -76,8 +76,8 @@ describe('git/diff/getResolutionDiff (stage mode)', () => {
     // Diff: on-disk (conflict markers) → :3 (feature's version)
     const diff = await getResolutionDiff(repo, 'file.txt', { stage: 'theirs' })
 
-    assert.equal(diff.kind, DiffType.Text)
-    const textDiff = diff as ITextDiff
+    assert.equal(diff.diff.kind, DiffType.Text)
+    const textDiff = diff.diff as ITextDiff
     assert(textDiff.hunks.length > 0)
     assert(
       textDiff.text.includes('-master change'),
@@ -111,8 +111,8 @@ describe('git/diff/getResolutionDiff (stage mode)', () => {
     // Diff should show the on-disk content being removed entirely.
     const diff = await getResolutionDiff(repo, 'file.txt', { stage: 'theirs' })
 
-    assert.equal(diff.kind, DiffType.Text)
-    const textDiff = diff as ITextDiff
+    assert.equal(diff.diff.kind, DiffType.Text)
+    const textDiff = diff.diff as ITextDiff
     assert(
       textDiff.text.includes('-master modified'),
       'should show on-disk content as deleted'
@@ -149,8 +149,8 @@ describe('git/diff/getResolutionDiff (stage mode)', () => {
       true
     )
 
-    assert.equal(diff.kind, DiffType.Text)
-    const textDiff = diff as ITextDiff
+    assert.equal(diff.diff.kind, DiffType.Text)
+    const textDiff = diff.diff as ITextDiff
     // The content addition (extra) from feature should still appear
     assert(
       textDiff.text.includes('extra'),

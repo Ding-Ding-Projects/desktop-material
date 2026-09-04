@@ -181,6 +181,15 @@ describe('formatNumber', () => {
       )
     })
   })
+
+  it('honors bounded maximum fraction digits without a trailing separator', () => {
+    const format: INumberFormat = {
+      ...commaThousandsDotDecimal,
+      maximumFractionDigits: 2,
+    }
+    assert.strictEqual(formatNumber(12.345, format), '12.35')
+    assert.strictEqual(formatNumber(12, format), '12')
+  })
 })
 
 describe('formatCompactNumber', () => {

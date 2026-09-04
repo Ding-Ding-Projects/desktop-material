@@ -180,6 +180,10 @@ import {
 } from './agent-setup-command-runner'
 import { createUnconfiguredStatusHubClient } from './status-hub-client'
 import {
+  createBrowserExtensionDownloadRuntime,
+  runBrowserExtensionNativeHost,
+} from './browser-extension-download-runtime'
+import {
   inspectLocalFileForConversion,
   preflightFileConverterStorage,
 } from './file-converter'
@@ -209,6 +213,9 @@ let browserOpenMode: BrowserOpenMode = 'external'
 let agentServerController: AgentServerController | null = null
 let selfHostedServerController: SelfHostedServerController | null = null
 let selfHostedRunnerManager: WindowsSelfHostedRunnerManager | null = null
+let browserExtensionDownloadRuntime: ReturnType<
+  typeof createBrowserExtensionDownloadRuntime
+> | null = null
 const internalBrowserOAuthCallbackTimeoutMs = 60_000
 
 interface IPendingInternalBrowserOAuthCallback {
@@ -1168,7 +1175,13 @@ app.on('ready', () => {
 
   // A quick action opens only its own small window. Booting the full workspace
   // alongside it would erase the startup saving the feature exists for.
-  if (!handleQuickActionArguments(process.argv, launchTime)) {
+  const browserExtensionNativeHost = process.argv.includes(
+    '--browser-extension-native-host'
+  )
+  if (
+    !browserExtensionNativeHost &&
+    !handleQuickActionArguments(process.argv, launchTime)
+  ) {
     createWindow()
   }
 
@@ -1231,6 +1244,40 @@ app.on('ready', () => {
           : await dialog.showMessageBox(parent, options)
       return result.response === 1
     }
+  )
+
+  browserExtensionDownloadRuntime = createBrowserExtensionDownloadRuntime(
+    progress => {
+      for (const window of getAppWindows()) {
+        window.sendBrowserExtensionDownloadProgress(progress)
+      }
+    }
+  )
+
+  if (browserExtensionNativeHost) {
+    runBrowserExtensionNativeHost(browserExtensionDownloadRuntime)
+    return
+  }
+
+  ipcMain.handle('browser-extension-download-confirm', (_event, requestId) =>
+    browserExtensionDownloadRuntime!.queue.confirm(requestId)
+  )
+  ipcMain.handle('browser-extension-download-pause', (_event, requestId) =>
+    browserExtensionDownloadRuntime!.queue.pause(requestId)
+  )
+  ipcMain.handle('browser-extension-download-resume', (_event, requestId) =>
+    browserExtensionDownloadRuntime!.queue.resume(requestId)
+  )
+  ipcMain.handle('browser-extension-download-cancel', (_event, requestId) => {
+    browserExtensionDownloadRuntime!.queue.cancel(requestId)
+    return Promise.resolve()
+  })
+  ipcMain.handle(
+    'browser-extension-download-accept-native-frame',
+    (_event, frame) =>
+      Promise.resolve(
+        browserExtensionDownloadRuntime!.handoff.acceptNativeFrame(frame)
+      )
   )
 
   ipcMain.handle('fetch-scheduled-settings', async (_event, endpoint) =>

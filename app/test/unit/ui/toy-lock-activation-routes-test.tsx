@@ -18,9 +18,12 @@ const tabId = 'activation-route-tab'
 const tabTargetId = `repository-tab:${tabId}`
 const profileTabsTargetId = 'profile:repository-tabs'
 
-function lock(targetId: string) {
+function lock(
+  targetId: string,
+  kind: 'appearanceElement' | 'tab' = 'appearanceElement'
+) {
   return addMd3Lock({
-    target: { kind: 'appearanceElement', id: targetId, label: targetId },
+    target: { kind, id: targetId, label: targetId },
     factor: 'password',
     unlockDuration: DefaultMd3UnlockDuration,
     lockOnLaunch: true,
@@ -162,7 +165,7 @@ describe('toy-lock activation routes', () => {
     const frame = screen.getByRole('tab')
     const blocked = listenForBlockedTarget()
     try {
-      lock(tabTargetId)
+      lock(tabTargetId, 'tab')
       fireEvent.mouseDown(frame, { button: 1 })
       frame.dispatchEvent(
         new MouseEvent('mousedown', {

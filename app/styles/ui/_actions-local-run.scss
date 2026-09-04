@@ -94,7 +94,7 @@
       height: 34px;
       padding: 0 var(--spacing);
       border: 1px solid var(--md-sys-color-outline-variant);
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       color: inherit;
       background: var(--md-sys-color-surface-container-highest);
 
@@ -222,5 +222,12 @@
   .searchable-select-empty {
     color: var(--md-sys-color-on-surface-variant);
     padding: 6px 10px;
+  }
+
+  .searchable-select-error {
+    color: var(--md-sys-color-error);
+    font-size: 12px;
+    margin: 0 var(--spacing-half) var(--spacing-half);
+    overflow-wrap: anywhere;
   }
 }

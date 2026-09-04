@@ -12,6 +12,35 @@
   on an isolated off-screen desktop.
 - [x] Integrate the verified task branch into `main`, push it, and prove the
   remote `main` ref contains the task commit.
+## August 31 — Copilot account settings and quota
+
+- [x] Keep Copilot model selections, model lists, and quota snapshots scoped to
+  the signed-in account, with sign-out pruning and stale-response fences.
+- [x] Show factual used, available, reset, and refresh-time values with
+  loading, available, stale, unavailable, error, and unlimited states.
+- [x] Localize the account and quota surface in English and Cantonese, with
+  funny-level framing, accessible progress semantics, settings search, and
+  command-palette registration.
+- [x] Record account-scoped model selection changes through profile settings
+  history and cover storage migration, idempotence, and legacy-key removal.
+- [ ] Capture the packaged Windows surface for account switching and quota
+  states through the approved headless route.
+## August 28 - upstream synchronization ledger
+
+- [x] Enumerate the exact 112 non-merge, patch-equivalent records from
+  origin/main...upstream/development at the refreshed origin and upstream tips.
+- [x] Record 108 unique patch effects, duplicate records, the reverted
+  Error-normalization detour, release-only history, workflow-policy records,
+  dependency re-resolution, and macOS out-of-scope work.
+- [x] Record the frozen GUI hard rule and the history that prohibits shell
+  redesign or retired-shell import while allowing control-level repairs.
+- [x] Link every upstream SHA to its exact source commit, record one refreshed
+  disposition and open issue status for every row, and add the executable
+  ledger completeness check.
+- [x] Prove the ledger check red on a missing source-link row and green after
+  restoring the row.
+- [ ] Apply each review-required row in its bounded implementation lane and
+  attach its implementation SHA and focused check receipt to the ledger.
 
 ## August 22 — shared Material control conformance sweep
 
@@ -183,7 +212,8 @@
 - [ ] Run the deferred tests, reviews, audits, built-artifact interactions, and
   captures needed to verify each registered feature. The August 21 ultra-speed
   pass intentionally skipped those activities, so the manifest's completion
-  Chut remains red until a later evidence pass closes every required record.
+  gate remains red until a later evidence pass closes every required record.
+  check remains red until a later evidence pass closes every required record.
 - [ ] Verify changelog Markdown and plain-text exports preserve each recorded
   full commit SHA and its forge URL, and explicitly report entries with no
   recorded commit. The implementation and focused assertions are present in
@@ -206,7 +236,8 @@
 
 - [x] Move a clean default-branch checkout from another worktree automatically
   instead of failing the entire merge-all operation.
-- [x] Add the explicit **Force Mat Day** option, with checkpoint, synchronization,
+- [x] Add the explicit **force cleanup** option, with checkpoint, synchronization,
+- [x] Add the explicit **Force cleanup** option, with checkpoint, synchronization,
   and publication of recoverable dirty worktrees before merge and cleanup.
 - [x] Retain locked, divergent, unpublished, stale, or otherwise unproved work;
   no forced push or forced worktree removal is introduced.
@@ -569,8 +600,8 @@ Updated: **August 13, 2026**
 - [ ] The existing Agents sidebar now receives a main-process-only Status Hub
   status projection with an honest local-only fallback. Repository registration,
   heartbeat/evidence models, and authenticated inbox reply confirmation are
-  implemented; endpoint/vault configuration, focused Chuts, packaged
-  interaction, and real HuiShots remain pending.
+  implemented; endpoint/vault configuration, focused checks, packaged
+  interaction, and real screenshots remain pending.
 
 - The Agents creator is now mounted through the shared modal dialog layer and
   keeps its Options disclosure disabled during creation. The live store and
@@ -684,7 +715,7 @@ ahead of any single feature that depends on it.
 - Still not started: funny-level sliders, non-blocking notifications, and the
   dim sum surprise in the browser window.
 
-## August 1 line counts move into releases — **Implemented and dewed**
+## August 1 line counts move into releases — **Implemented and pushed**
 
 - Every release now carries its own line count, measured by CI over the exact
   commit it was built from, via the committed `script/count-lines.mjs`.
@@ -2145,6 +2176,28 @@ present:
 ## August 29, 2026 UI bug audit closeout
 
 <!-- markdownlint-disable MD004 -->
+
+## Integration, gallery refresh and cleanup -- 2026-09-03
+
+- [x] Integrate the Copilot conflict review lane into `main`; the guarded
+  application result is unified and the modify/delete branch is reachable.
+- [x] Fix `getHunkSkipReason` so an oversized conflict region can actually be
+  reported; the fixture reached only the long-line branch before.
+- [x] Refresh 52 of the 131 gallery images from the real built application,
+  with all 16 skipped scenes and their reasons recorded.
+- [x] Land PR #221 and prove its article-path guard red on a reintroduced dead
+  path, then green after restoring it.
+- [x] Close issue #219 with an ancestry proof that `c5222a3a98` is on `main`.
+- [x] Record the pre-cleanup archive contract, respecting `.gitignore`.
+- [ ] Refresh the 79 gallery images outside the canonical scene batch.
+- [ ] Repair the fixtures behind the 16 canonical scenes that cannot capture:
+  the Actions inspector split panes, the API explorer, submodule context,
+  pull-request comparison, and the three anchored editors whose privacy check
+  correctly refuses a rendered local path.
+- [ ] Complete a full unit-suite run to a verdict. Two attempts this pass
+  reached no verdict - one killed by a harness timeout, one still running
+  under multi-fleet contention - so neither counts as a pass.
+
 
 - [x] WP1: align the large corner and missing motion tokens with the checked-in
   design reference.

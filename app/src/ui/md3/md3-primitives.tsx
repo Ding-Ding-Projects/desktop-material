@@ -5,6 +5,48 @@ import { compileSafeRegex, MaxRegexPatternLength } from '../../lib/safe-regex'
 import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
 import { createObservableRef, ObservableRef } from '../lib/observable-ref'
 import { Tooltip } from '../lib/tooltip'
+import { singleFlightActions } from '../../lib/single-flight-action'
+
+let nextMd3ButtonActionId = 0
+
+function useSingleFlightClick(
+  onClick:
+    | ((
+        event: React.MouseEvent<HTMLButtonElement>
+      ) => void | PromiseLike<unknown>)
+    | undefined,
+  suppliedKey: string | undefined
+) {
+  const instanceKey = React.useRef<string>()
+  if (instanceKey.current === undefined) {
+    instanceKey.current = `md3-button:${++nextMd3ButtonActionId}`
+  }
+  const key = suppliedKey ?? instanceKey.current
+  const [, setRevision] = React.useState(0)
+
+  React.useEffect(
+    () =>
+      singleFlightActions.subscribe(key, () => setRevision(value => value + 1)),
+    [key]
+  )
+
+  const guardedClick = React.useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      if (onClick === undefined || singleFlightActions.isActive(key)) {
+        event.preventDefault()
+        return
+      }
+      const result = singleFlightActions.run(key, () => onClick(event))
+      void result.catch(() => {})
+    },
+    [key, onClick]
+  )
+
+  return {
+    busy: singleFlightActions.isActive(key),
+    onClick: onClick === undefined ? undefined : guardedClick,
+  }
+}
 
 /**
  * The repeated controls of the MD3 shell design contract
@@ -58,7 +100,12 @@ export interface IMd3IconButtonProps {
    */
   readonly label: string
 
-  readonly onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void
+  readonly onClick?: (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => void | PromiseLike<unknown>
+
+  /** Coordinate alternate controls which start the same async action. */
+  readonly activationKey?: string
 
   readonly onContextMenu?: (event: React.MouseEvent<HTMLButtonElement>) => void
 
@@ -117,6 +164,7 @@ export function Md3IconButton(props: IMd3IconButtonProps) {
       ? SmallIconButtonGlyphSize
       : IconButtonGlyphSize
   const tooltip = props.tooltip === undefined ? props.label : props.tooltip
+  const activation = useSingleFlightClick(props.onClick, props.activationKey)
 
   return (
     <button
@@ -137,8 +185,10 @@ export function Md3IconButton(props: IMd3IconButtonProps) {
       aria-expanded={props.expanded}
       aria-haspopup={props.hasPopup}
       disabled={props.disabled}
+      aria-disabled={activation.busy || undefined}
+      aria-busy={activation.busy || undefined}
       tabIndex={props.tabIndex}
-      onClick={props.onClick}
+      onClick={activation.onClick}
       onContextMenu={props.onContextMenu}
     >
       {tooltip === null ? null : (
@@ -161,7 +211,12 @@ export interface IMd3TextButtonProps {
   /** An optional leading glyph. Decorative. */
   readonly icon?: MaterialSymbolName
 
-  readonly onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void
+  readonly onClick?: (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => void | PromiseLike<unknown>
+
+  /** Coordinate alternate controls which start the same async action. */
+  readonly activationKey?: string
 
   readonly onContextMenu?: (event: React.MouseEvent<HTMLButtonElement>) => void
 
@@ -198,6 +253,7 @@ function Md3TextButton(
   props: IMd3TextButtonProps & { readonly baseClassName: string }
 ) {
   const ref = useTooltipTarget(props.buttonRef)
+  const activation = useSingleFlightClick(props.onClick, props.activationKey)
 
   return (
     <button
@@ -209,7 +265,9 @@ function Md3TextButton(
       aria-expanded={props.expanded}
       aria-haspopup={props.hasPopup}
       disabled={props.disabled}
-      onClick={props.onClick}
+      aria-disabled={activation.busy || undefined}
+      aria-busy={activation.busy || undefined}
+      onClick={activation.onClick}
       onContextMenu={props.onContextMenu}
     >
       {props.tooltip === undefined ? null : (
@@ -344,6 +402,24 @@ export interface IMd3SearchFieldProps {
   readonly className?: string
 
   readonly inputRef?: React.Ref<HTMLInputElement>
+
+  /**
+   * Ref for the regex-builder launcher. Menu overlays use this as the anchor
+   * for their instance-owned builder, while other surfaces may leave it
+   * unset and retain the shared focus behavior.
+   */
+  readonly builderButtonRef?: ObservableRef<HTMLButtonElement>
+
+  /** Instance-owned regex/filter state exposed for audits and diagnostics. */
+  readonly searchPattern?: string
+
+  readonly searchMode?: 'substring' | 'regex'
+
+  readonly searchFlags?: string
+
+  readonly searchHistory?: ReadonlyArray<string>
+
+  readonly searchValidation?: string | null
 }
 
 /**
@@ -437,6 +513,15 @@ export function Md3SearchField(props: IMd3SearchFieldProps) {
           ref={props.inputRef}
           id={props.id}
           data-search-surface-id={props.searchSurfaceId}
+          data-search-pattern={props.searchPattern}
+          data-search-mode={props.searchMode}
+          data-search-flags={props.searchFlags}
+          data-search-history={
+            props.searchHistory === undefined
+              ? undefined
+              : JSON.stringify(props.searchHistory)
+          }
+          data-search-validation={props.searchValidation ?? undefined}
           type="text"
           role="searchbox"
           className="md3-search-row__input"
@@ -484,6 +569,7 @@ export function Md3SearchField(props: IMd3SearchFieldProps) {
           iconSize={props.builderIconSize}
           label={builderLabel}
           hasPopup="dialog"
+          buttonRef={props.builderButtonRef}
           onClick={props.onOpenBuilder}
         />
         {showHits ? (

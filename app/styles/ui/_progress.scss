@@ -4,7 +4,7 @@ progress {
   // MD3 de-stock: tonal track + primary indicator, rounded like an M3 linear
   // progress bar instead of the stock on-surface fill on a container track.
   background-color: var(--md-sys-color-surface-container-highest);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   overflow: hidden;
 
   &::-webkit-progress-bar {
@@ -13,7 +13,7 @@ progress {
 
   &::-webkit-progress-value {
     background-color: var(--md-sys-color-primary);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
   }
 
   // The determinate track/value now come from the final

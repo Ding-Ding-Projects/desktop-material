@@ -90,7 +90,7 @@ describe('Material Design 3 control layer', () => {
     const css = read('app', 'styles', '_material-controls.scss')
     assert.match(
       css,
-      /\.button-component\s*\{\s*border-radius: 999px;\s*min-height: 32px;/
+      /\.button-component\s*\{\s*border-radius: var\(--md-sys-shape-corner-full\);\s*min-height: 32px;/
     )
   })
 

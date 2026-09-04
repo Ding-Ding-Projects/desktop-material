@@ -38,7 +38,7 @@ describe('Actions v2 style contracts', () => {
     )
     assert.match(
       styles,
-      /\.actions-run-wf-chip\s*\{[\s\S]*?border-radius: 999px;[\s\S]*?font-family: var\(--font-family-monospace\);[\s\S]*?background: var\(--md-sys-color-surface-container-highest\);/
+      /\.actions-run-wf-chip\s*\{[\s\S]*?border-radius: var\(--md-sys-shape-corner-full\);[\s\S]*?font-family: var\(--font-family-monospace\);[\s\S]*?background: var\(--md-sys-color-surface-container-highest\);/
     )
     const runList = readSource('run-list.tsx')
     assert.match(runList, /actions-run-status-icon/)
@@ -53,7 +53,7 @@ describe('Actions v2 style contracts', () => {
     )
     assert.match(
       styles,
-      /\.actions-workflow-row\s*\{[\s\S]*?border-radius: 12px;[\s\S]*?background: var\(--md-sys-color-surface\);/
+      /\.actions-workflow-row\s*\{[\s\S]*?border-radius: var\(--md-sys-shape-corner-medium\);[\s\S]*?background: var\(--md-sys-color-surface\);/
     )
     assert.match(
       styles,
@@ -72,16 +72,16 @@ describe('Actions v2 style contracts', () => {
     )
     assert.match(
       styles,
-      /\.workflow-dispatch-chip\s*\{[\s\S]*?height: 34px;[\s\S]*?border-radius: 999px;[\s\S]*?font-family: var\(--font-family-monospace\);[\s\S]*?&\.on\s*\{[\s\S]*?color: var\(--md-sys-color-on-primary\);[\s\S]*?background: var\(--md-sys-color-primary\);/
+      /\.workflow-dispatch-chip\s*\{[\s\S]*?height: 34px;[\s\S]*?border-radius: var\(--md-sys-shape-corner-full\);[\s\S]*?font-family: var\(--font-family-monospace\);[\s\S]*?&\.on\s*\{[\s\S]*?color: var\(--md-sys-color-on-primary\);[\s\S]*?background: var\(--md-sys-color-primary\);/
     )
     assert.match(
       styles,
-      /\.workflow-dispatch-run-button\s*\{[\s\S]*?height: 42px;[\s\S]*?border-radius: 999px;[\s\S]*?color: var\(--md-sys-color-on-primary\);[\s\S]*?background: var\(--md-sys-color-primary\);/
+      /\.workflow-dispatch-run-button\s*\{[\s\S]*?height: 42px;[\s\S]*?border-radius: var\(--md-sys-shape-corner-full\);[\s\S]*?color: var\(--md-sys-color-on-primary\);[\s\S]*?background: var\(--md-sys-color-primary\);/
     )
     const dialog = readSource('workflow-dispatch-dialog.tsx')
     assert.match(dialog, /workflow-dispatch-popover/)
     assert.match(dialog, /workflow-dispatch-chip/)
-    assert.match(dialog, /octicons\.play/)
+    assert.match(dialog, /name="play_arrow"/)
     assert.match(dialog, /Run on ref/)
     assert.match(dialog, /renderInput/)
   })
@@ -89,7 +89,7 @@ describe('Actions v2 style contracts', () => {
   it('ships the 830x640 workflow catalog dialog with search and filter chips', () => {
     assert.match(
       styles,
-      /\.workflow-catalog-dialog\s*\{[\s\S]*?width: min\(830px, calc\(100vw - 50px\)\);[\s\S]*?height: min\(640px, calc\(100vh - 50px\)\);[\s\S]*?border-radius: 28px;[\s\S]*?box-shadow: var\(--md-sys-elevation-level3\);[\s\S]*?dmDialog/
+      /\.workflow-catalog-dialog\s*\{[\s\S]*?width: min\(830px, calc\(100vw - 50px\)\);[\s\S]*?height: min\(640px, calc\(100vh - 50px\)\);[\s\S]*?border-radius: var\(--md-sys-shape-corner-extra-large\);[\s\S]*?box-shadow: var\(--md-sys-elevation-level3\);[\s\S]*?dmDialog/
     )
     assert.match(
       styles,
@@ -152,7 +152,7 @@ describe('Actions v2 style contracts', () => {
     assert.match(catalog, /matchWithMode/)
     assert.match(catalog, /persistFilterMode\(WorkflowCatalogFilterListId/)
     assert.match(catalog, /regexError !== null/)
-    assert.doesNotMatch(catalog, /aria-label="Use regular expression"/)
+    assert.doesNotMatch(catalog, /ariaLabel="Use regular expression"/)
   })
 
   it('keeps manager helpers aligned with workflow file paths', () => {
@@ -166,14 +166,14 @@ describe('Actions v2 style contracts', () => {
     const view = readSource('actions-view.tsx')
     assert.match(view, /WorkflowCatalogDialog/)
     assert.match(view, /onNewWorkflow=\{this\.openCatalog\}/)
-    assert.match(view, /aria-label="Manage workflows"/)
+    assert.match(view, /ariaLabel="Manage workflows"/)
     assert.match(view, /actions-search-pill/)
     assert.match(view, /<FilterModeControl/)
     assert.match(view, /matchWithMode/)
     assert.match(view, /getFilteredRunsWithError/)
     assert.match(view, /filteredRunResult\.regexError/)
     assert.doesNotMatch(view, /new RegExp\(query/)
-    assert.match(view, /aria-invalid=\{runQueryError !== null\}/)
-    assert.match(view, /aria-label="Refresh"/)
+    assert.match(view, /ariaInvalid=\{runQueryError !== null\}/)
+    assert.match(view, /ariaLabel="Refresh"/)
   })
 })

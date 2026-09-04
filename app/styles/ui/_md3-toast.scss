@@ -5,7 +5,7 @@
 //
 //   position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
 //   display: flex; align-items: center; gap: 12px; max-width: 520px;
-//   padding: 9px 12px 9px 16px; border-radius: 12px;
+//   padding: 9px 12px 9px 16px; border-radius: var(--md-sys-shape-corner-medium);
 //   background: var(--md-sys-color-on-surface);
 //   color: var(--md-sys-color-surface); box-shadow: var(--dm-elev3);
 //   font-size: 12px; animation: dmUp 240ms cubic-bezier(0.2,0,0,1) both;
@@ -41,7 +41,7 @@
 .md3-toast {
   align-items: center;
   background: var(--md-sys-color-on-surface);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   box-shadow: var(--dm-elev3);
   color: var(--md-sys-color-surface);
   display: flex;
@@ -74,7 +74,7 @@
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-primary);
   cursor: pointer;
   display: inline-flex;
@@ -96,7 +96,7 @@
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: inherit;
   cursor: pointer;
   display: grid;

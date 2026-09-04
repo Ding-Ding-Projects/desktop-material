@@ -5406,20 +5406,43 @@ export class API {
     }
   }
 
+  /**
+   * Fetch the repository's protected branches.
+   *
+   * A successful response with no protected branches is represented by an
+   * empty array. A failed or otherwise inconclusive refresh is represented by
+   * null so callers can preserve their last known protection state.
+   */
   public async fetchProtectedBranches(
     owner: string,
     name: string
-  ): Promise<ReadonlyArray<IAPIBranch>> {
+  ): Promise<ReadonlyArray<IAPIBranch> | null> {
     const path = `repos/${owner}/${name}/branches?protected=true`
     try {
       const response = await this.ghRequest('GET', path)
-      return await parsedResponse<IAPIBranch[]>(response)
+      const branches = await parsedResponse<unknown>(response)
+      if (!Array.isArray(branches)) {
+        throw new Error('Protected branch response was not an array')
+      }
+      if (
+        !branches.every(
+          branch =>
+            branch !== null &&
+            typeof branch === 'object' &&
+            typeof (branch as { name?: unknown }).name === 'string' &&
+            (branch as { name: string }).name.trim().length > 0 &&
+            typeof (branch as { protected?: unknown }).protected === 'boolean'
+        )
+      ) {
+        throw new Error('Protected branch response contained an invalid item')
+      }
+      return branches as IAPIBranch[]
     } catch (err) {
       log.info(
         `[fetchProtectedBranches] unable to list protected branches`,
         err
       )
-      return new Array<IAPIBranch>()
+      return null
     }
   }
 
@@ -6772,7 +6795,7 @@ abstract class ThirdPartyAPI extends API {
   }
 
   public override async fetchProtectedBranches(): Promise<
-    ReadonlyArray<IAPIBranch>
+    ReadonlyArray<IAPIBranch> | null
   > {
     return []
   }

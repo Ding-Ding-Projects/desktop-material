@@ -29,6 +29,55 @@ function formatBytes(value: number): string {
   return `${value.toLocaleString()} B`
 }
 
+function useBrowserExtensionDownloadHandlers(
+  props: IBrowserExtensionDownloadSurfacesProps,
+  request: IBrowserExtensionDownloadRequest | null
+) {
+  return React.useMemo(
+    () => ({
+      confirm: () => {
+        if (request !== null) {
+          props.onConfirm(request)
+        }
+      },
+      cancelBeforeStart: () => {
+        if (request !== null) {
+          props.onCancelBeforeStart(request)
+        }
+      },
+      pause: () => {
+        if (request !== null) {
+          props.onPause(request)
+        }
+      },
+      resume: () => {
+        if (request !== null) {
+          props.onResume(request)
+        }
+      },
+      cancel: () => {
+        if (request !== null) {
+          props.onCancel(request)
+        }
+      },
+      dismissCompleted: () => {
+        if (request !== null) {
+          props.onDismissCompleted(request)
+        }
+      },
+    }),
+    [
+      props.onConfirm,
+      props.onCancelBeforeStart,
+      props.onPause,
+      props.onResume,
+      props.onCancel,
+      props.onDismissCompleted,
+      request,
+    ]
+  )
+}
+
 /**
  * The owned desktop surfaces for a browser extension download handoff. This
  * component is intentionally mountable only by a real native-host request;
@@ -39,27 +88,32 @@ export function BrowserExtensionDownloadSurfaces(
   props: IBrowserExtensionDownloadSurfacesProps
 ) {
   const progress = props.progress
+  const request = progress?.request ?? null
+  const actions = useBrowserExtensionDownloadHandlers(props, request)
+
   if (progress === null) {
     return null
   }
-  const { request } = progress
+
+  const activeRequest = progress.request
 
   if (progress.phase === 'awaiting-confirmation') {
     return (
       <Dialog
         title={t('browserDownload.start.title')}
-        onDismissed={() => props.onCancelBeforeStart(request)}
+        onDismissed={actions.cancelBeforeStart}
+        onSubmit={actions.confirm}
         emojiDecoration="progress"
       >
         <DialogContent>
           <p>{t('browserDownload.start.body')}</p>
           <dl className="browser-extension-download-details">
             <dt>{t('browserDownload.start.file')}</dt>
-            <dd>{request.suggestedFileName}</dd>
+            <dd>{activeRequest.suggestedFileName}</dd>
             <dt>{t('browserDownload.start.source')}</dt>
-            <dd>{request.source}</dd>
+            <dd>{activeRequest.source}</dd>
             <dt>{t('browserDownload.start.destination')}</dt>
-            <dd>{request.destination}</dd>
+            <dd>{activeRequest.destination}</dd>
           </dl>
         </DialogContent>
         <DialogFooter>
@@ -68,11 +122,11 @@ export function BrowserExtensionDownloadSurfaces(
             cancelButtonText={t('browserDownload.start.cancel')}
             onOkButtonClick={event => {
               event.preventDefault()
-              props.onConfirm(request)
+              actions.confirm()
             }}
             onCancelButtonClick={event => {
               event.preventDefault()
-              props.onCancelBeforeStart(request)
+              actions.cancelBeforeStart()
             }}
           />
         </DialogFooter>
@@ -95,7 +149,7 @@ export function BrowserExtensionDownloadSurfaces(
         emojiDecoration="progress"
       >
         <DialogContent>
-          <p>{request.suggestedFileName}</p>
+          <p>{activeRequest.suggestedFileName}</p>
           <OperationProgressRow
             label={t('browserDownload.progress.label')}
             description={
@@ -114,21 +168,21 @@ export function BrowserExtensionDownloadSurfaces(
           />
           <p>
             {t('browserDownload.progress.destination', {
-              destination: request.destination,
+              destination: activeRequest.destination,
             })}
           </p>
         </DialogContent>
         <DialogFooter>
           {paused ? (
-            <Button onClick={() => props.onResume(request)}>
+            <Button onClick={actions.resume}>
               {t('browserDownload.progress.resume')}
             </Button>
           ) : (
-            <Button onClick={() => props.onPause(request)}>
+            <Button onClick={actions.pause}>
               {t('browserDownload.progress.pause')}
             </Button>
           )}
-          <Button onClick={() => props.onCancel(request)}>
+          <Button onClick={actions.cancel}>
             {t('browserDownload.progress.cancel')}
           </Button>
         </DialogFooter>
@@ -140,16 +194,17 @@ export function BrowserExtensionDownloadSurfaces(
     return (
       <Dialog
         title={t('browserDownload.completed.title')}
-        onDismissed={() => props.onDismissCompleted(request)}
+        onDismissed={actions.dismissCompleted}
+        onSubmit={actions.dismissCompleted}
         emojiDecoration="success"
       >
         <DialogContent>
           <p>
             {t('browserDownload.completed.body', {
-              file: request.suggestedFileName,
+              file: activeRequest.suggestedFileName,
             })}
           </p>
-          <p>{request.destination}</p>
+          <p>{activeRequest.destination}</p>
         </DialogContent>
         <DialogFooter>
           <OkCancelButtonGroup
@@ -157,7 +212,7 @@ export function BrowserExtensionDownloadSurfaces(
             cancelButtonVisible={false}
             onOkButtonClick={event => {
               event.preventDefault()
-              props.onDismissCompleted(request)
+              actions.dismissCompleted()
             }}
           />
         </DialogFooter>
@@ -169,7 +224,8 @@ export function BrowserExtensionDownloadSurfaces(
     return (
       <Dialog
         title={t('browserDownload.canceled.title')}
-        onDismissed={() => props.onDismissCompleted(request)}
+        onDismissed={actions.dismissCompleted}
+        onSubmit={actions.dismissCompleted}
         emojiDecoration="information"
       >
         <DialogContent>
@@ -181,7 +237,7 @@ export function BrowserExtensionDownloadSurfaces(
             cancelButtonVisible={false}
             onOkButtonClick={event => {
               event.preventDefault()
-              props.onDismissCompleted(request)
+              actions.dismissCompleted()
             }}
           />
         </DialogFooter>
@@ -193,7 +249,8 @@ export function BrowserExtensionDownloadSurfaces(
     <Dialog
       title={t('browserDownload.failed.title')}
       type="error"
-      onDismissed={() => props.onDismissCompleted(request)}
+      onDismissed={actions.dismissCompleted}
+      onSubmit={actions.dismissCompleted}
     >
       <DialogContent>
         <p>{progress.error ?? t('browserDownload.failed.body')}</p>
@@ -204,7 +261,7 @@ export function BrowserExtensionDownloadSurfaces(
           cancelButtonVisible={false}
           onOkButtonClick={event => {
             event.preventDefault()
-            props.onDismissCompleted(request)
+            actions.dismissCompleted()
           }}
         />
       </DialogFooter>

@@ -77,7 +77,7 @@
 
   .button-component {
     max-width: 100%;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     white-space: normal;
   }
 }
@@ -265,7 +265,7 @@
     gap: 5px;
     padding: 10px;
     border: 1px solid transparent;
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     color: var(--md-sys-color-on-surface);
     background: transparent;
     font: inherit;
@@ -316,7 +316,7 @@
     min-height: 28px;
     padding: 4px 11px;
     border: 1px solid var(--md-sys-color-outline);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     color: var(--md-sys-color-on-surface);
     background: var(--md-sys-color-surface-container);
     font: inherit;
@@ -348,7 +348,7 @@
   em {
     flex: 0 0 auto;
     padding: 2px 6px;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     font-size: 9px;
     font-style: normal;
     line-height: 1.4;
@@ -406,14 +406,14 @@
   display: inline-flex;
   max-width: 100%;
   padding: 3px;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   background: var(--md-sys-color-surface-container-high);
 
   button {
     min-height: 32px;
     padding: 5px 12px;
     border: 0;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     color: var(--md-sys-color-on-surface-variant);
     background: transparent;
     font: inherit;
@@ -509,7 +509,7 @@
 
   span {
     padding: 3px 7px;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     color: var(--md-sys-color-on-secondary-container);
     background: var(--md-sys-color-secondary-container);
     font-size: 9px;
@@ -529,7 +529,7 @@
   gap: 12px;
   padding: 14px;
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 16px;
+  border-radius: var(--md-sys-shape-corner-large);
   overflow-x: hidden;
   background: var(--md-sys-color-surface-container-lowest);
 
@@ -580,7 +580,7 @@
     gap: 9px;
     padding: 12px;
     border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 12px;
+    border-radius: var(--md-sys-shape-corner-medium);
     background: var(--md-sys-color-surface-container-low);
 
     > header > div {
@@ -596,7 +596,7 @@
 
     > header > span {
       padding: 3px 8px;
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       color: var(--md-sys-color-on-secondary-container);
       background: var(--md-sys-color-secondary-container);
       font-size: 9px;
@@ -632,7 +632,7 @@
         max-height: 180px;
         margin: 8px 0 0;
         padding: 8px;
-        border-radius: 8px;
+        border-radius: var(--md-sys-shape-corner-small);
         overflow: auto;
         white-space: pre-wrap;
         background: var(--md-sys-color-surface-container);
@@ -662,7 +662,7 @@
     min-height: 32px;
     padding: 5px 11px;
     border: 1px solid var(--md-sys-color-outline);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     color: var(--md-sys-color-on-surface);
     background: var(--md-sys-color-surface-container);
     font: inherit;
@@ -734,7 +734,7 @@
     display: block;
     max-width: 100%;
     padding: 8px;
-    border-radius: 8px;
+    border-radius: var(--md-sys-shape-corner-small);
     overflow-wrap: anywhere;
     word-break: break-all;
     background: color-mix(in srgb, var(--md-sys-color-surface) 48%, transparent);
@@ -906,13 +906,13 @@
   .github-api-explorer-catalog {
     min-height: 320px;
     max-height: 58vh;
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
   }
 
   .github-api-explorer-builder,
   .github-api-explorer-state {
     padding: 12px;
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
   }
 
   .github-api-explorer-tabs {

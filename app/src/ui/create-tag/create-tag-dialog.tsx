@@ -30,9 +30,15 @@ interface ICreateTagState {
    */
   readonly isCreatingTag: boolean
   readonly previousTags: Array<string> | null
+  readonly error: Error | null
+  readonly targetIdentity: string
 }
 
 const MaxTagNameLength = 245
+
+function createTagTargetIdentity(props: ICreateTagProps): string {
+  return `${props.repository.path}\u0000${props.repository.id}\u0000${props.targetCommitSha}`
+}
 
 /** The Create Tag component. */
 export class CreateTag extends React.Component<
@@ -46,11 +52,29 @@ export class CreateTag extends React.Component<
       tagName: props.initialName || '',
       isCreatingTag: false,
       previousTags: this.getExistingTagsFiltered(),
+      error: null,
+      targetIdentity: createTagTargetIdentity(props),
+    }
+  }
+
+  public componentDidUpdate(prevProps: ICreateTagProps) {
+    const previousIdentity = createTagTargetIdentity(prevProps)
+    const targetIdentity = createTagTargetIdentity(this.props)
+    if (
+      previousIdentity !== targetIdentity &&
+      this.state.targetIdentity !== targetIdentity
+    ) {
+      this.setState({
+        targetIdentity,
+        isCreatingTag: false,
+        error: null,
+      })
     }
   }
 
   public render() {
     const error = this.getCurrentError()
+    const operationError = this.state.error
     const disabled = error !== null || this.state.tagName.length === 0
 
     return (
@@ -59,10 +83,17 @@ export class CreateTag extends React.Component<
         title={__DARWIN__ ? 'Create a Tag' : 'Create a tag'}
         onSubmit={this.createTag}
         onDismissed={this.props.onDismissed}
+        dismissDisabled={this.state.isCreatingTag}
         loading={this.state.isCreatingTag}
         disabled={this.state.isCreatingTag}
       >
         {error && <DialogError>{error}</DialogError>}
+        {operationError && (
+          <DialogError>
+            Unable to create this tag: {operationError.message}. You can retry
+            without losing the name you entered.
+          </DialogError>
+        )}
 
         <DialogContent>
           <RefNameTextBox
@@ -148,22 +179,42 @@ export class CreateTag extends React.Component<
     })
   }
 
+  private errorFromUnknown(error: unknown): Error {
+    return error instanceof Error ? error : new Error(String(error))
+  }
+
   private createTag = async () => {
     const name = this.state.tagName
     const repository = this.props.repository
+    const targetIdentity = createTagTargetIdentity(this.props)
 
-    if (name.length > 0) {
-      this.setState({ isCreatingTag: true })
+    if (
+      this.state.targetIdentity === targetIdentity &&
+      name.length > 0 &&
+      !this.state.isCreatingTag
+    ) {
+      this.setState({ isCreatingTag: true, error: null })
 
       const timer = startTimer('create tag', repository)
-      await this.props.dispatcher.createTag(
-        repository,
-        name,
-        this.props.targetCommitSha
-      )
-      timer.done()
-
-      this.props.onDismissed()
+      try {
+        await this.props.dispatcher.createTag(
+          repository,
+          name,
+          this.props.targetCommitSha
+        )
+        timer.done()
+        if (createTagTargetIdentity(this.props) === targetIdentity) {
+          this.props.onDismissed()
+        }
+      } catch (error) {
+        timer.done()
+        if (createTagTargetIdentity(this.props) === targetIdentity) {
+          this.setState({
+            isCreatingTag: false,
+            error: this.errorFromUnknown(error),
+          })
+        }
+      }
     }
   }
 }

@@ -84,7 +84,7 @@
 
     span {
       background: var(--md-sys-color-secondary-container);
-      border-radius: 999px;
+      border-radius: var(--md-sys-shape-corner-full);
       color: var(--md-sys-color-on-secondary-container);
       padding: 5px 12px;
     }
@@ -150,7 +150,7 @@
   }
 
   .pull-preview-file-status {
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     color: var(--md-sys-color-on-surface-variant);
     font-size: var(--font-size-sm);
     padding: 2px 8px;

@@ -35,7 +35,15 @@ export class ProgressDialog extends React.Component<IProgressDialogProps> {
       >
         <DialogContent>
           <div>
-            <progress value={progressValue} />
+            <progress
+              value={progressValue}
+              max={1}
+              aria-label={`${operation} progress`}
+              aria-valuetext={`Commit ${position} of ${totalCommitCount}`}
+            />
+            <div className="sr-only" role="status" aria-live="polite">
+              Commit {position} of {totalCommitCount}
+            </div>
 
             <div className="details">
               <div className="green-circle">

@@ -27,7 +27,7 @@ describe('shell chrome v2 style contracts', () => {
 
     assert.match(
       style,
-      /\.theme-toggle-button\s*\{[\s\S]*?width: 46px;[\s\S]*?height: 46px;[\s\S]*?border-radius: 999px;[\s\S]*?background: var\(--md-sys-color-surface-container-high\);/
+      /\.theme-toggle-button\s*\{[\s\S]*?width: 46px;[\s\S]*?height: 46px;[\s\S]*?border-radius: var\(--md-sys-shape-corner-full\);[\s\S]*?background: var\(--md-sys-color-surface-container-high\);/
     )
     assert.match(
       style,

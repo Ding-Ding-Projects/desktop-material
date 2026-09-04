@@ -19,7 +19,7 @@ export function wildcardPatternFromFilename(filename: string): string {
 
 /** Compile the small, gitignore-style wildcard subset used by this dialog. */
 export function wildcardPatternToRegExp(pattern: string): RegExp | null {
-  if (pattern.length === 0 || pattern.length > 256) return null
+  if (pattern.length === 0 || pattern.length > 256) {return null}
 
   let source = '^'
   let characterClass = false
@@ -27,7 +27,7 @@ export function wildcardPatternToRegExp(pattern: string): RegExp | null {
     const character = pattern[index]
     if (character === '\\') {
       const next = pattern[index + 1]
-      if (next === undefined) return null
+      if (next === undefined) {return null}
       // Escape exactly once. `replace` already prepends the backslash for a
       // metacharacter; the template literal prepended a second one, so an
       // escaped metacharacter compiled to an escaped-backslash atom followed
@@ -48,7 +48,7 @@ export function wildcardPatternToRegExp(pattern: string): RegExp | null {
       continue
     }
     if (character === '[') {
-      if (characterClass) return null
+      if (characterClass) {return null}
       characterClass = true
       source += '['
       continue
@@ -64,7 +64,7 @@ export function wildcardPatternToRegExp(pattern: string): RegExp | null {
       source += character.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
     }
   }
-  if (characterClass) return null
+  if (characterClass) {return null}
   try {
     return new RegExp(`${source}$`, 'i')
   } catch {
@@ -77,7 +77,7 @@ export function wildcardPreview(
   paths: ReadonlyArray<string>
 ): ReadonlyArray<string> {
   const expression = wildcardPatternToRegExp(pattern)
-  if (expression === null) return []
+  if (expression === null) {return []}
   return paths.filter(path => expression.test(Path.basename(path)))
 }
 
@@ -117,6 +117,18 @@ export class IgnoreFilesContainingDialog extends React.Component<
       pattern: `${previous.pattern}${token}`,
       error: null,
     }))
+  }
+
+  private insertStar = (): void => {
+    this.insertWildcard('*')
+  }
+
+  private insertQuestionMark = (): void => {
+    this.insertWildcard('?')
+  }
+
+  private insertCharacterSet = (): void => {
+    this.insertWildcard('[ ]')
   }
 
   private onSubmit = async () => {
@@ -172,13 +184,13 @@ export class IgnoreFilesContainingDialog extends React.Component<
             aria-label={t('ignoreFilesContaining.builderLabel')}
           >
             <span>{t('ignoreFilesContaining.builderLabel')}</span>
-            <Button type="button" onClick={() => this.insertWildcard('*')}>
+            <Button type="button" onClick={this.insertStar}>
               *
             </Button>
-            <Button type="button" onClick={() => this.insertWildcard('?')}>
+            <Button type="button" onClick={this.insertQuestionMark}>
               ?
             </Button>
-            <Button type="button" onClick={() => this.insertWildcard('[ ]')}>
+            <Button type="button" onClick={this.insertCharacterSet}>
               [set]
             </Button>
           </div>

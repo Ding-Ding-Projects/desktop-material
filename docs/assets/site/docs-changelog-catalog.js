@@ -22,13 +22,161 @@
     datedCount: 669,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4194,
+    entryCount: 4229,
     releases: [
       {
         v: '4.0.0',
-        d: '2026-08-12',
-        t: '17:40',
+        d: '2026-09-03',
+        t: '15:29',
         e: [
+          [
+            'Fixed',
+            'Completed the Copilot conflict review recovery UI and unified how a guarded conflict application reports itself. Conflict review now routes through one guarded application result instead of two divergent shapes, and the modify/delete path is reachable again - the guard that preceded it tested for a conflict-marker count that a delete/modify status never carries, so that branch could not run. Focused suites report 357 of 357 passing across the nine files this touches',
+            '0d562bc8027660b45a08111a756cce99e0c794be',
+          ],
+          [
+            'Fixed',
+            'getHunkSkipReason could never report an oversized conflict region. Its own test fed it a single 262,145-character line, which is also a line past the 5,000-character limit, so the long-line reason returned first and the size assertion passed on a reason it was not testing. The fixture now uses 3,000 short lines, which reaches the size branch for real',
+            'ce8f3e025057512f44a78678d529ca0b2526882d',
+          ],
+          [
+            'Improved',
+            "Refreshed 52 canonical gallery captures from the real built application on a hidden desktop. 68 scenes were attempted and 16 skipped, each with a recorded reason; three of those skips are the harness's privacy check refusing to photograph an anchored editor that had rendered a local path. The docs gallery holds 131 images, so 79 keep their earlier capture dates and the receipt says so rather than implying the whole gallery was refreshed",
+            'ec1847a4b25925d58cf05ae32f7ffd77efec4535',
+          ],
+          [
+            'Fixed',
+            'Stopped shipping in-app documentation for an interface that was deleted, and added a guard that fails when a feature article names a repository path that is not in the tree. 166 of 166 article checks pass; the guard was proven by reintroducing a reference to the removed md3-shell.tsx, observing it go red on that exact article, and observing green after restoring it',
+            '1d3d5928cba15bcb30648f442c711308abe018b9',
+          ],
+          [
+            'Added',
+            'Recorded the verified pre-cleanup archive contract: the whole repository, including every linked worktree, is archived and integrity-checked before any cleanup pass removes a branch or a checkout. The archive respects .gitignore so build output and dependency trees never bloat it',
+            'd2999c62ff68fe6bb172069d321f5b38f5598569',
+          ],
+          [
+            'Fixed',
+            'The release notes and pull request review dialogs no longer paint past the edge of a narrow window. Each declared a min-width floor (550px and 500px) that a smaller viewport cannot honour, so instead of shrinking they overflowed; both now request a preferred width and accept less. Release notes also stacks its two columns and insets its header clear of the decorative artwork below 680px',
+            '06c8419b463bcc101d475b2cd9eca71bd9d085b1',
+          ],
+          [
+            'Improved',
+            'Retired the overlay style contract whose eleven assertions demanded the styling that 427029d9bc deliberately reverted; it had been red and unseen since, because no workflow runs tests. Ten line-anchored markers in the frozen-shell guard now go red if that styling reappears, naming the revert commit. The AGENTS.md conformance table was re-measured: 96 Octicons against 543 Material Symbols, 5 native selects, 13 raw buttons, 992 raw border radii, 965 raw font sizes, and 4,597 of 9,505 var() uses still on legacy tokens',
+            'e349a6143e7a1a9626431ddb9240cb4458bc06e2',
+          ],
+          [
+            'Added',
+            'Cloning a repository can now check every branch out as its own linked worktree, all of them inside a .worktrees container in the repository so nothing extra lands beside your other clones; existing repositories can do the same from the repository context menu or the worktree foldout. A selection dialog lists every branch that is not checked out yet with all of them selected by default, searchable with the shared fuzzy/substring/regex filter and its regex builder, and reports per-branch progress and failures without stopping the rest.',
+          ],
+          [
+            'Improved',
+            'Converted the remaining plain HTML controls across the renderer to the shared Material primitives - lock-creation menu items, seven-zip and Jira selects, notification/banner/changelog buttons, clone filters and checkboxes now all render through Button/TextBox/Select/Checkbox with every prop and aria attribute preserved; Button gained ariaKeyshortcuts, tab-style toggles got cascade-safe padding/hover overrides, and the sha-hint Copy button kept its deliberate token styling',
+            '0d04ec40f5989606f7e745c6c0f25f71a9172017',
+          ],
+          [
+            'Fixed',
+            'Personal vocabulary settings now render the local file chooser and the Clear and restore original wording action through the shared Material button primitive while keeping the semantic file input, responsive wrapping, and clear behavior',
+            '9e388ba21523db559199d4d0b90ed530b8331b4c',
+          ],
+          [
+            'Added',
+            'Added a bounded wait-recovery ladder to the existing anchored password/OTP lock prompt. It appears only after a real throttled credential attempt, uses expiring single-use main-process challenges, starts at arithmetic sums in School mode, and clears only the retry deadline; credential entry, failure escalation, and authentication remain separate.',
+          ],
+          [
+            'Improved',
+            'Replaced the obsolete MD3-shell screenshot inventory with a current frozen-renderer ledger mapped to 26 real source boundaries. Every current row remains explicitly pending until packaged Windows evidence is captured; historical gallery frames are not treated as current proof.',
+          ],
+          [
+            'Added',
+            'Ollama chat sessions now persist bounded system prompts and generation controls, retry the most recent user turn without rewriting history, copy a redacted text-only export, and fail closed on attachments unless the installed model declares vision capability. The model manager also records bounded batch-pull queue, recovery-state, and allowlisted harness-profile foundations; exhaustive catalog, hardware-fit, launcher, localization, and built-artifact proof remain pending.',
+          ],
+          [
+            'Added',
+            'The existing Agents sidebar now carries a typed, main-process-only Status Hub projection with repository registration, heartbeat/evidence records, stable-URL support, authenticated inbox polling, and an explicit local-only fallback when endpoint or credential configuration is unavailable. Discord remains Hub-owned read-plus-reply only; focused tests and built-artifact evidence remain pending in the ultra-speed lane.',
+          ],
+          [
+            'Added',
+            'Established the local file-converter documentation and typed English/Cantonese foundation for source selection, bundled-adapter discovery, loss review, local-only privacy, queue states, progress, and status. Runtime conversion, adapter packaging, tests, and built-artifact evidence remain pending in the ultra-speed lane.',
+          ],
+          [
+            'Fixed',
+            "Appearance locks now behaviorally disable their target across pointer, keyboard, direct callback, context-menu, palette, and search-teleport activation routes; locked controls expose aria-disabled semantics, open the anchored unlock prompt, restore focus after cancellation or failed verification, and require each lock's own credential. Verification remains pending in the ultra-speed lane.",
+          ],
+          [
+            'Added',
+            'Help/About now opens the local Support Tickets recovery desk through its real help entry point, and Authenticator settings exposes the existing Git-backed metadata history through the established styled control with honest reconciliation when restored entries have no credential-vault record.',
+          ],
+          [
+            'Fixed',
+            'School mode now propagates immediately to the main shell, Settings, and the internal browser. Language, playfulness, personal-vocabulary, and scheduled-language controls disappear while it is active; renamed unlock labels stay searchable without leaking fallback copy. Tests, builds, captures, and reviews remain pending in the ultra-speed lane.',
+          ],
+          [
+            'Added',
+            'Added five independently toggleable, off-by-default attention accommodations: Focus, Low stimulation, Time awareness, One thing at a time, and Momentum. The settings, search, command palette, local persistence, accessible runtime status, and inactivity defer path are documented; implementation-lane tests and built-artifact evidence remain pending.',
+          ],
+          [
+            'Added',
+            'Appearance-value locks now use the shared password-or-authenticator setup flow, including the saved unlock duration and lock-on-launch choice. Renderer startup installs the authenticator adapter against the existing entry document and credential-vault boundary, while metadata-only settings updates keep newly registered factors available without a restart; no authenticator secret enters the lock record or history. Verification remains pending in the ultra-speed lane.',
+          ],
+          [
+            'Added',
+            'The repository root now has a silent, idempotent download-dependencies.bat path that resolves the pinned Node.js archive from a checked-in SHA-256 manifest, reuses the vendored Yarn entrypoint, prepares the Visual Studio C++ workload, and installs the frozen project dependency tree. Build and installer entrypoints call the same preparation path; implementation is present but cold-cache, warm-cache, build, packaging, and capture verification remain pending.',
+          ],
+          [
+            'Fixed',
+            'Root Windows preparation, build, and installer entrypoints now request one administrator relaunch only for interactive runs, keep all three silent switches prompt-free, reject zero-byte fresh installer artifacts, and report the unsigned Squirrel receipts without changing persistent security policy; cold-cache, warm-cache, build, packaging, and capture verification remain pending.',
+          ],
+          [
+            'Fixed',
+            'Restored the Sound preferences narrator controls: separate runtime English and Cantonese voice pickers, honest local/network/missing/no-voice status, late voice-list refresh, and bounded speaking-rate and pitch sliders; focused and built-artifact verification remain pending in the ultra-speed lane.',
+          ],
+          [
+            'Fixed',
+            'Publish repository now keeps the chosen GitHub.com account active for organization lookup and publication, preserves personal-account fallback when organization discovery fails, and offers a bounded localized retry plus scoped re-authentication path; focused tests and built-artifact evidence remain pending in the ultra-speed lane.',
+          ],
+          [
+            'Fixed',
+            'MD3 menu filters now use the shared bounded RE2 adapter for user-authored patterns, menu shortcut hints expose matching ARIA key metadata without double announcement, and long bilingual labels wrap inside the existing overlay bounds; verification remains deferred in the ultra-speed lane.',
+          ],
+          [
+            'Fixed',
+            'CI compile compatibility now uses explicit ArrayBufferLike Buffer types for bounded stderr capture, keeps one fail-closed quarantine coverage declaration, and narrows process outcomes before reading rejection diagnostics; tests, lint, type-checking, builds, captures, and reviews were intentionally not run in the ultra-speed lane.',
+          ],
+          [
+            'Fixed',
+            'The universal-feature completeness record now names all 62 canonical rows explicitly across seven evidence dimensions. Present source, documentation, and focused-test candidates are separated from pending localization, persistence, built-artifact interaction, and real-capture proof; the completion Chut stays red until those records are verified. This documentation and contract update intentionally ran no tests, reviews, audits, builds, packaging, or captures.',
+          ],
+          [
+            'Added',
+            'Added a dated README notice summarizing the latest shared contributor guidance: a hand-written completeness inventory, evidence links across implementation and documentation, and explicit separation of source/release receipts from runtime or visual verification. The notice remains visible through 2026-08-26 and may be removed afterwards; this is documentation-only and adds no application or verification evidence.',
+          ],
+          [
+            'Added',
+            'Registered the hand-written universal-feature completeness inventory contract. This records coverage metadata only and does not claim that the listed features are implemented or verified; the ultra-speed pass intentionally skipped tests, reviews, and captures.',
+          ],
+          [
+            'Improved',
+            'Markdown and plain-text changelog exports now preserve each recorded full commit SHA with its project forge URL, and explicitly report entries whose source changelog has no commit reference; focused assertions were updated but not run in the ultra-speed pass.',
+          ],
+          [
+            'Fixed',
+            'Merge all worktrees now relocates a clean default-branch checkout automatically instead of stopping when another worktree owns it, and the explicit Force Mat Day option preserves recoverable dirty work before integration',
+            '9367475ded052f348decb33b77993f49323645c7',
+          ],
+          [
+            'Fixed',
+            'Force Mat Day now pushes the default branch before removing any merged branch or linked worktree, so cleanup cannot run ahead of publication',
+            '4929ccfe248dd56567623345e5f92a4117f22747',
+          ],
+          [
+            'Fixed',
+            'Closing Desktop Material no longer closes an application launched by a Windows .NET Build and Run profile; the final dotnet run process is independent while restore and build stages remain supervised',
+            '9c7781aea90ab2799716202a45c6d077fd072a5d',
+          ],
+          [
+            'Fixed',
+            'The MD3 application-header account avatar now has focused regression coverage for shared account-switcher routing, separate header and rail expanded state, and focus-return anchoring - #195',
+          ],
           [
             'Added',
             'Desktop Material leaves beta. Releases are plain numbered versions on the production channel, starting at 4.0.0, with no -beta or -material suffix',
@@ -207,6 +355,11 @@
             'Fixed',
             'Classic mode renders the same chrome as the new interface, differing by exactly one argument, so a change to the chrome reaches both',
             '5c71d509cbc283e20f26fd92b4b9cb1b2afaae94',
+          ],
+          [
+            'Fixed',
+            'A failing agent-session panel expectation no longer makes Node recursively serialize the jsdom document: nullable queries and DOM identity checks now report compact failures instead',
+            '418e56a592722b72ee9f8ff4f6eb1dec2f8469bb',
           ],
         ],
       },

@@ -5,23 +5,23 @@ import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { Ref } from '../lib/ref'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { Repository } from '../../models/repository'
-import { Checkbox, CheckboxValue } from '../lib/checkbox'
+import { Button } from '../lib/button'
+import { Md3DestructiveGateBody } from '../md3/md3-destructive-gate'
 
 interface IDeleteWorktreeDialogProps {
   readonly repository: Repository
   readonly worktreePath: string
-  readonly askForConfirmationOnWorktreeRemoval: boolean
   readonly onDeleteWorktree: (
     repository: Repository,
     worktreePath: string
   ) => Promise<void>
-  readonly onConfirmWorktreeRemovalChanged: (value: boolean) => void
   readonly onDismissed: () => void
 }
 
 interface IDeleteWorktreeDialogState {
   readonly isDeleting: boolean
-  readonly confirmWorktreeRemoval: boolean
+  readonly authorized: boolean
+  readonly error: string | null
 }
 
 export class DeleteWorktreeDialog extends React.Component<
@@ -33,7 +33,8 @@ export class DeleteWorktreeDialog extends React.Component<
 
     this.state = {
       isDeleting: false,
-      confirmWorktreeRemoval: props.askForConfirmationOnWorktreeRemoval,
+      authorized: false,
+      error: null,
     }
   }
 
@@ -56,41 +57,55 @@ export class DeleteWorktreeDialog extends React.Component<
           <p id="delete-worktree-confirmation">
             Are you sure you want to delete the worktree <Ref>{name}</Ref>?
           </p>
-          <Checkbox
-            label="Do not show this message again"
-            value={
-              this.state.confirmWorktreeRemoval
-                ? CheckboxValue.Off
-                : CheckboxValue.On
-            }
-            onChange={this.onConfirmWorktreeRemovalChanged}
+          <Md3DestructiveGateBody
+            actionId="delete-worktree"
+            summary={`Delete the linked worktree ${name}.`}
+            irreversible="The worktree directory and any uncommitted files in it cannot be recovered by this action."
+            targetKeyLabel={`the linked worktree ${name}`}
+            effectKeyLabel={`deleting the worktree directory ${name}`}
+            disabled={this.state.isDeleting}
+            onAuthorizationChanged={authorized => this.setState({ authorized })}
           />
+          {this.state.error !== null && (
+            <div role="alert">
+              <p>{this.state.error}</p>
+              <Button onClick={this.onRetry} disabled={this.state.isDeleting}>
+                Retry delete
+              </Button>
+            </div>
+          )}
         </DialogContent>
         <DialogFooter>
-          <OkCancelButtonGroup destructive={true} okButtonText="Delete" />
+          <OkCancelButtonGroup
+            destructive={true}
+            okButtonText="Delete"
+            okButtonDisabled={!this.state.authorized || this.state.isDeleting}
+          />
         </DialogFooter>
       </Dialog>
     )
   }
 
-  private onConfirmWorktreeRemovalChanged = (
-    event: React.FormEvent<HTMLInputElement>
-  ) => {
-    const value = !event.currentTarget.checked
-    this.setState({ confirmWorktreeRemoval: value })
+  private onSubmit = async () => {
+    if (!this.state.authorized || this.state.isDeleting) {
+      return
+    }
+    this.setState({ isDeleting: true })
+    try {
+      await this.props.onDeleteWorktree(
+        this.props.repository,
+        this.props.worktreePath
+      )
+      this.props.onDismissed()
+    } catch (error) {
+      this.setState({
+        isDeleting: false,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
   }
 
-  private onSubmit = async () => {
-    this.setState({ isDeleting: true })
-
-    this.props.onConfirmWorktreeRemovalChanged(
-      this.state.confirmWorktreeRemoval
-    )
-
-    await this.props.onDeleteWorktree(
-      this.props.repository,
-      this.props.worktreePath
-    )
-    this.props.onDismissed()
+  private onRetry = () => {
+    void this.onSubmit()
   }
 }

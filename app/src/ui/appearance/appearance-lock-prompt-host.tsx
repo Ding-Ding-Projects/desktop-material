@@ -108,10 +108,10 @@ export class AppearanceLockPromptHost extends React.Component<
   }
 
   public componentDidUpdate(
-    previousProps: IAppearanceLockPromptHostProps,
+    prevProps: IAppearanceLockPromptHostProps,
     previousState: IAppearanceLockPromptHostState
   ) {
-    void previousProps
+    void prevProps
     if (
       this.state.creation !== null &&
       this.state.creationMenu &&

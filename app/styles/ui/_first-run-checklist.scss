@@ -40,7 +40,7 @@ dialog.first-run-checklist {
     flex: none;
     width: 52px;
     height: 52px;
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
     background: var(--md-sys-color-primary);
     color: var(--md-sys-color-on-primary);
 
@@ -87,7 +87,7 @@ dialog.first-run-checklist {
     width: 100%;
     padding: 12px 14px;
     border: 0;
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
     background: var(--md-sys-color-surface-container);
     color: var(--md-sys-color-on-surface);
     font-family: inherit;
@@ -148,7 +148,7 @@ dialog.first-run-checklist {
     flex: none;
     height: 120px;
     border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
     background: repeating-linear-gradient(
       45deg,
       var(--md-sys-color-surface-container),
@@ -160,7 +160,7 @@ dialog.first-run-checklist {
 
   .first-run-checklist-preview-badge {
     padding: 4px 10px;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: var(--md-sys-color-surface-container-lowest);
     color: var(--md-sys-color-on-surface-variant);
     font-family: var(--font-family-monospace);
@@ -177,7 +177,7 @@ dialog.first-run-checklist {
   .first-run-checklist-start {
     height: 40px;
     border: 0;
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     font-family: inherit;
     font-size: 13.5px;
     font-weight: var(--font-weight-semibold);

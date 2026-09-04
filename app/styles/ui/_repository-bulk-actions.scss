@@ -113,7 +113,7 @@
 
   .repository-bulk-progress-track {
     background: var(--md-sys-color-surface-container-highest);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     height: 8px;
     overflow: hidden;
 
@@ -162,7 +162,7 @@
   }
 
   .repository-bulk-status {
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     display: inline-flex;
     padding: 2px 8px;
     white-space: nowrap;

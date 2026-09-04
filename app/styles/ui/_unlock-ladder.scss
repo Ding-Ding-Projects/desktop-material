@@ -49,7 +49,7 @@
   padding: 12px;
   background: var(--md-sys-color-surface-container-high);
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
 }
 
 .unlock-ladder-radio-group .radio-button-component:focus-within,
@@ -83,7 +83,7 @@
   color: inherit;
   background: var(--md-sys-color-surface);
   border: 1px solid var(--md-sys-color-outline);
-  border-radius: 8px;
+  border-radius: var(--md-sys-shape-corner-small);
 }
 
 .unlock-ladder-sum-input {
@@ -140,7 +140,7 @@
 @media (max-width: 560px) {
   .unlock-ladder {
     padding: 16px;
-    border-radius: 16px;
+    border-radius: var(--md-sys-shape-corner-large);
   }
 
   .unlock-ladder-radio-group,

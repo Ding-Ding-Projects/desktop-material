@@ -35,6 +35,7 @@ import { shallowEquals } from '../equality'
 type AddRepositoryOptions = {
   missing?: boolean
   accountKey?: string | null
+  mainWorktreePath?: string
 }
 
 /** The store for local repositories. */
@@ -170,7 +171,8 @@ export class RepositoriesStore extends TypedBaseStore<
       repo.buildRunPreferences,
       repo.groupName ?? null,
       repo.defaultBranch ?? null,
-      repo.customEditorOverride ?? null
+      repo.customEditorOverride ?? null,
+      repo.mainWorktreePath
     )
   }
 
@@ -275,6 +277,7 @@ export class RepositoriesStore extends TypedBaseStore<
           alias: null,
           gitDir,
           accountKey: opts?.accountKey ?? null,
+          mainWorktreePath: opts?.mainWorktreePath,
         }
         const id = await this.db.repositories.add(dbRepo)
         return this.toRepository({ id, ...dbRepo })
@@ -318,7 +321,8 @@ export class RepositoriesStore extends TypedBaseStore<
       repository.buildRunPreferences,
       repository.groupName,
       repository.defaultBranch,
-      repository.customEditorOverride
+      repository.customEditorOverride,
+      repository.mainWorktreePath
     )
   }
 
@@ -345,7 +349,36 @@ export class RepositoriesStore extends TypedBaseStore<
       repository.buildRunPreferences,
       repository.groupName,
       repository.defaultBranch,
-      repository.customEditorOverride
+      repository.customEditorOverride,
+      repository.mainWorktreePath
+    )
+  }
+
+  /** Update the recorded main worktree recovery hint. */
+  public async updateRepositoryMainWorktreePath(
+    repository: Repository,
+    mainWorktreePath: string
+  ): Promise<Repository> {
+    this.assertPersistedRepository(repository)
+    await this.db.repositories.update(repository.id, { mainWorktreePath })
+
+    this.emitUpdatedRepositories()
+
+    return new Repository(
+      repository.path,
+      repository.id,
+      repository.gitHubRepository,
+      repository.missing,
+      repository.alias,
+      repository.workflowPreferences,
+      repository.isTutorialRepository,
+      repository.gitDir,
+      repository.accountKey,
+      repository.buildRunPreferences,
+      repository.groupName,
+      repository.defaultBranch,
+      repository.customEditorOverride,
+      mainWorktreePath
     )
   }
 
@@ -404,7 +437,8 @@ export class RepositoriesStore extends TypedBaseStore<
       repository.buildRunPreferences,
       repository.groupName,
       defaultBranch,
-      repository.customEditorOverride
+      repository.customEditorOverride,
+      repository.mainWorktreePath
     )
   }
 
@@ -480,7 +514,8 @@ export class RepositoriesStore extends TypedBaseStore<
       repository.buildRunPreferences,
       repository.groupName,
       repository.defaultBranch,
-      repository.customEditorOverride
+      repository.customEditorOverride,
+      repository.mainWorktreePath
     )
   }
 
@@ -489,6 +524,7 @@ export class RepositoriesStore extends TypedBaseStore<
     repository: Repository,
     path: string,
     gitDir: string | undefined,
+    mainWorktreePath: string | undefined = undefined,
     missing: boolean = false
   ): Promise<Repository> {
     this.assertPersistedRepository(repository)
@@ -496,6 +532,7 @@ export class RepositoriesStore extends TypedBaseStore<
       missing,
       path,
       gitDir,
+      mainWorktreePath,
     })
 
     this.emitUpdatedRepositories()
@@ -513,7 +550,8 @@ export class RepositoriesStore extends TypedBaseStore<
       repository.buildRunPreferences,
       repository.groupName,
       repository.defaultBranch,
-      repository.customEditorOverride
+      repository.customEditorOverride,
+      mainWorktreePath
     )
   }
 
@@ -527,12 +565,16 @@ export class RepositoriesStore extends TypedBaseStore<
    * @param repository  The repository to switch
    * @param worktreePath The path of the worktree to switch to
    * @param gitDir       The git directory for the target worktree
+   * @param mainWorktreePath The path of the repository's main worktree, which
+   *                         remains available when linked worktree metadata is
+   *                         removed
    */
   public async switchWorktree(
     repository: Repository,
     worktreePath: string,
     missing = false,
-    gitDir: string | undefined = repository.gitDir
+    gitDir: string | undefined = repository.gitDir,
+    mainWorktreePath: string | undefined = repository.mainWorktreePath
   ): Promise<{ repository: Repository; existingRepository: boolean }> {
     this.assertPersistedRepository(repository)
     const existing = await this.db.repositories.get({ path: worktreePath })
@@ -548,6 +590,7 @@ export class RepositoriesStore extends TypedBaseStore<
       path: worktreePath,
       missing,
       gitDir,
+      mainWorktreePath,
     })
 
     this.emitUpdatedRepositories()
@@ -566,7 +609,8 @@ export class RepositoriesStore extends TypedBaseStore<
         repository.buildRunPreferences,
         repository.groupName,
         repository.defaultBranch,
-        repository.customEditorOverride
+        repository.customEditorOverride,
+        mainWorktreePath
       ),
       existingRepository: false,
     }
@@ -722,7 +766,8 @@ export class RepositoriesStore extends TypedBaseStore<
       repo.buildRunPreferences,
       repo.groupName,
       repo.defaultBranch,
-      repo.customEditorOverride
+      repo.customEditorOverride,
+      repo.mainWorktreePath
     )
 
     assertIsRepositoryWithGitHubRepository(updatedRepo)
@@ -821,44 +866,37 @@ export class RepositoriesStore extends TypedBaseStore<
     protectedBranches: ReadonlyArray<IAPIBranch>
   ): Promise<void> {
     const dbID = gitHubRepository.dbID
+    const branchRecords = protectedBranches.map<IDatabaseProtectedBranch>(
+      b => ({ repoId: dbID, name: b.name })
+    )
 
     await this.db.transaction('rw', this.db.protectedBranches, async () => {
-      // This update flow is organized into two stages:
-      //
-      // - update the in-memory cache
-      // - update the underlying database state
-      //
-      // This should ensure any stale values are not being used, and avoids
-      // the need to query the database while the results are in memory.
-
-      const prefix = getKeyPrefix(dbID)
-
-      for (const key of this.protectionEnabledForBranchCache.keys()) {
-        // invalidate any cached entries belonging to this repository
-        if (key.startsWith(prefix)) {
-          this.protectionEnabledForBranchCache.delete(key)
-        }
-      }
-
-      const branchRecords = protectedBranches.map<IDatabaseProtectedBranch>(
-        b => ({ repoId: dbID, name: b.name })
-      )
-
-      // update cached values to avoid database lookup
-      for (const item of branchRecords) {
-        const key = getKey(dbID, item.name)
-        this.protectionEnabledForBranchCache.set(key, true)
-      }
-
       await this.db.protectedBranches.where('repoId').equals(dbID).delete()
-
-      const protectionsFound = branchRecords.length > 0
-      this.branchProtectionSettingsFoundCache.set(dbID, protectionsFound)
 
       if (branchRecords.length > 0) {
         await this.db.protectedBranches.bulkAdd(branchRecords)
       }
     })
+
+    // Swap the in-memory view only after the transaction commits. If the
+    // delete or bulkAdd above rejects, Dexie rolls the database back and the
+    // previous cache remains valid as well.
+    const prefix = getKeyPrefix(dbID)
+    for (const key of this.protectionEnabledForBranchCache.keys()) {
+      if (key.startsWith(prefix)) {
+        this.protectionEnabledForBranchCache.delete(key)
+      }
+    }
+
+    for (const item of branchRecords) {
+      const key = getKey(dbID, item.name)
+      this.protectionEnabledForBranchCache.set(key, true)
+    }
+
+    this.branchProtectionSettingsFoundCache.set(
+      dbID,
+      branchRecords.length > 0
+    )
 
     // this update doesn't affect the list (or its items) we emit from this store, so no need to `emitUpdatedRepositories`
   }

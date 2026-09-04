@@ -518,7 +518,9 @@ export class OllamaChatWorkspace extends React.Component<
 
   private supportsAttachments(): boolean {
     const selected = this.effectiveModel()
-    if (selected === null) return false
+    if (selected === null) {
+      return false
+    }
     // The native client surface intentionally exposes only installed model names;
     // unknown capability metadata must fail closed for image attachment.
     return supportsOllamaVision(this.props.modelCapabilities?.[selected])
@@ -543,7 +545,9 @@ export class OllamaChatWorkspace extends React.Component<
 
   private copyRedactedExport = () => {
     const session = this.state.session
-    if (session === null) return
+    if (session === null) {
+      return
+    }
     const transcript = session.messages.map(message => ({
       role: message.role,
       content: message.content,
@@ -573,6 +577,18 @@ export class OllamaChatWorkspace extends React.Component<
     } catch {
       this.setState({ error: this.props.strings.chatLoadError })
     }
+  }
+
+  private setTemperature = (value: string): void => {
+    void this.setParameter('temperature', value)
+  }
+
+  private setTopP = (value: string): void => {
+    void this.setParameter('topP', value)
+  }
+
+  private setMaxTokens = (value: string): void => {
+    void this.setParameter('numPredict', value)
   }
 
   private setParameter = async (
@@ -1160,21 +1176,17 @@ export class OllamaChatWorkspace extends React.Component<
           <TextBox
             label={strings.chatTemperature}
             value={String(session.parameters.temperature)}
-            onValueChanged={value =>
-              void this.setParameter('temperature', value)
-            }
+            onValueChanged={this.setTemperature}
           />
           <TextBox
             label={strings.chatTopP}
             value={String(session.parameters.topP)}
-            onValueChanged={value => void this.setParameter('topP', value)}
+            onValueChanged={this.setTopP}
           />
           <TextBox
             label={strings.chatMaxTokens}
             value={String(session.parameters.numPredict)}
-            onValueChanged={value =>
-              void this.setParameter('numPredict', value)
-            }
+            onValueChanged={this.setMaxTokens}
           />
         </div>
         <div className="ollama-chat-appearance-fields">

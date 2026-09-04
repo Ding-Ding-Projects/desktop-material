@@ -2,7 +2,11 @@ import assert from 'node:assert'
 import { describe, it } from 'node:test'
 import '../helpers/ui/setup'
 import { CloneRepositoryTab } from '../../src/models/clone-repository-tab'
-import { isMultiRepositoryCloneSelection } from '../../src/ui/clone-repository/clone-repository'
+import {
+  getCloneDestinationError,
+  isMultiRepositoryCloneSelection,
+} from '../../src/ui/clone-repository/clone-repository'
+import { homedir } from 'os'
 
 const urls = (...values: ReadonlyArray<string>) => new Set(values)
 
@@ -51,5 +55,28 @@ describe('isMultiRepositoryCloneSelection', () => {
       ),
       false
     )
+  })
+})
+
+describe('clone destination validation', () => {
+  it('returns actionable inline recovery copy for unsafe repository names', () => {
+    const error = getCloneDestinationError('/base/repository', {
+      hostname: 'example.test',
+      owner: 'owner',
+      name: 'CON',
+    })
+    assert(error instanceof Error)
+    assert.equal(
+      error.message,
+      'The repository name cannot be used as a folder name.'
+    )
+  })
+
+  it('returns actionable inline recovery copy for sensitive destinations', () => {
+    const destination = `${homedir()}\\.ssh\\clone`
+    const error = getCloneDestinationError(destination, null)
+    assert(error instanceof Error)
+    assert.match(error.message, /sensitive system location/i)
+    assert.match(error.message, /Choose another folder and try again\./i)
   })
 })

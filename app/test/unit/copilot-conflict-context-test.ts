@@ -4,6 +4,7 @@ import assert from 'node:assert'
 import {
   extractConflictHunks,
   formatConflictContextForPrompt,
+  getHunkSkipReason,
   ICopilotConflictContext,
   IConflictResolutionContext,
   IConflictContextCommit,
@@ -48,6 +49,54 @@ function makeContextPr(
 }
 
 describe('copilot-conflict-context', () => {
+  it('reports stable reasons for oversized and long-line conflicts', () => {
+    const hunk = {
+      oursContent: 'ok',
+      theirsContent: 'ok',
+      baseContent: null,
+      contextBefore: '',
+      contextAfter: '',
+    }
+    assert.equal(getHunkSkipReason([hunk]), null)
+    assert.match(
+      getHunkSkipReason([{ ...hunk, oursContent: 'x'.repeat(5001) }]) ?? '',
+      /lines too long/
+    )
+    // Many short lines rather than one enormous one. A single 262,145-
+    // character line is also a line over the 5,000-character limit, so it
+    // returns the long-line reason and this branch is never reached - the
+    // assertion passed on a reason it was not testing.
+    assert.match(
+      getHunkSkipReason([
+        {
+          ...hunk,
+          oursContent: `${'x'.repeat(100)}
+`.repeat(3000),
+        },
+      ]) ?? '',
+      /region too large/
+    )
+  })
+
+  it('formats modify/delete conflicts without inventing file contents', () => {
+    const prompt = formatConflictContextForPrompt(
+      toResolutionContext({
+        ourLabel: 'current',
+        theirLabel: 'incoming',
+        files: [
+          {
+            path: 'removed.txt',
+            hunks: [],
+            deleteConflict: { deletedSide: 'ours' },
+          },
+        ],
+      })
+    )
+    assert.match(prompt, /modify\/delete conflict/)
+    assert.match(prompt, /action.*keep/)
+    assert.match(prompt, /action.*delete/)
+    assert.ok(!prompt.includes('<<<<<<<'))
+  })
   describe('extractConflictHunks', () => {
     it('handles CRLF line endings (Windows)', () => {
       const content = [

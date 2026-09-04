@@ -6,6 +6,7 @@ import {
   IConflictResolutionContext,
   IFileConflictContext,
 } from './copilot-conflict-context'
+import { createHash } from 'crypto'
 
 // ---------------------------------------------------------------------------
 // Types & interfaces
@@ -13,12 +14,30 @@ import {
 
 /** Resolution suggestion for a single conflicted file. */
 export interface IFileResolution {
+  /** Explicitly distinguishes content replacement from modify/delete action. */
+  readonly kind?: 'content' | 'modify-delete'
   /** Repository-relative file path that was resolved. */
   readonly path: string
   /** The fully resolved file content (all conflict markers removed). */
   readonly resolvedContent: string
   /** Human-readable explanation of how and why conflicts were resolved this way. */
   readonly reasoning: string
+  /**
+   * Model recommendation for a modify/delete conflict. Both lanes named this
+   * concept; `resolutionAction` is the one the guarded write path reads.
+   */
+  readonly resolutionAction?: 'keep' | 'delete'
+  /**
+   * Identity of the conflicted file that Copilot reviewed. The write path
+   * uses this to avoid replacing a manual or external resolution made after
+   * generation. Older callers may omit it and are rejected by the guarded
+   * write path.
+   */
+  readonly conflictGeneration?: {
+    readonly contentHash: string
+    readonly stageFingerprint: string
+    readonly conflictType: 'text'
+  }
 }
 
 /** Resolution for a single conflict hunk as returned by the model. */
@@ -29,12 +48,24 @@ export interface IHunkResolution {
 
 /** Per-file resolution from the model's raw response (before reassembly). */
 export interface IRawFileResolution {
+  /** Explicitly distinguishes content replacement from modify/delete action. */
+  readonly kind?: 'content' | 'modify-delete'
   /** Repository-relative file path. */
   readonly path: string
   /** Resolved content for each conflict hunk, in order. */
   readonly hunks: ReadonlyArray<IHunkResolution>
   /** Human-readable explanation of the resolution strategy for this file. */
   readonly reasoning: string
+  /** Model recommendation for a modify/delete conflict, older spelling. */
+  readonly action?: 'keep' | 'delete'
+  /** Model recommendation for a modify/delete conflict. */
+  readonly resolutionAction?: 'keep' | 'delete'
+}
+
+/** A file omitted from automatic resolution with a stable user-facing reason. */
+export interface ICopilotSkippedFile {
+  readonly path: string
+  readonly reason: string
 }
 
 /** A reference the model considered material to its decision. */
@@ -160,6 +191,17 @@ export const SinglePromptFileLimit = 20
 /** Maximum number of chunks to resolve concurrently. */
 export const MaxConcurrentChunks = 5
 
+export const MaxConflictResolutionResponseBytes = 2 * 1024 * 1024
+export const MaxConflictResolutionFiles = 100
+export const MaxConflictResolutionHunksPerFile = 100
+export const MaxConflictResolutionPathChars = 4096
+export const MaxConflictResolutionResolvedContentBytes = 1 * 1024 * 1024
+export const MaxConflictResolutionReasoningBytes = 16 * 1024
+export const MaxConflictResolutionSummaryBytes = 32 * 1024
+export const MaxConflictResolutionReferences = 100
+export const MaxConflictResolutionReferenceIdChars = 200
+export const MaxReassembledConflictResolutionBytes = 4 * 1024 * 1024
+
 /**
  * System prompt for the Copilot conflict resolution session.
  */
@@ -172,13 +214,15 @@ You will receive:
 - Labels for both sides (branch names or commit refs)
 - Conflict markers from each file (ours, theirs, optionally base)
 - Context lines surrounding each conflict
+- Modify/delete conflicts where one side deleted a file and the other modified it
 - When available: recent commit messages and/or PR title/description for intent
 
 Your job:
 1. Understand the INTENT behind each side's changes
 2. Resolve each conflict by producing the correct merged content for each conflict hunk
-3. Explain your reasoning per file — terse but specific enough to verify the decision
-4. Produce a brief markdown summary orienting the user to the conflict and resolution
+3. For modify/delete conflicts, recommend whether to keep or delete the file
+4. Explain your reasoning per file - terse but specific enough to verify the decision
+5. Produce a brief markdown summary orienting the user to the conflict and resolution
 
 Resolution guidelines:
 - Make MINIMAL changes — do not refactor, reformat, or alter code outside conflicted regions
@@ -204,13 +248,21 @@ Response format:
         { "resolvedContent": "merged content that replaces conflict 2" }
       ],
       "reasoning": "What each side changed in this file, what you kept, and what you dropped or overrode."
+    },
+    {
+      "path": "deleted-or-modified/file.ts",
+      "action": "keep",
+      "hunks": [],
+      "reasoning": "Keep the modified file because the deletion was part of an incomplete refactor."
     }
   ]
 }
 
 Field rules:
 
-hunks: An ordered array with one entry per conflict in the file, matching the "Conflict 1 of N", "Conflict 2 of N" order from the input. Each entry's resolvedContent is ONLY the merged content that replaces that specific conflict marker block (the region between <<<<<<< and >>>>>>>). Do NOT include surrounding non-conflicted code — the application splices each resolution into the original file automatically. If the resolution is to accept one side entirely, return that side's content verbatim. For an intentional deletion, use an empty string.
+hunks: An ordered array with one entry per conflict in the file, matching the "Conflict 1 of N", "Conflict 2 of N" order from the input. Each entry's resolvedContent is ONLY the merged content that replaces that specific conflict marker block (the region between <<<<<<< and >>>>>>>). Do NOT include surrounding non-conflicted code - the application splices each resolution into the original file automatically. If the resolution is to accept one side entirely, return that side's content verbatim. For an intentional deletion, use an empty string. For modify/delete conflicts, hunks must be empty.
+
+action: Only for modify/delete conflicts. Set to "keep" to preserve the modified file, or "delete" to accept the deletion. Omit this field for regular text conflicts.
 
 reasoning: Terse, direct prose — enough detail to verify the decision, not a wall of text. State what each side did in this file, what you kept, and any trade-off. Typically 1-4 sentences depending on complexity.
 
@@ -247,6 +299,12 @@ function normalizeLLMPath(raw: string): string {
 export function parseCopilotConflictResolution(
   content: string
 ): ICopilotConflictResolutionResponse {
+  if (Buffer.byteLength(content, 'utf8') > MaxConflictResolutionResponseBytes) {
+    throw new CopilotValidationError(
+      'Copilot returned a conflict resolution response larger than the supported limit'
+    )
+  }
+
   // Build a list of JSON candidates from the response, trying different
   // extraction strategies. Non-greedy handles the common single-block and
   // multi-block cases. Greedy handles triple backticks embedded inside JSON
@@ -312,12 +370,25 @@ export function parseCopilotConflictResolution(
     typeof rawSummary === 'string' && rawSummary.trim().length > 0
       ? rawSummary
       : null
+  if (
+    summary !== null &&
+    Buffer.byteLength(summary, 'utf8') > MaxConflictResolutionSummaryBytes
+  ) {
+    throw new CopilotValidationError(
+      'Copilot returned a conflict resolution summary larger than the supported limit'
+    )
+  }
 
   // Soft-fail references the same way. Drop any entry whose shape we don't
   // recognize; never throw — a curated context list is a polish, not a
   // gate on shipping resolutions.
   const references: Array<ICopilotConflictReference> = []
   if (Array.isArray(rawReferences)) {
+    if (rawReferences.length > MaxConflictResolutionReferences) {
+      throw new CopilotValidationError(
+        'Copilot returned too many conflict resolution references'
+      )
+    }
     for (const entry of rawReferences) {
       if (!isPlainObject(entry)) {
         continue
@@ -330,6 +401,11 @@ export function parseCopilotConflictResolution(
         continue
       }
       const trimmed = id.trim().replace(/^#/, '')
+      if (trimmed.length > MaxConflictResolutionReferenceIdChars) {
+        throw new CopilotValidationError(
+          'Copilot returned a conflict resolution reference that is too long'
+        )
+      }
       if (type === 'pullRequest' && !/^\d{1,9}$/.test(trimmed)) {
         continue
       }
@@ -342,6 +418,12 @@ export function parseCopilotConflictResolution(
 
   const validated: Array<IRawFileResolution> = []
 
+  if (resolutions.length > MaxConflictResolutionFiles) {
+    throw new CopilotValidationError(
+      'Copilot returned too many conflict resolutions'
+    )
+  }
+
   for (let i = 0; i < resolutions.length; i++) {
     const entry: unknown = resolutions[i]
 
@@ -352,12 +434,43 @@ export function parseCopilotConflictResolution(
     }
 
     const obj = entry as Record<string, unknown>
-    const { path, hunks: rawHunks, reasoning } = obj
+    const {
+      path,
+      hunks: rawHunks,
+      reasoning,
+      action: rawAction,
+      resolutionAction: rawResolutionAction,
+    } = obj
+    // The two lanes emitted different names for the same recommendation.
+    const resolutionAction = rawResolutionAction ?? rawAction
 
     if (typeof path !== 'string' || path.trim().length === 0) {
       throw new CopilotValidationError(
         `Copilot returned an invalid conflict resolution payload: "path" at index ${i} must be a non-empty string`
       )
+    }
+    if (path.length > MaxConflictResolutionPathChars) {
+      throw new CopilotValidationError(
+        `Copilot returned a conflict resolution path at index ${i} that is too long`
+      )
+    }
+
+    const action =
+      rawAction === 'keep' || rawAction === 'delete' ? rawAction : undefined
+    if (action !== undefined) {
+      if (typeof reasoning !== 'string' || reasoning.trim().length === 0) {
+        throw new CopilotValidationError(
+          `Copilot returned an invalid conflict resolution payload: "reasoning" at index ${i} must be a non-empty string`
+        )
+      }
+      validated.push({
+        path: normalizeLLMPath(path),
+        hunks: [],
+        reasoning,
+        action,
+        kind: 'modify-delete',
+      })
+      continue
     }
 
     if (!Array.isArray(rawHunks)) {
@@ -369,6 +482,12 @@ export function parseCopilotConflictResolution(
     if (rawHunks.length === 0) {
       throw new CopilotValidationError(
         `Copilot returned an invalid conflict resolution payload: "hunks" at index ${i} must not be empty`
+      )
+    }
+
+    if (rawHunks.length > MaxConflictResolutionHunksPerFile) {
+      throw new CopilotValidationError(
+        `Copilot returned too many conflict hunks for file "${path}"`
       )
     }
 
@@ -387,6 +506,14 @@ export function parseCopilotConflictResolution(
         )
       }
       const rc = hunkObj.resolvedContent
+      if (
+        Buffer.byteLength(rc, 'utf8') >
+        MaxConflictResolutionResolvedContentBytes
+      ) {
+        throw new CopilotValidationError(
+          `Copilot returned resolved content that is too large for file "${path}"`
+        )
+      }
       if (/^<{7}\s/m.test(rc) && /^={7}$/m.test(rc)) {
         throw new CopilotValidationError(
           `Copilot returned an invalid conflict resolution payload: hunk ${j} of file "${path}" still contains conflict markers`
@@ -400,11 +527,29 @@ export function parseCopilotConflictResolution(
         `Copilot returned an invalid conflict resolution payload: "reasoning" at index ${i} must be a non-empty string`
       )
     }
+    if (
+      Buffer.byteLength(reasoning, 'utf8') > MaxConflictResolutionReasoningBytes
+    ) {
+      throw new CopilotValidationError(
+        `Copilot returned reasoning that is too large for file "${path}"`
+      )
+    }
+    if (
+      resolutionAction !== undefined &&
+      resolutionAction !== 'keep' &&
+      resolutionAction !== 'delete'
+    ) {
+      throw new CopilotValidationError(
+        `Copilot returned an invalid resolution action for file "${path}"`
+      )
+    }
 
     validated.push({
       path: normalizeLLMPath(path),
       hunks: validatedHunks,
       reasoning,
+      kind: 'content',
+      ...(resolutionAction === undefined ? {} : { resolutionAction }),
     })
   }
 
@@ -453,6 +598,9 @@ export function validateResolutionPaths(
   }
 
   for (const resolution of resolutions) {
+    if (resolution.action !== undefined) {
+      continue
+    }
     const expectedCount = expectedHunkCounts.get(resolution.path) ?? 0
     if (resolution.hunks.length !== expectedCount) {
       throw new CopilotValidationError(
@@ -556,17 +704,61 @@ export function reassembleResolutions(
 
   return rawResolutions.map(raw => {
     const ctx = contextByPath.get(raw.path)
+    if (raw.action !== undefined && ctx?.deleteConflict === undefined) {
+      throw new CopilotValidationError(
+        `Cannot apply action for "${raw.path}": it is not a modify/delete conflict`
+      )
+    }
+    if (raw.action === undefined && ctx?.deleteConflict !== undefined) {
+      throw new CopilotValidationError(
+        `Cannot apply hunk resolution for "${raw.path}": modify/delete conflicts require an action`
+      )
+    }
+    if (raw.action !== undefined) {
+      return {
+        path: raw.path,
+        resolvedContent: '',
+        reasoning: raw.reasoning,
+        deleteConflictAction: raw.action,
+        kind: 'modify-delete',
+      }
+    }
+
     if (ctx?.rawContent === undefined) {
       throw new CopilotValidationError(
         `Cannot reassemble resolution for "${raw.path}": original file content is unavailable`
       )
     }
+    if (ctx.stageFingerprint === undefined || ctx.stageFingerprint === '') {
+      throw new CopilotValidationError(
+        `Cannot reassemble resolution for "${raw.path}": conflict stages were not captured`
+      )
+    }
 
     const resolvedContent = reassembleResolvedFile(ctx.rawContent, raw.hunks)
+    if (
+      Buffer.byteLength(resolvedContent, 'utf8') >
+      MaxReassembledConflictResolutionBytes
+    ) {
+      throw new CopilotValidationError(
+        `Cannot reassemble resolution for "${raw.path}": resolved content is too large`
+      )
+    }
     return {
       path: raw.path,
       resolvedContent,
       reasoning: raw.reasoning,
+      kind: 'content',
+      ...(raw.resolutionAction ?? raw.action) === undefined
+        ? {}
+        : { resolutionAction: raw.resolutionAction ?? raw.action },
+      conflictGeneration: {
+        contentHash: createHash('sha256')
+          .update(ctx.rawContent, 'utf8')
+          .digest('hex'),
+        stageFingerprint: ctx.stageFingerprint,
+        conflictType: 'text' as const,
+      },
     }
   })
 }

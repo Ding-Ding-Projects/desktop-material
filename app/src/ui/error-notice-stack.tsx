@@ -1,8 +1,7 @@
+import { MaterialSymbol } from './lib/material-symbol'
 import * as React from 'react'
 
 import { IErrorNotice, IErrorNoticeAction } from '../models/error-notice'
-import { Octicon } from './octicons'
-import * as octicons from './octicons/octicons.generated'
 import { TooltippedContent } from './lib/tooltipped-content'
 import { TooltipDirection } from './lib/tooltip'
 import { t } from '../lib/i18n'
@@ -110,7 +109,7 @@ class ErrorNoticeCard extends React.PureComponent<
         data-error-notice-id={notice.id}
       >
         <span className="error-notice-icon" aria-hidden="true">
-          <Octicon symbol={octicons.alert} />
+          <MaterialSymbol name="warning" />
         </span>
         <div className="error-notice-content">
           <h2>{notice.title}</h2>
@@ -239,7 +238,7 @@ class ErrorNoticeCard extends React.PureComponent<
               aria-label={`Dismiss ${notice.title}`}
               onClick={this.onDismiss}
             >
-              <Octicon symbol={octicons.x} />
+              <MaterialSymbol name="close" />
             </button>
           </TooltippedContent>
         </div>

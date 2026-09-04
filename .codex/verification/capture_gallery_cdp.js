@@ -4023,7 +4023,45 @@ async function captureSettingsTab(
     `document.querySelector('#preferences') !== null`,
     'settings dialog'
   )
-  await clickText(tabLabel, { within: '#preferences' })
+  // Settings is a browser-style tab strip now: only the tabs the profile has
+  // opened are present, so a section that is not open has no tab to click.
+  // Open it through the picker first, exactly as a user would.
+  const alreadyOpen = await evaluate(`(() => {
+    const scope = document.querySelector('#preferences')
+    if (!scope) return false
+    return [...scope.querySelectorAll('button, [role="button"], a')].some(
+      node => vt(node) === ${JSON.stringify(tabLabel)}
+    )
+  })()`)
+  if (!alreadyOpen) {
+    await evaluate(`(() => {
+      const dialog = document.querySelector('#preferences')
+      const open = [...(dialog?.querySelectorAll('button') ?? [])].find(b =>
+        /Open a Settings pages page in a new tab/i.test(
+          b.getAttribute('aria-label') ?? ''
+        )
+      )
+      if (!open) return false
+      open.click()
+      return true
+    })()`)
+    await sleep(250)
+    const picked = await evaluate(`(() => {
+      const items = [...document.querySelectorAll(
+        '.settings-tab-picker-item, .settings-tab-picker button'
+      )]
+      const target = items.find(n => vt(n) === ${JSON.stringify(tabLabel)})
+      if (!target) return false
+      target.click()
+      return true
+    })()`)
+    if (!picked) {
+      fail(`Unable to open the "${tabLabel}" settings page from the picker.`)
+    }
+    await sleep(250)
+  } else {
+    await clickText(tabLabel, { within: '#preferences' })
+  }
 
   const tabId = `preferences-tab-${tabLabel.toLowerCase().replace(/\s+/g, '-')}`
   const selectedTabReady = `(() => {
@@ -9351,12 +9389,12 @@ scene('merge-all', async () => {
       })
     }
   }
-  await click('.worktree-button')
+  await clickSelector('.worktree-button')
   await waitFor(
     `document.querySelector('.worktree-list .merge-all-worktrees-button') !== null`,
     'Merge all worktrees action'
   )
-  await click('.worktree-list .merge-all-worktrees-button')
+  await clickSelector('.worktree-list .merge-all-worktrees-button')
   await waitFor(
     `document.querySelector('#merge-all input[type="checkbox"]') !== null`,
     'Merge all worktrees options'

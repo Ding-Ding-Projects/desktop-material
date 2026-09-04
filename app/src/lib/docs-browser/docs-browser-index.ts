@@ -201,9 +201,9 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
     {
       id: 'design-system/md3-shell',
       category: 'design-system',
-      title: 'The Material Design 3 shell — RETIRED',
+      title: 'The Material Design 3 shell — removed',
       description:
-        'The application chrome, rewritten against design/History MD3.dc.html and assembled as one component. Md3Shell (app/src/ui/md3/md3-shell.tsx) is what App.renderApp() renders: a…',
+        'This article is a record of something that is not in the application. It is kept so the removal reads as a decision rather than an oversight, and so the next person who finds a…',
       sourcePath: 'docs/features/design-system/md3-shell.md',
     },
     {
@@ -498,6 +498,15 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       description:
         'The Build & Run log panel keeps long-running compiler and test output readable without changing or discarding the underlying stream. Three header controls let the user jump to…',
       sourcePath: 'docs/features/integrations/build-run-output-controls.md',
+    },
+    {
+      id: 'integrations/copilot-account-settings-and-quota',
+      category: 'integrations',
+      title: 'Copilot account settings and quota',
+      description:
+        'Copilot model choices and usage snapshots are scoped to the signed-in account that owns them. The Preferences surface keeps account identity, model choices, and usage data…',
+      sourcePath:
+        'docs/features/integrations/copilot-account-settings-and-quota.md',
     },
     {
       id: 'integrations/copilot-commit-message-controls',
@@ -1430,7 +1439,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'integrations',
     label: 'Integrations',
-    count: 30,
+    count: 31,
   },
   {
     name: 'linux-tui',
@@ -1460,4 +1469,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 164
+export const DocsBrowserArticleCount = 165

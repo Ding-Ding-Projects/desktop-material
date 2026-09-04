@@ -273,11 +273,11 @@
       d: "Desktop Material mirrors the Desktop Material v2.dc.html prototype's two app-wide motion primitives:",
     },
     {
-      t: 'The Material Design 3 shell — RETIRED',
+      t: 'The Material Design 3 shell — removed',
       h: 'features/design-system/md3-shell.html',
       s: 'features/design-system/md3-shell.md',
       c: 'features',
-      d: 'The application chrome, rewritten against design/History MD3.dc.html and assembled as one component. Md3Shell (app/src/ui/md3/md3-shell.tsx) is what App.renderApp() renders: a…',
+      d: 'This article is a record of something that is not in the application. It is kept so the removal reads as a decision rather than an oversight, and so the next person who finds a…',
     },
     {
       t: 'Recorded narration + melody assets',
@@ -515,7 +515,7 @@
       h: 'features/integrations/browser-extension-downloads.html',
       s: 'features/integrations/browser-extension-downloads.md',
       c: 'features',
-      d: 'Desktop Material now owns the Windows desktop surfaces and bounded message contract for a browser-extension download handoff. It does not currently ship a browser extension or…',
+      d: 'Desktop Material now owns the Windows desktop surfaces, a checked-in unpacked browser-extension entry, and a bounded native-messaging contract for a browser-extension download…',
     },
     {
       t: 'Build & Run output controls',
@@ -523,6 +523,13 @@
       s: 'features/integrations/build-run-output-controls.md',
       c: 'features',
       d: 'The Build & Run log panel keeps long-running compiler and test output readable without changing or discarding the underlying stream. Three header controls let the user jump to…',
+    },
+    {
+      t: 'Copilot account settings and quota',
+      h: 'features/integrations/copilot-account-settings-and-quota.html',
+      s: 'features/integrations/copilot-account-settings-and-quota.md',
+      c: 'features',
+      d: 'Copilot model choices and usage snapshots are scoped to the signed-in account that owns them. The Preferences surface keeps account identity, model choices, and usage data…',
     },
     {
       t: 'Copilot commit-message controls',
@@ -1876,6 +1883,13 @@
       d: 'Independent confirmation that the production build actually runs, captured through a completely different route from the Playwright-driven fixture used elsewhere in…',
     },
     {
+      t: 'HuiShot refresh — 2026-09-03',
+      h: 'verification/huishots-20260903/',
+      s: 'verification/huishots-20260903/README.md',
+      c: 'verification',
+      d: 'Canonical gallery capture run against a freshly built tree, on a hidden Windows desktop through the cheap headless route. Every image below came from the real built renderer at…',
+    },
+    {
       t: 'Issue #94 and #80 built-app evidence — 2026-07-31',
       h: 'verification/issue-94-80-evidence-2026-07-31/',
       s: 'verification/issue-94-80-evidence-2026-07-31/README.md',
@@ -1923,6 +1937,13 @@
       s: 'verification/linux-tui-revival-2026-08-02/run-manifest.md',
       c: 'verification',
       d: 'This receipt tracks the 2026-08-02 revival of the interactive Linux terminal edition. It is updated only with observed evidence; a planned check is not a passing check.',
+    },
+    {
+      t: 'Pre-Mat-Day archive, 2026-09-03',
+      h: 'verification/mat-day-archive-20260903/',
+      s: 'verification/mat-day-archive-20260903/README.md',
+      c: 'verification',
+      d: 'The shared instructions require a verified archive of the whole Oak Kay before any Mat Day deletion begins. This records the one taken for the 2026-09-03 integrate-and-clean pass.',
     },
     {
       t: 'MD3 Compliance Audit Report',
@@ -2023,6 +2044,13 @@
       d: 'This receipt records local acceptance for the persistent tab-group and rich command-palette continuation. It does not claim a commit, remote publication, CI, Pages, wiki, or…',
     },
     {
+      t: 'UI bug audit closeout evidence',
+      h: 'verification/ui-bugs-audit-plan-t1kohh/',
+      s: 'verification/ui-bugs-audit-plan-t1kohh/README.md',
+      c: 'verification',
+      d: 'Date: 2026-08-29',
+    },
+    {
       t: 'UI design audit cleanup ledger',
       h: 'verification/ui-design-audit-2026-07-20/cleanup-ledger.html',
       s: 'verification/ui-design-audit-2026-07-20/cleanup-ledger.md',
@@ -2063,6 +2091,20 @@
       s: 'verification/ui-design-audit-2026-07-20/static-findings.md',
       c: 'verification',
       d: 'Date: 2026-07-20 Scope: post-remediation source and verification-harness review Runtime status: pending',
+    },
+    {
+      t: 'Upstream synchronization ledger, 2026-08-28',
+      h: 'verification/upstream-sync-2026-08-28/',
+      s: 'verification/upstream-sync-2026-08-28/README.md',
+      c: 'verification',
+      d: 'This hand-written ledger records every non-merge, patch-equivalent record returned by:',
+    },
+    {
+      t: 'Worktree context-menu acceptance, 2026-09-01',
+      h: 'verification/worktree-context-menu-2026-09-01/',
+      s: 'verification/worktree-context-menu-2026-09-01/README.md',
+      c: 'verification',
+      d: 'This receipt covers the linked-worktree Merge… and Delete… context actions. The merge item opens the existing reviewed merge operation with the exact linked local branch…',
     },
     {
       t: 'Agent API',

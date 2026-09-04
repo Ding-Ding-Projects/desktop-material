@@ -11,8 +11,14 @@ import { DiffOptions } from '../../diff/diff-options'
 import { Repository } from '../../../models/repository'
 import { Dispatcher } from '../../dispatcher'
 import { openFile } from '../../lib/open-file'
-import { getResolutionDiff } from '../../../lib/git'
+import { getResolutionDiff, IResolutionDiff } from '../../../lib/git'
+import {
+  IFileContents,
+  MaxDiffExpansionNewContentLength,
+} from '../../diff/syntax-highlighting'
 import { Button } from '../../lib/button'
+import { LocalizedText } from '../../lib/localized-text'
+import { getPersistedLanguageMode, translate } from '../../../lib/i18n'
 import { Octicon } from '../../octicons'
 import * as octicons from '../../octicons/octicons.generated'
 import {
@@ -36,7 +42,9 @@ interface ICopilotConflictsChangesProps {
 interface ICopilotConflictsChangesState {
   readonly selectedFile: CommittedFileChange | null
   readonly diff: IDiff | null
+  readonly fileContents: IFileContents | null
   readonly noResolution: boolean
+  readonly diffError: boolean
   readonly showSideBySideDiff: boolean
   readonly hideWhitespaceInDiff: boolean
   readonly imageDiffType: ImageDiffType
@@ -65,7 +73,9 @@ export class CopilotConflictsChanges extends React.Component<
     this.state = {
       selectedFile: files.length > 0 ? files[0] : null,
       diff: null,
+      fileContents: null,
       noResolution: false,
+      diffError: false,
       showSideBySideDiff: false,
       hideWhitespaceInDiff: false,
       imageDiffType: ImageDiffType.TwoUp,
@@ -114,7 +124,7 @@ export class CopilotConflictsChanges extends React.Component<
       if (selectedFile !== null) {
         this.loadDiffForFile(selectedFile)
       } else {
-        this.setState({ diff: null })
+        this.setState({ diff: null, fileContents: null })
       }
     }
 
@@ -151,9 +161,14 @@ export class CopilotConflictsChanges extends React.Component<
     )
 
     if (choice === 'ours' || choice === 'theirs') {
-      this.setState({ diff: null, noResolution: false })
+      this.setState({
+        diff: null,
+        fileContents: null,
+        noResolution: false,
+        diffError: false,
+      })
       try {
-        const diff = await getResolutionDiff(
+        const result = await getResolutionDiff(
           this.props.repository,
           file.path,
           { stage: choice },
@@ -161,12 +176,15 @@ export class CopilotConflictsChanges extends React.Component<
         )
 
         if (this.mounted && requestId === this.diffRequestId) {
-          this.setState({ diff })
+          this.setState({
+            diff: result.diff,
+            fileContents: this.buildFileContents(file, result),
+          })
         }
       } catch (e) {
         log.error('Failed to compute resolution diff', e)
         if (this.mounted && requestId === this.diffRequestId) {
-          this.setState({ diff: null })
+          this.setState({ diff: null, fileContents: null, diffError: true })
         }
       }
       return
@@ -176,15 +194,35 @@ export class CopilotConflictsChanges extends React.Component<
       r => r.path === file.path
     )
 
-    if (resolution === undefined) {
-      this.setState({ diff: null, noResolution: true })
+    if (resolution?.resolutionAction !== undefined) {
+      this.setState({
+        diff: null,
+        fileContents: null,
+        noResolution: true,
+        diffError: false,
+      })
       return
     }
 
-    this.setState({ diff: null, noResolution: false })
+    if (resolution === undefined) {
+      this.setState({
+        diff: null,
+        fileContents: null,
+        noResolution: true,
+        diffError: false,
+      })
+      return
+    }
+
+    this.setState({
+      diff: null,
+      fileContents: null,
+      noResolution: false,
+      diffError: false,
+    })
 
     try {
-      const diff = await getResolutionDiff(
+      const result = await getResolutionDiff(
         this.props.repository,
         file.path,
         { content: resolution.resolvedContent },
@@ -192,13 +230,35 @@ export class CopilotConflictsChanges extends React.Component<
       )
 
       if (this.mounted && requestId === this.diffRequestId) {
-        this.setState({ diff })
+        this.setState({
+          diff: result.diff,
+          fileContents: this.buildFileContents(file, result),
+        })
       }
     } catch (e) {
       log.error('Failed to compute resolution diff', e)
       if (this.mounted && requestId === this.diffRequestId) {
-        this.setState({ diff: null })
+        this.setState({ diff: null, fileContents: null, diffError: true })
       }
+    }
+  }
+
+  /** Build syntax-highlighting inputs from the exact diff source strings. */
+  private buildFileContents(
+    file: CommittedFileChange,
+    result: IResolutionDiff
+  ): IFileContents {
+    const canBeExpanded =
+      result.newContents.length <= MaxDiffExpansionNewContentLength
+    return {
+      file,
+      oldContents: result.oldContents
+        .slice(0, MaxDiffExpansionNewContentLength)
+        .split(/\r?\n/),
+      newContents: result.newContents
+        .slice(0, MaxDiffExpansionNewContentLength)
+        .split(/\r?\n/),
+      canBeExpanded,
     }
   }
 
@@ -296,7 +356,9 @@ export class CopilotConflictsChanges extends React.Component<
     const {
       selectedFile,
       diff,
+      fileContents,
       noResolution,
+      diffError,
       showSideBySideDiff,
       hideWhitespaceInDiff,
     } = this.state
@@ -391,12 +453,13 @@ export class CopilotConflictsChanges extends React.Component<
                 </div>
               </div>
             )}
-            {selectedFile !== null && !noResolution && (
+            {selectedFile !== null && !noResolution && !diffError && (
               <SeamlessDiffSwitcher
                 repository={this.props.repository}
                 readOnly={true}
                 file={selectedFile}
                 diff={diff}
+                externalFileContents={fileContents}
                 imageDiffType={this.state.imageDiffType}
                 hideWhitespaceInDiff={hideWhitespaceInDiff}
                 showSideBySideDiff={showSideBySideDiff}
@@ -410,7 +473,31 @@ export class CopilotConflictsChanges extends React.Component<
             )}
             {selectedFile !== null && noResolution && (
               <div className="copilot-changes-no-diff">
-                No Copilot resolution available for this file.
+                {this.props.copilotResolutions?.find(
+                  resolution => resolution.path === selectedFile.path
+                )?.resolutionAction !== undefined
+                  ? translate(
+                      'copilotConflict.modifyDeleteRecommendation',
+                      getPersistedLanguageMode()
+                    )
+                  : translate(
+                      'copilotConflict.noResolution',
+                      getPersistedLanguageMode()
+                    )}
+              </div>
+            )}
+            {selectedFile !== null && !noResolution && diffError && (
+              <div className="copilot-changes-no-diff" role="alert">
+                <LocalizedText translationKey="copilotConflict.unableLoadDiff" />
+                <Button
+                  onClick={() => this.loadDiffForFile(selectedFile)}
+                  ariaLabel={translate(
+                    'copilotConflict.retryDiff',
+                    getPersistedLanguageMode()
+                  )}
+                >
+                  <LocalizedText translationKey="copilotConflict.retryDiff" />
+                </Button>
               </div>
             )}
           </div>

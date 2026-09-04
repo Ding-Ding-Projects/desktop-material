@@ -25,7 +25,7 @@ export interface IConflictHunk {
 export interface IFileConflictContext {
   /** Repository-relative file path */
   readonly path: string
-  /** All conflict hunks in the file (empty if skipped) */
+  /** All conflict hunks in the file (empty if skipped or modify/delete) */
   readonly hunks: ReadonlyArray<IConflictHunk>
   /** If the file was skipped, the reason why (shown in prompt so Copilot knows) */
   readonly skippedReason?: string
@@ -35,6 +35,12 @@ export interface IFileConflictContext {
    * resolutions into the original content. Omitted when the file is skipped.
    */
   readonly rawContent?: string
+  /** Present for a modify/delete conflict that has no text markers. */
+  readonly deleteConflict?: {
+    readonly deletedSide: 'ours' | 'theirs'
+  }
+  /** Exact path-scoped `git ls-files -u -z` fingerprint at capture time. */
+  readonly stageFingerprint?: string
 }
 
 /**
@@ -114,8 +120,12 @@ const baseMarker = /^\|{7}(?:\s|$)/
 const separatorMarker = /^={7}$/
 const theirsMarker = /^>{7}(?:\s|$)/
 
-/** Maximum file size (in bytes) to include in conflict context */
-const MAX_CONFLICT_FILE_SIZE = 1_048_576
+/** Absolute bound for reading a conflicted file into memory. */
+const MAX_CONFLICT_FILE_READ_SIZE = 10_485_760
+/** Maximum length of one conflict line sent to the model. */
+const MAX_CONFLICT_LINE_LENGTH = 5000
+/** Maximum combined conflict-hunk content sent for one file. */
+const MAX_CONFLICT_CONTENT_SIZE = 262_144
 
 function isConflictMarker(line: string): boolean {
   return (
@@ -240,6 +250,31 @@ export function extractConflictHunks(
   return hunks
 }
 
+/** Return a stable reason when a conflict is too large for automatic review. */
+export function getHunkSkipReason(
+  hunks: ReadonlyArray<IConflictHunk>
+): string | null {
+  let totalContent = 0
+  for (const hunk of hunks) {
+    for (const side of [
+      hunk.oursContent,
+      hunk.theirsContent,
+      hunk.baseContent ?? '',
+    ]) {
+      totalContent += side.length
+      if (
+        side.split('\n').some(line => line.length > MAX_CONFLICT_LINE_LENGTH)
+      ) {
+        return 'Conflict contains lines too long to resolve automatically'
+      }
+    }
+    if (totalContent > MAX_CONFLICT_CONTENT_SIZE) {
+      return 'Conflict region too large to resolve automatically'
+    }
+  }
+  return null
+}
+
 /**
  * Gather commit messages from both sides of the merge to provide intent
  * context for conflict resolution.
@@ -294,10 +329,21 @@ export async function buildConflictContext(
   ourLabel: string,
   theirLabel: string,
   workingDirectory: string,
-  files: ReadonlyArray<{ readonly path: string }>
+  files: ReadonlyArray<{
+    readonly path: string
+    readonly deletedSide?: 'ours' | 'theirs'
+  }>
 ): Promise<ICopilotConflictContext> {
   const results = await Promise.all(
     files.map(async (file): Promise<IFileConflictContext> => {
+      if (file.deletedSide !== undefined) {
+        return {
+          path: file.path,
+          hunks: [],
+          deleteConflict: { deletedSide: file.deletedSide },
+        }
+      }
+
       // Guard against path traversal and symlink escapes (cross-platform)
       let absolutePath: string | null
       try {
@@ -320,11 +366,11 @@ export async function buildConflictContext(
       // Check file size before reading to avoid loading huge files into memory
       try {
         const fileStat = await stat(absolutePath)
-        if (fileStat.size > MAX_CONFLICT_FILE_SIZE) {
+        if (fileStat.size > MAX_CONFLICT_FILE_READ_SIZE) {
           return {
             path: file.path,
             hunks: [],
-            skippedReason: 'File exceeds 1MB size limit',
+            skippedReason: 'File too large to resolve automatically',
           }
         }
       } catch {
@@ -353,6 +399,11 @@ export async function buildConflictContext(
           hunks: [],
           skippedReason: 'No conflict markers found',
         }
+      }
+
+      const hunkSkipReason = getHunkSkipReason(hunks)
+      if (hunkSkipReason !== null) {
+        return { path: file.path, hunks: [], skippedReason: hunkSkipReason }
       }
 
       return { path: file.path, hunks, rawContent: content }
@@ -421,6 +472,28 @@ export function formatConflictContextForPrompt(
 
   for (const file of context.files) {
     const safePath = sanitizeForMarkdown(file.path)
+
+    if (file.deleteConflict !== undefined) {
+      const { deletedSide } = file.deleteConflict
+      const deletedLabel =
+        deletedSide === 'ours' ? context.ourLabel : context.theirLabel
+      const modifiedLabel =
+        deletedSide === 'ours' ? context.theirLabel : context.ourLabel
+      parts.push(`## File: ${safePath} (modify/delete conflict)`)
+      parts.push('')
+      parts.push(
+        `Deleted on "${deletedLabel}" (${deletedSide}), modified on "${modifiedLabel}" (${
+          deletedSide === 'ours' ? 'theirs' : 'ours'
+        }).`
+      )
+      parts.push('')
+      parts.push(
+        'Respond with {"action":"keep"} to preserve the modified file, or {"action":"delete"} to accept the deletion.'
+      )
+      parts.push('')
+      continue
+    }
+
     parts.push(`## File: ${safePath}`)
     parts.push('')
 

@@ -33,7 +33,7 @@ describe('settings dialog v2 style contracts', () => {
     // ...and become filled surface cards with the prototype geometry.
     assert.match(
       promptsBlock,
-      /\.checkbox-component\s*\{[\s\S]*?gap: 14px;[\s\S]*?padding: 13px 16px;[\s\S]*?border-radius: 16px;[\s\S]*?background: var\(--md-sys-color-surface\);/
+      /\.checkbox-component\s*\{[\s\S]*?gap: 14px;[\s\S]*?padding: 13px 16px;[\s\S]*?border-radius: var\(--md-sys-shape-corner-large\);[\s\S]*?background: var\(--md-sys-color-surface\);/
     )
     assert.match(
       promptsBlock,
@@ -66,7 +66,7 @@ describe('settings dialog v2 style contracts', () => {
   it('styles the Appearance toggles as 54x32 switches', () => {
     assert.match(
       styles,
-      /\.tab-container\[aria-labelledby='preferences-tab-notifications'\]\s*\.checkbox-component,\s*\.tab-container\[aria-labelledby='preferences-tab-appearance'\]\s*\.checkbox-component\.auto-fit-zoom,\s*\.tab-container\[aria-labelledby='preferences-tab-appearance'\]\s*\.checkbox-component\.desktop-material-feature-toggle\s*\{[\s\S]*?flex-direction: row-reverse;[\s\S]*?width: 54px;[\s\S]*?height: 32px;[\s\S]*?border-radius: 999px;/
+      /\.tab-container\[aria-labelledby='preferences-tab-notifications'\]\s*\.checkbox-component,\s*\.tab-container\[aria-labelledby='preferences-tab-appearance'\]\s*\.checkbox-component\.auto-fit-zoom,\s*\.tab-container\[aria-labelledby='preferences-tab-appearance'\]\s*\.checkbox-component\.desktop-material-feature-toggle\s*\{[\s\S]*?flex-direction: row-reverse;[\s\S]*?width: 54px;[\s\S]*?height: 32px;[\s\S]*?border-radius: var\(--md-sys-shape-corner-full\);/
     )
     // Title-over-caption copy on the left of the switch.
     assert.match(

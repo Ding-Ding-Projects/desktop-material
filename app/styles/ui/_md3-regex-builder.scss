@@ -1,3 +1,12 @@
+// The wrapper the builder renders inside an anchored popover. The popover owns
+// the surface; this only has to be a column that can actually shrink, or the
+// builder's own content sets the popover width and overflows a narrow window.
+.md3-regex-builder-owned-portal {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
 // The MD3 regex builder dialog.
 //
 // Every literal below is copied from the `builderOpen` overlay of
@@ -133,7 +142,7 @@
 .md3-regex-builder__flag {
   background: transparent;
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-surface-variant);
   cursor: pointer;
   display: grid;
@@ -210,7 +219,7 @@
   align-items: center;
   background: transparent;
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-surface);
   cursor: pointer;
   display: inline-flex;
@@ -298,7 +307,7 @@
 
 .md3-regex-builder__guide-section {
   background: var(--md-sys-color-surface-container-lowest);
-  border-radius: 12px;
+  border-radius: var(--md-sys-shape-corner-medium);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -359,7 +368,7 @@
   align-items: center;
   background: var(--md-sys-color-primary);
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-primary);
   cursor: pointer;
   display: flex;

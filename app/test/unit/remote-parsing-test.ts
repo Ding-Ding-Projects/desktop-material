@@ -1,8 +1,61 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
-import { parseRemote } from '../../src/lib/remote-parsing'
+import { parseRemote, sanitizeCloneName } from '../../src/lib/remote-parsing'
 
 describe('URL remote parsing', () => {
+  describe('sanitizeCloneName', () => {
+    it('keeps ordinary names and removes a trailing git suffix', () => {
+      assert.equal(sanitizeCloneName('Hello-World'), 'Hello-World')
+      assert.equal(sanitizeCloneName('Hello-World.git'), 'Hello-World')
+    })
+
+    it('rejects path syntax, traversal, control characters, and device names', () => {
+      const unsafeNames = [
+        '',
+        '.',
+        '..',
+        'nested/name',
+        'nested\\name',
+        'C:drive',
+        'CON',
+        'con.txt',
+        'NUL ',
+        'COM1.log',
+        'repo.',
+        'repo ',
+        'repo\u0000name',
+      ]
+
+      for (const name of unsafeNames) {
+        assert.equal(sanitizeCloneName(name), null, name)
+      }
+    })
+
+    it('does not extract a component from a path-shaped name', () => {
+      assert.equal(sanitizeCloneName('owner\\..\\.ssh'), null)
+      assert.equal(sanitizeCloneName('../outside'), null)
+    })
+
+    it('rejects Windows-invalid punctuation, deceptive format characters, and oversized names', () => {
+      for (const character of ['<', '>', '"', '|', '?', '*']) {
+        assert.equal(sanitizeCloneName(`repo${character}name`), null)
+      }
+      for (const character of [
+        '\u061c',
+        '\u180e',
+        '\u200b',
+        '\u200f',
+        '\u202e',
+        '\u2060',
+        '\ufeff',
+      ]) {
+        assert.equal(sanitizeCloneName(`repo${character}name`), null)
+      }
+      assert.equal(sanitizeCloneName('x'.repeat(101)), null)
+      assert.equal(sanitizeCloneName('x'.repeat(100)), 'x'.repeat(100))
+    })
+  })
+
   it('parses HTTPS URLs with a trailing git suffix', () => {
     const remote = parseRemote('https://github.com/hubot/repo.git')
     assert(remote !== null)

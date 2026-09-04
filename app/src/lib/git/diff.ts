@@ -420,6 +420,13 @@ export async function getWorkingDirectoryDiff(
   return buildDiff(stdout, repository, file, 'HEAD', 'HEAD', lineEndingsChange)
 }
 
+/** The computed diff and the exact strings used to generate both sides. */
+export interface IResolutionDiff {
+  readonly diff: IDiff
+  readonly oldContents: string
+  readonly newContents: string
+}
+
 /**
  * Compute a diff between the working-tree file and either Copilot's
  * resolved content string or the content from a specific merge index stage.
@@ -452,7 +459,7 @@ export async function getResolutionDiff(
   filePath: string,
   options: { content: string } | { stage: 'ours' | 'theirs' },
   hideWhitespaceInDiff: boolean = false
-): Promise<IDiff> {
+): Promise<IResolutionDiff> {
   const gitStage =
     'stage' in options ? (options.stage === 'ours' ? ':2' : ':3') : undefined
 
@@ -469,7 +476,11 @@ export async function getResolutionDiff(
   if (gitStage === undefined) {
     // Direct content mode (e.g. Copilot's resolved text).
     if (!('content' in options)) {
-      return { kind: DiffType.Unrenderable }
+      return {
+        diff: { kind: DiffType.Unrenderable },
+        oldContents: baseContent,
+        newContents: '',
+      }
     }
     targetContent = options.content
   } else {
@@ -510,27 +521,39 @@ export async function getResolutionDiff(
     })
 
     if (!isValidBuffer(stdout)) {
-      return { kind: DiffType.Unrenderable }
+      return {
+        diff: { kind: DiffType.Unrenderable },
+        oldContents: baseContent,
+        newContents: targetContent,
+      }
     }
 
     const diff = diffFromRawDiffOutput(stdout)
 
     if (isDiffTooLarge(diff)) {
       return {
-        kind: DiffType.LargeText,
-        text: diff.contents,
-        hunks: diff.hunks,
-        maxLineNumber: diff.maxLineNumber,
-        hasHiddenBidiChars: diff.hasHiddenBidiChars,
+        diff: {
+          kind: DiffType.LargeText,
+          text: diff.contents,
+          hunks: diff.hunks,
+          maxLineNumber: diff.maxLineNumber,
+          hasHiddenBidiChars: diff.hasHiddenBidiChars,
+        },
+        oldContents: baseContent,
+        newContents: targetContent,
       }
     }
 
     return {
-      kind: DiffType.Text,
-      text: diff.contents,
-      hunks: diff.hunks,
-      maxLineNumber: diff.maxLineNumber,
-      hasHiddenBidiChars: diff.hasHiddenBidiChars,
+      diff: {
+        kind: DiffType.Text,
+        text: diff.contents,
+        hunks: diff.hunks,
+        maxLineNumber: diff.maxLineNumber,
+        hasHiddenBidiChars: diff.hasHiddenBidiChars,
+      },
+      oldContents: baseContent,
+      newContents: targetContent,
     }
   } finally {
     await unlink(tempBase).catch(() => {})

@@ -24,7 +24,7 @@
   min-height: min(440px, max(1px, calc(100vh - 20px - var(--non-modal-sheet-cascade-offset, 0px))));
   flex-direction: column;
   overflow: hidden;
-  border-radius: 28px;
+  border-radius: var(--md-sys-shape-corner-extra-large);
   background: var(--md-sys-color-surface-container-low);
   box-shadow: var(--md-sys-elevation-level3);
   color: var(--md-sys-color-on-surface);
@@ -239,7 +239,7 @@
     height: 36px;
     padding: 0 12px;
     border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     color: inherit;
     background: var(--md-sys-color-surface-container-highest);
 
@@ -327,7 +327,7 @@
   min-height: 26px;
   align-items: center;
   padding: 4px 9px;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   background: var(--md-sys-color-surface-container-highest);
   color: var(--md-sys-color-on-surface-variant);
   font-size: var(--font-size-sm);
@@ -381,7 +381,7 @@
   li {
     min-width: 0;
     padding: 6px 8px;
-    border-radius: 8px;
+    border-radius: var(--md-sys-shape-corner-small);
     background: var(--md-sys-color-surface-container-high);
 
     & + li {

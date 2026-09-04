@@ -36,6 +36,7 @@ export type Md3DestructiveActionId =
   | 'authenticator-bulk-delete'
   | 'terminal-bulk-close'
   | 'authenticator-secrets-export'
+  | 'delete-worktree'
 
 /**
  * Which shape of the shared gate a surface hosts.
@@ -217,6 +218,14 @@ export const Md3DestructiveActions: ReadonlyArray<IMd3DestructiveAction> = [
       'The confidentiality of every exported secret, which the file publishes.',
     module: 'app/src/ui/md3/md3-authenticator-view.tsx',
     host: 'overlay',
+  },
+  {
+    id: 'delete-worktree',
+    label: 'Delete worktree',
+    destroys:
+      'The selected linked worktree directory and its checked-out state.',
+    module: 'app/src/ui/worktrees/delete-worktree-dialog.tsx',
+    host: 'dialog',
   },
 ]
 

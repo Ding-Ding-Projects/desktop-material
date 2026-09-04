@@ -41,7 +41,7 @@ describe('history panel v2: sidebar title header', () => {
   it('renders the count as a 24px radius-999 tonal pill', () => {
     assert.match(
       historyStyle,
-      /\.history-panel-count\s*\{[\s\S]*?height: 24px;[\s\S]*?border-radius: 999px;[\s\S]*?background: var\(--md-sys-color-surface-container-high\);[\s\S]*?color: var\(--md-sys-color-on-surface-variant\);[\s\S]*?font-size: 12\.5px;[\s\S]*?font-weight: 700;/
+      /\.history-panel-count\s*\{[\s\S]*?height: 24px;[\s\S]*?border-radius: var\(--md-sys-shape-corner-full\);[\s\S]*?background: var\(--md-sys-color-surface-container-high\);[\s\S]*?color: var\(--md-sys-color-on-surface-variant\);[\s\S]*?font-size: 12\.5px;[\s\S]*?font-weight: 700;/
     )
   })
 })
@@ -81,7 +81,7 @@ describe('history panel v2: filter chip row', () => {
   it('styles chips as 30px radius-999 tonal-selectable pills', () => {
     assert.match(
       historyStyle,
-      /\.history-filter-chip,\s*\.history-regex-builder-chip\s*\{[\s\S]*?height: 30px;[\s\S]*?padding: 0 12px;[\s\S]*?border-radius: 999px;[\s\S]*?font-size: 12px;[\s\S]*?font-weight: 700;/
+      /\.history-filter-chip,\s*\.history-regex-builder-chip\s*\{[\s\S]*?height: 30px;[\s\S]*?padding: 0 12px;[\s\S]*?border-radius: var\(--md-sys-shape-corner-full\);[\s\S]*?font-size: 12px;[\s\S]*?font-weight: 700;/
     )
     assert.match(
       historyStyle,
@@ -135,7 +135,7 @@ describe('history panel v2: commit row avatar disc', () => {
   it('styles the disc as a radius-999 primary-container circle', () => {
     assert.match(
       commitListStyle,
-      /\.commit-avatar\s*\{[\s\S]*?width: 34px;[\s\S]*?height: 34px;[\s\S]*?border-radius: 999px;[\s\S]*?background: var\(--md-sys-color-primary-container\);/
+      /\.commit-avatar\s*\{[\s\S]*?width: 34px;[\s\S]*?height: 34px;[\s\S]*?border-radius: var\(--md-sys-shape-corner-full\);[\s\S]*?background: var\(--md-sys-color-primary-container\);/
     )
   })
 
@@ -170,7 +170,7 @@ describe('commit detail v2: header author avatar', () => {
   it('styles the header avatar as a 42px dmPop primary-container disc', () => {
     assert.match(
       ecsStyle,
-      /\.ecs-header-avatar\s*\{[\s\S]*?width: 42px;[\s\S]*?height: 42px;[\s\S]*?border-radius: 999px;[\s\S]*?animation: dmPop calc\(480ms \* var\(--mdur\)\) var\(--spring-fast\) backwards;/
+      /\.ecs-header-avatar\s*\{[\s\S]*?width: 42px;[\s\S]*?height: 42px;[\s\S]*?border-radius: var\(--md-sys-shape-corner-full\);[\s\S]*?animation: dmPop calc\(480ms \* var\(--mdur\)\) var\(--spring-fast\) backwards;/
     )
   })
 

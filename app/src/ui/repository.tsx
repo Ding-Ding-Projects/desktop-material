@@ -11,8 +11,6 @@ import { FilesChangedBadge } from './changes/files-changed-badge'
 import { SelectedCommits, CompareSidebar } from './history'
 import { Resizable } from './resizable'
 import { TabBar, TabBarType } from './tab-bar'
-import { Octicon } from './octicons'
-import * as octicons from './octicons/octicons.generated'
 import {
   IRepositoryState,
   RepositorySectionTab,
@@ -592,7 +590,7 @@ export class RepositoryView extends React.Component<
         </span>
         <span className="rail-item" id="history-graph-tab">
           <span className="rail-pill">
-            <Octicon symbol={octicons.gitMerge} className="rail-icon" />
+            <MaterialSymbol className="rail-icon" name="merge" />
           </span>
           <span className="rail-label">
             {t('repositorySection.historyGraph')}
@@ -793,7 +791,7 @@ export class RepositoryView extends React.Component<
     const account = this.props.accounts[0]
 
     if (account === undefined) {
-      return <Octicon symbol={octicons.person} className="rail-icon" />
+      return <MaterialSymbol className="rail-icon" name="person" />
     }
 
     const source = (account.name || account.login).trim()
@@ -826,7 +824,10 @@ export class RepositoryView extends React.Component<
             aria-label="Show changed files"
           >
             <span className="rail-pill">
-              <Octicon symbol={octicons.listUnordered} className="rail-icon" />
+              <MaterialSymbol
+                className="rail-icon"
+                name="format_list_bulleted"
+              />
             </span>
             <span className="rail-label">Changed files</span>
           </button>
@@ -839,7 +840,10 @@ export class RepositoryView extends React.Component<
             aria-label="Show commit list"
           >
             <span className="rail-pill">
-              <Octicon symbol={octicons.listUnordered} className="rail-icon" />
+              <MaterialSymbol
+                className="rail-icon"
+                name="format_list_bulleted"
+              />
             </span>
             <span className="rail-label">Commit list</span>
           </button>
@@ -1248,7 +1252,7 @@ export class RepositoryView extends React.Component<
         <div className="content">
           <div className="interstitial-header">
             <div className="interstitial-icon" aria-hidden="true">
-              <Octicon symbol={octicons.sync} className="spin" />
+              <MaterialSymbol className="spin" name="sync" />
             </div>
             <div className="text">
               <h1 aria-live="polite">{t('largeRepo.status.computing')}</h1>

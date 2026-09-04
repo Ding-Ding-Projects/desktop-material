@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
 import * as Path from 'path'
+import { homedir } from 'os'
 import { Account, getAccountKey } from '../../src/models/account'
 import { IAPIRepository } from '../../src/lib/api'
 import {
@@ -70,6 +71,35 @@ function accountState(
 }
 
 describe('AutoCloneStore', () => {
+  it('refuses a sensitive base directory with actionable recovery copy', () => {
+    const account = makeAccount()
+    const notifications: string[] = []
+    const storage = new MemoryStorage()
+    const store = new AutoCloneStore(
+      {
+        getAccounts: () => [account],
+        getApiRepositories: () => new Map([[account, accountState([])]]),
+        isRepositoryTracked: () => false,
+        refreshRepositories: async () => {},
+        startBackgroundBatch: () => true,
+        notify: (title, body) => notifications.push(`${title}\n${body}`),
+      },
+      storage
+    )
+
+    store.configure(
+      account,
+      Path.join(homedir(), '.ssh'),
+      BatchCloneMode.Parallel,
+      true
+    )
+
+    assert.equal(storage.value, null)
+    assert.equal(notifications.length, 1)
+    assert.match(notifications[0], /sensitive system location/i)
+    assert.match(notifications[0], /Choose another folder and try again/i)
+  })
+
   it('baselines existing repositories and launches only later discoveries', async () => {
     const account = makeAccount()
     const existing = repository('existing')

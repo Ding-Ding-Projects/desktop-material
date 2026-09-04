@@ -97,7 +97,7 @@ dialog#about {
     margin-left: auto;
     margin-right: auto;
     padding: var(--spacing-half) var(--spacing);
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
     background: var(--md-sys-color-surface-container-highest);
     color: var(--md-sys-color-on-surface-variant);
     font-size: var(--font-size-sm);

@@ -39,6 +39,11 @@ export function RangeSlider({
   onChange,
 }: IRangeSliderProps) {
   const outputId = `${id}-value`
+  const handleValueChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) =>
+      onChange(Number(event.currentTarget.value)),
+    [onChange]
+  )
   return (
     <div className={classNames('range-slider-component', className)}>
       <div className="range-slider-label-row">
@@ -47,18 +52,29 @@ export function RangeSlider({
           {personalizeOptionalText(valueText)}
         </output>
       </div>
-      <input
-        id={id}
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        disabled={disabled}
-        aria-describedby={ariaDescribedBy}
-        aria-valuetext={personalizeOptionalText(ariaValueText)}
-        onChange={event => onChange(Number(event.currentTarget.value))}
-      />
+      <div
+        className="range-slider-input-hit-target"
+        style={
+          {
+            '--range-slider-progress': `${
+              ((value - min) / (max - min)) * 100
+            }%`,
+          } as React.CSSProperties
+        }
+      >
+        <input
+          id={id}
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          disabled={disabled}
+          aria-describedby={ariaDescribedBy}
+          aria-valuetext={personalizeOptionalText(ariaValueText)}
+          onChange={handleValueChange}
+        />
+      </div>
     </div>
   )
 }

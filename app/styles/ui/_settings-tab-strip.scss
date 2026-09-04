@@ -37,7 +37,7 @@
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-surface-variant);
   cursor: pointer;
   display: flex;
@@ -128,7 +128,7 @@
   align-items: center;
   background: transparent;
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 999px;
+  border-radius: var(--md-sys-shape-corner-full);
   color: var(--md-sys-color-on-surface-variant);
   cursor: pointer;
   display: inline-flex;
@@ -324,7 +324,7 @@
   }
 
   .settings-browser-tab-action {
-    border-radius: 999px;
+    border-radius: var(--md-sys-shape-corner-full);
 
     &.overflow {
       gap: 3px;
@@ -379,6 +379,10 @@
     width: 100%;
   }
 
+  .settings-browser-tab-group-items {
+    flex-direction: column;
+  }
+
   .settings-browser-tab-title {
     overflow-wrap: anywhere;
     text-overflow: clip;
@@ -388,6 +392,84 @@
   .settings-browser-tab-actions {
     justify-content: flex-start;
     width: 100%;
+  }
+}
+
+// Named groups are shared by every dock orientation. The vertical override
+// below only changes the lane axis; these controls keep their own surface and
+// focus treatment at the top and bottom docks too.
+.settings-tab-strip-browser {
+  .settings-browser-tab-group {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    min-width: 0;
+
+    &.collapsed .settings-browser-tab-group-items {
+      display: none;
+    }
+  }
+
+  .settings-browser-tab-group-header {
+    align-items: center;
+    display: flex;
+    gap: 2px;
+    min-height: 32px;
+  }
+
+  .settings-browser-tab-group-toggle,
+  .settings-browser-tab-group-search {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
+    display: inline-flex;
+    min-height: 32px;
+
+    &:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
+      outline-offset: -2px;
+    }
+  }
+
+  .settings-browser-tab-group-toggle {
+    flex: 1 1 auto;
+    gap: 6px;
+    min-width: 0;
+    padding: 0 8px;
+    text-align: start;
+
+    span:nth-child(2) {
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .settings-browser-tab-group-count {
+    border-radius: var(--md-sys-shape-corner-full);
+    font-size: 11px;
+    margin-inline-start: auto;
+    min-width: 20px;
+    padding: 1px 5px;
+    text-align: center;
+  }
+
+  .settings-browser-tab-group-search {
+    justify-content: center;
+    min-width: 36px;
+    padding: 0 8px;
+  }
+
+  .settings-browser-tab-group-items {
+    display: flex;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .settings-browser-tab-group-empty {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 12px;
+    margin: 4px 8px;
   }
 }
 
@@ -406,7 +488,8 @@
     overflow-wrap: anywhere;
   }
 
-  select {
+  select,
+  .searchable-select-button {
     background: var(--md-sys-color-surface-container-high);
     border: 1px solid var(--md-sys-color-outline-variant);
     border-radius: var(--md-sys-shape-corner-small, 8px);
@@ -427,6 +510,10 @@
       cursor: default;
       opacity: 0.5;
     }
+  }
+
+  .searchable-select {
+    min-width: 88px;
   }
 
   p {
@@ -455,6 +542,43 @@
   input[type='search'] {
     flex: 1 1 auto;
     min-width: 140px;
+  }
+}
+
+.settings-tab-picker-error {
+  color: var(--md-sys-color-error);
+  font-size: 12px;
+  margin: 0 0 var(--spacing-half);
+  overflow-wrap: anywhere;
+}
+
+.settings-tab-group-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-half);
+  max-width: min(320px, calc(100vw - 32px));
+  min-width: 240px;
+  padding: var(--spacing);
+
+  .settings-tab-group-editor-title {
+    font-size: 14px;
+    margin: 0;
+  }
+
+  input {
+    min-height: 36px;
+    min-width: 0;
+  }
+
+  .settings-tab-group-editor-actions {
+    display: flex;
+    gap: var(--spacing-half);
+    justify-content: flex-end;
+
+    button {
+      min-height: 36px;
+      min-width: 72px;
+    }
   }
 }
 
