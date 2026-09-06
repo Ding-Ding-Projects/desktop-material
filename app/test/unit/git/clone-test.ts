@@ -2,6 +2,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert'
 import * as path from 'path'
 import { existsSync } from 'fs'
+import { mkdir, writeFile } from 'fs/promises'
 import { ChildProcess } from 'child_process'
 import { EventEmitter } from 'events'
 
@@ -203,6 +204,47 @@ describe('git/clone', () => {
 
     assert.equal(existsSync(path.join(clonePath, '.git')), true)
     assert.equal(existsSync(path.join(clonePath, 'README.md')), true)
+  })
+
+  it('enables persisted long paths while checking out a Windows clone', async t => {
+    if (process.platform !== 'win32') {
+      t.skip('Long-path checkout is scoped to Windows.')
+      return
+    }
+
+    const source = await setupEmptyRepository(t)
+    const nestedDirectory = path.join(
+      ...Array.from({ length: 7 }, (_, index) =>
+        `nested-${index}`.padEnd(20, 'x')
+      )
+    )
+    const relativePath = path.join(nestedDirectory, 'checked-out-file.txt')
+    const sourceFile = path.join(source.path, relativePath)
+    await mkdir(path.dirname(sourceFile), { recursive: true })
+    await writeFile(sourceFile, 'long path')
+    await exec(['config', 'core.longpaths', 'true'], source.path)
+    await exec(['add', relativePath], source.path)
+    await exec(['commit', '-m', 'long path fixture'], source.path)
+
+    const destinationRoot = await createTempDirectory(t)
+    const cloneParent = path.join(
+      destinationRoot,
+      ...Array.from({ length: 2 }, (_, index) =>
+        `clone-${index}`.padEnd(20, 'y')
+      )
+    )
+    await mkdir(cloneParent, { recursive: true })
+    const clonePath = path.join(cloneParent, 'clone')
+    assert.ok(path.join(clonePath, relativePath).length > 260)
+
+    await clone(source.path, clonePath, {})
+
+    assert.equal(existsSync(path.join(clonePath, relativePath)), true)
+    const configured = await exec(
+      ['config', '--local', '--get', 'core.longpaths'],
+      clonePath
+    )
+    assert.equal(configured.stdout.trim(), 'true')
   })
 
   it('clones with a specific branch', async t => {

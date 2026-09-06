@@ -116,7 +116,19 @@ export class CloningRepositoriesStore extends BaseStore {
   ): Promise<boolean> {
     const directStaging =
       this.stagingManager !== null && opts?.displayPath === undefined
-    const operation = () => this.cloneInternal(url, path, options, opts)
+    const displayPath = opts?.displayPath ?? path
+    const repository = new CloningRepository(displayPath, url)
+    this._repositories.push(repository)
+
+    const title = `Cloning into ${displayPath}`
+    this.stateByID.set(repository.id, { kind: 'clone', title, value: 0 })
+    this.emitUpdate()
+
+    // Register the model before acquiring the direct-clone mutex. Callers use
+    // the returned synchronous store state to select the active clone while a
+    // preceding staged clone may still own the journal.
+    const operation = () =>
+      this.cloneInternal(url, path, options, opts, repository)
     return directStaging ? this.withDirectCloneMutex(operation) : operation()
   }
 
@@ -140,37 +152,31 @@ export class CloningRepositoriesStore extends BaseStore {
     url: string,
     path: string,
     options: CloneOptions,
-    opts?: {
-      /**
-       * When provided the error is passed here instead of being emitted as a
-       * global error. Used by batch clone so a failing repo yields a batch
-       * summary rather than a per-repo error dialog.
-       */
-      readonly onError?: (error: Error) => void
-      /**
-       * Called with each raw progress event, on top of the store's own
-       * bookkeeping, so composing stores can mirror progress per item.
-       */
-      readonly onProgress?: (progress: ICloneProgress) => void
-      /** Called after clone succeeds with the identity that completed it. */
-      readonly onSuccess?: (accountKey: string | null) => void
-      /** User-visible destination when Git writes into an app-owned staging path. */
-      readonly displayPath?: string
-      /** Cancels the owned Git clone and prevents account fallback attempts. */
-      readonly signal?: AbortSignal
-      /** Called for an intentional abort instead of routing a clone error. */
-      readonly onAbort?: () => void
-    }
+    opts:
+      | {
+          /**
+           * When provided the error is passed here instead of being emitted as a
+           * global error. Used by batch clone so a failing repo yields a batch
+           * summary rather than a per-repo error dialog.
+           */
+          readonly onError?: (error: Error) => void
+          /**
+           * Called with each raw progress event, on top of the store's own
+           * bookkeeping, so composing stores can mirror progress per item.
+           */
+          readonly onProgress?: (progress: ICloneProgress) => void
+          /** Called after clone succeeds with the identity that completed it. */
+          readonly onSuccess?: (accountKey: string | null) => void
+          /** User-visible destination when Git writes into an app-owned staging path. */
+          readonly displayPath?: string
+          /** Cancels the owned Git clone and prevents account fallback attempts. */
+          readonly signal?: AbortSignal
+          /** Called for an intentional abort instead of routing a clone error. */
+          readonly onAbort?: () => void
+        }
+      | undefined,
+    repository: CloningRepository
   ): Promise<boolean> {
-    const displayPath = opts?.displayPath ?? path
-    const repository = new CloningRepository(displayPath, url)
-    this._repositories.push(repository)
-
-    const title = `Cloning into ${displayPath}`
-
-    this.stateByID.set(repository.id, { kind: 'clone', title, value: 0 })
-    this.emitUpdate()
-
     // A fresh estimator per clone: the rolling rate window must not carry over
     // between repositories sharing this store.
     const etaEstimator = new CloneProgressEtaEstimator()

@@ -679,10 +679,20 @@ describe('direct clone staging', () => {
         cloneOperation as never
       )
       await initializeDirectRecovery(store, root)
-      const [firstSuccess, secondSuccess] = await Promise.all([
-        store.clone(source.path, firstDestination, {}),
-        store.clone(source.path, secondDestination, {}),
-      ])
+      const first = store.clone(source.path, firstDestination, {})
+      const firstRepository = store.repositories.find(
+        repository => repository.path === firstDestination
+      )
+      assert.notEqual(firstRepository, undefined)
+
+      const second = store.clone(source.path, secondDestination, {})
+      const secondRepository = store.repositories.find(
+        repository => repository.path === secondDestination
+      )
+      assert.notEqual(secondRepository, undefined)
+      assert.equal(store.getRepositoryState(secondRepository!).value, 0)
+
+      const [firstSuccess, secondSuccess] = await Promise.all([first, second])
 
       assert.equal(firstSuccess, true)
       assert.equal(secondSuccess, true)

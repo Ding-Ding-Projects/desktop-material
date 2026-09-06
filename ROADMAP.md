@@ -1,5 +1,11 @@
 # Desktop Material roadmap
 
+## September 6: direct clone recovery
+
+- [x] Restore synchronous clone progress registration and verify queued clones.
+- [x] Enable repository-scoped Windows long-path checkout and verify with Git.
+- [ ] Verify the built clone interface and publish the repair.
+
 ## September 1 -- linked worktree context-menu operations
 
 - [x] Add **Merge…** to an eligible linked worktree's right-click menu and

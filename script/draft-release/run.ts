@@ -48,7 +48,7 @@ function parseChannel(arg: string): Channel {
  * @param nextVersion version for the next release
  * @param entries release notes for the next release
  */
-function printInstructions(nextVersion: string, entries: Array<string>) {
+async function printInstructions(nextVersion: string, entries: Array<string>) {
   const baseSteps = [
     'Revise the release notes according to https://github.com/desktop/desktop/blob/development/docs/process/writing-release-notes.md',
     'Lint them with: yarn draft-release:format',
@@ -62,7 +62,7 @@ function printInstructions(nextVersion: string, entries: Array<string>) {
   } else {
     const object = { [nextVersion]: entries.sort() }
     const steps = [
-      `Concatenate this to the beginning of the 'releases' element in the changelog.json as a starting point:\n${format(
+      `Concatenate this to the beginning of the 'releases' element in the changelog.json as a starting point:\n${await format(
         JSON.stringify(object),
         {
           parser: 'json',
@@ -170,26 +170,26 @@ export async function run(args: ReadonlyArray<string>): Promise<void> {
       // this might throw
       writeFileSync(
         changelogPath,
-        format(JSON.stringify(changelog), {
+        await format(JSON.stringify(changelog), {
           parser: 'json',
         })
       )
       console.log('Added!')
-      printInstructions(nextVersion, [])
+      await printInstructions(nextVersion, [])
     } catch (e) {
       console.warn(
         `Writing the changelog failed 😿\n(${
           e instanceof Error ? e.message : e
         })`
       )
-      printInstructions(nextVersion, newEntries)
+      await printInstructions(nextVersion, newEntries)
     }
   } else {
     console.log(
       `Looks like there are already release notes for ${nextVersion} in changelog.json.`
     )
 
-    printInstructions(nextVersion, newEntries)
+    await printInstructions(nextVersion, newEntries)
   }
 }
 

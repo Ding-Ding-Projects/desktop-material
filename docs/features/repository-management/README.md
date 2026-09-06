@@ -7,6 +7,9 @@ Material is displaying or how a repository is represented in the application.
 
 ## Features / 功能
 
+- [Direct clone progress and long paths](direct-clone-progress.md): immediate
+  progress selection and Windows checkout configuration.
+
 - [Launchpad](launchpad.md) — review repository work in a full-width grouped
   page with truthful counts and empty states.
 - [Selective stashes](selective-stashes.md) — save only an exact reviewed set

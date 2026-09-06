@@ -8,6 +8,9 @@
 
 # Desktop Material
 
+Clone recovery: [immediate progress and Windows long paths](docs/features/repository-management/direct-clone-progress.md).
+複製復原：[即時進度及 Windows 長路徑](docs/features/repository-management/direct-clone-progress.md)。
+
 ![Desktop Material title beside the real repository changes workspace](social-preview.png)
 
 > **Contributor notice — visible through August 26, 2026:** The shared engineering guidance has

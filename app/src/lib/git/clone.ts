@@ -152,8 +152,17 @@ export async function clone(
   const args = [
     '-c',
     `init.defaultBranch=${defaultBranch}`,
+    // Pass the setting through the invoking Git process so recursive children
+    // receive it during their own checkout.
+    ...(process.platform === 'win32'
+      ? (['-c', 'core.longpaths=true'] as const)
+      : []),
     'clone',
     '--recursive',
+    // Keep the same setting in the target repository after the clone returns.
+    ...(process.platform === 'win32'
+      ? (['--config', 'core.longpaths=true'] as const)
+      : []),
   ]
 
   let opts: IGitStringExecutionOptions = { env, credentialAccountKey }
