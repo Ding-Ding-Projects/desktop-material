@@ -59,12 +59,44 @@ them. Independent review found no introduced correctness or security defect.
 完整編譯發現原有合併漏接嘅符號；補回九個來源檔案嘅必要接線，再補明確進度非空斷言後，
 TypeScript 檢查通過。兩組相關測試分別 33 同 99 個通過，33 個入面包括早前已計過嘅 15 個複製測試。
 
-The development compile, built-interface interaction, release, and integration
-are not yet verified. An initial build overlapped the deliberate regression
-mutation and was stopped; it is not evidence. The replacement compile uses the
-restored source. The legacy headless HTTP endpoint refused connections; the
-installed direct cheap headless CLI is available for the runtime phase.
+## Built clone verification
+
+The production compile and unpackaged development-channel assembly completed
+successfully at `3c2df876584830bda5d6106f5ae5af6e591e7e4f` in 1125.48 seconds.
+An earlier build overlapped a deliberate regression mutation and was stopped;
+that earlier output is not evidence. The optional native shell extension was
+skipped because Visual Studio C++ x64 build tools were unavailable.
+
+The exact built output was launched on an isolated hidden desktop through the
+installed `lowlevel-computer-use-cheap` CLI. Its process identity, sole CDP page,
+and source were checked before interaction. The real clone dialog immediately
+rendered `Cloning fixture-source` with a progress bar and no blank selection.
+The initial local-file URL fixture was refused by the existing hosted-URL
+staging-origin validator. Completion was then tested through the repository's
+existing loopback HTTP Git fixture, without mocking Git or application state.
+
+The HTTP clone completed with all 2,001 files present. A 277-character file path
+was readable, repository-local `core.longpaths` was `true`, Git status was clean,
+and HEAD matched fixture commit `221d3a6ba9e9022943417211d19a9466f96849a9`.
+The application selected `fixture-clone` and displayed `No local changes`.
+
+| Evidence | SHA-256 |
+| --- | --- |
+| Built `main.js` | `5876e31f2acfa9ac13b0dfe037ff083fea37f7231be79e992c6b0fb8ede23d1a` |
+| Built `renderer.js` | `d814747cd6e552346c88fd863409a24467a24958b5907ea2af4a273d30ef7cb6` |
+| Completion capture | `06dc9d41798d61e43656d6d84694baeb586c94cae51c9762b9dfe1eaf41e799f` |
+
+Raw captures and interaction receipts are retained in the private task output.
+They have not been promoted to the public gallery: the capture run did not
+collect a complete console-error ledger for that stricter receipt contract.
+The completion PNG was decoded and visually inspected at 960 by 660 pixels.
+The visible desktop and the user's application profile were not touched.
+
+CI run `34051067114` was confirmed running at the same source commit, but later
+read-back returned HTTP 404. Its terminal result and installer publication are
+unverified. Release and integration proof remain separate from local UI proof.
 
 複製暫存儲存庫而家會先登記，再排隊，進度唔會因為等候鎖而消失。
 Windows 長路徑設定只影響今次 Git 操作同新儲存庫，唔會改全域設定。
-五個檔案共 39 個測試通過；實際介面、發佈同整合證明仍然待辦。
+實際建置已完成，隱藏桌面上嘅 HTTP 複製成功，2,001 個檔案齊全，277 字元路徑可讀，
+完成後正確揀選新儲存庫。CI 後續讀取返回 404，唔會當作已成功發佈。

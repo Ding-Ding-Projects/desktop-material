@@ -4,7 +4,8 @@
 
 - [x] Restore synchronous clone progress registration and verify queued clones.
 - [x] Enable repository-scoped Windows long-path checkout and verify with Git.
-- [ ] Verify the built clone interface and publish the repair.
+- [x] Verify the built clone interface and a real HTTP clone with a 277-character path.
+- [ ] Verify installer publication and final remote workflow state.
 
 ## September 1 -- linked worktree context-menu operations
 

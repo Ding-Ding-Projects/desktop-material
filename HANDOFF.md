@@ -3,11 +3,12 @@
 ## Clone repair in progress: September 6, 2026
 
 See [the clone repair handoff](CLONE-REPAIR-HANDOFF.md) for the exact scope,
-39 passing focused tests, long-path negative regression, and pending built
-interface and publication evidence. Earlier sections retain their historical
+39 passing clone tests, additional boundary/settings checks, a passing full
+compiler, and successful built HTTP clone with a 277-character path. Publication
+read-back is still unavailable. Earlier sections retain their historical
 dates and do not establish verification for this repair.
 
-複製修正進度、39 個通過測試同仍然待辦嘅實際介面及發佈證明，請睇上面嘅交接記錄。
+複製修正、通過測試、實際長路徑複製同仍然未能確認嘅發佈狀態，請睇上面嘅交接記錄。
 
 ## Integration, gallery refresh and cleanup -- 2026-09-03
 
