@@ -35,10 +35,29 @@ failed with TS2345 in `script/draft-release/run.ts:173`. Release drafting now
 awaits Prettier before writing JSON and before printing its formatted fallback
 instructions. `yarn compile:script` passes with that correction.
 
-Issue [225](https://github.com/Ding-Ding-Projects/desktop-material/issues/225)
-and Discussion [226](https://github.com/Ding-Ding-Projects/desktop-material/discussions/226)
-track this repair. Project discovery is unavailable because the active CLI
-authorization lacks `read:project`; no Project state was changed.
+Issue 225, Discussion 226 and draft PR 227 creation returned URLs, but repeated
+read-back returned not found. Their publication is therefore unverified.
+Project discovery is unavailable because the active CLI authorization lacks
+`read:project`; no Project state was changed.
+
+## Build unblock verification
+
+The development compile reported 91 TypeScript diagnostics. Nine existing source
+files contained incomplete merge wiring: the dynamic Status Hub endpoint client,
+settings explanation imports and default constants, the transient account
+explanation interface, and dock description identifiers. Those fragments are
+restored without changing the shell or disabling checks. The new staging test
+also now asserts the progress value is non-null before reading it.
+
+`tsc --noEmit --pretty false` passes after these repairs. A focused run of
+Status Hub client/configuration, setting explanations and clone staging passed
+33 tests. A separate run of queue, Copilot, appearance, agent-access preferences
+and settings-tab strip tests passed 99 tests. The 33-test run includes the same
+15 clone-staging tests present in the earlier 39-test run; do not double-count
+them. Independent review found no introduced correctness or security defect.
+
+完整編譯發現原有合併漏接嘅符號；補回九個來源檔案嘅必要接線，再補明確進度非空斷言後，
+TypeScript 檢查通過。兩組相關測試分別 33 同 99 個通過，33 個入面包括早前已計過嘅 15 個複製測試。
 
 The development compile, built-interface interaction, release, and integration
 are not yet verified. An initial build overlapped the deliberate regression

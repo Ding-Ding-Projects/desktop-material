@@ -1,4 +1,10 @@
 import * as React from 'react'
+import {
+  SettingExplanation,
+  BooleanSettingExplanation,
+  SelectionSettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 import { QRCodeSVG } from 'qrcode.react'
 import { DialogContent } from '../dialog'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'

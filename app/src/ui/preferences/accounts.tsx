@@ -1,4 +1,9 @@
 import * as React from 'react'
+import { getPersistedLanguageMode } from '../../lib/i18n'
+import {
+  SettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 import classNames from 'classnames'
 import {
   Account,
@@ -39,6 +44,16 @@ import {
 import { getIssueTrackerAuthErrorMessage } from '../../lib/issue-trackers/issue-tracker-auth-error'
 import { IssueTrackerReference } from './issue-tracker-reference'
 import { MaterialSymbol } from '../lib/material-symbol'
+
+interface ITransientAccountSettingExplanation {
+  readonly id: string
+  readonly explanationEnglish: string
+  readonly explanationCantonese: string
+  readonly currentEnglish: string
+  readonly currentCantonese: string
+  readonly shippedEnglish: string
+  readonly shippedCantonese: string
+}
 
 interface IAccountsProps {
   readonly accounts: ReadonlyArray<Account>

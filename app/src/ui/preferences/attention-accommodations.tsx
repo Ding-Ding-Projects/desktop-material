@@ -95,14 +95,6 @@ const ModeTargets: Readonly<
   momentum: 'settingsAttentionMomentum',
 }
 
-const ModeSettingIds: Readonly<Record<AttentionAccommodationMode, string>> = {
-  focus: 'attention-focus',
-  lowStimulation: 'attention-low-stimulation',
-  timeAwareness: 'attention-time-awareness',
-  oneThingAtATime: 'attention-one-thing-at-a-time',
-  momentum: 'attention-momentum',
-}
-
 function localize(english: string, cantonese: string): string {
   switch (getPersistedLanguageMode()) {
     case 'cantonese':

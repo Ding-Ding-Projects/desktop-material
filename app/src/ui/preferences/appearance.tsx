@@ -1,5 +1,11 @@
 import * as React from 'react'
 import {
+  BooleanSettingExplanation,
+  SelectionSettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
+import { LanguageModeStorageKey } from '../../lib/language-preference'
+import {
   ApplicationTheme,
   applicationThemeKey,
   supportsSystemThemeChanges,
@@ -39,10 +45,19 @@ import {
 } from '../../models/formatting-preferences'
 import { formatNumber } from '../../lib/format-number'
 import { assertNever } from '../../lib/fatal-error'
-import { BranchSortOrder } from '../../models/branch-sort-order'
-import { ShowBranchNameInRepoListSetting } from '../../models/show-branch-name-in-repo-list'
-import { IAppearanceCustomization } from '../../models/appearance-customization'
-import { translate, translatedVariable } from '../../lib/i18n'
+import {
+  BranchSortOrder,
+  DefaultBranchSortOrder,
+} from '../../models/branch-sort-order'
+import {
+  ShowBranchNameInRepoListSetting,
+  defaultShowBranchNameInRepoListSetting,
+} from '../../models/show-branch-name-in-repo-list'
+import {
+  IAppearanceCustomization,
+  DefaultAppearanceCustomization,
+} from '../../models/appearance-customization'
+import { translate } from '../../lib/i18n'
 import {
   IFunnyLevels,
   translateWithFunnyLevel,

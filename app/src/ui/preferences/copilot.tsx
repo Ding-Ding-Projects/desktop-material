@@ -1,5 +1,14 @@
 import * as React from 'react'
 import {
+  SettingExplanation,
+  BooleanSettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
+import {
+  selectedCopilotModelsKey,
+  alwaysUseCopilotForConflictResolutionKey,
+} from '../../lib/stores/app-store'
+import {
   encodeModelKey,
   isLocalBaseUrl,
   isOllamaBYOKProvider,
@@ -206,7 +215,11 @@ export class CopilotPreferences extends React.Component<
     model: string | null
   ): void {
     if (this.props.onSelectedCopilotModelChangedForAccount !== undefined) {
-      this.props.onSelectedCopilotModelChangedForAccount(account, feature, model)
+      this.props.onSelectedCopilotModelChangedForAccount(
+        account,
+        feature,
+        model
+      )
     } else {
       this.props.onSelectedCopilotModelChanged(feature, model)
     }

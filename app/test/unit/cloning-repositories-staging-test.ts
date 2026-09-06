@@ -690,7 +690,9 @@ describe('direct clone staging', () => {
         repository => repository.path === secondDestination
       )
       assert.notEqual(secondRepository, undefined)
-      assert.equal(store.getRepositoryState(secondRepository!).value, 0)
+      const queuedProgress = store.getRepositoryState(secondRepository!)
+      assert.ok(queuedProgress)
+      assert.equal(queuedProgress.value, 0)
 
       const [firstSuccess, secondSuccess] = await Promise.all([first, second])
 

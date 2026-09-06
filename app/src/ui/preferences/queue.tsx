@@ -1,5 +1,9 @@
 /* eslint-disable react/jsx-no-bind */
 import * as React from 'react'
+import {
+  SelectionSettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
 import { Account, getAccountKey } from '../../models/account'
 import { BatchCloneMode } from '../../models/batch-clone'
 import {

@@ -12,6 +12,7 @@ import {
   ISearchableSelectOption,
 } from '../lib/searchable-select'
 import {
+  DefaultSettingsTabDockPosition,
   isSettingsTabDockPosition,
   settingsTabDockPositionStorageKey,
   SettingsTabDockPosition,
@@ -74,6 +75,7 @@ export class SettingsTabDockControl extends React.Component<
     const { languageMode } = this.state
     const controlId = `settings-tab-dock-${this.props.strip}`
     const descriptionId = `${controlId}-description`
+    const settingId = controlId
     const options: ReadonlyArray<ISearchableSelectOption> = [
       {
         value: 'left',
@@ -117,7 +119,9 @@ export class SettingsTabDockControl extends React.Component<
             })
           }
           disabled={this.props.disabled}
-          ariaDescribedBy={descriptionId}
+          ariaDescribedBy={`${descriptionId} ${
+            settingExplanationDescriptionIds(settingId).ariaDescribedBy
+          }`}
         />
         <p id={descriptionId}>
           {translate('settings.tabsDockDescription', languageMode)}

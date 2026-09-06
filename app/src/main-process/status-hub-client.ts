@@ -22,10 +22,8 @@ export interface IStatusHubClientConfiguration {
   readonly now?: () => number
 }
 
-function normalizeEndpoint(value: string | null): URL | null {
-  if (value === null) {
-    return null
-  }
+export function normalizeStatusHubEndpoint(value: string | null): URL | null {
+  if (value === null) return null
   try {
     const url = new URL(value)
     if (url.username.length > 0 || url.password.length > 0) {
@@ -64,20 +62,18 @@ export class StatusHubClient {
   public constructor(
     private readonly configuration: IStatusHubClientConfiguration
   ) {
-    this.endpoint = normalizeEndpoint(configuration.endpoint)
     this.request = configuration.fetch ?? fetch
     this.now = configuration.now ?? Date.now
   }
 
   public async getStatus(): Promise<IStatusHubStatus> {
-    if (this.endpoint === null) {
-      return LocalStatusHubFallback
-    }
+    const endpoint = await this.getEndpoint()
+    if (endpoint === null) return LocalStatusHubFallback
     const authorization = await this.configuration.getAuthorization()
     if (authorization === null) {
       return {
         connection: 'authentication-unavailable',
-        stableURL: this.endpoint.toString(),
+        stableURL: endpoint.toString(),
         message:
           'Status Hub is configured, but its owner credential is unavailable on this computer.',
         lastUpdatedAt: null,
@@ -95,8 +91,8 @@ export class StatusHubClient {
     projection: IStatusHubSessionProjection
   ): Promise<IStatusHubStatus> {
     const status = await this.getStatus()
-    if (status.connection !== 'connected' || this.endpoint === null)
-      return status
+    const endpoint = await this.getEndpoint()
+    if (status.connection !== 'connected' || endpoint === null) return status
     const authorization = await this.configuration.getAuthorization()
     if (authorization === null)
       return { ...status, connection: 'authentication-unavailable' }
@@ -107,11 +103,12 @@ export class StatusHubClient {
         StatusHubRequestTimeoutMs
       )
       const response = await this.request(
-        new URL('/api/agent/sessions', this.endpoint),
+        new URL('/api/agent/sessions', endpoint),
         {
           method: 'PUT',
           headers: { authorization, 'content-type': 'application/json' },
           body: JSON.stringify(projection),
+          redirect: 'error',
           signal: controller.signal,
         }
       ).finally(() => clearTimeout(timeout))
@@ -143,11 +140,14 @@ export class StatusHubClient {
       return { replies: [], nextCursor: cursor, deliveryConfirmed: false }
     const url = new URL(
       `/api/agent/sessions/${encodeURIComponent(sessionId)}/replies`,
-      this.endpoint
+      endpoint
     )
     if (cursor !== null) url.searchParams.set('cursor', cursor)
     try {
-      const response = await this.request(url, { headers: { authorization } })
+      const response = await this.request(url, {
+        headers: { authorization },
+        redirect: 'error',
+      })
       if (!response.ok)
         return { replies: [], nextCursor: cursor, deliveryConfirmed: false }
       const value = await readBoundedJSON(response)

@@ -1,5 +1,9 @@
 import * as React from 'react'
 import {
+  SettingExplanation,
+  settingExplanationDescriptionIds,
+} from './settings-explanation'
+import {
   isOllamaBYOKProvider,
   type IBYOKModel,
   type IBYOKProvider,
