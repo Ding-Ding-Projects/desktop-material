@@ -22,6 +22,15 @@ established by this task. The linked checkout for
 `codex/fix-clone-selection-long-paths` is also retained because it is a
 separate task lane even though its tip is already in `main`. No stash existed.
 
+The verified external archive is `desktop-material-20260918T170900Z.7z` in
+the HuiDrive backup series. It is `966415042` bytes and contains `9981` files
+and `1057` folders after overlaying the current common `.git` administrative
+directory and the current closeout Markdown files onto the newest verified
+baseline. `7z t` passed. The four clean checkouts had 36 ignored path entries
+in total; those entries were excluded according to Git ignore rules. No
+non-ignored path was missing from the inventory. This archive is the required
+backstop for the later removal decision.
+
 ## Repeated-action safety and canonical completion in progress — 2026-08-30
 
 Issue #215 and Discussion #216 track a new task on

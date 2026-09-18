@@ -8,7 +8,9 @@
   the detached labeler commit are already reachable from `main`.
 - [x] Confirm that the current checkout has no recoverable uncommitted paths,
   no conflict markers, and no unmerged index entries.
-- [ ] Create and verify the external archive before any cleanup removal.
+- [x] Create and verify the external archive before any cleanup removal:
+  `desktop-material-20260918T170900Z.7z`, `966415042` bytes, `9981` files,
+  `1057` folders, and passing `7z t`.
 - [ ] Push the preservation and documentation commit, integrate it into
   `main`, and verify the remote `main` ref.
 - [ ] Remove only task-owned redundant checkout metadata after archive and
