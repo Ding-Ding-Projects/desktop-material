@@ -24,6 +24,24 @@ non-ignored path was missing. The `.claude` checkout, its local ref, and the
 clone-selection checkout remain retained because they are separate or
 ownership-uncertain lanes.
 
+## Cleanup decision after remote proof
+
+The current task checkout and local/remote ref
+`codex/complete-universal-features-single-flight` are the only task-owned
+redundant items. Their final preservation tip
+`57cb1c8b4657f2b65618c49ca6168d436cbe5f76` is an ancestor of the pushed
+`origin/main` at `0ae05b9ec0736be6fe491f6256c442bdce0969f9`, the checkout is
+clean, and the external archive passed verification before removal. They are
+safe to remove after the final documentation commit lands.
+
+The detached `.claude/worktrees/angry-allen-273996` checkout and local
+`claude/angry-allen-273996` ref are retained because this task cannot establish
+ownership. The linked `codex/fix-clone-selection-long-paths` checkout and ref
+are retained as a separate task lane even though their tip is already in
+`main`. No stash or other cleanup candidate exists. Existing Dependabot
+security notices and unrelated open issues are explicitly excluded from this
+closeout; no release work was run.
+
 ## Clone repair in progress: September 6, 2026
 
 See [the clone repair handoff](CLONE-REPAIR-HANDOFF.md) for the exact scope,

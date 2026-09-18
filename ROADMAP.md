@@ -13,8 +13,8 @@
   `9981` files, `1057` folders, and a passing `7z t` check.
 - [x] Verify the resulting merge commit `b867de19a103bb0922fcc6465ef35ea8a216536d`
   on the remote `main` ref with `git ls-remote`.
-- [ ] Remove only the current task's proven redundant checkout metadata;
-  retain separate and ownership-uncertain lanes.
+- [x] Remove only the current task's proven redundant checkout metadata after
+  archive and ancestry proof; retain separate and ownership-uncertain lanes.
 
 ## September 18: repository closeout
 
