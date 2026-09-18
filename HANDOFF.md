@@ -42,6 +42,19 @@ are retained as a separate task lane even though their tip is already in
 security notices and unrelated open issues are explicitly excluded from this
 closeout; no release work was run.
 
+## Final linked-lane inventory
+
+Before the final ref deletion, the previously observed linked checkout paths
+and refs for the detached labeler lane and clone-selection lane became
+unavailable without a removal command in this pass. The verified archive
+retains their Git administrative metadata. The clone-selection commit
+`4d38c9d81cfe350f53c8444db013d3f20517baf4` was restored as its existing local
+and remote ref, and `git ls-remote` returned that exact SHA. No checkout was
+recreated. The detached labeler commit
+`1d3d5928cba15bcb30648f442c711308abe018b9` is already in `main`; its remote
+ref was absent at initial inventory and was not recreated. No uncommitted work
+was observed in either lane before it became unavailable.
+
 ## Clone repair in progress: September 6, 2026
 
 See [the clone repair handoff](CLONE-REPAIR-HANDOFF.md) for the exact scope,
