@@ -1,5 +1,24 @@
 # Desktop Material roadmap
 
+## September 18: repository closeout
+
+- [x] Inventory the primary checkout, linked checkouts, local and remote
+  branches, and stashes before cleanup.
+- [x] Fetch the remote and confirm the primary checkout matches `origin/main`.
+- [x] Preserve all recoverable uncommitted work; no uncommitted or stashed work was
+  present at inventory time.
+- [x] Create and fully verify the external archive
+  `desktop-material-20260918T170006Z.7z` with 6,927 files and a successful
+  `7z t` integrity result.
+- [x] Prove every removable source tip is an ancestor of `origin/main` and
+  verify the remote ref with `git ls-remote`.
+- [x] Keep unrelated open issues, Dependabot branches, tags, and load-bearing refs
+  outside this closeout scope.
+- [x] Refresh `HANDOFF.md` with archive evidence, retained items, exclusions,
+  and the no-conflict integration decision.
+- [x] Integrate completed work into `main`, push `main`, and verify the final
+  remote ref.
+
 ## September 6: direct clone recovery
 
 - [x] Restore synchronous clone progress registration and verify queued clones.

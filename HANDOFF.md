@@ -11271,3 +11271,51 @@ current/source/shipped-value provenance, an explicit accessible-description
 binding, a hand-written inventory row, and focused source proof. Entry-specific
 controls inside the authenticator, locks, and Ollama managers remain governed
 by those managers' own feature inventories rather than duplicated here.
+
+## Repository closeout inventory -- 2026-09-18
+
+This closeout used the existing primary checkout at
+`C:\Users\cntow\Documents\GitHub\desktop-material`. The checkout was clean at
+the start and after fetch: `main` was `e5ea2593ed32216c394fa256a6413c1c73ceb039`,
+matching `origin/main`. There were no uncommitted files, no non-ignored
+untracked files, and no stashes.
+
+The linked checkouts and their source commits were inventoried before cleanup:
+
+| Checkout or branch | Source commit | Relationship to `origin/main` | Disposition |
+| --- | --- | --- | --- |
+| `codex/complete-universal-features-single-flight` | `9e50be5735d1ee029ebe6b279307c5de279cd6a5` | ancestor | Removed after remote proof |
+| `codex/fix-clone-selection-long-paths` | `4d38c9d81cfe350f53c8444db013d3f20517baf4` | ancestor | Removed after remote proof |
+| detached `claude/angry-allen-273996` checkout | `1d3d5928cba15bcb30648f442c711308abe018b9` | ancestor; remote branch already absent | Removed after local ancestry proof |
+
+No merge was required because `main` already contained all three source tips.
+The index had no unmerged entries, a repository-wide conflict-marker scan found
+no active markers, and no conflict-resolution choice was needed. The detached
+checkout was retained in the inventory until its ancestor proof completed,
+then removed as stale local state because its remote ref was already gone.
+
+Before removal, the verified external archive was written to the OneDrive
+backup series under `OakKayBackups/desktop-material/zips/`:
+
+| Evidence | Value |
+| --- | --- |
+| Archive | `desktop-material-20260918T170006Z.7z` |
+| Size | 550,231,256 bytes |
+| Contents | 6,927 files and 1,665 folders |
+| Source coverage | 6,207 regular tracked files, three tracked gitlinks represented by Git metadata, and 720 Git administrative files |
+| Integrity | Full `7z t` test, exit code `0` |
+
+The archive was built from the exact `HEAD` source export plus the complete
+`.git` administrative directory. Earlier incomplete archive attempts were not
+used as evidence. No non-ignored untracked files existed, so no additional
+working files needed preservation.
+
+The remote ref was checked with `git ls-remote` before removal and after the final
+integration. The surviving `main` ref is the only active local checkout and
+the only retained local branch. Dependabot branches, open issues, historical tags,
+and user-owned or load-bearing refs were not removed. No stashes existed.
+
+The open issue scan found issues #228, #224, #223, #222, #215, #212, #134,
+#133, #130, #119, and #118. They remain open because this closeout did not
+implement unrelated product or release work. Their existence and ownership
+were recorded; no issue was silently treated as completed by this inventory.
