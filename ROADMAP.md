@@ -2277,3 +2277,20 @@ present:
   repository checklist intentionally leaves that proof external.
 
 <!-- markdownlint-enable MD004 -->
+## 2026-09-18 primary repository closeout
+
+- [x] Perform a read-only process and repository check before mutation.
+- [x] Fetch the hui when reachable and verify `origin/main` with
+  `git ls-remote`.
+- [x] Inventory the primary checkout, linked checkouts, refs, branches,
+  stashes, conflict entries, and non-ignored working-tree paths.
+- [x] Preserve the clean primary checkout and retain the ownership-uncertain
+  `codex/fix-clone-selection-long-paths` ref, whose tip is already an ancestor
+  of `main`.
+- [x] Create and verify the HuiDrive archive
+  `desktop-material-20260918T183845Z.7z`: 428,147,459 bytes, 8,922 files,
+  361 folders, `7z t` exit 0, 6,210 tracked paths, zero non-ignored untracked
+  paths, and 49,709 ignored paths excluded by Git rules.
+- [ ] Remove only proven redundant task-owned linked checkouts and refs. None
+  are currently proven eligible for removal.
+- [x] Record final remote verification and retained items in `HANDOFF.md`.

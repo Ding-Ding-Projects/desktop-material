@@ -1,5 +1,34 @@
 # Desktop Material — Active parity handoff
 
+## 2026-09-18 primary repository closeout inventory
+
+The primary checkout was inspected read-only before mutation. `git fetch
+origin --no-tags` completed with exit code 0, and `git ls-remote --heads
+origin main` returned `d1b107a805521c311babb103b300bb4865d4ef4d`. Local `main`
+and `origin/main` point to that same commit.
+
+The primary checkout is `C:/Users/cntow/Documents/GitHub/desktop-material`.
+`git worktree list --porcelain` reports only that primary checkout. There are
+no linked checkouts, no unmerged index entries, no stashes, and no uncommitted
+tracked or non-ignored files. The local and remote inventory also contains
+`codex/fix-clone-selection-long-paths` at
+`4d38c9d81cfe350f53c8444db013d3f20517baf4`; its tip is an ancestor of
+`origin/main`, but this pass cannot establish task ownership, so the ref is
+retained. No other non-default local or remote ref is in scope for removal.
+
+An external archive was created and verified before any removal decision. The
+archive is
+`C:\Users\cntow\OneDrive\OakKayBackups\desktop-material\zips\desktop-material-20260918T183845Z.7z`.
+It is 428,147,459 bytes, contains 8,922 files and 361 folders according to
+7-Zip, and `7z t` returned exit code 0. The archive input contained 6,210
+tracked paths and no non-ignored untracked paths. Git reported 49,709 ignored
+paths, which were excluded by design. The failed earlier archive attempt was
+not used as evidence; the verified archive above is the retained backstop.
+
+No source conflict required resolution. Because no other writer moved the
+state during inspection, no conflict merge was attempted. No checkout, ref,
+stash, or directory was removed in this pass.
+
 ## 2026-09-18 single-flight preservation closeout
 
 The existing `codex/complete-universal-features-single-flight` checkout was
