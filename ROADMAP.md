@@ -11,7 +11,8 @@
   verify no unmerged index entries or conflict markers remain.
 - [x] Verify `desktop-material-20260918T170900Z.7z` at `966415042` bytes with
   `9981` files, `1057` folders, and a passing `7z t` check.
-- [ ] Verify the resulting merge commit on the remote `main` ref.
+- [x] Verify the resulting merge commit `b867de19a103bb0922fcc6465ef35ea8a216536d`
+  on the remote `main` ref with `git ls-remote`.
 - [ ] Remove only the current task's proven redundant checkout metadata;
   retain separate and ownership-uncertain lanes.
 
