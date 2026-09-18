@@ -29,6 +29,12 @@ No source conflict required resolution. Because no other writer moved the
 state during inspection, no conflict merge was attempted. No checkout, ref,
 stash, or directory was removed in this pass.
 
+The final open-issue scan succeeded through `gh issue list` and found #228,
+#224, #223, #222, #215, #212, #134, #133, #130, #119, and #118. These remain
+retained backlog because the current request is limited to repository
+preservation, documentation, integration, remote proof, and safe cleanup. No
+feature or issue lane was adopted during this closeout.
+
 ## 2026-09-18 single-flight preservation closeout
 
 The existing `codex/complete-universal-features-single-flight` checkout was

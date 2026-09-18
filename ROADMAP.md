@@ -2294,3 +2294,6 @@ present:
 - [ ] Remove only proven redundant task-owned linked checkouts and refs. None
   are currently proven eligible for removal.
 - [x] Record final remote verification and retained items in `HANDOFF.md`.
+- [x] Scan open issues and retain the existing backlog outside this closeout
+  scope: #228, #224, #223, #222, #215, #212, #134, #133, #130, #119, and
+  #118.
