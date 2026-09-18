@@ -1,5 +1,29 @@
 # Desktop Material — Active parity handoff
 
+## 2026-09-18 single-flight preservation closeout
+
+The existing `codex/complete-universal-features-single-flight` checkout was
+fetched and inspected directly. Its preservation commit is
+`57cb1c8b4657f2b65618c49ca6168d436cbe5f76`, and the remote ref was verified
+with `git ls-remote`. The task history, clone-selection tip
+`4d38c9d81cfe350f53c8444db013d3f20517baf4`, and detached labeler tip
+`1d3d5928cba15bcb30648f442c711308abe018b9` are all ancestors of `main`.
+
+The merge conflict in this file was resolved by keeping the newer `main`
+closeout narrative and adding this task-specific evidence above it. The same
+choice was made in `ROADMAP.md`; both merge parents remain in the resulting
+history. No source-code conflict, unmerged index entry, or conflict marker
+remains.
+
+The verified external archive is
+`desktop-material-20260918T170900Z.7z`, `966415042` bytes, `9981` files, and
+`1057` folders. `7z t` passed after the current common `.git` administrative
+directory and closeout Markdown were overlaid. The four inspected checkouts
+had 36 ignored path entries in total, excluded by Git ignore rules, and no
+non-ignored path was missing. The `.claude` checkout, its local ref, and the
+clone-selection checkout remain retained because they are separate or
+ownership-uncertain lanes.
+
 ## Clone repair in progress: September 6, 2026
 
 See [the clone repair handoff](CLONE-REPAIR-HANDOFF.md) for the exact scope,

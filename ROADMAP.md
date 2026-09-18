@@ -1,5 +1,20 @@
 # Desktop Material roadmap
 
+## September 18, 2026 — single-flight preservation closeout
+
+- [x] Preserve the exact task documentation commit
+  `57cb1c8b4657f2b65618c49ca6168d436cbe5f76` and verify its remote ref.
+- [x] Prove the current task, clone-selection, and detached labeler tips are
+  ancestors of `main`.
+- [x] Resolve the `HANDOFF.md` and `ROADMAP.md` merge conflicts by retaining
+  the newer `main` closeout records and adding the incoming task evidence;
+  verify no unmerged index entries or conflict markers remain.
+- [x] Verify `desktop-material-20260918T170900Z.7z` at `966415042` bytes with
+  `9981` files, `1057` folders, and a passing `7z t` check.
+- [ ] Verify the resulting merge commit on the remote `main` ref.
+- [ ] Remove only the current task's proven redundant checkout metadata;
+  retain separate and ownership-uncertain lanes.
+
 ## September 18: repository closeout
 
 - [x] Inventory the primary checkout, linked checkouts, local and remote
