@@ -1,5 +1,27 @@
 # Desktop Material — Active parity handoff
 
+## 2026-09-18 preservation and integration closeout
+
+This closeout was performed in the existing checkout for
+`codex/complete-universal-features-single-flight`. No new checkout or task
+session was created. The checkout was fetched before inspection and had no
+uncommitted, staged, untracked, or conflicted paths. Its starting commit was
+`9e50be5735d1ee029ebe6b279307c5de279cd6a5`, and the fetched remote ref
+matched it exactly.
+
+The current task history was already reachable from `main`; the clone-selection
+branch tip `4d38c9d81cfe350f53c8444db013d3f20517baf4` and detached checkout tip
+`1d3d5928cba15bcb30648f442c711308abe018b9` were also proven ancestors of
+`main`. No merge conflict or unmerged index entry was present, so no conflict
+resolution was required. The later closeout commit records the archive and
+remote proof after those checks.
+
+The linked checkout at `.claude/worktrees/angry-allen-273996` and its local
+`claude/angry-allen-273996` ref are retained because their ownership is not
+established by this task. The linked checkout for
+`codex/fix-clone-selection-long-paths` is also retained because it is a
+separate task lane even though its tip is already in `main`. No stash existed.
+
 ## Repeated-action safety and canonical completion in progress — 2026-08-30
 
 Issue #215 and Discussion #216 track a new task on

@@ -1,5 +1,19 @@
 # Desktop Material roadmap
 
+## September 18, 2026 — preservation and integration closeout
+
+- [x] Fetch the hui and inventory the current checkout, all linked checkouts,
+  local and remote refs, conflict entries, and stashes.
+- [x] Confirm that the current task history, the clone-selection history, and
+  the detached labeler commit are already reachable from `main`.
+- [x] Confirm that the current checkout has no recoverable uncommitted paths,
+  no conflict markers, and no unmerged index entries.
+- [ ] Create and verify the external archive before any cleanup removal.
+- [ ] Push the preservation and documentation commit, integrate it into
+  `main`, and verify the remote `main` ref.
+- [ ] Remove only task-owned redundant checkout metadata after archive and
+  ancestry proof; retain ownership-uncertain and separate task lanes.
+
 ## August 30 — repeated-action safety and canonical feature completion
 
 - [x] Add a renderer-wide synchronous single-flight registry with exact action
