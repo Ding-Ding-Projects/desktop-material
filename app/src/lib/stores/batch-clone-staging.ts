@@ -78,6 +78,11 @@ export type BatchCloneStagingCompletion =
 
 export interface IBatchCloneStagingManager {
   prepare(item: IBatchCloneItem): Promise<BatchCloneStagingPreparation>
+  /**
+   * Proves that a direct-clone journal was written before any recovery state
+   * existed, so clearing only that journal cannot discard clone data.
+   */
+  canClearStaleDirectCloneJournal?(item: IBatchCloneItem): Promise<boolean>
   reinspect(item: IBatchCloneItem, clonePath: string): Promise<boolean>
   completeAndPromote(
     item: IBatchCloneItem,
@@ -226,6 +231,62 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
       return review(
         'The clone staging area could not be inspected safely and was left unchanged.'
       )
+    }
+  }
+
+  /**
+   * A direct clone writes its journal before it creates staging state. On a
+   * crash in that narrow interval, an occupied destination may belong to the
+   * user, so this check must prove absence of every app-owned recovery entry
+   * before the caller clears the journal. It never mutates the filesystem.
+   */
+  public async canClearStaleDirectCloneJournal(
+    item: IBatchCloneItem
+  ): Promise<boolean> {
+    try {
+      const paths = getBatchCloneStagingPaths(item)
+      if (!(await isCanonicalOrdinaryDirectory(paths.basePath))) {
+        return false
+      }
+
+      const destination = await lstatOrNull(item.path)
+      if (
+        destination !== null &&
+        (!isOrdinaryDirectory(destination) ||
+          !(await isCanonicalOrdinaryDirectory(item.path)))
+      ) {
+        return false
+      }
+
+      // A container or recovery root means a clone may have progressed past
+      // the journal write. Retain all such states for explicit review.
+      if (
+        (await lstatOrNull(paths.containerPath)) !== null ||
+        (await lstatOrNull(paths.recoveryRootPath)) !== null
+      ) {
+        return false
+      }
+
+      const gitDirectoryPath = Path.join(item.path, '.git')
+      const gitDirectory = await lstatOrNull(gitDirectoryPath)
+      if (
+        gitDirectory !== null &&
+        (!isOrdinaryDirectory(gitDirectory) ||
+          !(await isCanonicalOrdinaryDirectory(gitDirectoryPath)))
+      ) {
+        return false
+      }
+
+      // Any marker, valid or not, makes the destination ambiguous. Recheck
+      // the recovery paths after marker inspection to narrow mutation races.
+      return (
+        (await lstatOrNull(promotionMarkerPath(item.path))) === null &&
+        (await lstatOrNull(paths.recoveryRootPath)) === null &&
+        (await lstatOrNull(paths.containerPath)) === null
+      )
+    } catch (error) {
+      log.error('Unable to prove a direct clone journal is stale', error)
+      return false
     }
   }
 

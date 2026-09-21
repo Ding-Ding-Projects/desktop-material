@@ -38,10 +38,14 @@ async function initializeDirectRecovery(
 }
 
 function directItem(root: string): IBatchCloneItem {
+  return directItemAt(Path.join(root, 'clone'))
+}
+
+function directItemAt(path: string): IBatchCloneItem {
   return {
     url: 'https://github.com/desktop-material/direct-clone.git',
-    name: 'clone',
-    path: Path.join(root, 'clone'),
+    name: Path.basename(path),
+    path,
     recoveryId: 'a'.repeat(48),
   }
 }
@@ -530,7 +534,7 @@ describe('direct clone staging', () => {
     }
   })
 
-  it('discovers and safely removes an interrupted direct clone on restart', async () => {
+  it('clears a pre-staging direct recovery journal on restart without touching an occupied destination', async () => {
     const root = await mkdtemp(Path.join(tmpdir(), 'desktop-material-restart-'))
     const item = directItem(root)
     const manager = new FileBatchCloneStagingManager(
@@ -539,8 +543,8 @@ describe('direct clone staging', () => {
     )
     const journal = new FileBatchCloneJournal(root, 'clone-direct-v1.json')
     try {
-      const prepared = await manager.prepare(item)
-      assert.equal(prepared.kind, 'clone')
+      await mkdir(item.path)
+      await writeFile(Path.join(item.path, 'sentinel'), 'keep')
       await journal.save(journalSnapshot(item))
 
       const store = new CloningRepositoriesStore(async () => [], manager)
@@ -549,11 +553,234 @@ describe('direct clone staging', () => {
       await initializeDirectRecovery(store, root)
 
       assert.equal(await journal.load(), null)
-      assert.match(errors[0]?.message ?? '', /safely discarded/i)
+      assert.match(errors[0]?.message ?? '', /stale record was cleared/i)
+      assert.equal(
+        await readFile(Path.join(item.path, 'sentinel'), 'utf8'),
+        'keep'
+      )
       assert.equal(
         existsSync(Path.join(root, '.desktop-material-clone-staging-v1')),
         false
       )
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('reconciles a pre-staging journal before an unrelated direct clone without touching its occupied destination', async t => {
+    const source = await setupEmptyRepository(t)
+    await makeCommit(source, {
+      entries: [{ path: 'README.md', contents: 'next clone' }],
+      commitMessage: 'next clone source',
+    })
+    const root = await mkdtemp(Path.join(tmpdir(), 'dm-next-'))
+    const staleItem = directItemAt(Path.join(root, 'old'))
+    const nextDestination = Path.join(root, 'new')
+    const journal = journalFor(root)
+    try {
+      await mkdir(staleItem.path)
+      await writeFile(Path.join(staleItem.path, 'sentinel'), 'keep')
+
+      const store = new CloningRepositoriesStore(
+        async () => [],
+        new FileBatchCloneStagingManager(rename, alwaysValidRepository)
+      )
+      await initializeDirectRecovery(store, root)
+      await journal.save(journalSnapshot(staleItem))
+
+      assert.equal(await store.clone(source.path, nextDestination, {}), true)
+      assert.equal(await journal.load(), null)
+      assert.equal(
+        await readFile(Path.join(staleItem.path, 'sentinel'), 'utf8'),
+        'keep'
+      )
+      assert.equal(existsSync(Path.join(nextDestination, '.git')), true)
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('recovers an owned direct recovery root after rejecting it as stale', async () => {
+    const root = await mkdtemp(
+      Path.join(tmpdir(), 'desktop-material-owned-recovery-root-')
+    )
+    const item = directItem(root)
+    const manager = new FileBatchCloneStagingManager(
+      rename,
+      alwaysValidRepository
+    )
+    const journal = journalFor(root)
+    try {
+      assert.equal((await manager.prepare(item)).kind, 'clone')
+      await journal.save(journalSnapshot(item))
+      assert.equal(await manager.canClearStaleDirectCloneJournal(item), false)
+
+      const store = new CloningRepositoriesStore(async () => [], manager)
+      const errors: Error[] = []
+      store.onDidError(error => errors.push(error))
+      await initializeDirectRecovery(store, root)
+
+      assert.equal(await journal.load(), null)
+      assert.equal(
+        existsSync(getBatchCloneStagingPaths(item).recoveryRootPath),
+        false
+      )
+      assert.match(errors[0]?.message ?? '', /safely discarded/i)
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('retains a direct recovery journal when an ambiguous recovery root exists', async () => {
+    const root = await mkdtemp(
+      Path.join(tmpdir(), 'desktop-material-ambiguous-recovery-root-')
+    )
+    const item = directItem(root)
+    const paths = getBatchCloneStagingPaths(item)
+    const journal = journalFor(root)
+    const manager = new FileBatchCloneStagingManager(
+      rename,
+      alwaysValidRepository
+    )
+    try {
+      await mkdir(paths.containerPath)
+      await mkdir(paths.recoveryRootPath)
+      await writeFile(Path.join(paths.recoveryRootPath, 'sentinel'), 'keep')
+      await journal.save(journalSnapshot(item))
+      assert.equal(await manager.canClearStaleDirectCloneJournal(item), false)
+
+      const store = new CloningRepositoriesStore(async () => [], manager)
+      const errors: Error[] = []
+      store.onDidError(error => errors.push(error))
+      await initializeDirectRecovery(store, root)
+
+      assert.notEqual(await journal.load(), null)
+      assert.equal(
+        await readFile(Path.join(paths.recoveryRootPath, 'sentinel'), 'utf8'),
+        'keep'
+      )
+      assert.match(errors[0]?.message ?? '', /staging container.*not owned/i)
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('retains a direct recovery journal when an unowned staging container exists', async () => {
+    const root = await mkdtemp(
+      Path.join(tmpdir(), 'desktop-material-unowned-recovery-container-')
+    )
+    const item = directItem(root)
+    const paths = getBatchCloneStagingPaths(item)
+    const journal = journalFor(root)
+    const manager = new FileBatchCloneStagingManager(
+      rename,
+      alwaysValidRepository
+    )
+    try {
+      await mkdir(paths.containerPath)
+      await writeFile(Path.join(paths.containerPath, 'sentinel'), 'keep')
+      await journal.save(journalSnapshot(item))
+      assert.equal(await manager.canClearStaleDirectCloneJournal(item), false)
+
+      const store = new CloningRepositoriesStore(async () => [], manager)
+      const errors: Error[] = []
+      store.onDidError(error => errors.push(error))
+      await initializeDirectRecovery(store, root)
+
+      assert.notEqual(await journal.load(), null)
+      assert.equal(
+        await readFile(Path.join(paths.containerPath, 'sentinel'), 'utf8'),
+        'keep'
+      )
+      assert.match(errors[0]?.message ?? '', /staging container.*not owned/i)
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('retains a direct recovery journal when a promotion marker exists', async () => {
+    const root = await mkdtemp(
+      Path.join(tmpdir(), 'desktop-material-promotion-recovery-')
+    )
+    const item = directItem(root)
+    const promotionPath = Path.join(
+      item.path,
+      '.git',
+      'desktop-material-clone-promotion-v1.json'
+    )
+    const journal = journalFor(root)
+    const manager = new FileBatchCloneStagingManager(
+      rename,
+      alwaysValidRepository
+    )
+    try {
+      await mkdir(Path.dirname(promotionPath), { recursive: true })
+      await writeFile(promotionPath, '{"untrusted":true}')
+      await journal.save(journalSnapshot(item))
+      assert.equal(await manager.canClearStaleDirectCloneJournal(item), false)
+
+      const store = new CloningRepositoriesStore(async () => [], manager)
+      const errors: Error[] = []
+      store.onDidError(error => errors.push(error))
+      await initializeDirectRecovery(store, root)
+
+      assert.notEqual(await journal.load(), null)
+      assert.equal(await readFile(promotionPath, 'utf8'), '{"untrusted":true}')
+      assert.match(
+        errors[0]?.message ?? '',
+        /final clone destination is occupied/i
+      )
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('retains a direct recovery journal when its parent is linked', async t => {
+    const root = await mkdtemp(
+      Path.join(tmpdir(), 'desktop-material-linked-recovery-parent-')
+    )
+    const realBase = Path.join(root, 'real-base')
+    const linkedBase = Path.join(root, 'linked-base')
+    const item = directItemAt(Path.join(linkedBase, 'clone'))
+    const journal = journalFor(root)
+    const manager = new FileBatchCloneStagingManager(
+      rename,
+      alwaysValidRepository
+    )
+    try {
+      await mkdir(realBase)
+      try {
+        await symlink(
+          realBase,
+          linkedBase,
+          process.platform === 'win32' ? 'junction' : 'dir'
+        )
+      } catch (error) {
+        if (
+          process.platform === 'win32' &&
+          (error as NodeJS.ErrnoException).code === 'EPERM'
+        ) {
+          t.skip('Creating a directory junction is unavailable on this host.')
+          return
+        }
+        throw error
+      }
+      await mkdir(item.path)
+      await writeFile(Path.join(item.path, 'sentinel'), 'keep')
+      await journal.save(journalSnapshot(item))
+      assert.equal(await manager.canClearStaleDirectCloneJournal(item), false)
+
+      const store = new CloningRepositoriesStore(async () => [], manager)
+      const errors: Error[] = []
+      store.onDidError(error => errors.push(error))
+      await initializeDirectRecovery(store, root)
+
+      assert.notEqual(await journal.load(), null)
+      assert.equal(
+        await readFile(Path.join(item.path, 'sentinel'), 'utf8'),
+        'keep'
+      )
+      assert.match(errors[0]?.message ?? '', /base directory.*linked/i)
     } finally {
       await rm(root, { recursive: true, force: true })
     }
