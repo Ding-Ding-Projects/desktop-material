@@ -190,16 +190,6 @@ export function shouldRefreshCloneableRepositories(
 }
 
 /**
- * An explicit clone sort remains authoritative while searching. Lists without
- * a selected sort retain the historical fuzzy relevance ordering.
- */
-export function shouldPreserveCloneRepositoryFilterOrder(
-  sortOrder: CloneRepositorySortOrder | undefined
-): boolean {
-  return sortOrder !== undefined
-}
-
-/**
  * Iterate over all groups until a list item is found that matches
  * the clone url of the provided repository.
  */
@@ -684,9 +674,7 @@ export class CloneableRepositoryFilterList extends React.PureComponent<ICloneabl
           this.props.placeholderText ?? 'Filter your repositories'
         }
         getGroupAriaLabel={this.getGroupAriaLabelGetter(groups)}
-        preserveFilterOrder={shouldPreserveCloneRepositoryFilterOrder(
-          this.props.sortOrder
-        )}
+        preserveFilterOrder={this.props.sortOrder !== undefined}
       />
     )
   }
@@ -826,7 +814,8 @@ export class CloneableRepositoryFilterList extends React.PureComponent<ICloneabl
   private onSelectAllChange = (event: React.FormEvent<HTMLInputElement>) => {
     const groups = this.getRepositoryGroups(
       this.props.repositories,
-      this.props.account.login
+      this.props.account.login,
+      this.props.sortOrder
     )
     const urls = groups.flatMap(group => group.items.map(item => item.url))
     this.props.onToggleAllItemsChecked?.(urls, event.currentTarget.checked)
@@ -835,7 +824,8 @@ export class CloneableRepositoryFilterList extends React.PureComponent<ICloneabl
   private renderPostFilter = () => {
     const groups = this.getRepositoryGroups(
       this.props.repositories,
-      this.props.account.login
+      this.props.account.login,
+      this.props.sortOrder
     )
     const urls = groups.flatMap(group => group.items.map(item => item.url))
     const checkedCount = urls.filter(

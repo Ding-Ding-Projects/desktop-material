@@ -238,8 +238,7 @@ const toListItems = (
   sortOrder: CloneRepositorySortOrder
 ) =>
   sortCloneableRepositories(
-    repositories
-    .map<ICloneableRepositoryListItem>(repo => ({
+    repositories.map<ICloneableRepositoryListItem>(repo => ({
       id: repo.html_url,
       text: [`${repo.owner.login}/${repo.name}`],
       url: repo.clone_url,

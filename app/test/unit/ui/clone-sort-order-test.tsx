@@ -2,12 +2,13 @@ import assert from 'node:assert'
 import { afterEach, describe, it } from 'node:test'
 
 import { IAPIIdentity, IAPIRepository } from '../../../src/lib/api'
+import { Account } from '../../../src/models/account'
 import { match } from '../../../src/lib/fuzzy-find'
 import {
   CloneRepositorySortOrder,
   groupRepositories,
 } from '../../../src/ui/clone-repository/group-repositories'
-import { shouldPreserveCloneRepositoryFilterOrder } from '../../../src/ui/clone-repository/cloneable-repository-filter-list'
+import { CloneableRepositoryFilterList } from '../../../src/ui/clone-repository/cloneable-repository-filter-list'
 import {
   persistCloneRepositorySortOrder,
   readPersistedCloneRepositorySortOrder,
@@ -108,6 +109,54 @@ describe('clone repository sorting edge cases', () => {
       ]
     )
   })
+
+  it('keeps the selected API repository after an explicit reorder', () => {
+    const alpha = repository('alpha')
+    const zeta = repository('zeta')
+    const selected = new Array<IAPIRepository | null>()
+    const bulkChanges = new Array<{
+      readonly urls: ReadonlyArray<string>
+      readonly checked: boolean
+    }>()
+    const account = new Account(
+      'octocat',
+      'https://api.github.com',
+      '',
+      [],
+      '',
+      1,
+      'Octocat'
+    )
+    const list = new CloneableRepositoryFilterList({
+      account,
+      selectedItem: alpha,
+      onSelectionChanged: repository => selected.push(repository),
+      repositories: [alpha, zeta],
+      loading: false,
+      filterText: '',
+      onFilterTextChanged: () => {},
+      onRefreshRepositories: () => {},
+      sortOrder: CloneRepositorySortOrder.AlphabeticalDescending,
+      onToggleAllItemsChecked: (urls, checked) =>
+        bulkChanges.push({ urls, checked }),
+    })
+    const reordered = groupRepositories(
+      [alpha, zeta],
+      account.login,
+      CloneRepositorySortOrder.AlphabeticalDescending
+    )
+
+    ;(list as any).onSelectionChanged(reordered[0].items[0])
+    ;(list as any).onSelectAllChange({ currentTarget: { checked: true } })
+
+    assert.deepStrictEqual(selected, [zeta])
+    assert.deepStrictEqual(bulkChanges, [
+      {
+        urls: [zeta.clone_url, alpha.clone_url],
+        checked: true,
+      },
+    ])
+  })
 })
 
 describe('clone repository sort persistence', () => {
@@ -127,16 +176,6 @@ describe('clone repository sort persistence', () => {
 })
 
 describe('preserveMatchOrder', () => {
-  it('keeps an explicit A to Z choice while fuzzy filtering', () => {
-    assert.equal(
-      shouldPreserveCloneRepositoryFilterOrder(
-        CloneRepositorySortOrder.AlphabeticalAscending
-      ),
-      true
-    )
-    assert.equal(shouldPreserveCloneRepositoryFilterOrder(undefined), false)
-  })
-
   it('retains the caller order while keeping real fuzzy match metadata', () => {
     const items = [
       { id: '1', text: ['zebra'] },

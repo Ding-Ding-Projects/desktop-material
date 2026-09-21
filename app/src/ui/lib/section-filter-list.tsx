@@ -76,6 +76,7 @@ interface ISectionFilterListProps<T extends IFilterListItem, GroupIdentifier> {
    * Keep caller-provided item order after a text match. The default retains
    * historical fuzzy relevance ranking for existing filter-list consumers.
    */
+  // eslint-disable-next-line react/no-unused-prop-types
   readonly preserveFilterOrder?: boolean
 
   /** The selected item. */
