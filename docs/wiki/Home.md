@@ -1,5 +1,10 @@
 # Desktop Material
 
+The clone dialog offers [repository sorting and metadata](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/repository-management/clone-dialog-repository-metadata.md),
+including alphabetical, modified, created, and UTC-day ordering.
+See [direct clone recovery](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/repository-management/direct-clone-recovery.md)
+for stale-record handling and destination preservation.
+
 ![A four-step map from the wiki home to the right guide](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/diagrams/wiki-map.svg)
 
 Use this map to choose a starting point: learn the daily workflow in the User Guide, browse shipped surfaces in the Feature Gallery, or open a specialist guide for deeper details.

@@ -9,9 +9,15 @@ import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { getHTMLURL, IAPIOrganization, IAPIRepository } from '../../lib/api'
 import { CloneableRepositoryFilterList } from './cloneable-repository-filter-list'
 import {
+  CloneRepositorySortOrder,
+  DefaultCloneRepositorySortOrder,
   ICloneableRepositoryListItem,
   RepositoryVisibilityFilter,
 } from './group-repositories'
+import {
+  persistCloneRepositorySortOrder,
+  readPersistedCloneRepositorySortOrder,
+} from './clone-repository-sort'
 import classNames from 'classnames'
 import { ClickSource } from '../lib/list'
 import { AccountPicker } from '../account-picker'
@@ -27,6 +33,10 @@ import {
   translate,
 } from '../../lib/i18n'
 import memoizeOne from 'memoize-one'
+import {
+  ISearchableSelectOption,
+  SearchableSelect,
+} from '../lib/searchable-select'
 
 interface ICloneGithubRepositoryProps {
   /** The account to clone from. */
@@ -230,6 +240,9 @@ interface ICloneGithubRepositoryState {
 
   /** Metadata filters stay out of the repository viewport until requested. */
   readonly filtersOpen: boolean
+
+  /** Persisted ordering for repository rows within every owner group. */
+  readonly sortOrder: CloneRepositorySortOrder
 }
 
 const VisibilityFilterLabels: ReadonlyArray<{
@@ -240,6 +253,40 @@ const VisibilityFilterLabels: ReadonlyArray<{
   { key: 'public', labelKey: 'clone.visibilityPublic' },
   { key: 'private', labelKey: 'clone.visibilityPrivate' },
   { key: 'forked', labelKey: 'clone.visibilityForked' },
+]
+
+const RepositorySortOptions: ReadonlyArray<{
+  readonly value: CloneRepositorySortOrder
+  readonly labelKey: Parameters<typeof translate>[0]
+}> = [
+  {
+    value: CloneRepositorySortOrder.AlphabeticalAscending,
+    labelKey: 'clone.sort.alphabeticalAscending',
+  },
+  {
+    value: CloneRepositorySortOrder.AlphabeticalDescending,
+    labelKey: 'clone.sort.alphabeticalDescending',
+  },
+  {
+    value: CloneRepositorySortOrder.ModifiedNewest,
+    labelKey: 'clone.sort.modifiedNewest',
+  },
+  {
+    value: CloneRepositorySortOrder.ModifiedOldest,
+    labelKey: 'clone.sort.modifiedOldest',
+  },
+  {
+    value: CloneRepositorySortOrder.CreatedNewest,
+    labelKey: 'clone.sort.createdNewest',
+  },
+  {
+    value: CloneRepositorySortOrder.CreatedOldest,
+    labelKey: 'clone.sort.createdOldest',
+  },
+  {
+    value: CloneRepositorySortOrder.ModifiedDay,
+    labelKey: 'clone.sort.modifiedDay',
+  },
 ]
 
 /**
@@ -266,6 +313,7 @@ export class CloneGithubRepository extends React.PureComponent<
     this.state = {
       languageMode: getPersistedLanguageMode(),
       filtersOpen: false,
+      sortOrder: readPersistedCloneRepositorySortOrder(),
     }
   }
 
@@ -402,6 +450,40 @@ export class CloneGithubRepository extends React.PureComponent<
 
   private onToggleFilters = () => {
     this.setState(state => ({ filtersOpen: !state.filtersOpen }))
+  }
+
+  private onSortOrderChanged = (value: string) => {
+    const sortOrder = Object.values(CloneRepositorySortOrder).includes(
+      value as CloneRepositorySortOrder
+    )
+      ? (value as CloneRepositorySortOrder)
+      : DefaultCloneRepositorySortOrder
+    persistCloneRepositorySortOrder(sortOrder)
+    this.setState({ sortOrder })
+  }
+
+  private renderSortControl() {
+    const options: ReadonlyArray<ISearchableSelectOption> =
+      RepositorySortOptions.map(option => ({
+        value: option.value,
+        label: this.localize(option.labelKey),
+      }))
+
+    return (
+      <div className="clone-repository-sort-control">
+        <SearchableSelect
+          label={this.localize('clone.sort.label')}
+          value={this.state.sortOrder}
+          options={options}
+          onChange={this.onSortOrderChanged}
+          searchSurfaceId="clone-repository-sort"
+          regexBuilderTarget={this.localize('clone.sort.regexTarget')}
+          placeholder={this.localize('clone.sort.label')}
+          searchLabel={this.localize('clone.sort.searchLabel')}
+          noMatchLabel={this.localize('clone.sort.noMatch')}
+        />
+      </div>
+    )
   }
 
   private getActiveFilterCount(): number {
@@ -567,6 +649,7 @@ export class CloneGithubRepository extends React.PureComponent<
     return (
       <DialogContent className="clone-github-repository-content">
         {this.renderFilterDisclosure()}
+        {this.renderSortControl()}
         {this.renderMetadataFilters()}
         {this.props.organizationsError !== null &&
           !this.props.organizationsLoading && (
@@ -626,6 +709,7 @@ export class CloneGithubRepository extends React.PureComponent<
             rowHeight={this.getCloneRowHeight}
             showMetadata={true}
             languageMode={this.state.languageMode}
+            sortOrder={this.state.sortOrder}
           />
         </Row>
 

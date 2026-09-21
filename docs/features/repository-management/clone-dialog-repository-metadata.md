@@ -27,12 +27,19 @@ in a browser first.
   (multi-select); an empty selection means no language filter. Language chips
   are derived from the visibility-filtered set *before* the language filter is
   applied, so selecting one language never hides the other chips.
+- A persisted **Sort repositories** control orders rows inside each owner
+  group. It offers alphabetical A to Z or Z to A, last-modified newest or
+  oldest, creation newest or oldest, and modified calendar day. Day order puts
+  the newest day first and uses alphabetical order within a day. Missing or
+  invalid timestamps stay last for every date order, and ties use the name then
+  clone URL so rows never move unpredictably. Filtering, checked clone rows,
+  selection, and owner groups remain unchanged.
 
 ## Data and configuration
 
 - The GitHub listing type `IAPIRepository` carries the metadata additively:
   `description`, `language`, `stargazers_count`, `forks_count`, `size`, and
-  `updated_at`. These fields flow straight from the `/user/repos` response;
+  `updated_at`, and `created_at`. These fields flow straight from the `/user/repos` response;
   `private` and `default_branch` were already present.
 - The fields are optional. Older GitHub Enterprise Server responses and the
   GitLab / Bitbucket adapters may omit any of them, in which case that single
@@ -73,3 +80,6 @@ narrowing. Row-rendering tests assert the description, language dot and color,
 every metric, the Public/Private pill, the blank-description fallback, graceful
 omission of absent metrics, the English/Cantonese/bilingual labels, and that
 the compact (non-metadata) row still renders.
+
+Sorting tests cover both alphabetical directions, modified and creation date
+directions, missing-timestamp placement, and calendar-day ordering.

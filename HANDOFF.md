@@ -1,5 +1,31 @@
 # Desktop Material — Active parity handoff
 
+## 2026-09-20 clone sorting and stale recovery
+
+The clone dialog now exposes persisted alphabetical, modified-date,
+creation-date, and UTC modified-day ordering within its existing owner groups.
+Explicit choices remain authoritative during filtering; selection uses stable
+repository URLs. Missing or invalid dates sort last in either direction.
+
+Focused sorting checks passed 29 tests across
+`clone-repository-metadata-test.ts` and `ui/clone-sort-order-test.tsx`.
+The existing clone-dialog capture scene now exercises all seven choices and
+checks saved state and control containment. Its driver contract passed 60 tests.
+These are local checks, not a release or runtime verdict.
+
+The stale direct-clone journal repair is tracked with this work in issue #240
+and progress Discussion #241. It preserves the established verified recovery
+paths and permits clearing only journal metadata when filesystem inspection
+proves that no staging or promotion data exists. Occupied destination contents
+remain unchanged.
+
+At this handoff update, final compilation, built interaction evidence, default
+branch integration, remote proof, and delivery remain pending. The earlier
+production compilation was deliberately stopped before completion to include
+the review correction; it is not a passing build. The replacement local
+interaction build uses the production configuration with minification disabled.
+Release packaging retains its normal production configuration.
+
 ## 2026-09-18 primary repository closeout inventory
 
 The primary checkout was inspected read-only before mutation. `git fetch

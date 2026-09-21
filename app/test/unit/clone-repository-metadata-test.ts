@@ -9,6 +9,7 @@ import {
   NeutralLanguageColor,
 } from '../../src/ui/clone-repository/repository-metadata'
 import {
+  CloneRepositorySortOrder,
   filterRepositoriesByLanguage,
   groupRepositories,
 } from '../../src/ui/clone-repository/group-repositories'
@@ -202,6 +203,7 @@ describe('groupRepositories metadata mapping', () => {
     assert.strictEqual(item.sizeInKilobytes, 8100)
     assert.strictEqual(item.defaultBranch, 'trunk')
     assert.strictEqual(item.updatedAt, '2020-05-01T00:00:00Z')
+    assert.strictEqual(item.createdAt, undefined)
   })
 
   it('leaves optional metadata undefined for a sparse (older-GHES) repository', () => {
@@ -214,5 +216,69 @@ describe('groupRepositories metadata mapping', () => {
     assert.strictEqual(item.stargazers, undefined)
     assert.strictEqual(item.language, undefined)
     assert.strictEqual(item.sizeInKilobytes, undefined)
+  })
+})
+
+describe('clone repository sorting', () => {
+  const repositories = [
+    repo({
+      name: 'zeta',
+      updated_at: '2026-09-18T20:00:00Z',
+      created_at: '2020-01-01T00:00:00Z',
+    }),
+    repo({
+      name: 'Alpha',
+      updated_at: '2026-09-19T01:00:00Z',
+      created_at: '2022-01-01T00:00:00Z',
+    }),
+    repo({
+      name: 'bravo',
+      updated_at: '2026-09-19T22:00:00Z',
+      created_at: '2021-01-01T00:00:00Z',
+    }),
+    repo({ name: 'missing', updated_at: undefined, created_at: undefined }),
+  ]
+
+  function names(order: CloneRepositorySortOrder) {
+    return groupRepositories(repositories, 'octocat', order)[0].items.map(
+      item => item.name
+    )
+  }
+
+  it('orders names in either direction with a stable URL tie-breaker', () => {
+    assert.deepStrictEqual(
+      names(CloneRepositorySortOrder.AlphabeticalAscending),
+      ['Alpha', 'bravo', 'missing', 'zeta']
+    )
+    assert.deepStrictEqual(
+      names(CloneRepositorySortOrder.AlphabeticalDescending),
+      ['zeta', 'missing', 'bravo', 'Alpha']
+    )
+  })
+
+  it('orders modified and created timestamps while keeping missing values last', () => {
+    assert.deepStrictEqual(
+      names(CloneRepositorySortOrder.ModifiedNewest),
+      ['bravo', 'Alpha', 'zeta', 'missing']
+    )
+    assert.deepStrictEqual(
+      names(CloneRepositorySortOrder.ModifiedOldest),
+      ['zeta', 'Alpha', 'bravo', 'missing']
+    )
+    assert.deepStrictEqual(
+      names(CloneRepositorySortOrder.CreatedNewest),
+      ['Alpha', 'bravo', 'zeta', 'missing']
+    )
+    assert.deepStrictEqual(
+      names(CloneRepositorySortOrder.CreatedOldest),
+      ['zeta', 'bravo', 'Alpha', 'missing']
+    )
+  })
+
+  it('sorts modified calendar days newest first and names within each day', () => {
+    assert.deepStrictEqual(
+      names(CloneRepositorySortOrder.ModifiedDay),
+      ['Alpha', 'bravo', 'zeta', 'missing']
+    )
   })
 })

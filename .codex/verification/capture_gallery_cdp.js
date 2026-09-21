@@ -8505,6 +8505,29 @@ scene('clone-dialog-design', async () => {
     'dialog.clone-repository input[placeholder="repository path"]',
     'C:\\Synthetic\\Repository Fleet'
   )
+  const sortOrders = [
+    'alphabetical-ascending', 'alphabetical-descending',
+    'modified-newest', 'modified-oldest',
+    'created-newest', 'created-oldest', 'modified-day',
+  ]
+  for (let index = 0; index < sortOrders.length; index++) {
+    await clickEnabledSelector('.clone-repository-sort-control .searchable-select-button')
+    await waitFor(
+      `document.querySelectorAll('.clone-repository-sort-control [role="option"]').length === 7`,
+      'all seven repository sort choices'
+    )
+    await evaluate(`document.querySelectorAll('.clone-repository-sort-control [role="option"]')[${index}].click()`)
+    await waitFor(
+      `localStorage.getItem('clone-repository-sort-order') === ${JSON.stringify(sortOrders[index])} && document.querySelector('.clone-repository-sort-control [role="listbox"]') === null`,
+      'persisted repository sort choice'
+    )
+  }
+  await clickEnabledSelector('.clone-repository-sort-control .searchable-select-button')
+  await evaluate(`document.querySelector('.clone-repository-sort-control [role="option"]').click()`)
+  await waitFor(
+    `localStorage.getItem('clone-repository-sort-order') === 'alphabetical-ascending' && document.querySelector('.clone-repository-sort-control [role="listbox"]') === null`,
+    'restored alphabetical repository sort'
+  )
   const receipt = await evaluate(`(() => {
     const dialog = document.querySelector('dialog.clone-repository[open]')
     const selectedTab = [...document.querySelectorAll('dialog.clone-repository [role="tab"]')]
@@ -8523,6 +8546,17 @@ scene('clone-dialog-design', async () => {
       hasListState:
         document.querySelector('.clone-repository-list-item, .clone-github-repo .no-items') !== null,
       hasFooter: document.querySelector('dialog.clone-repository .dialog-footer') !== null,
+      savedSort: localStorage.getItem('clone-repository-sort-order'),
+      hasSort: document.querySelector('.clone-repository-sort-control .searchable-select-button') !== null,
+      sortContained: (() => {
+        const control = document.querySelector('.clone-repository-sort-control .searchable-select-button')
+        if (control === null) return false
+        const rect = control.getBoundingClientRect()
+        return rect.width > 0 && rect.height >= 40 &&
+          rect.left >= bounds.left && rect.right <= bounds.right &&
+          rect.top >= bounds.top && rect.bottom <= bounds.bottom &&
+          control.scrollWidth <= control.clientWidth + 1
+      })(),
       maskedPath: path instanceof HTMLInputElement ? path.value : null,
       modal: dialog.getAttribute('data-modal'),
       inViewport:
@@ -8543,6 +8577,9 @@ scene('clone-dialog-design', async () => {
     receipt.hasFilter !== true ||
     receipt.hasListState !== true ||
     receipt.hasFooter !== true ||
+    receipt.savedSort !== 'alphabetical-ascending' ||
+    receipt.hasSort !== true ||
+    receipt.sortContained !== true ||
     receipt.maskedPath !== 'C:\\Synthetic\\Repository Fleet' ||
     receipt.modal !== null ||
     receipt.inViewport !== true ||

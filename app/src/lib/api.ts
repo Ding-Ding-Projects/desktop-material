@@ -485,6 +485,9 @@ export interface IAPIRepository {
 
   /** ISO-8601 timestamp of the repository's last update. */
   readonly updated_at?: string
+
+  /** ISO-8601 timestamp of when the repository was created. */
+  readonly created_at?: string
 }
 
 /** Information needed to clone a repository. */

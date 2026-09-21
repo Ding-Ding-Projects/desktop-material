@@ -72,6 +72,12 @@ interface ISectionFilterListProps<T extends IFilterListItem, GroupIdentifier> {
   // eslint-disable-next-line react/no-unused-prop-types
   readonly groups: ReadonlyArray<IFilterListGroup<T, GroupIdentifier>>
 
+  /**
+   * Keep caller-provided item order after a text match. The default retains
+   * historical fuzzy relevance ranking for existing filter-list consumers.
+   */
+  readonly preserveFilterOrder?: boolean
+
   /** The selected item. */
   readonly selectedItem: T | null
 
@@ -313,6 +319,25 @@ interface IFilterListState<T extends IFilterListItem, GroupIdentifier>
   // Indices of groups in the filtered list
   readonly groups: ReadonlyArray<number>
   readonly regexError: string | null
+}
+
+/**
+ * Reattach match metadata to the input order. `matchGroup` can rank fuzzy
+ * results by relevance, while callers with an explicit sort can retain it.
+ */
+export function preserveMatchOrder<T>(
+  items: ReadonlyArray<T>,
+  matches: ReadonlyArray<IMatch<T>>
+): ReadonlyArray<IMatch<T>> {
+  const matchByItem = new Map<T, IMatch<T>>()
+  for (const match of matches) {
+    matchByItem.set(match.item, match)
+  }
+
+  return items.flatMap(item => {
+    const match = matchByItem.get(item)
+    return match === undefined ? [] : [match]
+  })
 }
 
 /** A List which includes the ability to filter based on its contents. */
@@ -1105,7 +1130,9 @@ function createStateUpdate<T extends IFilterListItem, GroupIdentifier>(
     if (groupRegexError !== null) {
       regexError = groupRegexError
     }
-    const items: ReadonlyArray<IMatch<T>> = results
+    const items: ReadonlyArray<IMatch<T>> = props.preserveFilterOrder
+      ? preserveMatchOrder(prefiltered, results)
+      : results
 
     if (!items.length) {
       continue

@@ -51,10 +51,29 @@ import { OcticonSymbol } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import entries from 'lodash/entries'
 import groupBy from 'lodash/groupBy'
-import { caseInsensitiveEquals, compare } from '../../lib/compare'
+import {
+  caseInsensitiveCompare,
+  caseInsensitiveEquals,
+  compare,
+} from '../../lib/compare'
 
 /** The identifier for the "Your Repositories" grouping. */
 export const YourRepositoriesIdentifier = 'your-repositories'
+
+/** The ways a clone-dialog repository group can be ordered. */
+export enum CloneRepositorySortOrder {
+  AlphabeticalAscending = 'alphabetical-ascending',
+  AlphabeticalDescending = 'alphabetical-descending',
+  ModifiedNewest = 'modified-newest',
+  ModifiedOldest = 'modified-oldest',
+  CreatedNewest = 'created-newest',
+  CreatedOldest = 'created-oldest',
+  ModifiedDay = 'modified-day',
+}
+
+/** The historic clone-dialog ordering: repository name A to Z. */
+export const DefaultCloneRepositorySortOrder =
+  CloneRepositorySortOrder.AlphabeticalAscending
 
 export interface ICloneableRepositoryListItem extends IFilterListItem {
   /** The identifier for the item. */
@@ -98,6 +117,109 @@ export interface ICloneableRepositoryListItem extends IFilterListItem {
 
   /** ISO-8601 last-updated timestamp, or undefined when unavailable. */
   readonly updatedAt?: string
+
+  /** ISO-8601 creation timestamp, or undefined when unavailable. */
+  readonly createdAt?: string
+}
+
+function parsedTimestamp(value: string | undefined | null): number | null {
+  if (typeof value !== 'string' || value.length === 0) {
+    return null
+  }
+
+  const timestamp = Date.parse(value)
+  return Number.isNaN(timestamp) ? null : timestamp
+}
+
+function compareNames(
+  left: ICloneableRepositoryListItem,
+  right: ICloneableRepositoryListItem,
+  descending: boolean = false
+): number {
+  const nameComparison = caseInsensitiveCompare(left.name, right.name)
+  if (nameComparison !== 0) {
+    return descending ? -nameComparison : nameComparison
+  }
+
+  // API names are case-insensitive, so use the clone URL to make ties total
+  // and prevent rows from moving between renders.
+  const urlComparison = compare(left.url, right.url)
+  return descending ? -urlComparison : urlComparison
+}
+
+function compareTimestamp(
+  left: ICloneableRepositoryListItem,
+  right: ICloneableRepositoryListItem,
+  field: 'updatedAt' | 'createdAt',
+  newestFirst: boolean
+): number {
+  const leftTimestamp = parsedTimestamp(left[field])
+  const rightTimestamp = parsedTimestamp(right[field])
+
+  // An omitted or invalid timestamp is never more recent or older than a real
+  // one. Keep sparse provider responses at the bottom for every date order.
+  if (leftTimestamp === null || rightTimestamp === null) {
+    if (leftTimestamp === rightTimestamp) {
+      return compareNames(left, right)
+    }
+    return leftTimestamp === null ? 1 : -1
+  }
+
+  const difference = leftTimestamp - rightTimestamp
+  if (difference !== 0) {
+    return newestFirst ? -difference : difference
+  }
+  return compareNames(left, right)
+}
+
+function updatedCalendarDay(item: ICloneableRepositoryListItem): string | null {
+  const timestamp = parsedTimestamp(item.updatedAt)
+  if (timestamp === null) {
+    return null
+  }
+
+  // Use a canonical UTC day even if a provider supplies a valid offset or a
+  // non-ISO date string. This makes the ordering independent of local time.
+  return new Date(timestamp).toISOString().slice(0, 10)
+}
+
+/**
+ * Sort repositories without mutating the API list. Groups remain intact; only
+ * each group's rows are ordered, so organization headings and selection keys
+ * continue to work exactly as before.
+ */
+export function sortCloneableRepositories(
+  repositories: ReadonlyArray<ICloneableRepositoryListItem>,
+  order: CloneRepositorySortOrder = DefaultCloneRepositorySortOrder
+): ReadonlyArray<ICloneableRepositoryListItem> {
+  return [...repositories].sort((left, right) => {
+    switch (order) {
+      case CloneRepositorySortOrder.AlphabeticalAscending:
+        return compareNames(left, right)
+      case CloneRepositorySortOrder.AlphabeticalDescending:
+        return compareNames(left, right, true)
+      case CloneRepositorySortOrder.ModifiedNewest:
+        return compareTimestamp(left, right, 'updatedAt', true)
+      case CloneRepositorySortOrder.ModifiedOldest:
+        return compareTimestamp(left, right, 'updatedAt', false)
+      case CloneRepositorySortOrder.CreatedNewest:
+        return compareTimestamp(left, right, 'createdAt', true)
+      case CloneRepositorySortOrder.CreatedOldest:
+        return compareTimestamp(left, right, 'createdAt', false)
+      case CloneRepositorySortOrder.ModifiedDay: {
+        const leftDay = updatedCalendarDay(left)
+        const rightDay = updatedCalendarDay(right)
+        if (leftDay === null || rightDay === null) {
+          if (leftDay === rightDay) {
+            return compareNames(left, right)
+          }
+          return leftDay === null ? 1 : -1
+        }
+        const dayComparison = compare(rightDay, leftDay)
+        return dayComparison !== 0 ? dayComparison : compareNames(left, right)
+      }
+    }
+  })
 }
 
 function getIcon(gitHubRepo: IAPIRepository): OcticonSymbol {
@@ -111,8 +233,12 @@ function getIcon(gitHubRepo: IAPIRepository): OcticonSymbol {
   return octicons.repo
 }
 
-const toListItems = (repositories: ReadonlyArray<IAPIRepository>) =>
-  repositories
+const toListItems = (
+  repositories: ReadonlyArray<IAPIRepository>,
+  sortOrder: CloneRepositorySortOrder
+) =>
+  sortCloneableRepositories(
+    repositories
     .map<ICloneableRepositoryListItem>(repo => ({
       id: repo.html_url,
       text: [`${repo.owner.login}/${repo.name}`],
@@ -128,12 +254,15 @@ const toListItems = (repositories: ReadonlyArray<IAPIRepository>) =>
       sizeInKilobytes: repo.size,
       defaultBranch: repo.default_branch,
       updatedAt: repo.updated_at,
-    }))
-    .sort((x, y) => compare(x.name, y.name))
+      createdAt: repo.created_at,
+    })),
+    sortOrder
+  )
 
 export function groupRepositories(
   repositories: ReadonlyArray<IAPIRepository>,
-  login: string
+  login: string,
+  sortOrder: CloneRepositorySortOrder = DefaultCloneRepositorySortOrder
 ): ReadonlyArray<IFilterListGroup<ICloneableRepositoryListItem>> {
   const groups = groupBy(repositories, x =>
     caseInsensitiveEquals(x.owner.login, login)
@@ -142,7 +271,10 @@ export function groupRepositories(
   )
 
   return entries(groups)
-    .map(([identifier, repos]) => ({ identifier, items: toListItems(repos) }))
+    .map(([identifier, repos]) => ({
+      identifier,
+      items: toListItems(repos, sortOrder),
+    }))
     .sort((x, y) => {
       if (x.identifier === YourRepositoriesIdentifier) {
         return -1

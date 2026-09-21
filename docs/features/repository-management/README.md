@@ -7,6 +7,8 @@ Material is displaying or how a repository is represented in the application.
 
 ## Features / 功能
 
+- [Direct clone recovery](direct-clone-recovery.md): clear proven stale journal
+  records while preserving occupied destinations and uncertain recovery data.
 - [Direct clone progress and long paths](direct-clone-progress.md): immediate
   progress selection and Windows checkout configuration.
 

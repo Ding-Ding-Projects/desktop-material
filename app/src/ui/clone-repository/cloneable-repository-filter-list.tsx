@@ -5,6 +5,7 @@ import { IFilterListGroup } from '../lib/filter-list'
 import { IAPIRepository } from '../../lib/api'
 import {
   ICloneableRepositoryListItem,
+  CloneRepositorySortOrder,
   groupRepositories,
   YourRepositoriesIdentifier,
 } from './group-repositories'
@@ -169,6 +170,9 @@ interface ICloneableRepositoryFilterListProps {
    * keep the compact single-line row.
    */
   readonly showMetadata?: boolean
+
+  /** The ordering applied inside each owner group. */
+  readonly sortOrder?: CloneRepositorySortOrder
 }
 
 const RowHeight = 31
@@ -183,6 +187,16 @@ export function shouldRefreshCloneableRepositories(
     !accountEquals(previousAccount, account) ||
     (previousRepositories !== repositories && repositories === null)
   )
+}
+
+/**
+ * An explicit clone sort remains authoritative while searching. Lists without
+ * a selected sort retain the historical fuzzy relevance ordering.
+ */
+export function shouldPreserveCloneRepositoryFilterOrder(
+  sortOrder: CloneRepositorySortOrder | undefined
+): boolean {
+  return sortOrder !== undefined
 }
 
 /**
@@ -580,8 +594,14 @@ export class CloneableRepositoryFilterList extends React.PureComponent<ICloneabl
    * time the method was called (reference equality).
    */
   private getRepositoryGroups = memoizeOne(
-    (repositories: ReadonlyArray<IAPIRepository> | null, login: string) =>
-      repositories === null ? [] : groupRepositories(repositories, login)
+    (
+      repositories: ReadonlyArray<IAPIRepository> | null,
+      login: string,
+      sortOrder: CloneRepositorySortOrder | undefined
+    ) =>
+      repositories === null
+        ? []
+        : groupRepositories(repositories, login, sortOrder)
   )
 
   /**
@@ -630,7 +650,11 @@ export class CloneableRepositoryFilterList extends React.PureComponent<ICloneabl
   public render() {
     const { repositories, account, selectedItem } = this.props
 
-    const groups = this.getRepositoryGroups(repositories, account.login)
+    const groups = this.getRepositoryGroups(
+      repositories,
+      account.login,
+      this.props.sortOrder
+    )
     const selectedListItem = this.getSelectedListItem(groups, selectedItem)
 
     return (
@@ -660,6 +684,9 @@ export class CloneableRepositoryFilterList extends React.PureComponent<ICloneabl
           this.props.placeholderText ?? 'Filter your repositories'
         }
         getGroupAriaLabel={this.getGroupAriaLabelGetter(groups)}
+        preserveFilterOrder={shouldPreserveCloneRepositoryFilterOrder(
+          this.props.sortOrder
+        )}
       />
     )
   }

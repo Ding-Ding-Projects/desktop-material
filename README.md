@@ -8,6 +8,9 @@
 
 # Desktop Material
 
+Clone list sorting: [alphabetical, modified, created, and UTC-day order](docs/features/repository-management/clone-dialog-repository-metadata.md).
+複製清單排序：[名稱、修改時間、建立時間及 UTC 日期](docs/features/repository-management/clone-dialog-repository-metadata.md)。
+
 Clone recovery: [immediate progress and Windows long paths](docs/features/repository-management/direct-clone-progress.md).
 複製復原：[即時進度及 Windows 長路徑](docs/features/repository-management/direct-clone-progress.md)。
 

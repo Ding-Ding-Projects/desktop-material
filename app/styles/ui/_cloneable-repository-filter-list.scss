@@ -93,6 +93,20 @@
 // out-specifies the shell layer's generic `.list-item` / `.clone-repository-list`
 // rules without `!important`, and only applies inside the clone card.
 dialog.clone-repository {
+  .clone-repository-sort-control {
+    display: flex;
+    justify-content: flex-end;
+    margin: 4px 0 8px;
+
+    .searchable-select {
+      min-width: 248px;
+    }
+
+    .searchable-select-button {
+      min-height: 40px;
+    }
+  }
+
   // Uppercase group labels (Your repositories / owner login) per the design.
   .clone-repository-list-group-header {
     color: var(--md-sys-color-on-surface-variant);

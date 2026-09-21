@@ -1292,6 +1292,9 @@ test('audit-design scenes are semantic, contained, private, and non-destructive'
   const clone = sceneSource('clone-dialog-design')
   assert.ok(clone.includes("receipt.selectedTab !== 'GitHub Enterprise'"))
   assert.ok(clone.includes('receipt.modal !== null'))
+  assert.ok(clone.includes("receipt.savedSort !== 'alphabetical-ascending'"))
+  assert.ok(clone.includes('receipt.sortContained !== true'))
+  assert.ok(clone.includes('all seven repository sort choices'))
   assert.ok(!clone.includes("clickText('Clone'"))
 
   const captureStart = source.indexOf('async function capture(')

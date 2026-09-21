@@ -1,5 +1,14 @@
 # Desktop Material roadmap
 
+## September 20, 2026: clone sorting and recovery
+
+- [ ] Verify persisted clone-list sorting in the built Windows application,
+  including search, selection, and the seven ordering choices. Implementation
+  and initial focused tests are present; runtime evidence is pending.
+- [ ] Repair and verify stale direct-clone recovery without modifying occupied
+  destinations or discarding ambiguous staging data.
+
+
 ## September 18, 2026 — single-flight preservation closeout
 
 - [x] Preserve the exact task documentation commit
@@ -2287,7 +2296,7 @@ present:
 - [x] Preserve the clean primary checkout and retain the ownership-uncertain
   `codex/fix-clone-selection-long-paths` ref, whose tip is already an ancestor
   of `main`.
-- [x] Create and verify the HuiDrive archive
+- [x] Create and verify the OneDrive archive
   `desktop-material-20260918T183845Z.7z`: 428,147,459 bytes, 8,922 files,
   361 folders, `7z t` exit 0, 6,210 tracked paths, zero non-ignored untracked
   paths, and 49,709 ignored paths excluded by Git rules.

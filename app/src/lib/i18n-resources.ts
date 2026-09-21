@@ -2435,6 +2435,17 @@ export type TranslationKey =
   | 'clone.filters.buttonActive'
   | 'clone.filters.activeCount'
   | 'clone.filters.metadataAria'
+  | 'clone.sort.label'
+  | 'clone.sort.alphabeticalAscending'
+  | 'clone.sort.alphabeticalDescending'
+  | 'clone.sort.modifiedNewest'
+  | 'clone.sort.modifiedOldest'
+  | 'clone.sort.createdNewest'
+  | 'clone.sort.createdOldest'
+  | 'clone.sort.modifiedDay'
+  | 'clone.sort.regexTarget'
+  | 'clone.sort.searchLabel'
+  | 'clone.sort.noMatch'
   | 'clone.cheapLfs.badgeTitle'
   | 'clone.cheapLfs.badgeAriaOne'
   | 'clone.cheapLfs.badgeAriaMany'
@@ -8856,6 +8867,17 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'clone.filters.buttonActive': 'Repository filters · {count}',
   'clone.filters.activeCount': '{count} active',
   'clone.filters.metadataAria': 'Repository metadata filters',
+  'clone.sort.label': 'Sort repositories',
+  'clone.sort.alphabeticalAscending': 'Alphabetical, A to Z',
+  'clone.sort.alphabeticalDescending': 'Alphabetical, Z to A',
+  'clone.sort.modifiedNewest': 'Last modified, newest first',
+  'clone.sort.modifiedOldest': 'Last modified, oldest first',
+  'clone.sort.createdNewest': 'Created, newest first',
+  'clone.sort.createdOldest': 'Created, oldest first',
+  'clone.sort.modifiedDay': 'Last modified day, newest first',
+  'clone.sort.regexTarget': 'repository sort options',
+  'clone.sort.searchLabel': 'Search repository sort options',
+  'clone.sort.noMatch': 'No sort option matches',
   'clone.cheapLfs.badgeTitle': 'Cheap LFS files',
   'clone.cheapLfs.badgeAriaOne':
     'Choose whether to download the 1 Cheap LFS file when cloning {repository}',
@@ -15905,6 +15927,17 @@ export const cantoneseTranslations: Readonly<
   'clone.filters.buttonActive': '倉庫篩選器 · {count}',
   'clone.filters.activeCount': '{count} 個使用中',
   'clone.filters.metadataAria': '倉庫資料篩選器',
+  'clone.sort.label': '排序倉庫',
+  'clone.sort.alphabeticalAscending': '字母順序，A 到 Z',
+  'clone.sort.alphabeticalDescending': '字母順序，Z 到 A',
+  'clone.sort.modifiedNewest': '最後修改，最新先',
+  'clone.sort.modifiedOldest': '最後修改，最舊先',
+  'clone.sort.createdNewest': '建立時間，最新先',
+  'clone.sort.createdOldest': '建立時間，最舊先',
+  'clone.sort.modifiedDay': '最後修改日，最新先',
+  'clone.sort.regexTarget': '倉庫排序選項',
+  'clone.sort.searchLabel': '搜尋倉庫排序選項',
+  'clone.sort.noMatch': '冇符合嘅排序選項',
   'clone.cheapLfs.badgeTitle': 'Cheap LFS 檔案',
   'clone.cheapLfs.badgeAriaOne':
     'Clone {repository} 時揀呢 1 個 Cheap LFS 檔案下唔下載',
