@@ -8501,10 +8501,6 @@ scene('clone-dialog-design', async () => {
     'settled account-scoped clone-dialog design state',
     30000
   )
-  await maskVisibleValue(
-    'dialog.clone-repository input[placeholder="repository path"]',
-    'C:\\Synthetic\\Repository Fleet'
-  )
   const sortOrders = [
     'alphabetical-ascending', 'alphabetical-descending',
     'modified-newest', 'modified-oldest',
@@ -8527,6 +8523,10 @@ scene('clone-dialog-design', async () => {
   await waitFor(
     `localStorage.getItem('clone-repository-sort-order') === 'alphabetical-ascending' && document.querySelector('.clone-repository-sort-control [role="listbox"]') === null`,
     'restored alphabetical repository sort'
+  )
+  await maskVisibleValue(
+    'dialog.clone-repository input[placeholder="repository path"]',
+    'C:\\Synthetic\\Repository Fleet'
   )
   const receipt = await evaluate(`(() => {
     const dialog = document.querySelector('dialog.clone-repository[open]')
