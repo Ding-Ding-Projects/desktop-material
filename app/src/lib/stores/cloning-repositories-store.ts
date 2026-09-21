@@ -94,6 +94,18 @@ export class CloningRepositoriesStore extends BaseStore {
       )
       return
     }
+    if (
+      prepared.kind === 'review' &&
+      (await this.canClearStaleDirectCloneJournal(item))
+    ) {
+      await this.directCloneJournal.clear()
+      this.emitError(
+        new Error(
+          'An interrupted direct clone had no recovery state, so its stale record was cleared. Choose Clone again to retry it.'
+        )
+      )
+      return
+    }
     this.emitError(
       prepared.kind === 'review'
         ? prepared.error
@@ -376,10 +388,26 @@ export class CloningRepositoriesStore extends BaseStore {
       await journal.clear()
       return
     }
+    if (
+      prepared.kind === 'review' &&
+      (await this.canClearStaleDirectCloneJournal(item))
+    ) {
+      await journal.clear()
+      return
+    }
     throw new Error(
       prepared.kind === 'review'
         ? `A previous direct clone recovery needs review before another clone can start: ${prepared.error.message}`
         : 'A previous direct clone recovery is still pending. Its recovery data was left unchanged.'
+    )
+  }
+
+  private async canClearStaleDirectCloneJournal(
+    item: IBatchCloneItem
+  ): Promise<boolean> {
+    return (
+      (await this.stagingManager?.canClearStaleDirectCloneJournal?.(item)) ===
+      true
     )
   }
 
