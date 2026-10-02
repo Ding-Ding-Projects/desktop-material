@@ -9,6 +9,9 @@ on:
       - 'docs/**'
       - 'script/site-dc-assets.mjs'
       - 'script/sync-site-doc-counts.mjs'
+      - 'script/apply-pages-noindex.mjs'
+      - 'script/apply-pages-noindex.test.mjs'
+      - 'script/verify-pages-noindex.mjs'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -179,6 +182,18 @@ jobs:
           test -f _site/docs/search.html
           grep -q 'assets/site/docs-regex-job.js' _site/docs/search.html
           grep -q 'assets/site/docs-hub-regex-worker.js' _site/docs/search.html
+
+      # Every generated HTML page is intentionally crawlable but not eligible
+      # for search results. robots.txt belongs at the shared Pages host root;
+      # this per-repository build enforces the page-level noindex directive.
+      - name: Apply and verify noindex on every Pages HTML file
+        run: node script/apply-pages-noindex.mjs _site
+
+      - name: Test Pages noindex policy
+        run: node --test script/apply-pages-noindex.test.mjs
+
+      - name: DOM-verify Pages noindex output
+        run: node script/verify-pages-noindex.mjs _site
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
