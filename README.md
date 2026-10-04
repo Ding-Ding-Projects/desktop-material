@@ -301,7 +301,7 @@ labelled manual captures were promoted; failed specialist outputs were not.
 
 | Settings accounts | Command palette | Agents |
 | --- | --- | --- |
-| <img src="docs/assets/manual-captures/material-settings-accounts-bilingual.png" alt="Dark bilingual Settings accounts page with settings search, anchored regex builder, Accounts and AI tabs, and provider controls" width="360"> | <img src="docs/assets/manual-captures/material-command-palette-results-bilingual.png" alt="Dark bilingual command palette with its search field and live navigation and repository command results" width="360"> | <img src="docs/assets/manual-captures/material-agents-repository-drawer.png" alt="Dark bilingual Agents drawer with a new agent session action and the current disposable worktree" width="360"> |
+| <img src="docs/assets/manual-captures/material-settings-accounts-bilingual.png" alt="Dark bilingual Settings accounts page with settings search, anchored regex builder, Accounts and AI tabs, and provider controls" width="360"> | <img src="docs/assets/screenshots/command-palette-centred-bilingual-1280-20261004.png" alt="Bilingual command palette card centred over the workspace at 1280 by 800 with the query language, wrapped row titles, a Language mode row whose select sits beneath its text, and the detail pane for TUI language, appearance, and notifications" width="360"> | <img src="docs/assets/manual-captures/material-agents-repository-drawer.png" alt="Dark bilingual Agents drawer with a new agent session action and the current disposable worktree" width="360"> |
 
 | Repositories | Releases | Narrow layout |
 | --- | --- | --- |

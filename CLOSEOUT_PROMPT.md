@@ -76,20 +76,34 @@ Evidence so far
   repository's a11y lint), and the select may grow to 280px. Contract test
   8/9 again, eslint clean.
 
-Unfinished
-- Renderer rebuild with the row-layout follow-up in progress; then the four
-  capture passes (scratchpad/app-captures/run.sh: palette open via menu:find-text,
-  English and bilingual, 1280 and 700 wide, with audit: steps) to prove the
-  fix in the real build and finish the clipping hunt on the palette.
-- HANDOFF.md entry, retained captures under docs/assets/screenshots, README
-  embed, final integration into main and branch cleanup.
+Evidence landed
+- Final captures against the fixed build, four passes (English and bilingual,
+  1280x800 and 700x640): palette chrome off-viewport 0 in every pass; silent
+  truncation 0 in English, 1 in bilingual (the branch-sort select's longest
+  label exceeds the closed box by about 26px; recorded, not chased). The
+  starved "Language mode" row now wraps its select beneath its text.
+  Retained under docs/assets/screenshots/command-palette-*-20261004.png with
+  SHA-256 digests in the HANDOFF entry; the README's Command palette cell
+  shows the bilingual 1280 capture.
+- HANDOFF.md carries the dated entry, including the Build and run follow-up
+  (its panel needs an open repository, which the fixture cannot seed on
+  Linux; four single-line truncations in _material-build-run.scss are named
+  for the next pass).
 
-Blockers: none; waiting on the rebuild.
+Unfinished
+- Integration into main, ancestry proof, and cleanup of the task branch (in
+  progress at this commit). A HuiDrive-style off-machine archive before
+  cleanup is not possible in this container (no OneDrive); the branch being
+  removed is fully contained in main's history.
+
+Blockers: none.
 
 Next safe steps
-1. When out/ holds main.js, run the capture script; review PNGs and the
-   CJ-* audit findings; fix any real clipping in _command-palette.scss with
-   a regression test.
-2. Append the HANDOFF entry, retain captures, commit, push, merge to main,
-   prove ancestry with git merge-base --is-ancestor, delete the task branch.
+1. Build and run: open a repository in the real build (on Windows, or after
+   teaching script/capture-app.js Linux paths), capture the panel with
+   menu:build-and-run and audit: steps, and measure the four truncations
+   named in HANDOFF.md.
+2. The command-palette-size-contract-test.ts modal={true} assertion was
+   already red on main; decide whether the palette should be modal again or
+   the assertion retired.
 ```
