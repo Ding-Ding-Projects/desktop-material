@@ -40,12 +40,14 @@ measured it at `translateX(-168.8px)` where `-440px` was intended. Centring by
 returning to the card sizes.
 
 In the same pass the results pane became its own inline-size container so the
-group chip hides by the pane's width rather than the window's, a plain command's
-action zone no longer reserves the 132px an inline control needs (its Run
-button is always in the tree and holds its own width), and the search-terms line
-wraps instead of ending in an ellipsis. Together those give a title at the
-default size about 230px instead of 134px, which is the difference between
-"Show repository tools" and "Show repository …".
+group chip hides when the pane is narrower than 600px (inside the medium card
+it is about 476px) rather than only when the window is narrow, a plain
+command's action zone no longer reserves the 132px an inline control needs (its
+Run button is always in the tree and holds its own width), the title, the place
+it lives and the search-terms line wrap instead of ending in an ellipsis, and
+the closed select has room for its longest option. Measured in the built app at 1280×800 before the change, "Show emojis in
+dialogs and message boxes", "TUI language, appearance, and notifications" and
+even "Language mode" lost their last words to the ellipsis.
 
 
 ### Full-app surface

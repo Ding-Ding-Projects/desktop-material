@@ -67,9 +67,18 @@ Evidence so far
   app/test/unit/command-palette-size-contract-test.ts (8/9 pass; the ninth,
   the modal={true} assertion, was already red on main and is unrelated).
 
+- First capture run against the fixed build: the card is centred (left 200 at
+  1280) and no palette chrome is off-viewport in any of the four passes. The
+  same run showed the group chip still squeezing the copy column inside the
+  476px medium pane and wrapped search terms turning a squeezed row into a
+  tall ribbon, so the chip threshold is 600px of pane width, titles and
+  where-lines wrap, search terms wrap (a title disclosure is forbidden by the
+  repository's a11y lint), and the select may grow to 280px. Contract test
+  8/9 again, eslint clean.
+
 Unfinished
-- Renderer rebuild with the palette fix in progress; then the four capture
-  passes (scratchpad/app-captures/run.sh: palette open via menu:find-text,
+- Renderer rebuild with the row-layout follow-up in progress; then the four
+  capture passes (scratchpad/app-captures/run.sh: palette open via menu:find-text,
   English and bilingual, 1280 and 700 wide, with audit: steps) to prove the
   fix in the real build and finish the clipping hunt on the palette.
 - HANDOFF.md entry, retained captures under docs/assets/screenshots, README

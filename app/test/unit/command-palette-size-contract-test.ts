@@ -36,7 +36,7 @@ async function readStylesheet(): Promise<string> {
  */
 function sizeBlock(css: string, size: string): string {
   const marker = `&.command-palette-size-${size} {`
-  const narrowWidthMarker = '@media (max-width: 420px) {'
+  const narrowWidthMarker = '@media (max-width: 600px) {'
   const shortHeightMarker = '@media (max-height: 420px) {'
   const narrowWidthStart = css.indexOf(narrowWidthMarker)
   const shortHeightStart = css.indexOf(shortHeightMarker)
@@ -133,7 +133,7 @@ describe('command palette size contract', () => {
     )
     assert.match(
       css,
-      /@container palette-results \(max-width: 420px\)\s*\{\s*\.command-palette-group\s*\{\s*display: none;/
+      /@container palette-results \(max-width: 600px\)\s*\{\s*\.command-palette-group\s*\{\s*display: none;/
     )
 
     // Only a row with an inline control reserves the control's width. A plain
@@ -144,14 +144,25 @@ describe('command palette size contract', () => {
       /\.command-palette-row\.has-control \.command-palette-row-actions\s*\{\s*min-width: 132px;/
     )
 
-    // Search terms wrap; a hint line ending in an ellipsis hides exactly the
-    // term the user was about to type.
-    const keywords = css.slice(
-      css.indexOf('.command-palette-keywords {'),
-      css.indexOf('\n  }', css.indexOf('.command-palette-keywords {'))
+    // The title, the place it lives and the search terms wrap instead of
+    // ending in an ellipsis, and the closed select has room for its longest
+    // label. (A `title` disclosure is not an option: the repository's a11y
+    // lint forbids the attribute outside an iframe.)
+    for (const selector of [
+      '.command-palette-title {',
+      '.command-palette-where {',
+      '.command-palette-keywords {',
+    ]) {
+      const start = css.indexOf(selector)
+      assert.notEqual(start, -1, `${selector} must exist`)
+      const block = css.slice(start, css.indexOf('\n  }', start))
+      assert.doesNotMatch(block, /white-space: nowrap/, selector)
+      assert.doesNotMatch(block, /text-overflow: ellipsis/, selector)
+    }
+    assert.match(
+      css,
+      /\.command-palette-select\s*\{\s*max-width: min\(280px, 100%\);/
     )
-    assert.doesNotMatch(keywords, /white-space: nowrap/)
-    assert.doesNotMatch(keywords, /text-overflow: ellipsis/)
   })
 
   it('uses the native modal layer for the centred scrim and focus trap', async () => {

@@ -98,10 +98,12 @@
     container: palette-results / inline-size;
   }
 
-  // In a narrow pane the group chip costs the title about 90px it does not
-  // have, and "Show repository tools" became "Show repository …" with nothing
+  // Inside the medium card the pane is about 476px wide, and the group chip
+  // (82px in English, up to 160px bilingual) cost the title the room it did
+  // not have: "Show repository tools" became "Show repository …" with nothing
   // to disclose the rest. The chip is the decoration here; the title is not.
-  @container palette-results (max-width: 420px) {
+  // The detail pane and the full-size palette still show the chips.
+  @container palette-results (max-width: 600px) {
     .command-palette-group {
       display: none;
     }
@@ -171,11 +173,14 @@
     gap: 1px;
   }
 
+  // The title and the place it lives wrap onto a second line rather than end
+  // in an ellipsis: a Material two-line list row is ordinary, a command whose
+  // name is cut off is not. Measured in the built app at 1280×800, "Show
+  // emojis in dialogs and message boxes" and "TUI language, appearance, and
+  // notifications" lost their last words to the ellipsis.
   .command-palette-title {
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
     font-size: 14px;
   }
 
@@ -183,18 +188,18 @@
   // which is also what clicking it acts on.
   .command-palette-where {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 4px;
     min-width: 0;
-    overflow: hidden;
+    overflow-wrap: anywhere;
     color: var(--md-sys-color-on-surface-variant);
     font-size: 11.5px;
-    white-space: nowrap;
-    text-overflow: ellipsis;
   }
 
-  // Search terms wrap rather than truncate: a hint line that ends in an
-  // ellipsis hides exactly the term the user was about to type.
+  // Search terms wrap too: a hint line that ends in an ellipsis hides exactly
+  // the term the user was about to type, and a `title` disclosure is not an
+  // option under the repository's a11y lint.
   .command-palette-keywords {
     min-width: 0;
     overflow-wrap: anywhere;
@@ -248,8 +253,11 @@
     }
   }
 
+  // Room for the longest option the catalog declares ("By when they were last
+  // changed · 按最近改過" bilingual); the closed select clips whatever its box
+  // cannot hold, and nothing discloses the rest.
   .command-palette-select {
-    max-width: 168px;
+    max-width: min(280px, 100%);
     padding: 6px 8px;
     border: 1px solid var(--md-sys-color-outline-variant);
     border-radius: var(--md-sys-shape-corner-small, 8px);
