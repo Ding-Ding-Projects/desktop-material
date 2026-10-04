@@ -163,6 +163,16 @@ describe('command palette size contract', () => {
       css,
       /\.command-palette-select\s*\{\s*max-width: min\(280px, 100%\);/
     )
+
+    // A row wraps its trailing zone beneath the text once the text column
+    // would drop under 200px; otherwise a wide select leaves the title one
+    // character per line.
+    assert.match(css, /\.command-palette-row\s*\{[\s\S]*?flex-wrap: wrap;/)
+    assert.match(css, /\.command-palette-row-copy\s*\{[\s\S]*?flex: 1 1 200px;/)
+    assert.match(
+      css,
+      /\.command-palette-row-actions\s*\{[\s\S]*?margin-left: auto;/
+    )
   })
 
   it('uses the native modal layer for the centred scrim and focus trap', async () => {

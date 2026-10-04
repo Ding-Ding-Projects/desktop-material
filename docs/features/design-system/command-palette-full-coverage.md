@@ -45,7 +45,8 @@ it is about 476px) rather than only when the window is narrow, a plain
 command's action zone no longer reserves the 132px an inline control needs (its
 Run button is always in the tree and holds its own width), the title, the place
 it lives and the search-terms line wrap instead of ending in an ellipsis, and
-the closed select has room for its longest option. Measured in the built app at 1280×800 before the change, "Show emojis in
+the closed select has room for its longest option; a row whose text column
+would drop under 200px wraps its control beneath the text instead. Measured in the built app at 1280×800 before the change, "Show emojis in
 dialogs and message boxes", "TUI language, appearance, and notifications" and
 even "Language mode" lost their last words to the ellipsis.
 

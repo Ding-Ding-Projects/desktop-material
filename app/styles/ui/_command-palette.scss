@@ -109,8 +109,12 @@
     }
   }
 
+  // A row wraps its trailing zone beneath the text once the text cannot keep
+  // a readable column: in the bilingual medium card a 280px select left
+  // "Language mode · 語言模式" about 40px, one character per line.
   .command-palette-row {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 12px;
     width: 100%;
@@ -167,7 +171,7 @@
 
   .command-palette-row-copy {
     display: flex;
-    flex: 1;
+    flex: 1 1 200px;
     min-width: 0;
     flex-direction: column;
     gap: 1px;
@@ -224,6 +228,7 @@
     align-items: center;
     justify-content: flex-end;
     gap: 6px;
+    margin-left: auto;
     min-width: 0;
     cursor: default;
   }
