@@ -36,7 +36,7 @@ async function readStylesheet(): Promise<string> {
  */
 function sizeBlock(css: string, size: string): string {
   const marker = `&.command-palette-size-${size} {`
-  const narrowWidthMarker = '@media (max-width: 560px) {'
+  const narrowWidthMarker = '@media (max-width: 420px) {'
   const shortHeightMarker = '@media (max-height: 420px) {'
   const narrowWidthStart = css.indexOf(narrowWidthMarker)
   const shortHeightStart = css.indexOf(shortHeightMarker)
@@ -78,13 +78,80 @@ describe('command palette size contract', () => {
       '&.command-palette-size-medium,\n  &.command-palette-size-compact {'
     )
     assert.notEqual(start, -1, 'the two card sizes must share their geometry')
-    const block = css.slice(start, start + 600)
+    const shared = css.slice(start, css.indexOf('\n  }', start))
 
     // A card that reaches the window edge reads as a failed full screen
     // rather than as a surface floating over the app.
-    assert.match(block, /left: 50%/)
-    assert.match(block, /transform: translateX\(-50%\)/)
-    assert.match(block, /border-radius: 20px/)
+    assert.match(shared, /top: var\(--command-palette-float-top\)/)
+    assert.match(
+      shared,
+      /border-radius: var\(--md-sys-shape-corner-extra-large/
+    )
+
+    // Each size centres itself with `left` from its own width: half the window
+    // minus half the card, never closer to the edge than the card's margin.
+    assert.match(
+      sizeBlock(css, 'medium'),
+      /left: max\(32px, calc\(50vw - 440px\)\);/
+    )
+    assert.match(
+      sizeBlock(css, 'compact'),
+      /left: max\(24px, calc\(50vw - 310px\)\);/
+    )
+  })
+
+  it('never centres a card with transform', async () => {
+    // The Dialog component keeps a floating dialog on screen by writing an
+    // inline `transform: translate(x, y)` on drag and on resize, and an inline
+    // transform replaces the stylesheet's rather than adding to it. Centring
+    // through `translateX(-50%)` therefore lasted exactly one frame: the
+    // entrance keyframes own `transform` while they play, the resize observer
+    // measured the card at `left: 50%` with no shift and at scale 0.82, the
+    // clamp wrote a correction for that box, and the correction stuck. At a
+    // 1280px window the palette sat 71px past the right edge with its close
+    // button, regex-builder button and appearance toggle unreachable.
+    const css = await readStylesheet()
+    const surface = css.slice(
+      css.indexOf(
+        '#dialog-layer dialog#command-palette.command-palette-surface[open] {'
+      ),
+      css.indexOf('@media (max-height: 420px) {')
+    )
+    assert.doesNotMatch(surface, /^\s*transform:/m)
+    assert.doesNotMatch(surface, /^\s*left: 50%/m)
+  })
+
+  it('lets the title keep its width inside a narrow results pane', async () => {
+    const css = await readStylesheet()
+
+    // The group chip answers to the pane's width, not the window's: inside the
+    // medium card at a 1280px window the pane is 456px wide while the window
+    // is not narrow, and the chip was costing the title its last word.
+    assert.match(
+      css,
+      /\.command-palette-results\s*\{[\s\S]*?container: palette-results \/ inline-size;/
+    )
+    assert.match(
+      css,
+      /@container palette-results \(max-width: 420px\)\s*\{\s*\.command-palette-group\s*\{\s*display: none;/
+    )
+
+    // Only a row with an inline control reserves the control's width. A plain
+    // command's Run button is always in the tree, so it holds its own width.
+    assert.match(css, /\.command-palette-row-actions\s*\{[\s\S]*?min-width: 0;/)
+    assert.match(
+      css,
+      /\.command-palette-row\.has-control \.command-palette-row-actions\s*\{\s*min-width: 132px;/
+    )
+
+    // Search terms wrap; a hint line ending in an ellipsis hides exactly the
+    // term the user was about to type.
+    const keywords = css.slice(
+      css.indexOf('.command-palette-keywords {'),
+      css.indexOf('\n  }', css.indexOf('.command-palette-keywords {'))
+    )
+    assert.doesNotMatch(keywords, /white-space: nowrap/)
+    assert.doesNotMatch(keywords, /text-overflow: ellipsis/)
   })
 
   it('uses the native modal layer for the centred scrim and focus trap', async () => {

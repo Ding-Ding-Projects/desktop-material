@@ -1,6 +1,6 @@
 @import '../mixins';
 
-// The Ctrl+Shift+F master command palette, built as Material Design 3's full-screen
+// The Ctrl+Shift+P master command palette, built as Material Design 3's full-screen
 // search view: the palette covers the entire app rather than floating over a
 // corner of it, so the list has room to be a control surface — every row shows
 // where its feature lives, and a row that *is* a setting renders that setting's
@@ -92,6 +92,19 @@
     padding-right: 4px;
     overflow-y: auto;
     overscroll-behavior: contain;
+    // The pane is its own size container, so the row layout below can answer
+    // to the pane's width rather than the window's: inside the medium card at
+    // a 1280px window this pane is 456px wide while the window is not narrow.
+    container: palette-results / inline-size;
+  }
+
+  // In a narrow pane the group chip costs the title about 90px it does not
+  // have, and "Show repository tools" became "Show repository …" with nothing
+  // to disclose the rest. The chip is the decoration here; the title is not.
+  @container palette-results (max-width: 420px) {
+    .command-palette-group {
+      display: none;
+    }
   }
 
   .command-palette-row {
@@ -180,11 +193,11 @@
     text-overflow: ellipsis;
   }
 
+  // Search terms wrap rather than truncate: a hint line that ends in an
+  // ellipsis hides exactly the term the user was about to type.
   .command-palette-keywords {
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
     color: var(--md-sys-color-on-surface-variant);
     font-size: 11.5px;
   }
@@ -197,14 +210,21 @@
   }
 
   // The trailing zone: a setting's own control, or the command's Run button.
+  // Only a row with an inline control reserves the control's width; a plain
+  // command's Run button is always in the tree (it only fades in on hover), so
+  // it holds its own width and the title keeps the rest.
   .command-palette-row-actions {
     display: flex;
     flex: none;
     align-items: center;
     justify-content: flex-end;
     gap: 6px;
-    min-width: 132px;
+    min-width: 0;
     cursor: default;
+  }
+
+  .command-palette-row.has-control .command-palette-row-actions {
+    min-width: 132px;
   }
 
   .command-palette-box {
@@ -673,6 +693,16 @@
 
   // A bounded card, floated below the top of the window so the palette reads
   // as a surface over the app rather than as the app.
+  // Centred by `left` alone, never by `transform`. The Dialog component keeps
+  // every floating dialog on screen by writing an inline `transform:
+  // translate(x, y)` whenever it is dragged or resized, and an inline
+  // transform replaces the stylesheet's, it does not add to it. With the card
+  // centred by `translateX(-50%)` that replacement ran on the card's very
+  // first frame: the dmDialog entrance keyframes own `transform` while they
+  // play, so the card measured at `left: 50%` with no centring shift and at
+  // scale 0.82, the clamp "corrected" that box, and the correction stuck. At a
+  // 1280px window the palette then sat 71px past the right edge with its close
+  // button, regex-builder button and appearance toggle out of reach.
   &.command-palette-size-medium,
   &.command-palette-size-compact {
     --command-palette-content-width: 100%;
@@ -680,9 +710,7 @@
     top: var(--command-palette-float-top);
     right: auto;
     bottom: auto;
-    left: 50%;
     margin: 0;
-    transform: translateX(-50%);
     border-radius: var(--md-sys-shape-corner-extra-large, 28px);
     box-shadow: var(--md-sys-elevation-level3);
     overflow: hidden;
@@ -691,6 +719,7 @@
   &.command-palette-size-medium {
     --command-palette-float-top: max(var(--command-palette-top), 64px);
 
+    left: max(32px, calc(50vw - 440px));
     width: min(880px, calc(100vw - 64px));
     max-width: min(880px, calc(100vw - 64px));
     height: min(620px, calc(100vh - var(--command-palette-float-top) - 48px));
@@ -700,6 +729,7 @@
   &.command-palette-size-compact {
     --command-palette-float-top: max(var(--command-palette-top), 48px);
 
+    left: max(24px, calc(50vw - 310px));
     width: min(620px, calc(100vw - 48px));
     max-width: min(620px, calc(100vw - 48px));
     height: min(440px, calc(100vh - var(--command-palette-float-top) - 40px));

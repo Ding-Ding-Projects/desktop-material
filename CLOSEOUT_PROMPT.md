@@ -46,17 +46,36 @@ Evidence so far
   so its site findings are noise except: the site tab strip at 1280 keeps its
   add/history buttons past the right edge inside an overflow-x:auto row
   (scrollable, not clipped; recorded, not changed).
+- The real built app runs under xvfb in this container (production webpack
+  configuration, built one bundle per process with source maps, the bundle
+  analyzer and minification off for the renderer; the all-in-one compile is
+  killed by the 16GB cgroup at ~13.5GB). Needs ELECTRON_DISABLE_SANDBOX=1,
+  libsecret-1-0 for keytar.node, and the proxy CA in the NSS store (the app
+  treats a certificate error on a launch request as fatal and quits).
+- Clipping defect found and fixed in the command palette (the surface this
+  task is about): at a 1280x800 window the medium card sat 71px past the
+  right edge with its close button, regex-builder button and appearance
+  toggle unreachable. Cause: the card was centred by transform:
+  translateX(-50%); the Dialog component's drag/resize clamp writes an inline
+  transform that replaces it, and it ran on the first entrance-animation
+  frame (scale 0.82, no centring shift), measured in the running app as
+  translateX(-168.8px) at 1280 and -8.8px at 1600 where -440px was intended.
+  Fix in app/styles/ui/_command-palette.scss: centre by left: max(margin,
+  calc(50vw - half width)); results pane as an inline-size container so the
+  group chip answers to the pane width; plain commands no longer reserve an
+  inline control's 132px; search terms wrap. Guarded in
+  app/test/unit/command-palette-size-contract-test.ts (8/9 pass; the ninth,
+  the modal={true} assertion, was already red on main and is unrelated).
 
 Unfinished
-- Development build (yarn build:dev) still running; app captures through
-  script/capture-app.js (palette open via menu:find-text, English and
-  bilingual, 1280 and 700 wide, with audit: steps) are queued in
-  scratchpad/app-captures/run.sh. Needs ELECTRON_DISABLE_SANDBOX=1 and
-  xvfb-run in this container.
+- Renderer rebuild with the palette fix in progress; then the four capture
+  passes (scratchpad/app-captures/run.sh: palette open via menu:find-text,
+  English and bilingual, 1280 and 700 wide, with audit: steps) to prove the
+  fix in the real build and finish the clipping hunt on the palette.
 - HANDOFF.md entry, retained captures under docs/assets/screenshots, README
   embed, final integration into main and branch cleanup.
 
-Blockers: none; waiting on the build.
+Blockers: none; waiting on the rebuild.
 
 Next safe steps
 1. When out/ holds main.js, run the capture script; review PNGs and the

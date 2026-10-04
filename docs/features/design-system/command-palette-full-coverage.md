@@ -21,6 +21,33 @@ teleports to the place in the app where that feature actually lives.
 
 ## Behaviour
 
+### The card centres itself with `left`, never with `transform`
+
+The medium and compact cards are positioned by `left: max(margin, calc(50vw -
+half the card))`. They used to be centred with `left: 50%` plus
+`transform: translateX(-50%)`, and that lasted exactly one frame: the Dialog
+component keeps every floating dialog on screen by writing an inline
+`transform: translate(x, y)` on drag and on resize, an inline transform
+replaces the stylesheet's rather than adding to it, and the entrance keyframes
+own `transform` while they play. So the resize observer measured the card at
+`left: 50%` with no centring shift and at the keyframes' opening scale of 0.82,
+the clamp wrote a correction for that box, and the correction stuck. At a
+1280×800 window the palette sat 71px past the right edge with its close button,
+regex-builder button and appearance toggle unreachable; the real built app
+measured it at `translateX(-168.8px)` where `-440px` was intended. Centring by
+`left` alone leaves `transform` to the drag and clamp logic, and
+`command-palette-size-contract-test.ts` fails on any `transform` or `left: 50%`
+returning to the card sizes.
+
+In the same pass the results pane became its own inline-size container so the
+group chip hides by the pane's width rather than the window's, a plain command's
+action zone no longer reserves the 132px an inline control needs (its Run
+button is always in the tree and holds its own width), and the search-terms line
+wraps instead of ending in an ellipsis. Together those give a title at the
+default size about 230px instead of 134px, which is the difference between
+"Show repository tools" and "Show repository …".
+
+
 ### Full-app surface
 
 - The palette opens over the whole window (`#command-palette.command-palette-full`),
