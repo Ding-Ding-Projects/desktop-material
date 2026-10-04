@@ -390,10 +390,12 @@ Updated: **August 13, 2026**
 - While active, the app forces English, hides language/playfulness controls and
   their palette/settings-search routes, hides scheduled language selection, and
   suppresses the dim-sum surprise.
-- The command palette was recorded here as **Ctrl+Shift+P**. That was
-  superseded: the collision with the file browser was resolved in favour of the
-  palette, so the application menu registers **Ctrl+Shift+F** for
-  `command-palette`, and the MD3 header chip prints whatever that item declares.
+- The command palette was recorded here as **Ctrl+Shift+P**. For a while that
+  was superseded in favour of the palette on **Ctrl+Shift+F**; on 2026-10-04 it
+  went back: the application menu registers **Ctrl+Shift+P** for
+  `command-palette`, **Ctrl+Shift+F** is Show in Explorer again as upstream
+  binds it, Pull is **Ctrl+Shift+L**, and the MD3 header chip prints whatever
+  the palette item declares.
 - Focused verification passes **50/50** plus source lint. Hidden-desktop capture
   remains blocked by the Lowlevel MCP Git preflight, so no capture is claimed.
 

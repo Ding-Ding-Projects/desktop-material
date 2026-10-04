@@ -104,12 +104,12 @@ Appearance setting: it can be renamed, uses a local salted credential for
 unlock, forces English, hides language/playfulness controls and search rows,
 and suppresses the dim-sum surprise while active. The exact implementation is
 in the [School mode feature guide](docs/features/design-system/school-mode.md).
-(This banner originally said the palette opened with **Ctrl+Shift+P**. It does
-not: the shortcut collision with the file browser was resolved in favour of
-the palette, so **Ctrl+Shift+F** opens the command palette and is what the
-application menu registers.)
+(The palette opens with **Ctrl+Shift+P**, as this banner first said. For a
+while the shortcut collision with the file browser was resolved the other way
+round; it was reversed on 2026-10-04, so **Ctrl+Shift+F** is Show in Explorer
+again, as upstream GitHub Desktop binds it, and Pull is **Ctrl+Shift+L**.)
 
-**Windows 收尾 — 2026 年 8 月 9 日（歷史快照）：** School mode 而家係一個真正嘅外觀設定：改得名、用本機加鹽憑證解鎖、強制英文、收埋語言同玩味控制項同相關搜尋列，開住嗰陣亦唔會出點心彩蛋。實作詳情睇 [School mode 功能指南](docs/features/design-system/school-mode.md)。（呢段原本寫命令面板用 **Ctrl+Shift+P**，其實唔係：同檔案瀏覽器爭快捷鍵嗰件事已經判咗畀面板，所以開命令面板係 **Ctrl+Shift+F**，亦都係應用程式選單真正註冊嗰個。）
+**Windows 收尾 — 2026 年 8 月 9 日（歷史快照）：** School mode 而家係一個真正嘅外觀設定：改得名、用本機加鹽憑證解鎖、強制英文、收埋語言同玩味控制項同相關搜尋列，開住嗰陣亦唔會出點心彩蛋。實作詳情睇 [School mode 功能指南](docs/features/design-system/school-mode.md)。（命令面板用 **Ctrl+Shift+P**，同呢段最初寫嘅一樣。中間有一段時間同檔案瀏覽器爭快捷鍵嗰件事判咗畀面板，2026 年 10 月 4 日已經改返轉頭：**Ctrl+Shift+F** 又係「喺檔案總管顯示」，同上游 GitHub Desktop 一樣，而 Pull 就係 **Ctrl+Shift+L**。）
 
 **Self-hosted runner risk confirmation — August 9, 2026:** the Windows
 Actions runner setup form now audits all assigned labels—including

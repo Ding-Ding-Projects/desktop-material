@@ -228,7 +228,7 @@
       h: 'features/design-system/command-palette-full-coverage.html',
       s: 'features/design-system/command-palette-full-coverage.md',
       c: 'features',
-      d: "The Ctrl+Shift+F master command palette is Material Design 3's full-screen search view. That is the accelerator the application menu actually registers for the command-palette…",
+      d: "The Ctrl+Shift+P master command palette is Material Design 3's full-screen search view. That is the accelerator the application menu actually registers for the command-palette…",
     },
     {
       t: 'Destructive-action super confirmation / 破壞性操作嘅雙匙閘',
@@ -334,6 +334,13 @@
       s: 'features/design-system/school-mode.md',
       c: 'features',
       d: 'School mode is a persisted, user-renamable presentation lock in Settings → Appearance. It keeps the application in English and temporarily removes the language, playfulness,…',
+    },
+    {
+      t: 'Progressive settings explanations and provenance',
+      h: 'features/design-system/settings-explanations.html',
+      s: 'features/design-system/settings-explanations.md',
+      c: 'features',
+      d: 'Desktop Material is adding one shared presentation contract for settings: every setting needs a full behavioral explanation behind progressive disclosure and a factual…',
     },
     {
       t: 'Distinct sound-effect event mapping',
@@ -1027,6 +1034,20 @@
       s: 'features/repository-management/deleted-upstream-pull-recovery.md',
       c: 'features',
       d: "When a pull fails because the current branch's remote-tracking branch no longer exists — someone deleted it after merging a pull request, or renamed it on the remote — Desktop…",
+    },
+    {
+      t: 'Direct clone progress and long paths',
+      h: 'features/repository-management/direct-clone-progress.html',
+      s: 'features/repository-management/direct-clone-progress.md',
+      c: 'features',
+      d: 'Direct clones register their repository and initial progress before waiting for the recovery queue. Selecting the new tab therefore has a valid clone state immediately. Git,…',
+    },
+    {
+      t: 'Direct clone recovery',
+      h: 'features/repository-management/direct-clone-recovery.html',
+      s: 'features/repository-management/direct-clone-recovery.md',
+      c: 'features',
+      d: 'Direct cloning records a recovery journal before creating its staging directory. If the application stops between those operations, a stale record can survive even though no…',
     },
     {
       t: 'External stash interoperability',
@@ -2167,7 +2188,7 @@
       h: 'wiki/Home.html',
       s: 'wiki/Home.md',
       c: 'wiki',
-      d: 'Use this map to choose a starting point: learn the daily workflow in the User Guide, browse shipped surfaces in the Feature Gallery, or open a specialist guide for deeper details.',
+      d: 'The clone dialog offers repository sorting and metadata, including alphabetical, modified, created, and UTC-day ordering.',
     },
     {
       t: 'Desktop Material — wiki',

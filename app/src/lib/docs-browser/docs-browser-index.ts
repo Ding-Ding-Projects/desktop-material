@@ -145,7 +145,7 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       category: 'design-system',
       title: 'Command palette: full-app coverage, rich controls and teleport',
       description:
-        "The Ctrl+Shift+F master command palette is Material Design 3's full-screen search view. That is the accelerator the application menu actually registers for the command-palette…",
+        "The Ctrl+Shift+P master command palette is Material Design 3's full-screen search view. That is the accelerator the application menu actually registers for the command-palette…",
       sourcePath:
         'docs/features/design-system/command-palette-full-coverage.md',
     },
@@ -1111,6 +1111,24 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
         'docs/features/repository-management/deleted-upstream-pull-recovery.md',
     },
     {
+      id: 'repository-management/direct-clone-progress',
+      category: 'repository-management',
+      title: 'Direct clone progress and long paths',
+      description:
+        'Direct clones register their repository and initial progress before waiting for the recovery queue. Selecting the new tab therefore has a valid clone state immediately. Git,…',
+      sourcePath:
+        'docs/features/repository-management/direct-clone-progress.md',
+    },
+    {
+      id: 'repository-management/direct-clone-recovery',
+      category: 'repository-management',
+      title: 'Direct clone recovery',
+      description:
+        'Direct cloning records a recovery journal before creating its staging directory. If the application stops between those operations, a stale record can survive even though no…',
+      sourcePath:
+        'docs/features/repository-management/direct-clone-recovery.md',
+    },
+    {
       id: 'repository-management/external-stash-interoperability',
       category: 'repository-management',
       title: 'External stash interoperability',
@@ -1487,7 +1505,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'repository-management',
     label: 'Repository Management',
-    count: 42,
+    count: 44,
   },
   {
     name: 'review-and-diff',
@@ -1502,4 +1520,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 165
+export const DocsBrowserArticleCount = 171

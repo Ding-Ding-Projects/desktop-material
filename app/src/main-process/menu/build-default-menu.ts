@@ -213,7 +213,10 @@ export function buildDefaultMenuTemplate(
       {
         id: 'command-palette',
         label: __DARWIN__ ? 'Command palette' : 'Command pal&ette',
-        accelerator: 'CmdOrCtrl+Shift+F',
+        // Shift+P is the palette, as in most editors. Shift+F belongs to
+        // "Show in Explorer" below, which is the binding GitHub Desktop has
+        // always shipped for it and the one users' hands already know.
+        accelerator: 'CmdOrCtrl+Shift+P',
         click: emit('find-text'),
       },
     ],
@@ -374,10 +377,10 @@ export function buildDefaultMenuTemplate(
         id: 'pull',
         label: __DARWIN__ ? 'Pull' : 'Pu&ll',
         // Push is CmdOrCtrl+P and fetch is CmdOrCtrl+Shift+T, so pull — easily
-        // the most frequent of the three — was the one command in the group a
-        // user had to reach for the mouse to run. Shift+P pairs it with push
-        // and was unused.
-        accelerator: 'CmdOrCtrl+Shift+P',
+        // the most frequent of the three — used to be the one command in the
+        // group a user had to reach for the mouse to run. Shift+P now opens the
+        // command palette, so pull takes Shift+L, which no other item uses.
+        accelerator: 'CmdOrCtrl+Shift+L',
         click: emit('pull'),
       },
       {
@@ -432,7 +435,7 @@ export function buildDefaultMenuTemplate(
           ? 'Show in E&xplorer'
           : 'Show in your File Manager',
         id: 'open-working-directory',
-        accelerator: 'CmdOrCtrl+Alt+F',
+        accelerator: 'CmdOrCtrl+Shift+F',
         click: emit('open-working-directory'),
       },
       {
@@ -488,7 +491,11 @@ export function buildDefaultMenuTemplate(
       {
         label: __DARWIN__ ? 'Build and Run' : '&Build and run',
         id: 'build-and-run',
-        accelerator: 'CmdOrCtrl+Shift+B',
+        // Shift+B was registered here and on "Compare to Branch" at the same
+        // time, so one of the two could never fire from the keyboard. Compare
+        // keeps the upstream binding; build and run takes F5, the start key in
+        // most IDEs, which nothing else in the template or the renderer uses.
+        accelerator: 'F5',
         click: emit('build-and-run'),
       },
       {

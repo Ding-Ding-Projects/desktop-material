@@ -1,11 +1,19 @@
 # Command palette: full-app coverage, rich controls and teleport
 
-The <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> master command palette is
+The <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> master command palette is
 Material Design 3's full-screen search view. That is the accelerator the
 application menu actually registers for the `command-palette` item, and since
 the MD3 shell landed it is also what the header's palette chip prints, because
 the chip is a read-through of the binding rather than a second copy of it — the
-two cannot drift.
+two cannot drift. This is a deliberate, documented departure from the shared
+product contract, which binds every palette to <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>:
+in this application that chord has always been **Show in Explorer** (Finder on
+macOS), the binding GitHub Desktop ships upstream, and taking it away from the
+file browser broke a habit users brought with them. So the desktop app alone
+keeps Ctrl+Shift+F on the repository folder and opens the palette on
+Ctrl+Shift+P; the Pages site and the documentation hub, which have no
+repository folder, follow the contract and open their palettes on Ctrl+Shift+F.
+Pull, which briefly sat on Ctrl+Shift+P, is Ctrl+Shift+L.
 The palette covers the entire app below the title bar rather than floating as a
 small card, and its rows are no longer just names to dispatch — a row that is
 a setting renders the setting's live control inline, and choosing any row

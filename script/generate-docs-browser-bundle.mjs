@@ -501,17 +501,20 @@ export async function buildDocsBrowserBundle({
   return {
     articles,
     categories,
-    bundleSource: prettier.format(renderBundleModule(articles), {
+    bundleSource: await prettier.format(renderBundleModule(articles), {
       ...bundleOptions,
       filepath: bundlePath,
       // The generator always emits LF; Git applies the checkout's own endings.
       endOfLine: 'lf',
     }),
-    indexSource: prettier.format(renderIndexModule(articles, categories), {
-      ...indexOptions,
-      filepath: indexPath,
-      endOfLine: 'lf',
-    }),
+    indexSource: await prettier.format(
+      renderIndexModule(articles, categories),
+      {
+        ...indexOptions,
+        filepath: indexPath,
+        endOfLine: 'lf',
+      }
+    ),
   }
 }
 
