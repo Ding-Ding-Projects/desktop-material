@@ -261,8 +261,8 @@ function reportAccounting(summary, batchCount) {
     const reason = batch.spawnError
       ? `failed to spawn (${batch.spawnError.code ?? batch.spawnError.message})`
       : batch.signal != null
-      ? `was terminated by signal ${batch.signal}`
-      : `exited (code ${batch.exitCode}) without emitting a reporter summary`
+        ? `was terminated by signal ${batch.signal}`
+        : `exited (code ${batch.exitCode}) without emitting a reporter summary`
     console.error(
       `ERROR: test batch #${batch.index} ${reason}; ` +
         `${batch.files.length} file(s) may not have run.`
@@ -321,9 +321,9 @@ async function main() {
   const baseArgs = [
     '--disable-warning=ExperimentalWarning',
     '--experimental-test-module-mocks',
-    // Allow CJS resolution to find ESM-only packages (e.g. @github/copilot-sdk)
-    // whose "exports" only declare an "import" condition with no "require" fallback.
-    '--conditions=import',
+    // Keep Node's normal import/require conditions. Forcing the import branch
+    // makes tsx transform required JSON into ESM that the JSON loader rejects.
+    // The pinned Copilot SDK now supplies its own CommonJS export.
     ...['--import', 'tsx'],
     ...['--import', './app/test/globals.mts'],
     // Before `switchArgs`, so an explicit --test-concurrency or --test-timeout

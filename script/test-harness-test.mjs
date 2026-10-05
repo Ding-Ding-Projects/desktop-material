@@ -1,4 +1,8 @@
 import assert from 'node:assert'
+import { spawnSync } from 'node:child_process'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import { describe, it } from 'node:test'
 
 import {
@@ -249,5 +253,52 @@ describe('test timeout ceiling', () => {
       testTimeoutMilliseconds >= 60_000,
       'too tight a ceiling turns machine load into a test failure'
     )
+  })
+})
+
+describe('test worker module loading', () => {
+  it('loads JSON and the pinned Copilot SDK through the real runner', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'desktop-test-loader-'))
+    const fixture = join(directory, 'module-loading-test.ts')
+    const projectRoot = resolve(import.meta.dirname, '..')
+    const appManifest = join(projectRoot, 'app', 'package.json')
+
+    try {
+      await writeFile(
+        fixture,
+        `import assert from 'node:assert'
+import { createRequire } from 'node:module'
+import { it } from 'node:test'
+
+const requireFromApp = createRequire(${JSON.stringify(appManifest)})
+
+it('loads CommonJS JSON and Copilot exports', () => {
+  const manifest = requireFromApp('./package.json')
+  assert.equal(typeof manifest.version, 'string')
+  assert.equal(typeof requireFromApp('@github/copilot-sdk').CopilotClient, 'function')
+})
+`
+      )
+      const env = { ...process.env, GITHUB_ACTIONS: '' }
+      // This is a separate test runner, not a recursive node:test worker.
+      delete env.NODE_TEST_CONTEXT
+      const result = spawnSync(
+        process.execPath,
+        [join(projectRoot, 'script', 'test.mjs'), fixture],
+        {
+          cwd: projectRoot,
+          encoding: 'utf8',
+          timeout: 30_000,
+          env,
+        }
+      )
+
+      assert.equal(result.error, undefined, result.error?.message)
+      assert.equal(result.status, 0, result.stdout + result.stderr)
+      assert.match(result.stdout, /1\/1 discovered file\(s\) produced results/)
+      assert.match(result.stdout, /1 test\(s\) reported/)
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
   })
 })

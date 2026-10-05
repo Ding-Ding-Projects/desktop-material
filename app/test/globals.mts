@@ -4,8 +4,10 @@ import { mock } from 'node:test'
 import { createRequire } from 'node:module'
 import Module from 'node:module'
 
-// The runner passes `--conditions=import` so CJS resolution can reach ESM-only
-// packages that declare no "require" fallback. tslib pays for that: its
+// A caller can explicitly pass `--conditions=import` so CJS resolution reaches
+// ESM-only packages without a "require" fallback. Keep this guard for those
+// custom conditions even though the runner no longer enables them by default.
+// tslib pays for the extra condition: its
 // "import" condition points at `modules/index.js`, an ESM wrapper that does
 // `import tslib from '../tslib.js'` and then destructures `tslib.default`.
 // Loaded as CJS through tsx that default is undefined, so the very first
@@ -14,7 +16,7 @@ import Module from 'node:module'
 // helper-emitting module has been failing since tslib 2.8.1 arrived.
 //
 // Resolve the bare specifier to tslib's CJS build instead. This touches tslib
-// alone; every other package keeps the `import` condition it needs.
+// alone; every other package keeps its normal resolution.
 const requireFromHere = createRequire(import.meta.url)
 const tslibCjs = (() => {
   try {
