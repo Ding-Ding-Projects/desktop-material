@@ -387,10 +387,10 @@ function buildEntries(plan, wiki, files, receipts) {
       altSource === 'wiki'
         ? embedded.alt
         : altSource === 'caption'
-        ? `Desktop Material screenshot: ${caption}`
-        : `Desktop Material screenshot ${fileName}${
-            section ? `, filed under ${section}` : ''
-          }. The Feature Gallery records no alt text and no caption describing this frame.`
+          ? `Desktop Material screenshot: ${caption}`
+          : `Desktop Material screenshot ${fileName}${
+              section ? `, filed under ${section}` : ''
+            }. The Feature Gallery records no alt text and no caption describing this frame.`
 
     const facts = []
     facts.push(fact('Asset file', `docs/assets/screenshots/${fileName}`))
@@ -467,8 +467,8 @@ function buildEntries(plan, wiki, files, receipts) {
             ? `Published asset retained; current Windows refresh is blocked (${refreshGap.status})`
             : 'Published target in the current Windows guided gallery'
           : historicalStatus
-          ? `Retained historical evidence — ${historicalStatus}`
-          : '',
+            ? `Retained historical evidence — ${historicalStatus}`
+            : '',
         'Not recorded: neither the capture plan nor the Feature Gallery states a publication status for this file.'
       )
     )
@@ -550,13 +550,13 @@ function buildEntries(plan, wiki, files, receipts) {
       privacyGate: batch
         ? batch.privacyGate
         : planEntry
-        ? planEntry.privacyGate
-        : '',
+          ? planEntry.privacyGate
+          : '',
       commands: batch
         ? batch.commands || []
         : planEntry
-        ? planEntry.commands || []
-        : [],
+          ? planEntry.commands || []
+          : [],
     })
   }
 
@@ -1357,8 +1357,8 @@ function renderPage(entry, previous, next, position, total, allEntries) {
       >
         <div class="section__head">
           <p class="eyebrow">Frame ${position} of ${total} · ${escapeHtml(
-    entry.batchKey
-  )}</p>
+            entry.batchKey
+          )}</p>
           <h1 class="md-headline">${escapeHtml(heading)}</h1>
           <p class="md-body">${escapeHtml(summary)}</p>
           <p class="md-body" lang="zh-HK">
@@ -1496,8 +1496,8 @@ function renderIndex(entries, groups, stats) {
                 <span class="card__title">${escapeHtml(captionText)}</span>
                 <span class="card__meta"
                   >${escapeHtml(entry.file)} · ${entry.image.width}×${
-            entry.image.height
-          } px ·
+                    entry.image.height
+                  } px ·
                   ${groupDigits(entry.image.bytes)} bytes</span
                 >
               </a>
@@ -1526,8 +1526,8 @@ ${cards}
       return `            <li>
               <a href="#batch-${escapeHtml(group.key)}"
                 ><code>${escapeHtml(group.key)}</code> — ${
-        group.entries.length
-      }</a
+                  group.entries.length
+                }</a
               >
             </li>`
     })
@@ -1576,16 +1576,16 @@ ${cards}
             }, all declared by the capture plan</dd>
             <dt class="shot-facts__key">Frames with a dated receipt</dt>
             <dd class="shot-facts__value">${stats.withDatedReceipt} of ${
-    stats.pages
-  }; ${
-    stats.withoutDatedReceipt
-  } have no dated document under <code>docs/verification/</code> naming them</dd>
+              stats.pages
+            }; ${
+              stats.withoutDatedReceipt
+            } have no dated document under <code>docs/verification/</code> naming them</dd>
             <dt class="shot-facts__key">Frames with the wiki's own alt text</dt>
             <dd class="shot-facts__value">${stats.altFromWiki} of ${
-    stats.pages
-  }; ${stats.altFromCaption} fall back to their asset-table caption and ${
-    stats.altDerived
-  } to their file name and section, because the Feature Gallery embeds no image for them</dd>
+              stats.pages
+            }; ${stats.altFromCaption} fall back to their asset-table caption and ${
+              stats.altDerived
+            } to their file name and section, because the Feature Gallery embeds no image for them</dd>
             <dt class="shot-facts__key">Fields reported as unavailable</dt>
             <dd class="shot-facts__value">${
               stats.unavailableFields
@@ -1945,9 +1945,13 @@ a.shot-nav__link:hover {
  * tree, and Prettier's output is a fixed point, so regenerating an unchanged
  * gallery rewrites byte-identical files.
  */
-function writeFormatted(absolutePath, source) {
-  const options = prettier.resolveConfig.sync(absolutePath) || {}
-  const formatted = prettier.format(source, {
+async function writeFormatted(absolutePath, source) {
+  // Prettier 3 removed the synchronous API: `resolveConfig.sync` no longer
+  // exists and `format` returns a promise. Calling the old forms made the
+  // generator throw before writing anything, so every page added after the
+  // upgrade was hand-written without the head metadata the generator emits.
+  const options = (await prettier.resolveConfig(absolutePath)) || {}
+  const formatted = await prettier.format(source, {
     ...options,
     filepath: absolutePath,
     endOfLine: 'lf',
@@ -1957,7 +1961,7 @@ function writeFormatted(absolutePath, source) {
 
 // ---------------------------------------------------------------------- main
 
-function main() {
+async function main() {
   const plan = require(PlanPath)
   const wiki = readGalleryWiki()
   const files = readScreenshotFiles()
@@ -2016,7 +2020,7 @@ function main() {
       entries
     )
     unavailableFields += page.unavailable
-    writeFormatted(path.join(OutputDir, entry.page), page.html)
+    await writeFormatted(path.join(OutputDir, entry.page), page.html)
     written.push(entry.page)
   }
 
@@ -2043,12 +2047,12 @@ function main() {
       .sort(),
   }
 
-  writeFormatted(
+  await writeFormatted(
     path.join(OutputDir, 'index.html'),
     renderIndex(entries, groups, stats)
   )
   written.push('index.html')
-  writeFormatted(path.join(OutputDir, PageStylesheet), renderStylesheet())
+  await writeFormatted(path.join(OutputDir, PageStylesheet), renderStylesheet())
   written.push(PageStylesheet)
 
   // Prune anything a previous run left behind, so the directory always
@@ -2095,4 +2099,7 @@ function main() {
   process.stdout.write(`${lines.join('\n')}\n`)
 }
 
-main()
+main().catch(error => {
+  console.error(error)
+  process.exit(1)
+})

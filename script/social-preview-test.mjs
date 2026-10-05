@@ -74,11 +74,71 @@ describe('repository and page social preview', () => {
 
   it('serves complete static metadata on every HTML page', () => {
     const pages = htmlPages(join(root, 'docs'))
-    assert.equal(pages.length, 131)
+    // The page set is derived, not counted by hand: the hub, the gallery
+    // index, and one generated page per gallery screenshot. A literal count
+    // went stale the first time a screenshot was added, and the red count
+    // then hid 25 pages that carried no metadata at all.
+    const screenshots = readdirSync(join(root, 'docs', 'assets', 'screenshots'))
+      .filter(name => name.endsWith('.png'))
+      .map(name => `docs/screenshots/${name.replace(/\.png$/, '.html')}`)
+    const expected = [
+      'docs/index.html',
+      'docs/screenshots/index.html',
+      ...screenshots,
+    ].sort()
+    const found = pages.map(page => relative(root, page).split(sep).join('/'))
+    for (const page of expected) {
+      assert.ok(found.includes(page), `${page} must exist`)
+    }
+    assert.ok(screenshots.length > 0, 'the gallery must not be empty')
     for (const page of pages) {
       const path = relative(root, page).split(sep).join('/')
       assert.deepEqual(validateMeta(readFileSync(page, 'utf8'), path), [])
     }
+  })
+
+  it('tags the homepage and the template every Markdown page renders through', () => {
+    const homepage = readFileSync(join(root, 'site', 'index.html'), 'utf8')
+    assert.deepEqual(validateMeta(homepage, 'site/index.html'), [])
+    assert.ok(
+      homepage.includes(
+        'property="og:url" content="https://ding-ding-projects.github.io/desktop-material/"'
+      )
+    )
+
+    // pandoc fills `$pageurl$` per page from the Pages workflow, so the
+    // template carries the tag inside a conditional rather than a literal URL.
+    const template = readFileSync(
+      join(root, 'site', 'docs-template.html'),
+      'utf8'
+    )
+    assert.deepEqual(validateMeta(template, 'site/docs-template.html'), [])
+    assert.ok(template.includes('content="$pageurl$"'))
+
+    const hub = readFileSync(join(root, 'docs', 'index.html'), 'utf8')
+    assert.ok(
+      hub.includes(
+        'content="https://ding-ding-projects.github.io/desktop-material/docs/"'
+      ),
+      'the hub describes /docs/, not the site root'
+    )
+  })
+
+  it('publishes the preview at the URL every page points to', () => {
+    const workflow = readFileSync(
+      join(root, '.github', 'workflows', 'pages.yml'),
+      'utf8'
+    )
+    assert.match(
+      workflow,
+      /cp docs\/assets\/social-preview\.png _site\/assets\/social-preview\.png/
+    )
+    assert.match(
+      workflow,
+      /cmp docs\/assets\/social-preview\.png _site\/assets\/social-preview\.png/
+    )
+    // Each of the three pandoc passes hands the template its own page URL.
+    assert.equal((workflow.match(/--variable pageurl=/g) ?? []).length, 3)
   })
 
   it('turns red when any required metadata boundary disappears', () => {
