@@ -173,6 +173,29 @@ describe('command palette size contract', () => {
       css,
       /\.command-palette-row-actions\s*\{[\s\S]*?margin-left: auto;/
     )
+
+    // Palette-owned controls meet the 40px pointer target the layout audit
+    // holds every control to; the Run pill keeps at least 32px of height.
+    for (const control of [
+      '.command-palette-appearance-toggle',
+      '.command-palette-apply',
+    ]) {
+      const block = css.slice(
+        css.indexOf(`${control} {`),
+        css.indexOf('\n  }', css.indexOf(`${control} {`))
+      )
+      assert.match(block, /width: 40px;/, control)
+      assert.match(block, /height: 40px;/, control)
+    }
+    assert.match(css, /\.command-palette-run\s*\{[\s\S]*?min-height: 32px;/)
+
+    // The palette's dialog header close button is a 40px target rather than
+    // the shared mixin's 16px icon box, scoped here so the frozen dialog
+    // stylesheet stays untouched.
+    assert.match(
+      css,
+      /\.dialog-header \.close\s*\{[\s\S]*?width: 40px;[\s\S]*?height: 40px;/
+    )
   })
 
   it('uses the native modal layer for the centred scrim and focus trap', async () => {

@@ -190,10 +190,12 @@
 
   // "Toolbar", "Settings › Appearance" — the row's answer to "where is this?",
   // which is also what clicking it acts on.
+  // The anchor icon stays on the first line with its text; the text wraps
+  // under itself. With the line allowed to wrap as a whole, a bilingual
+  // location put the icon alone on a line and the text beneath it.
   .command-palette-where {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+    align-items: flex-start;
     gap: 4px;
     min-width: 0;
     overflow-wrap: anywhere;
@@ -279,8 +281,8 @@
   .command-palette-apply {
     display: grid;
     place-items: center;
-    width: 30px;
-    height: 30px;
+    width: 40px;
+    height: 40px;
     padding: 0;
     border: 0;
     border-radius: var(--md-sys-shape-corner-full, 999px);
@@ -307,6 +309,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
+    min-height: 32px;
     padding: 5px 12px;
     border: 1px solid var(--md-sys-color-outline-variant);
     border-radius: var(--md-sys-shape-corner-full, 999px);
@@ -544,11 +547,12 @@
     flex: none;
   }
 
+  // 40px: the pointer target minimum the layout audit holds every control to.
   .command-palette-appearance-toggle {
     display: grid;
     place-items: center;
-    width: 28px;
-    height: 28px;
+    width: 40px;
+    height: 40px;
     padding: 0;
     border: 0;
     border-radius: var(--md-sys-shape-corner-full, 999px);
@@ -695,6 +699,20 @@
   min-width: 0;
   background: var(--md-sys-color-surface);
   translate: none;
+
+  // The shared close-button mixin's 16px box is the icon itself, and a 16px
+  // hit target was the one error-level finding the layout audit raised on an
+  // open palette. A 40px round target with the icon centred keeps the icon
+  // where it was by folding the extra 12px into the negative right margin.
+  // Scoped to the palette: the dialog stylesheet itself is frozen chrome.
+  .dialog-header .close {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    margin-right: calc(var(--spacing) * -1 - 12px);
+    border-radius: var(--md-sys-shape-corner-full, 999px);
+  }
 
   .dialog-content {
     display: flex;

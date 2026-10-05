@@ -46,7 +46,11 @@ command's action zone no longer reserves the 132px an inline control needs (its
 Run button is always in the tree and holds its own width), the title, the place
 it lives and the search-terms line wrap instead of ending in an ellipsis, and
 the closed select has room for its longest option; a row whose text column
-would drop under 200px wraps its control beneath the text instead. Measured in the built app at 1280×800 before the change, "Show emojis in
+would drop under 200px wraps its control beneath the text instead, and the
+location line keeps its anchor icon on the first line beside its text. The
+palette's own icon buttons (the appearance toggle and the apply button) and
+the dialog header's close button are 40px targets, the pointer minimum the
+layout audit holds every control to; the Run pill keeps at least 32px. Measured in the built app at 1280×800 before the change, "Show emojis in
 dialogs and message boxes", "TUI language, appearance, and notifications" and
 even "Language mode" lost their last words to the ellipsis.
 
