@@ -48,14 +48,22 @@ Found and fixed, measured before and after:
   280px; a row whose text column would drop under 200px wraps its control
   beneath the text. A `title` disclosure was not an option: the repository's
   a11y lint forbids it outside an iframe.
+- The location line's anchor icon sat alone on a line in bilingual rows once
+  the line was allowed to wrap as a whole; it stays beside its text now. The
+  audit holds every control to a 40px pointer target: the appearance toggle
+  (28px), the apply button (30px) and the palette's dialog close button
+  (16px, the one error-level target on an open palette) are 40px, scoped to
+  the palette so the frozen dialog stylesheet stays untouched; the Run pill
+  keeps at least 32px of height and remains an advisory warning by design.
 
-Final audit on source commit of this entry, four passes (English and bilingual,
-1280×800 and 700×640): palette chrome off-viewport 0 in every pass (was 3
-controls); silent truncation 0 in English and 1 in bilingual, the branch-sort
-select whose longest label "By when they were last changed · 按最近改過"
-still exceeds the closed box by about 26px (its options read in full when
-opened; recorded, not chased). The audit's remaining off-viewport items are
-controls in rows scrolled below the fold of the results list.
+Final audit on the build of this entry's source, four passes (English and
+bilingual, 1280×800 and 700×640): palette chrome off-viewport 0 in every pass
+(was 3 controls); error-level hit targets on the open palette 0 (was 1, the
+close button); silent truncation 0 in English and 1 in bilingual, the
+branch-sort select whose longest label "By when they were last changed ·
+按最近改過" still exceeds the closed box by about 26px (its options read in
+full when opened; recorded, not chased). The audit's remaining off-viewport
+items are controls in rows scrolled below the fold of the results list.
 
 `command-palette-size-contract-test.ts` passes 8/9; the ninth, the
 `modal={true}` assertion, was already red on `main` and is unrelated. Focused
@@ -68,9 +76,9 @@ the hidden X display, scale 1, light theme, no repository open:
 | Capture | Size | SHA-256 |
 | --- | --- | --- |
 | `command-palette-off-centre-before-20261004.png` (before, English) | 1280×800 | `A0A37BB9A8C77BF238609C402C49E9D929F73B46EFDA5D8BFF4D575F35696D6F` |
-| `command-palette-centred-english-1280-20261004.png` | 1280×800 | `7F77C89C88C0287FFFEA772507D1ABF43C5E76576E3FBE494F8152C8D8DCA0F5` |
-| `command-palette-centred-bilingual-1280-20261004.png` | 1280×800 | `9C43BC7D5233198F01DA81CA5A738AD0255922E2C9E53CBFA5A5309A61AD02E6` |
-| `command-palette-centred-english-700-20261004.png` | 700×640 | `7898827CC95D3150E2A131F0A7173BE26D1B1CB76C9B0EF424A0F9C82334A0FB` |
+| `command-palette-centred-english-1280-20261004.png` | 1280×800 | `1BA15EF9DFE9102C9A3B836F74E0E4A9C7A645B29A87C44565EB6032D423119E` |
+| `command-palette-centred-bilingual-1280-20261004.png` | 1280×800 | `A5A910C1D2BC2F8E172031DCCCB8884CCC0345D010640670E83B1F4A429E4C45` |
+| `command-palette-centred-english-700-20261004.png` | 700×640 | `4E96CFFF8CA000D581FD6BE6BCE1C1BA7DF3865A9EB307288FD166E65B00214C` |
 
 Excluded follow-up, recorded rather than adopted: the audit's hit-target
 findings (34×34 tab-strip buttons, the 28×28 appearance toggle, the 16×16 dialog

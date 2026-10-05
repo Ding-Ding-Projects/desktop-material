@@ -85,6 +85,10 @@ Evidence landed
   Retained under docs/assets/screenshots/command-palette-*-20261004.png with
   SHA-256 digests in the HANDOFF entry; the README's Command palette cell
   shows the bilingual 1280 capture.
+- Polish round proven in the same way: the location line keeps its anchor
+  icon beside its text; the appearance toggle, apply button and the palette's
+  dialog close button are 40px targets (error-level hit targets on the open
+  palette 0, was 1); the Run pill is 32px tall (advisory warning, by design).
 - HANDOFF.md carries the dated entry, including the Build and run follow-up
   (its panel needs an open repository, which the fixture cannot seed on
   Linux; four single-line truncations in _material-build-run.scss are named
