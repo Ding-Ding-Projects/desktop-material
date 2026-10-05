@@ -5,117 +5,72 @@ records state up to its own commit; it is not a completion claim.
 
 ```
 Repository: Ding-Ding-Projects/desktop-material
-Branch: codex/shortcuts-shift-f-explorer (based on origin/main 0996944)
-Date: 2026-10-04
+Branch: codex/close-open-issues-20261005 (merged into main)
+Date: 2026-10-05
 
 Objective
-- Ctrl+Shift+F opens the current repository in Explorer/Finder again (the
-  upstream GitHub Desktop binding); the command palette is back on
-  Ctrl+Shift+P. Decided with the user: Pull moves to Ctrl+Shift+L; the change
-  is app-only, the Pages site and docs hub keep Ctrl+Shift+F for their
-  palettes. Also hunt clipping defects on the surfaces this touches.
+- Close, fix and integrate every open issue that can be finished from a Linux
+  cloud container; comment the exact blocker on the rest; merge the
+  Dependabot pull requests whose checks are green and that GitHub reports
+  mergeable.
 
-Implemented (verified)
-- app/src/main-process/menu/build-default-menu.ts: command-palette
-  CmdOrCtrl+Shift+P, open-working-directory CmdOrCtrl+Shift+F, pull
-  CmdOrCtrl+Shift+L, build-and-run F5 (it silently shared Shift+B with
-  compare-to-branch; one of the two could never fire).
-- app/test/unit/main-process/menu-test.ts: retargeted accelerator tests plus a
-  template-wide "no accelerator registered twice" test. 30/30 focused tests
-  pass on Node 22.22.0 (the tsx loader on Node 24 mis-parses JSON, so unit
-  tests ran on Node 22).
-- Comments in app.tsx and command-palette.tsx; docs articles
-  command-palette-full-coverage.md (records the documented departure from the
-  shared Ctrl+Shift+F palette contract) and command-palette-coverage-gaps.md;
-  README and ROADMAP banners; changelog.json entry; site/index.html hint text
-  corrected to what its handler does (Ctrl+F search, Ctrl+Shift+F palette).
-- script/generate-docs-hub-catalog.mjs and generate-docs-browser-bundle.mjs
-  now await prettier 3's format(); the generators had been broken since the
-  prettier bump on 2026-08-24, so six newer docs articles had never reached the
-  in-app bundle. Regenerated; docs-browser-bundle-test was red on main (3
-  failures) and is green now. 50/50 across bundle, hub catalog and hub page
-  tests. tsc --noEmit clean. Prettier/eslint clean on changed lines (app.tsx,
-  command-palette.tsx, menu-test.ts, build-default-menu.ts were already
-  unformatted at HEAD and were left as they were).
+Owner decisions (2026-10-05)
+- Blocked issues stay open with their blocker commented; no partial slices.
+- #223: delete the issue summarizer workflow instead of repairing it.
+- The private feature name in the merge-all dialog becomes plain "Force
+  cleanup"; git history is not rewritten.
+- Dependabot: merge green and mergeable ones, comment the rest, never push to
+  a Dependabot branch, revert on main if a merge breaks something.
 
-Evidence so far
-- Pages site and docs hub captured with Chromium at 360/760/1280, light and
-  dark; the site palette opens on Ctrl+Shift+F; no clipping found in the
-  captures. The repository's layout audit (script/capture-audit.js) is
-  written for the app window and reports page-scroll content as off-viewport,
-  so its site findings are noise except: the site tab strip at 1280 keeps its
-  add/history buttons past the right edge inside an overflow-x:auto row
-  (scrollable, not clipped; recorded, not changed).
-- The real built app runs under xvfb in this container (production webpack
-  configuration, built one bundle per process with source maps, the bundle
-  analyzer and minification off for the renderer; the all-in-one compile is
-  killed by the 16GB cgroup at ~13.5GB). Needs ELECTRON_DISABLE_SANDBOX=1,
-  libsecret-1-0 for keytar.node, and the proxy CA in the NSS store (the app
-  treats a certificate error on a launch request as fatal and quits).
-- Clipping defect found and fixed in the command palette (the surface this
-  task is about): at a 1280x800 window the medium card sat 71px past the
-  right edge with its close button, regex-builder button and appearance
-  toggle unreachable. Cause: the card was centred by transform:
-  translateX(-50%); the Dialog component's drag/resize clamp writes an inline
-  transform that replaces it, and it ran on the first entrance-animation
-  frame (scale 0.82, no centring shift), measured in the running app as
-  translateX(-168.8px) at 1280 and -8.8px at 1600 where -440px was intended.
-  Fix in app/styles/ui/_command-palette.scss: centre by left: max(margin,
-  calc(50vw - half width)); results pane as an inline-size container so the
-  group chip answers to the pane width; plain commands no longer reserve an
-  inline control's 132px; search terms wrap. Guarded in
-  app/test/unit/command-palette-size-contract-test.ts (8/9 pass; the ninth,
-  the modal={true} assertion, was already red on main and is unrelated).
+Closed (fix on main, verified)
+- #224 link previews: ae6f7bb. Open Graph and Twitter tags on the homepage,
+  every pandoc docs page (per-page og:url) and the hub; pages.yml publishes
+  /assets/social-preview.png with a byte-identical check;
+  script/social-preview-test.mjs derives its page set (5/5, each guard
+  mutation-checked); site-dc-pages-test allows absolute URLs in og: meta only.
+  Verified live after Deploy Pages run 37374986486: all ten tags on the three
+  page types, image HTTP 200, SHA-256 identical to the repository copy. The
+  GitHub repository card image is an owner-only Settings upload (no API).
+- #223 summarizer: 0df6022 deletes .github/workflows/summary.yml. No file
+  under .github references actions/ai-inference; the two remaining
+  issues:opened workflows only label. No live run observed yet (no issue was
+  opened); the next new issue should show no summarizer run.
+- #222 and #228 were already closed earlier in the session.
 
-- First capture run against the fixed build: the card is centred (left 200 at
-  1280) and no palette chrome is off-viewport in any of the four passes. The
-  same run showed the group chip still squeezing the copy column inside the
-  476px medium pane and wrapped search terms turning a squeezed row into a
-  tall ribbon, so the chip threshold is 600px of pane width, titles and
-  where-lines wrap, search terms wrap (a title disclosure is forbidden by the
-  repository's a11y lint), and the select may grow to 280px. Contract test
-  8/9 again, eslint clean.
+Merged Dependabot pull requests
+- #243, #242, #237, #236, #235, #233, #232, #230 (main now 294531d).
+- Local check on 294531d: both lockfiles install with --frozen-lockfile;
+  tsc --noEmit clean; the terminal, popover, tga, declared-dependency and
+  artifact-subject tests 32/33. The one failure (integrated-terminal-view
+  "owns only tabs ...") expects a material-shell class that the source never
+  renders, so it is independent of the bumps. eslint reports 306 errors, none
+  from jsdoc or prettier rules. CI Linux passed on 294531d.
+- Note: running yarn install with --ignore-scripts skips building
+  vendor/desktop-notifications and makes tsc report missing modules; reinstall
+  with scripts.
 
-Evidence landed
-- Final captures against the fixed build, four passes (English and bilingual,
-  1280x800 and 700x640): palette chrome off-viewport 0 in every pass; silent
-  truncation 0 in English, 1 in bilingual (the branch-sort select's longest
-  label exceeds the closed box by about 26px; recorded, not chased). The
-  starved "Language mode" row now wraps its select beneath its text.
-  Retained under docs/assets/screenshots/command-palette-*-20261004.png with
-  SHA-256 digests in the HANDOFF entry; the README's Command palette cell
-  shows the bilingual 1280 capture.
-- Polish round proven in the same way: the location line keeps its anchor
-  icon beside its text; the appearance toggle, apply button and the palette's
-  dialog close button are 40px targets (error-level hit targets on the open
-  palette 0, was 1); the Run pill is 32px tall (advisory warning, by design).
-- HANDOFF.md carries the dated entry, including the Build and run follow-up
-  (its panel needs an open repository, which the fixture cannot seed on
-  Linux; four single-line truncations in _material-build-run.scss are named
-  for the next pass).
+Not merged
+- #244: Windows builds fail in the license dump because markdown-it 15.0.2
+  pulls argparse@3.0.2 (PSF-2.0), and the branch now conflicts with main.
+  Commented with both fixes (a license override, which is a maintainer
+  decision, or holding markdown-it back).
 
-Integration
-- Task branch codex/shortcuts-shift-f-explorer (tip 71b1d6a) merged into
-  main with a merge commit on 2026-10-05 after main had moved by two
-  test-runner commits (b2ee4d3); the dry-run merge was clean. main pushed;
-  ancestry of the task tip proven with git merge-base --is-ancestor; the
-  local task branch deleted. The remote branch could not be deleted from
-  this container: the proxy refuses write access to the Git refs API
-  (HTTP 403) and hangs up a delete push, so
-  origin/codex/shortcuts-shift-f-explorer (71b1d6a, fully contained in
-  main) remains for a session with that permission or for GitHub's branch
-  page. An off-machine HuiDrive-style archive before cleanup was not
-  possible here (no OneDrive); a best-effort zip of the tracked tree plus
-  .git was written to the session scratchpad.
+Left open with the blocker commented
+- #118, #119, #130, #133, #134, #212, #215: each needs Windows hosts, real
+  identity providers, tracker accounts, or Windows captures of the built app.
+- #240: code shipped in v4.0.131901; only the seven-sort-order clone dialog
+  capture is missing (the Linux fixture cannot seed a multi-row clone list).
 
-Blockers: remote branch deletion refused by the proxy (see above).
+CI notes
+- Cancelled jobs earlier today (arm64, supply chain, the issue-comment triage
+  run) had runner_id 0 and no steps: no runner was assigned within the queue
+  window. They are runner allocation failures, not code failures.
 
 Next safe steps
-1. Build and run: open a repository in the real build (on Windows, or after
-   teaching script/capture-app.js Linux paths), capture the panel with
-   menu:build-and-run and audit: steps, and measure the four truncations
-   named in HANDOFF.md.
-2. The command-palette-size-contract-test.ts modal={true} assertion was
-   already red on main; decide whether the palette should be modal again or
-   the assertion retired.
+1. Watch CI Windows on 294531d; if it is red, find the merge that caused it
+   and revert that merge on main with a comment on its pull request.
+2. Decide the argparse PSF-2.0 license override for #244.
+3. On Windows: the captures for #134, #215 and #240.
+4. Delete the merged remote branch codex/shortcuts-shift-f-explorer from a
+   session the proxy allows to delete refs.
 ```
