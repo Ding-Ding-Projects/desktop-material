@@ -94,11 +94,16 @@ Evidence landed
   Linux; four single-line truncations in _material-build-run.scss are named
   for the next pass).
 
-Unfinished
-- Integration into main, ancestry proof, and cleanup of the task branch (in
-  progress at this commit). A HuiDrive-style off-machine archive before
-  cleanup is not possible in this container (no OneDrive); the branch being
-  removed is fully contained in main's history.
+Integration
+- Task branch codex/shortcuts-shift-f-explorer (tip 71b1d6a) merged into
+  main with a merge commit on 2026-10-05 after main had moved by two
+  test-runner commits (b2ee4d3); the dry-run merge was clean. main pushed;
+  ancestry of the task tip proven with git merge-base --is-ancestor; the
+  task branch then deleted on the remote and locally. An off-machine
+  HuiDrive-style archive before cleanup was not possible in this container
+  (no OneDrive); a best-effort zip of the tracked tree plus .git was written
+  to the session scratchpad, and the deleted branch is fully contained in
+  main's history.
 
 Blockers: none.
 
