@@ -18,7 +18,7 @@ const CanonicalCandidateCount = 69
 const DeferredCanonicalOutputs = Object.freeze([
   'material-cheap-lfs-preparing',
   'material-repositories-sheet',
-  'material-worktree-force-mat-day',
+  'material-worktree-force-cleanup',
 ])
 const DeferredSpecialistOutputs = Object.freeze([])
 const RetainedHistoricalEvidence = Object.freeze({

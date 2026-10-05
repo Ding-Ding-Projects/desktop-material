@@ -23,9 +23,9 @@
  * Usage:
  *   yarn generate-dim-sum-assets [catalogDirectory]
  *
- * The catalog directory defaults to $DIM_SUM_CATALOG_DIR, then to the
- * `agent-global-memory/dim-sum` checkout inside the current user's GitHub
- * folder. No path is hard-coded to a particular machine or account.
+ * The catalog directory comes from the argument or $DIM_SUM_CATALOG_DIR. The
+ * catalog lives in a private checkout, so this public script never names it or
+ * guesses its location, and no path is hard-coded to a machine or account.
  */
 
 import {
@@ -38,7 +38,6 @@ import {
   writeFileSync,
 } from 'fs'
 import { createHash } from 'crypto'
-import { homedir } from 'os'
 import * as path from 'path'
 
 import { readPngSize } from '../app/src/lib/png-header'
@@ -95,14 +94,6 @@ export function resolveCatalogDirectory(explicit?: string): string {
   const candidates = [
     explicit,
     process.env.DIM_SUM_CATALOG_DIR,
-    path.join(
-      homedir(),
-      'Documents',
-      'GitHub',
-      'agent-global-memory',
-      'dim-sum'
-    ),
-    path.join(homedir(), 'GitHub', 'agent-global-memory', 'dim-sum'),
   ].filter((c): c is string => typeof c === 'string' && c.length > 0)
 
   for (const candidate of candidates) {
@@ -194,7 +185,7 @@ function main() {
 
   const manifest = {
     version: ManifestVersion,
-    source: 'agent-global-memory dim sum catalog',
+    source: 'shared dim sum catalog',
     catalogSchemaVersion: index.schemaVersion,
     note:
       'Copied byte for byte from the catalog. Never generated, fetched, ' +

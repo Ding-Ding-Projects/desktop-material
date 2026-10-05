@@ -258,7 +258,7 @@ function uniqueMatches(source: string, expression: RegExp): Array<string> {
 }
 
 describe('public feature registration completeness', () => {
-  it('validates the explicit evidence manifest and enforces the completion Chut', () => {
+  it('validates the explicit evidence manifest and enforces the completion gate', () => {
     const inventory = parseFixture<ICanonicalInventory>(
       'app/test/fixtures/feature-completeness/canonical-features.json'
     )
@@ -284,7 +284,7 @@ describe('public feature registration completeness', () => {
       verdict.complete,
       true,
       [
-        'Universal-feature completion Chut is red; every required evidence record must be present and resolved.',
+        'Universal-feature completion gate is red; every required evidence record must be present and resolved.',
         ...verdict.errors,
       ].join('\\n')
     )

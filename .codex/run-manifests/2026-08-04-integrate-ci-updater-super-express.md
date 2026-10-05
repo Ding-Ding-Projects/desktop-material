@@ -35,10 +35,10 @@
   closed by the current Desktop Material scope override.
 - Tests: focused updater/version/workflow tests; changed Windows-app unit tests;
   TypeScript, formatting/lint, production build through cheap Lowlevel MCP;
-  applicable packaged/Squirrel checks; exact-SHA GitHui Actions and release/feed
+  applicable packaged/Squirrel checks; exact-SHA GitHub Actions and release/feed
   verification; installed-old-to-new headless updater acceptance.
 - Remote and branch: `origin` / `main`; no force-push and no tag reuse.
-- Cleanup authorization: the user explicitly supplied `mat day` for this pass.
+- Cleanup authorization: the user explicitly authorized cleanup for this pass.
   Delete only branches, linked checkouts, stale metadata, and stash entries
   whose source tips and work are proven contained in the pushed `origin/main`;
   retain and report anything not safely contained or load-bearing.

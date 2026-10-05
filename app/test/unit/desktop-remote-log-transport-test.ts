@@ -10,8 +10,8 @@ import {
 describe('remote diagnostic logging configuration', () => {
   it('accepts only credential-free HTTP(S) endpoints and owns the ingest path', () => {
     assert.equal(
-      normalizeRemoteLogEndpoint('http://192.168.50.242:4318')?.toString(),
-      'http://192.168.50.242:4318/v1/logs'
+      normalizeRemoteLogEndpoint('http://192.0.2.10:4318')?.toString(),
+      'http://192.0.2.10:4318/v1/logs'
     )
     assert.equal(
       normalizeRemoteLogEndpoint('https://logs.example.test/base')?.toString(),

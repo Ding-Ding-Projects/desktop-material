@@ -18,7 +18,7 @@ interface IMergeAllDialogProps {
 interface IMergeAllDialogState {
   readonly started: boolean
   readonly checkpointDirtyWorktrees: boolean
-  readonly forceMatDay: boolean
+  readonly forceCleanup: boolean
 }
 
 export class MergeAllDialog extends React.Component<
@@ -30,7 +30,7 @@ export class MergeAllDialog extends React.Component<
     this.state = {
       started: false,
       checkpointDirtyWorktrees: false,
-      forceMatDay: false,
+      forceCleanup: false,
     }
   }
 
@@ -54,7 +54,7 @@ export class MergeAllDialog extends React.Component<
       this.props.mode,
       {
         checkpointDirtyWorktrees: this.state.checkpointDirtyWorktrees,
-        forceMatDay: this.state.forceMatDay,
+        forceCleanup: this.state.forceCleanup,
       }
     )
   }
@@ -65,12 +65,12 @@ export class MergeAllDialog extends React.Component<
     this.setState({ checkpointDirtyWorktrees: event.currentTarget.checked })
   }
 
-  private onForceMatDayChanged = (event: React.FormEvent<HTMLInputElement>) => {
-    const forceMatDay = event.currentTarget.checked
+  private onForceCleanupChanged = (event: React.FormEvent<HTMLInputElement>) => {
+    const forceCleanup = event.currentTarget.checked
     this.setState({
-      forceMatDay,
+      forceCleanup,
       checkpointDirtyWorktrees:
-        forceMatDay || this.state.checkpointDirtyWorktrees,
+        forceCleanup || this.state.checkpointDirtyWorktrees,
     })
   }
 
@@ -115,10 +115,10 @@ export class MergeAllDialog extends React.Component<
               <Checkbox
                 className="merge-all-checkpoint-option"
                 value={
-                  this.state.forceMatDay ? CheckboxValue.On : CheckboxValue.Off
+                  this.state.forceCleanup ? CheckboxValue.On : CheckboxValue.Off
                 }
                 label="Preserve dirty worktrees before merge"
-                onChange={this.onForceMatDayChanged}
+                onChange={this.onForceCleanupChanged}
               />
               <p className="merge-all-option-help">
                 Automatically preserve and publish recoverable work, relocate

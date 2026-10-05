@@ -17,7 +17,7 @@ client's launch environment to choose the destination:
 | --- | --- |
 | `DESKTOP_MATERIAL_LOG_DESTINATION` | `local`, `remote`, or `both` |
 | `DESKTOP_MATERIAL_LOG_DIRECTORY` | Optional absolute directory for local logs |
-| `DESKTOP_MATERIAL_LOG_SERVER_URL` | Server base URL, such as `http://192.168.50.242:4318` |
+| `DESKTOP_MATERIAL_LOG_SERVER_URL` | Server base URL, such as `http://192.0.2.10:4318` |
 | `DESKTOP_MATERIAL_LOG_SERVER_TOKEN_FILE` | Absolute path to a private file containing the bearer token |
 | `DESKTOP_MATERIAL_LOG_CLIENT_ID` | Optional stable ID using letters, digits, dot, underscore, or hyphen |
 

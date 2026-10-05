@@ -103,7 +103,7 @@ run manifest is
 
 The frames are current-source UI evidence, not installer or release evidence.
 The headless MCP endpoint was already saturated by an unrelated capture job, so
-the sanctioned installed Cheap Version CLI was used against the same cheap
+the installed cheap headless capture CLI was used against the same cheap
 headless route; the hidden desktop and visible user's desktop remained
 untouched.
 

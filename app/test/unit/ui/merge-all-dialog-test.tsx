@@ -52,7 +52,7 @@ describe('MergeAllDialog', () => {
 
     assert.deepEqual(received, {
       checkpointDirtyWorktrees: true,
-      forceMatDay: true,
+      forceCleanup: true,
     })
   })
 })

@@ -86,8 +86,8 @@ turning a small delight into a download.
 yarn generate-dim-sum-assets [catalogDirectory]
 ```
 
-The catalog directory defaults to `$DIM_SUM_CATALOG_DIR`, then to an
-`agent-global-memory/dim-sum` checkout inside the current user's GitHub folder.
+The catalog directory comes from the argument or `$DIM_SUM_CATALOG_DIR`; the
+catalog is a private checkout, so the script does not guess its location.
 The script verifies that each file is a real PNG with a well-formed `IHDR` and
 a terminating `IEND` chunk before copying it, records its SHA-256, and removes
 any picture a previous run left behind. A dish whose picture is missing or

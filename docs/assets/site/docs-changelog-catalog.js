@@ -144,7 +144,7 @@
           ],
           [
             'Fixed',
-            'The universal-feature completeness record now names all 62 canonical rows explicitly across seven evidence dimensions. Present source, documentation, and focused-test candidates are separated from pending localization, persistence, built-artifact interaction, and real-capture proof; the completion Chut stays red until those records are verified. This documentation and contract update intentionally ran no tests, reviews, audits, builds, packaging, or captures.',
+            'The universal-feature completeness record now names all 62 canonical rows explicitly across seven evidence dimensions. Present source, documentation, and focused-test candidates are separated from pending localization, persistence, built-artifact interaction, and real-capture proof; the completion gate stays red until those records are verified. This documentation and contract update intentionally ran no tests, reviews, audits, builds, packaging, or captures.',
           ],
           [
             'Added',
@@ -160,12 +160,12 @@
           ],
           [
             'Fixed',
-            'Merge all worktrees now relocates a clean default-branch checkout automatically instead of stopping when another worktree owns it, and the explicit Force Mat Day option preserves recoverable dirty work before integration',
+            'Merge all worktrees now relocates a clean default-branch checkout automatically instead of stopping when another worktree owns it, and the explicit dirty-worktree preservation option saves recoverable work before integration',
             '9367475ded052f348decb33b77993f49323645c7',
           ],
           [
             'Fixed',
-            'Force Mat Day now pushes the default branch before removing any merged branch or linked worktree, so cleanup cannot run ahead of publication',
+            'Dirty-worktree preservation now pushes the default branch before removing any merged branch or linked worktree, so cleanup cannot run ahead of publication',
             '4929ccfe248dd56567623345e5f92a4117f22747',
           ],
           [

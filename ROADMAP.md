@@ -776,7 +776,7 @@ ahead of any single feature that depends on it.
   total, names its exclusions, and separates generated from hand-written.
 - It also reports how many lines agents wrote versus people, attributed per
   surviving line with `git blame` rather than by summing added lines.
-- `agent-global-memory` got the same treatment, and deliberately does **not**
+- The private shared-instructions repository got the same treatment, and deliberately does **not**
   publish an agent share: 718 of its 750 commits are authored under the owner's
   identity with no agent trailer, so the figure would be precisely wrong.
 
@@ -2291,7 +2291,7 @@ present:
 ## 2026-09-18 primary repository closeout
 
 - [x] Perform a read-only process and repository check before mutation.
-- [x] Fetch the hui when reachable and verify `origin/main` with
+- [x] Fetch the remote when reachable and verify `origin/main` with
   `git ls-remote`.
 - [x] Inventory the primary checkout, linked checkouts, refs, branches,
   stashes, conflict entries, and non-ignored working-tree paths.

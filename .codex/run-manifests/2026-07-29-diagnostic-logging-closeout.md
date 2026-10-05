@@ -63,7 +63,7 @@
   means “all levels,” and malformed non-empty client filters return HTTP 400
   instead of falling through to an all-client query. The 4/4 service suite
   covers both cases, and the formatted service image builds locally.
-- Live deployment: host `192.168.50.242` was rechecked for architecture,
+- Live deployment: the private log host was rechecked for architecture,
   memory, disk, workloads, port ownership, and Docker health. Only
   `desktop-material-diagnostic-log-server` was rebuilt/recreated. The final
   container is `running/healthy`; public health and authenticated default

@@ -10762,7 +10762,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         'mergeAllDefaultWorktreeStatus'
       )
       if (ownerStatus.stdout.trim().length > 0) {
-        if (!options.forceMatDay) {
+        if (!options.forceCleanup) {
           throw new Error(
             'The default checkout has uncommitted changes. Select force cleanup to preserve and publish them first.'
           )
@@ -10881,7 +10881,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     if (
-      (mergedAny || options.forceMatDay) &&
+      (mergedAny || options.forceCleanup) &&
       !signal.aborted &&
       this.isTemporaryRepositoryActive(repository)
     ) {
@@ -10893,7 +10893,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       this.updateMergeAllState(repository, { pushed: true })
     }
 
-    if (options.forceMatDay && !signal.aborted) {
+    if (options.forceCleanup && !signal.aborted) {
       for (const candidate of candidates) {
         const resultIndex = results.findIndex(
           result =>
@@ -10942,7 +10942,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
           'mergeAllWorktreeStatus'
         )
         if (status.stdout.trim().length > 0) {
-          if (!options.checkpointDirtyWorktrees && !options.forceMatDay) {
+          if (!options.checkpointDirtyWorktrees && !options.forceCleanup) {
             return {
               ...base,
               status: 'skipped',
@@ -11043,7 +11043,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       }
       completedStatus = status
 
-      if (options.forceMatDay) {
+      if (options.forceCleanup) {
         return {
           ...base,
           status,
