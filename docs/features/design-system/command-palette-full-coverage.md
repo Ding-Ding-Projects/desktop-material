@@ -1,17 +1,59 @@
 # Command palette: full-app coverage, rich controls and teleport
 
-The <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> master command palette is
+The <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> master command palette is
 Material Design 3's full-screen search view. That is the accelerator the
 application menu actually registers for the `command-palette` item, and since
 the MD3 shell landed it is also what the header's palette chip prints, because
 the chip is a read-through of the binding rather than a second copy of it — the
-two cannot drift.
+two cannot drift. This is a deliberate, documented departure from the shared
+product contract, which binds every palette to <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>:
+in this application that chord has always been **Show in Explorer** (Finder on
+macOS), the binding GitHub Desktop ships upstream, and taking it away from the
+file browser broke a habit users brought with them. So the desktop app alone
+keeps Ctrl+Shift+F on the repository folder and opens the palette on
+Ctrl+Shift+P; the Pages site and the documentation hub, which have no
+repository folder, follow the contract and open their palettes on Ctrl+Shift+F.
+Pull, which briefly sat on Ctrl+Shift+P, is Ctrl+Shift+L.
 The palette covers the entire app below the title bar rather than floating as a
 small card, and its rows are no longer just names to dispatch — a row that is
 a setting renders the setting's live control inline, and choosing any row
 teleports to the place in the app where that feature actually lives.
 
 ## Behaviour
+
+### The card centres itself with `left`, never with `transform`
+
+The medium and compact cards are positioned by `left: max(margin, calc(50vw -
+half the card))`. They used to be centred with `left: 50%` plus
+`transform: translateX(-50%)`, and that lasted exactly one frame: the Dialog
+component keeps every floating dialog on screen by writing an inline
+`transform: translate(x, y)` on drag and on resize, an inline transform
+replaces the stylesheet's rather than adding to it, and the entrance keyframes
+own `transform` while they play. So the resize observer measured the card at
+`left: 50%` with no centring shift and at the keyframes' opening scale of 0.82,
+the clamp wrote a correction for that box, and the correction stuck. At a
+1280×800 window the palette sat 71px past the right edge with its close button,
+regex-builder button and appearance toggle unreachable; the real built app
+measured it at `translateX(-168.8px)` where `-440px` was intended. Centring by
+`left` alone leaves `transform` to the drag and clamp logic, and
+`command-palette-size-contract-test.ts` fails on any `transform` or `left: 50%`
+returning to the card sizes.
+
+In the same pass the results pane became its own inline-size container so the
+group chip hides when the pane is narrower than 600px (inside the medium card
+it is about 476px) rather than only when the window is narrow, a plain
+command's action zone no longer reserves the 132px an inline control needs (its
+Run button is always in the tree and holds its own width), the title, the place
+it lives and the search-terms line wrap instead of ending in an ellipsis, and
+the closed select has room for its longest option; a row whose text column
+would drop under 200px wraps its control beneath the text instead, and the
+location line keeps its anchor icon on the first line beside its text. The
+palette's own icon buttons (the appearance toggle and the apply button) and
+the dialog header's close button are 40px targets, the pointer minimum the
+layout audit holds every control to; the Run pill keeps at least 32px. Measured in the built app at 1280×800 before the change, "Show emojis in
+dialogs and message boxes", "TUI language, appearance, and notifications" and
+even "Language mode" lost their last words to the ellipsis.
+
 
 ### Full-app surface
 

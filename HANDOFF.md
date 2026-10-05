@@ -1,5 +1,99 @@
 # Desktop Material — Active parity handoff
 
+## 2026-10-04 shortcuts back to upstream, palette centring, and the clipping hunt
+
+Ctrl+Shift+F is Show in Explorer (Finder on macOS) again, the binding upstream
+GitHub Desktop ships; the command palette is back on Ctrl+Shift+P; Pull, which
+had taken Ctrl+Shift+P on 2026-08-19, is Ctrl+Shift+L. Checking the whole menu
+template for duplicate accelerators found Build and run and Compare to branch
+both on Ctrl+Shift+B, so Build and run is F5 and `menu-test.ts` now fails on any
+accelerator registered twice. The departure from the shared product contract
+(every palette on Ctrl+Shift+F) is deliberate, app-only, and recorded in
+`docs/features/design-system/command-palette-full-coverage.md`; the Pages site
+and the docs hub keep Ctrl+Shift+F for their palettes, and the site's keyboard
+hint now says what its handler does.
+
+The docs generators had been broken since the prettier 3 bump on 2026-08-24
+(`format()` returns a promise there and both scripts wrote it to disk); they
+await it now, six newer articles reach the in-app bundle for the first time,
+and `docs-browser-bundle-test.ts`, red on `main` with three failures, is green.
+
+### Clipping hunt on the palette, in the real build
+
+The app was built and run in a Linux container (production webpack
+configuration, one bundle per process with source maps, the bundle analyzer and
+minification off for the renderer, because the all-in-one compile is killed by
+the 16GB memory cgroup at about 13.5GB; `ELECTRON_DISABLE_SANDBOX=1`,
+`libsecret-1-0` for `keytar.node`, the proxy CA in the NSS store because a
+certificate error on a launch request is treated as fatal). Captures and the
+`audit:` step ran through `script/capture-app.js` with no repository seeded,
+since the fixture's repository seeding assumes Windows paths.
+
+Found and fixed, measured before and after:
+
+- The medium palette card sat 71px past the right edge of a 1280×800 window,
+  close button, regex-builder button and appearance toggle unreachable. It was
+  centred by `transform: translateX(-50%)`; the Dialog component's drag/resize
+  clamp writes an inline `transform` that replaces it, and the clamp ran on the
+  first entrance-animation frame (scale 0.82, no centring shift): the running
+  app computed `translateX(-168.8px)` at 1280 and `-8.8px` at 1600 where
+  `-440px` was intended. The card sizes now centre with
+  `left: max(margin, calc(50vw - half the card))` and declare no transform.
+- Row titles were silently cut to an ellipsis at the default size ("Show
+  emojis in dialogs and message boxes", "TUI language, appearance, and
+  notifications", even "Language mode"). The results pane is an inline-size
+  container so the group chip hides under 600px of pane width (the medium
+  pane is about 476px); a plain command no longer reserves an inline control's
+  132px; titles, where-lines and search terms wrap; the select may grow to
+  280px; a row whose text column would drop under 200px wraps its control
+  beneath the text. A `title` disclosure was not an option: the repository's
+  a11y lint forbids it outside an iframe.
+- The location line's anchor icon sat alone on a line in bilingual rows once
+  the line was allowed to wrap as a whole; it stays beside its text now. The
+  audit holds every control to a 40px pointer target: the appearance toggle
+  (28px), the apply button (30px) and the palette's dialog close button
+  (16px, the one error-level target on an open palette) are 40px, scoped to
+  the palette so the frozen dialog stylesheet stays untouched; the Run pill
+  keeps at least 32px of height and remains an advisory warning by design.
+
+Final audit on the build of this entry's source, four passes (English and
+bilingual, 1280×800 and 700×640): palette chrome off-viewport 0 in every pass
+(was 3 controls); error-level hit targets on the open palette 0 (was 1, the
+close button); silent truncation 0 in English and 1 in bilingual, the
+branch-sort select whose longest label "By when they were last changed ·
+按最近改過" still exceeds the closed box by about 26px (its options read in
+full when opened; recorded, not chased). The audit's remaining off-viewport
+items are controls in rows scrolled below the fold of the results list.
+
+`command-palette-size-contract-test.ts` passes 8/9; the ninth, the
+`modal={true}` assertion, was already red on `main` and is unrelated. Focused
+suites: 30/30 menu and context-menu shortcuts, 50/50 docs bundle, hub catalog
+and hub page; `tsc --noEmit` clean; eslint clean on changed files.
+
+Retained captures, all genuine page screenshots of the real built renderer on
+the hidden X display, scale 1, light theme, no repository open:
+
+| Capture | Size | SHA-256 |
+| --- | --- | --- |
+| `command-palette-off-centre-before-20261004.png` (before, English) | 1280×800 | `A0A37BB9A8C77BF238609C402C49E9D929F73B46EFDA5D8BFF4D575F35696D6F` |
+| `command-palette-centred-english-1280-20261004.png` | 1280×800 | `1BA15EF9DFE9102C9A3B836F74E0E4A9C7A645B29A87C44565EB6032D423119E` |
+| `command-palette-centred-bilingual-1280-20261004.png` | 1280×800 | `A5A910C1D2BC2F8E172031DCCCB8884CCC0345D010640670E83B1F4A429E4C45` |
+| `command-palette-centred-english-700-20261004.png` | 700×640 | `4E96CFFF8CA000D581FD6BE6BCE1C1BA7DF3865A9EB307288FD166E65B00214C` |
+
+Excluded follow-up, recorded rather than adopted: the audit's hit-target
+findings (34×34 tab-strip buttons, the 28×28 appearance toggle, the 16×16 dialog
+close button); the Pages site tab strip keeping its add/history buttons past the
+right edge of a 1280 window inside a scrollable row; the bilingual branch-sort
+select above; the profile stores failing on Linux with backslash paths (a
+Windows-only product). Build and run: its surfaces could not be captured here
+because the panel needs an open repository and the fixture cannot seed one on
+Linux, so the shortcut collision is the only Build and run change in this
+entry. For the next pass, `_material-build-run.scss` carries four silent
+single-line truncations to measure in the real panel: the primary button's
+`.text` and `.description`, the panel `.header-title`, the `.status-chip`, and
+the `.truncate-output` log line (display-only by design, the full text stays
+in the DOM and the clipboard copy).
+
 ## 2026-09-20 clone sorting and stale recovery
 
 The clone dialog now exposes persisted alphabetical, modified-date,

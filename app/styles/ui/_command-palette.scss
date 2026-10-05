@@ -1,6 +1,6 @@
 @import '../mixins';
 
-// The Ctrl+Shift+F master command palette, built as Material Design 3's full-screen
+// The Ctrl+Shift+P master command palette, built as Material Design 3's full-screen
 // search view: the palette covers the entire app rather than floating over a
 // corner of it, so the list has room to be a control surface — every row shows
 // where its feature lives, and a row that *is* a setting renders that setting's
@@ -92,10 +92,29 @@
     padding-right: 4px;
     overflow-y: auto;
     overscroll-behavior: contain;
+    // The pane is its own size container, so the row layout below can answer
+    // to the pane's width rather than the window's: inside the medium card at
+    // a 1280px window this pane is 456px wide while the window is not narrow.
+    container: palette-results / inline-size;
   }
 
+  // Inside the medium card the pane is about 476px wide, and the group chip
+  // (82px in English, up to 160px bilingual) cost the title the room it did
+  // not have: "Show repository tools" became "Show repository …" with nothing
+  // to disclose the rest. The chip is the decoration here; the title is not.
+  // The detail pane and the full-size palette still show the chips.
+  @container palette-results (max-width: 600px) {
+    .command-palette-group {
+      display: none;
+    }
+  }
+
+  // A row wraps its trailing zone beneath the text once the text cannot keep
+  // a readable column: in the bilingual medium card a 280px select left
+  // "Language mode · 語言模式" about 40px, one character per line.
   .command-palette-row {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 12px;
     width: 100%;
@@ -152,39 +171,44 @@
 
   .command-palette-row-copy {
     display: flex;
-    flex: 1;
+    flex: 1 1 200px;
     min-width: 0;
     flex-direction: column;
     gap: 1px;
   }
 
+  // The title and the place it lives wrap onto a second line rather than end
+  // in an ellipsis: a Material two-line list row is ordinary, a command whose
+  // name is cut off is not. Measured in the built app at 1280×800, "Show
+  // emojis in dialogs and message boxes" and "TUI language, appearance, and
+  // notifications" lost their last words to the ellipsis.
   .command-palette-title {
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
     font-size: 14px;
   }
 
   // "Toolbar", "Settings › Appearance" — the row's answer to "where is this?",
   // which is also what clicking it acts on.
+  // The anchor icon stays on the first line with its text; the text wraps
+  // under itself. With the line allowed to wrap as a whole, a bilingual
+  // location put the icon alone on a line and the text beneath it.
   .command-palette-where {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 4px;
     min-width: 0;
-    overflow: hidden;
+    overflow-wrap: anywhere;
     color: var(--md-sys-color-on-surface-variant);
     font-size: 11.5px;
-    white-space: nowrap;
-    text-overflow: ellipsis;
   }
 
+  // Search terms wrap too: a hint line that ends in an ellipsis hides exactly
+  // the term the user was about to type, and a `title` disclosure is not an
+  // option under the repository's a11y lint.
   .command-palette-keywords {
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
     color: var(--md-sys-color-on-surface-variant);
     font-size: 11.5px;
   }
@@ -197,14 +221,22 @@
   }
 
   // The trailing zone: a setting's own control, or the command's Run button.
+  // Only a row with an inline control reserves the control's width; a plain
+  // command's Run button is always in the tree (it only fades in on hover), so
+  // it holds its own width and the title keeps the rest.
   .command-palette-row-actions {
     display: flex;
     flex: none;
     align-items: center;
     justify-content: flex-end;
     gap: 6px;
-    min-width: 132px;
+    margin-left: auto;
+    min-width: 0;
     cursor: default;
+  }
+
+  .command-palette-row.has-control .command-palette-row-actions {
+    min-width: 132px;
   }
 
   .command-palette-box {
@@ -228,8 +260,11 @@
     }
   }
 
+  // Room for the longest option the catalog declares ("By when they were last
+  // changed · 按最近改過" bilingual); the closed select clips whatever its box
+  // cannot hold, and nothing discloses the rest.
   .command-palette-select {
-    max-width: 168px;
+    max-width: min(280px, 100%);
     padding: 6px 8px;
     border: 1px solid var(--md-sys-color-outline-variant);
     border-radius: var(--md-sys-shape-corner-small, 8px);
@@ -246,8 +281,8 @@
   .command-palette-apply {
     display: grid;
     place-items: center;
-    width: 30px;
-    height: 30px;
+    width: 40px;
+    height: 40px;
     padding: 0;
     border: 0;
     border-radius: var(--md-sys-shape-corner-full, 999px);
@@ -274,6 +309,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
+    min-height: 32px;
     padding: 5px 12px;
     border: 1px solid var(--md-sys-color-outline-variant);
     border-radius: var(--md-sys-shape-corner-full, 999px);
@@ -511,11 +547,12 @@
     flex: none;
   }
 
+  // 40px: the pointer target minimum the layout audit holds every control to.
   .command-palette-appearance-toggle {
     display: grid;
     place-items: center;
-    width: 28px;
-    height: 28px;
+    width: 40px;
+    height: 40px;
     padding: 0;
     border: 0;
     border-radius: var(--md-sys-shape-corner-full, 999px);
@@ -663,6 +700,20 @@
   background: var(--md-sys-color-surface);
   translate: none;
 
+  // The shared close-button mixin's 16px box is the icon itself, and a 16px
+  // hit target was the one error-level finding the layout audit raised on an
+  // open palette. A 40px round target with the icon centred keeps the icon
+  // where it was by folding the extra 12px into the negative right margin.
+  // Scoped to the palette: the dialog stylesheet itself is frozen chrome.
+  .dialog-header .close {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    margin-right: calc(var(--spacing) * -1 - 12px);
+    border-radius: var(--md-sys-shape-corner-full, 999px);
+  }
+
   .dialog-content {
     display: flex;
     flex: 1 1 auto;
@@ -673,6 +724,16 @@
 
   // A bounded card, floated below the top of the window so the palette reads
   // as a surface over the app rather than as the app.
+  // Centred by `left` alone, never by `transform`. The Dialog component keeps
+  // every floating dialog on screen by writing an inline `transform:
+  // translate(x, y)` whenever it is dragged or resized, and an inline
+  // transform replaces the stylesheet's, it does not add to it. With the card
+  // centred by `translateX(-50%)` that replacement ran on the card's very
+  // first frame: the dmDialog entrance keyframes own `transform` while they
+  // play, so the card measured at `left: 50%` with no centring shift and at
+  // scale 0.82, the clamp "corrected" that box, and the correction stuck. At a
+  // 1280px window the palette then sat 71px past the right edge with its close
+  // button, regex-builder button and appearance toggle out of reach.
   &.command-palette-size-medium,
   &.command-palette-size-compact {
     --command-palette-content-width: 100%;
@@ -680,9 +741,7 @@
     top: var(--command-palette-float-top);
     right: auto;
     bottom: auto;
-    left: 50%;
     margin: 0;
-    transform: translateX(-50%);
     border-radius: var(--md-sys-shape-corner-extra-large, 28px);
     box-shadow: var(--md-sys-elevation-level3);
     overflow: hidden;
@@ -691,6 +750,7 @@
   &.command-palette-size-medium {
     --command-palette-float-top: max(var(--command-palette-top), 64px);
 
+    left: max(32px, calc(50vw - 440px));
     width: min(880px, calc(100vw - 64px));
     max-width: min(880px, calc(100vw - 64px));
     height: min(620px, calc(100vh - var(--command-palette-float-top) - 48px));
@@ -700,6 +760,7 @@
   &.command-palette-size-compact {
     --command-palette-float-top: max(var(--command-palette-top), 48px);
 
+    left: max(24px, calc(50vw - 310px));
     width: min(620px, calc(100vw - 48px));
     max-width: min(620px, calc(100vw - 48px));
     height: min(440px, calc(100vh - var(--command-palette-float-top) - 40px));

@@ -202,7 +202,7 @@ describe('main-process menu', () => {
       assert.equal(repositoryTools?.accelerator, 'CmdOrCtrl+4')
     })
 
-    it('exposes the command palette on Ctrl+Shift+F', () => {
+    it('exposes the command palette on Ctrl+Shift+P', () => {
       const template = buildDefaultMenuTemplate(baseParams)
       const editMenu = template.find(
         item => item.label?.replaceAll('&', '') === 'Edit'
@@ -211,9 +211,26 @@ describe('main-process menu', () => {
       const commandPalette = editMenu.submenu.find(
         item => item.id === 'command-palette'
       )
-      assert.equal(commandPalette?.accelerator, 'CmdOrCtrl+Shift+F')
+      assert.equal(commandPalette?.accelerator, 'CmdOrCtrl+Shift+P')
       assert.equal(commandPalette?.label, 'Command pal&ette')
       assert.equal(commandPalette?.click instanceof Function, true)
+
+      const accelerators = template.flatMap(item =>
+        Array.isArray(item.submenu) ? item.submenu : []
+      )
+      assert.equal(
+        accelerators.filter(item => item.accelerator === 'CmdOrCtrl+Shift+P')
+          .length,
+        1
+      )
+    })
+
+    it('keeps the current repository folder on its upstream Ctrl+Shift+F binding', () => {
+      const template = buildDefaultMenuTemplate(baseParams)
+      const openWorkingDirectory = template
+        .flatMap(item => (Array.isArray(item.submenu) ? item.submenu : []))
+        .find(item => item.id === 'open-working-directory')
+      assert.equal(openWorkingDirectory?.accelerator, 'CmdOrCtrl+Shift+F')
 
       const accelerators = template.flatMap(item =>
         Array.isArray(item.submenu) ? item.submenu : []
@@ -225,20 +242,44 @@ describe('main-process menu', () => {
       )
     })
 
-    it('moves the current repository folder to a non-conflicting binding', () => {
+    it('moves pull off the palette binding without losing its shortcut', () => {
       const template = buildDefaultMenuTemplate(baseParams)
-      const openWorkingDirectory = template
+      const pull = template
         .flatMap(item => (Array.isArray(item.submenu) ? item.submenu : []))
-        .find(item => item.id === 'open-working-directory')
-      assert.equal(openWorkingDirectory?.accelerator, 'CmdOrCtrl+Alt+F')
+        .find(item => item.id === 'pull')
+      assert.equal(pull?.accelerator, 'CmdOrCtrl+Shift+L')
+    })
 
-      const accelerators = template.flatMap(item =>
-        Array.isArray(item.submenu) ? item.submenu : []
+    it('never registers one accelerator for two menu items', () => {
+      // Two items on one accelerator is a silent fight the user loses: only
+      // one of them can answer the chord, and the other command becomes
+      // unreachable from the keyboard with no error anywhere. Build and run
+      // sat on Compare to branch's Shift+B exactly this way, so the whole
+      // template is checked here rather than one pair at a time.
+      const template = buildDefaultMenuTemplate(baseParams)
+      const seen = new Map<string, Array<string>>()
+      const visit = (
+        items: ReadonlyArray<Electron.MenuItemConstructorOptions>
+      ) => {
+        for (const item of items) {
+          if (typeof item.accelerator === 'string') {
+            const owners = seen.get(item.accelerator) ?? []
+            owners.push(item.id ?? String(item.label))
+            seen.set(item.accelerator, owners)
+          }
+          if (Array.isArray(item.submenu)) {
+            visit(item.submenu)
+          }
+        }
+      }
+      visit(template)
+      const duplicates = [...seen.entries()].filter(
+        ([, owners]) => owners.length > 1
       )
-      assert.equal(
-        accelerators.filter(item => item.accelerator === 'CmdOrCtrl+Alt+F')
-          .length,
-        1
+      assert.deepEqual(
+        duplicates,
+        [],
+        `accelerators registered more than once: ${JSON.stringify(duplicates)}`
       )
     })
 

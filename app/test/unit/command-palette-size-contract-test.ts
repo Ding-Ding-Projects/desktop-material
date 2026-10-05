@@ -36,7 +36,7 @@ async function readStylesheet(): Promise<string> {
  */
 function sizeBlock(css: string, size: string): string {
   const marker = `&.command-palette-size-${size} {`
-  const narrowWidthMarker = '@media (max-width: 560px) {'
+  const narrowWidthMarker = '@media (max-width: 600px) {'
   const shortHeightMarker = '@media (max-height: 420px) {'
   const narrowWidthStart = css.indexOf(narrowWidthMarker)
   const shortHeightStart = css.indexOf(shortHeightMarker)
@@ -78,13 +78,124 @@ describe('command palette size contract', () => {
       '&.command-palette-size-medium,\n  &.command-palette-size-compact {'
     )
     assert.notEqual(start, -1, 'the two card sizes must share their geometry')
-    const block = css.slice(start, start + 600)
+    const shared = css.slice(start, css.indexOf('\n  }', start))
 
     // A card that reaches the window edge reads as a failed full screen
     // rather than as a surface floating over the app.
-    assert.match(block, /left: 50%/)
-    assert.match(block, /transform: translateX\(-50%\)/)
-    assert.match(block, /border-radius: 20px/)
+    assert.match(shared, /top: var\(--command-palette-float-top\)/)
+    assert.match(
+      shared,
+      /border-radius: var\(--md-sys-shape-corner-extra-large/
+    )
+
+    // Each size centres itself with `left` from its own width: half the window
+    // minus half the card, never closer to the edge than the card's margin.
+    assert.match(
+      sizeBlock(css, 'medium'),
+      /left: max\(32px, calc\(50vw - 440px\)\);/
+    )
+    assert.match(
+      sizeBlock(css, 'compact'),
+      /left: max\(24px, calc\(50vw - 310px\)\);/
+    )
+  })
+
+  it('never centres a card with transform', async () => {
+    // The Dialog component keeps a floating dialog on screen by writing an
+    // inline `transform: translate(x, y)` on drag and on resize, and an inline
+    // transform replaces the stylesheet's rather than adding to it. Centring
+    // through `translateX(-50%)` therefore lasted exactly one frame: the
+    // entrance keyframes own `transform` while they play, the resize observer
+    // measured the card at `left: 50%` with no shift and at scale 0.82, the
+    // clamp wrote a correction for that box, and the correction stuck. At a
+    // 1280px window the palette sat 71px past the right edge with its close
+    // button, regex-builder button and appearance toggle unreachable.
+    const css = await readStylesheet()
+    const surface = css.slice(
+      css.indexOf(
+        '#dialog-layer dialog#command-palette.command-palette-surface[open] {'
+      ),
+      css.indexOf('@media (max-height: 420px) {')
+    )
+    assert.doesNotMatch(surface, /^\s*transform:/m)
+    assert.doesNotMatch(surface, /^\s*left: 50%/m)
+  })
+
+  it('lets the title keep its width inside a narrow results pane', async () => {
+    const css = await readStylesheet()
+
+    // The group chip answers to the pane's width, not the window's: inside the
+    // medium card at a 1280px window the pane is 456px wide while the window
+    // is not narrow, and the chip was costing the title its last word.
+    assert.match(
+      css,
+      /\.command-palette-results\s*\{[\s\S]*?container: palette-results \/ inline-size;/
+    )
+    assert.match(
+      css,
+      /@container palette-results \(max-width: 600px\)\s*\{\s*\.command-palette-group\s*\{\s*display: none;/
+    )
+
+    // Only a row with an inline control reserves the control's width. A plain
+    // command's Run button is always in the tree, so it holds its own width.
+    assert.match(css, /\.command-palette-row-actions\s*\{[\s\S]*?min-width: 0;/)
+    assert.match(
+      css,
+      /\.command-palette-row\.has-control \.command-palette-row-actions\s*\{\s*min-width: 132px;/
+    )
+
+    // The title, the place it lives and the search terms wrap instead of
+    // ending in an ellipsis, and the closed select has room for its longest
+    // label. (A `title` disclosure is not an option: the repository's a11y
+    // lint forbids the attribute outside an iframe.)
+    for (const selector of [
+      '.command-palette-title {',
+      '.command-palette-where {',
+      '.command-palette-keywords {',
+    ]) {
+      const start = css.indexOf(selector)
+      assert.notEqual(start, -1, `${selector} must exist`)
+      const block = css.slice(start, css.indexOf('\n  }', start))
+      assert.doesNotMatch(block, /white-space: nowrap/, selector)
+      assert.doesNotMatch(block, /text-overflow: ellipsis/, selector)
+    }
+    assert.match(
+      css,
+      /\.command-palette-select\s*\{\s*max-width: min\(280px, 100%\);/
+    )
+
+    // A row wraps its trailing zone beneath the text once the text column
+    // would drop under 200px; otherwise a wide select leaves the title one
+    // character per line.
+    assert.match(css, /\.command-palette-row\s*\{[\s\S]*?flex-wrap: wrap;/)
+    assert.match(css, /\.command-palette-row-copy\s*\{[\s\S]*?flex: 1 1 200px;/)
+    assert.match(
+      css,
+      /\.command-palette-row-actions\s*\{[\s\S]*?margin-left: auto;/
+    )
+
+    // Palette-owned controls meet the 40px pointer target the layout audit
+    // holds every control to; the Run pill keeps at least 32px of height.
+    for (const control of [
+      '.command-palette-appearance-toggle',
+      '.command-palette-apply',
+    ]) {
+      const block = css.slice(
+        css.indexOf(`${control} {`),
+        css.indexOf('\n  }', css.indexOf(`${control} {`))
+      )
+      assert.match(block, /width: 40px;/, control)
+      assert.match(block, /height: 40px;/, control)
+    }
+    assert.match(css, /\.command-palette-run\s*\{[\s\S]*?min-height: 32px;/)
+
+    // The palette's dialog header close button is a 40px target rather than
+    // the shared mixin's 16px icon box, scoped here so the frozen dialog
+    // stylesheet stays untouched.
+    assert.match(
+      css,
+      /\.dialog-header \.close\s*\{[\s\S]*?width: 40px;[\s\S]*?height: 40px;/
+    )
   })
 
   it('uses the native modal layer for the centred scrim and focus trap', async () => {

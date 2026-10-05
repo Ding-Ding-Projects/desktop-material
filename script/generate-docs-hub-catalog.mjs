@@ -434,7 +434,7 @@ export async function buildIndexDocument({
     html = replaceManagedBlock(html, name, body)
   }
   const options = (await prettier.resolveConfig(indexPath)) ?? {}
-  const source = prettier.format(html, {
+  const source = await prettier.format(html, {
     ...options,
     filepath: indexPath,
     endOfLine: 'lf',
@@ -456,7 +456,7 @@ export async function buildCatalogModule({
 } = {}) {
   const entries = collectCatalog(docsDirectory)
   const options = (await prettier.resolveConfig(outputPath)) ?? {}
-  const source = prettier.format(renderCatalogModule(entries), {
+  const source = await prettier.format(renderCatalogModule(entries), {
     ...options,
     filepath: outputPath,
     // The generator always emits LF; Git applies the checkout's own endings.
