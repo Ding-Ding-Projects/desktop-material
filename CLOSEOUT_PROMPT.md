@@ -99,13 +99,16 @@ Integration
   main with a merge commit on 2026-10-05 after main had moved by two
   test-runner commits (b2ee4d3); the dry-run merge was clean. main pushed;
   ancestry of the task tip proven with git merge-base --is-ancestor; the
-  task branch then deleted on the remote and locally. An off-machine
-  HuiDrive-style archive before cleanup was not possible in this container
-  (no OneDrive); a best-effort zip of the tracked tree plus .git was written
-  to the session scratchpad, and the deleted branch is fully contained in
-  main's history.
+  local task branch deleted. The remote branch could not be deleted from
+  this container: the proxy refuses write access to the Git refs API
+  (HTTP 403) and hangs up a delete push, so
+  origin/codex/shortcuts-shift-f-explorer (71b1d6a, fully contained in
+  main) remains for a session with that permission or for GitHub's branch
+  page. An off-machine HuiDrive-style archive before cleanup was not
+  possible here (no OneDrive); a best-effort zip of the tracked tree plus
+  .git was written to the session scratchpad.
 
-Blockers: none.
+Blockers: remote branch deletion refused by the proxy (see above).
 
 Next safe steps
 1. Build and run: open a repository in the real build (on Windows, or after
