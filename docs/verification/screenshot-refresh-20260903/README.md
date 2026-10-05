@@ -1,4 +1,4 @@
-# HuiShot refresh — 2026-09-03
+# Screenshot refresh — 2026-09-03
 
 Canonical gallery capture run against a freshly built tree, on a hidden Windows
 desktop through the cheap headless route. Every image below came from the real

@@ -8,13 +8,13 @@ export interface IMergeAllOptions {
    * branch. This remains opt-in because it creates a real commit.
    */
   readonly checkpointDirtyWorktrees: boolean
-  /** Preserve recoverable work and automate the complete Mat Day sequence. */
-  readonly forceMatDay: boolean
+  /** Preserve recoverable work and automate the complete cleanup sequence. */
+  readonly forceCleanup: boolean
 }
 
 export const DefaultMergeAllOptions: IMergeAllOptions = {
   checkpointDirtyWorktrees: false,
-  forceMatDay: false,
+  forceCleanup: false,
 }
 
 export type MergeAllPhase =

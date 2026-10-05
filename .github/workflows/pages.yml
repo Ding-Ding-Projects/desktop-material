@@ -47,6 +47,13 @@ jobs:
           mkdir -p _site/docs/assets/screenshots
           cp -r docs/assets/screenshots/* _site/docs/assets/screenshots/
           cp site/docs-search.html _site/docs/search.html
+          # Every page's og:image points at /assets/social-preview.png. The
+          # image was never published there, so link previews fetched a 404.
+          # Publish it and prove the served bytes are the committed preview.
+          mkdir -p _site/assets
+          cp docs/assets/social-preview.png _site/assets/social-preview.png
+          cmp docs/assets/social-preview.png social-preview.png
+          cmp docs/assets/social-preview.png _site/assets/social-preview.png
 
       # The Docs button serves the complete rendered documentation set from
       # GitHub Pages itself rather than redirecting to github.com.
@@ -78,6 +85,7 @@ jobs:
               --lua-filter site/md-links.lua \
               --metadata pagetitle="$title" \
               --variable docsroot="$docsroot" \
+              --variable pageurl="https://ding-ding-projects.github.io/desktop-material/${out#_site/}" \
               --output "$out"
           done
           # Root-level project documents referenced from docs/ (ROADMAP,
@@ -92,6 +100,7 @@ jobs:
               --lua-filter site/md-links.lua \
               --metadata pagetitle="${src%.md}" \
               --variable docsroot="docs/" \
+              --variable pageurl="https://ding-ding-projects.github.io/desktop-material/${src%.md}.html" \
               --output "_site/${src%.md}.html"
           done
           test -f _site/docs/index.html
@@ -110,6 +119,7 @@ jobs:
             --lua-filter site/md-links.lua \
             --metadata pagetitle="Desktop Material documentation" \
             --variable docsroot="" \
+            --variable pageurl="https://ding-ding-projects.github.io/desktop-material/docs/README.html" \
             --output _site/docs/README.html
           cp docs/index.html _site/docs/index.html
           mkdir -p _site/docs/assets/site

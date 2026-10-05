@@ -18,7 +18,7 @@
   ],
   "capture": {
     "dimensions": "1440x960",
-    "method": "Cheap Version headless route with CDP Page.captureScreenshot",
+    "method": "Cheap headless route with CDP Page.captureScreenshot",
     "build": "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
     "buildResult": "exit 0",
     "screenshotsInspected": true

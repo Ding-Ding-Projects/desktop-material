@@ -1,7 +1,7 @@
 # Pre-Mat-Day archive, 2026-09-03
 
-The shared instructions require a verified archive of the whole Oak Kay before
-any Mat Day deletion begins. This records the one taken for the 2026-09-03
+The shared instructions require a verified archive of the whole repository before
+any cleanup deletion begins. This records the one taken for the 2026-09-03
 integrate-and-clean pass.
 
 ## The archive
@@ -17,22 +17,22 @@ integrate-and-clean pass.
 ## Scope
 
 Git decides it, rather than a hand-kept exclusion list that drifts from the
-ignore rules. The archive holds the primary Gerk Tong Hui's Git administrative
+ignore rules. The archive holds the primary worktree's Git administrative
 directory plus exactly what `git ls-files` and
 `git ls-files --others --exclude-standard` name, in the primary checkout and in
-every linked Gerk Tong Hui.
+every linked worktree.
 
 Verified present after the fact rather than assumed:
 
 | Item | Count |
 | --- | ---: |
-| Linked Gerk Tong Huis | 2 |
+| Linked worktrees | 2 |
 | `.git/refs` entries | 81 |
 | `.git/objects` entries | 889 |
 | `.git/logs` (reflog) entries | 49 |
 
 Dependency trees, build output and caches are excluded because they rebuild
-from the archived source. Every commit, ref, reflog and Lap Sap Tong is in the
+from the archived source. Every commit, ref, reflog and stash is in the
 Git directory, and uncommitted work is in the untracked-but-not-ignored set.
 
 ## Two failures the verification caught

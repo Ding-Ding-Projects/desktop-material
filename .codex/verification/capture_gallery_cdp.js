@@ -912,7 +912,7 @@ const CanonicalGalleryOutputs = Object.freeze([
   'material-actions-job-log',
   'material-actions-cancel',
   'material-actions-pending-deployments',
-  'material-worktree-force-mat-day',
+  'material-worktree-force-cleanup',
   'material-branch-merge-all',
   'advanced-workflows',
   'material-cheap-lfs-preparing',
@@ -9451,7 +9451,7 @@ scene('merge-all', async () => {
     'Dirty-worktree preservation checked, bounded, and safety copy visible'
   )
   await parkPointer()
-  await capture('material-worktree-force-mat-day')
+  await capture('material-worktree-force-cleanup')
   await closeAllDialogs()
   await evaluate(`require('electron').ipcRenderer.emit('focus'), true`)
   await sleep(1800)

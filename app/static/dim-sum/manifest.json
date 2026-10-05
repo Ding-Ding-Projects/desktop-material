@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "source": "agent-global-memory dim sum catalog",
+  "source": "shared dim sum catalog",
   "catalogSchemaVersion": "1.0.0",
   "note": "Copied byte for byte from the catalog. Never generated, fetched, resized or re-encoded here.",
   "dishes": [

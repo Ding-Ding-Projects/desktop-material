@@ -39,7 +39,7 @@ claimed-present path, and remains incomplete while any required evidence is
 pending or blocked. The August 21 ultra-speed pass intentionally leaves the
 runtime, persistence, built-artifact interaction, and real-capture dimensions
 pending where they were not independently verified; that state is evidence of
-an open Chut, not a missing file to be papered over.
+an open gate, not a missing file to be papered over.
 
 The inventory also records a documented equivalent when a requirement cannot
 be implemented literally on a particular surface. The reason and the closest
@@ -63,7 +63,7 @@ feature identifiers and required dimensions. It must fail when:
 
 Inventory validity and completion are separate verdicts. A valid manifest can
 have an incomplete completion verdict while evidence is honestly pending. The
-dedicated completion Chut nevertheless asserts `complete === true`; with the
+dedicated completion gate nevertheless asserts `complete === true`; with the
 current deferred evidence it is expected to be red, and its failure message
 prints the exact pending, blocked, or missing paths that must be resolved. The
 focused contract test exercises both verdicts and mutates every row and every

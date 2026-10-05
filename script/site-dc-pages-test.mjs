@@ -123,8 +123,15 @@ for (const match of sources.matchAll(/<dc-import[^>]*name="([^"]+)"/g)) {
   )
 }
 
+// Open Graph tags carry absolute URLs by specification: a link-preview
+// crawler fetches them, the page itself never does. They are the only
+// absolute URLs exempted, and only inside a `<meta property="og:…">` tag, so
+// a `src` or `href` to the same host is still reported.
+const withoutLinkPreviewMeta = text =>
+  text.replace(/<meta\s+property="og:[^"]+"\s+content="[^"]*"\s*\/?>/g, '')
+
 for (const [name, text] of [
-  ['index.html', page],
+  ['index.html', withoutLinkPreviewMeta(page)],
   ['Listbox.dc.html', listbox],
   ['vendor/fonts/fonts.css', read('vendor/fonts/fonts.css')],
 ]) {

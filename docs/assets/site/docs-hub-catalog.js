@@ -1869,6 +1869,13 @@
       d: 'Mode: publish',
     },
     {
+      t: 'Pre-Mat-Day archive, 2026-09-03',
+      h: 'verification/cleanup-archive-20260903/',
+      s: 'verification/cleanup-archive-20260903/README.md',
+      c: 'verification',
+      d: 'The shared instructions require a verified archive of the whole repository before any cleanup deletion begins. This records the one taken for the 2026-09-03 integrate-and-clean…',
+    },
+    {
       t: 'Close-all-open-issues cleanup ledger',
       h: 'verification/close-all-open-issues-2026-07-28/cleanup-ledger.html',
       s: 'verification/close-all-open-issues-2026-07-28/cleanup-ledger.md',
@@ -1932,13 +1939,6 @@
       d: 'Independent confirmation that the production build actually runs, captured through a completely different route from the Playwright-driven fixture used elsewhere in…',
     },
     {
-      t: 'HuiShot refresh — 2026-09-03',
-      h: 'verification/huishots-20260903/',
-      s: 'verification/huishots-20260903/README.md',
-      c: 'verification',
-      d: 'Canonical gallery capture run against a freshly built tree, on a hidden Windows desktop through the cheap headless route. Every image below came from the real built renderer at…',
-    },
-    {
       t: 'Issue #94 and #80 built-app evidence — 2026-07-31',
       h: 'verification/issue-94-80-evidence-2026-07-31/',
       s: 'verification/issue-94-80-evidence-2026-07-31/README.md',
@@ -1986,13 +1986,6 @@
       s: 'verification/linux-tui-revival-2026-08-02/run-manifest.md',
       c: 'verification',
       d: 'This receipt tracks the 2026-08-02 revival of the interactive Linux terminal edition. It is updated only with observed evidence; a planned check is not a passing check.',
-    },
-    {
-      t: 'Pre-Mat-Day archive, 2026-09-03',
-      h: 'verification/mat-day-archive-20260903/',
-      s: 'verification/mat-day-archive-20260903/README.md',
-      c: 'verification',
-      d: 'The shared instructions require a verified archive of the whole Oak Kay before any Mat Day deletion begins. This records the one taken for the 2026-09-03 integrate-and-clean pass.',
     },
     {
       t: 'MD3 Compliance Audit Report',
@@ -2070,6 +2063,13 @@
       s: 'verification/responsive-surface-matrix-2026-07-17.md',
       c: 'verification',
       d: 'The final hidden-renderer smoke gate inventories every registered repository page, preferences page, repository-settings page, clone tab, notification tab, File History tab,…',
+    },
+    {
+      t: 'Screenshot refresh — 2026-09-03',
+      h: 'verification/screenshot-refresh-20260903/',
+      s: 'verification/screenshot-refresh-20260903/README.md',
+      c: 'verification',
+      d: 'Canonical gallery capture run against a freshly built tree, on a hidden Windows desktop through the cheap headless route. Every image below came from the real built renderer at…',
     },
     {
       t: 'Shift+Right-click opens appearance editors — built-app capture, 2026-07-28',

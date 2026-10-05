@@ -32,10 +32,10 @@ const valid = (entries: Record<string, string>) =>
 
 describe('a valid vocabulary file', () => {
   it('is accepted and keeps every term', () => {
-    const result = parsePersonalVocabulary(valid({ push: 'dew', bug: 'poke' }))
+    const result = parsePersonalVocabulary(valid({ push: 'send', bug: 'glitch' }))
     assert.ok(result.ok)
     assert.strictEqual(result.vocabulary.terms.size, 2)
-    assert.strictEqual(result.vocabulary.terms.get('push'), 'dew')
+    assert.strictEqual(result.vocabulary.terms.get('push'), 'send')
   })
 
   it('accepts an empty entries object', () => {
@@ -224,7 +224,7 @@ describe('the cache compatibility policy', () => {
   Object.defineProperty(globalThis, 'localStorage', { value: storage })
 
   it('writes schemaVersion and reads the previous schemaVersion plus terms cache', () => {
-    const current = parsePersonalVocabulary(valid({ push: 'dew' }))
+    const current = parsePersonalVocabulary(valid({ push: 'send' }))
     assert.ok(current.ok)
     cachePersonalVocabulary(current.vocabulary)
     const written = JSON.parse(
@@ -237,10 +237,10 @@ describe('the cache compatibility policy', () => {
       'desktop-material-vocabulary-v1',
       JSON.stringify({
         schemaVersion: PersonalVocabularySchemaVersion,
-        terms: { push: 'dew' },
+        terms: { push: 'send' },
       })
     )
-    assert.strictEqual(readCachedPersonalVocabulary()?.terms.get('push'), 'dew')
+    assert.strictEqual(readCachedPersonalVocabulary()?.terms.get('push'), 'send')
   })
 
   it('still reads the oldest version plus terms cache', () => {
@@ -248,10 +248,10 @@ describe('the cache compatibility policy', () => {
       'desktop-material-vocabulary-v1',
       JSON.stringify({
         version: PersonalVocabularySchemaVersion,
-        terms: { push: 'dew' },
+        terms: { push: 'send' },
       })
     )
-    assert.strictEqual(readCachedPersonalVocabulary()?.terms.get('push'), 'dew')
+    assert.strictEqual(readCachedPersonalVocabulary()?.terms.get('push'), 'send')
   })
 })
 
@@ -268,8 +268,8 @@ describe('applying a vocabulary', () => {
 
   it('replaces a term', () => {
     assert.strictEqual(
-      applyPersonalVocabulary('push it', load({ push: 'dew' })),
-      'dew it'
+      applyPersonalVocabulary('push it', load({ push: 'send' })),
+      'send it'
     )
   })
 
@@ -303,9 +303,9 @@ describe('applying a vocabulary', () => {
     assert.strictEqual(
       applyPersonalVocabulary(
         'force push',
-        load({ push: 'dew', 'force push': 'force-dew' })
+        load({ push: 'send', 'force push': 'force-send' })
       ),
-      'force-dew'
+      'force-send'
     )
   })
 
@@ -335,19 +335,19 @@ describe('the compiled pattern is reused safely', () => {
     // made to fail by removing one. It would fail if the cache ever started
     // handing out a pattern that had been advanced by something that does not
     // reset — `exec` or `test` — which is a plausible future edit.
-    const vocabulary = load({ push: 'dew' })
+    const vocabulary = load({ push: 'send' })
     const first = applyPersonalVocabulary('push push', vocabulary)
     const second = applyPersonalVocabulary('push push', vocabulary)
-    assert.strictEqual(first, 'dew dew')
+    assert.strictEqual(first, 'send send')
     assert.strictEqual(second, first)
   })
 
   it('still prefers the longest term after caching', () => {
-    const vocabulary = load({ push: 'dew', 'force push': 'force-dew' })
+    const vocabulary = load({ push: 'send', 'force push': 'force-send' })
     applyPersonalVocabulary('warm up', vocabulary)
     assert.strictEqual(
       applyPersonalVocabulary('force push', vocabulary),
-      'force-dew'
+      'force-send'
     )
   })
 })

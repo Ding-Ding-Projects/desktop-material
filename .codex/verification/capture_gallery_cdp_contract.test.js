@@ -811,7 +811,7 @@ test('merge-all capture preserves main and cleans only its evidence branch', () 
     "'symbolic-ref', 'refs/remotes/origin/HEAD'",
     '`refs/remotes/origin/${ready.defaultBranch}`',
     'startingBranch !== ready.featureBranch',
-    "capture('material-worktree-force-mat-day')",
+    "capture('material-worktree-force-cleanup')",
     "clickText('Preserve dirty worktrees before merge')",
     'checks.length !== 2',
     'checks.every(check => check instanceof HTMLInputElement && check.checked)',
@@ -834,7 +834,7 @@ test('merge-all capture preserves main and cleans only its evidence branch', () 
   assert.ok(
     mergeAll.indexOf(
       'Dirty-worktree preservation checked, bounded, and safety copy visible'
-    ) < mergeAll.indexOf("capture('material-worktree-force-mat-day')"),
+    ) < mergeAll.indexOf("capture('material-worktree-force-cleanup')"),
     'the dirty-worktree preservation semantic and geometry gate must run before capture'
   )
   assert.ok(
@@ -918,7 +918,7 @@ test('canonical and promoted specialist batches own all 98 published images exac
   assert.deepEqual(DeferredCanonicalOutputs, [
     'material-cheap-lfs-preparing',
     'material-repositories-sheet',
-    'material-worktree-force-mat-day',
+    'material-worktree-force-cleanup',
   ])
   assert.deepEqual(DeferredSpecialistOutputs, [])
   assert.equal(publishedCanonical.length, 66)

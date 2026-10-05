@@ -280,7 +280,7 @@ short lines and reaches the size branch for real.
 
 52 of the 131 gallery images were recaptured from the built application at
 `ec1847a4b2`. 68 canonical scenes were attempted and 16 skipped, each with a
-recorded reason in `docs/verification/huishots-20260903/README.md`. The other
+recorded reason in `docs/verification/screenshot-refresh-20260903/README.md`. The other
 79 images belong to scene sets outside the canonical batch and keep their
 earlier capture dates. Three skips are the harness privacy check refusing to
 photograph an anchored editor that had rendered a local path.
@@ -319,7 +319,7 @@ captures:
 
 The screenshot registry's pre-existing personal-vocabulary output mismatch was
 reconciled to its two already-published images. The separate canonical output
-`material-worktree-force-mat-day` had no tracked PNG and remains explicitly
+`material-worktree-force-cleanup` had no tracked PNG and remains explicitly
 deferred rather than being fabricated or copied from another surface. The
 normal generator then produced one page for every tracked PNG plus its index,
 with 98 of 98 published gallery outputs. The focused menu/gallery documentation
@@ -2801,7 +2801,7 @@ foundations but still need built-app captures or remaining live wiring, while
 R1/R2/R6/R7/R9–R18 retain the server, provider, adapter, or integration work
 listed below. No roadmap item is marked complete merely because source tests
 passed. Open issues were re-read at the checkpoint: desktop-material remains
-open on #23 and #118–#135; agent-global-memory has no open issues.
+open on #23 and #118–#135; the shared-instructions repository has no open issues.
 
 The hidden verification service was reached at the documented loopback MCP
 endpoint. Its scheduled task could not be enabled because Windows returned
@@ -3839,7 +3839,7 @@ The service gate passes **4/4 tests** for authorization, dashboard isolation,
 ingest/redaction/persistence/search, and bounded storage metadata. TypeScript,
 focused Prettier and ESLint, JSON parsing, Docker Compose validation, and
 `git diff --check` pass. The deployed ARM64 service at
-`192.168.50.242:4318` returns HTTP 200 from `/health`; its earlier
+`<private log host>:4318` returns HTTP 200 from `/health`; its earlier
 authenticated ingest/search/storage acceptance remains recorded below without
 re-reading or exposing its bearer token.
 
@@ -3920,7 +3920,7 @@ one-file commit reaches the remote.
 The repository now also contains the authenticated diagnostic log service,
 client remote transport, deployment runbook, feature documentation, and
 category/master Postman routes. The ARM64 service is running healthy at
-`192.168.50.242:4318` from
+`<private log host>:4318` from
 `/home/docker/services/desktop-material-diagnostic-log-server`, with data at
 `/home/docker/data/desktop-material-diagnostic-logs`. Its bearer token exists
 only in the host-side mode-0600 secret file. Live ingest, redaction, search, and

@@ -1,4 +1,4 @@
-# Oak Kay-wide Windows screenshot refresh
+# Repository-wide Windows screenshot refresh
 
 - Mode: capture-only first, followed by local documentation promotion after each accepted capture set.
 - Source revision: `c788bb9a0868099b7959e54be50e992559f977ee` from `origin/main`.

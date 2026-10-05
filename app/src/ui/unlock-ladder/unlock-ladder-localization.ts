@@ -166,7 +166,7 @@ const cantonese: CopyBands = {
   playful: {
     title: '解鎖梯',
     waitOnly: '呢條梯開嘅係等待門，唔係帳戶門。',
-    credentialNext: '之後仲係要由憑證大佬最後話事。',
+    credentialNext: '之後仲係要由憑證最後話事。',
     attemptsUnchanged: '嘗試次數一粒糖都冇加。',
     expired: '題目行咗去飲茶，攞過一題先。',
     wrong: '答案差少少，鎖定計數照舊。',
