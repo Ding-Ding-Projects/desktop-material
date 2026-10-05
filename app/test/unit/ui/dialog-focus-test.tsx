@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import * as React from 'react'
 
 import { Dialog, DialogStackContext } from '../../../src/ui/dialog/dialog'
-import { render, screen } from '../../helpers/ui/render'
+import { render, screen, waitFor } from '../../helpers/ui/render'
 
 const showDescriptor = Object.getOwnPropertyDescriptor(
   HTMLDialogElement.prototype,
@@ -17,12 +17,13 @@ const closeDescriptor = Object.getOwnPropertyDescriptor(
   HTMLDialogElement.prototype,
   'close'
 )
+// DOM elements inherit jsdom's EventTarget, not Node's global EventTarget.
 const addEventListenerDescriptor = Object.getOwnPropertyDescriptor(
-  EventTarget.prototype,
+  window.EventTarget.prototype,
   'addEventListener'
 )
 const removeEventListenerDescriptor = Object.getOwnPropertyDescriptor(
-  EventTarget.prototype,
+  window.EventTarget.prototype,
   'removeEventListener'
 )
 const focusDescriptor = Object.getOwnPropertyDescriptor(
@@ -34,6 +35,15 @@ const focusInListeners = new Map<
   Set<EventListenerOrEventListenerObject>
 >()
 let restoreIpcSend: (() => void) | null = null
+
+// Comparing the elements directly makes a failure inspect React's cyclic DOM
+// properties. Compare their identity as a boolean so failures stay bounded.
+function assertFocused(element: HTMLElement) {
+  assert.ok(
+    document.activeElement === element,
+    `Expected ${element.outerHTML} to have focus`
+  )
+}
 
 describe('Dialog focus', () => {
   beforeEach(async () => {
@@ -55,9 +65,9 @@ describe('Dialog focus', () => {
       this.open = false
     }
 
-    const addEventListener = EventTarget.prototype.addEventListener
-    const removeEventListener = EventTarget.prototype.removeEventListener
-    EventTarget.prototype.addEventListener = function (
+    const addEventListener = window.EventTarget.prototype.addEventListener
+    const removeEventListener = window.EventTarget.prototype.removeEventListener
+    window.EventTarget.prototype.addEventListener = function (
       type,
       listener,
       options
@@ -69,7 +79,7 @@ describe('Dialog focus', () => {
       }
       return addEventListener.call(this, type, listener, options)
     }
-    EventTarget.prototype.removeEventListener = function (
+    window.EventTarget.prototype.removeEventListener = function (
       type,
       listener,
       options
@@ -123,19 +133,22 @@ describe('Dialog focus', () => {
 
     focusInListeners.clear()
     if (addEventListenerDescriptor === undefined) {
-      Reflect.deleteProperty(EventTarget.prototype, 'addEventListener')
+      Reflect.deleteProperty(window.EventTarget.prototype, 'addEventListener')
     } else {
       Object.defineProperty(
-        EventTarget.prototype,
+        window.EventTarget.prototype,
         'addEventListener',
         addEventListenerDescriptor
       )
     }
     if (removeEventListenerDescriptor === undefined) {
-      Reflect.deleteProperty(EventTarget.prototype, 'removeEventListener')
+      Reflect.deleteProperty(
+        window.EventTarget.prototype,
+        'removeEventListener'
+      )
     } else {
       Object.defineProperty(
-        EventTarget.prototype,
+        window.EventTarget.prototype,
         'removeEventListener',
         removeEventListenerDescriptor
       )
@@ -170,7 +183,7 @@ describe('Dialog focus', () => {
       view.rerender(renderDialog(false))
       view.rerender(renderDialog(true))
 
-      assert.strictEqual(document.activeElement, trigger)
+      assertFocused(trigger)
     } finally {
       view.unmount()
     }
@@ -187,89 +200,79 @@ describe('Dialog focus', () => {
     )
 
     try {
-      assert.strictEqual(
-        document.activeElement,
-        screen.getByRole('button', { name: 'First action' })
-      )
+      assertFocused(screen.getByRole('button', { name: 'First action' }))
     } finally {
       view.unmount()
     }
   })
 
-  it('falls back when a preferred control is absent or disabled', () => {
-    const renderDialog = (
-      preferred: 'absent' | 'disabled' | 'enabled',
-      isTopMost = true
-    ) => (
-      <DialogStackContext.Provider value={{ isTopMost }}>
-        <Dialog title="Configure provider">
-          <button
-            className={
-              preferred === 'absent' ? undefined : 'dialog-preferred-focus'
-            }
-            disabled={preferred === 'disabled'}
-          >
-            Preferred action
-          </button>
-          <button>Fallback action</button>
-        </Dialog>
-      </DialogStackContext.Provider>
-    )
-
-    const view = render(renderDialog('enabled'))
-    try {
-      assert.strictEqual(
-        document.activeElement,
-        screen.getByRole('button', { name: 'Preferred action' })
+  for (const preferred of ['absent', 'disabled', 'enabled'] as const) {
+    it(`chooses the initial focus when the preferred control is ${preferred}`, () => {
+      const view = render(
+        <DialogStackContext.Provider value={{ isTopMost: true }}>
+          <Dialog title="Configure provider">
+            <button>Fallback action</button>
+            <button
+              className={
+                preferred === 'absent' ? undefined : 'dialog-preferred-focus'
+              }
+              disabled={preferred === 'disabled'}
+            >
+              Preferred action
+            </button>
+          </Dialog>
+        </DialogStackContext.Provider>
       )
 
-      view.rerender(renderDialog('disabled', false))
-      view.rerender(renderDialog('disabled'))
-      assert.strictEqual(
-        document.activeElement,
-        screen.getByRole('button', { name: 'Fallback action' })
+      try {
+        assertFocused(
+          screen.getByRole('button', {
+            name:
+              preferred === 'enabled' ? 'Preferred action' : 'Fallback action',
+          })
+        )
+      } finally {
+        view.unmount()
+      }
+    })
+  }
+
+  for (const preferred of [false, true]) {
+    it(`falls back when the remembered ${preferred ? 'preferred ' : ''}control is disabled`, () => {
+      const renderDialog = (isTopMost: boolean, triggerDisabled: boolean) => (
+        <DialogStackContext.Provider value={{ isTopMost }}>
+          <Dialog title="Configure provider">
+            <button>First action</button>
+            <button
+              className={preferred ? 'dialog-preferred-focus' : undefined}
+              disabled={triggerDisabled}
+            >
+              Open nested dialog
+            </button>
+          </Dialog>
+        </DialogStackContext.Provider>
       )
 
-      view.rerender(renderDialog('absent', false))
-      view.rerender(renderDialog('absent'))
-      assert.strictEqual(
-        document.activeElement,
-        screen.getByRole('button', { name: 'Preferred action' })
-      )
-    } finally {
-      view.unmount()
-    }
-  })
+      const view = render(renderDialog(true, false))
+      try {
+        const firstAction = screen.getByRole('button', { name: 'First action' })
+        const dialog = screen.getByRole('dialog')
+        const trigger = screen.getByRole('button', {
+          name: 'Open nested dialog',
+        })
 
-  it('falls back when the previously focused descendant is disabled', () => {
-    const renderDialog = (isTopMost: boolean, triggerDisabled: boolean) => (
-      <DialogStackContext.Provider value={{ isTopMost }}>
-        <Dialog title="Configure provider">
-          <button>First action</button>
-          <button disabled={triggerDisabled}>Open nested dialog</button>
-        </Dialog>
-      </DialogStackContext.Provider>
-    )
+        trigger.focus()
+        dialog.focus()
 
-    const view = render(renderDialog(true, false))
-    try {
-      const firstAction = screen.getByRole('button', { name: 'First action' })
-      const dialog = screen.getByRole('dialog')
-      const trigger = screen.getByRole('button', {
-        name: 'Open nested dialog',
-      })
+        view.rerender(renderDialog(false, true))
+        view.rerender(renderDialog(true, true))
 
-      trigger.focus()
-      dialog.focus()
-
-      view.rerender(renderDialog(false, true))
-      view.rerender(renderDialog(true, true))
-
-      assert.strictEqual(document.activeElement, firstAction)
-    } finally {
-      view.unmount()
-    }
-  })
+        assertFocused(firstAction)
+      } finally {
+        view.unmount()
+      }
+    })
+  }
 
   it('keeps the original descendant when contents change while nested', () => {
     const renderDialog = (isTopMost: boolean, showNewFirstAction: boolean) => (
@@ -294,7 +297,7 @@ describe('Dialog focus', () => {
       view.rerender(renderDialog(false, true))
       view.rerender(renderDialog(true, true))
 
-      assert.strictEqual(document.activeElement, trigger)
+      assertFocused(trigger)
     } finally {
       view.unmount()
     }
@@ -336,9 +339,9 @@ describe('Dialog focus', () => {
       inner.focus()
 
       view.rerender(renderStack('middle'))
-      assert.strictEqual(document.activeElement, middle)
+      assertFocused(middle)
       view.rerender(renderStack('outer'))
-      assert.strictEqual(document.activeElement, outer)
+      assertFocused(outer)
     } finally {
       view.unmount()
     }
@@ -370,7 +373,7 @@ describe('Dialog focus', () => {
       inner.focus()
       view.rerender(renderStack(true, false))
 
-      assert.strictEqual(document.activeElement, outer)
+      assertFocused(outer)
     } finally {
       view.unmount()
     }
@@ -424,10 +427,7 @@ describe('Dialog focus', () => {
       view.rerender(renderDialog(false, false))
       view.rerender(renderDialog(true, false))
 
-      assert.strictEqual(
-        document.activeElement,
-        screen.getByRole('button', { name: 'Fallback action' })
-      )
+      assertFocused(screen.getByRole('button', { name: 'Fallback action' }))
     } finally {
       view.unmount()
     }
@@ -442,7 +442,7 @@ describe('Dialog focus', () => {
           </Dialog>
         </DialogStackContext.Provider>
         <DialogStackContext.Provider value={{ isTopMost: innerTopMost }}>
-          <Dialog title="Inner modal" modal>
+          <Dialog title="Inner modal" modal={true}>
             <button>Inner action</button>
           </Dialog>
         </DialogStackContext.Provider>
@@ -459,11 +459,13 @@ describe('Dialog focus', () => {
 
       view.rerender(renderStack(false, true))
       view.rerender(renderStack(true, false))
-      assert.notStrictEqual(document.activeElement, outer)
+      assert.ok(
+        document.activeElement !== outer,
+        'The modal still blocks outer focus'
+      )
 
       window.setTimeout(() => innerDialog.close(), 100)
-      await new Promise(resolve => window.setTimeout(resolve, 125))
-      assert.strictEqual(document.activeElement, outer)
+      await waitFor(() => assertFocused(outer), { timeout: 1500 })
     } finally {
       view.unmount()
     }
