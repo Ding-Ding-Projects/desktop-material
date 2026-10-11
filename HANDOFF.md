@@ -25,6 +25,39 @@ The new startup article is now included in the offline bundle, palette index
 and hosted documentation catalog. Root build, installer, runtime, installed
 profile, release and archive acceptance remain pending.
 
+### October 11 documentation and verification progress
+
+Source `58e628b62f61b5f9c1a24ce973a484f740bb283a` is preserved on both
+`main` and the task branch. Its exact root `build.bat /s` run has completed
+the main webpack configuration successfully in 312916 ms and the renderer
+in 601167 ms with 20 warnings. Remaining configurations are still running.
+The producer remains pinned; this documentation work is isolated
+from its source and outputs. The complete root build has no acceptance result
+yet, and `build-installer.bat /s` still needs to run after it settles.
+
+CI Windows run `38110091789`, for source
+`1ef2e137353ea431082d7bbd2026ad14be16f561`, completed successfully.
+Installer publisher `38111965782` is running. Its workflow head alone does
+not identify the packaged source; the authoritative triggering CI source,
+tag, assets and release state must be read back before acceptance.
+
+A fresh canonical Lowlevel checkout built successfully and its direct cheap
+CLI reproduced the original installed exception on a named hidden desktop
+with an isolated profile. The genuine baseline capture is private because
+the dialog contains machine paths. Dismissing that dialog did not exit the
+owned process; its teardown is incomplete. No visible-profile or corrected
+candidate acceptance is inferred from that reproduction.
+
+The README has been fully reorganized around product identity, supported
+installation, daily workflows, truthful acceptance, both root entrypoints,
+documentation and attribution. All 33 unique local link targets exist. Its
+earlier fixture capture was inspected and its recorded SHA-256 matched;
+it is explicitly excluded from current-candidate acceptance. A complete
+startup repair wiki article and links were added to the documentation source.
+The hosted catalog now contains 317 entries, including the new wiki article.
+Wiki publication, final candidate captures and installed acceptance remain
+pending.
+
 ## 2026-10-04 shortcuts back to upstream, palette centring, and the clipping hunt
 
 Ctrl+Shift+F is Show in Explorer (Finder on macOS) again, the binding upstream

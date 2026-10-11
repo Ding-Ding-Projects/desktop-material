@@ -1,5 +1,10 @@
 # Desktop Material
 
+For the native-parser startup exception and the current acceptance boundary,
+read [Windows startup repair](Windows-Startup-Repair.md). Source checks,
+packages, isolated startup, installed startup, and existing-profile acceptance
+are tracked separately in the [handoff](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/HANDOFF.md).
+
 The clone dialog offers [repository sorting and metadata](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/repository-management/clone-dialog-repository-metadata.md),
 including alphabetical, modified, created, and UTC-day ordering.
 See [direct clone recovery](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/repository-management/direct-clone-recovery.md)

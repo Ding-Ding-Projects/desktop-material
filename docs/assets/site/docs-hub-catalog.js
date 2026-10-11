@@ -2181,7 +2181,7 @@
       h: 'wiki/Developer-Guide.html',
       s: 'wiki/Developer-Guide.md',
       c: 'wiki',
-      d: 'Compare-form updates flow through the root AppStore, so an identical update is not free: without an equality gate it schedules another full renderer pass. Repository section…',
+      d: 'The custom integration argument parser now runs in TypeScript, retaining its exported interface without loading windows-argv-parser.node. Read Windows startup repair for…',
     },
     {
       t: 'Guided Feature Gallery',
@@ -2195,7 +2195,7 @@
       h: 'wiki/Home.html',
       s: 'wiki/Home.md',
       c: 'wiki',
-      d: 'The clone dialog offers repository sorting and metadata, including alphabetical, modified, created, and UTC-day ordering.',
+      d: 'For the native-parser startup exception and the current acceptance boundary, read Windows startup repair. Source checks, packages, isolated startup, installed startup, and…',
     },
     {
       t: 'Desktop Material — wiki',
@@ -2224,6 +2224,13 @@
       s: 'wiki/User-Guide.md',
       c: 'wiki',
       d: 'The safest rhythm is simple: inspect, stage, commit, then synchronize. The tools below add power without changing that basic loop.',
+    },
+    {
+      t: 'Native-free Windows startup argument parsing',
+      h: 'wiki/Windows-Startup-Repair.html',
+      s: 'wiki/Windows-Startup-Repair.md',
+      c: 'wiki',
+      d: 'Custom external integrations keep the parseCommandLineArgv(commandLine) interface, but parsing now runs in TypeScript without a native addon. Application Control blocking the…',
     },
   ]
 })(typeof window === 'undefined' ? globalThis : window)

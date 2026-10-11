@@ -7,3 +7,4 @@
 - [regex guide](Regex-Guide.md)
 - [submodules](Submodules.md)
 - [user guide](User-Guide.md)
+- [Windows startup repair](Windows-Startup-Repair.md)

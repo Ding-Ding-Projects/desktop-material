@@ -1,5 +1,12 @@
 # Developer Guide
 
+## Native-free Windows startup
+
+The custom integration argument parser now runs in TypeScript, retaining its
+exported interface without loading `windows-argv-parser.node`. Read
+[Windows startup repair](Windows-Startup-Repair.md) for quotation rules,
+regressions, the root build routes, and the separate runtime acceptance states.
+
 ## Avoiding redundant root renders
 
 Compare-form updates flow through the root `AppStore`, so an identical update

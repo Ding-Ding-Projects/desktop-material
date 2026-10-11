@@ -4,6 +4,7 @@
 
 - [x] Replace the eager native argument parser with in-process parsing and verify 2,271 native oracle comparisons plus explicit regression cases.
 - [x] Add sequential production compiler execution for smaller hosts and verify nine focused execution and heap-limit checks.
+- [x] Reorganize the README, verify its local links and recorded example capture, and add the complete startup repair wiki article to the documentation catalog.
 - [ ] Verify root build and Squirrel installer production for the corrected candidate.
 - [ ] Verify corrected installed startup and preservation of existing user data.
 - [ ] Verify main integration and archive-proven cleanup; retain protected branches.
