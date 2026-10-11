@@ -760,3 +760,9 @@ GitHub® and its stylized versions and the Invertocat mark are GitHub's Trademar
 
 
 GitHub® 同佢嘅風格化版本，以及 Invertocat 標記，都係 GitHub 嘅商標或者註冊商標。使用 GitHub 標誌嗰陣，記住跟返 GitHub 嘅 [標誌指引](https://github.com/logos)。
+
+## Startup repair verification, October 11, 2026
+
+![Desktop Material 4.0.133501 empty workspace in an isolated local profile](docs/assets/screenshots/startup-repair-4.0.133501-empty-workspace-20261011.png)
+
+This genuine capture shows the verified v4.0.133501 package after local setup in an isolated profile. Source: 1ef2e137353ea431082d7bbd2026ad14be16f561. All three empty-workspace actions are enabled. Package and isolated-profile acceptance are separate from installed and current-profile acceptance, which remain incomplete. See [the dated verification record](docs/verification/startup-repair-2026-10-11.md).
