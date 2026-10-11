@@ -9,7 +9,9 @@
 - [x] Verify exact root build.bat /s at 58e628b62f61b5f9c1a24ce973a484f740bb283a, exit 0 in 00:35:04.
 - [x] Verify normal release v4.0.133501 source, tag, six downloaded assets, complete package CRC, RELEASES manifest and native-parser absence.
 - [ ] Verify exact root build-installer.bat /s for the corrected candidate; the pinned producer is running.
-- [ ] Verify the corrected packaged application on an isolated hidden desktop.
+- [x] Verify a usable corrected package workspace on an isolated hidden desktop, second-instance Unicode path delivery, and owned normal teardown.
+- [ ] Verify protocol delivery and custom external-editor arguments in the corrected package.
+- [ ] Verify live publication of the complete 14-file wiki mirror and all required local assets.
 - [ ] Verify corrected installed startup and preservation of existing user data.
 - [ ] Verify main integration and archive-proven cleanup; retain protected branches.
 

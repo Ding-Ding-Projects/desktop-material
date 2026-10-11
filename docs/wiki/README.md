@@ -8,3 +8,7 @@
 - [submodules](Submodules.md)
 - [user guide](User-Guide.md)
 - [Windows startup repair](Windows-Startup-Repair.md)
+
+## Complete published wiki
+
+Read the [complete published wiki mirror](published/README.md), including all 14 articles and source records from the current wiki. The expanded local guides above are retained.

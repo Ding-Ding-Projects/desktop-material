@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "sourceRepository": "https://github.com/Ding-Ding-Projects/desktop-material.wiki.git",
+  "sourceCommit": "a93dc3ee2b0ea9a9934488d8143d9cf17c80d916",
+  "sourceHashKind": "UTF-8 Git blob bytes",
+  "articleCount": 14,
+  "entries": [
+    {
+      "source": "AGENTS.md",
+      "path": "docs/wiki/published/Source-AGENTS.md",
+      "sourceSha256": "e9acb883a17a6f88852842c10fa79a6968aced211767c1322810c122e764c2af",
+      "mirrorSha256": "e9acb883a17a6f88852842c10fa79a6968aced211767c1322810c122e764c2af"
+    },
+    {
+      "source": "Agent-API.md",
+      "path": "docs/wiki/published/Agent-API.md",
+      "sourceSha256": "1be849abddee682be81b3544e4919e1040f29ab71411cdb9085e50f8e1c5ef3a",
+      "mirrorSha256": "e82fc6816046fe7c3f589b595f82770cbf28ac67a1d55a44a3af2c7a59698b67"
+    },
+    {
+      "source": "Automation.md",
+      "path": "docs/wiki/published/Automation.md",
+      "sourceSha256": "28d5ad898aee660f31a935f34182e5b2b28fc820dad90644b1559095820f05ff",
+      "mirrorSha256": "efdd4eb70c7c5ce60417cb96b2cfbd2d3e1c104cde37da364c677861cddea3ed"
+    },
+    {
+      "source": "CLOSEOUT_PROMPT.md",
+      "path": "docs/wiki/published/Source-CLOSEOUT_PROMPT.md",
+      "sourceSha256": "4d96e69396f8316659792b3acae9b3aa44acbebf257485fd8effe55a98588fa8",
+      "mirrorSha256": "4d96e69396f8316659792b3acae9b3aa44acbebf257485fd8effe55a98588fa8"
+    },
+    {
+      "source": "Developer-Guide.md",
+      "path": "docs/wiki/published/Developer-Guide.md",
+      "sourceSha256": "342da0e9856806168f6c50b055ec3ec0f09df4345c74a6286c39e2f61cc02abd",
+      "mirrorSha256": "272a91aefb0a10113142df5fb8a40b52661cebd8d250cb9415557043d3181a38"
+    },
+    {
+      "source": "Feature-Gallery.md",
+      "path": "docs/wiki/published/Feature-Gallery.md",
+      "sourceSha256": "4fa61b52448c778480369ce8b7ff8377a9d0cd2e61657b631c4ce73a007231ad",
+      "mirrorSha256": "9be79a4ba50be38fb1be0b35d7d42b080afb663a9aad0537e2235d5217725bf2"
+    },
+    {
+      "source": "HANDOFF.md",
+      "path": "docs/wiki/published/Source-HANDOFF.md",
+      "sourceSha256": "d72c8e3bb06175cbfc32c3de6adf446d00a3222e9ef4abc69721a46404cd2a45",
+      "mirrorSha256": "d72c8e3bb06175cbfc32c3de6adf446d00a3222e9ef4abc69721a46404cd2a45"
+    },
+    {
+      "source": "Home.md",
+      "path": "docs/wiki/published/Home.md",
+      "sourceSha256": "305bc72bce3c515894199125aecf03f65534a340154404d2ef2505edf244aab0",
+      "mirrorSha256": "473f31a6693838c91317d58b925ea2a686dc6440bda59c7bc5477cbca322605a"
+    },
+    {
+      "source": "README.md",
+      "path": "docs/wiki/published/Source-README.md",
+      "sourceSha256": "10f10eeb2689e9f70225de926e6acbaa40eb9409ddbc42309106b1dc0bbc6bbe",
+      "mirrorSha256": "10f10eeb2689e9f70225de926e6acbaa40eb9409ddbc42309106b1dc0bbc6bbe"
+    },
+    {
+      "source": "ROADMAP.md",
+      "path": "docs/wiki/published/Source-ROADMAP.md",
+      "sourceSha256": "9a16016fdf3d3313b87696c2686837d5d3fcd76ddd93b9adfeba1611dea34fde",
+      "mirrorSha256": "9a16016fdf3d3313b87696c2686837d5d3fcd76ddd93b9adfeba1611dea34fde"
+    },
+    {
+      "source": "Regex-Guide.md",
+      "path": "docs/wiki/published/Regex-Guide.md",
+      "sourceSha256": "2907982ec5ed57e463c047066e73027a69cc8740f01a157cdcc00df387be2dd9",
+      "mirrorSha256": "942676080f6c5597b616b30ce2fed284ce1efc8ae5e631f4f3aefe5114910470"
+    },
+    {
+      "source": "Submodules.md",
+      "path": "docs/wiki/published/Submodules.md",
+      "sourceSha256": "565523a88b08e9b6bf0260686fa1b818d5e9dacf7c152a7dcc1c7b26de3ff6a9",
+      "mirrorSha256": "13bce994e676d6742b2e702c828b5efa4a85e39555dcecf5aa182b7a650b0469"
+    },
+    {
+      "source": "User-Guide.md",
+      "path": "docs/wiki/published/User-Guide.md",
+      "sourceSha256": "7eba0b78b910cefbd1b47020f799c98219786b77b8806449c5532d3d517c753f",
+      "mirrorSha256": "b0a60d20413099383e31c25cad6bff863534fe8a5b629a3b56caeeeed45f4730"
+    },
+    {
+      "source": "Windows-Startup-Repair.md",
+      "path": "docs/wiki/published/Windows-Startup-Repair.md",
+      "sourceSha256": "ba64f40458b4edd9c3ff9b93f7edfd2fff459e952eddf526b495a8595d5b2ddd",
+      "mirrorSha256": "ba64f40458b4edd9c3ff9b93f7edfd2fff459e952eddf526b495a8595d5b2ddd"
+    }
+  ]
+}
