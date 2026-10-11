@@ -26,7 +26,10 @@
 - [x] Verify deployment 38121177697: corrected wiki index links, exact inventory JSON, 15 articles plus index, 107 internal links/anchors, 118 referenced assets and 335 catalog entries.
 - [x] Verify live publication of all 14 mirrored wiki articles plus index, 95 internal links/anchors and 115 original image assets; About homepage matches.
 - [ ] Verify corrected installed startup and preservation of existing user data.
-- [ ] Verify main integration and archive-proven cleanup; retain protected branches.
+- [x] Verify main integration and complete external archive readback: 15,311 entries, 448 Git-administration files, exact recovered refs, full CRC and every extracted SHA-256.
+- [x] Separately preserve 4,531 restricted private files, including all six announcement variants, the isolated profile and exact release assets.
+- [x] Retire the merged parser branch locally and remotely after exact main ancestry proof and verify its absence.
+- [ ] Complete archive-proven linked capture-checkout cleanup; automatic approval review rejected the combined removal with blocked by policy. Retain that checkout/profile/branch and every protected branch.
 
 ## September 20, 2026: clone sorting and recovery
 

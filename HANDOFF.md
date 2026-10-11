@@ -1,3 +1,17 @@
+### October 11, 2026: verified preservation and partial safe cleanup
+
+Completed application work is on main at e1513a635233398e37d7d70a41be58e559af77bf; its refreshed documentation deployment and changed-content live readback passed. Wiki main/master are synchronized at 9f411c7d2fb227397e7c99cf1cbf50e254bf8530. The feature review is complete as a comparison; the four new additions and older bounded personal-vocabulary alignment remain unchecked implementation work.
+
+The complete external source archive is 537,046,950 bytes, SHA-256 dfc3e6ea25e1a25d514b0474f2308f8acf203c4d05f49df94ca1780d8d46ff59. It contains 15,311 file entries, including the manifest, with 15,310 source files, 448 Git-administration files, both application checkouts, all four initialized submodules and the wiki. Exact Unicode names/sizes, full decompression/CRC and every extracted SHA-256 passed. Archived main refs recover application e1513a635233398e37d7d70a41be58e559af77bf and wiki 9f411c7d2fb227397e7c99cf1cbf50e254bf8530. This archive records the stated source snapshot, before this documentation checkpoint.
+
+Separate restricted preservation copied 4,531 private files totalling 4,111,058,533 bytes with matching source/copy hashes. All six generated announcement variants, their receipts, the isolated profile and exact release assets are preserved. Two read-only smoke staging junctions were recorded without following them; their target source is already archived. Access is limited to the owner, SYSTEM and administrators. Cloud synchronization is unverified.
+
+The completed parser branch codex/startup-parser-closeout was removed locally and from origin after its b0a22dde763685649b85ea90833c27896ab3be1a tip was proved an ancestor of exact pushed main. Remote absence was read back. The paired canonical-instructions push passed; both terminal celebration attempts respected reduced motion.
+
+The combined command for private-directory, linked-checkout and local-branch removal was rejected by automatic approval review with the only stated reason blocked by policy. It did not run and was not routed through another transport. The capture branch codex/startup-runtime-evidence-20261011 at 97893f77752ee3c470b2f4b4a4ac8f393683211e and its linked checkout, isolated profile and dependency junction remain intact. Cleanup is partial with that recorded blocker. Pre-existing noindex and shortcut branches are ancestor-proven but retained because ownership is uncertain. The dependency-update branch is unmerged and retained. Wiki master is required for publication; canonical-instructions branches/checkouts belong to other sessions; the unchanged Lowlevel recovery checkout supports unfinished installed verification. No stash was present in the inspected repositories.
+
+Installed startup and existing-profile acceptance still require the pending narrow decision about two older installed processes. They remain protected. The source/package/isolated acceptance results do not establish installed acceptance. Security settings, existing profiles and unrelated processes remain unchanged.
+
 ### October 11, 2026: live delivery and feature-review completion
 
 Application main 1a4d40974b9e0a563879a7e643b584f874d3b7d3 and wiki master/main 9f411c7d2fb227397e7c99cf1cbf50e254bf8530 have exact remote-ref proof. The complete README replacement is preserved. The updated feature comparison is complete as a review: four new required additions and the older personal-vocabulary schema alignment remain unchecked implementation work.
