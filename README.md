@@ -8,6 +8,8 @@
 
 # Desktop Material
 
+Windows startup: [native-free command-line parsing](docs/features/quality-and-reliability/windows-startup-argument-parser.md). Installed verification is pending for the current repair candidate.
+
 Clone list sorting: [alphabetical, modified, created, and UTC-day order](docs/features/repository-management/clone-dialog-repository-metadata.md).
 複製清單排序：[名稱、修改時間、建立時間及 UTC 日期](docs/features/repository-management/clone-dialog-repository-metadata.md)。
 

@@ -17,7 +17,7 @@ if errorlevel 1 set "DESKTOP_POWERSHELL=powershell.exe"
 
 echo ==^> Preparing pinned Windows dependencies (Node.js, Yarn, Visual Studio C++ workload, and frozen project packages)
 "%DESKTOP_POWERSHELL%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0script\build-windows.ps1" -Mode Prepare %DESKTOP_BUILD_SILENT%
-if errorlevel 1 exit /b %ERRORLEVEL%
+if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 echo Dependency preparation complete. No application build or installer packaging was run.
 exit /b 0
 

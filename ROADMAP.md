@@ -1,5 +1,12 @@
 # Desktop Material roadmap
 
+## October 10, 2026: installed startup repair
+
+- [x] Replace the eager native argument parser with in-process parsing and verify 2,271 native oracle comparisons plus explicit regression cases.
+- [ ] Verify root build and Squirrel installer production for the corrected candidate.
+- [ ] Verify corrected installed startup and preservation of existing user data.
+- [ ] Verify main integration and archive-proven cleanup; retain protected branches.
+
 ## September 20, 2026: clone sorting and recovery
 
 - [ ] Verify persisted clone-list sorting in the built Windows application,

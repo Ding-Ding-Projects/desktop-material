@@ -55,7 +55,7 @@ export const RepairCommand = 'node script/ensure-vendored-dependencies.mjs'
  * Suffixes `tsc` emits.
  *
  * An allowlist rather than "copy the directory", and that is the whole safety
- * of this file. `windows-argv-parser` compiles into `build/`, which is also
+ * of this file. Native packages can compile into `build/`, which is also
  * where `node-gyp` puts `Release/*.node`; copying a directory wholesale could
  * replace a correctly built native binary with whatever happens to be sitting
  * in the vendor tree. Nothing below can match a `.node`.

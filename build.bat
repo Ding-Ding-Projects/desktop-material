@@ -12,7 +12,7 @@ if not "%~1"=="" (
 if not "%~2"=="" goto :usage
 
 call "%~dp0download-dependencies.bat" %~1
-if errorlevel 1 exit /b %ERRORLEVEL%
+if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 set "DESKTOP_POWERSHELL=pwsh.exe"
 where pwsh.exe >nul 2>nul

@@ -1,5 +1,11 @@
 # Desktop Material — Active parity handoff
 
+## October 10, 2026: Application Control startup repair in progress
+
+The installed 4.0.133401 build stops during main-process loading because Application Control blocks windows-argv-parser.node. Source commit 2a3c64d4f45e1ba0406990f0d153370ad3fccd81 replaces that native addon with in-process TypeScript and removes native recovery inputs. Parser checks pass 22/22, including 2,271 nonempty comparisons against shell32 CommandLineToArgvW. Empty input intentionally returns no arguments; Unicode is preserved. A review identified the standalone compiler pin mismatch, corrected in the follow-up.
+
+The first root build is diagnostic: preparation was interrupted before source pinning, and a negative child exit exposed a batch propagation gap. Follow-up wrappers propagate every nonzero child result. Final build, installer, installed startup, release and cleanup remain unverified. No security settings or user profile data have been changed.
+
 ## 2026-10-04 shortcuts back to upstream, palette centring, and the clipping hunt
 
 Ctrl+Shift+F is Show in Explorer (Finder on macOS) again, the binding upstream

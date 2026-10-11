@@ -3,7 +3,7 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "ignoreDeprecations": "6.0",
-    "types": ["node"],
+    "types": [],
     "rootDir": ".",
     "target": "ES2022",
     "esModuleInterop": true,
@@ -19,7 +19,12 @@
     "outDir": "./build",
     "useUnknownInCatchVariables": false
   },
-  "include": ["*.ts"],
-  "exclude": ["node_modules", "build"],
+  "include": [
+    "*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "build"
+  ],
   "compileOnSave": false
 }
