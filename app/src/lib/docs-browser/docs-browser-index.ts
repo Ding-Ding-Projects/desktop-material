@@ -1007,6 +1007,15 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
         'docs/features/quality-and-reliability/supply-chain-and-ci-hardening.md',
     },
     {
+      id: 'quality-and-reliability/windows-startup-argument-parser',
+      category: 'quality-and-reliability',
+      title: 'Native-free Windows startup argument parsing',
+      description:
+        'Custom external integrations keep the parseCommandLineArgv(commandLine) interface, but parsing now runs in TypeScript without a native addon. Application Control blocking the…',
+      sourcePath:
+        'docs/features/quality-and-reliability/windows-startup-argument-parser.md',
+    },
+    {
       id: 'README',
       category: 'root',
       title: 'Desktop Material feature documentation',
@@ -1500,7 +1509,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'quality-and-reliability',
     label: 'Quality And Reliability',
-    count: 16,
+    count: 17,
   },
   {
     name: 'repository-management',
@@ -1520,4 +1529,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 171
+export const DocsBrowserArticleCount = 172

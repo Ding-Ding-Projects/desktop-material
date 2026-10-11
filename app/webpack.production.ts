@@ -10,11 +10,14 @@ const config: webpack.Configuration = {
   devtool: 'source-map',
 }
 
-const mainConfig = merge({}, common.main, config)
-const cliConfig = merge({}, common.cli, config)
-const highlighterConfig = merge({}, common.highlighter, config)
+const mainConfig = merge({}, common.main, config, { name: 'main' })
+const cliConfig = merge({}, common.cli, config, { name: 'cli' })
+const highlighterConfig = merge({}, common.highlighter, config, {
+  name: 'highlighter',
+})
 
 const rendererConfig = merge({}, common.renderer, config, {
+  name: 'renderer',
   module: {
     rules: [
       // This will cause the compiled CSS to be output to a
@@ -45,6 +48,7 @@ const rendererConfig = merge({}, common.renderer, config, {
 })
 
 const crashConfig = merge({}, common.crash, config, {
+  name: 'crash',
   module: {
     rules: [
       // This will cause the compiled CSS to be output to a
@@ -63,6 +67,7 @@ const crashConfig = merge({}, common.crash, config, {
 })
 
 const quickActionConfig = merge({}, common.quickAction, config, {
+  name: 'quick-action',
   module: {
     rules: [
       {

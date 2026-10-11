@@ -31,3 +31,20 @@ Source tests are separate from acceptance of the root build, produced Squirrel
 package, isolated-profile startup and the updated installed application.
 If another native module is blocked, record that exact module separately.
 Successful argument-parser tests do not establish acceptance of other modules.
+
+## Production builds on smaller hosts
+
+The root `build.bat /s` and `build-installer.bat /s` routes retain all six
+production configurations. On hosts with at most 12 GiB physical memory, the
+production runner compiles them sequentially in separate Node processes with
+a 4 GiB old-space limit per child. This releases each compiler's graph before
+the next configuration starts. Production minification, source maps, plugins
+and output definitions remain unchanged. Set `DESKTOP_WEBPACK_SERIAL=1` to
+select the same path explicitly on a larger host.
+
+The runner stops at the first unsuccessful compiler and propagates its result.
+It never packages a partially compiled set. Run
+`node --test script/run-webpack-production-test.mjs` for the focused execution
+and heap-limit checks. An earlier parallel production run was deliberately
+stopped under memory pressure. That interrupted run is retained as diagnostic
+evidence and is not successful build proof.

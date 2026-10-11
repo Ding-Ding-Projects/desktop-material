@@ -1,49 +1,79 @@
 import { spawnSync } from 'node:child_process'
+import { totalmem } from 'node:os'
 import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { ensureVendoredDependencies } from './ensure-vendored-dependencies.mjs'
 
-// Before webpack, not after. A vendored `file:` dependency whose TypeScript was
-// never compiled fails deep inside the bundle with an error that names a
-// missing module or a missing webpack loader, and neither is the actual
-// problem. `build:prod:e2e` reaches webpack through this file rather than
-// through `compile:prod`, so the npm pre-hook alone would not cover it.
-try {
-  ensureVendoredDependencies()
-} catch (error) {
-  console.error(error.message)
-  process.exit(1)
-}
+export const productionConfigurationNames = Object.freeze([
+  'main',
+  'renderer',
+  'crash',
+  'quick-action',
+  'cli',
+  'highlighter',
+])
 
-const environment = { ...process.env }
-if (!environment.NODE_OPTIONS?.trim()) {
-  environment.NODE_OPTIONS = '--max_old_space_size=16384'
-}
-
-const webpackPath = resolve('node_modules', 'webpack', 'bin', 'webpack.js')
-const nodeArguments = []
-if (environment.WEBPACK_DISABLE_CONCURRENT_RECOMPILATION === '1') {
-  // Node rejects this V8 flag in NODE_OPTIONS. Pass it as a direct child
-  // argument for the self-hosted release runner, where concurrent teardown
-  // has produced intermittent V8 code-metadata fatal errors. Node 24 can
-  // still crash while collecting optimized executable code after concurrency
-  // is off, so release builds disable optimization without disabling the
-  // WebAssembly implementation webpack uses for MD4 hashing.
-  nodeArguments.push('--no-concurrent-recompilation')
-  nodeArguments.push('--no-opt')
-}
-const result = spawnSync(
-  process.execPath,
-  [...nodeArguments, webpackPath, '--config', 'app/webpack.production.ts'],
-  {
-    env: environment,
-    stdio: 'inherit',
+/** Run each compiler in a fresh process on memory-constrained hosts. */
+export function runWebpackProduction({
+  environment = process.env,
+  physicalMemory = totalmem(),
+  spawn = spawnSync,
+  ensureDependencies = ensureVendoredDependencies,
+  executable = process.execPath,
+  reportError = error => console.error(error),
+} = {}) {
+  // Both compile:prod and build:prod:e2e need compiled local dependencies.
+  try {
+    ensureDependencies()
+  } catch (error) {
+    reportError(error.message)
+    return 1
   }
-)
 
-if (result.error) {
-  console.error(result.error)
-  process.exit(1)
+  const childEnvironment = { ...environment }
+  const serial =
+    childEnvironment.DESKTOP_WEBPACK_SERIAL === '1' ||
+    physicalMemory <= 12 * 1024 ** 3
+  if (!childEnvironment.NODE_OPTIONS?.trim() && !serial) {
+    childEnvironment.NODE_OPTIONS = '--max_old_space_size=16384'
+  }
+
+  const webpackPath = resolve('node_modules', 'webpack', 'bin', 'webpack.js')
+  const nodeArguments = []
+  if (serial) {
+    // A command-line option overrides inherited singleton NODE_OPTIONS values.
+    nodeArguments.push('--max-old-space-size=4096')
+  }
+  if (childEnvironment.WEBPACK_DISABLE_CONCURRENT_RECOMPILATION === '1') {
+    // These V8 flags must be direct Node arguments, not NODE_OPTIONS.
+    nodeArguments.push('--no-concurrent-recompilation', '--no-opt')
+  }
+  const names = serial ? productionConfigurationNames : [undefined]
+  for (const name of names) {
+    const argumentsForChild = [
+      ...nodeArguments,
+      webpackPath,
+      '--config',
+      'app/webpack.production.ts',
+      ...(name === undefined ? [] : ['--config-name', name]),
+    ]
+    const result = spawn(executable, argumentsForChild, {
+      env: childEnvironment,
+      stdio: 'inherit',
+    })
+    if (result.error) {
+      reportError(result.error)
+      return 1
+    }
+    if (result.status !== 0) return result.status ?? 1
+  }
+  return 0
 }
 
-process.exit(result.status ?? 1)
+if (
+  process.argv[1] !== undefined &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
+  process.exit(runWebpackProduction())
+}

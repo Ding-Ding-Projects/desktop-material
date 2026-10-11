@@ -10,6 +10,11 @@
 
 Windows startup: [native-free command-line parsing](docs/features/quality-and-reliability/windows-startup-argument-parser.md). Installed verification is pending for the current repair candidate.
 
+Production builds automatically use separate sequential compiler processes on
+hosts with at most 12 GiB RAM. Both root entrypoints keep the full production
+output and stop on any unsuccessful child. See the startup guide above for the
+explicit selection option and verification boundaries.
+
 Clone list sorting: [alphabetical, modified, created, and UTC-day order](docs/features/repository-management/clone-dialog-repository-metadata.md).
 複製清單排序：[名稱、修改時間、建立時間及 UTC 日期](docs/features/repository-management/clone-dialog-repository-metadata.md)。
 

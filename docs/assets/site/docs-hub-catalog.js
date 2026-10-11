@@ -952,6 +952,13 @@
       d: "Desktop Material's continuous-integration workflow builds the Windows installers that users actually run, so what its jobs install, how its runs are scheduled, and how it…",
     },
     {
+      t: 'Native-free Windows startup argument parsing',
+      h: 'features/quality-and-reliability/windows-startup-argument-parser.html',
+      s: 'features/quality-and-reliability/windows-startup-argument-parser.md',
+      c: 'features',
+      d: 'Custom external integrations keep the parseCommandLineArgv(commandLine) interface, but parsing now runs in TypeScript without a native addon. Application Control blocking the…',
+    },
+    {
       t: 'Desktop Material feature documentation',
       h: 'features/',
       s: 'features/README.md',

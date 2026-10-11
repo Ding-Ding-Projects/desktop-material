@@ -6,6 +6,25 @@ The installed 4.0.133401 build stops during main-process loading because Applica
 
 The first root build is diagnostic: preparation was interrupted before source pinning, and a negative child exit exposed a batch propagation gap. Follow-up wrappers propagate every nonzero child result. Final build, installer, installed startup, release and cleanup remain unverified. No security settings or user profile data have been changed.
 
+### October 11 follow-up: bounded production compilation
+
+Both `main` and the preservation branch were read back at
+`1ef2e137353ea431082d7bbd2026ad14be16f561`. The candidate-pinned root build
+completed frozen dependency preparation, then its parallel webpack compiler
+encountered severe memory pressure. Only that owned compiler was stopped after
+identity validation. The root command returned 1 after 00:07:48 in its Build
+phase. No unrelated process was terminated. Machine-specific measurements are
+retained only in private task evidence.
+
+The follow-up production runner selects separate sequential compiler processes
+on hosts with at most 12 GiB RAM, or with `DESKTOP_WEBPACK_SERIAL=1`, retaining
+all six production configurations, minification, source maps and plugins.
+Each serial child has a direct 4 GiB old-space cap. Nine focused runner checks
+pass, including real Node precedence over an inherited 16 GiB heap option.
+The new startup article is now included in the offline bundle, palette index
+and hosted documentation catalog. Root build, installer, runtime, installed
+profile, release and archive acceptance remain pending.
+
 ## 2026-10-04 shortcuts back to upstream, palette centring, and the clipping hunt
 
 Ctrl+Shift+F is Show in Explorer (Finder on macOS) again, the binding upstream
