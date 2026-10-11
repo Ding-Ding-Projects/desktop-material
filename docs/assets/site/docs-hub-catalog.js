@@ -2258,7 +2258,7 @@
       h: 'wiki/published/',
       s: 'wiki/published/README.md',
       c: 'wiki',
-      d: 'This directory contains every Markdown article from the hosted wiki at fc66abfb5fe38482c68161d962a375f3ba9470e5, with only documentation-navigation links adapted for this tree.…',
+      d: 'This directory contains every Markdown article from the hosted wiki at 9f411c7d2fb227397e7c99cf1cbf50e254bf8530, with only documentation-navigation links adapted for this tree.…',
     },
     {
       t: 'Regex guide — how search works in Desktop Material',
@@ -2279,14 +2279,14 @@
       h: 'wiki/published/Source-CLOSEOUT_PROMPT.html',
       s: 'wiki/published/Source-CLOSEOUT_PROMPT.md',
       c: 'wiki',
-      d: 'Objective: maintain the complete startup-repair and feature-review documentation while the application task finishes installed acceptance.',
+      d: 'Objective: keep the startup-repair and updated feature-contract documentation accurate while the application task finishes installed acceptance and safe cleanup.',
     },
     {
       t: 'Startup repair documentation handoff',
       h: 'wiki/published/Source-HANDOFF.html',
       s: 'wiki/published/Source-HANDOFF.md',
       c: 'wiki',
-      d: 'The 14-file snapshot a93dc3ee2b0ea9a9934488d8143d9cf17c80d916 is deployed in application source e20a3c8357bfdb2a1837f80b5a37ee5244d713cc. All 14 articles plus index, 95…',
+      d: 'October 11, 2026: application main 1a4d40974b9e0a563879a7e643b584f874d3b7d3 includes the completely replaced README, updated contract comparison and qualified release capture.…',
     },
     {
       t: 'Desktop Material wiki source',

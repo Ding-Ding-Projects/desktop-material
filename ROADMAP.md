@@ -23,7 +23,7 @@
 - [x] Verify protocol arguments reach the reviewed URL through a hidden second instance and verify all eight real custom-editor child arguments exactly.
 - [ ] Verify operating-system protocol association delivery separately; the shell invocation exited normally without the expected form.
 - [x] Repair the two published-wiki index links locally and verify 16 real Pandoc/Lua cases plus exact inventory staging.
-- [ ] Verify deployment of the corrected wiki index links and exact inventory JSON.
+- [x] Verify deployment 38121177697: corrected wiki index links, exact inventory JSON, 15 articles plus index, 107 internal links/anchors, 118 referenced assets and 335 catalog entries.
 - [x] Verify live publication of all 14 mirrored wiki articles plus index, 95 internal links/anchors and 115 original image assets; About homepage matches.
 - [ ] Verify corrected installed startup and preservation of existing user data.
 - [ ] Verify main integration and archive-proven cleanup; retain protected branches.

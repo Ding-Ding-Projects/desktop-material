@@ -6,7 +6,8 @@
 - [x] Verify the rendered startup article and its Home and Developer Guide navigation.
 - [x] Mirror the 14-file wiki snapshot into the public documentation website and verify all 15 article/index routes, 95 internal links/anchors, 115 image source bytes and exact About homepage.
 - [x] Record the October feature-contract review with implementation gaps kept explicit.
-- [ ] Publish and verify the newly added contract-review article and refreshed full wiki snapshot.
+- [x] Publish and verify the 15-article contract-review snapshot at application source 1a4d409: all 107 internal links/anchors, 118 referenced assets and 335 catalog entries pass live readback.
+- [x] Record completed exact root builds, isolated argument workflows and the qualified release capture without claiming installed-profile acceptance.
 
 Package, installed startup and existing-profile acceptance remain separately
 tracked in the application repository. Wiki publication does not establish those

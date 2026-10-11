@@ -1,7 +1,7 @@
 {
   "version": 1,
   "sourceRepository": "https://github.com/Ding-Ding-Projects/desktop-material.wiki.git",
-  "sourceCommit": "fc66abfb5fe38482c68161d962a375f3ba9470e5",
+  "sourceCommit": "9f411c7d2fb227397e7c99cf1cbf50e254bf8530",
   "sourceHashKind": "UTF-8 Git blob bytes",
   "articleCount": 15,
   "entries": [
@@ -26,8 +26,8 @@
     {
       "source": "CLOSEOUT_PROMPT.md",
       "path": "docs/wiki/published/Source-CLOSEOUT_PROMPT.md",
-      "sourceSha256": "16feb0d9ecb17b571c2baaa6d0818d11aea1f2d10bb239177b3825afad3f9782",
-      "mirrorSha256": "16feb0d9ecb17b571c2baaa6d0818d11aea1f2d10bb239177b3825afad3f9782"
+      "sourceSha256": "d17565f2c8c2ddef1a353b9d062fa594c96cef0cadff7e984807ad141c684646",
+      "mirrorSha256": "d17565f2c8c2ddef1a353b9d062fa594c96cef0cadff7e984807ad141c684646"
     },
     {
       "source": "Developer-Guide.md",
@@ -38,8 +38,8 @@
     {
       "source": "Feature-Contract-Review.md",
       "path": "docs/wiki/published/Feature-Contract-Review.md",
-      "sourceSha256": "cc7193c5f512b0167ab5acc66131fb5e469ca4b06a94cd627ab879cdad5fae30",
-      "mirrorSha256": "cc7193c5f512b0167ab5acc66131fb5e469ca4b06a94cd627ab879cdad5fae30"
+      "sourceSha256": "2a2ac1ed7d86e3f6661e7e77051a5832ab412f400e789cd17167fa51ec9cb99f",
+      "mirrorSha256": "2a2ac1ed7d86e3f6661e7e77051a5832ab412f400e789cd17167fa51ec9cb99f"
     },
     {
       "source": "Feature-Gallery.md",
@@ -50,8 +50,8 @@
     {
       "source": "HANDOFF.md",
       "path": "docs/wiki/published/Source-HANDOFF.md",
-      "sourceSha256": "d21252f208de31c9cd780ad398bcae129d70ead41920aa1b00fc60b79b97b47a",
-      "mirrorSha256": "d21252f208de31c9cd780ad398bcae129d70ead41920aa1b00fc60b79b97b47a"
+      "sourceSha256": "9f91847004c6df31fe83bfd83f280a5a7df8f2563c4ae746b28dcd99d61cab0f",
+      "mirrorSha256": "9f91847004c6df31fe83bfd83f280a5a7df8f2563c4ae746b28dcd99d61cab0f"
     },
     {
       "source": "Home.md",
@@ -68,8 +68,8 @@
     {
       "source": "ROADMAP.md",
       "path": "docs/wiki/published/Source-ROADMAP.md",
-      "sourceSha256": "d4cd3b0e2fb383dc028bef79b0224133dde5a31d921fc3765b7a2e01a59d552e",
-      "mirrorSha256": "d4cd3b0e2fb383dc028bef79b0224133dde5a31d921fc3765b7a2e01a59d552e"
+      "sourceSha256": "62899ecb9b115fbf296fcee2a0b961d76c17209a3659fc1de339dda163c11552",
+      "mirrorSha256": "62899ecb9b115fbf296fcee2a0b961d76c17209a3659fc1de339dda163c11552"
     },
     {
       "source": "Regex-Guide.md",
@@ -92,8 +92,8 @@
     {
       "source": "Windows-Startup-Repair.md",
       "path": "docs/wiki/published/Windows-Startup-Repair.md",
-      "sourceSha256": "ba64f40458b4edd9c3ff9b93f7edfd2fff459e952eddf526b495a8595d5b2ddd",
-      "mirrorSha256": "ba64f40458b4edd9c3ff9b93f7edfd2fff459e952eddf526b495a8595d5b2ddd"
+      "sourceSha256": "ab00f88a0e74eb536b8e45fa7902082292fb61d689354ab2d49cf138cbc5757e",
+      "mirrorSha256": "ab00f88a0e74eb536b8e45fa7902082292fb61d689354ab2d49cf138cbc5757e"
     }
   ]
 }

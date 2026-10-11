@@ -1,3 +1,13 @@
+### October 11, 2026: live delivery and feature-review completion
+
+Application main 1a4d40974b9e0a563879a7e643b584f874d3b7d3 and wiki master/main 9f411c7d2fb227397e7c99cf1cbf50e254bf8530 have exact remote-ref proof. The complete README replacement is preserved. The updated feature comparison is complete as a review: four new required additions and the older personal-vocabulary schema alignment remain unchecked implementation work.
+
+Deployment 38121177697 succeeded for application 1a4d409 at 2026-10-11T07:25:32Z. Live verification at 2026-10-11T07:27:04.422Z found zero mismatches across 15 wiki articles plus index, 107 internal links/anchors across 40 routes, 118 referenced article assets including 116 images, 335 catalog entries, 25 home assets and six CSS assets. Source-README.html and source-inventory.json both return 200; the inventory and new qualified PNG match exact source bytes. About homepage is exactly https://ding-ding-projects.github.io/desktop-material/. Private structured receipt SHA-256: 0f8dfd2cb3b1cdc1115abe986667b4c4c3799bd75a7030f8459d5cf30d618403.
+
+The refreshed wiki snapshot records completed root builds, isolated argument checks and qualified capture, while retaining separate shell-association, installed/current-profile, layout and cleanup gaps. The complete 15-file source/hash inventory is updated without removing existing guides or restoring the old README. The latest canonical server contract matches the already reviewed addition; no extra product implementation scope is adopted.
+
+The exact source archive and separate owner-only ignored-original preservation are being prepared before any task branch or linked checkout removal. Protected pre-existing branches, the wiki publication branch and unfinished installed acceptance remain retained. No deletion is claimed by this checkpoint.
+
 ### October 11, 2026: local installer and argument workflows verified
 
 This section supersedes earlier running-producer and argument-workflow states. The exact root build-installer.bat /s at 58e628b62f61b5f9c1a24ce973a484f740bb283a completed with exit 0. Its entrypoint reported 01:09:49; the outer receipt spans 2026-10-11T05:14:50.5180694Z through 2026-10-11T06:26:31.1116940Z. The produced local 4.0.0 full package is 512,988,917 bytes, SHA-256 490717960f39d98e85a81934718d59bd300fd949477d107f95cd5c8900bf2862. All-entry decompression/CRC passed for 2,558 files and 257 folders, with no native argument-parser addon or private agent directory. This lower local version is build evidence and must not downgrade the installed 4.0.133401 application. The verified newer v4.0.133501 package remains the installation candidate. No build producer remains pinned.

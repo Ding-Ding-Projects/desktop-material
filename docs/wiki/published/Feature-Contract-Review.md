@@ -69,10 +69,14 @@ Reconcile explicit requirements and surfaces rather than changing a number.
   source `b174c923`, a measured 80.6136363% pixel difference and 54 reachable
   reference routes without complete promoted capture coverage. This remains an
   explicit gap rather than current-source acceptance.
-- The complete mirrored wiki now has 14 articles plus its index, 95 checked
-  internal links/anchors and 115 source-byte-verified images on the live site.
-  Content and delivery verification does not refresh those historical captures
-  or establish full interactive/layout acceptance.
+- The earlier 14-article wiki snapshot had 95 checked internal links/anchors
+  and 115 source-byte-verified images. The later deployment at application
+  source 1a4d40974b9e0a563879a7e643b584f874d3b7d3 verified 15 articles plus
+  index, 107 internal links/anchors across 40 routes, 118 referenced assets
+  including 116 images, and 335 catalog entries. Both previously broken
+  index destinations are corrected. Content and delivery checks do not
+  refresh every historical capture or establish full interactive/layout
+  acceptance.
 - Server reference research records unresolved historical distributions,
   runtime mappings and command/API coverage. Reference research is separate
   from implemented adapters, installation, runtime and GUI acceptance.

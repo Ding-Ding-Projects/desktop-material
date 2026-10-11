@@ -1,36 +1,13 @@
 # Startup repair documentation handoff
 
-## October 11 contract review and live mirror acceptance
+October 11, 2026: application main 1a4d40974b9e0a563879a7e643b584f874d3b7d3 includes the completely replaced README, updated contract comparison and qualified release capture. Documentation deployment 38121177697 passed at 2026-10-11T07:25:32Z. The live site verified 15 wiki articles plus index, 107 internal links/anchors across 40 routes, 118 referenced article assets including 116 images, 335 catalog entries, 25 home assets, six CSS assets and exact About homepage. The corrected Source-README.html route and source-inventory.json both work, with exact inventory bytes. These results bind the mirrored wiki to fc66abfb5fe38482c68161d962a375f3ba9470e5.
 
-The 14-file snapshot a93dc3ee2b0ea9a9934488d8143d9cf17c80d916 is deployed in application source e20a3c8357bfdb2a1837f80b5a37ee5244d713cc. All 14 articles plus index, 95 internal links/anchors, 115 canonical-source image bytes and the exact About homepage passed live readback. Full interactive/layout and current-source screenshot coverage remain separate.
+This wiki update records both exact root builds passing at source 58e628b, complete package integrity, eight-value real custom-editor invocation, direct second-instance protocol review and the qualified isolated-profile image. The separate shell-association attempt did not reach its expected review. Installed/current-profile acceptance remains incomplete, and two older installed processes remain protected pending the already requested closure decision. Preserve existing profiles and security settings.
 
-Feature-Contract-Review records the latest requested comparison. Four additions remain incomplete: full motion authoring, optional per-control guidance and unique explanations, complete current-image reference refresh and a four-target Minecraft server manager. The existing personal-vocabulary schema also needs bounded alignment. No new product feature was implemented by this documentation review. The new article and refreshed wiki snapshot still require their own publication readback.
+The four reviewed feature additions and older personal-vocabulary schema alignment remain implementation gaps, with unchecked application roadmap entries. No new feature implementation is claimed. Historical image and design evidence keeps its original source and scope.
 
+Publish this completed wiki update on load-bearing master and synchronized main, mirror the current articles into application documentation and verify the refreshed live content. No wiki branch deletion is needed. Application safe cleanup still requires a complete verified external archive, separate preservation of ignored private originals and exact merged/pushed ancestry. The application goal remains active and incomplete.
 
-The complete Windows startup repair article and navigation were published at
-12975393cb5a5a831009eb4d569d573c24671291 on both master and main. The rendered
-startup article, Home and Developer Guide were read back successfully. Master
-remains the platform publication branch and is retained.
+## 廣東話交接
 
-The application README was completely replaced at
-b5a23dfddd53c1d4f963d70efaeb7ebaf1daf1d3, verified on remote main. Its current
-content removes historical images and repair snapshots. The exact local root
-build at 58e628b62f61b5f9c1a24ce973a484f740bb283a passed in 00:35:04. Root
-installer production is running at the same source.
-
-Normal release v4.0.133501, from source
-1ef2e137353ea431082d7bbd2026ad14be16f561, has verified source/tag, six downloaded
-assets, package CRC, RELEASES integrity and native-parser absence. Its corrected
-package has reached a usable workspace on a hidden desktop with an isolated
-profile. A bounded runtime observation recorded zero console errors, unhandled
-exceptions and page errors during its actual capture interval. That observation
-does not cover startup history.
-
-Installed startup and current-profile preservation remain pending. The two older
-installed processes predate this task and require a specific closure decision.
-The original baseline reproduction is retained separately and its owned process
-tree is fully torn down. Security settings and existing user data are preserved.
-
-No wiki branch, file or history is a deletion candidate. The documentation-only
-root entrypoints report nonapplicability with exit 2. The application task owns
-remaining installer, argument, installed-profile, archive and cleanup acceptance.
+文件同真正功能驗證分開記錄。建置、套件、隔離工作區、參數同原始畫面已核對；已安裝版本同原有個人資料仍未完成。兩條 wiki 失效連結已修正並實際讀回。新要求只記錄實作缺口，唔會將未交付功能寫成完成。
