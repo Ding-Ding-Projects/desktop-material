@@ -11,7 +11,11 @@ local function rewrite(target)
     return target
   end
   if path:match('%.md$') then
-    path = path:gsub('README%.md$', 'index.html'):gsub('%.md$', '.html')
+    if path:match('[^/]+$') == 'README.md' then
+      path = path:gsub('README%.md$', 'index.html')
+    else
+      path = path:gsub('%.md$', '.html')
+    end
   elseif not path:match('%.%w+$') and not path:match('/$') then
     -- Wiki-style extensionless links (e.g. "User-Guide") map to their page.
     path = path .. '.html'

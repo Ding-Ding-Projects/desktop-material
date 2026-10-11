@@ -17,9 +17,12 @@
 - [x] Publish the complete startup repair wiki article and include it in the documentation catalog.
 - [x] Verify exact root build.bat /s at 58e628b62f61b5f9c1a24ce973a484f740bb283a, exit 0 in 00:35:04.
 - [x] Verify normal release v4.0.133501 source, tag, six downloaded assets, complete package CRC, RELEASES manifest and native-parser absence.
-- [ ] Verify exact root build-installer.bat /s for the corrected candidate; the pinned producer is running.
+- [x] Verify exact root build-installer.bat /s at 58e628b, exit 0; verify the complete local 4.0.0 Squirrel package without using it as an installed downgrade.
 - [x] Verify a usable corrected package workspace on an isolated hidden desktop, second-instance Unicode path delivery, and owned normal teardown.
-- [ ] Verify protocol delivery and custom external-editor arguments in the corrected package.
+- [x] Verify protocol arguments reach the reviewed URL through a hidden second instance and verify all eight real custom-editor child arguments exactly.
+- [ ] Verify operating-system protocol association delivery separately; the shell invocation exited normally without the expected form.
+- [x] Repair the two published-wiki index links locally and verify 16 real Pandoc/Lua cases plus exact inventory staging.
+- [ ] Verify deployment of the corrected wiki index links and exact inventory JSON.
 - [x] Verify live publication of all 14 mirrored wiki articles plus index, 95 internal links/anchors and 115 original image assets; About homepage matches.
 - [ ] Verify corrected installed startup and preservation of existing user data.
 - [ ] Verify main integration and archive-proven cleanup; retain protected branches.

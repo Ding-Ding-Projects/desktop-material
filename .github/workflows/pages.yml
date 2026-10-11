@@ -46,6 +46,10 @@ jobs:
           rm -f _site/docs-template.html _site/md-links.lua _site/docs-search.html
           mkdir -p _site/docs/assets
           cp -R docs/assets/. _site/docs/assets/
+          # Publish the exact inventory linked by the complete wiki snapshot.
+          mkdir -p _site/docs/wiki/published
+          cp docs/wiki/published/source-inventory.json _site/docs/wiki/published/
+          cmp docs/wiki/published/source-inventory.json _site/docs/wiki/published/source-inventory.json
           # Wiki articles also embed reviewed captures stored with verification
           # records. Publish those images at their existing relative routes.
           while IFS= read -r -d '' image; do
