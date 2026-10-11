@@ -4,8 +4,12 @@
 
 - [x] Replace the eager native argument parser with in-process parsing and verify 2,271 native oracle comparisons plus explicit regression cases.
 - [x] Add sequential production compiler execution for smaller hosts and verify nine focused execution and heap-limit checks.
-- [x] Reorganize the README, verify its local links and recorded example capture, and add the complete startup repair wiki article to the documentation catalog.
-- [ ] Verify root build and Squirrel installer production for the corrected candidate.
+- [x] Completely replace the README with current product information, remove historical content, verify all 20 local links, and pass the public-content scan.
+- [x] Publish the complete startup repair wiki article and include it in the documentation catalog.
+- [x] Verify exact root build.bat /s at 58e628b62f61b5f9c1a24ce973a484f740bb283a, exit 0 in 00:35:04.
+- [x] Verify normal release v4.0.133501 source, tag, six downloaded assets, complete package CRC, RELEASES manifest and native-parser absence.
+- [ ] Verify exact root build-installer.bat /s for the corrected candidate; the pinned producer is running.
+- [ ] Verify the corrected packaged application on an isolated hidden desktop.
 - [ ] Verify corrected installed startup and preservation of existing user data.
 - [ ] Verify main integration and archive-proven cleanup; retain protected branches.
 

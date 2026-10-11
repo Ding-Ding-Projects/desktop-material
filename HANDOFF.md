@@ -1,5 +1,19 @@
 # Desktop Material — Active parity handoff
 
+## October 11, 2026: current startup repair delivery state
+
+This section supersedes the earlier progress snapshots below. The user requested a complete README replacement with all old information removed. The README was rewritten from a blank file, removing the old release baseline, historical capture, milestone table, and diagnostic history. Its 20 distinct local links resolve, and the canonical public-content scan reports no findings.
+
+The exact root `build.bat /s` run at source `58e628b62f61b5f9c1a24ce973a484f740bb283a` passed with exit 0 in 00:35:04. All six production configurations completed and the unsigned runnable application was verified. The exact root `build-installer.bat /s` run is now in progress at that same pinned source. Its result remains unverified.
+
+Normal release [v4.0.133501](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.133501) is published from `1ef2e137353ea431082d7bbd2026ad14be16f561`. Tag readback matches that source; `isDraft: false` and `isPrerelease: false` were read back. All six expected assets were downloaded and matched their published sizes and SHA-256 digests. The complete Squirrel package passed archive decompression and CRC checks for 2,563 files and 259 folders. Its RELEASES hash and size match the downloaded package, and `windows-argv-parser.node` is absent. The setup executable is unsigned as required.
+
+The corrected extracted package has been launched on a fresh named hidden desktop with an isolated profile through the freshly built canonical Lowlevel cheap CLI. Main-window and workflow acceptance remain in progress. Protocol registrations were exported before this launch because application startup registers them outside the profile directory. Installed startup and current-profile preservation are still pending.
+
+The original baseline reproduction and its genuine private capture are retained separately. Its task-owned process tree has now been fully torn down through held native process handles, with exact creation-time and hidden-desktop proof. Older installed instances that predate the task remain protected. No unrelated process was terminated and no security setting was changed.
+
+The task branch and remote main were independently read back at `c611da91dc5aa3581343d9acad7641370ab1f6b1`. The startup wiki article is published; wiki master and its main mirror both read back at `12975393cb5a5a831009eb4d569d573c24671291`. Pages deployment `38113876386` succeeded for c611da91. Complete archive verification, final integration and safe task-owned cleanup remain pending.
+
 ## October 10, 2026: Application Control startup repair in progress
 
 The installed 4.0.133401 build stops during main-process loading because Application Control blocks windows-argv-parser.node. Source commit 2a3c64d4f45e1ba0406990f0d153370ad3fccd81 replaces that native addon with in-process TypeScript and removes native recovery inputs. Parser checks pass 22/22, including 2,271 nonempty comparisons against shell32 CommandLineToArgvW. Empty input intentionally returns no arguments; Unicode is preserved. A review identified the standalone compiler pin mismatch, corrected in the follow-up.
