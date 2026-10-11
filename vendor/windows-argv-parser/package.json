@@ -6,13 +6,9 @@
   "main": "build/index.js",
   "scripts": {
     "build": "tsc",
-    "install": "node-gyp rebuild && tsc"
-  },
-  "dependencies": {
-    "node-addon-api": "^7.0.0"
+    "install": "tsc"
   },
   "devDependencies": {
-    "node-gyp": "^10.1.0",
     "typescript": "^5.4.5"
   }
 }

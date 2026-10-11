@@ -181,7 +181,6 @@ describe('one-click Windows build contract', () => {
     assert.match(source, /function Test-WarmNativeDependencyCache/)
     for (const artifact of [
       'windows-argv-parser\\build\\index.js',
-      'windows-argv-parser\\build\\Release\\windows-argv-parser.node',
       'desktop-notifications\\dist\\index.js',
       'desktop-notifications\\build\\Release\\desktop-notifications.node',
       'desktop-trampoline\\dist\\index.js',
@@ -194,9 +193,7 @@ describe('one-click Windows build contract', () => {
     assert.match(source, /function Test-WindowsArgvParserRuntime/)
     assert.match(source, /function Test-WindowsArgvParserInputsMatch/)
     for (const input of [
-      'binding.gyp',
       'index.ts',
-      'main.cc',
       'package.json',
       'tsconfig.json',
     ]) {
@@ -300,107 +297,15 @@ describe('one-click Windows build contract', () => {
     )
   })
 
-  it('restores only a current prior argv-parser build cache and keeps fresh native failures fatal', async () => {
+  it('keeps the Windows argument parser free of native loading and recovery', async () => {
     const source = await read('script/build-windows.ps1')
-
-    assert.match(
-      source,
-      /function New-WindowsArgvParserRecoverySnapshot[\s\S]*?out\\windows-argv-parser\.node/
-    )
-    assert.match(
-      source,
-      /function Restore-WindowsArgvParserFromBuildCache[\s\S]*?\$RecoverySnapshot\.Path/
-    )
-    assert.match(
-      source,
-      /Test-CurrentNativeOutputs[\s\S]*?-OutputPaths @\(\$cachedAddon\)/
-    )
-    assert.match(source, /node_modules\\typescript\\bin\\tsc/)
-    assert.match(source, /Copy-Item -LiteralPath \$cachedAddon/)
-    assert.match(
-      source,
-      /return Test-WindowsArgvParserRuntime -NodePath \$NodePath/
-    )
-
-    const fallback = source.slice(
-      source.lastIndexOf('if ($reuseWarmDependencies) {'),
-      source.lastIndexOf(
-        'if (-not (Test-WarmNativeDependencyCache -NodePath $node))'
-      )
-    )
-    assert.match(
-      fallback,
-      /Invoke-Checked[\s\S]*?Frozen dependency installation/
-    )
-    assert.doesNotMatch(
-      fallback,
-      /catch\s*\{/,
-      'a real CL.exe or node-gyp failure from a fresh install must propagate'
-    )
-    assert.match(
-      source,
-      /throw 'The frozen dependency tree is missing a current, nonempty local native output/
-    )
-  })
-
-  it('preserves recovery state across cleanup and restores it after a successful fallback install', async () => {
-    const source = await read('script/build-windows.ps1')
-
-    assert.match(source, /function New-WindowsArgvParserRecoverySnapshot/)
-    assert.match(source, /Test-WindowsArgvParserAddon/)
-    assert.match(source, /\[IO\.Path\]::GetTempPath\(\)/)
-    assert.match(source, /\[guid\]::NewGuid\(\)/)
-    assert.match(source, /Get-FileHash[^\n]+SHA256/)
-    assert.match(
-      source,
-      /\$RecoverySnapshot\.Hash[\s\S]*?Test-WindowsArgvParserAddon/
-    )
-
-    const snapshot = source.lastIndexOf(
-      'New-WindowsArgvParserRecoverySnapshot -NodePath $node'
-    )
-    const cleanup = source.lastIndexOf('Remove-BoundedBuildOutput')
-    const preInstallRestore = source.indexOf(
-      'Restore-WindowsArgvParserFromBuildCache',
-      snapshot
-    )
-    const install = source.lastIndexOf("'install', '--frozen-lockfile'")
-    const postInstallRestore = source.indexOf(
-      'Restore-WindowsArgvParserFromBuildCache',
-      install
-    )
-    const finalProbe = source.lastIndexOf(
-      'if (-not (Test-WarmNativeDependencyCache -NodePath $node))'
-    )
-    const snapshotDelete = source.lastIndexOf(
-      'Remove-Item -LiteralPath $windowsArgvParserRecoverySnapshot.Path'
-    )
-
-    assert.ok(snapshot > 0, 'verified recovery input must be snapshotted')
-    assert.ok(cleanup > snapshot, 'snapshot must precede output cleanup')
-    assert.ok(
-      preInstallRestore > cleanup && preInstallRestore < install,
-      'warm recovery may run before the fallback install'
-    )
-    assert.ok(
-      postInstallRestore > install && postInstallRestore < finalProbe,
-      'a successful fallback install must be followed by recovery before the final probe'
-    )
-    assert.ok(
-      snapshotDelete > finalProbe,
-      'the exact snapshot must be cleaned in finally'
-    )
-
-    const fallback = source.slice(preInstallRestore, postInstallRestore)
-    assert.match(
-      fallback,
-      /Invoke-Checked[\s\S]*?Frozen dependency installation/
-    )
-    assert.doesNotMatch(
-      fallback,
-      /catch\s*\{/,
-      'a failed fallback install must remain fatal before post-install recovery'
-    )
+    const parser = await read('vendor/windows-argv-parser/index.ts')
+    const manifest = JSON.parse(await read('vendor/windows-argv-parser/package.json'))
+    assert.doesNotMatch(source, /windows-argv-parser[.]node|WindowsArgvParserAddon|WindowsArgvParserRecoverySnapshot|Restore-WindowsArgvParserFromBuildCache/)
+    assert.doesNotMatch(parser, /require[(]|process[.]platform|[.]node/)
+    assert.equal(manifest.scripts.install, 'tsc')
+    assert.equal(manifest.dependencies, undefined)
+    assert.equal(manifest.devDependencies['node-gyp'], undefined)
   })
 
   it('forces dev dependencies before install and restores the process environment', async () => {

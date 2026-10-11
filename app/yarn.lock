@@ -2278,8 +2278,6 @@ wide-align@^1.1.0:
 
 "windows-argv-parser@file:../vendor/windows-argv-parser":
   version "0.0.1"
-  dependencies:
-    node-addon-api "^7.0.0"
 
 winston-transport@^4.5.0:
   version "4.5.0"
