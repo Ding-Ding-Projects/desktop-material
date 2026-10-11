@@ -19,6 +19,7 @@
 - [x] Verify normal release v4.0.133501 source, tag, six downloaded assets, complete package CRC, RELEASES manifest and native-parser absence.
 - [x] Verify exact root build-installer.bat /s at 58e628b, exit 0; verify the complete local 4.0.0 Squirrel package without using it as an installed downgrade.
 - [x] Verify a usable corrected package workspace on an isolated hidden desktop, second-instance Unicode path delivery, and owned normal teardown.
+- [x] Qualify, inspect and promote the source-bound v4.0.133501 empty-workspace PNG with exact package, viewport, privacy and owned-teardown receipts; include it in the rewritten README.
 - [x] Verify protocol arguments reach the reviewed URL through a hidden second instance and verify all eight real custom-editor child arguments exactly.
 - [ ] Verify operating-system protocol association delivery separately; the shell invocation exited normally without the expected form.
 - [x] Repair the two published-wiki index links locally and verify 16 real Pandoc/Lua cases plus exact inventory staging.

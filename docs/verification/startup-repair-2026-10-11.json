@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "records": [
+    {
+      "id": "startup-repair-501-empty-workspace",
+      "active": true,
+      "path": "docs/assets/screenshots/startup-repair-4.0.133501-empty-workspace-20261011.png",
+      "sourceCommit": "1ef2e137353ea431082d7bbd2026ad14be16f561",
+      "artifactSha256": "deeff825f46f26a70a90c13250af6f39b07753e1fdbaaf86d18e316e2a8cd13c",
+      "captureSha256": "781b95e452ad1edadd7b50b5c47b283222da8aebcb19c22ab375a5b7fcf8f634",
+      "screen": "empty-workspace",
+      "state": "isolated-local-profile-no-repositories",
+      "theme": "light",
+      "viewportWidth": 1247,
+      "viewportHeight": 728,
+      "scale": 0.9620000808040317,
+      "interactionProofId": "isolated-profile-reopen-workspace-501",
+      "interactionReceiptSha256": "4f787342db7eb120bb7bfaedb4fac4ed904dc9434e90baeddc098fbc53a23d67",
+      "inspectionStatus": "inspected",
+      "capturedAt": "2026-10-11T07:10:10.912Z",
+      "language": "en",
+      "pixelWidth": 1200,
+      "pixelHeight": 700,
+      "scope": "Isolated profile startup of release 4.0.133501 only; installed and current-profile startup remain unverified."
+    }
+  ]
+}

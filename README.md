@@ -26,9 +26,17 @@ For an installation managed from PowerShell, review the [installation guide](doc
 
 The helper verifies the selected stable release download before invoking Squirrel. Its supported operations are `Install`, `Update`, and `Uninstall`; it does not force-close a running application.
 
-**Current verification:** the published v4.0.133501 package has passed complete archive integrity checks, its release assets match their published digests, and it contains no `windows-argv-parser.node`. Installed startup and startup with an existing profile are still being verified. Package integrity alone does not establish either result.
+**Current verification:** the published v4.0.133501 package has passed complete archive integrity checks, its release assets match their published digests, and it contains no `windows-argv-parser.node`. The corrected package also reaches a usable isolated-profile workspace and passes second-instance and custom-editor argument checks. Installed startup and startup with an existing profile are still being verified.
 
-**目前驗證狀態：** v4.0.133501 套件完整性同下載摘要已核對，套件亦冇 `windows-argv-parser.node`。安裝後啟動同現有設定檔啟動仍然驗證中。
+**目前驗證狀態：** v4.0.133501 套件完整性同下載摘要已核對，套件亦冇 `windows-argv-parser.node`。隔離設定檔啟動同參數工作流程已通過；安裝後啟動同現有設定檔啟動仍然驗證中。
+
+## Verified startup capture / 啟動畫面驗證
+
+![Desktop Material 4.0.133501 empty workspace in an isolated local profile](docs/assets/screenshots/startup-repair-4.0.133501-empty-workspace-20261011.png)
+
+This genuine v4.0.133501 capture shows the empty workspace after local setup in an isolated profile. All three starting actions are enabled. It is bound to source 1ef2e137353ea431082d7bbd2026ad14be16f561 and the verified Squirrel package; [the dated record](docs/verification/startup-repair-2026-10-11.md) retains the exact measured viewport, hashes and limits. Installed and current-profile acceptance remain incomplete.
+
+呢張係 v4.0.133501 真正啟動畫面，使用隔離設定檔完成本機設定後擷取。三個開始操作都可用。現有安裝同原有設定檔嘅驗收仍然未完成，張圖只證明已核對套件嘅隔離啟動狀態。
 
 ## Work with your repositories / 儲存庫工作流程
 

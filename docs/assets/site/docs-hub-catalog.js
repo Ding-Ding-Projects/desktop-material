@@ -2093,6 +2093,13 @@
       d: 'Visual evidence for issue #89.',
     },
     {
+      t: 'Windows startup repair verification, October 11, 2026',
+      h: 'verification/startup-repair-2026-10-11.html',
+      s: 'verification/startup-repair-2026-10-11.md',
+      c: 'verification',
+      d: 'The corrected v4.0.133501 package reaches the local empty workspace without the reported native argument-parser startup exception. This is isolated-profile package acceptance.…',
+    },
+    {
       t: 'New tab group dialog is overlapped by the toolbar — built-app capture, 2026-07-28',
       h: 'verification/tab-group-dialog-overlap-2026-07-28/',
       s: 'verification/tab-group-dialog-overlap-2026-07-28/README.md',
