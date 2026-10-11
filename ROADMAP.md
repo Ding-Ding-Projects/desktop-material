@@ -1,5 +1,14 @@
 # Desktop Material roadmap
 
+## October 11, 2026: updated feature contract review
+
+- [x] Compare the updated contracts with source e20a3c8357bfdb2a1837f80b5a37ee5244d713cc and record exact implementation/evidence gaps in docs/features/design-system/october-2026-contract-review.md.
+- [ ] Align the bounded local personal-vocabulary schema, Unicode length handling and fixed-entry-ceiling behavior; verify actual load/replace/clear and local-only acceptance.
+- [ ] Add complete per-element Animation and Transition authoring with renderer capability inventories, persistence/history, reduced-motion behavior and timed built acceptance.
+- [ ] Add optional above-control guidance and unique contextual help with hand-written per-element/complexity inventories and real direct/guided-route parity.
+- [ ] Implement the complete four-target Minecraft server creator/manager with version-bound typed controls, compatibility and recovery, then verify each distinct target/version boundary.
+- [ ] Complete the cross-surface current-image/reference inventory and stale-current negative regression; refresh genuine current captures after interface delivery while retaining historical originals.
+
 ## October 10, 2026: installed startup repair
 
 - [x] Replace the eager native argument parser with in-process parsing and verify 2,271 native oracle comparisons plus explicit regression cases.
@@ -11,7 +20,7 @@
 - [ ] Verify exact root build-installer.bat /s for the corrected candidate; the pinned producer is running.
 - [x] Verify a usable corrected package workspace on an isolated hidden desktop, second-instance Unicode path delivery, and owned normal teardown.
 - [ ] Verify protocol delivery and custom external-editor arguments in the corrected package.
-- [ ] Verify live publication of the complete 14-file wiki mirror and all required local assets.
+- [x] Verify live publication of all 14 mirrored wiki articles plus index, 95 internal links/anchors and 115 original image assets; About homepage matches.
 - [ ] Verify corrected installed startup and preservation of existing user data.
 - [ ] Verify main integration and archive-proven cleanup; retain protected branches.
 

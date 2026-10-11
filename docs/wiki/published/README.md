@@ -1,18 +1,27 @@
-# Published wiki mirror
+# Complete published wiki snapshot
 
-These complete articles mirror the current published wiki while the parent wiki directory retains the application repository's expanded guides. Internal links and images resolve inside this documentation website.
+This directory contains every Markdown article from the hosted wiki at
+`fc66abfb5fe38482c68161d962a375f3ba9470e5`, with only documentation-navigation links adapted for this tree.
+The independent expanded guides remain available from the [wiki category index](../README.md).
 
-- [AGENTS](Source-AGENTS.md)
-- [Agent API](Agent-API.md)
-- [Automation](Automation.md)
-- [CLOSEOUT_PROMPT](Source-CLOSEOUT_PROMPT.md)
-- [Developer Guide](Developer-Guide.md)
-- [Feature Gallery](Feature-Gallery.md)
-- [HANDOFF](Source-HANDOFF.md)
-- [Home](Home.md)
-- [README](Source-README.md)
-- [ROADMAP](Source-ROADMAP.md)
-- [Regex Guide](Regex-Guide.md)
-- [Submodules](Submodules.md)
-- [User Guide](User-Guide.md)
-- [Windows Startup Repair](Windows-Startup-Repair.md)
+## Articles
+
+- [AGENTS.md](Source-AGENTS.md)
+- [Agent-API.md](Agent-API.md)
+- [Automation.md](Automation.md)
+- [CLOSEOUT_PROMPT.md](Source-CLOSEOUT_PROMPT.md)
+- [Developer-Guide.md](Developer-Guide.md)
+- [Feature-Contract-Review.md](Feature-Contract-Review.md)
+- [Feature-Gallery.md](Feature-Gallery.md)
+- [HANDOFF.md](Source-HANDOFF.md)
+- [Home.md](Home.md)
+- [README.md](Source-README.md)
+- [ROADMAP.md](Source-ROADMAP.md)
+- [Regex-Guide.md](Regex-Guide.md)
+- [Submodules.md](Submodules.md)
+- [User-Guide.md](User-Guide.md)
+- [Windows-Startup-Repair.md](Windows-Startup-Repair.md)
+
+## Provenance and acceptance
+
+The [source inventory](source-inventory.json) records every original Git blob and mirrored SHA-256. This complete snapshot contains 15 source files. Source mirroring and live publication have separate verdicts. Historical captures retain their original source and dates; the new feature-contract review records required work without claiming feature completion.

@@ -437,3 +437,7 @@ the tonal workspace preview hides when a compact window needs the space.
 ![Guided sparse-checkout directory editor](../../assets/screenshots/material-sparse-checkout.png)
 
 ![Account-aware GitHub notifications](../../assets/screenshots/material-github-notifications.png)
+
+## October 2026 contract review
+
+[Read the current feature contract review](Feature-Contract-Review.md): required motion authoring, optional contextual guidance, current-image evidence, the four-target Minecraft server manager and bounded local-schema alignment. These are recorded implementation gaps, not completed features.

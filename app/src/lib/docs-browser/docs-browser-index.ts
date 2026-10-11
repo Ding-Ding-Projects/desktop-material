@@ -223,6 +223,14 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       sourcePath: 'docs/features/design-system/narrator-voice.md',
     },
     {
+      id: 'design-system/october-2026-contract-review',
+      category: 'design-system',
+      title: 'October 2026 feature contract review',
+      description:
+        'Reviewed on October 11, 2026 against Desktop Material source e20a3c8357bfdb2a1837f80b5a37ee5244d713cc. This review records required implementation and acceptance work. It does…',
+      sourcePath: 'docs/features/design-system/october-2026-contract-review.md',
+    },
+    {
       id: 'design-system/offline-documentation-browser',
       category: 'design-system',
       title: 'Offline documentation browser',
@@ -251,7 +259,8 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       id: 'design-system/README',
       category: 'design-system',
       title: 'Design-system features / 設計系統功能',
-      description: 'Attention accommodations — five independent,',
+      description:
+        'October 2026 feature contract review: current coverage and required motion, guidance, image-reference, server-manager and local-schema work.',
       sourcePath: 'docs/features/design-system/README.md',
     },
     {
@@ -1489,7 +1498,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'design-system',
     label: 'Design System',
-    count: 28,
+    count: 29,
   },
   {
     name: 'identity-and-workspace',
@@ -1529,4 +1538,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 172
+export const DocsBrowserArticleCount = 173

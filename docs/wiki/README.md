@@ -12,3 +12,5 @@
 ## Complete published wiki
 
 Read the [complete published wiki mirror](published/README.md), including all 14 articles and source records from the current wiki. The expanded local guides above are retained.
+
+- [October 2026 contract review](published/Feature-Contract-Review.md): explicit required additions and acceptance gaps.

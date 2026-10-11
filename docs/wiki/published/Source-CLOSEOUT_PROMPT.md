@@ -1,26 +1,11 @@
 # Wiki continuation
 
-The complete startup repair article and navigation were published and read back
-at 12975393cb5a5a831009eb4d569d573c24671291 on both master and main. The rendered
-article, Home and Developer Guide were verified. Preserve master as the platform
-publication branch and keep main as its synchronized completed-documentation
-mirror. No wiki deletion is required.
+Objective: maintain the complete startup-repair and feature-review documentation while the application task finishes installed acceptance.
 
-Application remote main now contains the complete fresh README replacement at
-b5a23dfddd53c1d4f963d70efaeb7ebaf1daf1d3. The exact build.bat /s run at source
-58e628b62f61b5f9c1a24ce973a484f740bb283a passed; build-installer.bat /s is running
-at the same pinned source. Normal release v4.0.133501 from 1ef2e137 has verified
-source/tag, six downloaded assets, complete package integrity, RELEASES hashes,
-unsigned setup and native-parser absence. Its isolated package reached a usable
-workspace. Installed and current-profile startup remain pending.
+Verified prior wiki snapshot: a93dc3ee2b0ea9a9934488d8143d9cf17c80d916 on both master and main. Its full application mirror at e20a3c8357bfdb2a1837f80b5a37ee5244d713cc passed deployment and live readback for 14 articles plus index, 95 internal links/anchors, 115 canonical-source image bytes and exact About homepage. Interactive/layout and refreshed current-source screenshot acceptance remain separate.
 
-Next: synchronize this full wiki inventory into the application documentation
-source, deploy it through the existing website workflow, and verify its routes
-and exact About homepage. Keep existing wiki contributions. Root wiki build
-entrypoints document their lack of an executable or installable target with
-exit 2. Do not claim those as application build or installer success.
+This documentation checkpoint adds Feature-Contract-Review and navigation with four required additions and one older schema-alignment gap. It makes no new feature-delivery claim. Preserve all existing articles. Publish this source on load-bearing master and synchronized main, mirror every current Markdown file into application documentation, and verify the new live article and navigation after deployment.
 
-The wider startup goal remains incomplete. No purchase, private-content
-publication, security change, host power action or unrelated feature work is
-authorized. Retain factual package, isolated-profile, installed and current-profile
-acceptance separately.
+The exact application build.bat /s passed at 58e628b; build-installer.bat /s remains pinned there in Squirrel packaging. Normal release v4.0.133501, source 1ef2e137, has verified tag/assets/full-package integrity and isolated startup/Unicode second-instance acceptance. Protocol/custom-editor, installed/current-profile, qualified capture promotion and archive-proven cleanup remain incomplete. Older installed processes remain protected pending the existing narrow closure decision.
+
+No wiki deletion is needed. Retain master as the publication branch and main as completed-documentation integration. The wiki has no installable target; its root entrypoints report nonapplicability with exit 2. Every processed push requires one nonrecursive instructions-repository push and terminal celebration attempt. No security changes, profile deletion, host power action, private publication or unrelated feature implementation is authorized.

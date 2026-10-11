@@ -294,6 +294,13 @@
       d: 'Which voice reads app events aloud, chosen per language on Settings → Sound → Narrator. English and Cantonese pick separately, and either can be left to the app.',
     },
     {
+      t: 'October 2026 feature contract review',
+      h: 'features/design-system/october-2026-contract-review.html',
+      s: 'features/design-system/october-2026-contract-review.md',
+      c: 'features',
+      d: 'Reviewed on October 11, 2026 against Desktop Material source e20a3c8357bfdb2a1837f80b5a37ee5244d713cc. This review records required implementation and acceptance work. It does…',
+    },
+    {
       t: 'Offline documentation browser',
       h: 'features/design-system/offline-documentation-browser.html',
       s: 'features/design-system/offline-documentation-browser.md',
@@ -319,7 +326,7 @@
       h: 'features/design-system/',
       s: 'features/design-system/README.md',
       c: 'features',
-      d: 'Attention accommodations — five independent,',
+      d: 'October 2026 feature contract review: current coverage and required motion, guidance, image-reference, server-manager and local-schema work.',
     },
     {
       t: 'Repository-themed music',
@@ -2219,6 +2226,13 @@
       d: 'The custom integration argument parser now runs in TypeScript without loading windows-argv-parser.node. Its exported interface remains compatible. Windows startup repair…',
     },
     {
+      t: 'October 2026 feature contract review',
+      h: 'wiki/published/Feature-Contract-Review.html',
+      s: 'wiki/published/Feature-Contract-Review.md',
+      c: 'wiki',
+      d: 'Reviewed on October 11, 2026 against Desktop Material source e20a3c8357bfdb2a1837f80b5a37ee5244d713cc. This review records required implementation and acceptance work. It does…',
+    },
+    {
       t: 'Guided Feature Gallery',
       h: 'wiki/published/Feature-Gallery.html',
       s: 'wiki/published/Feature-Gallery.md',
@@ -2233,11 +2247,11 @@
       d: 'Read Windows startup repair for the native-parser exception, quoting behavior, root build routes, and the separate package, isolated-profile, installed and existing-profile…',
     },
     {
-      t: 'Published wiki mirror',
+      t: 'Complete published wiki snapshot',
       h: 'wiki/published/',
       s: 'wiki/published/README.md',
       c: 'wiki',
-      d: "These complete articles mirror the current published wiki while the parent wiki directory retains the application repository's expanded guides. Internal links and images…",
+      d: 'This directory contains every Markdown article from the hosted wiki at fc66abfb5fe38482c68161d962a375f3ba9470e5, with only documentation-navigation links adapted for this tree.…',
     },
     {
       t: 'Regex guide — how search works in Desktop Material',
@@ -2258,14 +2272,14 @@
       h: 'wiki/published/Source-CLOSEOUT_PROMPT.html',
       s: 'wiki/published/Source-CLOSEOUT_PROMPT.md',
       c: 'wiki',
-      d: 'The complete startup repair article and navigation were published and read back at 12975393cb5a5a831009eb4d569d573c24671291 on both master and main. The rendered article, Home…',
+      d: 'Objective: maintain the complete startup-repair and feature-review documentation while the application task finishes installed acceptance.',
     },
     {
       t: 'Startup repair documentation handoff',
       h: 'wiki/published/Source-HANDOFF.html',
       s: 'wiki/published/Source-HANDOFF.md',
       c: 'wiki',
-      d: 'The complete Windows startup repair article and navigation were published at 12975393cb5a5a831009eb4d569d573c24671291 on both master and main. The rendered startup article,…',
+      d: 'The 14-file snapshot a93dc3ee2b0ea9a9934488d8143d9cf17c80d916 is deployed in application source e20a3c8357bfdb2a1837f80b5a37ee5244d713cc. All 14 articles plus index, 95…',
     },
     {
       t: 'Desktop Material wiki source',

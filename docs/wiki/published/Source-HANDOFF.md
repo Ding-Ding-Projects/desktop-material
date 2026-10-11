@@ -1,5 +1,12 @@
 # Startup repair documentation handoff
 
+## October 11 contract review and live mirror acceptance
+
+The 14-file snapshot a93dc3ee2b0ea9a9934488d8143d9cf17c80d916 is deployed in application source e20a3c8357bfdb2a1837f80b5a37ee5244d713cc. All 14 articles plus index, 95 internal links/anchors, 115 canonical-source image bytes and the exact About homepage passed live readback. Full interactive/layout and current-source screenshot coverage remain separate.
+
+Feature-Contract-Review records the latest requested comparison. Four additions remain incomplete: full motion authoring, optional per-control guidance and unique explanations, complete current-image reference refresh and a four-target Minecraft server manager. The existing personal-vocabulary schema also needs bounded alignment. No new product feature was implemented by this documentation review. The new article and refreshed wiki snapshot still require their own publication readback.
+
+
 The complete Windows startup repair article and navigation were published at
 12975393cb5a5a831009eb4d569d573c24671291 on both master and main. The rendered
 startup article, Home and Developer Guide were read back successfully. Master

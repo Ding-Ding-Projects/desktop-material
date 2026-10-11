@@ -1,5 +1,16 @@
 # Desktop Material — Active parity handoff
 
+## October 11, 2026: updated contract review and verified wiki delivery
+
+Five historical machine-specific paths have been redacted from the current public copy. Original records are retained in private task evidence and existing history; source identifiers and measured results are unchanged.
+
+The latest user request was to check updated feature contracts for additions. The source review at e20a3c8357bfdb2a1837f80b5a37ee5244d713cc records four incomplete additions: full per-element motion authoring, optional above-control guidance and unique contextual explanations, complete current-presentation image/reference refresh, and a full four-target Minecraft server creator/manager. The older local personal-vocabulary schema also retains a fixed 2,000-entry ceiling and outdated byte/key/value bounds. These are documented implementation gaps, not delivered features; the original installed-startup repair remains active. See docs/features/design-system/october-2026-contract-review.md for exact source references and separate acceptance work.
+
+The complete wiki deployment for e20a3c8357bfdb2a1837f80b5a37ee5244d713cc passed in Actions run 38116905837, with deployment completed at 2026-10-11T06:07:43Z. Live HTTP checks verified all 14 articles plus index, all 95 internal links/anchors and all 115 referenced image bytes against source. Sixteen text SVGs use CRLF in the Windows checkout; served LF bytes match their exact Git blobs. The deployed documentation catalog matches source and contains 332 entries. The stored About homepage is exactly https://ding-ding-projects.github.io/desktop-material/. These checks establish content/navigation/asset delivery, separately from full interactive/layout acceptance or refreshed current screenshots.
+
+The exact local build-installer.bat /s producer remains pinned to 58e628b62f61b5f9c1a24ce973a484f740bb283a. Compilation and portable packaging have completed; Squirrel packaging is running with no terminal verdict yet. Existing user processes remain protected pending the previously requested narrow closure decision. Installed/current-profile and protocol/custom-editor acceptance, qualified capture promotion and archive-proven cleanup remain incomplete.
+
+
 ## October 11, 2026: current startup repair delivery state
 
 This section supersedes the earlier progress snapshots below. The user requested a complete README replacement with all old information removed. The fresh README is pushed on main and the preservation branch at b5a23dfddd53c1d4f963d70efaeb7ebaf1daf1d3. It contains current product, installation, workflow, build, documentation and license information. All 20 distinct local links resolve; the canonical public-content scan has no findings. Windows and Linux CI for that source completed successfully.
@@ -213,7 +224,7 @@ origin --no-tags` completed with exit code 0, and `git ls-remote --heads
 origin main` returned `d1b107a805521c311babb103b300bb4865d4ef4d`. Local `main`
 and `origin/main` point to that same commit.
 
-The primary checkout is `C:/Users/cntow/Documents/GitHub/desktop-material`.
+The primary checkout is `<user-profile>/Documents/GitHub/desktop-material`.
 `git worktree list --porcelain` reports only that primary checkout. There are
 no linked checkouts, no unmerged index entries, no stashes, and no uncommitted
 tracked or non-ignored files. The local and remote inventory also contains
@@ -224,7 +235,7 @@ retained. No other non-default local or remote ref is in scope for removal.
 
 An external archive was created and verified before any removal decision. The
 archive is
-`C:\Users\cntow\OneDrive\OakKayBackups\desktop-material\zips\desktop-material-20260918T183845Z.7z`.
+`<user-profile>/OneDrive/OakKayBackups/desktop-material/zips/desktop-material-20260918T183845Z.7z`.
 It is 428,147,459 bytes, contains 8,922 files and 361 folders according to
 7-Zip, and `7z t` returned exit code 0. The archive input contained 6,210
 tracked paths and no non-ignored untracked paths. Git reported 49,709 ignored
@@ -4911,7 +4922,7 @@ A disposable Debian/Xvfb/xterm run launched the packaged TUI and captured the
 real Open repository dialog. Its deterministic bare-remote fixture advanced
 through `safe-push` and `pointer`; the consumer restored 23 bytes whose SHA-256
 exactly matched both the pointer and cache object. The Windows uv tool install
-puts all three `0.1.0` launchers in `C:\Users\cntow\.local\bin`, which was
+puts all three `0.1.0` launchers in `<user-profile>/.local/bin`, which was
 already on `PATH`, and the Linux wheel smoke reported the same aliases. The
 owned distro, displays, fixtures, and virtual environments were destroyed and
 proved absent. Immediate bracketed-paste normalization, the expanded-tree
@@ -11075,7 +11086,7 @@ after each feature is wired. No mockup, design image, or unrelated screenshot
 was substituted.
 
 A separate linked worktree at
-`C:\Users\cntow\Documents\GitHub\desktop-material-linux-tui-revival` contains
+`<user-profile>/Documents/GitHub/desktop-material-linux-tui-revival` contains
 uncommitted TUI work on `codex/revive-linux-tui`. Its recorded branch tip is an
 ancestor of `origin/main`, but its working files are not clean or proven
 complete. They were preserved exactly and were neither staged, committed,
@@ -11571,7 +11582,7 @@ by those managers' own feature inventories rather than duplicated here.
 ## Repository closeout inventory -- 2026-09-18
 
 This closeout used the existing primary checkout at
-`C:\Users\cntow\Documents\GitHub\desktop-material`. The checkout was clean at
+`<user-profile>/Documents/GitHub/desktop-material`. The checkout was clean at
 the start and after fetch: `main` was `e5ea2593ed32216c394fa256a6413c1c73ceb039`,
 matching `origin/main`. There were no uncommitted files, no non-ignored
 untracked files, and no stashes.

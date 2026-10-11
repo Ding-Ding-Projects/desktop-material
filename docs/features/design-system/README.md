@@ -1,5 +1,6 @@
 # Design-system features / 設計系統功能
 
+- [October 2026 feature contract review](october-2026-contract-review.md): current coverage and required motion, guidance, image-reference, server-manager and local-schema work.
 - [Attention accommodations](attention-accommodations.md) — five independent,
   off-by-default focus, low-stimulation, time-awareness, one-thing-at-a-time,
   and momentum modes with local persistence, accessible controls, and honest
