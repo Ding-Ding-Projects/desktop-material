@@ -1,3 +1,15 @@
+### October 11, 2026: blocked on the existing closure decision
+
+The goal is now blocked, not complete. The same unanswered closure decision has persisted across three consecutive goal turns. A fresh readback at 2026-10-11T09:35:23.5605463Z still found the two pre-task installed process roots and their four same-executable children running version 4.0.133401. The supported current-user installation route requires the installed application to be closed before mutation. No protected process was closed, and no installation or profile restoration occurred.
+
+All independent preparation is complete: the current profile and original installed full package have verified restricted recovery copies; selected normal release v4.0.133501 has full package-byte and isolated-runtime evidence; application main 0e13a28aa654cf06af83a91ef6beef82ff46c5d3 passed Windows production on x64 and arm64 and passed Linux. Both bounded observers stopped. The README rewrite and four-addition feature comparison remain delivered, with implementation gaps unchecked.
+
+Retry condition: the existing closure card receives an actual answer permitting the required action, or the old installed processes are authoritatively absent. Revalidate native process identities and backup freshness before any permitted closure. Then use the verified candidate through the supported Squirrel route and verify installed bytes, usable startup, current-profile retention and applicable shell-association behavior separately. Do not infer permission from elapsed time or send a duplicate closure question.
+
+The earlier combined recursive cleanup was rejected before execution with only “blocked by policy”. Its capture checkout, isolated profile and junction remain retained; no alternative transport was used. No new deletion is part of this blocked handoff. The complete source/admin archive, preceding source deltas, private image variants and receipts remain preserved. Cloud synchronization is unverified.
+
+廣東話交接：今次已正式記錄為受阻，唔係完成。原本嗰個關閉選擇連續三個工作回合都未有答覆，兩組舊行程仍然存在。來源檢查、資料備份同候選套件驗證都已完成；等實際答覆容許關閉，或者確認舊行程已經唔存在，先重新核對身份同備份，再做安裝驗證。唔會靠等得耐就當成有批准。
+
 ### October 11, 2026: current-profile preservation before installation
 
 Application main fe7a833a8827298fcad5f65c04580c2fed8e7bfb has a successful Windows production run, 38123069430, on both x64 and arm64. The observer reached terminal success at 2026-10-11T08:23:14.8348697Z and stopped. The preceding e1513a6 Windows run and publisher 38122006757 also succeeded. The publisher produced normal release v4.0.134101 at exact source/tag 9ba60e14755ff1732006c1f3720cd884c4095306 with six listed assets. That newer release has metadata-only acceptance; v4.0.133501 remains the fully byte-verified, isolated-runtime-tested installation candidate.

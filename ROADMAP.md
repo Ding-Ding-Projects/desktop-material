@@ -27,7 +27,7 @@
 - [x] Verify live publication of all 14 mirrored wiki articles plus index, 95 internal links/anchors and 115 original image assets; About homepage matches.
 - [x] Preserve all 1,278 current-profile files and 756 directories with stable source/copy/end-readback hashes; separately preserve the original 4.0.133401 full package and verify its RELEASES row.
 - [x] Verify Windows production run 38123069430 for exact source fe7a833a8827298fcad5f65c04580c2fed8e7bfb on x64 and arm64.
-- [ ] Verify corrected installed startup and preservation of existing user data.
+- [ ] Verify corrected installed startup and preservation of existing user data. Blocked on the existing closure decision for two pre-task installed process roots.
 - [x] Verify main integration and complete external archive readback: 15,311 entries, 448 Git-administration files, exact recovered refs, full CRC and every extracted SHA-256.
 - [x] Separately preserve 4,531 restricted private files, including all six announcement variants, the isolated profile and exact release assets.
 - [x] Retire the merged parser branch locally and remotely after exact main ancestry proof and verify its absence.
