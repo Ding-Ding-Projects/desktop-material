@@ -1,3 +1,17 @@
+## October 15, 2026: focused bug audit checkpoint
+
+Nine fixes are pushed individually on main through
+`d063ccdd5af23ccfb1b782705d954b15ebd595df`. The [audit record](docs/features/quality-and-reliability/bug-audit-2026-10-15.md)
+lists every commit, the 112 passing focused tests, final TypeScript success,
+and remaining findings. Investigation paused for preservation, then resumed
+after the user's instruction to continue frequent pushes.
+Windows builds remain running or queued; packaged and installed acceptance is
+unverified. No task-owned temporary branches, linked worktrees, or stashes
+exist. Existing remote branches and both primary checkouts are retained.
+
+The earlier installed clone-recovery continuation below remains separate and
+unfinished. No installed application or user profile was changed in this audit.
+
 ## October 15, 2026: resource-boundary preservation
 
 The source repair is integrated on main. Normal release

@@ -1,5 +1,12 @@
 # Desktop Material roadmap
 
+## October 15, 2026: focused bug audit
+
+- [x] Push nine independently reviewed fixes on main, with 112 passing focused tests and final TypeScript checking; see the [audit record](docs/features/quality-and-reliability/bug-audit-2026-10-15.md).
+- [ ] Verify final Windows build results and packaged application behavior for this source.
+- [ ] Repair the repository-discovery boundary when the entry cap hides a Git marker.
+- [ ] Reproduce rename overlap forecasting and schedule-runtime refresh after profile restoration.
+
 ## October 14, 2026: direct clone empty-container recovery
 
 - [x] Implement conservative empty-container recovery and context-aware retry copy; pass independent source review, 51 backend tests, five UI tests, eight scene-tooling tests, and TypeScript checking.
