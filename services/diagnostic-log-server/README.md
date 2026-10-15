@@ -68,6 +68,11 @@ curl -fsS \
 - `GET /` serves a compact dashboard; the bearer token stays in page memory.
 - `GET /health` supports container and external health checks.
 
+Queries scan at most 200 daily log files, prioritizing the newest dates across
+all selected clients. Files on the same date use a deterministic client-path
+order. The result limit selects the newest matching events among those files;
+older files outside the scan budget are not searched.
+
 The service rejects malformed client/session IDs, caps bodies and messages,
 uses constant-time bearer-token comparison, escapes dashboard output as JSON,
 and never offers arbitrary filesystem paths through the HTTP API.

@@ -243,6 +243,42 @@ test('redacts complete quoted multiword credentials', async () => {
   assert.doesNotMatch(stored, /correct|horse|battery|staple/)
 })
 
+test('prioritizes recent dates across clients before applying the file limit', async () => {
+  const clients = Array.from({ length: 201 }, (_, index) =>
+    index === 0 ? 'a-recent-client' : `z-older-client-${index}`
+  )
+  try {
+    for (const [index, clientId] of clients.entries()) {
+      const directory = join(storage, clientId)
+      await mkdir(directory)
+      const day = index === 0 ? '2099-01-02' : '2099-01-01'
+      await writeFile(
+        join(directory, `${day}.jsonl`),
+        JSON.stringify({
+          receivedAt: `${day}T12:00:00.000Z`,
+          level: 'info',
+          clientId,
+          message: 'cross-client date ordering',
+        }) + '\n'
+      )
+    }
+    const response = await fetch(
+      `http://127.0.0.1:${port}/v1/logs?limit=1&q=cross-client`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+    assert.equal(response.status, 200)
+    const result = await response.json()
+    assert.equal(result.count, 1)
+    assert.equal(result.events[0].clientId, 'a-recent-client')
+  } finally {
+    await Promise.all(
+      clients.map(client =>
+        rm(join(storage, client), { recursive: true, force: true })
+      )
+    )
+  }
+})
+
 test('reports a missing storage root as an internal failure', async () => {
   await rm(storage, { recursive: true, force: true })
   try {

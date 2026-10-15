@@ -264,7 +264,13 @@ async function listLogFiles(client) {
       }
     }
   }
-  return files.sort().reverse()
+  // The query budget applies across clients, so newest dates must precede
+  // client names. Full paths provide deterministic ordering for the same day.
+  return files.sort(
+    (left, right) =>
+      basename(right).localeCompare(basename(left)) ||
+      right.localeCompare(left)
+  )
 }
 
 async function storageStatus(response) {
