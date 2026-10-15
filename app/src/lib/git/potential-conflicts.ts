@@ -14,8 +14,9 @@ export interface IPotentialConflict {
 
 /**
  * List the files touched between `mergeBase` and `ref`, using
- * `git diff --name-only` so renames/copies don't matter for this purpose -
- * we only care about which paths were touched on each side.
+ * `git diff --name-only --no-renames` to include both endpoints of a rename.
+ * Rename detection otherwise reports only the destination, hiding overlaps
+ * with a modification or deletion of the original path on the other side.
  */
 async function getFilesChangedSince(
   repository: Repository,
@@ -23,7 +24,7 @@ async function getFilesChangedSince(
   ref: string
 ): Promise<ReadonlySet<string>> {
   const { stdout } = await git(
-    ['diff', '--name-only', '-z', mergeBase, ref, '--'],
+    ['diff', '--name-only', '--no-renames', '-z', mergeBase, ref, '--'],
     repository.path,
     'getFilesChangedSince'
   )
