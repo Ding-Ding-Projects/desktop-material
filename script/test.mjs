@@ -306,10 +306,16 @@ async function main() {
   const switchArgs = process.argv.slice(2).filter(a => a.startsWith('--'))
 
   const projectRoot = join(import.meta.dirname, '..')
-  const files =
+  const selectedPaths =
     fileArgs.length > 0
-      ? await findTestFilesIn(fileArgs)
-      : await findTestFilesIn([join(projectRoot, 'app', 'test', 'unit')])
+      ? fileArgs
+      : [join(projectRoot, 'app', 'test', 'unit')]
+  const files = await findTestFilesIn(selectedPaths)
+  if (files.length === 0) {
+    console.error(`No test files found in selection: ${selectedPaths.join(', ')}`)
+    process.exitCode = 1
+    return
+  }
 
   // I would _looooove_ to use the `--env-file` option, but it doesn't override
   // existing environment variables and we need to override some of them.
