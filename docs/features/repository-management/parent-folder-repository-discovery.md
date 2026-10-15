@@ -49,7 +49,9 @@ confirmation stays disabled.
 
 The selected root must be an ordinary directory. Traversal never follows
 symbolic links or Windows junctions, and linked `.git` markers are not accepted
-as proof of a repository. Every candidate marker is revalidated through Git;
+as proof of a repository. A linked `.git` marker still stops traversal, so its
+folder is not searched for nested repositories or passed to Git for validation.
+Every ordinary candidate marker is revalidated through Git;
 only a regular working tree whose reported top-level directory is exactly the
 candidate path is returned.
 
@@ -63,6 +65,8 @@ repository hooks or provider authentication.
 `git/find-repositories-test.ts` creates real repositories and proves stable
 discovery, heavy-directory and nested-worktree exclusion, depth/repository
 bounds, Windows `.git` casing, link/junction refusal, root-read failure, and
-partial results for unreadable descendants. `add-existing-repository-test.tsx`
+partial results for unreadable descendants. A linked `.git` marker regression
+also verifies that neither the candidate nor its nested repositories are
+validated or returned. `add-existing-repository-test.tsx`
 covers the folder picker, preview, exact bulk registration, truncation guidance,
 empty-state disablement, picker/scan errors, and stale-request protection.

@@ -31,7 +31,7 @@ const syntheticEntry = (name: string, kind: 'directory' | 'file'): Dirent =>
     isCharacterDevice: () => false,
     isFIFO: () => false,
     isSocket: () => false,
-  } as unknown as Dirent)
+  }) as unknown as Dirent
 
 const syntheticDir = (name: string) => syntheticEntry(name, 'directory')
 const syntheticFile = (name: string) => syntheticEntry(name, 'file')
@@ -177,6 +177,46 @@ describe('findRepositoriesInDirectory', () => {
 
     const result = await findRepositoriesInDirectory(rootPath)
     assert.deepEqual(result.repositories, [])
+    assert.equal(result.truncated, false)
+  })
+
+  it('does not descend through a linked Git marker boundary', async t => {
+    const rootPath = await createTempDirectory(t)
+    const externalRootPath = await createTempDirectory(t)
+    const candidatePath = Path.join(rootPath, 'candidate')
+    const nestedRepositoryPath = Path.join(candidatePath, 'nested')
+    await initializeRepository(nestedRepositoryPath)
+
+    try {
+      await symlink(
+        externalRootPath,
+        Path.join(candidatePath, '.git'),
+        process.platform === 'win32' ? 'junction' : 'dir'
+      )
+    } catch (error) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error.code === 'EPERM' || error.code === 'EACCES')
+      ) {
+        t.skip('This machine does not allow directory links')
+        return
+      }
+
+      throw error
+    }
+
+    const inspected: string[] = []
+    const result = await findRepositoriesInDirectory(rootPath, {
+      getRepositoryType: async path => {
+        inspected.push(path)
+        return getRepositoryType(path)
+      },
+    })
+
+    assert.deepEqual(result.repositories, [])
+    assert.deepEqual(inspected, [])
     assert.equal(result.truncated, false)
   })
 

@@ -243,14 +243,18 @@ export async function findRepositoriesInDirectory(
     const entries = [...result.entries].sort((a, b) =>
       a.name.localeCompare(b.name)
     )
-    const gitMarker = entries.find(
-      entry =>
-        isGitMarkerName(entry.name) &&
-        !entry.isSymbolicLink() &&
-        (entry.isDirectory() || entry.isFile())
-    )
+    const gitMarker = entries.find(entry => isGitMarkerName(entry.name))
 
     if (gitMarker !== undefined) {
+      // Unsafe markers still delimit repositories. Reject them without asking
+      // Git to follow a link or searching for repositories beneath them.
+      if (
+        gitMarker.isSymbolicLink() ||
+        (!gitMarker.isDirectory() && !gitMarker.isFile())
+      ) {
+        continue
+      }
+
       const repositoryType = await resolveRepositoryType(current.path).catch(
         () => null
       )
