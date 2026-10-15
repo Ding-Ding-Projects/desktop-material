@@ -38,6 +38,9 @@ bootstrap file this server loads.
   cookie.
 - `POST /oauth/token` — `authorization_code` and rotating `refresh_token`
   grants; replaying a consumed refresh token revokes its whole token family.
+  Accepts standard `application/x-www-form-urlencoded` requests and existing
+  JSON clients. Both bodies are limited to 16 KiB; duplicate form parameters
+  are rejected before a code or refresh token is consumed.
 - `GET /oauth/userinfo` — resolves a bearer access token to its subject and
   scopes.
 

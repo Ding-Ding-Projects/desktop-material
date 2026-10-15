@@ -501,6 +501,17 @@ async function readJson(request, maximumBytes = MaximumBodyBytes) {
     error.statusCode = 415
     throw error
   }
+  const body = await readBody(request, maximumBytes)
+  try {
+    return JSON.parse(body)
+  } catch {
+    const error = new Error('Malformed JSON')
+    error.statusCode = 400
+    throw error
+  }
+}
+
+async function readBody(request, maximumBytes = MaximumBodyBytes) {
   const declaredLength = Number(request.headers['content-length'] ?? 0)
   if (declaredLength > maximumBytes) {
     const error = new Error('Request body is too large')
@@ -519,13 +530,28 @@ async function readJson(request, maximumBytes = MaximumBodyBytes) {
     }
     chunks.push(chunk)
   }
-  try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'))
-  } catch {
-    const error = new Error('Malformed JSON')
-    error.statusCode = 400
-    throw error
+  return Buffer.concat(chunks).toString('utf8')
+}
+
+async function readTokenBody(request) {
+  const contentType = request.headers['content-type']
+    ?.split(';', 1)[0]
+    .trim()
+    .toLowerCase()
+  if (contentType !== 'application/x-www-form-urlencoded') {
+    return readJson(request)
   }
+  const parameters = new URLSearchParams(await readBody(request))
+  const body = Object.create(null)
+  for (const [key, value] of parameters) {
+    if (Object.hasOwn(body, key)) {
+      const error = new Error('Duplicate token parameter')
+      error.statusCode = 400
+      throw error
+    }
+    body[key] = value
+  }
+  return body
 }
 
 function statusForCloudPatchError(error) {
@@ -1222,7 +1248,7 @@ export async function createDesktopMaterialServer(options) {
           sendJson(response, status, { error: 'not-found' })
           return
         }
-        const body = await readJson(request)
+        const body = await readTokenBody(request)
         let grant
         try {
           if (body?.grant_type === 'authorization_code') {

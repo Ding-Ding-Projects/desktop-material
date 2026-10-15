@@ -108,8 +108,8 @@ async function authorize(
   const headers = noAuth
     ? {}
     : cookie
-    ? { cookie }
-    : { authorization: basicAuthHeader() }
+      ? { cookie }
+      : { authorization: basicAuthHeader() }
   return fetch(url, { redirect: 'manual', headers })
 }
 
@@ -175,93 +175,135 @@ describe('Desktop Material self-hosted OAuth authorization server', () => {
     assert.equal(jwks.keys[0].alg, 'ES256')
   })
 
-  it('runs a full authorization-code + PKCE + refresh round trip and signs an id_token', async () => {
-    const paths = await fixture()
-    const instance = await startFixture(paths)
+  for (const encoding of [
+    'application/json',
+    'application/x-www-form-urlencoded',
+  ]) {
+    it(`runs a full authorization-code + PKCE + refresh round trip using ${encoding}`, async () => {
+      const encode = body =>
+        encoding === 'application/json'
+          ? JSON.stringify(body)
+          : new URLSearchParams(body).toString()
+      const paths = await fixture()
+      const instance = await startFixture(paths)
 
-    const denied = await authorize(instance.origin, { noAuth: true })
-    assert.equal(denied.status, 401)
-    assert.equal(
-      denied.headers.get('www-authenticate'),
-      'Basic realm="Desktop Material self-hosted server"'
-    )
+      const denied = await authorize(instance.origin, { noAuth: true })
+      assert.equal(denied.status, 401)
+      assert.equal(
+        denied.headers.get('www-authenticate'),
+        'Basic realm="Desktop Material self-hosted server"'
+      )
 
+      const approved = await authorize(instance.origin)
+      assert.equal(approved.status, 302)
+      const setCookie = approved.headers.get('set-cookie')
+      assert.match(setCookie, /^dm_sso=/)
+      assert.match(setCookie, /HttpOnly/)
+      assert.match(setCookie, /Secure/)
+      const redirect = new URL(approved.headers.get('location'))
+      assert.equal(redirect.protocol, 'x-github-desktop-auth:')
+      assert.equal(
+        redirect.searchParams.get('state'),
+        'state-value-with-plenty-of-entropy-123'
+      )
+      const code = redirect.searchParams.get('code')
+      assert.ok(code)
+
+      // Single sign-on: a second client's authorize call reuses the session
+      // cookie instead of prompting for Basic auth again.
+      const cookieValue = setCookie.split(';')[0]
+      const ssoReplay = await authorize(instance.origin, {
+        cookie: cookieValue,
+      })
+      assert.equal(ssoReplay.status, 302)
+
+      const tokenResponse = await fetch(`${instance.origin}/oauth/token`, {
+        method: 'POST',
+        headers: { 'content-type': encoding },
+        body: encode({
+          grant_type: 'authorization_code',
+          client_id: ClientId,
+          redirect_uri: RedirectUri,
+          code,
+          code_verifier: Verifier,
+        }),
+      })
+      assert.equal(tokenResponse.status, 200)
+      const tokens = await tokenResponse.json()
+      assert.equal(tokens.token_type, 'Bearer')
+      assert.match(tokens.access_token, /^[A-Za-z0-9_-]{43}$/)
+      assert.match(tokens.refresh_token, /^[A-Za-z0-9_-]{43}$/)
+      assert.ok(tokens.id_token)
+      const idTokenPayload = decodeJwtPayload(tokens.id_token)
+      assert.equal(idTokenPayload.iss, 'https://desktop-material.example')
+      assert.equal(idTokenPayload.sub, 'admin')
+      assert.equal(idTokenPayload.aud, ClientId)
+
+      const userinfo = await fetch(`${instance.origin}/oauth/userinfo`, {
+        headers: { authorization: `Bearer ${tokens.access_token}` },
+      }).then(response => response.json())
+      assert.equal(userinfo.sub, 'admin')
+
+      const refreshed = await fetch(`${instance.origin}/oauth/token`, {
+        method: 'POST',
+        headers: { 'content-type': encoding },
+        body: encode({
+          grant_type: 'refresh_token',
+          client_id: ClientId,
+          refresh_token: tokens.refresh_token,
+        }),
+      })
+      assert.equal(refreshed.status, 200)
+      const refreshedTokens = await refreshed.json()
+      assert.notEqual(refreshedTokens.access_token, tokens.access_token)
+
+      const replayedRefresh = await fetch(`${instance.origin}/oauth/token`, {
+        method: 'POST',
+        headers: { 'content-type': encoding },
+        body: encode({
+          grant_type: 'refresh_token',
+          client_id: ClientId,
+          refresh_token: tokens.refresh_token,
+        }),
+      })
+      assert.equal(replayedRefresh.status, 400)
+
+      const revokedAccess = await fetch(`${instance.origin}/oauth/userinfo`, {
+        headers: { authorization: `Bearer ${refreshedTokens.access_token}` },
+      })
+      assert.equal(revokedAccess.status, 401)
+    })
+  }
+
+  it('rejects duplicate and oversized token forms without consuming a valid code', async () => {
+    const instance = await startFixture(await fixture())
     const approved = await authorize(instance.origin)
-    assert.equal(approved.status, 302)
-    const setCookie = approved.headers.get('set-cookie')
-    assert.match(setCookie, /^dm_sso=/)
-    assert.match(setCookie, /HttpOnly/)
-    assert.match(setCookie, /Secure/)
-    const redirect = new URL(approved.headers.get('location'))
-    assert.equal(redirect.protocol, 'x-github-desktop-auth:')
-    assert.equal(
-      redirect.searchParams.get('state'),
-      'state-value-with-plenty-of-entropy-123'
+    const code = new URL(approved.headers.get('location')).searchParams.get(
+      'code'
     )
-    const code = redirect.searchParams.get('code')
-    assert.ok(code)
-
-    // Single sign-on: a second client's authorize call reuses the session
-    // cookie instead of prompting for Basic auth again.
-    const cookieValue = setCookie.split(';')[0]
-    const ssoReplay = await authorize(instance.origin, { cookie: cookieValue })
-    assert.equal(ssoReplay.status, 302)
-
-    const tokenResponse = await fetch(`${instance.origin}/oauth/token`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        grant_type: 'authorization_code',
-        client_id: ClientId,
-        redirect_uri: RedirectUri,
-        code,
-        code_verifier: Verifier,
-      }),
+    const body = new URLSearchParams({
+      grant_type: 'authorization_code',
+      client_id: ClientId,
+      redirect_uri: RedirectUri,
+      code,
+      code_verifier: Verifier,
+    }).toString()
+    const request = body =>
+      fetch(`${instance.origin}/oauth/token`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        },
+        body,
+      })
+    const duplicate = await request(`${body}&client%5Fid=${ClientId}`)
+    assert.equal(duplicate.status, 400)
+    assert.deepEqual(await duplicate.json(), {
+      error: 'Duplicate token parameter',
     })
-    assert.equal(tokenResponse.status, 200)
-    const tokens = await tokenResponse.json()
-    assert.equal(tokens.token_type, 'Bearer')
-    assert.match(tokens.access_token, /^[A-Za-z0-9_-]{43}$/)
-    assert.match(tokens.refresh_token, /^[A-Za-z0-9_-]{43}$/)
-    assert.ok(tokens.id_token)
-    const idTokenPayload = decodeJwtPayload(tokens.id_token)
-    assert.equal(idTokenPayload.iss, 'https://desktop-material.example')
-    assert.equal(idTokenPayload.sub, 'admin')
-    assert.equal(idTokenPayload.aud, ClientId)
-
-    const userinfo = await fetch(`${instance.origin}/oauth/userinfo`, {
-      headers: { authorization: `Bearer ${tokens.access_token}` },
-    }).then(response => response.json())
-    assert.equal(userinfo.sub, 'admin')
-
-    const refreshed = await fetch(`${instance.origin}/oauth/token`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        grant_type: 'refresh_token',
-        client_id: ClientId,
-        refresh_token: tokens.refresh_token,
-      }),
-    })
-    assert.equal(refreshed.status, 200)
-    const refreshedTokens = await refreshed.json()
-    assert.notEqual(refreshedTokens.access_token, tokens.access_token)
-
-    const replayedRefresh = await fetch(`${instance.origin}/oauth/token`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        grant_type: 'refresh_token',
-        client_id: ClientId,
-        refresh_token: tokens.refresh_token,
-      }),
-    })
-    assert.equal(replayedRefresh.status, 400)
-
-    const revokedAccess = await fetch(`${instance.origin}/oauth/userinfo`, {
-      headers: { authorization: `Bearer ${refreshedTokens.access_token}` },
-    })
-    assert.equal(revokedAccess.status, 401)
+    const oversized = await request(`${body}&padding=${'x'.repeat(16 * 1024)}`)
+    assert.equal(oversized.status, 413)
+    assert.equal((await request(body)).status, 200)
   })
 
   it('reports 404 for OAuth surfaces when the server has no OAuth key material', async () => {
