@@ -11,7 +11,7 @@ const fixtureModule = require('./seed_direct_clone_recovery_fixture')
 const scene = require('./direct_clone_recovery_scene')
 const gallery = require('./gallery_capture_plan')
 
-function ownedFixture(t, variant = 'blocked') {
+function ownedFixture(t, variant = 'blocked', sourceUrl) {
   const runRoot = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'desktop-material-p0-ui-direct-test-')))
   const userDataPath = path.join(runRoot, 'profile')
   const destinationRoot = path.join(runRoot, 'destinations')
@@ -21,7 +21,7 @@ function ownedFixture(t, variant = 'blocked') {
     assert.ok(path.relative(fs.realpathSync(os.tmpdir()), runRoot).startsWith('desktop-material-p0-ui-direct-test-'))
     fs.rmSync(runRoot, { recursive: true, force: true })
   })
-  return { fixture: fixtureModule.seedDirectCloneRecoveryFixture({ runRoot, userDataPath, destinationRoot, variant }), outputRoot }
+  return { fixture: fixtureModule.seedDirectCloneRecoveryFixture({ runRoot, userDataPath, destinationRoot, variant, sourceUrl }), outputRoot }
 }
 
 function options(owned, tuple = scene.Matrix[0], phase = 'blocked') {
@@ -110,4 +110,22 @@ test('empty-container fixture retains its repository and never overwrites popula
   assert.deepEqual(fs.readdirSync(fixture.containerPath), [])
   assert.equal(fixtureModule.verifyFixturePreserved(fixture).preserved, true)
   assert.throws(() => fixtureModule.seedDirectCloneRecoveryFixture(fixture), /empty/)
+})
+
+
+test('rejects external, credential-bearing and escaped source URLs before seeding', t => {
+  const { fixture } = ownedFixture(t)
+  for (const sourceUrl of ['https://example.invalid/fixture/local-clone-source.git', 'http://user@127.0.0.1:9333/fixture/local-clone-source.git', 'http://127.0.0.1:9333/other.git', 'http://127.0.0.1:65536/fixture/local-clone-source.git']) {
+    assert.throws(() => fixtureModule.seedDirectCloneRecoveryFixture({ ...fixture, sourceUrl }), /loopback|port/)
+  }
+})
+
+
+test('loopback source URL is journaled and drives the production plan while paths stay owned', t => {
+  const url = 'http://127.0.0.1:12345/fixture/local-clone-source.git'
+  const owned = ownedFixture(t, 'blocked', url)
+  assert.equal(JSON.parse(fs.readFileSync(owned.fixture.journalPath)).items[0].url, url)
+  assert.equal(owned.fixture.network, 'owned-loopback-only')
+  assert.ok(scene.buildPlan(options(owned)).steps[1].expression.includes(url))
+  assert.throws(() => fixtureModule.verifyFixturePreserved({ ...owned.fixture, sourceUrl: 'https://example.invalid/a/b' }), /loopback/)
 })

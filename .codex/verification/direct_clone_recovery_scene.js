@@ -91,12 +91,12 @@ function runtime(action, config) {
   return { semantic: true, settledSamples: samples, cssViewport: { width: innerWidth, height: innerHeight }, privacy: 'private-synthetic-paths-only', published: false, dialogRect, actionRect, devicePixelRatio,
     nativeDisplayScaleVerified: false, actionText: button.textContent.trim(), title: dialog.querySelector('h1,h2')?.textContent?.trim() ?? null }
 
-  function pathName(value) { return value.split(/[\\/]/).pop() }
+  function pathName(value) { return value.split(/[\\/]/).pop().replace(/\.git$/, '') }
 }
 
 function expression(action, fixture, tuple) {
   return `(${runtime.toString()})(${JSON.stringify(action)},${JSON.stringify({
-    sourcePath: fixture.sourcePath, requestedPath: fixture.requestedPath, retainedPath: fixture.retainedPath,
+    sourcePath: fixture.sourceUrl ?? fixture.sourcePath, requestedPath: fixture.requestedPath, retainedPath: fixture.retainedPath,
     theme: tuple.theme, languageMode: tuple.languageMode,
   })})`
 }

@@ -12,6 +12,11 @@ const ContainerName = '.desktop-material-clone-staging-v1'
 const Sentinel = 'Synthetic recovery fixture. Preserve this file.\n'
 const RecoveryId = 'ad'.repeat(24)
 
+function validateSourceUrl(sourceUrl) {
+  if (sourceUrl !== undefined && !/^http:\/\/127\.0\.0\.1:[1-9][0-9]{0,4}\/fixture\/local-clone-source\.git$/.test(sourceUrl)) throw new Error('Source URL must be the owned loopback fixture route.')
+  if (sourceUrl !== undefined && Number(sourceUrl.match(/:([0-9]+)\//)[1]) > 65535) throw new Error('Invalid loopback fixture port.')
+}
+
 function seedDirectCloneRecoveryFixture(requested) {
   const options = parseArguments([
     '--run-root', requested.runRoot,
@@ -19,6 +24,8 @@ function seedDirectCloneRecoveryFixture(requested) {
     '--destination-root', requested.destinationRoot,
   ])
   const { runRoot, userDataPath, destinationRoot } = options
+  const sourceUrl = requested.sourceUrl
+  validateSourceUrl(sourceUrl)
   const variant = requested.variant ?? 'blocked'
   if (!['blocked', 'empty'].includes(variant)) throw new Error('Unknown fixture variant.')
   // Nested roots would allow destination writes to pollute the profile.
@@ -53,13 +60,14 @@ function seedDirectCloneRecoveryFixture(requested) {
       GIT_COMMITTER_NAME: 'Claude Fable 5.1', GIT_COMMITTER_EMAIL: 'noreply@anthropic.com',
       GIT_AUTHOR_DATE: '2026-01-01T00:00:00Z', GIT_COMMITTER_DATE: '2026-01-01T00:00:00Z' },
   })
+  execFileSync('git', ['-C', sourcePath, 'update-server-info'], { windowsHide: true, stdio: 'pipe', timeout: 10000 })
   fs.writeFileSync(path.join(retainedPath, 'sentinel.txt'), Sentinel, { flag: 'wx' })
   if (variant === 'blocked') {
     fs.writeFileSync(path.join(containerPath, 'fixture-blocker.txt'), Sentinel, { flag: 'wx' })
   }
   const journal = {
     version: 2, updatedAt: '2026-01-01T00:00:00.000Z',
-    items: [{ url: sourcePath, name: path.basename(retainedPath), path: retainedPath, recoveryId: RecoveryId }],
+    items: [{ url: sourceUrl ?? sourcePath, name: path.basename(retainedPath), path: retainedPath, recoveryId: RecoveryId }],
     statuses: [[retainedPath, { kind: 'interrupted' }]],
     mode: 'sequential', source: 'manual', paused: false, generation: 1,
   }
@@ -69,16 +77,17 @@ function seedDirectCloneRecoveryFixture(requested) {
   const receipt = {
     version: 1, fixture: 'direct-clone-recovery', variant,
     runRoot, userDataPath, destinationRoot, journalPath,
-    retainedPath, sourcePath, requestedPath, containerPath,
+    retainedPath, sourcePath, sourceUrl, requestedPath, containerPath,
     recoveryId: RecoveryId, journalSha256: crypto.createHash('sha256').update(bytes).digest('hex'),
     sentinelSha256: crypto.createHash('sha256').update(Sentinel).digest('hex'),
-    network: 'none', published: false,
+    network: sourceUrl ? 'owned-loopback-only' : 'none', published: false,
   }
   fs.writeFileSync(receiptPath, JSON.stringify(receipt, null, 2) + '\n', { flag: 'wx', mode: 0o600 })
   return receipt
 }
 
 function verifyFixturePreserved(receipt, { journalRequired = true } = {}) {
+  validateSourceUrl(receipt.sourceUrl)
   const { runRoot, userDataPath, destinationRoot } = parseArguments([
     '--run-root', receipt.runRoot, '--user-data-path', receipt.userDataPath,
     '--destination-root', receipt.destinationRoot,
@@ -120,9 +129,11 @@ module.exports = { seedDirectCloneRecoveryFixture, verifyFixturePreserved, remov
 
 if (require.main === module) {
   const argv = process.argv.slice(2)
+  const sourceIndex = argv.indexOf('--source-url')
+  const sourceUrl = sourceIndex < 0 ? undefined : argv.splice(sourceIndex, 2)[1]
   const variantIndex = argv.indexOf('--variant')
   const variant = variantIndex < 0 ? 'blocked' : argv.splice(variantIndex, 2)[1]
-  const receipt = seedDirectCloneRecoveryFixture({ ...parseArguments(argv), variant })
+  const receipt = seedDirectCloneRecoveryFixture({ ...parseArguments(argv), variant, sourceUrl })
   // Full paths belong only in the private run-root receipt.
   process.stdout.write(JSON.stringify({ fixture: receipt.fixture, variant, itemCount: 1, journalSha256: receipt.journalSha256 }) + '\n')
 }
