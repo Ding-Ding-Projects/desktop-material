@@ -20,6 +20,11 @@ repositories, 5,000 opened directories, 20,000 inspected entries overall, and
 such as `.git`, `node_modules`, `build`, `dist`, `out`, `vendor`, and virtual
 environment directories. Reaching any bound produces an explicit truncated
 result rather than implying that the folder was fully searched.
+If an entry limit or a partial directory-read error hides the `.git` entry,
+the scanner performs one direct marker lookup before descending. This preserves
+repository boundaries without reading the remaining entries. A missing marker
+permits partial discovery; a marker-inspection error stops descent and keeps the
+result marked as truncated.
 
 ## Persistence
 
@@ -70,3 +75,6 @@ also verifies that neither the candidate nor its nested repositories are
 validated or returned. `add-existing-repository-test.tsx`
 covers the folder picker, preview, exact bulk registration, truncation guidance,
 empty-state disablement, picker/scan errors, and stale-request protection.
+Scanner regressions also cover real markers hidden by per-directory and total
+entry limits, hidden linked markers, platform-specific marker casing, and partial
+directory-read errors while retaining useful results from unmarked folders.

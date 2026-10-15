@@ -243,7 +243,28 @@ export async function findRepositoriesInDirectory(
     const entries = [...result.entries].sort((a, b) =>
       a.name.localeCompare(b.name)
     )
-    const gitMarker = entries.find(entry => isGitMarkerName(entry.name))
+    let gitMarker:
+      Pick<Dirent, 'isSymbolicLink' | 'isDirectory' | 'isFile'> | undefined =
+      entries.find(entry => isGitMarkerName(entry.name))
+
+    if (gitMarker === undefined && (result.truncated || result.unreadable)) {
+      // Bounded enumeration may omit the marker. One direct lookup preserves
+      // repository boundaries without reading the rest of a large directory.
+      // Let the filesystem apply its own case sensitivity to the marker name.
+      try {
+        gitMarker = await lstat(Path.join(current.path, '.git'))
+      } catch (error) {
+        if (
+          typeof error !== 'object' ||
+          error === null ||
+          !('code' in error) ||
+          error.code !== 'ENOENT'
+        ) {
+          truncated = true
+          continue
+        }
+      }
+    }
 
     if (gitMarker !== undefined) {
       // Unsafe markers still delimit repositories. Reject them without asking

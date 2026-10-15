@@ -218,6 +218,24 @@ describe('findRepositoriesInDirectory', () => {
     assert.deepEqual(result.repositories, [])
     assert.deepEqual(inspected, [])
     assert.equal(result.truncated, false)
+
+    const tree = new Map<string, ReadonlyArray<Dirent>>([
+      [rootPath, [syntheticDir('candidate')]],
+      [candidatePath, [syntheticDir('nested'), syntheticDir('.git')]],
+      [nestedRepositoryPath, [syntheticDir('.git')]],
+    ])
+    const cappedResult = await findRepositoriesInDirectory(rootPath, {
+      maximumEntriesPerDirectory: 1,
+      openDirectory: makeOpenDirectory(tree),
+      getRepositoryType: async path => {
+        inspected.push(path)
+        return getRepositoryType(path)
+      },
+    })
+
+    assert.deepEqual(cappedResult.repositories, [])
+    assert.deepEqual(inspected, [])
+    assert.equal(cappedResult.truncated, true)
   })
 
   it('treats differently-cased Git markers according to the platform', async t => {
@@ -234,6 +252,28 @@ describe('findRepositoriesInDirectory', () => {
       process.platform === 'win32' ? [] : [nestedRepositoryPath]
     )
     assert.equal(result.truncated, false)
+  })
+
+  it('uses filesystem casing for a Git marker hidden beyond the entry limit', async t => {
+    const rootPath = await createTempDirectory(t)
+    const nestedPath = Path.join(rootPath, 'nested')
+    await initializeRepository(nestedPath)
+    await mkdir(Path.join(rootPath, '.GIT'))
+    const tree = new Map<string, ReadonlyArray<Dirent>>([
+      [rootPath, [syntheticDir('nested'), syntheticDir('.GIT')]],
+      [nestedPath, [syntheticDir('.git')]],
+    ])
+
+    const result = await findRepositoriesInDirectory(rootPath, {
+      maximumEntriesPerDirectory: 1,
+      openDirectory: makeOpenDirectory(tree),
+    })
+
+    assert.deepEqual(
+      result.repositories,
+      process.platform === 'win32' ? [] : [nestedPath]
+    )
+    assert.equal(result.truncated, true)
   })
 
   it('rejects when the selected root cannot be opened', async t => {
@@ -267,6 +307,89 @@ describe('findRepositoriesInDirectory', () => {
 
     assert.deepEqual(result.repositories, [repositoryPath])
     assert.equal(result.truncated, false)
+  })
+
+  it('finds a real Git marker beyond the directory entry limit', async t => {
+    const rootPath = await createTempDirectory(t)
+    const nestedPath = Path.join(rootPath, 'nested')
+    await initializeRepository(rootPath)
+    await initializeRepository(nestedPath)
+    const tree = new Map<string, ReadonlyArray<Dirent>>([
+      [rootPath, [syntheticDir('nested'), syntheticDir('.git')]],
+      [nestedPath, [syntheticDir('.git')]],
+    ])
+    for (const limits of [
+      { maximumEntriesPerDirectory: 1 },
+      { maximumEntries: 1 },
+    ]) {
+      const inspected: string[] = []
+      const result = await findRepositoriesInDirectory(rootPath, {
+        ...limits,
+        openDirectory: makeOpenDirectory(tree),
+        getRepositoryType: async path => {
+          inspected.push(path)
+          return getRepositoryType(path)
+        },
+      })
+
+      assert.deepEqual(result.repositories, [rootPath])
+      assert.deepEqual(inspected, [rootPath])
+      assert.equal(result.truncated, true)
+    }
+  })
+
+  it('preserves partial discovery when no Git marker exists beyond the entry limit', async t => {
+    const rootPath = await createTempDirectory(t)
+    const nestedPath = Path.join(rootPath, 'nested')
+    await initializeRepository(nestedPath)
+    const tree = new Map<string, ReadonlyArray<Dirent>>([
+      [rootPath, [syntheticDir('nested'), syntheticFile('other')]],
+      [nestedPath, [syntheticDir('.git')]],
+    ])
+
+    const result = await findRepositoriesInDirectory(rootPath, {
+      maximumEntriesPerDirectory: 1,
+      openDirectory: makeOpenDirectory(tree),
+    })
+
+    assert.deepEqual(result.repositories, [nestedPath])
+    assert.equal(result.truncated, true)
+  })
+
+  it('preserves a repository boundary after a partial descendant read error', async t => {
+    const rootPath = await createTempDirectory(t)
+    const repositoryPath = Path.join(rootPath, 'repository')
+    const nestedPath = Path.join(repositoryPath, 'nested')
+    await initializeRepository(repositoryPath)
+    await initializeRepository(nestedPath)
+    const openDirectory = (async (path: string) => {
+      if (path !== repositoryPath) {
+        return opendir(path)
+      }
+      let reads = 0
+      return {
+        async read() {
+          if (reads++ === 0) {
+            return syntheticDir('nested')
+          }
+          throw new Error('synthetic directory read failure')
+        },
+        async close() {},
+      }
+    }) as typeof opendir
+    const inspected: string[] = []
+
+    const result = await findRepositoriesInDirectory(rootPath, {
+      openDirectory,
+      getRepositoryType: async path => {
+        inspected.push(path)
+        return getRepositoryType(path)
+      },
+    })
+
+    assert.deepEqual(result.repositories, [repositoryPath])
+    assert.deepEqual(inspected, [repositoryPath])
+    assert.equal(result.truncated, true)
   })
 
   it('skips a linked worktree whose git dir lives under .git/worktrees', async t => {
