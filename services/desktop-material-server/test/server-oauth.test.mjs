@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
-import { generateKeyPairSync } from 'node:crypto'
-import { mkdtemp, writeFile } from 'node:fs/promises'
+import { createPublicKey, generateKeyPairSync, verify } from 'node:crypto'
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, it } from 'node:test'
@@ -114,6 +114,34 @@ async function authorize(
 }
 
 describe('Desktop Material self-hosted OAuth authorization server', () => {
+  it('rejects a public signing key that does not match the private key', async () => {
+    const paths = await fixture()
+    const config = JSON.parse(await readFile(paths.configPath, 'utf8'))
+    config.oauthSigningPublicJwkJson = JSON.stringify(
+      generateSigningMaterial().publicJwk
+    )
+    await writeFile(paths.configPath, JSON.stringify(config))
+    await assert.rejects(startFixture(paths), {
+      message: 'OAuth signing public key does not match private key',
+    })
+  })
+
+  it('rejects an EC private key on a curve other than P-256', async () => {
+    const paths = await fixture()
+    const config = JSON.parse(await readFile(paths.configPath, 'utf8'))
+    const { privateKey } = generateKeyPairSync('ec', {
+      namedCurve: 'secp384r1',
+    })
+    config.oauthSigningKeyPem = privateKey.export({
+      type: 'pkcs8',
+      format: 'pem',
+    })
+    await writeFile(paths.configPath, JSON.stringify(config))
+    await assert.rejects(startFixture(paths), {
+      message: 'Invalid OAuth signing key',
+    })
+  })
+
   it('serves validated SAML metadata without pretending to perform SAML login', async () => {
     const metadata = `<EntityDescriptor entityID="https://idp.example.test/metadata"><IDPSSODescriptor><SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://idp.example.test/sso"/><KeyDescriptor use="signing"><KeyInfo><X509Data><X509Certificate>${'A'.repeat(
       128
@@ -238,6 +266,28 @@ describe('Desktop Material self-hosted OAuth authorization server', () => {
       assert.equal(idTokenPayload.iss, 'https://desktop-material.example')
       assert.equal(idTokenPayload.sub, 'admin')
       assert.equal(idTokenPayload.aud, ClientId)
+      const jwks = await fetch(`${instance.origin}/oauth/jwks.json`).then(
+        response => response.json()
+      )
+      const [header, payload, signature] = tokens.id_token.split('.')
+      const jwtHeader = JSON.parse(
+        Buffer.from(header, 'base64url').toString('utf8')
+      )
+      const publicJwk = jwks.keys.find(key => key.kid === jwtHeader.kid)
+      assert.ok(publicJwk)
+      assert.equal(jwtHeader.alg, 'ES256')
+      assert.equal(
+        verify(
+          'sha256',
+          Buffer.from(`${header}.${payload}`),
+          {
+            key: createPublicKey({ key: publicJwk, format: 'jwk' }),
+            dsaEncoding: 'ieee-p1363',
+          },
+          Buffer.from(signature, 'base64url')
+        ),
+        true
+      )
 
       const userinfo = await fetch(`${instance.origin}/oauth/userinfo`, {
         headers: { authorization: `Bearer ${tokens.access_token}` },

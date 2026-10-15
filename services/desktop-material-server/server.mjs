@@ -1,6 +1,7 @@
 import {
   createHash,
   createPrivateKey,
+  createPublicKey,
   randomBytes,
   randomUUID,
   timingSafeEqual,
@@ -212,12 +213,18 @@ function parseOAuthConfiguration(parsed) {
     4_096
   )
   let privateKey
+  let signingPublicJwk
   try {
     privateKey = createPrivateKey(signingKeyPem)
+    signingPublicJwk = createPublicKey(privateKey).export({ format: 'jwk' })
   } catch {
     throw new Error('Invalid OAuth signing key')
   }
-  if (privateKey.asymmetricKeyType !== 'ec') {
+  if (
+    privateKey.asymmetricKeyType !== 'ec' ||
+    signingPublicJwk.kty !== 'EC' ||
+    signingPublicJwk.crv !== 'P-256'
+  ) {
     throw new Error('Invalid OAuth signing key')
   }
   const publicJwkJson = requiredString(
@@ -239,6 +246,12 @@ function parseOAuthConfiguration(parsed) {
     typeof publicJwk.y !== 'string'
   ) {
     throw new Error('Invalid OAuth signing public key')
+  }
+  if (
+    publicJwk.x !== signingPublicJwk.x ||
+    publicJwk.y !== signingPublicJwk.y
+  ) {
+    throw new Error('OAuth signing public key does not match private key')
   }
   const keyId = requiredString(parsed.oauthKeyId, 'oauthKeyId', 128)
   if (!/^[A-Za-z0-9._-]{1,128}$/.test(keyId)) {
