@@ -2,10 +2,10 @@
 
 ## October 15, 2026: focused bug audit
 
-- [x] Push nine independently reviewed fixes on main, with 112 passing focused tests and final TypeScript checking; see the [audit record](docs/features/quality-and-reliability/bug-audit-2026-10-15.md).
+- [x] Push fifteen independently reviewed fixes on main, with 154 passing focused tests and final TypeScript checking; see the [audit record](docs/features/quality-and-reliability/bug-audit-2026-10-15.md).
 - [ ] Verify final Windows build results and packaged application behavior for this source.
-- [ ] Repair the repository-discovery boundary when the entry cap hides a Git marker.
-- [ ] Reproduce rename overlap forecasting and schedule-runtime refresh after profile restoration.
+- [x] Repair the repository-discovery boundary when the entry cap hides a Git marker.
+- [x] Reproduce and repair rename overlap forecasting and schedule-runtime refresh after profile restoration.
 
 ## October 14, 2026: direct clone empty-container recovery
 

@@ -1,10 +1,11 @@
 ## October 15, 2026: focused bug audit checkpoint
 
-Nine fixes are pushed individually on main through
-`d063ccdd5af23ccfb1b782705d954b15ebd595df`. The [audit record](docs/features/quality-and-reliability/bug-audit-2026-10-15.md)
-lists every commit, the 112 passing focused tests, final TypeScript success,
-and remaining findings. Investigation paused for preservation, then resumed
-after the user's instruction to continue frequent pushes.
+Fifteen fixes are pushed individually on main through
+`fa629d4368e0ad2b227cf733b6bce0d4154d7fa1`. The [audit record](docs/features/quality-and-reliability/bug-audit-2026-10-15.md)
+lists every commit, the 154 passing focused tests, final TypeScript success,
+and remaining verification. Investigation paused for preservation, then resumed
+after the user's instruction to continue frequent pushes. The three deferred
+findings are now fixed. One unrelated baseline ESLint error remains documented.
 Windows builds remain running or queued; packaged and installed acceptance is
 unverified. No task-owned temporary branches, linked worktrees, or stashes
 exist. Existing remote branches and both primary checkouts are retained.

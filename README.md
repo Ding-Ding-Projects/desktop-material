@@ -6,7 +6,7 @@ Desktop Material 係 Windows 上嘅 Git 同 GitHub 桌面用戶端，以 Materia
 
 [**Download v4.0.133501**](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.133501) · [**Documentation**](https://ding-ding-projects.github.io/desktop-material/) · [**Feature guide**](docs/features/README.md)
 
-Latest maintenance source record: [October 15 bug audit](docs/features/quality-and-reliability/bug-audit-2026-10-15.md), with nine fixes, focused test results, and separate release-verification limits.
+Latest maintenance source record: [October 15 bug audit](docs/features/quality-and-reliability/bug-audit-2026-10-15.md), with fifteen fixes, focused test results, and separate release-verification limits.
 
 ## Get Desktop Material / 安裝
 

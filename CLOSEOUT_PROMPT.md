@@ -1,23 +1,25 @@
 # October 15 bug audit continuation
 
 The latest request restored the investigation scope and asked to continue
-frequent pushes after a preservation checkpoint. Nine reviewed fixes are pushed on main through
-d063ccdd5af23ccfb1b782705d954b15ebd595df. This documentation commit records the
+frequent pushes after a preservation checkpoint. Fifteen reviewed fixes are pushed on main through
+fa629d4368e0ad2b227cf733b6bce0d4154d7fa1. This documentation commit records the
 state after those fixes and must itself be pushed and verified.
 
 Read docs/features/quality-and-reliability/bug-audit-2026-10-15.md for exact
-commits, remaining findings, and verification. Focused suites passed 112 tests;
+commits and verification. Focused suites passed 154 tests;
 the final TypeScript check passed. Windows builds remain running or queued.
 Packaged UI, installer, and installed acceptance are unverified for this audit.
 
-Helpers paused at the preservation checkpoint. No temporary task branches, linked worktrees, or
+All six Astra helpers resumed for a second pass and completed their assigned
+implementation and independent reviews. No temporary task branches, linked worktrees, or
 stashes were created. Retain the primary checkout and existing remote branches;
 no deletion candidates were identified. No credentials, private instructions,
 or private captures were added to this repository.
 
-Next authorized work: check the remote build results, reproduce
-the directory-cap Git-marker boundary, then separately investigate rename
-overlap forecasting and runtime schedule restoration. Preserve the frozen shell
+The directory-cap Git-marker boundary, rename overlap forecasting, and runtime
+schedule restoration are now fixed. Next work: check the remote build results
+and verify Windows packaged/installed behavior. Further bug investigation may
+continue with new reproducible findings. Preserve the frozen shell
 and user data. Continue small reviewed commits and pushes on main.
 
 The earlier clone-recovery instructions below remain an independent unfinished

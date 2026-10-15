@@ -1,6 +1,6 @@
 # Quality and reliability / 品質同可靠性
 
-- [October 15 bug audit](bug-audit-2026-10-15.md): nine focused fixes,
+- [October 15 bug audit](bug-audit-2026-10-15.md): fifteen focused fixes,
   regression evidence, and remaining verification limits.
 
 - [Central diagnostic logging](central-diagnostic-logging.md) — opt-in
