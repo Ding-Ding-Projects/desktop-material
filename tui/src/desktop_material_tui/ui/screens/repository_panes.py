@@ -824,9 +824,25 @@ class ChangesPane(RepositoryPane):
         if service is None:
             self.app.notify("Open a repository first.", severity="warning")
             return
+
+        def unstage_selected() -> object:
+            # A rename row represents both the removed source and added target.
+            # Restore both index entries, without including a copy's source or
+            # any unselected changes. Read current status inside the worker.
+            selected_paths = dict.fromkeys(paths)
+            for change in _value(service.status(), "changes", ()):
+                if (
+                    _value(change, "path", "") in paths
+                    and _value(change, "index_status", "") == "R"
+                ):
+                    original = _value(change, "original_path", None)
+                    if original:
+                        selected_paths[str(original)] = None
+            return service.unstage(tuple(selected_paths))
+
         await self._mutate(
             "Unstage files",
-            lambda: service.unstage(paths),
+            unstage_selected,
             success="Files unstaged.",
         )
 
