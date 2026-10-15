@@ -6,8 +6,9 @@ isolated-profile, installed and existing-profile acceptance states.
 
 The clone dialog offers [repository sorting and metadata](../../features/repository-management/clone-dialog-repository-metadata.md),
 including alphabetical, modified, created, and UTC-day ordering.
-See [direct clone recovery](../../features/repository-management/direct-clone-recovery.md)
-for stale-record handling and destination preservation.
+See [direct clone recovery](Direct-Clone-Recovery.md)
+for conservative stale-record handling, destination preservation, the recovery
+review action and current verification boundaries.
 
 ![A four-step map from the wiki home to the right guide](../../assets/diagrams/wiki-map.svg)
 

@@ -11,19 +11,34 @@ from the new request and offer “Check recovery and retry” in the existing di
 
 Independent filesystem and UI source reviews found no consequential regression
 in the normal single-item flow. Independent local verification passed 51 backend
-tests, five rendered UI tests, six registered-scene tests, and TypeScript checking.
+tests, five rendered UI tests, eight registered-scene tests, and TypeScript checking.
 The scene commit `fd0d7aa054465b2808d08aca259fbc27acc7e364` includes an actual
 registration-removal red/green check. Its 48 planned presentation tuples and two
 capture outputs are private and unpublished until runtime and privacy acceptance.
 CDP raster scale is explicitly not native operating-system display-scale proof.
 
 The first exact `build.bat /s` stopped on access to an older generated MSI during
-output cleanup. The same entrypoint is now running in the existing task checkout,
-with all three required submodules initialized, pinned to `cc4c89c1`. No corrected
-build, installer, installed-profile recovery, or runtime capture is accepted yet.
-The original recovery metadata has a restricted, hash-verified recovery copy.
-Both original destination repositories remain preserved. Continue with the real
-built recovery flows, supported Squirrel delivery and installed verification.
+output cleanup. Both exact root entrypoints then passed in the full task checkout
+at `cc4c89c1`: `build.bat /s` completed in 10 minutes 46 seconds, and
+`build-installer.bat /s` completed in 19 minutes 26 seconds. The latter verified
+unsigned Squirrel.Windows packages, including SHA-256
+`f402aeda03daeed21305d75f0484eebbf825066085b1786e271775c752f576c4`.
+The local version 4.0.0 proves packaging and is not an upgrade candidate for the
+newer installed version. Windows, Linux and documentation deployment runs for
+`cc4c89c1` succeeded; its automatic release publisher is running.
+
+A hash-verified immutable copy of all 2,555 built files completed real synthetic
+retained-record recheck and empty-container recovery. The retained sentinel was
+unchanged, the obsolete journal absent and the requested clone matched its owned
+loopback source. Exact viewport calibration uses supported appearance controls
+in isolated profiles. Earlier automatic-zoom captures remain qualified raster
+evidence, not exact minimum-CSS-viewport or native display-scale proof. The full
+48-tuple matrix and actual installed-profile recovery remain pending.
+The original recovery metadata and installed package have restricted,
+hash-verified recovery copies. Both original destination repositories remain
+preserved. The complete recovery wiki article is published at wiki source
+`0bb4d1f57ad2f0d708a3322af66050b54d3cc666`; the refreshed application mirror
+awaits live deployment acceptance.
 
 The separate abnormal multi-item direct-journal retry wording predates this
 repair and remains a follow-up. Clone-sorting evidence and other feature backlog

@@ -1,3 +1,18 @@
+## October 15, 2026: direct clone recovery documentation
+
+Added `Direct-Clone-Recovery.md` and its Home navigation. The article documents
+the conservative stale-journal proof, exclusive empty-container initialization,
+retained/requested identity separation and review action. It records application
+source `cc4c89c168cb129be77defc2a7e16f8e1540ad25`, focused checks and both
+exact local build entrypoints passing. Synthetic runtime recovery passes are
+separate from the still-pending full presentation matrix and installed-profile
+acceptance. No existing destination is replaced.
+
+Publish on load-bearing `master` and synchronized `main`, verify both refs,
+then refresh the complete application documentation mirror and live routes.
+Existing articles and earlier evidence remain preserved. No wiki cleanup is
+needed, and application issue #240 remains open for its separate criteria.
+
 # Startup repair documentation handoff
 
 October 11, 2026: application main 1a4d40974b9e0a563879a7e643b584f874d3b7d3 includes the completely replaced README, updated contract comparison and qualified release capture. Documentation deployment 38121177697 passed at 2026-10-11T07:25:32Z. The live site verified 15 wiki articles plus index, 107 internal links/anchors across 40 routes, 118 referenced article assets including 116 images, 335 catalog entries, 25 home assets, six CSS assets and exact About homepage. The corrected Source-README.html route and source-inventory.json both work, with exact inventory bytes. These results bind the mirrored wiki to fc66abfb5fe38482c68161d962a375f3ba9470e5.

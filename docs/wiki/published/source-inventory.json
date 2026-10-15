@@ -1,9 +1,9 @@
 {
   "version": 1,
   "sourceRepository": "https://github.com/Ding-Ding-Projects/desktop-material.wiki.git",
-  "sourceCommit": "9f411c7d2fb227397e7c99cf1cbf50e254bf8530",
+  "sourceCommit": "0bb4d1f57ad2f0d708a3322af66050b54d3cc666",
   "sourceHashKind": "UTF-8 Git blob bytes",
-  "articleCount": 15,
+  "articleCount": 16,
   "entries": [
     {
       "source": "AGENTS.md",
@@ -26,14 +26,20 @@
     {
       "source": "CLOSEOUT_PROMPT.md",
       "path": "docs/wiki/published/Source-CLOSEOUT_PROMPT.md",
-      "sourceSha256": "d17565f2c8c2ddef1a353b9d062fa594c96cef0cadff7e984807ad141c684646",
-      "mirrorSha256": "d17565f2c8c2ddef1a353b9d062fa594c96cef0cadff7e984807ad141c684646"
+      "sourceSha256": "d970fe9a9c4503f14c29340f2c3c5eff3a14382486e71cbb4c4ce49d7616a618",
+      "mirrorSha256": "d970fe9a9c4503f14c29340f2c3c5eff3a14382486e71cbb4c4ce49d7616a618"
     },
     {
       "source": "Developer-Guide.md",
       "path": "docs/wiki/published/Developer-Guide.md",
       "sourceSha256": "342da0e9856806168f6c50b055ec3ec0f09df4345c74a6286c39e2f61cc02abd",
       "mirrorSha256": "272a91aefb0a10113142df5fb8a40b52661cebd8d250cb9415557043d3181a38"
+    },
+    {
+      "source": "Direct-Clone-Recovery.md",
+      "path": "docs/wiki/published/Direct-Clone-Recovery.md",
+      "sourceSha256": "7335169692eacb49c8243bead90c62649b1c5148c81a5b8c30681374f4721efa",
+      "mirrorSha256": "7335169692eacb49c8243bead90c62649b1c5148c81a5b8c30681374f4721efa"
     },
     {
       "source": "Feature-Contract-Review.md",
@@ -50,14 +56,14 @@
     {
       "source": "HANDOFF.md",
       "path": "docs/wiki/published/Source-HANDOFF.md",
-      "sourceSha256": "9f91847004c6df31fe83bfd83f280a5a7df8f2563c4ae746b28dcd99d61cab0f",
-      "mirrorSha256": "9f91847004c6df31fe83bfd83f280a5a7df8f2563c4ae746b28dcd99d61cab0f"
+      "sourceSha256": "6cf5885ab86a10bd45735915b01f304d8551d2a819f00e43c49b51510a39e13a",
+      "mirrorSha256": "6cf5885ab86a10bd45735915b01f304d8551d2a819f00e43c49b51510a39e13a"
     },
     {
       "source": "Home.md",
       "path": "docs/wiki/published/Home.md",
-      "sourceSha256": "013e5318fe77670c9d1ce55fd70149dbf8979dc1a38dfa87c11eba4121846c1c",
-      "mirrorSha256": "31c52e9b23deeaa1199c7b8b2307c260a7b589a0805e4e8e090fcec2f638a75b"
+      "sourceSha256": "8efb3be72fbf7b9c70f074f81687f21ba3973ccea39741d5c017c718d96eb712",
+      "mirrorSha256": "24abb83ba1160c0a983d36bc514edaff4811da260a898de1837c8c94ce7b993a"
     },
     {
       "source": "README.md",
@@ -68,8 +74,8 @@
     {
       "source": "ROADMAP.md",
       "path": "docs/wiki/published/Source-ROADMAP.md",
-      "sourceSha256": "62899ecb9b115fbf296fcee2a0b961d76c17209a3659fc1de339dda163c11552",
-      "mirrorSha256": "62899ecb9b115fbf296fcee2a0b961d76c17209a3659fc1de339dda163c11552"
+      "sourceSha256": "27ee9c8c5cc8cead94dcce09cd241e194824240d0e0f83f015b9ac32ef49039c",
+      "mirrorSha256": "27ee9c8c5cc8cead94dcce09cd241e194824240d0e0f83f015b9ac32ef49039c"
     },
     {
       "source": "Regex-Guide.md",

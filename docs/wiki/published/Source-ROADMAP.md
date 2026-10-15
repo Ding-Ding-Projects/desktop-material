@@ -1,5 +1,13 @@
 # Wiki maintenance roadmap
 
+## Direct clone recovery, October 15, 2026
+
+- [x] Add the complete empty-container recovery article, conservative ownership rules and current acceptance boundaries.
+- [x] Link the recovery article from Home.
+- [ ] Publish and verify the current main/master refs, mirror the complete wiki into the documentation website and verify changed live content.
+
+## Earlier documentation
+
 - [x] Add the complete native-free startup repair article.
 - [x] Link the article from Home and Developer Guide while preserving existing contributions.
 - [x] Publish the documentation and verify exact master and main refs at 12975393cb5a5a831009eb4d569d573c24671291.
