@@ -2,7 +2,6 @@ import { git } from './core'
 import { Repository } from '../../models/repository'
 import { Branch, IAheadBehind } from '../../models/branch'
 import { getMergeBase } from './merge'
-import { revRangeInclusive } from './rev-list'
 
 /**
  * The result of a local potential-conflict scan between the current branch
@@ -24,7 +23,7 @@ async function getFilesChangedSince(
   ref: string
 ): Promise<ReadonlySet<string>> {
   const { stdout } = await git(
-    ['diff', '--name-only', '-z', revRangeInclusive(mergeBase, ref)],
+    ['diff', '--name-only', '-z', mergeBase, ref, '--'],
     repository.path,
     'getFilesChangedSince'
   )
