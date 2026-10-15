@@ -1,7 +1,7 @@
 # Complete published wiki snapshot
 
 This directory contains every Markdown article from the hosted wiki at
-`0bb4d1f57ad2f0d708a3322af66050b54d3cc666`, with only documentation-navigation links adapted for this tree.
+`70084f80efcdb8ddf429dde01befd6455c788101`, with only documentation-navigation links adapted for this tree.
 The independent expanded guides remain available from the [wiki category index](../README.md).
 
 ## Articles

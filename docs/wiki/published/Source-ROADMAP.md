@@ -2,6 +2,9 @@
 
 ## Direct clone recovery, October 15, 2026
 
+- [x] Record the normal published package, completed private renderer matrix and protected current-profile preservation.
+- [ ] Complete installation and actual-profile recovery in the application task; no wiki result substitutes for those checks.
+
 - [x] Add the complete empty-container recovery article, conservative ownership rules and current acceptance boundaries.
 - [x] Link the recovery article from Home.
 - [ ] Publish and verify the current main/master refs, mirror the complete wiki into the documentation website and verify changed live content.

@@ -1,3 +1,41 @@
+## October 15, 2026: resource-boundary preservation
+
+The source repair is integrated on main. Normal release
+[v4.0.134701](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v4.0.134701)
+is bound by both its tag and target to
+`cc4c89c168cb129be77defc2a7e16f8e1540ad25`. Its publisher and matching Windows,
+Linux and documentation runs succeeded. Downloaded unsigned Squirrel setup,
+full package and RELEASES bytes match their published digests; the RELEASES
+package SHA-1 and size also match. Both exact local root build entrypoints passed.
+
+The completed private matrix covers 48 unique presentation tuples and 96
+inspected originals: 1440 by 960 and 960 by 660 CSS viewports, three language
+modes, two themes and four actual process raster scales. Real blocked/rechecked
+actions preserved the journal and sentinel; resolved clones and the exact
+empty-container variant passed independent filesystem proofs. Native operating-
+system display-setting changes and native keyboard/pointer delivery were not
+verified. The originals contain host-identifying synthetic paths and remain
+private; no current recovery image was published or presented as public evidence.
+
+The existing application was closed normally after explicit authorization. A
+restricted full current-profile recovery copy passed stable-source and hash
+verification. **The installer and actual-profile acceptance launch have not
+started.** The prior installation remains unchanged and closed. Installation,
+production journal clearance and opening the existing requested repository
+without replacement remain the next work after authorized resumption.
+
+All reviewed source contributions are durable on main. One earlier synthetic
+process remains after a normal close, with no eligible application window; its
+server is absent. Its private run and immutable executable remain retained.
+Task-owned cleanup requires a verified complete archive and ancestry proof;
+active, unrelated and uncertain work remains retained.
+
+廣東話交接：來源修正同正常版本已發佈，48 組畫面同 96 張原始圖片驗證完成，
+但原圖有合成路徑內嘅主機身份資料，所以只作私人證據。原有程式經明確批准正常
+關閉，設定檔亦已完整備份及核對。安裝同實際設定檔驗收未開始，唔會將套件成功
+當成安裝成功；之後要用已驗證嘅 Squirrel 套件，再經原有新增或開啟流程處理現有
+資料夾，唔可以複製覆蓋佢。
+
 ### October 14, 2026: direct clone empty-container recovery
 
 The direct-clone repair is integrated and pushed on `main` at

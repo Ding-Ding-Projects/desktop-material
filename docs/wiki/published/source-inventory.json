@@ -1,7 +1,7 @@
 {
   "version": 1,
   "sourceRepository": "https://github.com/Ding-Ding-Projects/desktop-material.wiki.git",
-  "sourceCommit": "0bb4d1f57ad2f0d708a3322af66050b54d3cc666",
+  "sourceCommit": "70084f80efcdb8ddf429dde01befd6455c788101",
   "sourceHashKind": "UTF-8 Git blob bytes",
   "articleCount": 16,
   "entries": [
@@ -26,8 +26,8 @@
     {
       "source": "CLOSEOUT_PROMPT.md",
       "path": "docs/wiki/published/Source-CLOSEOUT_PROMPT.md",
-      "sourceSha256": "d970fe9a9c4503f14c29340f2c3c5eff3a14382486e71cbb4c4ce49d7616a618",
-      "mirrorSha256": "d970fe9a9c4503f14c29340f2c3c5eff3a14382486e71cbb4c4ce49d7616a618"
+      "sourceSha256": "d4531a301d88b83ed5450fdb39592cc4f8e3ee17835fa044e63b54897fbc4556",
+      "mirrorSha256": "d4531a301d88b83ed5450fdb39592cc4f8e3ee17835fa044e63b54897fbc4556"
     },
     {
       "source": "Developer-Guide.md",
@@ -38,8 +38,8 @@
     {
       "source": "Direct-Clone-Recovery.md",
       "path": "docs/wiki/published/Direct-Clone-Recovery.md",
-      "sourceSha256": "7335169692eacb49c8243bead90c62649b1c5148c81a5b8c30681374f4721efa",
-      "mirrorSha256": "7335169692eacb49c8243bead90c62649b1c5148c81a5b8c30681374f4721efa"
+      "sourceSha256": "729935aa7fad5efad7658e14e0d6c755e15742a501b8b8528da8c9c5813116d3",
+      "mirrorSha256": "729935aa7fad5efad7658e14e0d6c755e15742a501b8b8528da8c9c5813116d3"
     },
     {
       "source": "Feature-Contract-Review.md",
@@ -56,8 +56,8 @@
     {
       "source": "HANDOFF.md",
       "path": "docs/wiki/published/Source-HANDOFF.md",
-      "sourceSha256": "6cf5885ab86a10bd45735915b01f304d8551d2a819f00e43c49b51510a39e13a",
-      "mirrorSha256": "6cf5885ab86a10bd45735915b01f304d8551d2a819f00e43c49b51510a39e13a"
+      "sourceSha256": "7f904582297672837b3700b40419061ec44e4b7666c6677e7f4e233e24547eb9",
+      "mirrorSha256": "7f904582297672837b3700b40419061ec44e4b7666c6677e7f4e233e24547eb9"
     },
     {
       "source": "Home.md",
@@ -74,8 +74,8 @@
     {
       "source": "ROADMAP.md",
       "path": "docs/wiki/published/Source-ROADMAP.md",
-      "sourceSha256": "27ee9c8c5cc8cead94dcce09cd241e194824240d0e0f83f015b9ac32ef49039c",
-      "mirrorSha256": "27ee9c8c5cc8cead94dcce09cd241e194824240d0e0f83f015b9ac32ef49039c"
+      "sourceSha256": "47328f6cc380e1e1106f675dfbc1673b9b83caa15606083b0af37822cfff4d4f",
+      "mirrorSha256": "47328f6cc380e1e1106f675dfbc1673b9b83caa15606083b0af37822cfff4d4f"
     },
     {
       "source": "Regex-Guide.md",
