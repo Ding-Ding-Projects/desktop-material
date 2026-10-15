@@ -1701,11 +1701,14 @@ class BranchesPane(RepositoryPane):
                     lambda: self._checkout(name),
                 )
             elif button_id == "branches-merge":
+                # Keep the selected namespace through preview and stale-tip
+                # validation; an unqualified name can resolve to a tag instead.
+                source_ref = str(_value(branch, "full_name", name))
                 single_flight_actions.start(
                     self,
                     event.button,
                     f"branches:merge-preview:{name}",
-                    lambda: self._preview_merge(name),
+                    lambda: self._preview_merge(source_ref),
                 )
             else:
                 self._confirm_delete(name)
