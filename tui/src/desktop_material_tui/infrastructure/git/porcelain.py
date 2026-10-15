@@ -17,14 +17,16 @@ from ...domain.models import (
 )
 
 HISTORY_FORMAT = "%H%x00%P%x00%an%x00%ae%x00%at%x00%aI%x00%s%x00%b%x00"
+# Remove exactly the namespace prefix. `:short` may add heads/ or tags/
+# when another ref shares the name, making the result unusable by mutations.
 BRANCH_FORMAT = (
-    "%(refname)%00%(refname:short)%00%(objectname)%00"
+    "%(refname)%00%(refname:lstrip=2)%00%(objectname)%00"
     "%(upstream:short)%00%(upstream:track,nobracket)%00%(HEAD)%00"
     "%(committerdate:iso-strict)%00%(symref)%00"
 )
 STASH_FORMAT = "%gd%x00%H%x00%an%x00%ae%x00%aI%x00%gs%x00"
 TAG_FORMAT = (
-    "%(refname:short)%00%(objectname)%00%(objecttype)%00"
+    "%(refname:lstrip=2)%00%(objectname)%00%(objecttype)%00"
     "%(*objectname)%00%(*objecttype)%00%(subject)%00"
     "%(creatordate:iso-strict)%00"
 )

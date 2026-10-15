@@ -363,3 +363,48 @@ def test_inputs_cannot_escape_repository_or_become_options(
         repository.commit("Invalid co-author", co_authors=("missing-email",))
     with pytest.raises(InvalidGitArgumentError, match=r"Name <email@example\.com>"):
         repository.commit("Nameless co-author", co_authors=(" <pair@example.test>",))
+
+
+@pytest.mark.parametrize("tag_first", [False, True])
+def test_branch_and_tag_with_same_name_keep_operable_names(
+    repository: RepositoryService,
+    tag_first: bool,
+) -> None:
+    commit_file(repository, "tracked.txt", "base\n", "Initial")
+    name = "release/shared"
+    if tag_first:
+        assert repository.create_tag(name).name == name
+    assert repository.create_branch(name).name == name
+    if not tag_first:
+        assert repository.create_tag(name).name == name
+
+    branch = next(branch for branch in repository.branches() if branch.is_current)
+    tag = repository.tags()[0]
+    assert branch.name == tag.name == name
+    repository.checkout_branch("main")
+    repository.checkout_branch(branch.name)
+    assert repository.status().branch_head == name
+    repository.rename_branch(branch.name, "release/renamed")
+    assert repository.rename_branch("release/renamed", name).name == name
+    repository.checkout_branch("main")
+    repository.delete_tag(tag.name)
+    repository.delete_branch(branch.name)
+    assert repository.tags() == ()
+    assert [branch.name for branch in repository.branches()] == ["main"]
+
+
+def test_remote_branch_name_keeps_remote_prefix_when_tag_collides(
+    repository: RepositoryService,
+    git_runner: SubprocessGitRunner,
+) -> None:
+    commit_file(repository, "tracked.txt", "base\n", "Initial")
+    git_runner.run(
+        ["update-ref", "refs/remotes/origin/main", "HEAD"],
+        cwd=repository.validate(),
+    )
+    repository.create_tag("origin/main")
+
+    remote = next(branch for branch in repository.branches() if branch.is_remote)
+    assert remote.name == "origin/main"
+    assert remote.full_name == "refs/remotes/origin/main"
+    assert repository.tags()[0].name == "origin/main"
