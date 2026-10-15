@@ -54,6 +54,8 @@ test('removing the actual registration makes the registration check red; restore
 test('real local repositories and v2 retained journal preserve bytes across owned blocker removal', t => {
   const { fixture } = ownedFixture(t)
   assert.equal(execFileSync('git', ['-C', fixture.retainedPath, 'rev-parse', '--is-inside-work-tree'], { encoding: 'utf8', windowsHide: true }).trim(), 'true')
+  assert.match(execFileSync('git', ['-C', fixture.sourcePath, 'rev-parse', 'HEAD'], { encoding: 'utf8', windowsHide: true }).trim(), /^[a-f0-9]{40}$/)
+  assert.equal(execFileSync('git', ['-C', fixture.sourcePath, 'status', '--porcelain'], { encoding: 'utf8', windowsHide: true }).trim(), '')
   const before = fs.readFileSync(fixture.journalPath)
   const journal = JSON.parse(before)
   assert.equal(journal.version, 2)
