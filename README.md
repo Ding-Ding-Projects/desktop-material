@@ -86,6 +86,7 @@ See the [development guide](docs/readme-tabs/development.md), [Windows setup](do
 - [Wiki articles in this repository](docs/wiki/README.md)
 - [GitHub wiki](https://github.com/Ding-Ding-Projects/desktop-material/wiki)
 - [Installation and update guide](docs/readme-tabs/install.md)
+- [Direct clone recovery and preservation](docs/features/repository-management/direct-clone-recovery.md), including the empty-container repair now in local build and installed verification.
 - [Contributor setup](docs/contributing/setup.md)
 - [Roadmap](ROADMAP.md)
 - [Handoff](HANDOFF.md)

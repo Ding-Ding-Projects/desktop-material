@@ -1,5 +1,13 @@
 # Desktop Material roadmap
 
+## October 14, 2026: direct clone empty-container recovery
+
+- [x] Implement conservative empty-container recovery and context-aware retry copy; pass independent source review, 51 backend tests, five UI tests, six scene-tooling tests, and TypeScript checking.
+- [x] Integrate the product and registered synthetic scene on main at cc4c89c168cb129be77defc2a7e16f8e1540ad25 and verify the pushed ref.
+- [ ] Verify the corrected built recovery interaction across the 48 planned presentation tuples, retain genuine original captures and distinguish raster scale from native display scale.
+- [ ] Complete the exact root build and Squirrel installer entrypoints, verify the delivered package, recover the installed profile and open the existing requested repository without replacement.
+- [ ] Complete evidence promotion, issue/wiki/documentation delivery and preservation-proven task cleanup.
+
 ## October 11, 2026: updated feature contract review
 
 - [x] Compare the updated contracts with source e20a3c8357bfdb2a1837f80b5a37ee5244d713cc and record exact implementation/evidence gaps in docs/features/design-system/october-2026-contract-review.md.

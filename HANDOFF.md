@@ -1,3 +1,38 @@
+### October 14, 2026: direct clone empty-container recovery
+
+The direct-clone repair is integrated and pushed on `main` at
+`cc4c89c168cb129be77defc2a7e16f8e1540ad25`. Product commit
+`ea96156bbd42237ecb8dac31074adc7432a85eb8` accepts only proven absent,
+empty, or valid marker-only shared staging containers when clearing an obsolete
+direct journal. It initializes empty staging exclusively, repeats identity and
+content checks, preserves ambiguous data, and prevents catch-path cleanup before
+the new request owns its journal. Recovery errors distinguish the retained item
+from the new request and offer “Check recovery and retry” in the existing dialog.
+
+Independent filesystem and UI source reviews found no consequential regression
+in the normal single-item flow. Independent local verification passed 51 backend
+tests, five rendered UI tests, six registered-scene tests, and TypeScript checking.
+The scene commit `fd0d7aa054465b2808d08aca259fbc27acc7e364` includes an actual
+registration-removal red/green check. Its 48 planned presentation tuples and two
+capture outputs are private and unpublished until runtime and privacy acceptance.
+CDP raster scale is explicitly not native operating-system display-scale proof.
+
+The first exact `build.bat /s` stopped on access to an older generated MSI during
+output cleanup. The same entrypoint is now running in the existing task checkout,
+with all three required submodules initialized, pinned to `cc4c89c1`. No corrected
+build, installer, installed-profile recovery, or runtime capture is accepted yet.
+The original recovery metadata has a restricted, hash-verified recovery copy.
+Both original destination repositories remain preserved. Continue with the real
+built recovery flows, supported Squirrel delivery and installed verification.
+
+The separate abnormal multi-item direct-journal retry wording predates this
+repair and remains a follow-up. Clone-sorting evidence and other feature backlog
+are outside this change. Issue #240 remains open while runtime acceptance is
+pending. Earlier startup and cleanup records below remain historical evidence,
+not proof of the current installation state.
+
+廣東話交接：空暫存目錄復原修正已合併及推送，51 項後端、5 項介面同 6 項拍攝工具測試通過，型別檢查亦通過。實際建置、安裝同原有設定檔驗收仍然進行中；唔會用來源測試冒充畫面或安裝證據。現有目的地同有疑問嘅復原資料會保留。
+
 ### October 11, 2026: blocked on the existing closure decision
 
 The goal is now blocked, not complete. The same unanswered closure decision has persisted across three consecutive goal turns. A fresh readback at 2026-10-11T09:35:23.5605463Z still found the two pre-task installed process roots and their four same-executable children running version 4.0.133401. The supported current-user installation route requires the installed application to be closed before mutation. No protected process was closed, and no installation or profile restoration occurred.
