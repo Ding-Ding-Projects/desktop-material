@@ -153,6 +153,26 @@ function normalizeRequestedScopes(value, client) {
   return [...unique].sort()
 }
 
+function samlServiceAttributes(xml, offset) {
+  const attributes = new Map()
+  const attribute = /\s+([A-Za-z_][\w.:-]*)\s*=\s*(?:"([^"<]*)"|'([^'<]*)')/y
+  const end = /\s*\/?>/y
+  while (offset < xml.length) {
+    end.lastIndex = offset
+    if (end.test(xml)) {
+      return attributes
+    }
+    attribute.lastIndex = offset
+    const match = attribute.exec(xml)
+    if (match === null || attributes.has(match[1])) {
+      fail('invalid-saml-metadata')
+    }
+    attributes.set(match[1], match[2] ?? match[3])
+    offset = attribute.lastIndex
+  }
+  fail('invalid-saml-metadata')
+}
+
 /**
  * Parse the public, operator-supplied SAML metadata without attempting a
  * login. The OAuth authority remains the only implemented authentication
@@ -185,20 +205,27 @@ export function parseSamlMetadata(value) {
   }
 
   const singleSignOnServices = [
-    ...value.matchAll(
-      /<(?:[A-Za-z_][\w.-]*:)?SingleSignOnService\b[^>]*\bBinding\s*=\s*["']([^"']+)["'][^>]*\bLocation\s*=\s*["']([^"']+)["'][^>]*\/?>(?:<\/(?:[A-Za-z_][\w.-]*:)?SingleSignOnService>)?/gi
-    ),
+    ...value.matchAll(/<(?:[A-Za-z_][\w.-]*:)?SingleSignOnService(?=[\s/>])/gi),
   ].map(match => {
+    const attributes = samlServiceAttributes(
+      value,
+      match.index + match[0].length
+    )
+    const binding = attributes.get('Binding')
+    const locationValue = attributes.get('Location')
+    if (!binding || !locationValue) {
+      fail('invalid-saml-metadata')
+    }
     let location
     try {
-      location = new URL(match[2])
+      location = new URL(locationValue)
     } catch {
       fail('invalid-saml-metadata')
     }
     if (location.protocol !== 'https:') {
       fail('invalid-saml-metadata')
     }
-    return { binding: match[1], location: location.toString() }
+    return { binding, location: location.toString() }
   })
   if (singleSignOnServices.length === 0) {
     fail('invalid-saml-metadata')

@@ -112,6 +112,45 @@ describe('self-hosted OAuth authority', () => {
     )
   })
 
+  it('accepts SAML service attributes in either order and on prefixed elements', () => {
+    const binding = 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect'
+    const metadata = service =>
+      `<EntityDescriptor entityID="https://idp.example/metadata">${service}<X509Certificate>${'A'.repeat(128)}</X509Certificate></EntityDescriptor>`
+    for (const service of [
+      `<SingleSignOnService Binding="${binding}" Location="https://idp.example/sso"/>`,
+      `<SingleSignOnService Location="https://idp.example/sso" Binding="${binding}"/>`,
+      `<md:SingleSignOnService xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" Location='https://idp.example/sso' Binding='${binding}'></md:SingleSignOnService>`,
+    ]) {
+      assert.deepEqual(
+        parseSamlMetadata(metadata(service)).singleSignOnServices,
+        [{ binding, location: 'https://idp.example/sso' }]
+      )
+    }
+  })
+
+  it('rejects missing, duplicate, malformed, and cross-element SAML service attributes', () => {
+    for (const service of [
+      '<SingleSignOnService Location="https://idp.example/sso"/>',
+      '<SingleSignOnService Binding="binding"/>',
+      '<SingleSignOnService Binding="" Location="https://idp.example/sso"/>',
+      '<SingleSignOnService Binding="binding" Location=""/>',
+      '<SingleSignOnService Binding="binding" Location="http://idp.example/sso"/>',
+      '<SingleSignOnService Binding="binding" Location="https://idp.example/sso" Location="https://other.example/sso"/>',
+      '<SingleSignOnService Binding="binding" Location=https://idp.example/sso/>',
+      `<SingleSignOnService Binding="binding' Location="https://idp.example/sso"/>`,
+      '<SingleSignOnService Binding="binding"/><SingleSignOnService Location="https://idp.example/sso"/>',
+      '<SingleSignOnService OtherBinding="binding" Location="https://idp.example/sso"/>',
+    ]) {
+      const metadata = `<EntityDescriptor entityID="https://idp.example/metadata">${service}<X509Certificate>${'A'.repeat(128)}</X509Certificate></EntityDescriptor>`
+      assert.throws(
+        () => parseSamlMetadata(metadata),
+        error =>
+          error instanceof SelfHostedOAuthError &&
+          error.code === 'invalid-saml-metadata'
+      )
+    }
+  })
+
   it('publishes only the PKCE authorization-code contract', () => {
     const { instance } = authority()
     assert.deepEqual(instance.metadata(), {
