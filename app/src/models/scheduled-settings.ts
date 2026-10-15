@@ -20,7 +20,7 @@ export const scheduledThemes: ReadonlyArray<ScheduledTheme> = [
 ]
 
 export const scheduledWeekdays = [0, 1, 2, 3, 4, 5, 6] as const
-export type ScheduledWeekday = typeof scheduledWeekdays[number]
+export type ScheduledWeekday = (typeof scheduledWeekdays)[number]
 
 export const DefaultScheduledStartTime = '09:00'
 export const DefaultScheduledEndTime = '17:00'
@@ -50,8 +50,7 @@ export interface IHomeAssistantSettingsRequest {
   readonly entityId: string
 }
 
-export interface ISetHomeAssistantTokenRequest
-  extends IHomeAssistantSettingsRequest {
+export interface ISetHomeAssistantTokenRequest extends IHomeAssistantSettingsRequest {
   /** The token is accepted only by the main process and is never persisted here. */
   readonly token: string | null
 }
@@ -477,6 +476,13 @@ export function serializeScheduledSettings(
   value: IScheduledSettingsConfig
 ): string {
   return JSON.stringify(normalizeScheduledSettings(value))
+}
+
+/** Check the storage limit without changing serialization used for comparisons. */
+export function isScheduledSettingsWithinSizeLimit(
+  value: IScheduledSettingsConfig
+): boolean {
+  return serializeScheduledSettings(value).length <= MaxScheduledSettingsLength
 }
 
 export function parseScheduledSettings(

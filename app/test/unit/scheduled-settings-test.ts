@@ -13,7 +13,10 @@ import {
   parseScheduledSettingsAPIResponse,
   parseScheduledSettings,
 } from '../../src/models/scheduled-settings'
-import { ScheduledSettingsRuntime } from '../../src/lib/scheduled-settings'
+import {
+  ScheduledSettingsRuntime,
+  ScheduledSettingsStorageKey,
+} from '../../src/lib/scheduled-settings'
 
 function rule(
   source: IScheduledSettingsRule['source'],
@@ -42,7 +45,12 @@ function config(
 
 describe('scheduled settings model', () => {
   it('normalizes impossible dates without discarding unrelated saved rules', () => {
-    for (const date of ['2026-13-01', '2026-00-01', '2026-01-32', '2026-02-30']) {
+    for (const date of [
+      '2026-13-01',
+      '2026-00-01',
+      '2026-01-32',
+      '2026-02-30',
+    ]) {
       const saved = config(
         rule({ kind: 'local', value: { theme: 'dark' } }, { id: 'valid' }),
         rule(
@@ -55,7 +63,10 @@ describe('scheduled settings model', () => {
       assert.equal(normalized.rules.length, 2)
       assert.equal(normalized.rules[1].startDate, null)
       assert.equal(normalized.rules[1].endDate, null)
-      assert.deepEqual(parseScheduledSettings(JSON.stringify(saved)), normalized)
+      assert.deepEqual(
+        parseScheduledSettings(JSON.stringify(saved)),
+        normalized
+      )
       assert.deepEqual(normalized.rules[0], saved.rules[0])
     }
   })
@@ -234,8 +245,7 @@ describe('scheduled settings model', () => {
       },
     })
     const identity = remoteIdentity?.appearance?.appIdentity as
-      | Record<string, unknown>
-      | undefined
+      Record<string, unknown> | undefined
     assert.equal(identity?.displayName, 'API title')
     assert.equal(identity?.customLogoPath, null)
     assert.equal(identity?.unexpectedPathLikeField, undefined)
@@ -275,6 +285,46 @@ describe('scheduled settings model', () => {
 })
 
 describe('scheduled settings runtime', () => {
+  it('rejects an oversized update without replacing storage or effective settings', async () => {
+    const previous = localStorage.getItem(ScheduledSettingsStorageKey)
+    try {
+      const runtime = new ScheduledSettingsRuntime({
+        now: () => new Date(2026, 7, 3, 10),
+        fetchAPI: async () => ({ theme: 'light' }),
+        fetchHomeAssistant: async () => 'off',
+      })
+      runtime.setConfig(
+        config(rule({ kind: 'local', value: { theme: 'dark' } }))
+      )
+      await runtime.refresh()
+      const saved = localStorage.getItem(ScheduledSettingsStorageKey)
+      const active = runtime.getConfig()
+      const oversized = config(
+        ...Array.from({ length: 32 }, (_, index) =>
+          rule(
+            {
+              kind: 'api',
+              endpoint: `https://example.com/${'a'.repeat(2000)}`,
+            },
+            { id: `rule-${index}` }
+          )
+        )
+      )
+
+      assert.throws(() => runtime.setConfig(oversized), /too large/i)
+      assert.equal(localStorage.getItem(ScheduledSettingsStorageKey), saved)
+      assert.equal(runtime.getConfig(), active)
+      await runtime.refresh()
+      assert.deepEqual(runtime.getEffectiveValue(), { theme: 'dark' })
+    } finally {
+      if (previous === null) {
+        localStorage.removeItem(ScheduledSettingsStorageKey)
+      } else {
+        localStorage.setItem(ScheduledSettingsStorageKey, previous)
+      }
+    }
+  })
+
   it('applies local and API values, gates Home Assistant values by on/off, and isolates failures', async () => {
     const errors: Array<string> = []
     const applied: Array<unknown> = []

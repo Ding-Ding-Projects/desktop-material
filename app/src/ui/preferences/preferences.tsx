@@ -1652,8 +1652,8 @@ export class Preferences extends React.Component<
   private onScheduledSettingsChanged = (
     scheduledSettings: IScheduledSettingsConfig
   ) => {
-    this.setState({ scheduledSettings })
     this.props.dispatcher.setScheduledSettings(scheduledSettings)
+    this.setState({ scheduledSettings })
   }
 
   private onHomeAssistantTokenChanged = (

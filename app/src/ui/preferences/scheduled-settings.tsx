@@ -37,6 +37,7 @@ import {
   IScheduledSettingsValue,
   ScheduledAppearanceKey,
   ScheduledSettingsSource,
+  isScheduledSettingsWithinSizeLimit,
   normalizeHomeAssistantBaseURL,
   normalizeHomeAssistantEntityId,
   normalizeScheduledSettings,
@@ -70,6 +71,7 @@ export interface IScheduledSettingsProps {
 }
 
 interface IScheduledSettingsState {
+  readonly saveError: 'too-large' | 'save-failed' | null
   readonly config: IScheduledSettingsConfig
   readonly tokenDrafts: Readonly<Record<string, string>>
   readonly connectionMessages: Readonly<Record<string, string>>
@@ -252,6 +254,7 @@ export class ScheduledSettings extends React.Component<
   public constructor(props: IScheduledSettingsProps) {
     super(props)
     this.state = {
+      saveError: null,
       config: props.scheduledSettings,
       tokenDrafts: {},
       connectionMessages: {},
@@ -321,14 +324,14 @@ export class ScheduledSettings extends React.Component<
       source === 'credential-vault'
         ? 'The credential is stored in the operating system credential vault. Its value is never shown here.'
         : stored
-        ? `A schedule is recorded on this computer. Current value: ${value.currentEnglish}. New-rule value: ${value.shippedEnglish}.`
-        : `No schedule is recorded on this computer. New-rule value: ${value.shippedEnglish}.`
+          ? `A schedule is recorded on this computer. Current value: ${value.currentEnglish}. New-rule value: ${value.shippedEnglish}.`
+          : `No schedule is recorded on this computer. New-rule value: ${value.shippedEnglish}.`
     const provenanceCantonese =
       source === 'credential-vault'
         ? '憑證儲存在作業系統憑證庫，呢度永遠唔會顯示佢嘅內容。'
         : stored
-        ? `呢部電腦記錄咗排程。目前值：${value.currentCantonese}。新規則值：${value.shippedCantonese}。`
-        : `呢部電腦未記錄排程。新規則值：${value.shippedCantonese}。`
+          ? `呢部電腦記錄咗排程。目前值：${value.currentCantonese}。新規則值：${value.shippedCantonese}。`
+          : `呢部電腦未記錄排程。新規則值：${value.shippedCantonese}。`
     return (
       <SettingExplanation
         settingId={value.instanceId}
@@ -348,8 +351,16 @@ export class ScheduledSettings extends React.Component<
     update: (config: IScheduledSettingsConfig) => IScheduledSettingsConfig
   ) => {
     const config = normalizeScheduledSettings(update(this.state.config))
-    this.setState({ config })
-    this.props.onScheduledSettingsChanged(config)
+    if (!isScheduledSettingsWithinSizeLimit(config)) {
+      this.setState({ saveError: 'too-large' })
+      return
+    }
+    try {
+      this.props.onScheduledSettingsChanged(config)
+      this.setState({ config, saveError: null })
+    } catch {
+      this.setState({ saveError: 'save-failed' })
+    }
   }
 
   private updateRule = (
@@ -676,8 +687,8 @@ export class ScheduledSettings extends React.Component<
                   option === 'english'
                     ? 'appearance.scheduledSettingsLanguageEnglish'
                     : option === 'cantonese'
-                    ? 'appearance.scheduledSettingsLanguageCantonese'
-                    : 'appearance.scheduledSettingsLanguageBilingual'
+                      ? 'appearance.scheduledSettingsLanguageCantonese'
+                      : 'appearance.scheduledSettingsLanguageBilingual'
                 ),
               'language',
               {
@@ -703,8 +714,8 @@ export class ScheduledSettings extends React.Component<
                 option === 'light'
                   ? 'appearance.scheduledSettingsThemeLight'
                   : option === 'dark'
-                  ? 'appearance.scheduledSettingsThemeDark'
-                  : 'appearance.scheduledSettingsThemeSystem'
+                    ? 'appearance.scheduledSettingsThemeDark'
+                    : 'appearance.scheduledSettingsThemeSystem'
               ),
             'theme',
             {
@@ -731,8 +742,8 @@ export class ScheduledSettings extends React.Component<
                 value.appearance?.highlightDesktopMaterialFeatures === undefined
                   ? ''
                   : value.appearance.highlightDesktopMaterialFeatures
-                  ? 'on'
-                  : 'off'
+                    ? 'on'
+                    : 'off'
               }
               ariaDescribedBy={
                 settingExplanationDescriptionIds(
@@ -769,14 +780,14 @@ export class ScheduledSettings extends React.Component<
                 value.appearance?.highlightDesktopMaterialFeatures === undefined
                   ? 'no change'
                   : value.appearance.highlightDesktopMaterialFeatures
-                  ? 'on'
-                  : 'off',
+                    ? 'on'
+                    : 'off',
               currentCantonese:
                 value.appearance?.highlightDesktopMaterialFeatures === undefined
                   ? '不變'
                   : value.appearance.highlightDesktopMaterialFeatures
-                  ? '開'
-                  : '關',
+                    ? '開'
+                    : '關',
               shippedEnglish: 'no change',
               shippedCantonese: '不變',
             })}
@@ -787,8 +798,7 @@ export class ScheduledSettings extends React.Component<
                 {this.renderValueSelect(
                   this.text(option.labelKey),
                   value.appearance?.[option.key as ScheduledAppearanceKey] as
-                    | string
-                    | undefined,
+                    string | undefined,
                   option.values,
                   next => this.updateAppearanceValue(rule, option.key, next),
                   value => value,
@@ -829,15 +839,15 @@ export class ScheduledSettings extends React.Component<
       source.kind === 'api'
         ? normalizeScheduledSettingsAPIEndpoint(source.endpoint) === null
         : source.kind === 'home-assistant'
-        ? normalizeHomeAssistantBaseURL(source.baseUrl) === null ||
-          normalizeHomeAssistantEntityId(source.entityId) === null
-        : false
+          ? normalizeHomeAssistantBaseURL(source.baseUrl) === null ||
+            normalizeHomeAssistantEntityId(source.entityId) === null
+          : false
     const sourceLabel = this.text(
       source.kind === 'api'
         ? 'appearance.scheduledSettingsAPI'
         : source.kind === 'home-assistant'
-        ? 'appearance.scheduledSettingsHomeAssistant'
-        : 'appearance.scheduledSettingsLocal'
+          ? 'appearance.scheduledSettingsHomeAssistant'
+          : 'appearance.scheduledSettingsLocal'
     )
     return (
       <>
@@ -1442,6 +1452,22 @@ export class ScheduledSettings extends React.Component<
             {translate('appearance.scheduledSettingsAdd', languageMode)}
           </Button>
         </div>
+        {this.state.saveError !== null && (
+          <p
+            role="status"
+            className="appearance-customization-caption scheduled-settings-source-error"
+          >
+            {this.state.saveError === 'too-large'
+              ? this.localized(
+                  'These schedules are too large to save. Shorten a value or remove a rule. Your previous settings are unchanged.',
+                  '排程內容太大，無法儲存。請縮短內容或移除規則。之前嘅設定維持不變。'
+                )
+              : this.localized(
+                  'The schedules could not be saved. Your previous settings are unchanged. Try again.',
+                  '無法儲存排程。之前嘅設定維持不變，請再試一次。'
+                )}
+          </p>
+        )}
         {this.state.config.rules.length === 0 ? (
           <p className="scheduled-settings-empty">
             {translate('appearance.scheduledSettingsEmpty', languageMode)}

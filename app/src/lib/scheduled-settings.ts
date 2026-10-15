@@ -5,6 +5,7 @@ import {
   IScheduledSettingsConfig,
   IScheduledSettingsRule,
   IScheduledSettingsValue,
+  MaxScheduledSettingsLength,
   isScheduledSettingsRuleActive,
   mergeScheduledSettingsValues,
   normalizeScheduledSettings,
@@ -58,13 +59,14 @@ export function setScheduledSettings(
   value: IScheduledSettingsConfig
 ): IScheduledSettingsConfig {
   const normalized = normalizeScheduledSettings(value)
+  const serialized = serializeScheduledSettings(normalized)
+  if (serialized.length > MaxScheduledSettingsLength) {
+    throw new Error('Scheduled settings are too large to save.')
+  }
   const storage = getStorage()
   if (storage !== null) {
     try {
-      storage.setItem(
-        ScheduledSettingsStorageKey,
-        serializeScheduledSettings(normalized)
-      )
+      storage.setItem(ScheduledSettingsStorageKey, serialized)
     } catch {
       // A read-only storage profile must not prevent the in-memory setting from applying.
     }
