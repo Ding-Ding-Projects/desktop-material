@@ -1,4 +1,8 @@
 export type TranslationKey =
+  | 'cloneRecovery.title'
+  | 'cloneRecovery.retry'
+  | 'cloneRecovery.beforeClone'
+  | 'cloneRecovery.startup'
   | 'about.supportTickets'
   | 'supportTickets.title'
   | 'supportTickets.subtitle'
@@ -5784,6 +5788,12 @@ export type TranslationKey =
 
 /** Complete base catalog. Every missing locale entry falls back to this. */
 export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
+  'cloneRecovery.title': 'Clone recovery needs review',
+  'cloneRecovery.retry': 'Check recovery and retry',
+  'cloneRecovery.beforeClone':
+    'The requested clone of {requestedName} was not started. Recovery for {retainedName} at {retainedPath} was retained. Check recovery and retry will inspect it again before starting the requested clone. No retained data will be overwritten.',
+  'cloneRecovery.startup':
+    'Recovery for {retainedName} at {retainedPath} was retained. Check recovery and retry will inspect it again before retrying this clone. No retained data will be overwritten.',
   'about.supportTickets': 'Support Tickets',
   'supportTickets.title': 'Support Tickets',
   'supportTickets.subtitle':
@@ -8497,8 +8507,10 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'palette.copilotConfigureModels': 'Configure Copilot models',
   'copilot.quotaLead.plain': 'Account usage details',
   'copilot.quotaLead.light': 'Here is the account usage, behaving itself.',
-  'copilot.quotaLead.playful': 'The account usage ledger has arrived, wearing a tiny hat.',
-  'copilot.quotaLead.maximum': 'Behold the account usage ledger, bravely counting every request.',
+  'copilot.quotaLead.playful':
+    'The account usage ledger has arrived, wearing a tiny hat.',
+  'copilot.quotaLead.maximum':
+    'Behold the account usage ledger, bravely counting every request.',
   'settings.gitTab': 'Git',
   'settings.appearanceTab': 'Appearance',
   'settings.notificationsTab': 'Notifications',
@@ -13056,6 +13068,12 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
 export const cantoneseTranslations: Readonly<
   Partial<Record<TranslationKey, string>>
 > = {
+  'cloneRecovery.title': '複製復原需要檢查',
+  'cloneRecovery.retry': '檢查復原並重試',
+  'cloneRecovery.beforeClone':
+    '未開始你要求嘅 {requestedName} 複製。{retainedName} 喺 {retainedPath} 嘅復原資料已保留。「檢查復原並重試」會先重新檢查，再開始你要求嘅複製，唔會覆寫保留資料。',
+  'cloneRecovery.startup':
+    '{retainedName} 喺 {retainedPath} 嘅復原資料已保留。「檢查復原並重試」會先重新檢查，再重試呢次複製，唔會覆寫保留資料。',
   'about.supportTickets': 'Support Tickets 支援櫃檯',
   'supportTickets.title': 'Support Tickets 支援櫃檯',
   'supportTickets.subtitle': '呢個係本機櫃檯，專門幫你搞返自己落嘅鎖。',
@@ -15548,8 +15566,7 @@ export const cantoneseTranslations: Readonly<
   'copilot.quotaStale': '而家顯示緊過期嘅 Copilot 用量資料。',
   'copilot.quotaError': 'Copilot 用量未能載入。',
   'copilot.quotaEmpty': '暫時未有 Copilot 用量資料。',
-  'copilot.quotaUsedOfAvailable':
-    '已用 {used}，總共 {available} · {reset}',
+  'copilot.quotaUsedOfAvailable': '已用 {used}，總共 {available} · {reset}',
   'copilot.quotaResetUnavailable': '未有重設日期資料',
   'copilot.quotaUpdated': '更新於 {timestamp}',
   'copilot.quotaPercentUsed': '已用 {percent}%',
@@ -15559,8 +15576,7 @@ export const cantoneseTranslations: Readonly<
   'copilot.accountOverview': 'Copilot 帳戶總覽',
   'copilot.quotaDetails': 'Copilot 配額詳情',
   'copilot.configureModelsAction': '設定 Copilot 模型',
-  'settingsSearch.entry.copilotAccountOverview.title':
-    'Copilot 帳戶總覽',
+  'settingsSearch.entry.copilotAccountOverview.title': 'Copilot 帳戶總覽',
   'settingsSearch.entry.copilotAccountOverview.desc':
     '睇返已登入帳戶同各自嘅 Copilot 設定。',
   'settingsSearch.entry.copilotQuota.title': 'Copilot 配額',

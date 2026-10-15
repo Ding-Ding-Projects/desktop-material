@@ -19,6 +19,7 @@ import { getFileFromExceedsError } from '../lib/helpers/regex'
 import { CopilotError, getCopilotErrorDisplayInfo } from '../lib/copilot-error'
 import { Terminal } from './terminal'
 import { coerceToString } from '../lib/git/coerce-to-string'
+import { t } from '../lib/i18n'
 import {
   getAppErrorPresentation,
   getUnderlyingAppError,
@@ -168,6 +169,23 @@ export class AppError extends React.Component<IAppErrorProps, IAppErrorState> {
     const { retryAction } = error.metadata
 
     if (retryAction && retryAction.type === RetryActionType.Clone) {
+      const retained = retryAction.retainedDirectRecovery
+      if (retained !== undefined) {
+        return (
+          <p data-personal-vocabulary-preserve={true}>
+            {t(
+              retained.source === 'startup'
+                ? 'cloneRecovery.startup'
+                : 'cloneRecovery.beforeClone',
+              {
+                requestedName: retryAction.name,
+                retainedName: retained.name,
+                retainedPath: retained.path,
+              }
+            )}
+          </p>
+        )
+      }
       return (
         <p>
           Would you like to retry cloning <Ref>{retryAction.name}</Ref>?
@@ -214,7 +232,7 @@ export class AppError extends React.Component<IAppErrorProps, IAppErrorState> {
 
   private renderFooter(error: Error) {
     if (isCloneError(error)) {
-      return this.renderRetryCloneFooter()
+      return this.renderRetryCloneFooter(error)
     }
 
     const underlyingError = getUnderlyingError(error)
@@ -229,11 +247,21 @@ export class AppError extends React.Component<IAppErrorProps, IAppErrorState> {
     return this.renderDefaultFooter()
   }
 
-  private renderRetryCloneFooter() {
+  private renderRetryCloneFooter(error: Error) {
+    const recovery =
+      isErrorWithMetaData(error) &&
+      error.metadata.retryAction?.type === RetryActionType.Clone &&
+      error.metadata.retryAction.retainedDirectRecovery !== undefined
     return (
       <DialogFooter>
         <OkCancelButtonGroup
-          okButtonText={__DARWIN__ ? 'Retry Clone' : 'Retry clone'}
+          okButtonText={
+            recovery
+              ? t('cloneRecovery.retry')
+              : __DARWIN__
+              ? 'Retry Clone'
+              : 'Retry clone'
+          }
           onOkButtonClick={this.onRetryAction}
           onCancelButtonClick={this.onCloseButtonClick}
         />

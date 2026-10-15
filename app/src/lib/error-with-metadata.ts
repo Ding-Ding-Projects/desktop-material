@@ -1,6 +1,10 @@
 import { Repository } from '../models/repository'
 import { CloningRepository } from '../models/cloning-repository'
-import { RetryAction, RetryActionType } from '../models/retry-actions'
+import {
+  IRetainedDirectCloneRecovery,
+  RetryAction,
+  RetryActionType,
+} from '../models/retry-actions'
 import { GitErrorContext } from './git-error-context'
 import { Branch } from '../models/branch'
 import { WorkingDirectoryFileChange } from '../models/status'
@@ -17,6 +21,17 @@ export interface IErrorMetadata {
 
   /** Additional context that specific actions can provide fields for */
   readonly gitContext?: GitErrorContext
+}
+
+/** Recovery retained before a new clone acquired its own journal. */
+export class RetainedDirectCloneRecoveryError extends Error {
+  public constructor(
+    message: string,
+    public readonly retainedDirectRecovery?: IRetainedDirectCloneRecovery
+  ) {
+    super(message)
+    this.name = 'RetainedDirectCloneRecoveryError'
+  }
 }
 
 /** An error which contains additional metadata. */

@@ -27,6 +27,11 @@ import {
 import { FileBatchCloneJournal } from '../../src/lib/stores/batch-clone-journal'
 import { setupEmptyRepository } from '../helpers/repositories'
 import { makeCommit } from '../helpers/repository-scaffolding'
+import {
+  ErrorWithMetadata,
+  RetainedDirectCloneRecoveryError,
+} from '../../src/lib/error-with-metadata'
+import { RetryActionType } from '../../src/models/retry-actions'
 
 const alwaysValidRepository = async () => true
 
@@ -123,19 +128,66 @@ class CleanupBlockedManager implements IBatchCloneStagingManager {
 }
 
 describe('direct clone staging', () => {
-  it('retains an unowned staging container for review', async () => {
+  it('initializes a canonical empty markerless staging container', async () => {
     const root = await mkdtemp(Path.join(tmpdir(), 'desktop-material-unowned-'))
     const item = directItem(root)
     const paths = getBatchCloneStagingPaths(item)
     try {
       await mkdir(paths.containerPath)
       const result = await new FileBatchCloneStagingManager().prepare(item)
-      assert.equal(result.kind, 'review')
+      assert.equal(result.kind, 'clone')
       assert.equal(existsSync(paths.containerPath), true)
     } finally {
       await rm(root, { recursive: true, force: true })
     }
   })
+
+  for (const markerOnly of [false, true]) {
+    it(`clears a pre-staging journal with an ${
+      markerOnly ? 'owned marker-only' : 'empty markerless'
+    } container without touching the destination`, async () => {
+      const root = await mkdtemp(Path.join(tmpdir(), 'dm-empty-container-'))
+      const item = directItem(root)
+      const paths = getBatchCloneStagingPaths(item)
+      const manager = new FileBatchCloneStagingManager()
+      try {
+        await mkdir(item.path)
+        await writeFile(Path.join(item.path, 'sentinel'), 'keep')
+        await mkdir(paths.containerPath)
+        if (markerOnly) {
+          await writeFile(
+            paths.containerMarkerPath,
+            JSON.stringify({
+              version: 1,
+              kind: 'desktop-material-batch-clone-staging-container',
+            })
+          )
+        }
+        const before = markerOnly
+          ? await readFile(paths.containerMarkerPath, 'utf8')
+          : null
+        assert.equal(await manager.canClearStaleDirectCloneJournal(item), true)
+        if (markerOnly) {
+          assert.equal(
+            await readFile(paths.containerMarkerPath, 'utf8'),
+            before
+          )
+        }
+        const journal = journalFor(root)
+        await journal.save(journalSnapshot(item))
+        const store = new CloningRepositoriesStore(async () => [], manager)
+        await initializeDirectRecovery(store, root)
+        assert.equal(await journal.load(), null)
+        assert.equal(
+          await readFile(Path.join(item.path, 'sentinel'), 'utf8'),
+          'keep'
+        )
+        assert.equal(existsSync(paths.containerPath), true)
+      } finally {
+        await rm(root, { recursive: true, force: true })
+      }
+    })
+  }
 
   it('rejects a sensitive final path before creating staging state', async () => {
     const root = await mkdtemp(
@@ -148,6 +200,7 @@ describe('direct clone staging', () => {
     )
     try {
       let prepares = 0
+      let discards = 0
       const manager: IBatchCloneStagingManager = {
         prepare: async () => {
           prepares += 1
@@ -156,7 +209,10 @@ describe('direct clone staging', () => {
         reinspect: async () => true,
         completeAndPromote: async () => ({ kind: 'done', accountKey: null }),
         cleanupPromoted: async () => true,
-        discard: async () => true,
+        discard: async () => {
+          discards += 1
+          return true
+        },
       }
       const store = new CloningRepositoriesStore(async () => [], manager)
       await initializeDirectRecovery(store, root)
@@ -172,6 +228,7 @@ describe('direct clone staging', () => {
       assert(reported instanceof Error)
       assert.match(reported.message, /sensitive system location/i)
       assert.equal(prepares, 0)
+      assert.equal(discards, 0)
       assert.equal(
         existsSync(Path.join(root, '.desktop-material-clone-staging-v1')),
         false
@@ -660,6 +717,16 @@ describe('direct clone staging', () => {
         'keep'
       )
       assert.match(errors[0]?.message ?? '', /staging container.*not owned/i)
+      assert(errors[0] instanceof ErrorWithMetadata)
+      assert(
+        errors[0].underlyingError instanceof RetainedDirectCloneRecoveryError
+      )
+      const retry = errors[0].metadata.retryAction
+      assert.equal(retry?.type, RetryActionType.Clone)
+      if (retry?.type === RetryActionType.Clone) {
+        assert.equal(retry.retainedDirectRecovery?.source, 'startup')
+        assert.equal(retry.retainedDirectRecovery?.path, item.path)
+      }
     } finally {
       await rm(root, { recursive: true, force: true })
     }
@@ -860,6 +927,20 @@ describe('direct clone staging', () => {
       assert.equal(secondSuccess, false)
       assert(reported instanceof Error)
       assert.match(reported.message, /previous direct clone.*cleanup|pending/i)
+      assert(reported instanceof ErrorWithMetadata)
+      assert(
+        reported.underlyingError instanceof RetainedDirectCloneRecoveryError
+      )
+      const retry = reported.metadata.retryAction
+      assert.equal(retry?.type, RetryActionType.Clone)
+      if (retry?.type === RetryActionType.Clone) {
+        assert.equal(retry.path, destinationB)
+        assert.equal(retry.retainedDirectRecovery?.path, destinationA)
+        assert.equal(
+          retry.retainedDirectRecovery?.name,
+          Path.basename(destinationA)
+        )
+      }
       const retainedAfterB = await journalFor(root).load()
       assert.equal(retainedAfterB?.items[0]?.path, destinationA)
       assert.equal(existsSync(destinationB), false)

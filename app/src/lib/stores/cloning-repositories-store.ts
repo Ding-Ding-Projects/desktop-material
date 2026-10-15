@@ -12,7 +12,10 @@ import {
   cloneWithAccountFallback,
   isCloneAbortError,
 } from '../automation/clone-account-fallback'
-import { ErrorWithMetadata } from '../error-with-metadata'
+import {
+  ErrorWithMetadata,
+  RetainedDirectCloneRecoveryError,
+} from '../error-with-metadata'
 import { CloneProgressEtaEstimator } from '../progress/clone-eta'
 import { BaseStore } from './base-store'
 import { isClonePathSensitive } from '../path-validation'
@@ -48,6 +51,14 @@ export class CloningRepositoriesStore extends BaseStore {
   public async initializeDirectCloneRecovery(
     userDataPath?: string
   ): Promise<void> {
+    return this.withDirectCloneMutex(() =>
+      this.initializeDirectCloneRecoveryInternal(userDataPath)
+    )
+  }
+
+  private async initializeDirectCloneRecoveryInternal(
+    userDataPath?: string
+  ): Promise<void> {
     const recoveryPath = userDataPath ?? (await getPath('userData'))
     if (this.directCloneJournal === null) {
       this.directCloneJournal = new FileBatchCloneJournal(
@@ -75,10 +86,9 @@ export class CloningRepositoriesStore extends BaseStore {
         await this.directCloneJournal.clear()
         return
       }
-      this.emitError(
-        new Error(
-          'A promoted direct clone was verified, but its recovery cleanup is still pending. The recovery record was retained.'
-        )
+      this.emitRetainedDirectRecovery(
+        item,
+        'A promoted direct clone was verified, but its recovery cleanup is still pending. The recovery record was retained.'
       )
       return
     }
@@ -106,12 +116,37 @@ export class CloningRepositoriesStore extends BaseStore {
       )
       return
     }
-    this.emitError(
+    this.emitRetainedDirectRecovery(
+      item,
       prepared.kind === 'review'
-        ? prepared.error
-        : new Error(
-            'An interrupted direct clone needs review. Its recovery data was left unchanged.'
-          )
+        ? prepared.error.message
+        : 'An interrupted direct clone needs review. Its recovery data was left unchanged.'
+    )
+  }
+
+  private emitRetainedDirectRecovery(
+    item: IBatchCloneItem,
+    message: string
+  ): void {
+    const retainedDirectRecovery = {
+      name: item.name,
+      path: item.path,
+      source: 'startup' as const,
+    }
+    this.emitError(
+      new ErrorWithMetadata(
+        new RetainedDirectCloneRecoveryError(message, retainedDirectRecovery),
+        {
+          retryAction: {
+            type: RetryActionType.Clone,
+            name: item.name,
+            url: item.url,
+            path: item.path,
+            options: {},
+            retainedDirectRecovery,
+          },
+        }
+      )
     )
   }
 
@@ -144,9 +179,9 @@ export class CloningRepositoriesStore extends BaseStore {
     return directStaging ? this.withDirectCloneMutex(operation) : operation()
   }
 
-  private async withDirectCloneMutex(
-    operation: () => Promise<boolean>
-  ): Promise<boolean> {
+  private async withDirectCloneMutex<T>(
+    operation: () => Promise<T>
+  ): Promise<T> {
     const previous = this.directCloneMutex
     let release: () => void = () => undefined
     this.directCloneMutex = new Promise<void>(resolve => {
@@ -316,7 +351,7 @@ export class CloningRepositoriesStore extends BaseStore {
     } catch (e) {
       success = false
 
-      if (stagedItem !== null) {
+      if (stagedItem !== null && journalOwned) {
         const discarded = await this.stagingManager!.discard(stagedItem)
         if (!discarded) {
           log.error(
@@ -340,6 +375,9 @@ export class CloningRepositoriesStore extends BaseStore {
         url,
         path,
         options,
+        ...(e instanceof RetainedDirectCloneRecoveryError
+          ? { retainedDirectRecovery: e.retainedDirectRecovery }
+          : {}),
       }
       e = new ErrorWithMetadata(e, { retryAction, repository })
 
@@ -365,7 +403,7 @@ export class CloningRepositoriesStore extends BaseStore {
       return
     }
     if (snapshot.items.length !== 1 || this.stagingManager === null) {
-      throw new Error(
+      throw new RetainedDirectCloneRecoveryError(
         'A previous direct clone recovery is still pending. Review it before starting another direct clone.'
       )
     }
@@ -377,8 +415,9 @@ export class CloningRepositoriesStore extends BaseStore {
         await journal.clear()
         return
       }
-      throw new Error(
-        'A previous direct clone was verified, but its recovery cleanup is still pending. Choose another action after the recovery notification is resolved.'
+      throw new RetainedDirectCloneRecoveryError(
+        'A previous direct clone was verified, but its recovery cleanup is still pending. The requested clone was not started.',
+        { name: item.name, path: item.path }
       )
     }
     if (
@@ -395,10 +434,11 @@ export class CloningRepositoriesStore extends BaseStore {
       await journal.clear()
       return
     }
-    throw new Error(
+    throw new RetainedDirectCloneRecoveryError(
       prepared.kind === 'review'
         ? `A previous direct clone recovery needs review before another clone can start: ${prepared.error.message}`
-        : 'A previous direct clone recovery is still pending. Its recovery data was left unchanged.'
+        : 'A previous direct clone recovery is still pending. Its recovery data was left unchanged.',
+      { name: item.name, path: item.path }
     )
   }
 

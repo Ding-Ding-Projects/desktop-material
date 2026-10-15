@@ -1,10 +1,14 @@
 import { GitError as DugiteError } from 'dugite'
 
 import { CopilotError, getCopilotErrorDisplayInfo } from './copilot-error'
-import { ErrorWithMetadata } from './error-with-metadata'
+import {
+  ErrorWithMetadata,
+  RetainedDirectCloneRecoveryError,
+} from './error-with-metadata'
 import { GitError, isAuthFailureError } from './git/core'
 import { RetryActionType } from '../models/retry-actions'
 import { ErrorPresentationStyle } from '../models/error-presentation'
+import { t } from './i18n'
 
 export interface IAppErrorPresentation {
   readonly title: string
@@ -32,6 +36,10 @@ function getDugiteError(error: Error): DugiteError | null | undefined {
 
 function getTitle(error: Error): string {
   const underlying = getUnderlyingAppError(error)
+
+  if (underlying instanceof RetainedDirectCloneRecoveryError) {
+    return t('cloneRecovery.title')
+  }
 
   if (underlying instanceof CopilotError) {
     const displayInfo = getCopilotErrorDisplayInfo(underlying)

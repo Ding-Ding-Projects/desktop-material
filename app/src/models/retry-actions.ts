@@ -24,6 +24,12 @@ export enum RetryActionType {
 }
 
 /** The retriable actions and their associated data. */
+export interface IRetainedDirectCloneRecovery {
+  readonly name: string
+  readonly path: string
+  readonly source?: 'startup'
+}
+
 export type RetryAction =
   | { type: RetryActionType.Push; repository: Repository }
   | { type: RetryActionType.Pull; repository: Repository }
@@ -34,6 +40,8 @@ export type RetryAction =
       url: string
       path: string
       options: CloneOptions
+      /** Recovery belongs to an earlier clone, not necessarily this request. */
+      retainedDirectRecovery?: IRetainedDirectCloneRecovery
     }
   | {
       type: RetryActionType.Checkout

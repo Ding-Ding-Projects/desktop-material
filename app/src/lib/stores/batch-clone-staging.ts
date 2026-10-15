@@ -179,7 +179,7 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
 
       const recoveryRoot = await lstatOrNull(paths.recoveryRootPath)
       if (recoveryRoot === null) {
-        return await this.createOwnedRoot(item, paths)
+        return await this.createOwnedRoot(item, paths, container)
       }
       if (!isOrdinaryDirectory(recoveryRoot)) {
         return review(
@@ -220,12 +220,13 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
           'The interrupted staged clone contains unexpected data and will not be deleted.'
         )
       }
-      if (!(await this.ensureContainer(paths))) {
+      const restartedContainer = await this.ensureContainer(paths)
+      if (!restartedContainer) {
         return review(
           'The clone staging container changed while the interrupted clone was being restarted.'
         )
       }
-      return await this.createOwnedRoot(item, paths)
+      return await this.createOwnedRoot(item, paths, restartedContainer)
     } catch (error) {
       log.error('Unable to prepare a staged batch clone', error)
       return review(
@@ -258,10 +259,10 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
         return false
       }
 
-      // A container or recovery root means a clone may have progressed past
-      // the journal write. Retain all such states for explicit review.
+      // Empty containers, including the crash interval before their ownership
+      // marker is written, contain no clone data. This proof is read-only.
       if (
-        (await lstatOrNull(paths.containerPath)) !== null ||
+        !(await isEmptyRecoveryContainer(paths)) ||
         (await lstatOrNull(paths.recoveryRootPath)) !== null
       ) {
         return false
@@ -282,7 +283,14 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
       return (
         (await lstatOrNull(promotionMarkerPath(item.path))) === null &&
         (await lstatOrNull(paths.recoveryRootPath)) === null &&
-        (await lstatOrNull(paths.containerPath)) === null
+        (await isEmptyRecoveryContainer(paths)) &&
+        (await isCanonicalOrdinaryDirectory(paths.basePath)) &&
+        ((await lstatOrNull(item.path)) === null ||
+          (await isCanonicalOrdinaryDirectory(item.path))) &&
+        ((await lstatOrNull(gitDirectoryPath)) === null ||
+          (await isCanonicalOrdinaryDirectory(gitDirectoryPath))) &&
+        (await lstatOrNull(promotionMarkerPath(item.path))) === null &&
+        (await lstatOrNull(paths.recoveryRootPath)) === null
       )
     } catch (error) {
       log.error('Unable to prove a direct clone journal is stale', error)
@@ -487,13 +495,11 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
 
   private async ensureContainer(
     paths: IBatchCloneStagingPaths
-  ): Promise<boolean> {
+  ): Promise<Stats | null> {
     const existing = await lstatOrNull(paths.containerPath)
-    let created = false
     if (existing === null) {
       try {
         await mkdir(paths.containerPath, { mode: 0o700 })
-        created = true
       } catch (error) {
         if (errorCode(error) !== 'EEXIST') {
           throw error
@@ -501,29 +507,50 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
       }
     }
     if (!(await isCanonicalOrdinaryDirectory(paths.containerPath))) {
-      return false
+      return null
     }
-    if (created) {
+    const identity = await lstat(paths.containerPath)
+    const marker = await lstatOrNull(paths.containerMarkerPath)
+    if (marker === null) {
+      // Initialize only an ordinary, canonical, still-empty directory. Never
+      // adopt a markerless directory containing another recovery or user data.
+      if (
+        (await readdir(paths.containerPath)).length !== 0 ||
+        !(await sameCanonicalDirectory(paths.containerPath, identity)) ||
+        (await readdir(paths.containerPath)).length !== 0
+      ) {
+        return null
+      }
       try {
         await writeMarkerExclusive(paths.containerMarkerPath, {
           version: BatchCloneStagingVersion,
           kind: 'desktop-material-batch-clone-staging-container',
         })
       } catch (error) {
-        log.error(
-          'Unable to write clone staging container ownership marker',
-          error
-        )
-        return false
+        if (errorCode(error) !== 'EEXIST') {
+          throw error
+        }
       }
     }
-    return await isOwnedContainerMarker(paths.containerMarkerPath)
+    return (await sameCanonicalDirectory(paths.containerPath, identity)) &&
+      (await isUsableOwnedContainer(paths))
+      ? identity
+      : null
   }
 
   private async createOwnedRoot(
     item: IBatchCloneItem,
-    paths: IBatchCloneStagingPaths
+    paths: IBatchCloneStagingPaths,
+    containerIdentity: Stats
   ): Promise<BatchCloneStagingPreparation> {
+    if (
+      !(await isUsableOwnedContainer(paths)) ||
+      !(await sameCanonicalDirectory(paths.containerPath, containerIdentity))
+    ) {
+      return review(
+        'The clone staging container changed before recovery could start.'
+      )
+    }
     if ((await lstatOrNull(item.path)) !== null) {
       return review(
         'The final clone destination became occupied and will not be changed.'
@@ -536,6 +563,15 @@ export class FileBatchCloneStagingManager implements IBatchCloneStagingManager {
         errorCode(error) === 'EEXIST'
           ? 'The clone recovery identity is already in use and will not be trusted.'
           : 'The clone recovery root could not be created safely.'
+      )
+    }
+
+    if (
+      !(await sameCanonicalDirectory(paths.containerPath, containerIdentity)) ||
+      !(await isCanonicalOrdinaryDirectory(paths.recoveryRootPath))
+    ) {
+      return review(
+        'The staging directory identity changed while recovery was being created.'
       )
     }
 
@@ -1094,6 +1130,75 @@ async function isOwnedContainerMarker(path: string): Promise<boolean> {
     Object.keys(value).sort().join(',') === 'kind,version' &&
     value.version === BatchCloneStagingVersion &&
     value.kind === 'desktop-material-batch-clone-staging-container'
+  )
+}
+
+async function sameCanonicalDirectory(
+  path: string,
+  expected: Stats
+): Promise<boolean> {
+  const actual = await lstatOrNull(path)
+  return (
+    actual !== null &&
+    actual.dev === expected.dev &&
+    actual.ino === expected.ino &&
+    (await isCanonicalOrdinaryDirectory(path))
+  )
+}
+
+/** Accept only absence, an empty directory, or a valid marker by itself. */
+async function isEmptyRecoveryContainer(
+  paths: IBatchCloneStagingPaths
+): Promise<boolean> {
+  const identity = await lstatOrNull(paths.containerPath)
+  if (identity === null) {
+    return (await lstatOrNull(paths.containerPath)) === null
+  }
+  if (!(await sameCanonicalDirectory(paths.containerPath, identity))) {
+    return false
+  }
+  const inspectEntries = async () => {
+    const names = await readdir(paths.containerPath)
+    return (
+      names.length === 0 ||
+      (names.length === 1 &&
+        names[0] === BatchCloneStagingContainerMarkerName &&
+        (await isOwnedContainerMarker(paths.containerMarkerPath)))
+    )
+  }
+  return (
+    (await inspectEntries()) &&
+    (await sameCanonicalDirectory(paths.containerPath, identity)) &&
+    (await inspectEntries())
+  )
+}
+
+/** Other queue items may share a marked container, never unknown entries. */
+async function isUsableOwnedContainer(
+  paths: IBatchCloneStagingPaths
+): Promise<boolean> {
+  const identity = await lstatOrNull(paths.containerPath)
+  if (
+    identity === null ||
+    !(await sameCanonicalDirectory(paths.containerPath, identity)) ||
+    !(await isOwnedContainerMarker(paths.containerMarkerPath))
+  ) {
+    return false
+  }
+  for (const name of await readdir(paths.containerPath)) {
+    if (
+      name !== BatchCloneStagingContainerMarkerName &&
+      (!isBatchCloneRecoveryId(name) ||
+        !(await isCanonicalOrdinaryDirectory(
+          Path.join(paths.containerPath, name)
+        )))
+    ) {
+      return false
+    }
+  }
+  return (
+    (await sameCanonicalDirectory(paths.containerPath, identity)) &&
+    (await isOwnedContainerMarker(paths.containerMarkerPath))
   )
 }
 
