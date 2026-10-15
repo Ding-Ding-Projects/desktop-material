@@ -56,6 +56,14 @@ function runtime(action, config) {
   if (!button || button.disabled || !buttons.includes(button)) return false
   if (action === 'retry') { globalThis.__directRecoveryPreviousError = error; button.click(); return true }
   if (globalThis.__directRecoveryPreviousError === error) return false
+  const geometryKey = JSON.stringify([dialog.getBoundingClientRect().toJSON(), button.getBoundingClientRect().toJSON()])
+  const previous = globalThis.__directRecoveryStableGeometry
+  const samples = previous?.error === error && previous?.key === geometryKey ? previous.samples + 1 : 1
+  globalThis.__directRecoveryStableGeometry = { error, key: geometryKey, samples }
+  const moving = document.getAnimations().some(animation =>
+    animation.effect?.getTiming().iterations !== Infinity &&
+    (animation.pending || animation.playState === 'running'))
+  if (samples < 3 || moving || document.fonts.status !== 'loaded') return false
   const visibleRect = element => {
     const r = element.getBoundingClientRect()
     const style = getComputedStyle(element)
@@ -79,16 +87,16 @@ function runtime(action, config) {
   if (/\b(?:gh[pousr]_[A-Za-z0-9]+|github_pat_[A-Za-z0-9_]+)|Bearer\s+\S+|[A-Z]:[\\/]Users[\\/]|AppData[\\/]|\/home\/|\/Users\/|https?:\/\/[^\s/]+@/i.test(redacted)) throw new Error('Recovery capture privacy check failed.')
   if (!document.body.classList.contains('theme-' + config.theme) ||
       document.body.getAttribute('data-dm-language-mode') !== config.languageMode) throw new Error('Recovery presentation tuple mismatch.')
-  if (!dialog.textContent.includes(pathName(config.retainedPath)) || !dialog.textContent.includes(pathName(config.requestedPath))) throw new Error('Recovery context names are missing.')
-  return { semantic: true, privacy: 'private-synthetic-paths-only', published: false, dialogRect, actionRect, devicePixelRatio,
+  if (!dialog.textContent.includes(pathName(config.retainedPath)) || !dialog.textContent.includes(pathName(config.sourcePath))) throw new Error('Recovery context names are missing.')
+  return { semantic: true, settledSamples: samples, cssViewport: { width: innerWidth, height: innerHeight }, privacy: 'private-synthetic-paths-only', published: false, dialogRect, actionRect, devicePixelRatio,
     nativeDisplayScaleVerified: false, actionText: button.textContent.trim(), title: dialog.querySelector('h1,h2')?.textContent?.trim() ?? null }
 
-  function pathName(value) { return value.split(/[\\/]/).pop() }
+  function pathName(value) { return value.split(/[\\/]/).pop().replace(/\.git$/, '') }
 }
 
 function expression(action, fixture, tuple) {
   return `(${runtime.toString()})(${JSON.stringify(action)},${JSON.stringify({
-    sourcePath: fixture.sourcePath, requestedPath: fixture.requestedPath, retainedPath: fixture.retainedPath,
+    sourcePath: fixture.sourceUrl ?? fixture.sourcePath, requestedPath: fixture.requestedPath, retainedPath: fixture.retainedPath,
     theme: tuple.theme, languageMode: tuple.languageMode,
   })})`
 }
