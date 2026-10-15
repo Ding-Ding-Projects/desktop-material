@@ -187,6 +187,9 @@ function normalizeIsoDate(value: unknown): string | null {
     return null
   }
   const parsed = new Date(`${value}T00:00:00.000Z`)
+  if (Number.isNaN(parsed.getTime())) {
+    return null
+  }
   return parsed.toISOString().slice(0, 10) === value ? value : null
 }
 

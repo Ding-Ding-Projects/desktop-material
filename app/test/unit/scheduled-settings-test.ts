@@ -11,6 +11,7 @@ import {
   normalizeScheduledSettings,
   normalizeScheduledSettingsAPIEndpoint,
   parseScheduledSettingsAPIResponse,
+  parseScheduledSettings,
 } from '../../src/models/scheduled-settings'
 import { ScheduledSettingsRuntime } from '../../src/lib/scheduled-settings'
 
@@ -40,6 +41,25 @@ function config(
 }
 
 describe('scheduled settings model', () => {
+  it('normalizes impossible dates without discarding unrelated saved rules', () => {
+    for (const date of ['2026-13-01', '2026-00-01', '2026-01-32', '2026-02-30']) {
+      const saved = config(
+        rule({ kind: 'local', value: { theme: 'dark' } }, { id: 'valid' }),
+        rule(
+          { kind: 'local', value: { theme: 'light' } },
+          { id: 'invalid-date', startDate: date, endDate: date }
+        )
+      )
+
+      const normalized = normalizeScheduledSettings(saved)
+      assert.equal(normalized.rules.length, 2)
+      assert.equal(normalized.rules[1].startDate, null)
+      assert.equal(normalized.rules[1].endDate, null)
+      assert.deepEqual(parseScheduledSettings(JSON.stringify(saved)), normalized)
+      assert.deepEqual(normalized.rules[0], saved.rules[0])
+    }
+  })
+
   it('supports every day with a bounded local time window', () => {
     const normalized = normalizeScheduledSettings({
       version: 1,
