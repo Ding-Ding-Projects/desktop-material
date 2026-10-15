@@ -80,7 +80,12 @@ function runtime(action, config) {
   if (!document.body.classList.contains('theme-' + config.theme) ||
       document.body.getAttribute('data-dm-language-mode') !== config.languageMode) throw new Error('Recovery presentation tuple mismatch.')
   if (!dialog.textContent.includes(pathName(config.retainedPath)) || !dialog.textContent.includes(pathName(config.sourcePath))) throw new Error('Recovery context names are missing.')
-  return { semantic: true, privacy: 'private-synthetic-paths-only', published: false, dialogRect, actionRect, devicePixelRatio,
+  const geometryKey = JSON.stringify([dialogRect, actionRect])
+  const previous = globalThis.__directRecoveryStableGeometry
+  const samples = previous?.error === error && previous?.key === geometryKey ? previous.samples + 1 : 1
+  globalThis.__directRecoveryStableGeometry = { error, key: geometryKey, samples }
+  if (samples < 3 || document.fonts.status !== 'loaded') return false
+  return { semantic: true, settledSamples: samples, cssViewport: { width: innerWidth, height: innerHeight }, privacy: 'private-synthetic-paths-only', published: false, dialogRect, actionRect, devicePixelRatio,
     nativeDisplayScaleVerified: false, actionText: button.textContent.trim(), title: dialog.querySelector('h1,h2')?.textContent?.trim() ?? null }
 
   function pathName(value) { return value.split(/[\\/]/).pop() }
