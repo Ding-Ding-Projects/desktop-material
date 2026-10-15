@@ -673,6 +673,38 @@ function buildGalleryCapturePlan() {
   return Object.freeze(entries)
 }
 
+// Private evidence has explicit ownership without inflating the published gallery.
+// The established CDP plan driver supplies process and exact-target isolation.
+const PrivateCaptureSceneEntries = Object.freeze([
+  Object.freeze({
+    scene: 'direct-clone-recovery',
+    batch: 'windows-ui-state-lowlevel',
+    published: false,
+    outputs: Object.freeze([
+      'direct-clone-recovery-blocked.png',
+      'direct-clone-recovery-rechecked.png',
+    ]),
+    evidenceDestination: '<owned-temp-run-root>/captures/direct-clone-recovery',
+    driver: 'drive-electron-cdp-headless/scripts/cdp_driver.mjs',
+    module: './direct_clone_recovery_scene.js',
+    fixture: './seed_direct_clone_recovery_fixture.js',
+    interaction: 'Invoke the real clone dispatcher, inspect retained recovery, activate the production retry button before and after removing only the owned blocker.',
+    privacyGate: 'Reject non-fixture user paths, credentials and accounts; synthetic absolute paths keep every original private until separate pixel review.',
+    geometryGate: 'Measure finite visible dialog/action rectangles, viewport containment, description overflow and minimum action size.',
+    successEvidence: 'Completed and empty-container phases produce runtime and filesystem evidence, not an unchecked background screenshot.',
+  }),
+])
+
+function registeredPrivateScene(id) {
+  const rows = PrivateCaptureSceneEntries.filter(row => row.scene === id)
+  if (rows.length !== 1) throw new Error('Private scene must be registered exactly once.')
+  const row = rows[0]
+  if (!CaptureBatches[row.batch] || row.published !== false) throw new Error('Invalid private scene ownership.')
+  const driver = require(row.module)
+  if (driver.SceneId !== id || JSON.stringify(driver.Outputs) !== JSON.stringify(row.outputs)) throw new Error('Private scene output registration mismatch.')
+  return { ...row, buildPlan: driver.buildPlan, matrix: driver.Matrix }
+}
+
 const GalleryCapturePlan = buildGalleryCapturePlan()
 
 const CaptureGaps = Object.freeze(
@@ -697,6 +729,8 @@ const CaptureGaps = Object.freeze(
 )
 
 module.exports = {
+  PrivateCaptureSceneEntries,
+  registeredPrivateScene,
   buildGalleryCapturePlan,
   CanonicalCandidateCount,
   CanonicalGalleryOutputs,
