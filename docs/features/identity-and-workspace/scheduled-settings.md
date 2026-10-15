@@ -93,6 +93,12 @@ responses and stale failures after a newer refresh or stop. The active
 appearance overlay is reversible: when no rule is active, the profile's stored
 appearance and theme return unchanged.
 
+Undo, redo, and profile-history restoration reload the saved schedule into the
+running evaluator without rewriting the restored schedule document. Restoring
+a profile with no schedule clears the previous overlay and returns to the
+profile's base appearance and theme. Pending responses from the old schedule
+cannot overwrite the restored values.
+
 ## Security considerations
 
 - Network requests run in the main process with a five-second timeout,
@@ -108,6 +114,10 @@ appearance and theme return unchanged.
   working local value with an unverified response.
 
 ## Verification
+
+The profile-restore runtime tests exercise the actual application-store reload
+path, checking restored overlays, missing schedule keys, unchanged schedule
+storage, and obsolete API responses.
 
 The model and runtime tests cover every-day windows, bounded time windows,
 cross-midnight evaluation and date bounds, reversed-range fail-closed behavior,

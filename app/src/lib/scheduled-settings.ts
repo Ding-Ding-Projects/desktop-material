@@ -139,6 +139,12 @@ export class ScheduledSettingsRuntime {
     void this.refresh()
   }
 
+  /** Reapply a restored profile without creating another persisted change. */
+  public async reloadFromStorage(): Promise<void> {
+    this.config = getScheduledSettings()
+    await this.refresh()
+  }
+
   public async refresh(now: Date = this.now()): Promise<void> {
     const generation = ++this.refreshGeneration
     const activeRules = this.config.rules.filter(rule =>

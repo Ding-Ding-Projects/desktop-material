@@ -25855,7 +25855,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         ? elementAppearanceState.appearance
         : getAppearanceCustomization()
     this.scheduledBaseAppearanceCustomization = this.appearanceCustomization
-    this.applyScheduledSettingsValue(this.scheduledSettingsValue)
+    await this.scheduledSettingsRuntime.reloadFromStorage()
     this.selectedTabSize = getNumber(tabSizeKey, tabSizeDefault)
     this.zoomBaseFactor = clampZoom(getFloatNumber(zoomFactorKey, 1))
     this.autoFitZoomEnabled = getBoolean(autoFitZoomEnabledKey, true)
