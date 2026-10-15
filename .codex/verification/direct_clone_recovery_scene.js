@@ -79,7 +79,7 @@ function runtime(action, config) {
   if (/\b(?:gh[pousr]_[A-Za-z0-9]+|github_pat_[A-Za-z0-9_]+)|Bearer\s+\S+|[A-Z]:[\\/]Users[\\/]|AppData[\\/]|\/home\/|\/Users\/|https?:\/\/[^\s/]+@/i.test(redacted)) throw new Error('Recovery capture privacy check failed.')
   if (!document.body.classList.contains('theme-' + config.theme) ||
       document.body.getAttribute('data-dm-language-mode') !== config.languageMode) throw new Error('Recovery presentation tuple mismatch.')
-  if (!dialog.textContent.includes(pathName(config.retainedPath)) || !dialog.textContent.includes(pathName(config.requestedPath))) throw new Error('Recovery context names are missing.')
+  if (!dialog.textContent.includes(pathName(config.retainedPath)) || !dialog.textContent.includes(pathName(config.sourcePath))) throw new Error('Recovery context names are missing.')
   return { semantic: true, privacy: 'private-synthetic-paths-only', published: false, dialogRect, actionRect, devicePixelRatio,
     nativeDisplayScaleVerified: false, actionText: button.textContent.trim(), title: dialog.querySelector('h1,h2')?.textContent?.trim() ?? null }
 
