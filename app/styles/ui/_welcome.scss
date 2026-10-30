@@ -262,6 +262,28 @@
       margin-left: 0;
     }
   }
+
+  // Copy and paste fallback shown while the system browser sign in is waiting
+  // or when the browser failed to open.
+  .welcome-browser-fallback {
+    margin-top: var(--spacing-double);
+
+    .welcome-browser-fallback-row {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing);
+      margin-top: var(--spacing);
+    }
+
+    .welcome-browser-fallback-link {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: var(--font-family-monospace);
+      color: var(--md-sys-color-on-surface);
+    }
+  }
 }
 
 .welcome-title,

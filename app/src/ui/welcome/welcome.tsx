@@ -164,11 +164,20 @@ export class Welcome extends React.Component<IWelcomeProps, IWelcomeState> {
           signInState.kind === SignInStep.Authentication &&
           signInState.loading
 
+        const browserSignIn =
+          step === WelcomeStep.SignInToDotComWithBrowser &&
+          signInState !== null &&
+          signInState.kind === SignInStep.Authentication
+            ? signInState
+            : null
+
         return (
           <Start
             advance={this.advanceToStep}
             dispatcher={this.props.dispatcher}
             loadingBrowserAuth={loadingBrowserAuth}
+            browserSignInUrl={browserSignIn?.browserSignInUrl}
+            browserSignInError={browserSignIn?.error ?? null}
           />
         )
 

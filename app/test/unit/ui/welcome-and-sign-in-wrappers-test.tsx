@@ -108,6 +108,26 @@ describe('welcome and sign-in wrappers', () => {
     ])
   })
 
+  it('offers a copy and paste sign-in link when the browser does not open', () => {
+    const dispatcher = new TestDispatcher()
+    const signInUrl = 'https://github.com/login/oauth/authorize?state=abc'
+
+    render(
+      <Start
+        dispatcher={toDispatcher(dispatcher)}
+        advance={() => {}}
+        loadingBrowserAuth={false}
+        browserSignInUrl={signInUrl}
+        browserSignInError={new Error('The browser could not be opened.')}
+      />
+    )
+
+    const link = screen.getByLabelText('Sign in link') as HTMLInputElement
+    assert.equal(link.value, signInUrl)
+    assert.ok(screen.getByRole('alert'))
+    assert.ok(screen.getByRole('button', { name: 'Copy sign in link' }))
+  })
+
   it('submits enterprise endpoints through the shared sign-in wrapper', () => {
     const dispatcher = new TestDispatcher()
 

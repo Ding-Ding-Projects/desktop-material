@@ -3,6 +3,7 @@ import { WelcomeStep } from './welcome'
 import { LinkButton } from '../lib/link-button'
 import { Dispatcher } from '../dispatcher'
 import { Button } from '../lib/button'
+import { CopyButton } from '../copy-button'
 import { BrowserRedirectMessage } from '../lib/authentication-form'
 import { ENABLE_TELEMETRY } from '../../lib/telemetry-flag'
 import { SamplesURL } from '../../lib/stats'
@@ -32,6 +33,16 @@ interface IStartProps {
   readonly advance: (step: WelcomeStep) => void
   readonly dispatcher: Dispatcher
   readonly loadingBrowserAuth: boolean
+
+  /**
+   * The sign in address handed to the system browser. When present it is shown
+   * with a copy button so the person can paste it into a browser themselves if
+   * the system browser did not open.
+   */
+  readonly browserSignInUrl?: string
+
+  /** The reason the browser launch failed, if it did. */
+  readonly browserSignInError?: Error | null
 }
 
 /** The first step of the Welcome flow. */
@@ -59,6 +70,8 @@ export class Start extends React.Component<IStartProps, {}> {
           ) : (
             <p>{BrowserRedirectMessage}</p>
           )}
+
+          {this.renderBrowserFallback()}
 
           <div className="welcome-main-buttons">
             <Button
@@ -122,6 +135,57 @@ export class Start extends React.Component<IStartProps, {}> {
         </div>
       </section>
     )
+  }
+
+  /**
+   * Offers the sign in address as text with a copy button. Shown while the
+   * browser sign in is waiting and after a failed launch, so a browser that
+   * never opens does not leave the person stuck on this screen.
+   */
+  private renderBrowserFallback() {
+    const { browserSignInUrl, browserSignInError, loadingBrowserAuth } =
+      this.props
+
+    if (browserSignInUrl === undefined) {
+      return null
+    }
+
+    if (!loadingBrowserAuth && !browserSignInError) {
+      return null
+    }
+
+    return (
+      <div className="welcome-browser-fallback">
+        <p
+          id="welcome-browser-fallback-description"
+          className="welcome-text"
+          role={browserSignInError ? 'alert' : undefined}
+        >
+          {browserSignInError
+            ? 'Your browser did not open. Copy this link and paste it into a browser to sign in.'
+            : "Browser didn't open? Copy this link and paste it into a browser to sign in."}
+        </p>
+        <div className="welcome-browser-fallback-row">
+          <input
+            type="text"
+            readOnly={true}
+            className="welcome-browser-fallback-link"
+            aria-label="Sign in link"
+            aria-describedby="welcome-browser-fallback-description"
+            value={browserSignInUrl}
+            onFocus={this.selectFallbackLink}
+          />
+          <CopyButton
+            copyContent={browserSignInUrl}
+            ariaLabel="Copy sign in link"
+          />
+        </div>
+      </div>
+    )
+  }
+
+  private selectFallbackLink = (event: React.FocusEvent<HTMLInputElement>) => {
+    event.currentTarget.select()
   }
 
   private signInWithBrowser = (event?: React.MouseEvent<HTMLButtonElement>) => {

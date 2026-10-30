@@ -158,6 +158,13 @@ export interface IAuthenticationState extends ISignInState {
 
   readonly resultCallback: (result: SignInResult) => void
 
+  /**
+   * The authorization URL most recently handed to the browser. It outlives a
+   * failed launch so the UI can offer it as a copy and paste fallback when the
+   * system browser did not open.
+   */
+  readonly browserSignInUrl?: string
+
   readonly oauthState?:
     | {
         kind: 'github'
@@ -363,6 +370,7 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
     let launchPromise = Promise.resolve()
     const accountFlow = new Promise<Account>((resolve, reject) => {
       const { endpoint, resultCallback } = currentState
+      const authorizationUrl = getOAuthAuthorizationURL(endpoint, csrfToken)
       log.info('[SignInStore] initializing OAuth flow')
       this.setState({
         kind: SignInStep.Authentication,
@@ -370,6 +378,7 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
         resultCallback,
         error: null,
         loading: true,
+        browserSignInUrl: authorizationUrl,
         oauthState: {
           kind: 'github',
           state: csrfToken,
@@ -380,7 +389,7 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
         },
       })
       launchPromise = shell
-        .openExternal(getOAuthAuthorizationURL(endpoint, csrfToken), {
+        .openExternal(authorizationUrl, {
           intent: 'authentication',
         })
         .then(opened => {
