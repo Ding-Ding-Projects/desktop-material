@@ -3,7 +3,7 @@
 All pushed to `main`; the last commit of this entry is the one that contains it.
 
 **Design (designs only, not shipped behaviour).** Every board listed in issue
-#262 is drawn in `design/motion-and-polish/` (18 boards), and the Minecraft
+#262 is drawn in `design/motion-and-polish/` (20 boards), and the Minecraft
 management web panel has its own canvas in `design/minecraft-web-panel/`: one
 click public link through a free Cloudflare quick tunnel with its limits stated,
 a Discord webhook that posts the link and a one-time pairing code and posts
@@ -42,7 +42,7 @@ for these commits had not reported when this was written.
   (3.6.7), the folder-reveal confirmation and .gitignore handling (3.6.6), and
   the fixes in 3.6.6 to 3.6.10.
 
-廣東話交接：設計圖畫晒（十八塊，另加網頁面板自己一份）。真正寫入 app 嘅得三樣：動態速度同
+廣東話交接：設計圖畫晒（二十塊，另加網頁面板自己一份）。真正寫入 app 嘅得三樣：動態速度同
 逐個版面開關、Svelte 語法上色、永遠顯示工作樹清單。Linux 上相關測試過晒，TypeScript 冇錯；
 Windows build、安裝程式同實機未驗證。截圖一張都未更新，因為要喺 Windows 用真 app 影。
 

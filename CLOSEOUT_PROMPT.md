@@ -11,7 +11,7 @@ ROADMAP.md and HANDOFF.md first (the top HANDOFF entry is this session).
 State (2026-11-09, later): everything is on main and pushed.
 
 Done this session:
-- Design: all boards from issue #262 are drawn in design/motion-and-polish (18 boards). The
+- Design: all boards from issue #262 are drawn in design/motion-and-polish (20 boards). The
   Minecraft web panel has its own folder, design/minecraft-web-panel (free Cloudflare quick tunnel
   link, Discord webhook with link and one-time pairing code, auto resend on change, nine-page panel).
   Designs only.
