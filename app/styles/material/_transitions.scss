@@ -1,0 +1,76 @@
+// Motion as an appearance value: the stylesheet side.
+//
+// `applyMotionToBody` (app/src/ui/lib/motion-runtime.ts) resolves the stored
+// level, the speed multiplier and the operating-system signal into
+// `data-dm-motion`, `data-dm-motion-off` and the `--dm-motion-*` durations on
+// `<body>`. This partial is the only place those reach the stylesheets:
+//
+// 1. The Material duration tokens follow the resolved durations, so every
+//    animation that already uses a token speeds up, slows down or calms with
+//    the setting, without touching the rules that use them.
+// 2. A surface that is switched off changes instantly, the same way the
+//    reduced level does for the whole app.
+//
+// Nothing here adds an animation or restyles a surface.
+
+body[data-dm-motion] {
+  --md-sys-motion-duration-short4: var(--dm-motion-short, 200ms);
+  --md-sys-motion-duration-medium2: var(--dm-motion-medium, 300ms);
+  --md-sys-motion-duration-long2: var(--dm-motion-long, 500ms);
+}
+
+@mixin dm-motion-surface-off {
+  animation-duration: 0.01ms !important;
+  animation-delay: 0ms !important;
+  transition-duration: 0.01ms !important;
+}
+
+body[data-dm-motion-off~='dialogs'] {
+  dialog,
+  dialog *,
+  dialog *::before,
+  dialog *::after,
+  .popover-component,
+  .popover-component * {
+    @include dm-motion-surface-off;
+  }
+
+  dialog::backdrop {
+    @include dm-motion-surface-off;
+  }
+}
+
+body[data-dm-motion-off~='lists'] {
+  .list-item,
+  .list-item *,
+  .list-item *::before,
+  .list-item *::after {
+    @include dm-motion-surface-off;
+  }
+}
+
+body[data-dm-motion-off~='tabs'] {
+  .tab-bar,
+  .tab-bar *,
+  .tab-bar *::before,
+  .tab-bar *::after {
+    @include dm-motion-surface-off;
+  }
+}
+
+// Charts and celebrations are switched off in code through
+// `isMotionEnabledFor`, because they animate with scripts rather than with
+// stylesheet transitions. The selectors below cover their stylesheet parts.
+body[data-dm-motion-off~='charts'] {
+  [data-dm-motion-surface='charts'],
+  [data-dm-motion-surface='charts'] * {
+    @include dm-motion-surface-off;
+  }
+}
+
+body[data-dm-motion-off~='celebrations'] {
+  [data-dm-motion-surface='celebrations'],
+  [data-dm-motion-surface='celebrations'] * {
+    @include dm-motion-surface-off;
+  }
+}

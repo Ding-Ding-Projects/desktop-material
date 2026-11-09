@@ -7,6 +7,7 @@
 // Global @keyframes are declared first so every consuming partial can
 // reference them by name (see the guiding-rules load order).
 @import 'material/motion';
+@import 'material/transitions';
 
 :root {
   --md-sys-color-primary: #006493;

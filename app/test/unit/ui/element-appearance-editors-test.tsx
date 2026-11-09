@@ -3,6 +3,10 @@ import { describe, it } from 'node:test'
 import * as React from 'react'
 
 import { DefaultAppIdentityCustomization } from '../../../src/models/app-identity'
+import {
+  DefaultMotionSurfaceSwitches,
+  MotionSurfaceSwitches,
+} from '../../../src/models/motion-settings'
 import { DefaultRepositoryLogoDesign } from '../../../src/models/repository-logo'
 import {
   AppearanceEditorElementId,
@@ -27,6 +31,8 @@ describe('element appearance editor content', () => {
       elevation: 'standard' | 'subtle' | 'flat'
       uiFont: 'material' | 'system'
       motion: 'system' | 'full' | 'calm' | 'reduced'
+      motionSpeed: number
+      motionSurfaces: MotionSurfaceSwitches
     }>()
     let historyRequests = 0
 
@@ -38,6 +44,8 @@ describe('element appearance editor content', () => {
           elevation: 'standard',
           uiFont: 'material',
           motion: 'system',
+          motionSpeed: 1,
+          motionSurfaces: DefaultMotionSurfaceSwitches,
         }}
         onChange={value => changes.push(value)}
         onShowHistory={() => historyRequests++}
@@ -62,6 +70,8 @@ describe('element appearance editor content', () => {
         elevation: 'standard',
         uiFont: 'material',
         motion: 'system',
+        motionSpeed: 1,
+        motionSurfaces: DefaultMotionSurfaceSwitches,
       },
     ])
 
@@ -249,5 +259,77 @@ describe('element appearance editor content', () => {
       screen.getByRole('button', { name: 'Inherit profile', exact: true })
     )
     assert.equal(repositoryValue.toolbarTextStyle, null)
+  })
+})
+
+describe('app workspace motion controls', () => {
+  const base = {
+    accentPalette: 'blue' as const,
+    surfacePalette: 'tonal' as const,
+    elevation: 'standard' as const,
+    uiFont: 'material' as const,
+    motion: 'full' as const,
+    motionSpeed: 1,
+    motionSurfaces: DefaultMotionSurfaceSwitches,
+  }
+
+  it('changes the speed, describes it in words and resets it', () => {
+    const changes = new Array<number>()
+    const view = render(
+      <AppWorkspaceAppearanceEditor
+        value={base}
+        onChange={value => changes.push(value.motionSpeed)}
+        onShowHistory={() => {}}
+      />
+    )
+
+    const slider = screen.getByLabelText('Animation speed')
+    assert.equal(slider.getAttribute('aria-valuetext'), 'Design speed (1x)')
+    fireEvent.change(slider, { target: { value: '1.5' } })
+    assert.deepEqual(changes, [1.5])
+
+    view.rerender(
+      <AppWorkspaceAppearanceEditor
+        value={{ ...base, motionSpeed: 1.5 }}
+        onChange={value => changes.push(value.motionSpeed)}
+        onShowHistory={() => {}}
+      />
+    )
+    assert.equal(
+      screen.getByLabelText('Animation speed').getAttribute('aria-valuetext'),
+      'Faster (1.5x)'
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Reset speed' }))
+    assert.deepEqual(changes, [1.5, 1])
+  })
+
+  it('switches one surface off without touching the others', () => {
+    const changes = new Array<MotionSurfaceSwitches>()
+    render(
+      <AppWorkspaceAppearanceEditor
+        value={base}
+        onChange={value => changes.push(value.motionSurfaces)}
+        onShowHistory={() => {}}
+      />
+    )
+
+    fireEvent.click(screen.getByLabelText('Dialogs and popovers'))
+    assert.deepEqual(changes, [
+      { ...DefaultMotionSurfaceSwitches, dialogs: false },
+    ])
+  })
+
+  it('disables the speed control while motion is reduced and says why', () => {
+    render(
+      <AppWorkspaceAppearanceEditor
+        value={{ ...base, motion: 'reduced' }}
+        onChange={() => {}}
+        onShowHistory={() => {}}
+      />
+    )
+
+    const slider = screen.getByLabelText('Animation speed') as HTMLInputElement
+    assert.equal(slider.disabled, true)
+    assert.ok(screen.getByText('Not used while motion is reduced'))
   })
 })

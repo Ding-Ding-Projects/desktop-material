@@ -280,6 +280,13 @@
       d: 'This article is a record of something that is not in the application. It is kept so the removal reads as a decision rather than an oversight, and so the next person who finds a…',
     },
     {
+      t: 'Motion settings / 動態設定',
+      h: 'features/design-system/motion-settings.html',
+      s: 'features/design-system/motion-settings.md',
+      c: 'features',
+      d: "Motion is an appearance value. A person chooses a level, a speed and which surfaces animate, and the calmer of that choice and the operating system's reduced-motion setting…",
+    },
+    {
       t: 'Recorded narration + melody assets',
       h: 'features/design-system/narration-assets.html',
       s: 'features/design-system/narration-assets.md',

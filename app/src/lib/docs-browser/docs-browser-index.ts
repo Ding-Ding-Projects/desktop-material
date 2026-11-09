@@ -207,6 +207,14 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       sourcePath: 'docs/features/design-system/md3-shell.md',
     },
     {
+      id: 'design-system/motion-settings',
+      category: 'design-system',
+      title: 'Motion settings / 動態設定',
+      description:
+        "Motion is an appearance value. A person chooses a level, a speed and which surfaces animate, and the calmer of that choice and the operating system's reduced-motion setting…",
+      sourcePath: 'docs/features/design-system/motion-settings.md',
+    },
+    {
       id: 'design-system/narration-assets',
       category: 'design-system',
       title: 'Recorded narration + melody assets',
@@ -1524,7 +1532,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'design-system',
     label: 'Design System',
-    count: 29,
+    count: 30,
   },
   {
     name: 'identity-and-workspace',
@@ -1564,4 +1572,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 176
+export const DocsBrowserArticleCount = 177

@@ -31,6 +31,11 @@ import {
   updateProgressPalettes,
 } from './appearance-customization'
 import {
+  MotionSurfaceSwitches,
+  normalizeMotionSpeed,
+  normalizeMotionSurfaces,
+} from './motion-settings'
+import {
   IAppIdentityCustomization,
   normalizeAppIdentityCustomization,
 } from './app-identity'
@@ -133,6 +138,10 @@ export interface IAppWorkspaceAppearance {
   readonly elevation: ElevationPreference
   readonly uiFont: UIFontPreference
   readonly motion: MotionPreference
+  /** Speed multiplier for every animation; 1 is the design speed. */
+  readonly motionSpeed: number
+  /** Per-surface switches; an off surface takes the reduced path. */
+  readonly motionSurfaces: MotionSurfaceSwitches
 }
 
 export interface IUpdateProgressAppearance {
@@ -243,6 +252,8 @@ export const DefaultProfileAppearanceElementSettings: IProfileAppearanceElementS
       elevation: DefaultAppearanceCustomization.elevation,
       uiFont: DefaultAppearanceCustomization.uiFont,
       motion: DefaultAppearanceCustomization.motion,
+      motionSpeed: DefaultAppearanceCustomization.motionSpeed,
+      motionSurfaces: DefaultAppearanceCustomization.motionSurfaces,
     },
     [ProfileAppearanceElementId.UpdateProgress]: {
       updateProgressPalette:
@@ -308,6 +319,8 @@ export function splitProfileAppearance(
       elevation: normalized.elevation,
       uiFont: normalized.uiFont,
       motion: normalized.motion,
+      motionSpeed: normalized.motionSpeed,
+      motionSurfaces: normalized.motionSurfaces,
     },
     [ProfileAppearanceElementId.UpdateProgress]: {
       updateProgressPalette: normalized.updateProgressPalette,
@@ -362,7 +375,7 @@ export function mergeProfileAppearance(
 }
 
 export function normalizeProfileAppearanceElement<
-  K extends ProfileAppearanceElementId
+  K extends ProfileAppearanceElementId,
 >(id: K, value: unknown): IProfileAppearanceElementSettings[K] {
   const source = record(value)
   switch (id) {
@@ -393,6 +406,8 @@ export function normalizeProfileAppearanceElement<
           motionPreferences,
           DefaultAppearanceCustomization.motion
         ),
+        motionSpeed: normalizeMotionSpeed(source.motionSpeed),
+        motionSurfaces: normalizeMotionSurfaces(source.motionSurfaces),
       } as IProfileAppearanceElementSettings[K]
     case ProfileAppearanceElementId.UpdateProgress:
       return {

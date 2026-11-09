@@ -17,6 +17,15 @@ import {
   UIFontPreference,
   UpdateProgressPalette,
 } from '../../models/appearance-customization'
+import {
+  DefaultMotionSpeed,
+  MaxMotionSpeed,
+  MinMotionSpeed,
+  MotionSpeedStep,
+  MotionSurface,
+  motionSurfaces,
+  normalizeMotionSpeed,
+} from '../../models/motion-settings'
 import { IRepositoryLogoDesign } from '../../models/repository-logo'
 import {
   IAppWorkspaceAppearance as IProfileWorkspaceAppearance,
@@ -43,7 +52,13 @@ export interface IControlledAppearanceEditorProps<T> {
 
 export type IAppWorkspaceAppearance = Pick<
   IAppearanceCustomization,
-  'accentPalette' | 'surfacePalette' | 'elevation' | 'uiFont' | 'motion'
+  | 'accentPalette'
+  | 'surfacePalette'
+  | 'elevation'
+  | 'uiFont'
+  | 'motion'
+  | 'motionSpeed'
+  | 'motionSurfaces'
 >
 
 export type IUpdateProgressAppearance = Pick<
@@ -118,6 +133,68 @@ const accentOptions: ReadonlyArray<IOption<AccentPalette>> = [
   { value: 'rose', label: 'Rose' },
 ]
 
+const motionSurfaceLabels: Readonly<Record<MotionSurface, string>> = {
+  dialogs: 'Dialogs and popovers',
+  lists: 'Lists',
+  tabs: 'Tabs',
+  charts: 'Charts',
+  celebrations: 'Celebrations',
+}
+
+interface IMotionSpeedControlProps {
+  readonly value: number
+  readonly disabled: boolean
+  readonly onChange: (value: number) => void
+}
+
+/** Describe a speed multiplier in words as well as a number. */
+export function describeMotionSpeed(value: number): string {
+  const speed = normalizeMotionSpeed(value)
+  if (speed === DefaultMotionSpeed) {
+    return 'Design speed (1x)'
+  }
+  return speed > DefaultMotionSpeed
+    ? `Faster (${speed}x)`
+    : `Slower (${speed}x)`
+}
+
+function MotionSpeedControl(props: IMotionSpeedControlProps): JSX.Element {
+  const id = 'element-appearance-motion-speed'
+  const speed = normalizeMotionSpeed(props.value)
+  const onChange = (event: React.FormEvent<HTMLInputElement>) => {
+    props.onChange(normalizeMotionSpeed(Number(event.currentTarget.value)))
+  }
+  const onReset = () => props.onChange(DefaultMotionSpeed)
+
+  return (
+    <div className="element-appearance-motion-speed">
+      <label htmlFor={id}>Animation speed</label>
+      <input
+        id={id}
+        type="range"
+        min={MinMotionSpeed}
+        max={MaxMotionSpeed}
+        step={MotionSpeedStep}
+        value={speed}
+        disabled={props.disabled}
+        aria-valuetext={describeMotionSpeed(speed)}
+        onChange={onChange}
+      />
+      <output htmlFor={id}>
+        {props.disabled
+          ? 'Not used while motion is reduced'
+          : describeMotionSpeed(speed)}
+      </output>
+      <Button
+        disabled={props.disabled || speed === DefaultMotionSpeed}
+        onClick={onReset}
+      >
+        Reset speed
+      </Button>
+    </div>
+  )
+}
+
 const densityOptions: ReadonlyArray<IOption<DensityPreference>> = [
   { value: 'comfortable', label: 'Comfortable' },
   { value: 'compact', label: 'Compact' },
@@ -185,6 +262,37 @@ export function AppWorkspaceAppearanceEditor(
           onChange={(motion: MotionPreference) => update({ motion })}
         />
       </div>
+      <MotionSpeedControl
+        value={props.value.motionSpeed}
+        disabled={props.value.motion === 'reduced'}
+        onChange={motionSpeed => update({ motionSpeed })}
+      />
+      <fieldset className="element-appearance-motion-surfaces">
+        <legend>Animate these surfaces</legend>
+        {motionSurfaces.map(surface => (
+          <Checkbox
+            key={surface}
+            label={motionSurfaceLabels[surface]}
+            value={
+              props.value.motionSurfaces[surface]
+                ? CheckboxValue.On
+                : CheckboxValue.Off
+            }
+            onChange={event =>
+              update({
+                motionSurfaces: {
+                  ...props.value.motionSurfaces,
+                  [surface]: event.currentTarget.checked,
+                },
+              })
+            }
+          />
+        ))}
+        <p className="element-appearance-motion-note">
+          A surface that is switched off changes instantly. Reduce motion and
+          the system setting always win over these switches.
+        </p>
+      </fieldset>
     </AppearanceEditorPanel>
   )
 }
@@ -400,8 +508,7 @@ export function AppIdentityAppearanceEditor(
   )
 }
 
-export interface IDefaultRepositoryLogoAppearanceEditorProps
-  extends IControlledAppearanceEditorProps<IRepositoryLogoDesign> {
+export interface IDefaultRepositoryLogoAppearanceEditorProps extends IControlledAppearanceEditorProps<IRepositoryLogoDesign> {
   readonly repositoryName?: string
 }
 
@@ -425,8 +532,9 @@ export function DefaultRepositoryLogoAppearanceEditor(
   )
 }
 
-interface IRepositoryScopedAppearanceEditorProps<T>
-  extends IControlledAppearanceEditorProps<T> {
+interface IRepositoryScopedAppearanceEditorProps<
+  T,
+> extends IControlledAppearanceEditorProps<T> {
   /**
    * Move this surface to the inherited profile owner's editor. Omitted by
    * callers that are strictly repository-scoped (the Repository Settings
@@ -457,8 +565,7 @@ function nullableValue(value: string | null): string {
   return value ?? 'inherit'
 }
 
-export interface IRepositoryWorkspaceAppearanceEditorProps
-  extends IRepositoryScopedAppearanceEditorProps<IRepositoryWorkspaceAppearance> {
+export interface IRepositoryWorkspaceAppearanceEditorProps extends IRepositoryScopedAppearanceEditorProps<IRepositoryWorkspaceAppearance> {
   readonly inherited: Pick<
     IProfileWorkspaceAppearance,
     'accentPalette' | 'surfacePalette'
@@ -523,8 +630,7 @@ export function RepositoryWorkspaceAppearanceEditor(
   )
 }
 
-export interface IRepositoryToolbarAppearanceEditorProps
-  extends IRepositoryScopedAppearanceEditorProps<IRepositoryToolbarAppearance> {
+export interface IRepositoryToolbarAppearanceEditorProps extends IRepositoryScopedAppearanceEditorProps<IRepositoryToolbarAppearance> {
   readonly inherited: IToolbarAppearance
 }
 
@@ -593,8 +699,7 @@ export function RepositoryToolbarAppearanceEditor(
   )
 }
 
-export interface IRepositoryTabsOverrideAppearanceEditorProps
-  extends IRepositoryScopedAppearanceEditorProps<IRepositoryTabsOverrideAppearance> {
+export interface IRepositoryTabsOverrideAppearanceEditorProps extends IRepositoryScopedAppearanceEditorProps<IRepositoryTabsOverrideAppearance> {
   readonly inherited: Pick<IRepositoryTabsAppearance, 'tabDensity' | 'tabWidth'>
 }
 

@@ -345,7 +345,9 @@
 
   &.active {
     border-color: var(--md-sys-color-primary);
-    box-shadow: 0 0 0 2px var(--md-sys-color-surface), 0 0 0 4px var(--md-sys-color-primary);
+    box-shadow:
+      0 0 0 2px var(--md-sys-color-surface),
+      0 0 0 4px var(--md-sys-color-primary);
   }
 }
 
@@ -416,5 +418,54 @@
 
   .popover-component:has(.element-appearance-editor) .popover-content {
     padding: 10px;
+  }
+}
+
+// Motion speed and per-surface switches in the app workspace editor.
+.element-appearance-motion-speed {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--spacing-half) var(--spacing);
+  margin-top: var(--spacing);
+
+  label,
+  output {
+    grid-column: 1 / -1;
+  }
+
+  output {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-sm);
+  }
+
+  input[type='range'] {
+    width: 100%;
+    min-height: 32px;
+    accent-color: var(--md-sys-color-primary);
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+  }
+}
+
+.element-appearance-motion-surfaces {
+  margin: var(--spacing) 0 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+
+  legend {
+    padding: 0;
+    margin-bottom: var(--spacing-half);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .element-appearance-motion-note {
+    margin: var(--spacing-half) 0 0;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-sm);
   }
 }
