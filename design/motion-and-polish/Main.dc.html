@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Motion system playground</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;family=Material+Symbols+Rounded:opsz,wght,FILL@20..48,400,0..1&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#006493}a:hover{color:#004b70}
+.dm{--p:#006493;--onp:#fff;--pc:#c9e6ff;--onpc:#001e30;--sc:#d3e5f5;--onsc:#0c1d29;--bg:#f8f9ff;--s0:#fff;--s1:#f2f3f9;--s2:#eceef4;--s3:#e6e8ee;--s4:#e0e2e8;--on:#191c20;--onv:#41474d;--ol:#71787e;--olv:#c1c7ce;--ok:#1b7f37;--okc:#d2f2d8;--err:#ba1a1a;--errc:#ffdad6;--inv:#2e3135;--oninv:#eff1f7;
+--d-s:200ms;--d-m:300ms;--d-l:500ms;--e-emph:cubic-bezier(.2,0,0,1);--e-dec:cubic-bezier(.05,.7,.1,1);--e-spring:cubic-bezier(.38,1.21,.22,1);--e-fast:cubic-bezier(.42,1.67,.21,.9);
+font-family:Roboto,'Segoe UI',system-ui,sans-serif;color:var(--on);background:var(--bg);min-height:960px}
+.dm.dark{--p:#8dcdff;--onp:#00344f;--pc:#004b70;--onpc:#c9e6ff;--sc:#394956;--onsc:#d3e5f5;--bg:#101418;--s0:#0b0f12;--s1:#181c20;--s2:#1c2024;--s3:#272a2f;--s4:#32353a;--on:#e0e2e8;--onv:#c1c7ce;--ol:#8b9198;--olv:#41474d;--ok:#7bd88f;--okc:#0f3d1c;--err:#ffb4ab;--errc:#93000a;--inv:#e0e2e8;--oninv:#2e3135}
+.dm.calm{--d-s:140ms;--d-m:180ms;--d-l:240ms;--e-spring:cubic-bezier(.2,0,0,1);--e-fast:cubic-bezier(.2,0,0,1)}
+.dm.off{--d-s:1ms;--d-m:1ms;--d-l:1ms;--e-spring:linear;--e-fast:linear}
+.ms{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 0,'wght' 400;display:inline-block;vertical-align:middle}
+.ms.f{font-variation-settings:'FILL' 1,'wght' 400}
+.wrap{max-width:1240px;margin:0 auto;padding:32px 24px 48px;display:flex;flex-direction:column;gap:24px;box-sizing:border-box}
+.top{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between}
+h1{margin:0;font-size:32px;line-height:40px;font-weight:500;letter-spacing:0}
+.sub{margin:4px 0 0;color:var(--onv);font-size:14px;line-height:20px;max-width:620px}
+.seg{display:inline-flex;border:1px solid var(--ol);border-radius:999px;overflow:hidden;height:40px}
+.seg button{all:unset;cursor:pointer;padding:0 16px;display:flex;align-items:center;gap:6px;font-size:14px;font-weight:500;color:var(--on);border-left:1px solid var(--ol);transition:background var(--d-m) var(--e-emph),color var(--d-m) var(--e-emph)}
+.seg button:first-child{border-left:0}
+.seg button.on{background:var(--sc);color:var(--onsc)}
+.seg button:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
+.row{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.icon-btn{all:unset;cursor:pointer;width:40px;height:40px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--onv);transition:background var(--d-s) var(--e-emph),transform var(--d-m) var(--e-spring)}
+.icon-btn:hover{background:var(--s3)}.icon-btn:active{transform:scale(.9)}
+.icon-btn:focus-visible{outline:3px solid var(--p)}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:980px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--s1);border-radius:24px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0;position:relative;overflow:hidden}
+.card h2{margin:0;font-size:16px;line-height:24px;font-weight:500;display:flex;align-items:center;gap:8px}
+.card p{margin:0;font-size:13px;line-height:18px;color:var(--onv)}
+.btn{all:unset;cursor:pointer;height:40px;padding:0 20px;border-radius:999px;background:var(--p);color:var(--onp);font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px;position:relative;overflow:hidden;transition:box-shadow var(--d-s) var(--e-emph),transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring)}
+.btn:hover{box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.btn:active{transform:scale(.96);border-radius:12px}
+.btn:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.btn.tonal{background:var(--sc);color:var(--onsc)}
+.btn.text{background:transparent;color:var(--p);padding:0 12px}
+.btn.text:hover{background:color-mix(in srgb,var(--p) 8%,transparent);box-shadow:none}
+.tokens{display:flex;flex-direction:column;gap:10px}
+.tok{display:grid;grid-template-columns:140px minmax(0,1fr) 72px;align-items:center;gap:12px;font-size:13px}
+.tok code{font-family:'Roboto Mono',monospace;font-size:12px;color:var(--onv)}
+.track{height:28px;border-radius:999px;background:var(--s3);position:relative;overflow:hidden}
+.dot{position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:999px;background:var(--p)}
+.go .dot{animation:slide var(--dur) var(--ease) forwards}
+@keyframes slide{to{left:calc(100% - 24px)}}
+.go2 .dot{animation:slide2 var(--dur) var(--ease) forwards}
+@keyframes slide2{to{left:calc(100% - 24px)}}
+.stage{background:var(--s0);border-radius:16px;height:176px;position:relative;overflow:hidden;border:1px solid var(--olv)}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.32);animation:fade var(--d-m) var(--e-emph) both}
+.dialog{position:absolute;left:50%;top:50%;width:220px;margin:-62px 0 0 -110px;background:var(--s3);border-radius:28px;padding:16px 18px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;animation:dlg var(--d-l) var(--e-spring) both;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.dialog b{font-size:16px;font-weight:500}
+.dialog span{font-size:12px;line-height:16px;color:var(--onv)}
+.dialog .acts{display:flex;justify-content:flex-end;gap:4px;margin-top:4px}
+.dialog .acts .btn{height:32px;padding:0 12px;font-size:13px}
+@keyframes dlg{0%{opacity:0;transform:scale(.82) translateY(26px)}65%{transform:scale(1.015) translateY(-3px)}100%{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.list{display:flex;flex-direction:column;padding:6px;gap:2px}
+.li{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:12px;font-size:13px;flex:none;transition:background var(--d-s) var(--e-emph)}
+.li:hover{background:var(--s2)}
+.li .av{width:22px;height:22px;border-radius:999px;background:var(--pc);color:var(--onpc);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.li .sha{margin-left:auto;font-family:'Roboto Mono',monospace;font-size:11px;color:var(--onv)}
+.li.new{animation:ins var(--d-l) var(--e-spring) both;background:var(--pc);color:var(--onpc)}
+@keyframes ins{0%{max-height:0;height:0;opacity:0;transform:translateY(-10px) scale(.98)}60%{opacity:1}100%{max-height:36px;height:36px;opacity:1;transform:none}}
+.tabs{display:flex;position:relative;border-bottom:1px solid var(--olv)}
+.tab{all:unset;cursor:pointer;flex:1;text-align:center;height:44px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:500;color:var(--onv);transition:color var(--d-m) var(--e-emph)}
+.tab.on{color:var(--p)}
+.tab:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
+.ind{position:absolute;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:var(--p);width:33.333%;transition:transform var(--d-l) var(--e-spring)}
+.pane{padding:14px 6px;font-size:13px;color:var(--onv);animation:paneIn var(--d-m) var(--e-dec) both}
+@keyframes paneIn{from{opacity:0;transform:translateX(var(--from,16px))}to{opacity:1;transform:none}}
+.toast{position:absolute;left:12px;right:12px;bottom:12px;background:var(--inv);color:var(--oninv);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;font-size:13px;animation:toastIn var(--d-l) var(--e-spring) both}
+.toast .ms{color:#7bd88f}
+@keyframes toastIn{from{opacity:0;transform:translateY(24px) scale(.96)}to{opacity:1;transform:none}}
+.prog{height:4px;border-radius:4px;background:var(--pc);overflow:hidden;position:relative}
+.prog i{position:absolute;top:0;bottom:0;background:var(--p);border-radius:4px;animation:bar 1.6s var(--e-emph) infinite}
+.off .prog i{animation:none;left:0;width:40%}
+@keyframes bar{0%{left:-34%;width:34%}55%{left:42%;width:46%}100%{left:104%;width:34%}}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{all:unset;cursor:pointer;height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--ol);display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;transition:background var(--d-m) var(--e-emph),border-color var(--d-m) var(--e-emph),padding var(--d-m) var(--e-spring)}
+.chip.on{background:var(--sc);border-color:var(--sc);color:var(--onsc);padding-left:8px}
+.chip .ck{width:0;overflow:hidden;transition:width var(--d-m) var(--e-spring)}
+.chip.on .ck{width:18px}
+.chip:focus-visible{outline:3px solid var(--p)}
+.rm{background:var(--s1);border-radius:24px;padding:20px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 24px}
+@media (max-width:640px){.rm{grid-template-columns:minmax(0,1fr)}}
+.rm h2{grid-column:1/-1;margin:0;font-size:16px;font-weight:500}
+.rmi{display:flex;gap:10px;font-size:13px;line-height:18px}
+.rmi .ms{color:var(--p);flex:none}
+.rmi b{font-weight:500}
+.badge{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:var(--okc);color:var(--ok);font-size:11px;font-weight:700;letter-spacing:.3px}
+</style>
+</helmet>
+<div class="dm {{rootClass}}">
+<div class="wrap">
+<div class="top">
+<div>
+<h1>Motion system</h1>
+<p class="sub">One set of durations and springs drives every surface: dialogs, lists, tabs, chips, toasts and progress. Pick a level to see each surface switch between full motion, calm motion and the reduced-motion path.</p>
+</div>
+<div class="row">
+<div class="seg" role="group" aria-label="Motion level">
+<button class="{{fullCls}}" onClick="{{setFull}}" aria-pressed="{{isFull}}"><span class="ms">animation</span>Full</button>
+<button class="{{calmCls}}" onClick="{{setCalm}}" aria-pressed="{{isCalm}}"><span class="ms">slow_motion_video</span>Calm</button>
+<button class="{{offCls}}" onClick="{{setOff}}" aria-pressed="{{isOff}}"><span class="ms">motion_photos_off</span>Reduced</button>
+</div>
+<button class="icon-btn" onClick="{{toggleDark}}" aria-label="Switch light and dark"><span class="ms">contrast</span></button>
+</div>
+</div>
+
+<div class="card">
+<h2><span class="ms">tune</span>Tokens <span style="flex:1"></span><button class="btn tonal" onClick="{{replay}}"><span class="ms">replay</span>Replay all</button></h2>
+<div class="tokens {{goCls}}">
+<div class="tok"><b>Short, emphasized</b><div class="track" style="--dur:var(--d-s);--ease:var(--e-emph)"><i class="dot"></i></div><code>200ms</code></div>
+<div class="tok"><b>Medium, decelerate</b><div class="track" style="--dur:var(--d-m);--ease:var(--e-dec)"><i class="dot"></i></div><code>300ms</code></div>
+<div class="tok"><b>Long, spring</b><div class="track" style="--dur:var(--d-l);--ease:var(--e-spring)"><i class="dot"></i></div><code>500ms</code></div>
+<div class="tok"><b>Fast spring</b><div class="track" style="--dur:var(--d-m);--ease:var(--e-fast)"><i class="dot"></i></div><code>300ms</code></div>
+</div>
+</div>
+
+<div class="grid">
+<div class="card">
+<h2><span class="ms">open_in_new</span>Dialog enter</h2>
+<p>Scrim fades, the dialog springs up from its trigger. Reduced: a 1ms fade, focus still moves inside.</p>
+<div class="stage">
+<sc-if value="{{dialogOpen}}" hint-placeholder-val="{{ false }}">
+<div class="scrim"></div>
+<div class="dialog" role="dialog" aria-label="Discard changes?">
+<b>Discard changes?</b>
+<span>3 files go back to the last commit.</span>
+<div class="acts"><button class="btn text" onClick="{{closeDialog}}">Cancel</button><button class="btn" onClick="{{closeDialog}}">Discard</button></div>
+</div>
+</sc-if>
+<sc-if value="{{dialogClosed}}" hint-placeholder-val="{{ true }}">
+<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center"><button class="btn" onClick="{{openDialog}}"><span class="ms">delete_sweep</span>Discard changes</button></div>
+</sc-if>
+</div>
+</div>
+
+<div class="card">
+<h2><span class="ms">playlist_add</span>List insert</h2>
+<p>A new row opens its own height so the rows below glide down instead of jumping.</p>
+<div class="stage"><div class="list">
+<sc-for list="{{commits}}" as="c" hint-placeholder-count="4">
+<div class="{{c.cls}}"><span class="av">{{c.av}}</span>{{c.msg}}<span class="sha">{{c.sha}}</span></div>
+</sc-for>
+</div></div>
+<div><button class="btn tonal" onClick="{{addCommit}}"><span class="ms">add</span>Commit</button></div>
+</div>
+
+<div class="card">
+<h2><span class="ms">tab</span>Tab switch</h2>
+<p>The indicator springs across; the pane slides in from the side you moved toward.</p>
+<div class="stage" style="height:auto;min-height:176px">
+<div class="tabs" role="tablist">
+<button class="{{t0}}" role="tab" aria-selected="{{s0}}" onClick="{{tab0}}"><span class="ms">edit_note</span>Changes</button>
+<button class="{{t1}}" role="tab" aria-selected="{{s1}}" onClick="{{tab1}}"><span class="ms">history</span>History</button>
+<button class="{{t2}}" role="tab" aria-selected="{{s2}}" onClick="{{tab2}}"><span class="ms">account_tree</span>Branches</button>
+<i class="ind" style="transform:translateX({{indX}})"></i>
+</div>
+<sc-for list="{{panes}}" as="pn" hint-placeholder-count="1">
+<div class="pane" style="--from:{{pn.from}}">{{pn.text}}</div>
+</sc-for>
+</div>
+</div>
+
+<div class="card">
+<h2><span class="ms">notifications</span>Toast</h2>
+<p>Non-blocking: it rises, holds for five seconds, then lands in the notification centre.</p>
+<div class="stage">
+<div style="position:absolute;top:16px;left:16px;right:16px"><button class="btn" onClick="{{push}}"><span class="ms">cloud_upload</span>Push origin</button></div>
+<sc-if value="{{toast}}" hint-placeholder-val="{{ false }}">
+<div class="toast" role="status"><span class="ms f">check_circle</span>Pushed 2 commits to origin/main<span style="flex:1"></span><button class="btn text" style="color:#8dcdff;height:28px" onClick="{{hideToast}}">View</button></div>
+</sc-if>
+</div>
+</div>
+
+<div class="card">
+<h2><span class="ms">filter_alt</span>Chip select</h2>
+<p>The check grows in and the chip widens with a spring. Reduced: the check appears, nothing slides.</p>
+<div class="chips">
+<sc-for list="{{chips}}" as="ch" hint-placeholder-count="5">
+<button class="{{ch.cls}}" aria-pressed="{{ch.on}}" onClick="{{ch.toggle}}"><span class="ms ck">check</span>{{ch.label}}</button>
+</sc-for>
+</div>
+</div>
+
+<div class="card">
+<h2><span class="ms">progress_activity</span>Progress</h2>
+<p>Indeterminate bars sweep; reduced motion freezes the bar and adds the step text so the state never rides on motion.</p>
+<div class="prog"><i></i></div>
+<p style="font-family:'Roboto Mono',monospace;font-size:12px">Fetching origin · 412 of 1,024 objects</p>
+</div>
+</div>
+
+<div class="rm">
+<h2>The reduced-motion path, surface by surface</h2>
+<div class="rmi"><span class="ms">blur_on</span><div><b>Follows the system first.</b> The Windows animation setting and the app motion level combine; the calmer of the two wins.</div></div>
+<div class="rmi"><span class="ms">text_fields</span><div><b>State never rides on motion.</b> Every animated change also changes text, an icon or a colour role.</div></div>
+<div class="rmi"><span class="ms">schedule</span><div><b>Schedulable.</b> Motion level is an appearance value, so it can follow a schedule or Home Assistant like theme does.</div></div>
+<div class="rmi"><span class="ms">bolt</span><div><b>Never blocks input.</b> Clicks during an exit land on the next state; animations are interrupted, not queued.</div></div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+  constructor(p){super(p);this.state={lvl:'full',dark:false,go:0,dialog:false,commits:[{av:'AH',msg:'Tidy diff gutter',sha:'a8d2242'},{av:'SW',msg:'Add remote pages',sha:'74f2d95'},{av:'AH',msg:'Open folders directly',sha:'b92deb5'}],n:0,tab:0,prev:0,toast:false,chips:{New:true,Modified:true,Deleted:false,Staged:false,Ignored:false}};}
+  componentDidMount(){this.replay();}
+  replay=()=>{this.setState({go:0});setTimeout(()=>this.setState({go:1}),30);}
+  renderVals(){
+    const s=this.state;const msgs=['Spring the tab indicator','Polish the filter field','Fade the scrim','Animate list inserts','Calm the chips'];
+    const chips=Object.keys(s.chips).map(k=>({label:k,on:s.chips[k],cls:'chip'+(s.chips[k]?' on':''),toggle:()=>this.setState({chips:{...s.chips,[k]:!s.chips[k]}})}));
+    const texts=['8 changed files · 3 staged · summary ready','Last commit 4 minutes ago · 1,284 commits on main','12 local branches · 3 ahead of origin'];
+    const from=s.tab>=s.prev?'24px':'-24px';
+    return {
+      rootClass:(s.dark?'dark ':'')+(s.lvl==='calm'?'calm':s.lvl==='off'?'off':''),
+      isFull:s.lvl==='full',isCalm:s.lvl==='calm',isOff:s.lvl==='off',
+      fullCls:s.lvl==='full'?'on':'',calmCls:s.lvl==='calm'?'on':'',offCls:s.lvl==='off'?'on':'',
+      setFull:()=>{this.setState({lvl:'full'});this.replay();},setCalm:()=>{this.setState({lvl:'calm'});this.replay();},setOff:()=>{this.setState({lvl:'off'});this.replay();},
+      toggleDark:()=>this.setState({dark:!s.dark}),
+      goCls:s.go%2?'go':'',replay:this.replay,
+      dialogOpen:s.dialog,dialogClosed:!s.dialog,openDialog:()=>this.setState({dialog:true}),closeDialog:()=>this.setState({dialog:false}),
+      commits:s.commits.map((c,i)=>({...c,cls:'li'+(c.fresh&&i===0?' new':'')})),
+      addCommit:()=>{const m=msgs[s.n%msgs.length];const sha=Math.random().toString(16).slice(2,9);this.setState({n:s.n+1,commits:[{av:'SW',msg:m,sha:sha,fresh:true},...s.commits.map(c=>({...c,fresh:false}))].slice(0,4)});},
+      t0:'tab'+(s.tab===0?' on':''),t1:'tab'+(s.tab===1?' on':''),t2:'tab'+(s.tab===2?' on':''),
+      s0:s.tab===0,s1:s.tab===1,s2:s.tab===2,
+      tab0:()=>this.setState({prev:s.tab,tab:0}),tab1:()=>this.setState({prev:s.tab,tab:1}),tab2:()=>this.setState({prev:s.tab,tab:2}),
+      indX:(s.tab*100)+'%',panes:[{text:texts[s.tab],from:from,k:s.tab}],
+      toast:s.toast,push:()=>{this.setState({toast:false});setTimeout(()=>this.setState({toast:true}),20);clearTimeout(this._t);this._t=setTimeout(()=>this.setState({toast:false}),5000);},hideToast:()=>this.setState({toast:false}),
+      chips:chips
+    };
+  }
+}
+</script>
+</body>
+</html>

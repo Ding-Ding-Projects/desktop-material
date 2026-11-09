@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Base64 toolkit and screen recording</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;family=Material+Symbols+Rounded:opsz,wght,FILL@20..48,400,0..1&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#006493}a:hover{color:#004b70}
+.dm{--p:#006493;--onp:#fff;--pc:#c9e6ff;--onpc:#001e30;--sc:#d3e5f5;--onsc:#0c1d29;--bg:#f8f9ff;--s0:#fff;--s1:#f2f3f9;--s2:#eceef4;--s3:#e6e8ee;--s4:#e0e2e8;--on:#191c20;--onv:#41474d;--ol:#71787e;--olv:#c1c7ce;--ok:#1b7f37;--okc:#d2f2d8;--err:#ba1a1a;--errc:#ffdad6;--inv:#2e3135;--oninv:#eff1f7;
+--d-s:200ms;--d-m:300ms;--d-l:500ms;--e-emph:cubic-bezier(.2,0,0,1);--e-dec:cubic-bezier(.05,.7,.1,1);--e-spring:cubic-bezier(.38,1.21,.22,1);
+font-family:Roboto,'Segoe UI',system-ui,sans-serif;color:var(--on);background:var(--bg);min-height:960px}
+.dm.dark{--p:#8dcdff;--onp:#00344f;--pc:#004b70;--onpc:#c9e6ff;--sc:#394956;--onsc:#d3e5f5;--bg:#101418;--s0:#0b0f12;--s1:#181c20;--s2:#1c2024;--s3:#272a2f;--s4:#32353a;--on:#e0e2e8;--onv:#c1c7ce;--ol:#8b9198;--olv:#41474d;--ok:#7bd88f;--okc:#0f3d1c;--err:#ffb4ab;--errc:#93000a;--inv:#e0e2e8;--oninv:#2e3135}
+.ms{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 0,'wght' 400;display:inline-block;vertical-align:middle}
+.wrap{max-width:1240px;margin:0 auto;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:28px;font-weight:500}
+h2{margin:0;font-size:18px;font-weight:500;display:flex;align-items:center;gap:8px}
+.sub{margin:4px 0 0;font-size:14px;color:var(--onv);line-height:20px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.icon-btn{all:unset;cursor:pointer;width:40px;height:40px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--onv);transition:background var(--d-s),transform var(--d-m) var(--e-spring)}
+.icon-btn:hover{background:var(--s3)}.icon-btn:active{transform:scale(.9)}.icon-btn:focus-visible{outline:3px solid var(--p)}
+.btn{all:unset;cursor:pointer;height:40px;padding:0 18px;border-radius:999px;background:var(--p);color:var(--onp);font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px;transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring)}
+.btn:active{transform:scale(.96);border-radius:12px}.btn:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.btn.tonal{background:var(--sc);color:var(--onsc)}
+.cols{display:flex;flex-wrap:wrap;gap:16px;align-items:stretch}
+.card{background:var(--s1);border-radius:28px;padding:20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.seg{display:inline-flex;border:1px solid var(--ol);border-radius:999px;overflow:hidden;height:36px}
+.seg button{all:unset;cursor:pointer;padding:0 14px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;border-left:1px solid var(--ol);transition:background var(--d-m),color var(--d-m)}
+.seg button:first-child{border-left:0}.seg button.on{background:var(--sc);color:var(--onsc)}
+.seg button:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
+.io{display:grid;grid-template-columns:minmax(0,1fr) 48px minmax(0,1fr);gap:8px;align-items:stretch}
+@media (max-width:760px){.io{grid-template-columns:minmax(0,1fr)}}
+.ta{display:flex;flex-direction:column;gap:6px;min-width:0}
+.ta label{font-size:12px;font-weight:500;color:var(--onv)}
+.ta textarea{all:unset;box-sizing:border-box;height:150px;border-radius:16px;background:var(--s0);padding:12px;font-family:'Roboto Mono',monospace;font-size:13px;line-height:19px;white-space:pre-wrap;word-break:break-all;overflow:auto;box-shadow:inset 0 0 0 1px var(--olv);transition:box-shadow var(--d-m)}
+.ta textarea:focus{box-shadow:inset 0 0 0 2px var(--p)}
+.ta.bad textarea{box-shadow:inset 0 0 0 2px var(--err)}
+.swap{all:unset;cursor:pointer;align-self:center;justify-self:center;width:44px;height:44px;border-radius:14px;background:var(--pc);color:var(--onpc);display:flex;align-items:center;justify-content:center;transition:transform var(--d-l) var(--e-spring)}
+.swap.r{transform:rotate(180deg)}.swap:focus-visible{outline:3px solid var(--p)}
+.err{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--err);animation:pop var(--d-m) var(--e-spring)}
+@keyframes pop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.opts{display:flex;flex-wrap:wrap;gap:16px;font-size:13px;color:var(--onv);align-items:center}
+.opts label{display:flex;gap:6px;align-items:center}
+.drop{border:2px dashed var(--ol);border-radius:20px;padding:18px;display:flex;gap:14px;align-items:center;transition:background var(--d-m),border-color var(--d-m),transform var(--d-m) var(--e-spring)}
+.drop.hot{background:var(--pc);border-color:var(--p);transform:scale(1.01)}
+.drop b{font-size:14px;font-weight:500;display:block}.drop small{font-size:12px;color:var(--onv)}
+.job{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--s0);border-radius:16px;padding:12px}
+.job b{font-size:13px;font-weight:500;font-family:'Roboto Mono',monospace;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.job small{font-size:12px;color:var(--onv)}
+.prog{height:6px;border-radius:6px;background:var(--s3);overflow:hidden;margin-top:6px}
+.prog i{display:block;height:100%;background:var(--p);border-radius:6px;transition:width var(--d-l) var(--e-emph)}
+.ok{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--okc);color:var(--ok);font-size:11px;font-weight:700}
+.rec{flex:1 1 420px}
+.player{position:relative;border-radius:20px;overflow:hidden;background:#0b0f12;aspect-ratio:16/9}
+.win{position:absolute;inset:8% 6%;border-radius:12px;background:#f8f9ff;display:grid;grid-template-columns:22% minmax(0,1fr);gap:8px;padding:10px;box-sizing:border-box}
+.win i{display:block;border-radius:8px;background:#eceef4}
+.win .side{display:flex;flex-direction:column;gap:6px}.win .side i{height:14px}
+.win .main{display:flex;flex-direction:column;gap:6px}.win .main i{height:10px}
+.cur{position:absolute;width:14px;height:14px;border-radius:999px;background:#006493;box-shadow:0 0 0 4px rgba(0,100,147,.25);transition:left 900ms var(--e-emph),top 900ms var(--e-emph)}
+.pbar{position:absolute;left:12px;right:12px;bottom:10px;display:flex;align-items:center;gap:10px;color:#fff;font-size:12px;font-family:'Roboto Mono',monospace}
+.pbar .t{flex:1;height:4px;border-radius:4px;background:rgba(255,255,255,.3);overflow:hidden}
+.pbar .t i{display:block;height:100%;background:#8dcdff;transition:width 900ms linear}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.fact{background:var(--s0);border-radius:14px;padding:10px 12px;font-size:12px;color:var(--onv)}
+.fact b{display:block;font-size:13px;color:var(--on);font-weight:500;font-family:'Roboto Mono',monospace}
+</style>
+</helmet>
+<div class="dm {{rootClass}}">
+<div class="wrap">
+<div class="bar"><div style="flex:1"><h1>Tools</h1><p class="sub">Local tools that never leave this machine: a full Base64 toolkit, and the recorded walkthrough that ships with every release.</p></div><button class="icon-btn" onClick="{{toggleDark}}" aria-label="Switch light and dark"><span class="ms">contrast</span></button></div>
+<div class="cols">
+<div class="card" style="flex:999 1 560px">
+<div class="bar"><h2><span class="ms">data_object</span>Base64</h2><span style="flex:1"></span>
+<div class="seg" role="group" aria-label="Variant"><sc-for list="{{variants}}" as="v" hint-placeholder-count="3"><button class="{{v.cls}}" aria-pressed="{{v.on}}" onClick="{{v.pick}}">{{v.label}}</button></sc-for></div></div>
+<div class="io">
+<div class="ta"><label for="b64in">{{inLabel}}</label><textarea id="b64in" onInput="{{onIn}}">{{input}}</textarea></div>
+<button class="{{swapCls}}" onClick="{{swap}}" aria-label="Swap encode and decode"><span class="ms">swap_horiz</span></button>
+<div class="{{outCls}}"><label for="b64out">{{outLabel}}</label><textarea id="b64out" readonly="{{ true }}">{{output}}</textarea></div>
+</div>
+<sc-if value="{{hasErr}}" hint-placeholder-val="{{ false }}"><div class="err" role="alert"><span class="ms" style="font-size:18px">error</span>{{errText}}</div></sc-if>
+<div class="opts"><label><input type="checkbox" checked="{{pad}}" onChange="{{togglePad}}">Padding</label><label><input type="checkbox" checked="{{strict}}" onChange="{{toggleStrict}}">Strict decoding</label><span>Text encoding: UTF-8</span><span>{{lenInfo}}</span><span style="flex:1"></span><button class="btn tonal"><span class="ms">content_copy</span>Copy</button><button class="btn tonal"><span class="ms">link</span>Build data: URL</button></div>
+<div class="{{dropCls}}" onDragOver="{{hot}}" onDragLeave="{{cold}}" onDrop="{{dropped}}"><span class="ms" style="font-size:32px;color:var(--p)">upload_file</span><div><b>Drop a file to encode it beside itself</b><small>Writes name.ext.base64.txt next to the original. Drop that .txt back and the original returns, never overwriting.</small></div></div>
+<div class="job"><span class="ms">movie</span><div style="min-width:0"><b>release-walkthrough.mp4 → release-walkthrough.mp4.base64.txt</b><small>{{jobText}}</small><div class="prog"><i style="width:{{jobPct}}"></i></div></div><sc-if value="{{jobDone}}" hint-placeholder-val="{{ false }}"><span class="ok"><span class="ms" style="font-size:14px">verified</span>SHA-256 round trip matches</span></sc-if></div>
+</div>
+<div class="card rec">
+<h2><span class="ms">screen_record</span>Release walkthrough</h2>
+<p class="sub" style="margin:0;font-size:13px">Recorded from the built installer on a hidden desktop, never your screen. It follows one real path: clone, change, commit, push.</p>
+<div class="player" role="img" aria-label="Recorded walkthrough of the built app">
+<div class="win"><div class="side"><i></i><i></i><i style="background:#c9e6ff"></i><i></i></div><div class="main"><i style="width:60%;height:16px"></i><i></i><i></i><i style="width:80%"></i><i></i><i style="width:40%"></i></div></div>
+<span class="cur" style="left:{{cx}};top:{{cy}}"></span>
+<div class="pbar"><span class="ms" style="font-size:18px">{{playIcon}}</span><span class="t"><i style="width:{{playPct}}"></i></span>{{playTime}} / 1:12</div>
+</div>
+<div class="facts"><div class="fact"><b>v4.0.1347 · a8d2242</b>Recorded at this commit</div><div class="fact"><b>1920 × 1080 · 2.4 MB</b>Small enough for the README</div><div class="fact"><b>Step {{stepNo}} of 6</b>{{stepName}}</div><div class="fact"><b>Refreshed on UI change</b>The release fails if it is stale</div></div>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+  constructor(p){super(p);this.state={dark:false,mode:'enc',variant:0,pad:true,strict:true,input:'Desktop Material ships motion everywhere.',hot:false,job:0,t:0};}
+  componentDidMount(){this._i=setInterval(()=>{const s=this.state;this.setState({job:s.job>=100?100:s.job+7,t:(s.t+1)%72});},900);}
+  componentWillUnmount(){clearInterval(this._i);}
+  enc(t){const b=btoa(unescape(encodeURIComponent(t)));let r=b;if(this.state.variant===1)r=b.replace(/\+/g,'-').replace(/\//g,'_');if(!this.state.pad)r=r.replace(/=+$/,'');if(this.state.variant===2)r=r.replace(/(.{76})/g,'$1\n');return r;}
+  dec(t){let x=t.replace(/\s/g,'');if(this.state.variant===1)x=x.replace(/-/g,'+').replace(/_/g,'/');const bad=x.search(/[^A-Za-z0-9+/=]/);if(bad>=0)return {err:'Character "'+x[bad]+'" at offset '+bad+' is not Base64.'};if(this.state.strict&&x.length%4)return {err:'Length '+x.length+' is not a multiple of 4. Turn off strict decoding to accept missing padding.'};while(x.length%4)x+='=';try{return {out:decodeURIComponent(escape(atob(x)))};}catch(e){return {err:'Decoded bytes are not valid UTF-8 text. Save as a file instead.'};}}
+  renderVals(){
+    const s=this.state;const enc=s.mode==='enc';const r=enc?{out:this.enc(s.input)}:this.dec(s.input);
+    const pts=[['30%','40%'],['55%','30%'],['70%','62%'],['40%','70%'],['78%','24%'],['25%','28%']];const step=Math.floor(s.t/12);
+    const names=['Clone from GitHub','Edit a file','Review the diff','Write the summary','Commit','Push to origin'];
+    return {
+      rootClass:s.dark?'dark':'',toggleDark:()=>this.setState({dark:!s.dark}),
+      variants:['Standard','URL-safe','MIME'].map((l,i)=>({label:l,on:s.variant===i,cls:s.variant===i?'on':'',pick:()=>this.setState({variant:i})})),
+      inLabel:enc?'Text':'Base64',outLabel:enc?'Base64':'Text',input:s.input,onIn:e=>this.setState({input:e.target.value}),
+      output:r.out||'',hasErr:!!r.err,errText:r.err||'',outCls:'ta'+(r.err?' bad':''),
+      swapCls:'swap'+(enc?'':' r'),swap:()=>this.setState({mode:enc?'dec':'enc',input:r.out||s.input}),
+      pad:s.pad,strict:s.strict,togglePad:()=>this.setState({pad:!s.pad}),toggleStrict:()=>this.setState({strict:!s.strict}),
+      lenInfo:(enc?s.input.length+' chars → '+(r.out||'').length+' chars':''),
+      dropCls:'drop'+(s.hot?' hot':''),hot:e=>{e.preventDefault();this.setState({hot:true});},cold:()=>this.setState({hot:false}),dropped:e=>{e.preventDefault();this.setState({hot:false,job:0});},
+      jobPct:s.job+'%',jobDone:s.job>=100,jobText:s.job>=100?'Done · 2.4 MB in, 3.2 MB out':'Encoding · '+s.job+'% · pause or cancel any time',
+      cx:pts[step%6][0],cy:pts[step%6][1],playPct:(s.t/72*100)+'%',playTime:'0:'+String(s.t).padStart(2,'0'),playIcon:'pause',stepName:names[step%6],stepNo:(step%6)+1
+    };
+  }
+}
+</script>
+</body>
+</html>

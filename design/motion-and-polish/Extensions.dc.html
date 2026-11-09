@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Extension manager</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;family=Material+Symbols+Rounded:opsz,wght,FILL@20..48,400,0..1&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#006493}a:hover{color:#004b70}
+.dm{--p:#006493;--onp:#fff;--pc:#c9e6ff;--onpc:#001e30;--sc:#d3e5f5;--onsc:#0c1d29;--bg:#f8f9ff;--s0:#fff;--s1:#f2f3f9;--s2:#eceef4;--s3:#e6e8ee;--s4:#e0e2e8;--on:#191c20;--onv:#41474d;--ol:#71787e;--olv:#c1c7ce;--ok:#1b7f37;--okc:#d2f2d8;--am:#9a6700;--amc:#ffe9b8;--err:#ba1a1a;--errc:#ffdad6;--inv:#2e3135;--oninv:#eff1f7;
+--d-s:200ms;--d-m:300ms;--d-l:500ms;--e-emph:cubic-bezier(.2,0,0,1);--e-dec:cubic-bezier(.05,.7,.1,1);--e-spring:cubic-bezier(.38,1.21,.22,1);
+font-family:Roboto,'Segoe UI',system-ui,sans-serif;color:var(--on);background:var(--bg);min-height:960px;position:relative;overflow:hidden}
+.dm.dark{--p:#8dcdff;--onp:#00344f;--pc:#004b70;--onpc:#c9e6ff;--sc:#394956;--onsc:#d3e5f5;--bg:#101418;--s0:#0b0f12;--s1:#181c20;--s2:#1c2024;--s3:#272a2f;--s4:#32353a;--on:#e0e2e8;--onv:#c1c7ce;--ol:#8b9198;--olv:#41474d;--ok:#7bd88f;--okc:#0f3d1c;--am:#f5c26b;--amc:#4a3300;--err:#ffb4ab;--errc:#93000a;--inv:#e0e2e8;--oninv:#2e3135}
+.ms{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 0,'wght' 400;display:inline-block;vertical-align:middle}
+.wrap{max-width:1240px;margin:0 auto;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:28px;font-weight:500}
+.sub{margin:4px 0 0;font-size:14px;color:var(--onv);max-width:640px;line-height:20px}
+.icon-btn{all:unset;cursor:pointer;width:40px;height:40px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--onv);transition:background var(--d-s),transform var(--d-m) var(--e-spring)}
+.icon-btn:hover{background:var(--s3)}.icon-btn:active{transform:scale(.9)}.icon-btn:focus-visible{outline:3px solid var(--p)}
+.btn{all:unset;cursor:pointer;height:40px;padding:0 20px;border-radius:999px;background:var(--p);color:var(--onp);font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px;transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring)}
+.btn:active{transform:scale(.96);border-radius:12px}.btn:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.btn.tonal{background:var(--sc);color:var(--onsc)}.btn.text{background:transparent;color:var(--p);padding:0 12px}
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.search{flex:1 1 320px;display:flex;align-items:center;gap:8px;height:52px;border-radius:999px;background:var(--s3);padding:0 8px 0 18px;transition:box-shadow var(--d-m),background var(--d-m)}
+.search:focus-within{background:var(--s0);box-shadow:inset 0 0 0 2px var(--p)}
+.search input{all:unset;flex:1;font-size:15px}
+.rx{font-family:'Roboto Mono',monospace;font-size:13px;font-weight:500}
+.tabs{display:flex;gap:4px;background:var(--s2);border-radius:999px;padding:4px;position:relative}
+.tab{all:unset;cursor:pointer;height:40px;padding:0 16px;border-radius:999px;font-size:14px;font-weight:500;display:flex;align-items:center;gap:6px;z-index:1;transition:color var(--d-m)}
+.tab.on{color:var(--onsc)}.tab:focus-visible{outline:3px solid var(--p)}
+.tab .n{font-size:11px;background:var(--s4);border-radius:999px;padding:1px 6px}
+.thumb{position:absolute;top:4px;bottom:4px;border-radius:999px;background:var(--sc);transition:left var(--d-l) var(--e-spring),width var(--d-l) var(--e-spring)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.ext{all:unset;cursor:pointer;background:var(--s1);border-radius:24px;padding:16px;display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:14px;align-items:start;animation:cardIn var(--d-l) var(--e-dec) both;transition:background var(--d-s),transform var(--d-m) var(--e-spring),box-shadow var(--d-m)}
+.ext:hover{background:var(--s2);transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.08)}
+.ext:focus-visible{outline:3px solid var(--p)}
+@keyframes cardIn{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+.logo{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:var(--pc);color:var(--onpc)}
+.logo .ms{font-size:26px}
+.ext b{font-size:15px;font-weight:500;display:block}
+.ext p{margin:4px 0 8px;font-size:13px;line-height:18px;color:var(--onv)}
+.meta{display:flex;flex-wrap:wrap;gap:6px}
+.tag{height:22px;padding:0 8px;border-radius:6px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px;background:var(--s3);color:var(--onv)}
+.tag.ok{background:var(--okc);color:var(--ok)}.tag.am{background:var(--amc);color:var(--am)}
+.sw{all:unset;cursor:pointer;width:52px;height:32px;border-radius:999px;background:var(--s4);box-shadow:inset 0 0 0 2px var(--ol);position:relative;flex:none;transition:background var(--d-m),box-shadow var(--d-m)}
+.sw i{position:absolute;top:8px;left:8px;width:16px;height:16px;border-radius:999px;background:var(--ol);transition:left var(--d-m) var(--e-spring),width var(--d-m) var(--e-spring),height var(--d-m) var(--e-spring),top var(--d-m) var(--e-spring),background var(--d-m)}
+.sw.on{background:var(--p);box-shadow:none}.sw.on i{left:24px;top:4px;width:24px;height:24px;background:var(--onp)}
+.sw:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.32);animation:fade var(--d-m) var(--e-emph) both;z-index:5}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.sheet{position:absolute;top:0;right:0;bottom:0;width:440px;max-width:100%;background:var(--s1);border-radius:28px 0 0 28px;z-index:6;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px;animation:sheet var(--d-l) var(--e-spring) both;overflow:auto}
+@keyframes sheet{from{transform:translateX(104%)}to{transform:none}}
+.sheet h2{margin:0;font-size:22px;font-weight:500}
+.perm{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px;border-radius:16px;background:var(--s0);animation:cardIn var(--d-m) var(--e-dec) both}
+.perm b{font-size:14px;font-weight:500;display:block}.perm small{font-size:12px;color:var(--onv);line-height:16px;display:block}
+.code{font-family:'Roboto Mono',monospace;font-size:12px;line-height:18px;background:var(--s0);border-radius:16px;padding:14px;white-space:pre;overflow:auto;color:var(--onv)}
+.note{display:flex;gap:10px;font-size:12.5px;line-height:18px;color:var(--onv);background:var(--s2);border-radius:16px;padding:12px}
+</style>
+</helmet>
+<div class="dm {{rootClass}}">
+<div class="wrap">
+<div class="bar"><div style="flex:1;min-width:260px"><h1>Extensions</h1><p class="sub">Small out-of-process helpers that react to commits, pushes and diffs. Each one declares what it needs and runs only after you allow it. Tokens and passwords never reach an extension.</p></div>
+<button class="btn tonal"><span class="ms">folder_open</span>Install from folder</button><button class="icon-btn" onClick="{{toggleDark}}" aria-label="Switch light and dark"><span class="ms">contrast</span></button></div>
+<div class="bar">
+<div class="search"><span class="ms" style="color:var(--onv)">search</span><input placeholder="Search extensions" aria-label="Search extensions" value="{{q}}" onInput="{{onQ}}"><button class="icon-btn" aria-label="Regex builder"><span class="rx">.*</span></button></div>
+<div class="tabs" role="tablist"><i class="thumb" style="left:{{thumbL}};width:{{thumbW}}"></i>
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="3"><button class="{{t.cls}}" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}">{{t.label}}<span class="n">{{t.n}}</span></button></sc-for>
+</div>
+</div>
+<div class="grid">
+<sc-for list="{{exts}}" as="e" hint-placeholder-count="4">
+<div class="ext" style="animation-delay:{{e.d}}" role="group" aria-label="{{e.name}}">
+<span class="logo"><span class="ms">{{e.icon}}</span></span>
+<div style="min-width:0"><b>{{e.name}}</b><p>{{e.desc}}</p><div class="meta"><span class="{{e.srcCls}}">{{e.src}}</span><span class="tag"><span class="ms" style="font-size:14px">bolt</span>{{e.events}}</span><span class="tag">v{{e.v}}</span></div>
+<div style="margin-top:10px"><button class="btn text" onClick="{{e.open}}"><span class="ms">shield</span>Permissions</button></div></div>
+<button class="{{e.swCls}}" role="switch" aria-checked="{{e.on}}" aria-label="Enable {{e.name}}" onClick="{{e.toggle}}"><i></i></button>
+</div>
+</sc-for>
+</div>
+<div class="note"><span class="ms">description</span><div>Write your own: a <b>desktop-material-extension.json</b> manifest plus any program that reads JSON-RPC on stdin and writes replies on stdout. Node, Python, PowerShell or a compiled exe all work. The author guide ships in the offline docs with three samples.</div></div>
+</div>
+<sc-if value="{{sheetOpen}}" hint-placeholder-val="{{ false }}">
+<div class="scrim" onClick="{{closeSheet}}"></div>
+<div class="sheet" role="dialog" aria-label="Allow permissions">
+<div style="display:flex;align-items:center;gap:12px"><span class="logo"><span class="ms">{{cur.icon}}</span></span><div><h2>{{cur.name}}</h2><small style="color:var(--onv)">wants to</small></div><span style="flex:1"></span><button class="icon-btn" aria-label="Close" onClick="{{closeSheet}}"><span class="ms">close</span></button></div>
+<sc-for list="{{perms}}" as="p" hint-placeholder-count="3">
+<div class="perm" style="animation-delay:{{p.d}}"><span class="ms">{{p.icon}}</span><div><b>{{p.label}}</b><small>{{p.why}}</small></div><button class="{{p.swCls}}" role="switch" aria-checked="{{p.on}}" aria-label="{{p.label}}" onClick="{{p.toggle}}"><i></i></button></div>
+</sc-for>
+<div class="code">{{manifest}}</div>
+<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:auto"><button class="btn text" onClick="{{closeSheet}}">Not now</button><button class="btn" onClick="{{allow}}"><span class="ms">check</span>Allow and enable</button></div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+  constructor(p){super(p);this.state={dark:false,q:'',tab:0,sheet:-1,
+    exts:[{name:'Conventional commit check',icon:'rule',desc:'Checks the summary against type(scope): subject before you commit and suggests a fix.',src:'Built in',events:'before commit',v:'1.0.0',on:true,perms:{read:true,net:false,write:false}},
+    {name:'Large file guard',icon:'weight',desc:'Warns when a staged file is over your size limit and offers the large-file route instead.',src:'Built in',events:'before commit',v:'1.0.0',on:true,perms:{read:true,net:false,write:false}},
+    {name:'Issue key linker',icon:'link',desc:'Turns keys like DM-142 in commit messages and history into links to your tracker.',src:'Built in',events:'render history',v:'1.0.0',on:false,perms:{read:true,net:false,write:false}},
+    {name:'Release notes drafter',icon:'edit_document',desc:'Drafts release notes from commits since the last tag, grouped by type.',src:'Built in',events:'command',v:'1.0.0',on:false,perms:{read:true,net:false,write:true}},
+    {name:'Team chat ping',icon:'forum',desc:'Posts a short message to a webhook after a push to main.',src:'From folder',events:'after push',v:'0.3.1',on:false,perms:{read:true,net:true,write:false}}]};}
+  renderVals(){
+    const s=this.state;const tabs=['All','Enabled','Built in'];
+    let list=s.exts.map((e,i)=>({...e,i})).filter(e=>(e.name+e.desc).toLowerCase().includes(s.q.toLowerCase()));
+    if(s.tab===1)list=list.filter(e=>e.on);if(s.tab===2)list=list.filter(e=>e.src==='Built in');
+    const cur=s.sheet>=0?s.exts[s.sheet]:s.exts[0];
+    const pdef=[['read','folder_data','Read this repository','Files, diffs and commit messages in the open repository only.'],['write','edit','Write files in this repository','Changes show up in Changes like any edit, never auto-committed.'],['net','public','Use the network','Needed to post to a webhook. The address is shown before each send.']];
+    const setExt=(i,patch)=>this.setState({exts:s.exts.map((e,k)=>k===i?{...e,...patch}:e)});
+    return {
+      rootClass:s.dark?'dark':'',toggleDark:()=>this.setState({dark:!s.dark}),q:s.q,onQ:e=>this.setState({q:e.target.value}),
+      tabs:tabs.map((t,i)=>({label:t,n:[s.exts.length,s.exts.filter(e=>e.on).length,s.exts.filter(e=>e.src==='Built in').length][i],on:s.tab===i,cls:'tab'+(s.tab===i?' on':''),pick:()=>this.setState({tab:i})})),
+      thumbL:['4px','90px','202px'][s.tab],thumbW:['82px','108px','110px'][s.tab],
+      exts:list.map((e,j)=>({...e,d:(j*50)+'ms',srcCls:'tag'+(e.src==='Built in'?' ok':' am'),swCls:'sw'+(e.on?' on':''),toggle:()=>{if(!e.on&&e.src!=='Built in'){this.setState({sheet:e.i});return;}setExt(e.i,{on:!e.on});},open:()=>this.setState({sheet:e.i})})),
+      sheetOpen:s.sheet>=0,closeSheet:()=>this.setState({sheet:-1}),cur:cur,
+      perms:pdef.map((p,j)=>({icon:p[1],label:p[2],why:p[3],d:(j*60)+'ms',on:cur.perms[p[0]],swCls:'sw'+(cur.perms[p[0]]?' on':''),toggle:()=>setExt(s.sheet,{perms:{...cur.perms,[p[0]]:!cur.perms[p[0]]}})})),
+      manifest:'{\n  "manifestVersion": 1,\n  "id": "'+cur.name.toLowerCase().replace(/ /g,'-')+'",\n  "version": "'+cur.v+'",\n  "run": ["node", "index.js"],\n  "events": ["'+cur.events+'"],\n  "permissions": '+JSON.stringify(Object.keys(cur.perms).filter(k=>cur.perms[k]))+'\n}',
+      allow:()=>{setExt(s.sheet,{on:true});this.setState({sheet:-1});}
+    };
+  }
+}
+</script>
+</body>
+</html>

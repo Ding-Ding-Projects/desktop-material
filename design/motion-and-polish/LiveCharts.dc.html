@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Live charts</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;family=Material+Symbols+Rounded:opsz,wght,FILL@20..48,400,0..1&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#006493}a:hover{color:#004b70}
+.dm{--p:#006493;--onp:#fff;--pc:#c9e6ff;--onpc:#001e30;--sc:#d3e5f5;--onsc:#0c1d29;--bg:#f8f9ff;--s0:#fff;--s1:#f2f3f9;--s2:#eceef4;--s3:#e6e8ee;--s4:#e0e2e8;--on:#191c20;--onv:#41474d;--ol:#71787e;--olv:#c1c7ce;--ok:#1b7f37;--okc:#d2f2d8;--am:#9a6700;--amc:#ffe9b8;--inv:#2e3135;--oninv:#eff1f7;
+--d-s:200ms;--d-m:300ms;--d-l:500ms;--e-emph:cubic-bezier(.2,0,0,1);--e-spring:cubic-bezier(.38,1.21,.22,1);
+font-family:Roboto,'Segoe UI',system-ui,sans-serif;color:var(--on);background:var(--bg);min-height:960px}
+.dm.dark{--p:#8dcdff;--onp:#00344f;--pc:#004b70;--onpc:#c9e6ff;--sc:#394956;--onsc:#d3e5f5;--bg:#101418;--s0:#0b0f12;--s1:#181c20;--s2:#1c2024;--s3:#272a2f;--s4:#32353a;--on:#e0e2e8;--onv:#c1c7ce;--ol:#8b9198;--olv:#41474d;--ok:#7bd88f;--okc:#0f3d1c;--am:#f5c26b;--amc:#4a3300;--inv:#e0e2e8;--oninv:#2e3135}
+.dm.calm .ln,.dm.calm .fill{transition:none}.dm.calm .pulse{animation:none;opacity:0}
+.ms{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 0,'wght' 400;display:inline-block;vertical-align:middle}
+.wrap{max-width:1240px;margin:0 auto;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:28px;font-weight:500}
+.sub{margin:4px 0 0;font-size:14px;color:var(--onv);max-width:640px;line-height:20px}
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.icon-btn{all:unset;cursor:pointer;width:40px;height:40px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--onv);transition:background var(--d-s)}
+.icon-btn:hover{background:var(--s3)}.icon-btn:focus-visible{outline:3px solid var(--p)}
+.icon-btn.on{background:var(--sc);color:var(--onsc)}
+.card{background:var(--s1);border-radius:28px;padding:20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.big{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.big b{font-size:40px;font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+.big small{font-size:14px;color:var(--onv)}
+.live{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;background:var(--okc);color:var(--ok);font-size:12px;font-weight:700}
+.live.paused{background:var(--amc);color:var(--am)}
+.chart{position:relative;height:300px;border-radius:20px;background:var(--s0);outline:none;cursor:crosshair}
+.chart:focus-visible{box-shadow:0 0 0 3px var(--p)}
+.chart svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.ln{fill:none;stroke:var(--p);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;transition:d 900ms var(--e-emph)}
+.fill{transition:d 900ms var(--e-emph)}
+.grid line{stroke:var(--olv);stroke-width:1;stroke-dasharray:2 6}
+.ylab{position:absolute;right:12px;font-size:11px;color:var(--onv);font-family:'Roboto Mono',monospace;transition:top var(--d-l) var(--e-emph)}
+.dot{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:999px;background:var(--p);transition:left 900ms var(--e-emph),top 900ms var(--e-emph)}
+.pulse{position:absolute;inset:-8px;border-radius:999px;background:var(--p);opacity:.35;animation:pulse 1.6s ease-out infinite}
+@keyframes pulse{from{transform:scale(.4);opacity:.45}to{transform:scale(1.6);opacity:0}}
+.badge{position:absolute;transform:translate(14px,-50%);height:26px;padding:0 10px;border-radius:8px;background:var(--p);color:var(--onp);font-size:12px;font-weight:700;display:flex;align-items:center;font-family:'Roboto Mono',monospace;transition:left 900ms var(--e-emph),top 900ms var(--e-emph);white-space:nowrap}
+.hair{position:absolute;top:12px;bottom:12px;width:1px;background:var(--ol)}
+.tip{position:absolute;top:16px;transform:translateX(-50%);background:var(--inv);color:var(--oninv);border-radius:10px;padding:6px 10px;font-size:12px;white-space:nowrap;font-family:'Roboto Mono',monospace}
+.states{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:860px){.states{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.st{background:var(--s1);border-radius:20px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.st b{font-size:13px;font-weight:500;display:flex;align-items:center;gap:6px}
+.mini{height:72px;border-radius:14px;background:var(--s0);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--onv);text-align:center;padding:0 10px}
+.sk{position:absolute;left:10px;right:10px;height:10px;border-radius:6px;background:linear-gradient(90deg,var(--s3),var(--s2),var(--s3));background-size:200% 100%;animation:sk 1.2s linear infinite}
+@keyframes sk{to{background-position:-200% 0}}
+.sr{font-size:13px;line-height:19px;color:var(--onv);background:var(--s2);border-radius:16px;padding:12px 14px;display:flex;gap:10px}
+.kbd{font-family:'Roboto Mono',monospace;font-size:11px;padding:1px 5px;border:1px solid var(--olv);border-radius:5px;background:var(--s1)}
+</style>
+</helmet>
+<div class="dm {{rootClass}}">
+<div class="wrap">
+<div class="bar"><div style="flex:1;min-width:260px"><h1>Live charts</h1><p class="sub">Clone, fetch and push throughput, the local runner queue and repository size draw as live lines: easing, a pulsing live dot, a badge that follows the value and a crosshair you can scrub with the mouse or arrow keys.</p></div>
+<button class="{{calmBtn}}" onClick="{{toggleCalm}}" aria-label="Reduced motion preview" aria-pressed="{{calm}}"><span class="ms">motion_photos_off</span></button>
+<button class="icon-btn" onClick="{{toggleDark}}" aria-label="Switch light and dark"><span class="ms">contrast</span></button></div>
+<div class="card">
+<div class="bar"><div class="big"><b>{{now}}</b><small>MB/s fetch from origin</small></div><span class="{{liveCls}}"><span class="ms" style="font-size:14px">{{liveIcon}}</span>{{liveText}}</span><span style="flex:1"></span>
+<button class="icon-btn" onClick="{{togglePause}}" aria-label="{{pauseLabel}}"><span class="ms">{{pauseIcon}}</span></button></div>
+<div class="chart" tabindex="0" role="img" aria-label="{{summary}}" onMouseMove="{{onMove}}" onMouseLeave="{{onLeave}}" onKeyDown="{{onKey}}" onBlur="{{onLeave}}">
+<svg viewBox="0 0 1000 300" preserveAspectRatio="none" aria-hidden="true">
+<defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#006493" stop-opacity=".28"></stop><stop offset="1" stop-color="#006493" stop-opacity="0"></stop></linearGradient></defs>
+<g class="grid"><line x1="0" x2="1000" y1="60" y2="60"></line><line x1="0" x2="1000" y1="150" y2="150"></line><line x1="0" x2="1000" y1="240" y2="240"></line></g>
+<path class="fill" d="{{area}}" fill="url(#lg)"></path>
+<path class="ln" d="{{line}}"></path>
+</svg>
+<span class="ylab" style="top:52px">{{yTop}}</span><span class="ylab" style="top:142px">{{yMid}}</span><span class="ylab" style="top:232px">0</span>
+<div class="dot" style="left:{{dotX}};top:{{dotY}}"><span class="pulse"></span></div>
+<div class="badge" style="left:{{dotX}};top:{{dotY}}">{{now}}</div>
+<sc-if value="{{scrub}}" hint-placeholder-val="{{ false }}"><div class="hair" style="left:{{sx}}"></div><div class="tip" style="left:{{sx}}">{{sTime}} · {{sVal}} MB/s</div></sc-if>
+</div>
+<div class="sr"><span class="ms">record_voice_over</span><div>Screen reader summary: {{summary}} Use <span class="kbd">Left</span> and <span class="kbd">Right</span> to step through samples, <span class="kbd">Home</span> and <span class="kbd">End</span> for the first and last.</div></div>
+</div>
+<div class="states">
+<div class="st"><b><span class="ms" style="font-size:18px">hourglass_top</span>Loading</b><div class="mini"><span class="sk" style="top:20px"></span><span class="sk" style="top:40px;right:40%"></span></div></div>
+<div class="st"><b><span class="ms" style="font-size:18px">pause_circle</span>Paused</b><div class="mini">Paused at 14:02:51. The line holds its last real value.</div></div>
+<div class="st"><b><span class="ms" style="font-size:18px">show_chart</span>Empty</b><div class="mini">No fetch running. Start one and it draws here.</div></div>
+<div class="st"><b><span class="ms" style="font-size:18px">history_toggle_off</span>Stale</b><div class="mini">Last sample 2 minutes ago. Origin stopped answering.</div></div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+  constructor(p){super(p);const v=[];let x=8;for(let i=0;i<24;i++){x=Math.max(.5,x+(Math.sin(i*.7)*2.2)+(i%5===0?1.5:-.4));v.push(+x.toFixed(1));}this.state={dark:false,calm:false,paused:false,v:v,t0:Date.now(),scrub:-1,w:1000};}
+  componentDidMount(){this._i=setInterval(()=>{if(this.state.paused)return;const v=this.state.v.slice(1);const last=v[v.length-1];v.push(+Math.max(.6,Math.min(19,last+(Math.random()-.45)*3)).toFixed(1));this.setState({v:v,t0:this.state.t0+1000});},1000);}
+  componentWillUnmount(){clearInterval(this._i);}
+  renderVals(){
+    const s=this.state;const n=s.v.length;const max=Math.max(...s.v)*1.2;const top=Math.ceil(max/5)*5;
+    const X=i=>i*(1000/(n-1));const Y=v=>240-(v/top)*180;
+    let d='M'+X(0)+','+Y(s.v[0]);for(let i=1;i<n;i++){const xm=(X(i-1)+X(i))/2;d+=' C'+xm+','+Y(s.v[i-1])+' '+xm+','+Y(s.v[i])+' '+X(i)+','+Y(s.v[i]);}
+    const now=s.v[n-1];const time=k=>{const t=new Date(s.t0-(n-1-k)*1000);return t.toTimeString().slice(0,8);};
+    const sc=s.scrub;
+    return {
+      rootClass:(s.dark?'dark ':'')+(s.calm?'calm':''),toggleDark:()=>this.setState({dark:!s.dark}),calm:s.calm,calmBtn:'icon-btn'+(s.calm?' on':''),toggleCalm:()=>this.setState({calm:!s.calm}),
+      line:d,area:d+' L1000,300 L0,300 Z',now:now.toFixed(1),yTop:(top*180/180).toFixed(0)+' MB/s',yMid:(top/2).toFixed(0),
+      dotX:'calc('+(X(n-1)/10)+'% )',dotY:(Y(now))+'px',
+      liveCls:'live'+(s.paused?' paused':''),liveIcon:s.paused?'pause':'fiber_manual_record',liveText:s.paused?'Paused':'Live · sample data',
+      togglePause:()=>this.setState({paused:!s.paused}),pauseLabel:s.paused?'Resume':'Pause',pauseIcon:s.paused?'play_arrow':'pause',
+      summary:'Fetch throughput over the last '+n+' seconds, from '+Math.min(...s.v).toFixed(1)+' to '+Math.max(...s.v).toFixed(1)+' MB/s, now '+now.toFixed(1)+' MB/s.',
+      scrub:sc>=0,sx:sc>=0?(X(sc)/10)+'%':'0',sTime:sc>=0?time(sc):'',sVal:sc>=0?s.v[sc].toFixed(1):'',
+      onMove:e=>{const r=e.currentTarget.getBoundingClientRect();const k=Math.round(((e.clientX-r.left)/r.width)*(n-1));this.setState({scrub:Math.max(0,Math.min(n-1,k))});},
+      onLeave:()=>this.setState({scrub:-1}),
+      onKey:e=>{let k=s.scrub<0?n-1:s.scrub;if(e.key==='ArrowLeft')k--;else if(e.key==='ArrowRight')k++;else if(e.key==='Home')k=0;else if(e.key==='End')k=n-1;else return;e.preventDefault();this.setState({scrub:Math.max(0,Math.min(n-1,k))});}
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Workspace glow-up</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;family=Material+Symbols+Rounded:opsz,wght,FILL@20..48,400,0..1&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#006493}a:hover{color:#004b70}
+.dm{--p:#006493;--onp:#fff;--pc:#c9e6ff;--onpc:#001e30;--sc:#d3e5f5;--onsc:#0c1d29;--bg:#f8f9ff;--s0:#fff;--s1:#f2f3f9;--s2:#eceef4;--s3:#e6e8ee;--s4:#e0e2e8;--on:#191c20;--onv:#41474d;--ol:#71787e;--olv:#c1c7ce;--ok:#1b7f37;--okc:#d2f2d8;--am:#9a6700;--amc:#ffe9b8;--err:#ba1a1a;--errc:#ffdad6;--inv:#2e3135;--oninv:#eff1f7;
+--d-s:200ms;--d-m:300ms;--d-l:500ms;--e-emph:cubic-bezier(.2,0,0,1);--e-dec:cubic-bezier(.05,.7,.1,1);--e-spring:cubic-bezier(.38,1.21,.22,1);
+font-family:Roboto,'Segoe UI',system-ui,sans-serif;color:var(--on);background:var(--bg);min-height:960px}
+.dm.dark{--p:#8dcdff;--onp:#00344f;--pc:#004b70;--onpc:#c9e6ff;--sc:#394956;--onsc:#d3e5f5;--bg:#101418;--s0:#0b0f12;--s1:#181c20;--s2:#1c2024;--s3:#272a2f;--s4:#32353a;--on:#e0e2e8;--onv:#c1c7ce;--ol:#8b9198;--olv:#41474d;--ok:#7bd88f;--okc:#0f3d1c;--am:#f5c26b;--amc:#4a3300;--err:#ffb4ab;--errc:#93000a;--inv:#e0e2e8;--oninv:#2e3135}
+.ms{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 0,'wght' 400;display:inline-block;vertical-align:middle}
+.ms.f{font-variation-settings:'FILL' 1,'wght' 400}
+.wrap{max-width:1240px;margin:0 auto;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px}
+.head{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.pill{display:flex;align-items:center;gap:12px;height:56px;padding:0 16px 0 8px;border-radius:20px;background:var(--s1);min-width:220px;transition:background var(--d-s) var(--e-emph),transform var(--d-m) var(--e-spring),box-shadow var(--d-m) var(--e-emph)}
+.pill:hover{background:var(--s2);box-shadow:0 2px 8px rgba(0,0,0,.08);transform:translateY(-1px)}
+.pill .ic{width:40px;height:40px;border-radius:12px;background:var(--pc);color:var(--onpc);display:flex;align-items:center;justify-content:center}
+.pill small{display:block;font-size:12px;color:var(--onv)}.pill b{font-size:15px;font-weight:500}
+.cols{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.side{flex:1 1 380px;min-width:0;background:var(--s1);border-radius:28px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.main{flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:16px}
+.title{display:flex;align-items:center;gap:10px}
+.title h2{margin:0;font-size:22px;font-weight:500}
+.count{min-width:24px;height:24px;padding:0 8px;box-sizing:border-box;border-radius:999px;background:var(--pc);color:var(--onpc);font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;animation:pop var(--d-l) var(--e-spring)}
+@keyframes pop{0%{transform:scale(.5)}70%{transform:scale(1.12)}100%{transform:none}}
+.icon-btn{all:unset;cursor:pointer;width:40px;height:40px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--onv);transition:background var(--d-s) var(--e-emph),transform var(--d-m) var(--e-spring),color var(--d-s)}
+.icon-btn:hover{background:var(--s3)}.icon-btn:active{transform:scale(.88)}
+.icon-btn.on{background:var(--sc);color:var(--onsc)}
+.icon-btn:focus-visible{outline:3px solid var(--p)}
+.icon-btn.sm{width:28px;height:28px}.icon-btn.sm .ms{font-size:18px}
+.field{position:relative;height:52px;border-radius:16px;background:var(--s3);display:flex;align-items:center;gap:8px;padding:0 8px 0 14px;box-shadow:inset 0 0 0 1px transparent;transition:box-shadow var(--d-m) var(--e-emph),background var(--d-m) var(--e-emph)}
+.field:focus-within{background:var(--s0);box-shadow:inset 0 0 0 2px var(--p)}
+.field input{all:unset;flex:1;min-width:0;font-size:15px;color:var(--on);padding-top:12px}
+.field label{position:absolute;left:46px;top:16px;font-size:15px;color:var(--onv);pointer-events:none;transform-origin:left top;transition:transform var(--d-m) var(--e-emph),color var(--d-m) var(--e-emph)}
+.field:focus-within label,.field.has label{transform:translateY(-10px) scale(.75);color:var(--p)}
+.field .rx{font-family:'Roboto Mono',monospace;font-size:13px;font-weight:500}
+.filters{display:grid;grid-template-rows:0fr;transition:grid-template-rows var(--d-l) var(--e-spring)}
+.filters.open{grid-template-rows:1fr}
+.filters>div{overflow:hidden}
+.fin{display:flex;flex-wrap:wrap;gap:8px;padding:2px 0 4px}
+.chip{all:unset;cursor:pointer;height:32px;padding:0 10px 0 12px;border-radius:8px;border:1px solid var(--ol);display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;transition:background var(--d-m) var(--e-emph),border-color var(--d-m),padding var(--d-m) var(--e-spring)}
+.chip.on{background:var(--sc);border-color:var(--sc);color:var(--onsc);padding-left:8px}
+.chip .ck{width:0;overflow:hidden;transition:width var(--d-m) var(--e-spring)}
+.chip.on .ck{width:18px}
+.chip .n{font-size:11px;font-weight:700;color:var(--onv);background:var(--s4);border-radius:999px;padding:1px 6px}
+.chip.on .n{background:var(--s0)}
+.chip:focus-visible{outline:3px solid var(--p)}
+.stats{display:flex;gap:6px;height:8px;border-radius:8px;overflow:hidden}
+.stats i{display:block;height:100%;transition:flex-grow var(--d-l) var(--e-spring)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--onv)}
+.legend span{display:inline-flex;align-items:center;gap:6px}.legend i{width:8px;height:8px;border-radius:8px;display:inline-block}
+.files{display:flex;flex-direction:column;gap:2px;background:var(--s0);border-radius:20px;padding:6px}
+.file{display:flex;align-items:center;gap:10px;height:40px;padding:0 6px 0 8px;border-radius:12px;font-size:13px;transition:background var(--d-s) var(--e-emph);animation:rowIn var(--d-l) var(--e-dec) both}
+.file:hover{background:var(--s2)}
+.file.sel{background:var(--pc);color:var(--onpc)}
+@keyframes rowIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
+.cb{all:unset;cursor:pointer;width:18px;height:18px;border-radius:4px;border:2px solid var(--onv);display:flex;align-items:center;justify-content:center;flex:none;transition:background var(--d-s) var(--e-emph),border-color var(--d-s)}
+.cb .ms{font-size:16px;color:var(--onp);transform:scale(0);transition:transform var(--d-m) var(--e-spring);font-variation-settings:'wght' 700}
+.cb.on{background:var(--p);border-color:var(--p)}.cb.on .ms{transform:scale(1)}
+.cb:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.path{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Roboto Mono',monospace;font-size:12.5px}
+.path span{color:var(--onv)}
+.st{width:22px;height:22px;border-radius:7px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+.st.M{background:var(--amc);color:var(--am)}.st.A{background:var(--okc);color:var(--ok)}.st.D{background:var(--errc);color:var(--err)}
+.commit{background:var(--s0);border-radius:20px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.btn{all:unset;cursor:pointer;height:44px;padding:0 20px;border-radius:999px;background:var(--p);color:var(--onp);font-size:14px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring),box-shadow var(--d-s)}
+.btn:hover{box-shadow:0 1px 3px rgba(0,0,0,.25)}.btn:active{transform:scale(.97);border-radius:14px}
+.btn:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.btn[disabled]{background:color-mix(in srgb,var(--on) 12%,transparent);color:color-mix(in srgb,var(--on) 38%,transparent);cursor:default}
+.hist{background:var(--s1);border-radius:28px;padding:16px;display:flex;flex-direction:column;gap:4px}
+.hrow{all:unset;cursor:pointer;display:grid;grid-template-columns:32px minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;border-radius:16px;transition:background var(--d-s) var(--e-emph),transform var(--d-m) var(--e-spring)}
+.hrow:hover{background:var(--s2);transform:translateX(2px)}
+.hrow.on{background:var(--sc);color:var(--onsc)}
+.hrow:focus-visible{outline:3px solid var(--p)}
+.hrow .av{width:32px;height:32px;border-radius:999px;background:var(--pc);color:var(--onpc);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.hrow b{display:block;font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hrow small{font-size:12px;color:var(--onv)}
+.hrow .sha{font-family:'Roboto Mono',monospace;font-size:12px;color:var(--onv);display:flex;align-items:center;gap:6px}
+.tag{height:20px;padding:0 8px;border-radius:6px;background:var(--okc);color:var(--ok);font-size:11px;font-weight:700;display:inline-flex;align-items:center}
+.tip{position:relative}
+.bubble{position:absolute;right:0;top:34px;width:260px;background:var(--inv);color:var(--oninv);border-radius:12px;padding:12px;font-size:12px;line-height:17px;z-index:3;box-shadow:0 6px 20px rgba(0,0,0,.22);transform-origin:top right;animation:tipIn var(--d-m) var(--e-spring) both}
+.bubble b{display:block;font-size:13px;margin-bottom:4px}
+@keyframes tipIn{from{opacity:0;transform:scale(.85) translateY(-6px)}to{opacity:1;transform:none}}
+.sec{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:var(--onv)}
+</style>
+</helmet>
+<div class="dm {{rootClass}}">
+<div class="wrap">
+<div class="head">
+<div class="pill"><span class="ic"><span class="ms">book_2</span></span><div><small>Current repository</small><b>desktop-material</b></div></div>
+<div class="pill"><span class="ic"><span class="ms">alt_route</span></span><div><small>Current branch</small><b>material-shell</b></div></div>
+<span style="flex:1"></span>
+<button class="icon-btn" onClick="{{toggleDark}}" aria-label="Switch light and dark"><span class="ms">contrast</span></button>
+</div>
+<div class="cols">
+<div class="side">
+<div class="title"><h2>Changes</h2><span class="count">{{shown}}</span><span style="flex:1"></span>
+<div class="tip"><button class="icon-btn sm" aria-label="About the changes list" aria-expanded="{{tipOpen}}" onClick="{{toggleTip}}"><span class="ms">info</span></button>
+<sc-if value="{{tipOpen}}" hint-placeholder-val="{{ false }}"><div class="bubble" role="note"><b>Changes</b>Files that differ from the last commit. Ticked files go into the next commit; untick one to leave it for later. Right-click any row for discard, ignore and open-in actions.</div></sc-if>
+</div>
+</div>
+<div class="{{fieldCls}}">
+<span class="ms" style="color:var(--onv)">search</span>
+<label for="flt">Filter changed files</label>
+<input id="flt" value="{{query}}" onInput="{{onQuery}}">
+<button class="icon-btn sm" aria-label="Regex builder"><span class="rx">.*</span></button>
+<button class="{{tuneCls}}" aria-label="Show filters and statistics" aria-expanded="{{filtersOpen}}" onClick="{{toggleFilters}}"><span class="ms">tune</span></button>
+</div>
+<div class="{{filtersCls}}"><div>
+<div class="fin">
+<sc-for list="{{chips}}" as="ch" hint-placeholder-count="3">
+<button class="{{ch.cls}}" aria-pressed="{{ch.on}}" onClick="{{ch.toggle}}"><span class="ms ck">check</span>{{ch.label}}<span class="n">{{ch.n}}</span></button>
+</sc-for>
+</div>
+<div class="stats" aria-hidden="true"><i style="flex-grow:{{gM}};background:var(--am)"></i><i style="flex-grow:{{gA}};background:var(--ok)"></i><i style="flex-grow:{{gD}};background:var(--err)"></i></div>
+<div class="legend" style="margin-top:8px"><span><i style="background:var(--am)"></i>Modified 4</span><span><i style="background:var(--ok)"></i>New 3</span><span><i style="background:var(--err)"></i>Deleted 1</span><span>+182 / −47 lines</span></div>
+</div></div>
+<div class="sec"><button class="{{allCls}}" aria-label="Include all files" onClick="{{toggleAll}}"><span class="ms">check</span></button>{{shown}} changed files · {{ticked}} in commit</div>
+<div class="files" role="listbox" aria-label="Changed files">
+<sc-for list="{{files}}" as="f" hint-placeholder-count="6">
+<div class="{{f.cls}}" style="animation-delay:{{f.delay}}" role="option" aria-selected="{{f.sel}}" onClick="{{f.pick}}">
+<button class="{{f.cbCls}}" aria-label="Include in commit" onClick="{{f.tick}}"><span class="ms">check</span></button>
+<span class="path"><span>{{f.dir}}</span>{{f.name}}</span>
+<span class="{{f.stCls}}">{{f.st}}</span>
+</div>
+</sc-for>
+</div>
+<div class="commit">
+<div class="field has" style="height:48px"><span class="ms" style="color:var(--onv)">edit</span><label>Summary</label><input value="Polish lists and fields"></div>
+<button class="btn"><span class="ms">commit</span>Commit {{ticked}} files to material-shell</button>
+</div>
+</div>
+<div class="main">
+<div class="hist">
+<div class="title" style="padding:4px 8px 8px"><h2>History</h2><span style="flex:1"></span><button class="icon-btn" aria-label="Filter history"><span class="ms">filter_list</span></button></div>
+<sc-for list="{{hist}}" as="h" hint-placeholder-count="6">
+<button class="{{h.cls}}" onClick="{{h.pick}}" aria-pressed="{{h.on}}">
+<span class="av">{{h.av}}</span>
+<span style="min-width:0"><b>{{h.msg}}</b><small>{{h.who}} · {{h.when}}</small></span>
+<span class="sha"><sc-if value="{{h.tagged}}" hint-placeholder-val="{{ false }}"><span class="tag">{{h.tag}}</span></sc-if>{{h.sha}}</span>
+</button>
+</sc-for>
+</div>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+  constructor(p){super(p);this.state={dark:false,q:'',tip:false,filters:true,chips:{Modified:true,New:true,Deleted:true},sel:1,hsel:0,
+    files:[{dir:'app/styles/',name:'_material.scss',st:'M',t:true},{dir:'app/styles/ui/',name:'_list.scss',st:'M',t:true},{dir:'app/styles/ui/',name:'_text-box.scss',st:'M',t:true},{dir:'app/styles/material/',name:'_transitions.scss',st:'A',t:true},{dir:'app/src/ui/lib/',name:'motion.ts',st:'A',t:false},{dir:'app/src/ui/lib/',name:'motion-level.tsx',st:'A',t:true},{dir:'app/styles/ui/',name:'_popup.scss',st:'M',t:true},{dir:'app/styles/ui/',name:'_legacy-fade.scss',st:'D',t:false}]};}
+  renderVals(){
+    const s=this.state;const kind={M:'Modified',A:'New',D:'Deleted'};
+    const vis=s.files.map((f,i)=>({...f,i})).filter(f=>s.chips[kind[f.st]]&&(f.dir+f.name).toLowerCase().includes(s.q.toLowerCase()));
+    const cnt=k=>s.files.filter(f=>kind[f.st]===k).length;
+    const hist=[{av:'SW',msg:'Regenerate the docs bundle and hub',who:'Sam',when:'12 minutes ago',sha:'a8d2242',tag:'v4.0.1347'},{av:'AH',msg:'Open folders as repositories directly',who:'Alex',when:'1 hour ago',sha:'b92deb5'},{av:'SW',msg:'Repository pages for every remote',who:'Sam',when:'3 hours ago',sha:'74f2d95'},{av:'AH',msg:'Fix diff gutter rounding at 125% scale',who:'Alex',when:'yesterday',sha:'fa629d4'},{av:'SW',msg:'Settings: schedule motion with theme',who:'Sam',when:'2 days ago',sha:'cc4c89c',tag:'v4.0.1341'},{av:'AH',msg:'Single-flight push and fetch',who:'Alex',when:'3 days ago',sha:'ea345cc'}];
+    return {
+      rootClass:s.dark?'dark':'',toggleDark:()=>this.setState({dark:!s.dark}),
+      tipOpen:s.tip,toggleTip:()=>this.setState({tip:!s.tip}),
+      query:s.q,onQuery:e=>this.setState({q:e.target.value}),fieldCls:'field'+(s.q?' has':''),
+      filtersOpen:s.filters,toggleFilters:()=>this.setState({filters:!s.filters}),filtersCls:'filters'+(s.filters?' open':''),tuneCls:'icon-btn sm'+(s.filters?' on':''),
+      chips:Object.keys(s.chips).map(k=>({label:k,n:cnt(k),on:s.chips[k],cls:'chip'+(s.chips[k]?' on':''),toggle:()=>this.setState({chips:{...s.chips,[k]:!s.chips[k]}})})),
+      gM:s.chips.Modified?4:0,gA:s.chips.New?3:0,gD:s.chips.Deleted?1:0,
+      shown:vis.length,ticked:vis.filter(f=>f.t).length,
+      allCls:'cb'+(vis.length&&vis.every(f=>f.t)?' on':''),toggleAll:()=>{const all=vis.every(f=>f.t);this.setState({files:s.files.map(f=>vis.find(v=>v.name===f.name)?{...f,t:!all}:f)});},
+      files:vis.map((f,j)=>({...f,delay:(j*40)+'ms',sel:s.sel===f.i,cls:'file'+(s.sel===f.i?' sel':''),cbCls:'cb'+(f.t?' on':''),stCls:'st '+f.st,pick:()=>this.setState({sel:f.i}),tick:e=>{e.stopPropagation();this.setState({files:s.files.map((x,k)=>k===f.i?{...x,t:!x.t}:x)});}})),
+      hist:hist.map((h,i)=>({...h,tagged:!!h.tag,on:s.hsel===i,cls:'hrow'+(s.hsel===i?' on':''),pick:()=>this.setState({hsel:i})}))
+    };
+  }
+}
+</script>
+</body>
+</html>

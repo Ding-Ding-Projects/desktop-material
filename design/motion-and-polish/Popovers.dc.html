@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Popovers, context menus and super confirmation</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;family=Material+Symbols+Rounded:opsz,wght,FILL@20..48,400,0..1&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#006493}a:hover{color:#004b70}
+.dm{--p:#006493;--onp:#fff;--pc:#c9e6ff;--onpc:#001e30;--sc:#d3e5f5;--onsc:#0c1d29;--bg:#f8f9ff;--s0:#fff;--s1:#f2f3f9;--s2:#eceef4;--s3:#e6e8ee;--s4:#e0e2e8;--on:#191c20;--onv:#41474d;--ol:#71787e;--olv:#c1c7ce;--ok:#1b7f37;--okc:#d2f2d8;--err:#ba1a1a;--onerr:#fff;--errc:#ffdad6;--onerrc:#410002;--inv:#2e3135;--oninv:#eff1f7;
+--d-s:200ms;--d-m:300ms;--d-l:500ms;--e-emph:cubic-bezier(.2,0,0,1);--e-dec:cubic-bezier(.05,.7,.1,1);--e-spring:cubic-bezier(.38,1.21,.22,1);
+font-family:Roboto,'Segoe UI',system-ui,sans-serif;color:var(--on);background:var(--bg);min-height:960px}
+.dm.dark{--p:#8dcdff;--onp:#00344f;--pc:#004b70;--onpc:#c9e6ff;--sc:#394956;--onsc:#d3e5f5;--bg:#101418;--s0:#0b0f12;--s1:#181c20;--s2:#1c2024;--s3:#272a2f;--s4:#32353a;--on:#e0e2e8;--onv:#c1c7ce;--ol:#8b9198;--olv:#41474d;--ok:#7bd88f;--okc:#0f3d1c;--err:#ffb4ab;--onerr:#690005;--errc:#93000a;--onerrc:#ffdad6;--inv:#e0e2e8;--oninv:#2e3135}
+.ms{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 0,'wght' 400;display:inline-block;vertical-align:middle}
+.wrap{max-width:1240px;margin:0 auto;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--s1);border-radius:28px;padding:20px;display:flex;flex-direction:column;gap:12px;min-height:380px;position:relative;min-width:0}
+.card h2{margin:0;font-size:18px;font-weight:500;display:flex;align-items:center;gap:8px}
+.card p{margin:0;font-size:13px;line-height:18px;color:var(--onv)}
+.btn{all:unset;cursor:pointer;height:40px;padding:0 20px;border-radius:999px;background:var(--p);color:var(--onp);font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px;transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring),box-shadow var(--d-s),background var(--d-m)}
+.btn:active{transform:scale(.96);border-radius:12px}
+.btn:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.btn.text{background:transparent;color:var(--p)}
+.btn.err{background:var(--err);color:var(--onerr)}
+.btn[disabled]{background:color-mix(in srgb,var(--on) 12%,transparent);color:color-mix(in srgb,var(--on) 38%,transparent);cursor:default;transform:none}
+.icon-btn{all:unset;cursor:pointer;width:40px;height:40px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--onv);transition:background var(--d-s)}
+.icon-btn:hover{background:var(--s3)}.icon-btn:focus-visible{outline:3px solid var(--p)}
+.anchor{all:unset;cursor:pointer;display:flex;align-items:center;gap:12px;height:56px;padding:0 12px 0 8px;border-radius:20px;background:var(--s0);transition:background var(--d-s),box-shadow var(--d-m)}
+.anchor:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.anchor:focus-visible{outline:3px solid var(--p)}
+.anchor .ic{width:40px;height:40px;border-radius:12px;background:var(--pc);color:var(--onpc);display:flex;align-items:center;justify-content:center}
+.anchor small{display:block;font-size:12px;color:var(--onv)}.anchor b{font-size:15px;font-weight:500}
+.anchor .chev{margin-left:auto;transition:transform var(--d-m) var(--e-spring)}
+.anchor.open .chev{transform:rotate(180deg)}
+.pop{position:absolute;left:20px;right:20px;top:150px;background:var(--s2);border-radius:20px;box-shadow:0 8px 28px rgba(0,0,0,.18);padding:8px;transform-origin:top left;animation:popIn var(--d-l) var(--e-spring) both;z-index:4}
+@keyframes popIn{from{opacity:0;transform:scale(.9) translateY(-10px)}to{opacity:1;transform:none}}
+.pf{display:flex;align-items:center;gap:8px;height:44px;border-radius:12px;background:var(--s0);padding:0 12px;margin-bottom:6px}
+.pf input{all:unset;flex:1;font-size:14px}
+.grp{font-size:12px;font-weight:500;color:var(--onv);padding:8px 12px 4px}
+.opt{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;height:40px;padding:0 12px;border-radius:12px;font-size:14px;width:calc(100% - 24px);animation:optIn var(--d-m) var(--e-dec) both;transition:background var(--d-s)}
+.opt:hover{background:var(--s4)}.opt.on{background:var(--sc);color:var(--onsc)}
+.opt:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
+.opt small{margin-left:auto;font-size:12px;color:var(--onv)}
+@keyframes optIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.row{display:flex;align-items:center;gap:10px;height:44px;padding:0 12px;border-radius:12px;background:var(--s0);font-family:'Roboto Mono',monospace;font-size:12.5px;cursor:context-menu;user-select:none;transition:background var(--d-s)}
+.row.on{background:var(--pc);color:var(--onpc)}
+.menu{position:absolute;width:280px;background:var(--s2);border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.2);padding:6px 0;transform-origin:top left;animation:menuIn var(--d-m) var(--e-spring) both;z-index:5}
+@keyframes menuIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+.mi{all:unset;cursor:pointer;display:flex;align-items:center;gap:12px;height:40px;padding:0 14px;font-size:14px;width:calc(100% - 28px);animation:optIn var(--d-m) var(--e-dec) both;transition:background var(--d-s)}
+.mi:hover{background:var(--s4)}
+.mi:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
+.mi.danger{color:var(--err)}
+.kbd{margin-left:auto;display:flex;gap:3px}
+.kbd span{font-family:'Roboto Mono',monospace;font-size:11px;min-width:18px;height:20px;padding:0 5px;box-sizing:border-box;border-radius:5px;border:1px solid var(--olv);background:var(--s1);display:inline-flex;align-items:center;justify-content:center;color:var(--onv)}
+.sep{height:1px;background:var(--olv);margin:6px 0}
+.banner{display:grid;grid-template-rows:0fr;transition:grid-template-rows var(--d-l) var(--e-spring)}
+.banner.open{grid-template-rows:1fr}
+.banner>div{overflow:hidden}
+.bn{display:flex;gap:12px;align-items:flex-start;background:var(--errc);color:var(--onerrc);border-radius:16px;padding:14px 16px;font-size:13px;line-height:18px}
+.bn b{display:block;font-size:14px;margin-bottom:2px}
+.bn .acts{display:flex;gap:4px;margin-top:8px}
+.bn .btn{height:32px;padding:0 14px;font-size:13px}
+.shake{animation:shake 420ms var(--e-emph)}
+@keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:12px;font-weight:500;color:var(--onv)}
+.field input{all:unset;height:48px;border-radius:12px;background:var(--s0);padding:0 14px;font-family:'Roboto Mono',monospace;font-size:14px;box-shadow:inset 0 0 0 1px var(--ol);transition:box-shadow var(--d-m) var(--e-emph)}
+.field input:focus{box-shadow:inset 0 0 0 2px var(--p)}
+.field.ok input{box-shadow:inset 0 0 0 2px var(--ok)}
+.keys{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--onv)}
+.key{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px;border-radius:8px;border:1px solid var(--olv);background:var(--s0);font-weight:500;transition:background var(--d-s),color var(--d-s),border-color var(--d-s)}
+.key.on{background:var(--ok);color:#fff;border-color:var(--ok)}
+.hold{position:relative;overflow:hidden}
+.hold i{position:absolute;left:0;top:0;bottom:0;background:rgba(255,255,255,.28)}
+</style>
+</helmet>
+<div class="dm {{rootClass}}">
+<div class="wrap">
+<div style="display:flex;align-items:center;gap:12px"><h1 style="margin:0;font-size:28px;font-weight:500">Popovers, menus and confirmations</h1><span style="flex:1"></span><button class="icon-btn" onClick="{{toggleDark}}" aria-label="Switch light and dark"><span class="ms">contrast</span></button></div>
+<div class="grid">
+
+<div class="card">
+<h2><span class="ms">alt_route</span>Branch popover</h2>
+<p>Opens from the pill it belongs to, rows arrive in a short stagger, the chevron turns with a spring.</p>
+<button class="{{anchorCls}}" onClick="{{toggleBranch}}" aria-expanded="{{branchOpen}}"><span class="ic"><span class="ms">alt_route</span></span><span><small>Current branch</small><b>{{branch}}</b></span><span class="ms chev">expand_more</span></button>
+<sc-if value="{{branchOpen}}" hint-placeholder-val="{{ false }}">
+<div class="pop" role="dialog" aria-label="Switch branch">
+<div class="pf"><span class="ms">search</span><input placeholder="Filter branches" aria-label="Filter branches"><span class="ms" style="font-size:16px;font-family:'Roboto Mono',monospace">.*</span></div>
+<div class="grp">Default</div>
+<sc-for list="{{branches}}" as="b" hint-placeholder-count="5">
+<button class="{{b.cls}}" style="animation-delay:{{b.d}}" onClick="{{b.pick}}"><span class="ms">{{b.icon}}</span>{{b.name}}<small>{{b.meta}}</small></button>
+</sc-for>
+</div>
+</sc-if>
+</div>
+
+<div class="card">
+<h2><span class="ms">right_click</span>Context menu with shortcuts</h2>
+<p>Right-click (or press the menu key) on any row. Every item shows the shortcut that really works.</p>
+<div class="{{rowCls}}" onContextMenu="{{openMenu}}" tabindex="0" aria-haspopup="menu"><span class="ms" style="font-size:18px">description</span>app/styles/ui/_list.scss<span style="margin-left:auto;font-family:Roboto;font-size:12px;opacity:.7">Right-click me</span></div>
+<div class="row" onContextMenu="{{openMenu}}" tabindex="0"><span class="ms" style="font-size:18px">description</span>app/styles/ui/_popup.scss</div>
+<sc-if value="{{menuOpen}}" hint-placeholder-val="{{ false }}">
+<div class="menu" role="menu" style="left:{{mx}};top:{{my}}">
+<sc-for list="{{menu}}" as="m" hint-placeholder-count="6">
+<sc-if value="{{m.isSep}}" hint-placeholder-val="{{ false }}"><div class="sep"></div></sc-if>
+<sc-if value="{{m.isItem}}" hint-placeholder-val="{{ true }}"><button class="{{m.cls}}" role="menuitem" style="animation-delay:{{m.d}}" onClick="{{closeMenu}}"><span class="ms">{{m.icon}}</span>{{m.label}}<span class="kbd"><sc-for list="{{m.keys}}" as="k" hint-placeholder-count="2"><span>{{k}}</span></sc-for></span></button></sc-if>
+</sc-for>
+</div>
+</sc-if>
+</div>
+
+<div class="card">
+<h2><span class="ms">error</span>Error banner</h2>
+<p>Errors slide open in place, near what failed, with the next step on the banner itself. No modal for things that can wait.</p>
+<div><button class="btn" onClick="{{fail}}"><span class="ms">cloud_upload</span>Push origin</button></div>
+<div class="{{bannerCls}}"><div>
+<div class="bn" role="alert"><span class="ms">wifi_off</span><div><b>Push did not reach origin</b>GitHub did not answer in 30 seconds. Your 2 commits are safe here and nothing was sent.<div class="acts"><button class="btn err" onClick="{{retry}}"><span class="ms">refresh</span>Try again</button><button class="btn text" onClick="{{dismiss}}">Dismiss</button></div></div></div>
+</div></div>
+</div>
+
+<div class="card">
+<h2><span class="ms">verified_user</span>Super confirmation</h2>
+<p>Two keys before anything irreversible: type the repository name, then press and hold. Reduced motion swaps the hold bar for a counted 3, 2, 1 label.</p>
+<div class="{{nameCls}}"><label for="cf">Type <b style="font-family:'Roboto Mono',monospace">desktop-material</b> to unlock</label><input id="cf" value="{{typed}}" onInput="{{onType}}" autocomplete="off"></div>
+<div class="keys"><span class="{{k1}}"><span class="ms" style="font-size:16px">{{k1i}}</span>Key 1: name</span><span class="{{k2}}"><span class="ms" style="font-size:16px">{{k2i}}</span>Key 2: hold</span></div>
+<div><button class="btn err hold" disabled="{{holdDisabled}}" onPointerDown="{{startHold}}" onPointerUp="{{stopHold}}" onPointerLeave="{{stopHold}}"><i style="width:{{holdW}};transition:width {{holdT}} linear"></i><span class="ms">delete_forever</span>{{holdLabel}}</button></div>
+</div>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+  constructor(p){super(p);this.state={dark:false,bOpen:false,branch:'material-shell',menu:false,mx:'80px',my:'170px',banner:false,typed:'',holding:false,done:false,shake:false};}
+  renderVals(){
+    const s=this.state;
+    const br=[{name:'main',icon:'home',meta:'default'},{name:'material-shell',icon:'alt_route',meta:'2 ahead'},{name:'motion-system',icon:'alt_route',meta:'just now'},{name:'feature/extensions',icon:'alt_route',meta:'yesterday'},{name:'feature/live-charts',icon:'alt_route',meta:'3 days ago'}];
+    const menu=[{icon:'undo',label:'Discard changes',keys:['Ctrl','Shift','Z'],danger:true},{icon:'visibility_off',label:'Ignore file',keys:['Ctrl','I']},{sep:true},{icon:'content_copy',label:'Copy file path',keys:['Ctrl','Shift','C']},{icon:'folder_open',label:'Show in Explorer',keys:['Ctrl','Shift','F']},{icon:'code',label:'Open in Visual Studio Code',keys:['Ctrl','Shift','A']},{sep:true},{icon:'lock',label:'Lock this row',keys:['Ctrl','L']}];
+    const nameOk=s.typed==='desktop-material';
+    return {
+      rootClass:s.dark?'dark':'',toggleDark:()=>this.setState({dark:!s.dark}),
+      branchOpen:s.bOpen,branch:s.branch,anchorCls:'anchor'+(s.bOpen?' open':''),toggleBranch:()=>this.setState({bOpen:!s.bOpen}),
+      branches:br.map((b,i)=>({...b,d:(i*35)+'ms',cls:'opt'+(b.name===s.branch?' on':''),pick:()=>this.setState({branch:b.name,bOpen:false})})),
+      menuOpen:s.menu,mx:s.mx,my:s.my,rowCls:'row'+(s.menu?' on':''),
+      openMenu:e=>{e.preventDefault();const r=e.currentTarget.parentElement.getBoundingClientRect();this.setState({menu:true,mx:Math.min(e.clientX-r.left,r.width-290)+'px',my:(e.clientY-r.top)+'px'});},
+      closeMenu:()=>this.setState({menu:false}),
+      menu:menu.map((m,i)=>({...m,isSep:!!m.sep,isItem:!m.sep,d:(i*25)+'ms',cls:'mi'+(m.danger?' danger':''),keys:m.keys||[]})),
+      bannerCls:'banner'+(s.banner?' open':''),fail:()=>this.setState({banner:true}),retry:()=>this.setState({banner:false}),dismiss:()=>this.setState({banner:false}),
+      typed:s.typed,onType:e=>this.setState({typed:e.target.value,done:false}),nameCls:'field'+(nameOk?' ok':''),
+      k1:'key'+(nameOk?' on':''),k1i:nameOk?'check':'keyboard',k2:'key'+(s.done?' on':''),k2i:s.done?'check':'touch_app',
+      holdDisabled:!nameOk,holdW:s.holding||s.done?'100%':'0%',holdT:s.holding?'1500ms':'150ms',
+      holdLabel:s.done?'Deleted for real':s.holding?'Keep holding':'Hold to delete repository',
+      startHold:()=>{if(!nameOk)return;this.setState({holding:true});this._h=setTimeout(()=>this.setState({holding:false,done:true}),1500);},
+      stopHold:()=>{clearTimeout(this._h);if(!this.state.done)this.setState({holding:false});}
+    };
+  }
+}
+</script>
+</body>
+</html>

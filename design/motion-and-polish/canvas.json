@@ -1,0 +1,130 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-09T19:40:00Z"
+  },
+  "title": "Desktop Material · Motion and polish",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 960,
+      "title": "Motion system playground",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Workspace.dc.html": {
+      "x": 1360,
+      "y": 0,
+      "w": 1280,
+      "h": 960,
+      "title": "Workspace glow-up: lists, fields, filters",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Popovers.dc.html": {
+      "x": 2720,
+      "y": 0,
+      "w": 1280,
+      "h": 960,
+      "title": "Popovers, context menus and super confirmation",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Extensions.dc.html": {
+      "x": 0,
+      "y": 1340,
+      "w": 1280,
+      "h": 960,
+      "title": "App extension manager",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "LiveCharts.dc.html": {
+      "x": 1360,
+      "y": 1340,
+      "w": 1280,
+      "h": 960,
+      "title": "Live charts in the Liveline style",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Toolbox.dc.html": {
+      "x": 2720,
+      "y": 1340,
+      "w": 1280,
+      "h": 960,
+      "title": "Base64 toolkit and committed screen recording",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "VirtualDisks.dc.html": {
+      "x": 0,
+      "y": 2680,
+      "w": 1280,
+      "h": 960,
+      "title": "Windows virtual disk manager",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Minecraft.dc.html": {
+      "x": 1360,
+      "y": 2680,
+      "w": 1280,
+      "h": 960,
+      "title": "Minecraft server manager and world generator",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Settings.dc.html": {
+      "x": 2720,
+      "y": 2680,
+      "w": 1280,
+      "h": 960,
+      "title": "Motion setting, schedule, provenance and honest pricing",
+      "expand": "fill",
+      "is_interactive": true
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Workspace.dc.html",
+    "Popovers.dc.html",
+    "Extensions.dc.html",
+    "LiveCharts.dc.html",
+    "Toolbox.dc.html",
+    "VirtualDisks.dc.html",
+    "Minecraft.dc.html",
+    "Settings.dc.html"
+  ],
+  "notes": {
+    "row1": {
+      "x": 0,
+      "y": -300,
+      "text": "Motion and polish for the generic surfaces",
+      "kind": "title1",
+      "maxW": 4000
+    },
+    "row2": {
+      "x": 0,
+      "y": 1040,
+      "text": "New required features, part one",
+      "kind": "title1",
+      "maxW": 4000
+    },
+    "row3": {
+      "x": 0,
+      "y": 2380,
+      "text": "New required features, part two",
+      "kind": "title1",
+      "maxW": 4000
+    }
+  },
+  "designSystems": []
+}

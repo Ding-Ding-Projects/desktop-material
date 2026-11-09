@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Motion setting, schedule and provenance</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;family=Material+Symbols+Rounded:opsz,wght,FILL@20..48,400,0..1&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#006493}a:hover{color:#004b70}
+.dm{--p:#006493;--onp:#fff;--pc:#c9e6ff;--onpc:#001e30;--sc:#d3e5f5;--onsc:#0c1d29;--bg:#f8f9ff;--s0:#fff;--s1:#f2f3f9;--s2:#eceef4;--s3:#e6e8ee;--s4:#e0e2e8;--on:#191c20;--onv:#41474d;--ol:#71787e;--olv:#c1c7ce;--ok:#1b7f37;--okc:#d2f2d8;--am:#9a6700;--amc:#ffe9b8;--inv:#2e3135;--oninv:#eff1f7;
+--d-s:200ms;--d-m:300ms;--d-l:500ms;--e-emph:cubic-bezier(.2,0,0,1);--e-dec:cubic-bezier(.05,.7,.1,1);--e-spring:cubic-bezier(.38,1.21,.22,1);
+font-family:Roboto,'Segoe UI',system-ui,sans-serif;color:var(--on);background:var(--bg);min-height:960px;position:relative;overflow:hidden}
+.dm.dark{--p:#8dcdff;--onp:#00344f;--pc:#004b70;--onpc:#c9e6ff;--sc:#394956;--onsc:#d3e5f5;--bg:#101418;--s0:#0b0f12;--s1:#181c20;--s2:#1c2024;--s3:#272a2f;--s4:#32353a;--on:#e0e2e8;--onv:#c1c7ce;--ol:#8b9198;--olv:#41474d;--ok:#7bd88f;--okc:#0f3d1c;--am:#f5c26b;--amc:#4a3300;--inv:#e0e2e8;--oninv:#2e3135}
+.ms{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 0,'wght' 400;display:inline-block;vertical-align:middle}
+.prov{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:10px 24px;background:var(--s2);font-size:12.5px;color:var(--onv)}
+.prov b{color:var(--on);font-weight:500}
+.prov code{font-family:'Roboto Mono',monospace;font-size:12px}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:28px;font-weight:500}
+h2{margin:0;font-size:18px;font-weight:500;display:flex;align-items:center;gap:8px}
+.sub{margin:0;font-size:13px;color:var(--onv);line-height:19px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.icon-btn{all:unset;cursor:pointer;width:40px;height:40px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--onv);transition:background var(--d-s)}
+.icon-btn:hover{background:var(--s3)}.icon-btn:focus-visible{outline:3px solid var(--p)}
+.btn{all:unset;cursor:pointer;height:40px;padding:0 16px;border-radius:999px;background:var(--p);color:var(--onp);font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px;transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring)}
+.btn:active{transform:scale(.96);border-radius:12px}.btn:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.btn.tonal{background:var(--sc);color:var(--onsc)}.btn.text{background:transparent;color:var(--p);padding:0 10px}
+.cols{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.card{background:var(--s1);border-radius:28px;padding:20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.lv{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:760px){.lv{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.lvo{all:unset;cursor:pointer;border-radius:18px;background:var(--s0);padding:12px;display:flex;flex-direction:column;gap:8px;box-shadow:inset 0 0 0 1px var(--olv);transition:box-shadow var(--d-m),background var(--d-m)}
+.lvo.on{box-shadow:inset 0 0 0 2px var(--p);background:var(--pc);color:var(--onpc)}.lvo:focus-visible{outline:3px solid var(--p)}
+.lvo b{font-size:14px;font-weight:500}.lvo small{font-size:12px;opacity:.8;line-height:16px}
+.demo{height:34px;border-radius:10px;background:var(--s2);position:relative;overflow:hidden}
+.demo i{position:absolute;top:7px;left:7px;width:20px;height:20px;border-radius:6px;background:var(--p);animation:dm var(--dd) var(--ee) infinite alternate}
+@keyframes dm{to{left:calc(100% - 27px)}}
+.rng{display:flex;align-items:center;gap:12px;font-size:13px}.rng input{flex:1;accent-color:var(--p)}.rng b{font-family:'Roboto Mono',monospace;min-width:48px;text-align:right}
+.sw-row{display:flex;align-items:center;gap:12px;padding:10px 4px;border-top:1px solid var(--olv);font-size:14px}
+.sw-row:first-of-type{border-top:0}
+.sw-row small{display:block;font-size:12px;color:var(--onv)}
+.sw{all:unset;cursor:pointer;margin-left:auto;width:52px;height:32px;border-radius:999px;background:var(--s4);box-shadow:inset 0 0 0 2px var(--ol);position:relative;flex:none;transition:background var(--d-m),box-shadow var(--d-m)}
+.sw i{position:absolute;top:8px;left:8px;width:16px;height:16px;border-radius:999px;background:var(--ol);transition:all var(--d-m) var(--e-spring)}
+.sw.on{background:var(--p);box-shadow:none}.sw.on i{left:24px;top:4px;width:24px;height:24px;background:var(--onp)}
+.sw:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.rule{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--s0);border-radius:16px;padding:12px}
+.rule b{font-size:14px;font-weight:500;display:block}.rule small{font-size:12px;color:var(--onv)}
+.when{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.day{width:30px;height:30px;border-radius:999px;font-size:12px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;background:var(--s3)}
+.day.on{background:var(--p);color:var(--onp)}
+.time{font-family:'Roboto Mono',monospace;font-size:12px;background:var(--s3);border-radius:8px;padding:5px 8px}
+.free{display:flex;gap:14px;align-items:flex-start;background:var(--okc);color:var(--on);border-radius:20px;padding:16px}
+.free .ms{color:var(--ok);font-size:28px}
+.about{display:grid;grid-template-columns:64px minmax(0,1fr);gap:14px;align-items:center}
+.dish{width:64px;height:64px;border-radius:18px;background:var(--amc);color:var(--am);display:flex;align-items:center;justify-content:center}
+.dish .ms{font-size:34px}
+.lvl{position:absolute;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 50%,rgba(0,100,147,.35),rgba(0,0,0,.55));animation:fade 300ms var(--e-emph) both}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.lvl div{background:var(--s1);border-radius:32px;padding:28px 36px;text-align:center;animation:lvIn 700ms var(--e-spring) both;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.lvl small{display:block;font-size:13px;font-weight:700;letter-spacing:2px;color:var(--p)}
+.lvl b{display:block;font-size:34px;font-weight:500;margin-top:6px}
+@keyframes lvIn{0%{opacity:0;transform:scale(.6) translateY(30px)}60%{opacity:1;transform:scale(1.06)}100%{transform:none}}
+</style>
+</helmet>
+<div class="dm {{rootClass}}">
+<div class="prov" role="note" aria-label="Running version"><span class="ms" style="font-size:16px">verified</span><b>Desktop Material 4.0.1348</b><span>Har gow 蝦餃</span><span>Updated <code>2026-11-09 14:12:08 EST (UTC−05:00)</code></span><span style="flex:1"></span><button class="icon-btn" style="width:28px;height:28px" onClick="{{toggleDark}}" aria-label="Switch light and dark"><span class="ms" style="font-size:18px">contrast</span></button></div>
+<div class="wrap">
+<div class="bar"><div style="flex:1"><h1>Appearance · Motion</h1><p class="sub">Motion is an appearance value like theme and accent, so it persists, resets and follows schedules.</p></div><button class="btn tonal" onClick="{{celebrate}}"><span class="ms">upload</span>Drop a vocabulary JSON</button></div>
+<div class="cols">
+<div class="card" style="flex:999 1 560px">
+<h2><span class="ms">animation</span>Motion level</h2>
+<div class="lv" role="radiogroup" aria-label="Motion level">
+<sc-for list="{{levels}}" as="l" hint-placeholder-count="4">
+<button class="{{l.cls}}" role="radio" aria-checked="{{l.on}}" onClick="{{l.pick}}"><b>{{l.label}}</b><small>{{l.hint}}</small><span class="demo" style="--dd:{{l.dur}};--ee:{{l.ease}}"><i></i></span></button>
+</sc-for>
+</div>
+<div class="rng"><label for="spd">Speed</label><input id="spd" type="range" min="50" max="200" step="10" value="{{speed}}" onInput="{{onSpeed}}"><b>{{speedTxt}}</b></div>
+<div>
+<sc-for list="{{surfaces}}" as="sf" hint-placeholder-count="5">
+<div class="sw-row"><span class="ms">{{sf.icon}}</span><span><span>{{sf.label}}</span><small>{{sf.hint}}</small></span><button class="{{sf.cls}}" role="switch" aria-checked="{{sf.on}}" aria-label="{{sf.label}}" onClick="{{sf.toggle}}"><i></i></button></div>
+</sc-for>
+</div>
+<div class="bar"><span style="flex:1"></span><button class="btn text" onClick="{{reset}}"><span class="ms">restart_alt</span>Reset motion</button></div>
+</div>
+<div style="flex:1 1 400px;display:flex;flex-direction:column;gap:16px;min-width:0">
+<div class="card">
+<h2><span class="ms">schedule</span>Schedule</h2>
+<div class="rule"><span class="ms">bedtime</span><div><b>Calm after 22:00</b><small>Every weekday · local time</small><div class="when"><span class="day on">M</span><span class="day on">T</span><span class="day on">W</span><span class="day on">T</span><span class="day on">F</span><span class="day">S</span><span class="day">S</span><span class="time">22:00 → 07:00</span></div></div><button class="sw on" role="switch" aria-checked="true" aria-label="Calm after 22:00"><i></i></button></div>
+<div class="rule"><span class="ms">home</span><div><b>Reduced while focus mode is on</b><small>Home Assistant · input_boolean.focus_mode</small></div><button class="sw on" role="switch" aria-checked="true" aria-label="Reduced while focus mode is on"><i></i></button></div>
+<button class="btn tonal" style="align-self:flex-start"><span class="ms">add</span>Add rule</button>
+</div>
+<div class="card">
+<div class="about"><span class="dish"><span class="ms">ramen_dining</span></span><div><h2 style="font-size:16px">Code name: Har gow 蝦餃</h2><p class="sub">Every release is named after one dim sum dish, used once. The photo link opens the public catalogue entry.</p></div></div>
+<div class="free"><span class="ms">volunteer_activism</span><div><b style="font-size:14px;font-weight:500">Free, and it stays free</b><p class="sub" style="margin-top:4px">No ads, no upgrade prompts, no review nags. Desktop Material builds on GitHub Desktop by GitHub and its contributors; if you want to give back, support them.</p></div></div>
+</div>
+</div>
+</div>
+</div>
+<sc-if value="{{lvl}}" hint-placeholder-val="{{ false }}"><div class="lvl" role="status" onClick="{{endCelebrate}}"><div><small>LEVEL UP</small><b>Personal wording applied</b><p class="sub" style="margin-top:8px">Saved on this PC only. Undo any time in Settings.</p></div></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+  constructor(p){super(p);this.state={dark:false,lv:0,speed:100,lvl:false,sf:{dialogs:true,lists:true,tabs:true,charts:true,cele:true}};}
+  renderVals(){
+    const s=this.state;const k=100/s.speed;
+    const L=[['Follow Windows','Uses the system animation setting',500,'cubic-bezier(.38,1.21,.22,1)'],['Full','Springs and staggers everywhere',500,'cubic-bezier(.38,1.21,.22,1)'],['Calm','Short fades, no overshoot',220,'cubic-bezier(.2,0,0,1)'],['Reduced','Instant changes, nothing pulses',1,'steps(1)']];
+    const SF=[['dialogs','open_in_new','Dialogs and sheets','Spring in from the control that opened them'],['lists','list','Lists and rows','Inserts open their height, removals close it'],['tabs','tab','Tabs and panes','Indicator springs, panes slide toward the move'],['charts','show_chart','Live charts','Ease between samples, pulse the live dot'],['cele','celebration','Celebrations','Level-up and dim sum surprise animations']];
+    return {
+      rootClass:s.dark?'dark':'',toggleDark:()=>this.setState({dark:!s.dark}),
+      levels:L.map((l,i)=>({label:l[0],hint:l[1],dur:(l[2]*k*2)+'ms',ease:l[3],on:s.lv===i,cls:'lvo'+(s.lv===i?' on':''),pick:()=>this.setState({lv:i})})),
+      speed:s.speed,speedTxt:(s.speed/100).toFixed(1)+'×',onSpeed:e=>this.setState({speed:+e.target.value}),
+      surfaces:SF.map(f=>({icon:f[1],label:f[2],hint:f[3],on:s.sf[f[0]],cls:'sw'+(s.sf[f[0]]?' on':''),toggle:()=>this.setState({sf:{...s.sf,[f[0]]:!s.sf[f[0]]}})})),
+      reset:()=>this.setState({lv:0,speed:100,sf:{dialogs:true,lists:true,tabs:true,charts:true,cele:true}}),
+      lvl:s.lvl,celebrate:()=>{this.setState({lvl:true});clearTimeout(this._t);this._t=setTimeout(()=>this.setState({lvl:false}),3000);},endCelebrate:()=>this.setState({lvl:false})
+    };
+  }
+}
+</script>
+</body>
+</html>

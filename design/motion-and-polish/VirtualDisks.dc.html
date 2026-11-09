@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Virtual disk manager</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;family=Material+Symbols+Rounded:opsz,wght,FILL@20..48,400,0..1&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#006493}a:hover{color:#004b70}
+.dm{--p:#006493;--onp:#fff;--pc:#c9e6ff;--onpc:#001e30;--sc:#d3e5f5;--onsc:#0c1d29;--bg:#f8f9ff;--s0:#fff;--s1:#f2f3f9;--s2:#eceef4;--s3:#e6e8ee;--s4:#e0e2e8;--on:#191c20;--onv:#41474d;--ol:#71787e;--olv:#c1c7ce;--ok:#1b7f37;--okc:#d2f2d8;--am:#9a6700;--amc:#ffe9b8;--inv:#2e3135;--oninv:#eff1f7;
+--d-s:200ms;--d-m:300ms;--d-l:500ms;--e-emph:cubic-bezier(.2,0,0,1);--e-dec:cubic-bezier(.05,.7,.1,1);--e-spring:cubic-bezier(.38,1.21,.22,1);
+font-family:Roboto,'Segoe UI',system-ui,sans-serif;color:var(--on);background:var(--bg);min-height:960px}
+.dm.dark{--p:#8dcdff;--onp:#00344f;--pc:#004b70;--onpc:#c9e6ff;--sc:#394956;--onsc:#d3e5f5;--bg:#101418;--s0:#0b0f12;--s1:#181c20;--s2:#1c2024;--s3:#272a2f;--s4:#32353a;--on:#e0e2e8;--onv:#c1c7ce;--ol:#8b9198;--olv:#41474d;--ok:#7bd88f;--okc:#0f3d1c;--am:#f5c26b;--amc:#4a3300;--inv:#e0e2e8;--oninv:#2e3135}
+.ms{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 0,'wght' 400;display:inline-block;vertical-align:middle}
+.wrap{max-width:1240px;margin:0 auto;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:28px;font-weight:500}
+h2{margin:0;font-size:18px;font-weight:500;display:flex;align-items:center;gap:8px}
+.sub{margin:4px 0 0;font-size:14px;color:var(--onv);line-height:20px;max-width:640px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.icon-btn{all:unset;cursor:pointer;width:40px;height:40px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--onv);transition:background var(--d-s)}
+.icon-btn:hover{background:var(--s3)}.icon-btn:focus-visible{outline:3px solid var(--p)}
+.btn{all:unset;cursor:pointer;height:40px;padding:0 16px;border-radius:999px;background:var(--p);color:var(--onp);font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px;transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring),opacity var(--d-m)}
+.btn:active{transform:scale(.96);border-radius:12px}.btn:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.btn.tonal{background:var(--sc);color:var(--onsc)}.btn.out{background:transparent;color:var(--p);box-shadow:inset 0 0 0 1px var(--ol)}
+.btn[disabled]{opacity:.38;cursor:default}
+.cols{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.card{background:var(--s1);border-radius:28px;padding:20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.disk{all:unset;cursor:pointer;display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px;border-radius:18px;background:var(--s0);animation:in var(--d-l) var(--e-dec) both;transition:background var(--d-s),box-shadow var(--d-m),transform var(--d-m) var(--e-spring)}
+.disk:hover{transform:translateX(2px)}
+.disk.on{background:var(--sc);color:var(--onsc)}
+.disk:focus-visible{outline:3px solid var(--p)}
+@keyframes in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.dic{width:44px;height:44px;border-radius:14px;background:var(--pc);color:var(--onpc);display:flex;align-items:center;justify-content:center}
+.disk b{display:block;font-size:14px;font-weight:500;font-family:'Roboto Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.disk small{font-size:12px;color:var(--onv)}
+.use{height:6px;border-radius:6px;background:var(--s3);overflow:hidden;margin-top:6px;max-width:260px}
+.use i{display:block;height:100%;background:var(--p);transition:width var(--d-l) var(--e-spring)}
+.st{height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px;transition:background var(--d-m),color var(--d-m)}
+.st.a{background:var(--okc);color:var(--ok)}.st.d{background:var(--s3);color:var(--onv)}
+.chain{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-family:'Roboto Mono',monospace;font-size:12px}
+.chain span{background:var(--s0);border-radius:10px;padding:6px 10px}
+.chain .ms{font-size:16px;color:var(--onv)}
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.f{display:flex;flex-direction:column;gap:6px}.f.full{grid-column:1/-1}
+.f label{font-size:12px;font-weight:500;color:var(--onv)}
+.seg{display:inline-flex;border:1px solid var(--ol);border-radius:999px;overflow:hidden;height:36px}
+.seg button{all:unset;cursor:pointer;flex:1;padding:0 12px;display:flex;align-items:center;justify-content:center;gap:4px;font-size:13px;font-weight:500;border-left:1px solid var(--ol);transition:background var(--d-m)}
+.seg button:first-child{border-left:0}.seg button.on{background:var(--sc);color:var(--onsc)}
+.seg button:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
+.rng{display:flex;align-items:center;gap:12px}.rng input{flex:1;accent-color:var(--p)}.rng b{font-family:'Roboto Mono',monospace;font-size:13px;min-width:64px;text-align:right}
+.route{display:flex;gap:10px;align-items:center;font-size:12.5px;color:var(--onv);background:var(--s2);border-radius:14px;padding:10px 12px}
+.code{font-family:'Roboto Mono',monospace;font-size:12px;line-height:18px;background:var(--s0);border-radius:14px;padding:12px;white-space:pre;overflow:auto;color:var(--onv)}
+.reveal{display:grid;grid-template-rows:0fr;transition:grid-template-rows var(--d-l) var(--e-spring)}.reveal.open{grid-template-rows:1fr}.reveal>div{overflow:hidden}
+.drop{border:2px dashed var(--ol);border-radius:20px;padding:16px;display:flex;gap:12px;align-items:center;font-size:13px;color:var(--onv);transition:background var(--d-m),border-color var(--d-m)}
+.drop b{display:block;color:var(--on);font-size:14px;font-weight:500}
+.drop.hot{background:var(--pc);border-color:var(--p)}
+.ops{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:700px){.ops{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.op{all:unset;cursor:pointer;border-radius:16px;background:var(--s0);padding:12px;display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:500;transition:background var(--d-s),transform var(--d-m) var(--e-spring)}
+.op:hover{background:var(--s3);transform:translateY(-2px)}.op:focus-visible{outline:3px solid var(--p)}
+.op .ms{color:var(--p)}
+.op small{font-weight:400;font-size:11.5px;color:var(--onv)}
+</style>
+</helmet>
+<div class="dm {{rootClass}}">
+<div class="wrap">
+<div class="bar"><div style="flex:1;min-width:260px"><h1>Virtual disks</h1><p class="sub">VHD, VHDX, VHD Set and ISO files on this PC. Every operation uses a route that exists on Windows Home, names the route it used and shows the script that does the same thing.</p></div><button class="btn tonal"><span class="ms">album</span>Attach ISO</button><button class="btn" onClick="{{openCreate}}"><span class="ms">add</span>New disk</button><button class="icon-btn" onClick="{{toggleDark}}" aria-label="Switch light and dark"><span class="ms">contrast</span></button></div>
+<div class="cols">
+<div class="card" style="flex:999 1 560px">
+<h2><span class="ms">hard_drive</span>Disks</h2>
+<sc-for list="{{disks}}" as="d" hint-placeholder-count="4">
+<button class="{{d.cls}}" style="animation-delay:{{d.delay}}" onClick="{{d.pick}}" aria-pressed="{{d.sel}}">
+<span class="dic"><span class="ms">{{d.icon}}</span></span>
+<span style="min-width:0"><b>{{d.name}}</b><small>{{d.meta}}</small><span class="use" style="display:block"><i style="width:{{d.pct}}"></i></span></span>
+<span class="{{d.stCls}}"><span class="ms" style="font-size:14px">{{d.stIcon}}</span>{{d.state}}</span>
+</button>
+</sc-for>
+<div class="chain" aria-label="Differencing chain"><span class="ms">account_tree</span><span>base-win11.vhdx</span><span class="ms">arrow_forward</span><span>dev-tools.avhdx</span><span class="ms">arrow_forward</span><span>today.avhdx</span></div>
+<div class="{{dropCls}}" onDragOver="{{hot}}" onDragLeave="{{cold}}" onDrop="{{cold}}"><span class="ms" style="font-size:30px;color:var(--p)">inventory_2</span><div><b>Quick pack</b>Drop files or folders to pack them into a new VHDX in the folder they came from. It sizes itself, grows if needed and checks every file by SHA-256.</div></div>
+</div>
+<div class="card" style="flex:1 1 380px">
+<h2><span class="ms">tune</span>{{selName}}</h2>
+<div class="ops">
+<button class="op" onClick="{{toggleAttach}}"><span class="ms">{{attachIcon}}</span>{{attachLabel}}<small>Mount or eject</small></button>
+<button class="op"><span class="ms">open_in_full</span>Grow<small>Then extend the volume</small></button>
+<button class="op"><span class="ms">compress</span>Compact<small>Reclaim free space</small></button>
+<button class="op"><span class="ms">swap_horiz</span>Convert<small>VHD, VHDX, VHDS</small></button>
+<button class="op"><span class="ms">call_merge</span>Merge<small>Fold a child into its parent</small></button>
+<button class="op"><span class="ms">bookmark_add</span>Checkpoint<small>VHD Set only</small></button>
+<button class="op"><span class="ms">developer_board</span>Dev Drive<small>Format as ReFS Dev Drive</small></button>
+<button class="op"><span class="ms">power_settings_new</span>Native boot<small>Add a boot entry</small></button>
+</div>
+<div class="route"><span class="ms">route</span><div>Last run: <b>Mount-DiskImage</b> (Storage module, on Windows Home). <button class="btn out" style="height:28px;padding:0 10px;font-size:12px;margin-left:6px" onClick="{{toggleScript}}">{{scriptLabel}}</button></div></div>
+<div class="{{scriptCls}}"><div><div class="code">{{script}}</div></div></div>
+<div class="{{createCls}}"><div>
+<div class="form" style="padding-top:6px">
+<div class="f full"><label>Format</label><div class="seg"><sc-for list="{{fmts}}" as="o" hint-placeholder-count="3"><button class="{{o.cls}}" onClick="{{o.pick}}" aria-pressed="{{o.on}}">{{o.label}}</button></sc-for></div></div>
+<div class="f full"><label>Type</label><div class="seg"><sc-for list="{{types}}" as="o" hint-placeholder-count="3"><button class="{{o.cls}}" onClick="{{o.pick}}" aria-pressed="{{o.on}}">{{o.label}}</button></sc-for></div></div>
+<div class="f full"><label for="sz">Size</label><div class="rng"><input id="sz" type="range" min="1" max="512" value="{{size}}" onInput="{{onSize}}"><b>{{size}} GB</b></div></div>
+<div class="f full" style="flex-direction:row;justify-content:flex-end;gap:8px"><button class="btn out" onClick="{{closeCreate}}">Cancel</button><button class="btn"><span class="ms">add</span>Create {{fmtName}}</button></div>
+</div>
+</div></div>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+  constructor(p){super(p);this.state={dark:false,sel:0,script:false,create:false,fmt:1,type:1,size:64,hot:false,
+    disks:[{name:'D:\\VMs\\base-win11.vhdx',icon:'hard_drive',meta:'VHDX · dynamic · 64 GB',pct:62,att:false},{name:'D:\\VMs\\today.avhdx',icon:'account_tree',meta:'Differencing · parent dev-tools.avhdx',pct:12,att:true},{name:'E:\\Builds\\devdrive.vhdx',icon:'developer_board',meta:'VHDX · Dev Drive (ReFS) · 128 GB',pct:41,att:true},{name:'C:\\ISO\\ubuntu-24.04.iso',icon:'album',meta:'ISO · 5.7 GB · read only',pct:100,att:false}]};}
+  renderVals(){
+    const s=this.state;const d=s.disks[s.sel];const fm=['VHD','VHDX','VHD Set'];const ty=['Fixed','Dynamic','Differencing'];
+    const isIso=d.name.endsWith('.iso');
+    return {
+      rootClass:s.dark?'dark':'',toggleDark:()=>this.setState({dark:!s.dark}),
+      disks:s.disks.map((x,i)=>({...x,delay:(i*60)+'ms',sel:s.sel===i,cls:'disk'+(s.sel===i?' on':''),pct:x.pct+'%',state:x.att?'Attached':'Detached',stIcon:x.att?'link':'link_off',stCls:'st '+(x.att?'a':'d'),pick:()=>this.setState({sel:i})})),
+      selName:d.name.split('\\').pop(),attachIcon:d.att?'eject':'link',attachLabel:d.att?'Detach':'Attach',
+      toggleAttach:()=>this.setState({disks:s.disks.map((x,i)=>i===s.sel?{...x,att:!x.att}:x)}),
+      toggleScript:()=>this.setState({script:!s.script}),scriptLabel:s.script?'Hide script':'Show script',scriptCls:'reveal'+(s.script?' open':''),
+      script:(d.att?'Dismount-DiskImage':'Mount-DiskImage')+' -ImagePath \''+d.name+'\''+(isIso?'':' -StorageType '+(d.name.endsWith('.vhd')?'VHD':'VHDX'))+'\nGet-DiskImage -ImagePath \''+d.name+'\' | Select Attached, Size, DevicePath',
+      openCreate:()=>this.setState({create:true}),closeCreate:()=>this.setState({create:false}),createCls:'reveal'+(s.create?' open':''),
+      fmts:fm.map((l,i)=>({label:l,on:s.fmt===i,cls:s.fmt===i?'on':'',pick:()=>this.setState({fmt:i})})),
+      types:ty.map((l,i)=>({label:l,on:s.type===i,cls:s.type===i?'on':'',pick:()=>this.setState({type:i})})),
+      size:s.size,onSize:e=>this.setState({size:+e.target.value}),fmtName:fm[s.fmt],
+      dropCls:'drop'+(s.hot?' hot':''),hot:e=>{e.preventDefault();this.setState({hot:true});},cold:e=>{e.preventDefault();this.setState({hot:false});}
+    };
+  }
+}
+</script>
+</body>
+</html>
