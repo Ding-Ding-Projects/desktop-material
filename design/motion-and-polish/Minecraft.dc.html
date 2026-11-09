@@ -12,132 +12,493 @@
 <style>
 body{margin:0}
 a{color:#006493}a:hover{color:#004b70}
-.dm{--p:#006493;--onp:#fff;--pc:#c9e6ff;--onpc:#001e30;--sc:#d3e5f5;--onsc:#0c1d29;--bg:#f8f9ff;--s0:#fff;--s1:#f2f3f9;--s2:#eceef4;--s3:#e6e8ee;--s4:#e0e2e8;--on:#191c20;--onv:#41474d;--ol:#71787e;--olv:#c1c7ce;--ok:#1b7f37;--okc:#d2f2d8;--am:#9a6700;--amc:#ffe9b8;--inv:#2e3135;--oninv:#eff1f7;
+.dm{--p:#006493;--onp:#fff;--pc:#c9e6ff;--onpc:#001e30;--sc:#d3e5f5;--onsc:#0c1d29;--bg:#f8f9ff;--s0:#fff;--s1:#f2f3f9;--s2:#eceef4;--s3:#e6e8ee;--s4:#e0e2e8;--on:#191c20;--onv:#41474d;--ol:#71787e;--olv:#c1c7ce;--ok:#1b7f37;--okc:#d2f2d8;--am:#9a6700;--amc:#ffe9b8;--err:#ba1a1a;--errc:#ffdad6;--vi:#6750a4;--vic:#e9ddff;--inv:#2e3135;--oninv:#eff1f7;
 --d-s:200ms;--d-m:300ms;--d-l:500ms;--e-emph:cubic-bezier(.2,0,0,1);--e-dec:cubic-bezier(.05,.7,.1,1);--e-spring:cubic-bezier(.38,1.21,.22,1);
-font-family:Roboto,'Segoe UI',system-ui,sans-serif;color:var(--on);background:var(--bg);min-height:960px}
-.dm.dark{--p:#8dcdff;--onp:#00344f;--pc:#004b70;--onpc:#c9e6ff;--sc:#394956;--onsc:#d3e5f5;--bg:#101418;--s0:#0b0f12;--s1:#181c20;--s2:#1c2024;--s3:#272a2f;--s4:#32353a;--on:#e0e2e8;--onv:#c1c7ce;--ol:#8b9198;--olv:#41474d;--ok:#7bd88f;--okc:#0f3d1c;--am:#f5c26b;--amc:#4a3300;--inv:#e0e2e8;--oninv:#2e3135}
+font-family:Roboto,'Segoe UI',system-ui,sans-serif;color:var(--on);background:var(--bg);min-height:1400px}
+.dm.dark{--p:#8dcdff;--onp:#00344f;--pc:#004b70;--onpc:#c9e6ff;--sc:#394956;--onsc:#d3e5f5;--bg:#101418;--s0:#0b0f12;--s1:#181c20;--s2:#1c2024;--s3:#272a2f;--s4:#32353a;--on:#e0e2e8;--onv:#c1c7ce;--ol:#8b9198;--olv:#41474d;--ok:#7bd88f;--okc:#0f3d1c;--am:#f5c26b;--amc:#4a3300;--err:#ffb4ab;--errc:#93000a;--vi:#cfbcff;--vic:#4f378b;--inv:#e0e2e8;--oninv:#2e3135}
 .ms{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 0,'wght' 400;display:inline-block;vertical-align:middle}
-.wrap{max-width:1240px;margin:0 auto;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px}
+.mono{font-family:'Roboto Mono',monospace}
+.wrap{max-width:1320px;margin:0 auto;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px}
 h1{margin:0;font-size:28px;font-weight:500}
 h2{margin:0;font-size:17px;font-weight:500;display:flex;align-items:center;gap:8px}
-.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.icon-btn{all:unset;cursor:pointer;width:40px;height:40px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--onv);transition:background var(--d-s)}
-.icon-btn:hover{background:var(--s3)}.icon-btn:focus-visible{outline:3px solid var(--p)}
-.icon-btn.sm{width:32px;height:32px}
-.btn{all:unset;cursor:pointer;height:40px;padding:0 16px;border-radius:999px;background:var(--p);color:var(--onp);font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px;transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring),opacity var(--d-m)}
+h3{margin:0;font-size:13px;font-weight:500;color:var(--onv)}
+.sub{margin:0;font-size:13px;color:var(--onv);line-height:19px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.sp{flex:1}
+.icon-btn{all:unset;cursor:pointer;width:40px;height:40px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--onv);transition:background var(--d-s),transform var(--d-m) var(--e-spring)}
+.icon-btn:hover{background:var(--s3)}.icon-btn:active{transform:scale(.9)}.icon-btn:focus-visible{outline:3px solid var(--p)}
+.icon-btn.sm{width:30px;height:30px}.icon-btn.sm .ms{font-size:18px}
+.btn{all:unset;cursor:pointer;height:40px;padding:0 16px;border-radius:999px;background:var(--p);color:var(--onp);font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring),opacity var(--d-m)}
 .btn:active{transform:scale(.96);border-radius:12px}.btn:focus-visible{outline:3px solid var(--p);outline-offset:2px}
-.btn.tonal{background:var(--sc);color:var(--onsc)}.btn.out{background:transparent;color:var(--p);box-shadow:inset 0 0 0 1px var(--ol)}
-.btn[disabled]{opacity:.38;cursor:default;transform:none}
-.tabs{display:flex;gap:4px;align-items:flex-end;border-bottom:1px solid var(--olv);overflow-x:auto}
-.tab{all:unset;cursor:pointer;height:40px;padding:0 12px 0 14px;border-radius:12px 12px 0 0;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:var(--onv);background:transparent;white-space:nowrap;transition:background var(--d-m),color var(--d-m)}
-.tab.on{background:var(--s1);color:var(--on)}.tab:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
-.dotst{width:8px;height:8px;border-radius:8px;background:var(--ol)}.dotst.run{background:var(--ok);box-shadow:0 0 0 0 rgba(27,127,55,.5);animation:beat 1.8s infinite}
-@keyframes beat{0%{box-shadow:0 0 0 0 rgba(27,127,55,.5)}100%{box-shadow:0 0 0 8px rgba(27,127,55,0)}}
-.cols{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.btn.tonal{background:var(--sc);color:var(--onsc)}.btn.out{background:transparent;color:var(--p);box-shadow:inset 0 0 0 1px var(--ol)}.btn.err{background:var(--err);color:#fff}
+.btn.sm{height:32px;padding:0 12px;font-size:13px}.btn[disabled]{opacity:.38;cursor:default;transform:none}
+.shell{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.side{flex:1 1 320px;max-width:380px;min-width:0;background:var(--s1);border-radius:24px;padding:12px;display:flex;flex-direction:column;gap:10px;position:sticky;top:12px}
+@media (max-width:900px){.side{max-width:none;position:static}}
+.main{flex:999 1 640px;min-width:0;display:flex;flex-direction:column;gap:14px}
+.lsearch{display:flex;align-items:center;gap:6px;height:44px;border-radius:999px;background:var(--s3);padding:0 6px 0 14px;transition:background var(--d-m),box-shadow var(--d-m)}
+.lsearch:focus-within{background:var(--s0);box-shadow:inset 0 0 0 2px var(--p)}
+.lsearch input{all:unset;flex:1;min-width:0;font-size:14px}
+.lbox{display:flex;flex-direction:column;gap:2px;max-height:820px;overflow:auto;outline:none;border-radius:16px;padding:2px}
+.lbox:focus-visible{box-shadow:0 0 0 3px var(--p)}
+.grp{all:unset;cursor:pointer;display:flex;align-items:center;gap:6px;padding:8px 8px 4px;font-size:12px;font-weight:500;color:var(--onv);position:sticky;top:0;background:var(--s1);z-index:1}
+.grp .ms{font-size:18px;transition:transform var(--d-m) var(--e-spring)}
+.grp.closed .ms{transform:rotate(-90deg)}
+.grp:focus-visible{outline:3px solid var(--p)}
+.srow{display:grid;grid-template-columns:22px 10px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 10px;border-radius:14px;cursor:pointer;animation:in var(--d-m) var(--e-dec) both;transition:background var(--d-s)}
+.srow:hover{background:var(--s2)}
+.srow.on{background:var(--sc);color:var(--onsc)}
+.srow.act{box-shadow:inset 0 0 0 2px var(--p)}
+.srow b{display:block;font-size:13.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srow small{display:block;font-size:11.5px;color:var(--onv);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srow .r{text-align:right;font-size:11.5px;color:var(--onv);font-family:'Roboto Mono',monospace;line-height:15px}
+.cbx{all:unset;cursor:pointer;width:18px;height:18px;border-radius:4px;border:2px solid var(--onv);display:flex;align-items:center;justify-content:center;transition:background var(--d-s),border-color var(--d-s)}
+.cbx .ms{font-size:15px;color:var(--onp);transform:scale(0);transition:transform var(--d-m) var(--e-spring);font-variation-settings:'wght' 700}
+.cbx.on{background:var(--p);border-color:var(--p)}.cbx.on .ms{transform:scale(1)}
+.cbx:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.sdot.crash{background:var(--err)}.sdot.start{background:var(--am)}
+.bulk{display:grid;grid-template-rows:0fr;transition:grid-template-rows var(--d-l) var(--e-spring)}
+.bulk.open{grid-template-rows:1fr}.bulk>div{overflow:hidden}
+.bulkin{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--inv);color:var(--oninv);border-radius:16px;padding:8px 10px;font-size:13px}
+.bulkin .btn{height:30px;padding:0 10px;font-size:12.5px;background:transparent;color:#8dcdff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.3)}
+.lstat{font-size:11.5px;color:var(--onv);padding:0 6px}
+.sorts{display:flex;gap:6px;align-items:center}
+.sorts .sel{height:34px;font-size:12.5px;flex:1}
+.cfg{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
+.files{flex:1 1 220px;max-width:260px;background:var(--s1);border-radius:20px;padding:8px;display:flex;flex-direction:column;gap:2px}
+@media (max-width:900px){.files{max-width:none}}
+.fi{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;font-size:13px;transition:background var(--d-s)}
+.fi:hover{background:var(--s2)}.fi.on{background:var(--sc);color:var(--onsc)}.fi:focus-visible{outline:3px solid var(--p)}
+.fi .mono{font-size:12px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fi>span:nth-child(2){min-width:0;flex:1}.fi .n{margin-left:auto;font-size:11px;color:var(--onv)}
+.cfgmain{flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:14px}
+.sec{background:var(--s1);border-radius:22px;padding:16px;display:flex;flex-direction:column;gap:14px;animation:in var(--d-l) var(--e-dec) both}
+.sec h2 small{font-size:12px;font-weight:400;color:var(--onv);margin-left:auto}
+.ctl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:16px;align-items:center}
+@media (max-width:760px){.ctl{grid-template-columns:minmax(0,1fr)}}
+.ctl .lbl b{display:block;font-size:13.5px;font-weight:500}.ctl .lbl small{display:block;font-size:12px;color:var(--onv);line-height:16px}
+.ctl .lbl code{font-family:'Roboto Mono',monospace;font-size:11px;color:var(--onv)}
+.changed{position:relative}.changed::before{content:'';position:absolute;left:-10px;top:4px;bottom:4px;width:3px;border-radius:3px;background:var(--p);animation:pop var(--d-m) var(--e-spring)}
+.slider{display:flex;align-items:center;gap:12px;min-width:0}
+.slider input{min-width:0}
+.slider input{flex:1;accent-color:var(--p);height:28px}
+.vbadge{min-width:56px;height:30px;padding:0 10px;box-sizing:border-box;border-radius:10px;background:var(--p);color:var(--onp);font-family:'Roboto Mono',monospace;font-size:13px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;transition:transform var(--d-m) var(--e-spring)}
+.stepper{justify-self:start;display:inline-flex;align-items:center;border-radius:999px;box-shadow:inset 0 0 0 1px var(--ol);height:40px}
+.stepper b{min-width:56px;text-align:center;font-family:'Roboto Mono',monospace;font-size:15px;font-weight:500}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:760px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.gcard{all:unset;cursor:pointer;border-radius:16px;background:var(--s0);padding:12px;display:flex;flex-direction:column;gap:6px;align-items:flex-start;box-shadow:inset 0 0 0 1px var(--olv);font-size:13.5px;font-weight:500;transition:box-shadow var(--d-m),background var(--d-m),transform var(--d-m) var(--e-spring)}
+.gcard:hover{transform:translateY(-2px)}.gcard.on{box-shadow:inset 0 0 0 2px var(--p);background:var(--pc);color:var(--onpc)}
+.gcard small{font-weight:400;font-size:11.5px;opacity:.85;line-height:15px}.gcard:focus-visible{outline:3px solid var(--p)}
+.motd{display:flex;flex-direction:column;gap:8px}
+.fmtbar{display:flex;flex-wrap:wrap;gap:4px;align-items:center;background:var(--s0);border-radius:12px;padding:6px}
+.sw16{all:unset;cursor:pointer;width:22px;height:22px;border-radius:6px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.2);transition:transform var(--d-s) var(--e-spring)}
+.sw16:hover{transform:scale(1.15)}.sw16:focus-visible{outline:3px solid var(--p)}
+.fbtn{all:unset;cursor:pointer;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:var(--onv)}
+.fbtn:hover{background:var(--s3)}.fbtn.on{background:var(--sc);color:var(--onsc)}.fbtn:focus-visible{outline:3px solid var(--p)}
+.mline{display:flex;align-items:center;gap:8px}
+.mline .inp{flex:1}
+.mlist{display:flex;gap:12px;align-items:center;background:#2b2b2b;border-radius:6px;padding:10px;font-family:'Roboto Mono',monospace;color:#fff;border:2px solid #000}
+.mlist .icn{width:64px;height:64px;border-radius:4px;background:linear-gradient(135deg,#5d9c3a,#3a7a24);display:flex;align-items:center;justify-content:center;flex:none}
+.mlist .t{flex:1;min-width:0;font-size:13px;line-height:18px}
+.mlist .t div{white-space:nowrap;overflow:hidden}
+.mlist .pc{font-size:12px;color:#aaa;align-self:flex-start;display:flex;gap:6px;align-items:center}
+.ring{position:relative;width:96px;height:96px;flex:none;border-radius:10px;background:var(--s0);flex:none;overflow:hidden}
+.ring i{position:absolute;border:2px solid var(--p);border-radius:4px;background:color-mix(in srgb,var(--p) 10%,transparent);transition:all var(--d-l) var(--e-spring)}
+.ring b{position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px;border-radius:6px;background:var(--am)}
+.dist{display:flex;gap:14px;align-items:center;min-width:0}
+.portst{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700}
+.portst.ok{background:var(--okc);color:var(--ok)}.portst.bad{background:var(--errc);color:var(--err)}.portst.chk{background:var(--s3);color:var(--onv)}
+.portst.chk .ms{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.reveal{display:grid;grid-template-rows:0fr;transition:grid-template-rows var(--d-l) var(--e-spring)}.reveal.open{grid-template-rows:1fr}.reveal>div{overflow:hidden}
+.savebar{position:sticky;bottom:12px;display:flex;align-items:center;gap:10px;background:var(--inv);color:var(--oninv);border-radius:18px;padding:10px 12px 10px 16px;box-shadow:0 8px 24px rgba(0,0,0,.25);animation:sbIn var(--d-l) var(--e-spring) both;z-index:5}
+@keyframes sbIn{from{opacity:0;transform:translateY(30px) scale(.97)}to{opacity:1;transform:none}}
+.savebar .btn.text{background:transparent;color:#8dcdff}
+.rawv{font-family:'Roboto Mono',monospace;font-size:12px;line-height:19px;background:#0b0f12;color:#c1c7ce;border-radius:14px;padding:10px 0;max-height:260px;overflow:auto}
+.rawv div{padding:0 14px;white-space:pre}.rawv .chg{background:rgba(0,100,147,.35);color:#fff}
+.stabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.stab{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;height:52px;padding:0 14px 0 10px;border-radius:16px;background:var(--s1);font-size:14px;font-weight:500;white-space:nowrap;box-shadow:inset 0 0 0 1px transparent;transition:background var(--d-m),box-shadow var(--d-m)}
+.stab.on{background:var(--sc);color:var(--onsc);box-shadow:inset 0 0 0 2px var(--p)}
+.stab small{display:block;font-size:11.5px;font-weight:400;color:var(--onv)}
+.stab:focus-visible{outline:3px solid var(--p)}
+.sdot{width:10px;height:10px;border-radius:10px;background:var(--ol)}.sdot.run{background:var(--ok);animation:beat 1.8s infinite}
+@keyframes beat{0%{box-shadow:0 0 0 0 rgba(27,127,55,.5)}100%{box-shadow:0 0 0 9px rgba(27,127,55,0)}}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--olv);overflow-x:auto}
+.tab{all:unset;cursor:pointer;height:44px;padding:0 12px;display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:500;color:var(--onv);white-space:nowrap;position:relative;transition:color var(--d-m)}
+.tab.on{color:var(--p)}
+.tab.on::after{content:'';position:absolute;left:8px;right:8px;bottom:0;height:3px;border-radius:3px 3px 0 0;background:var(--p);animation:ind var(--d-l) var(--e-spring)}
+@keyframes ind{from{transform:scaleX(.2);opacity:.4}to{transform:none;opacity:1}}
+.tab:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
+.pane{animation:paneIn var(--d-m) var(--e-dec) both;display:flex;flex-direction:column;gap:14px}
+@keyframes paneIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.cols{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
 .card{background:var(--s1);border-radius:24px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
-.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.f{display:flex;flex-direction:column;gap:6px;min-width:0}.f.full{grid-column:1/-1}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--s1);border-radius:20px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.kpi small{font-size:12px;color:var(--onv);display:flex;align-items:center;gap:6px}
+.kpi b{font-size:24px;font-weight:500;font-variant-numeric:tabular-nums}
+.spark{height:36px;width:100%}
+.spark path{fill:none;stroke:var(--p);stroke-width:2;transition:d 700ms var(--e-emph)}
+.spark .a{fill:color-mix(in srgb,var(--p) 14%,transparent);stroke:none}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:760px){.grid2,.grid3{grid-template-columns:minmax(0,1fr)}.grid4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.f{display:flex;flex-direction:column;gap:6px;min-width:0}
 .f label,.lab{font-size:12px;font-weight:500;color:var(--onv)}
-.sel{all:unset;height:44px;border-radius:12px;background:var(--s0);padding:0 12px;box-shadow:inset 0 0 0 1px var(--ol);font-size:14px;display:flex;align-items:center;gap:8px;cursor:pointer}
-.sel select{all:unset;flex:1;cursor:pointer}
-.inp{all:unset;height:44px;border-radius:12px;background:var(--s0);padding:0 12px;box-shadow:inset 0 0 0 1px var(--ol);font-family:'Roboto Mono',monospace;font-size:13px;transition:box-shadow var(--d-m)}
+.inp{all:unset;height:42px;border-radius:12px;background:var(--s0);padding:0 12px;box-shadow:inset 0 0 0 1px var(--ol);font-size:13.5px;transition:box-shadow var(--d-m);min-width:0}
 .inp:focus{box-shadow:inset 0 0 0 2px var(--p)}
+.inp.bad{box-shadow:inset 0 0 0 2px var(--err)}
+.sel{display:flex;align-items:center;gap:8px;height:42px;border-radius:12px;background:var(--s0);padding:0 12px;box-shadow:inset 0 0 0 1px var(--ol);font-size:13.5px;min-width:0}
+.sel select{all:unset;flex:1;cursor:pointer;min-width:0}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{all:unset;cursor:pointer;height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--ol);display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;transition:background var(--d-m),border-color var(--d-m)}
+.chip{all:unset;cursor:pointer;height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--ol);display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;transition:background var(--d-m),border-color var(--d-m),padding var(--d-m) var(--e-spring)}
 .chip.on{background:var(--sc);border-color:var(--sc);color:var(--onsc)}.chip:focus-visible{outline:3px solid var(--p)}
-.gridwrap{position:relative;aspect-ratio:1/1;max-height:340px;border-radius:16px;background:var(--s0);overflow:hidden;touch-action:none;background-image:linear-gradient(var(--s3) 1px,transparent 1px),linear-gradient(90deg,var(--s3) 1px,transparent 1px);background-size:5% 5%}
-.area{position:absolute;border:2px solid var(--p);background:color-mix(in srgb,var(--p) 16%,transparent);border-radius:6px;cursor:move;transition:width var(--d-m) var(--e-spring),height var(--d-m) var(--e-spring)}
+.sw{all:unset;cursor:pointer;width:52px;height:32px;border-radius:999px;background:var(--s4);box-shadow:inset 0 0 0 2px var(--ol);position:relative;flex:none;transition:background var(--d-m),box-shadow var(--d-m)}
+.sw i{position:absolute;top:8px;left:8px;width:16px;height:16px;border-radius:999px;background:var(--ol);transition:all var(--d-m) var(--e-spring)}
+.sw.on{background:var(--p);box-shadow:none}.sw.on i{left:24px;top:4px;width:24px;height:24px;background:var(--onp)}
+.sw:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.tbl{width:100%;border-collapse:separate;border-spacing:0 4px;font-size:13px}
+.tbl th{text-align:left;font-weight:500;font-size:12px;color:var(--onv);padding:4px 10px}
+.tbl td{background:var(--s0);padding:8px 10px;white-space:nowrap}
+.tbl tr td:first-child{border-radius:12px 0 0 12px}.tbl tr td:last-child{border-radius:0 12px 12px 0}
+.tbl tr{animation:in var(--d-l) var(--e-dec) both}
+.scroll{overflow-x:auto}
+.head{width:28px;height:28px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;vertical-align:middle;margin-right:8px}
+.tag{height:22px;padding:0 8px;border-radius:6px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px;background:var(--s3);color:var(--onv)}
+.tag.ok{background:var(--okc);color:var(--ok)}.tag.am{background:var(--amc);color:var(--am)}.tag.err{background:var(--errc);color:var(--err)}.tag.vi{background:var(--vic);color:var(--vi)}
+.console{background:#0b0f12;color:#c1c7ce;border-radius:16px;padding:12px 14px;font-family:'Roboto Mono',monospace;font-size:12px;line-height:19px;height:300px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
+.console div{animation:in var(--d-m) var(--e-dec) both;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.console .g{color:#7bd88f}.console .y{color:#f5c26b}.console .r{color:#ffb4ab}.console .b{color:#8dcdff}
+.cmd{position:relative}
+.cmd .inp{width:100%;box-sizing:border-box;font-family:'Roboto Mono',monospace;padding-left:34px}
+.cmd .pre{position:absolute;left:12px;top:11px;font-family:'Roboto Mono',monospace;color:var(--onv)}
+.ac{position:absolute;left:0;right:0;bottom:48px;background:var(--s2);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:6px;z-index:3;animation:pop var(--d-m) var(--e-spring) both;transform-origin:bottom left}
+@keyframes pop{from{opacity:0;transform:scale(.94) translateY(6px)}to{opacity:1;transform:none}}
+.aci{display:flex;gap:10px;align-items:center;padding:6px 10px;border-radius:10px;font-size:12.5px}
+.aci.on{background:var(--sc);color:var(--onsc)}.aci code{font-family:'Roboto Mono',monospace}.aci small{margin-left:auto;color:var(--onv);font-size:11.5px}
+.prop{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 4px;border-top:1px solid var(--olv);font-size:13.5px}
+.prop small{display:block;font-size:12px;color:var(--onv)}
+.prop code{font-family:'Roboto Mono',monospace;font-size:11.5px;color:var(--onv)}
+.mod{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--s0);border-radius:16px;padding:12px;animation:in var(--d-l) var(--e-dec) both;transition:transform var(--d-m) var(--e-spring)}
+.mod:hover{transform:translateY(-2px)}
+.mod .ic{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff}
+.mod b{font-size:14px;font-weight:500;display:block}.mod small{font-size:12px;color:var(--onv)}
+.gridwrap{position:relative;aspect-ratio:1/1;border-radius:16px;background:var(--s0);overflow:hidden;touch-action:none;background-image:linear-gradient(var(--s3) 1px,transparent 1px),linear-gradient(90deg,var(--s3) 1px,transparent 1px);background-size:5% 5%}
+.gen{position:absolute;background:color-mix(in srgb,var(--ok) 35%,transparent);transition:height var(--d-l) var(--e-emph)}
+.area{position:absolute;border:2px solid var(--p);background:color-mix(in srgb,var(--p) 12%,transparent);border-radius:6px;cursor:move;box-sizing:border-box}
 .area:focus-visible{outline:3px solid var(--p);outline-offset:2px}
 .area span{position:absolute;left:6px;top:4px;font-size:11px;font-weight:700;color:var(--p);font-family:'Roboto Mono',monospace}
-.spawn{position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px;border-radius:10px;background:var(--am)}
-.step{display:flex;align-items:center;gap:6px}
-.step b{font-family:'Roboto Mono',monospace;font-size:14px;min-width:44px;text-align:center}
-.eula{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:18px;background:var(--amc);color:var(--on);border-radius:14px;padding:12px}
-.console{background:#0b0f12;color:#c1c7ce;border-radius:16px;padding:12px;font-family:'Roboto Mono',monospace;font-size:12px;line-height:18px;height:170px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
-.console div{animation:ln var(--d-m) var(--e-dec) both}
-@keyframes ln{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.console .g{color:#7bd88f}.console .y{color:#f5c26b}
-.prog{height:6px;border-radius:6px;background:var(--s3);overflow:hidden}.prog i{display:block;height:100%;background:var(--p);transition:width var(--d-l) var(--e-emph)}
-.where{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
-@media (max-width:700px){.where{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.wh{all:unset;cursor:pointer;border-radius:14px;background:var(--s0);padding:10px;font-size:12.5px;font-weight:500;display:flex;flex-direction:column;gap:4px;box-shadow:inset 0 0 0 1px var(--olv);transition:box-shadow var(--d-m),background var(--d-m)}
-.wh.on{box-shadow:inset 0 0 0 2px var(--p);background:var(--pc);color:var(--onpc)}.wh:focus-visible{outline:3px solid var(--p)}
-.wh small{font-weight:400;font-size:11px;opacity:.8}
+.hnd{position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;border-radius:4px;background:var(--p);cursor:nwse-resize;border:2px solid var(--s0)}
+.spawn{position:absolute;width:10px;height:10px;margin:-5px;border-radius:10px;background:var(--am);left:50%;top:50%}
+.border{position:absolute;border:2px dashed var(--err);border-radius:4px;pointer-events:none}
+.layer{display:grid;grid-template-columns:28px 32px minmax(0,1fr) 90px auto;gap:10px;align-items:center;background:var(--s0);border-radius:12px;padding:6px 10px;font-size:13px;animation:in var(--d-m) var(--e-dec) both}
+.blk{width:28px;height:28px;border-radius:6px}
+.eula{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:18px;background:var(--amc);border-radius:14px;padding:12px}
+.prog{height:8px;border-radius:8px;background:var(--s3);overflow:hidden}.prog i{display:block;height:100%;background:var(--p);transition:width var(--d-l) var(--e-emph)}
+.ver{all:unset;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 10px;border-radius:12px;background:var(--s0);font-size:13px;transition:background var(--d-s)}
+.ver.on{background:var(--sc);color:var(--onsc)}.ver:focus-visible{outline:3px solid var(--p)}
+.host{all:unset;cursor:pointer;border-radius:18px;background:var(--s0);padding:14px;display:flex;flex-direction:column;gap:6px;box-shadow:inset 0 0 0 1px var(--olv);transition:box-shadow var(--d-m),background var(--d-m),transform var(--d-m) var(--e-spring)}
+.host:hover{transform:translateY(-2px)}.host.on{box-shadow:inset 0 0 0 2px var(--p);background:var(--pc);color:var(--onpc)}
+.host b{font-size:14px;font-weight:500}.host small{font-size:12px;opacity:.85;line-height:16px}
+.host:focus-visible{outline:3px solid var(--p)}
+.bk{display:grid;grid-template-columns:28px minmax(0,1fr) auto auto;gap:10px;align-items:center;background:var(--s0);border-radius:12px;padding:8px 10px;font-size:13px}
+.note{display:flex;gap:10px;font-size:12.5px;line-height:17px;color:var(--onv);background:var(--s2);border-radius:14px;padding:10px 12px}
 </style>
 </helmet>
 <div class="dm {{rootClass}}">
 <div class="wrap">
-<div class="bar"><div style="flex:1"><h1>Minecraft servers</h1></div><button class="btn"><span class="ms">add</span>New server</button><button class="icon-btn" onClick="{{toggleDark}}" aria-label="Switch light and dark"><span class="ms">contrast</span></button></div>
-<div class="tabs" role="tablist">
-<sc-for list="{{servers}}" as="sv" hint-placeholder-count="3"><button class="{{sv.cls}}" role="tab" aria-selected="{{sv.on}}" onClick="{{sv.pick}}"><span class="{{sv.dot}}"></span>{{sv.name}}<small style="color:var(--onv);font-weight:400">{{sv.ver}}</small></button></sc-for>
+<div class="bar"><div style="flex:1;min-width:260px"><h1>Minecraft servers</h1><p class="sub">Create, run and look after Java and Bedrock servers on this PC, in Docker, or over SSH. Every control is typed for the exact version you run.</p></div>
+<button class="btn tonal"><span class="ms">file_upload</span>Import existing</button><button class="btn"><span class="ms">add</span>New server</button><button class="icon-btn" onClick="{{toggleDark}}" aria-label="Switch light and dark"><span class="ms">contrast</span></button></div>
+<div class="shell">
+<aside class="side" aria-label="Servers">
+<div class="bar"><h2 style="font-size:15px"><span class="ms">dns</span>Servers</h2><span class="lab">{{srvCount}}</span><span class="sp"></span><button class="icon-btn sm" aria-label="New group"><span class="ms">create_new_folder</span></button></div>
+<div class="lsearch"><span class="ms" style="color:var(--onv)">search</span><input placeholder="Search name, version, host" aria-label="Search servers" value="{{sq}}" onInput="{{onSq}}"><button class="icon-btn sm" aria-label="Regex builder"><span class="mono" style="font-size:12px;font-weight:500">.*</span></button></div>
+<div class="chips"><sc-for list="{{sfilters}}" as="f" hint-placeholder-count="4"><button class="{{f.cls}}" aria-pressed="{{f.on}}" onClick="{{f.pick}}" style="height:28px;font-size:12px">{{f.label}} <span class="tag" style="height:18px">{{f.n}}</span></button></sc-for></div>
+<div class="sorts"><span class="sel"><select aria-label="Host" onChange="{{onHostF}}"><option>All hosts</option><option>This PC</option><option>Docker</option><option>SSH</option><option>SSH Docker</option></select></span><span class="sel"><select aria-label="Sort by" onChange="{{onSort}}"><option>Sort: group</option><option>Sort: name</option><option>Sort: players</option><option>Sort: last started</option></select></span></div>
+<div class="{{bulkCls}}"><div><div class="bulkin" role="toolbar" aria-label="Selected servers"><b style="font-weight:500">{{selN}} selected</b><span class="sp"></span><button class="btn"><span class="ms" style="font-size:16px">play_arrow</span>Start</button><button class="btn"><span class="ms" style="font-size:16px">stop</span>Stop</button><button class="btn"><span class="ms" style="font-size:16px">backup</span>Back up</button><button class="btn"><span class="ms" style="font-size:16px">update</span>Update</button><button class="btn" onClick="{{clearSel}}"><span class="ms" style="font-size:16px">close</span></button></div></div></div>
+<div class="lbox" role="listbox" aria-label="Servers" aria-multiselectable="true" tabindex="0" onKeyDown="{{onListKey}}">
+<sc-for list="{{srvRows}}" as="r" hint-placeholder-count="12">
+<sc-if value="{{r.isGroup}}" hint-placeholder-val="{{ false }}"><button class="{{r.cls}}" onClick="{{r.toggle}}" aria-expanded="{{r.open}}"><span class="ms">expand_more</span>{{r.label}} · {{r.n}}</button></sc-if>
+<sc-if value="{{r.isRow}}" hint-placeholder-val="{{ true }}"><div class="{{r.cls}}" role="option" aria-selected="{{r.on}}" onClick="{{r.pick}}" style="animation-delay:{{r.d}}"><button class="{{r.cbCls}}" aria-label="Select {{r.name}}" onClick="{{r.tick}}"><span class="ms">check</span></button><span class="{{r.dot}}"></span><span style="min-width:0"><b>{{r.name}}</b><small>{{r.meta}}</small></span><span class="r">{{r.p}}<br>{{r.tps}}</span></div></sc-if>
+</sc-for>
+<sc-if value="{{noRows}}" hint-placeholder-val="{{ false }}"><div class="note"><span class="ms">search_off</span><span>No server matches. Clear the search or the filters.</span></div></sc-if>
 </div>
+<div class="lstat">Showing {{shownN}} of {{srvCount}} · arrows move, Space selects, Enter opens</div>
+</aside>
+<div class="main">
+<div class="bar"><span class="{{curDot}}"></span><h2 style="font-size:20px">{{curName}}</h2><span class="lab">{{curMeta}}</span></div>
+<div class="tabs" role="tablist" aria-label="Server sections"><sc-for list="{{tabs}}" as="t" hint-placeholder-count="9"><button class="{{t.cls}}" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}"><span class="ms">{{t.icon}}</span>{{t.label}}</button></sc-for></div>
+
+<sc-if value="{{isDash}}" hint-placeholder-val="{{ true }}"><div class="pane">
+<div class="bar"><button class="btn" onClick="{{toggleRun}}"><span class="ms">{{runIcon}}</span>{{runLabel}}</button><button class="btn tonal"><span class="ms">restart_alt</span>Restart</button><button class="btn tonal"><span class="ms">backup</span>Back up now</button><button class="btn out"><span class="ms">campaign</span>Broadcast</button><span class="sp"></span><span class="tag ok"><span class="ms" style="font-size:14px">public</span>play.example.net:25565 reachable</span></div>
+<div class="kpis"><sc-for list="{{kpis}}" as="k" hint-placeholder-count="4"><div class="kpi"><small><span class="ms" style="font-size:16px">{{k.icon}}</span>{{k.label}}</small><b>{{k.val}}</b><svg class="spark" viewBox="0 0 200 36" preserveAspectRatio="none" aria-hidden="true"><path class="a" d="{{k.area}}"></path><path d="{{k.line}}"></path></svg></div></sc-for></div>
 <div class="cols">
-<div class="card" style="flex:1 1 420px">
-<h2><span class="ms">dns</span>Server</h2>
-<div class="lab">Runs on</div>
-<div class="where"><sc-for list="{{wheres}}" as="w" hint-placeholder-count="4"><button class="{{w.cls}}" onClick="{{w.pick}}" aria-pressed="{{w.on}}"><span class="ms">{{w.icon}}</span>{{w.label}}<small>{{w.hint}}</small></button></sc-for></div>
-<div class="lab">Flavour</div>
-<div class="chips"><sc-for list="{{flavours}}" as="fl" hint-placeholder-count="6"><button class="{{fl.cls}}" onClick="{{fl.pick}}" aria-pressed="{{fl.on}}">{{fl.label}}</button></sc-for></div>
-<div class="form">
-<div class="f"><label for="ver">Version</label><span class="sel"><span class="ms">sell</span><select id="ver"><option>1.21.4 (release)</option><option>25w45a (snapshot)</option><option>1.20.6 (release)</option><option>1.8.9 (legacy)</option></select></span></div>
-<div class="f"><label for="ram">Memory</label><span class="sel"><span class="ms">memory</span><select id="ram"><option>4 GB</option><option>6 GB</option><option>8 GB</option></select></span></div>
-<div class="f full"><label>Java runtime</label><span class="sel" style="cursor:default"><span class="ms">coffee</span>Temurin 21 (bundled, matches 1.21.4)</span></div>
+<div class="card" style="flex:999 1 520px"><div class="bar"><h2><span class="ms">group</span>Online now</h2><span class="sp"></span><span class="lab">{{online}} of 20</span></div>
+<div class="scroll"><table class="tbl"><thead><tr><th>Player</th><th>Ping</th><th>World</th><th>Playing for</th><th></th></tr></thead><tbody>
+<sc-for list="{{players}}" as="pl" hint-placeholder-count="4"><tr><td><span class="head" style="background:{{pl.c}}">{{pl.i}}</span>{{pl.n}}<sc-if value="{{pl.op}}" hint-placeholder-val="{{ false }}"> <span class="tag vi">OP {{pl.lvl}}</span></sc-if></td><td class="mono">{{pl.ping}} ms</td><td>{{pl.w}}</td><td class="mono">{{pl.t}}</td><td style="width:1%"><span style="display:flex;gap:2px"><button class="icon-btn sm" aria-label="Message"><span class="ms">chat</span></button><button class="icon-btn sm" aria-label="Teleport"><span class="ms">my_location</span></button><button class="icon-btn sm" aria-label="Kick"><span class="ms">logout</span></button></span></td></tr></sc-for>
+</tbody></table></div></div>
+<div class="card" style="flex:1 1 360px"><h2><span class="ms">notifications_active</span>Recent events</h2>
+<div class="note"><span class="ms" style="color:var(--am)">speed</span><span>Tick time over 50 ms for 40 s at 14:31. Top cause: entity count in chunk -12, 7 (412 item frames).</span></div>
+<div class="note"><span class="ms" style="color:var(--ok)">backup</span><span>Backup 14:00 done in 38 s · 412 MB · verified.</span></div>
+<div class="note"><span class="ms" style="color:var(--p)">update</span><span>Paper 1.21.4 build 232 is out. Your 4 plugins all declare support.</span></div></div>
 </div>
-<div class="bar"><button class="btn" onClick="{{toggleRun}}"><span class="ms">{{runIcon}}</span>{{runLabel}}</button><button class="btn tonal"><span class="ms">extension</span>Plugins and mods</button><button class="btn out"><span class="ms">settings</span>server.properties</button></div>
-<div class="console" role="log" aria-label="Server console"><sc-for list="{{log}}" as="l" hint-placeholder-count="5"><div class="{{l.c}}">{{l.t}}</div></sc-for></div>
+</div></sc-if>
+
+<sc-if value="{{isConsole}}" hint-placeholder-val="{{ false }}"><div class="pane"><div class="card">
+<div class="bar"><h2><span class="ms">terminal</span>Console</h2><span class="sp"></span><div class="chips"><sc-for list="{{lvls}}" as="l" hint-placeholder-count="4"><button class="{{l.cls}}" onClick="{{l.pick}}">{{l.label}}</button></sc-for></div><button class="icon-btn" aria-label="Search the log with regex"><span class="mono" style="font-size:13px;font-weight:500">.*</span></button><button class="icon-btn" aria-label="Save log"><span class="ms">download</span></button></div>
+<div class="console" role="log" aria-label="Server console"><sc-for list="{{log}}" as="l" hint-placeholder-count="12"><div class="{{l.c}}">{{l.t}}</div></sc-for></div>
+<div class="cmd"><span class="pre">&gt;</span><input class="inp" value="{{cmd}}" onInput="{{onCmd}}" aria-label="Command" aria-autocomplete="list">
+<sc-if value="{{showAc}}" hint-placeholder-val="{{ false }}"><div class="ac" role="listbox"><sc-for list="{{ac}}" as="a" hint-placeholder-count="4"><div class="{{a.cls}}" role="option"><code>{{a.syn}}</code><small>{{a.hint}}</small></div></sc-for></div></sc-if></div>
+<div class="sub">Commands and their arguments come from the 1.21.4 server jar, so suggestions match what this version accepts. <span class="mono">Up</span> and <span class="mono">Down</span> walk your history.</div>
+</div></div></sc-if>
+
+<sc-if value="{{isPlayers}}" hint-placeholder-val="{{ false }}"><div class="pane"><div class="card">
+<div class="bar"><h2><span class="ms">badge</span>Access</h2><span class="sp"></span><div class="chips"><sc-for list="{{lists}}" as="l" hint-placeholder-count="4"><button class="{{l.cls}}" onClick="{{l.pick}}">{{l.label}} <span class="tag">{{l.n}}</span></button></sc-for></div></div>
+<div class="bar"><input class="inp" style="flex:1" placeholder="Player name or UUID" aria-label="Player name or UUID"><div class="sel" style="width:170px"><select aria-label="Operator level"><option>Op level 4 (all)</option><option>Op level 3</option><option>Op level 2</option><option>Op level 1</option></select></div><button class="btn"><span class="ms">person_add</span>Add</button></div>
+<div class="scroll"><table class="tbl"><thead><tr><th>Player</th><th>UUID</th><th>{{listCol}}</th><th>Added</th><th></th></tr></thead><tbody>
+<sc-for list="{{listRows}}" as="r" hint-placeholder-count="4"><tr><td><span class="head" style="background:{{r.c}}">{{r.i}}</span>{{r.n}}</td><td class="mono" style="font-size:11.5px">{{r.u}}</td><td>{{r.x}}</td><td class="mono">{{r.d}}</td><td><button class="btn sm out">Remove</button></td></tr></sc-for>
+</tbody></table></div>
+<div class="row bar"><span class="lab">Whitelist enforced</span><button class="sw on" role="switch" aria-checked="true" aria-label="Whitelist enforced"><i></i></button><span class="lab" style="margin-left:14px">Kick players not on the list when it changes</span><button class="sw on" role="switch" aria-checked="true" aria-label="Enforce whitelist"><i></i></button></div>
+</div></div></sc-if>
+
+<sc-if value="{{isProps}}" hint-placeholder-val="{{ false }}"><div class="pane"><div class="cfg">
+<nav class="files" aria-label="Configuration files">
+<div class="lsearch" style="height:38px;margin-bottom:6px"><span class="ms" style="color:var(--onv);font-size:18px">search</span><input placeholder="Find any setting" aria-label="Find any setting" value="{{pq}}" onInput="{{onPq}}"><button class="icon-btn sm" aria-label="Regex builder"><span class="mono" style="font-size:12px;font-weight:500">.*</span></button></div>
+<sc-for list="{{cfgFiles}}" as="cf" hint-placeholder-count="7"><button class="{{cf.cls}}" onClick="{{cf.pick}}" aria-current="{{cf.on}}"><span class="ms" style="font-size:18px">{{cf.icon}}</span><span><span style="display:block;font-weight:500">{{cf.title}}</span><span class="mono" style="color:var(--onv)">{{cf.file}}</span></span><span class="n">{{cf.n}}</span></button></sc-for>
+<div class="note" style="margin-top:6px"><span class="ms">edit_off</span><span>Every setting is a control. The files are written for you and shown read-only.</span></div>
+</nav>
+<div class="cfgmain">
+
+<div class="sec"><h2><span class="ms">badge</span>Identity<small>How the server looks in the list</small></h2>
+<div class="motd">
+<div class="fmtbar" role="toolbar" aria-label="Text colour and style"><sc-for list="{{mcColors}}" as="c" hint-placeholder-count="16"><button class="sw16" style="background:{{c.hex}}" aria-label="{{c.name}}" onClick="{{c.pick}}"></button></sc-for><span class="vsep" style="width:1px;height:22px;background:var(--olv);margin:0 4px"></span><button class="{{bCls}}" aria-pressed="{{bold}}" onClick="{{toggleBold}}" aria-label="Bold">B</button><button class="{{iCls}}" aria-pressed="{{ital}}" onClick="{{toggleItal}}" aria-label="Italic" style="font-style:italic">I</button><button class="fbtn" aria-label="Underline" style="text-decoration:underline">U</button><button class="fbtn" aria-label="Strikethrough" style="text-decoration:line-through">S</button><button class="fbtn" aria-label="Obfuscated"><span class="ms" style="font-size:18px">blur_on</span></button></div>
+<div class="mline"><span class="lab" style="width:44px">Line 1</span><input class="inp" value="{{motd1}}" onInput="{{onMotd1}}" aria-label="Message line 1" maxlength="59"><span class="lab mono">{{m1n}}/59</span></div>
+<div class="mline"><span class="lab" style="width:44px">Line 2</span><input class="inp" value="{{motd2}}" onInput="{{onMotd2}}" aria-label="Message line 2" maxlength="59"><span class="lab mono">{{m2n}}/59</span></div>
+<div class="mlist" aria-label="Preview in the multiplayer list"><span class="icn"><span class="ms" style="font-size:36px;color:#fff">landscape</span></span><span class="t"><div style="color:#fff">{{curName}}</div><div style="color:{{mColor}};font-weight:{{mWeight}};font-style:{{mStyle}}">{{motd1}}</div><div style="color:#aaa">{{motd2}}</div></span><span class="pc">{{onlineTxt}}<span class="ms" style="font-size:16px;color:#55ff55">signal_cellular_alt</span></span></div>
+<div class="bar"><button class="btn sm tonal"><span class="ms">image</span>Server icon (64 × 64)</button><span class="lab">Drop any image; it is cropped and scaled for you</span></div>
+</div></div>
+
+<div class="sec"><h2><span class="ms">group</span>Players<small>server.properties</small></h2>
+<div class="{{maxCls}}"><span class="lbl"><b>Max players</b><small>Shown in the list; ops can always join</small><code>max-players</code></span><span class="stepper"><button class="icon-btn" aria-label="Fewer" onClick="{{maxDown}}"><span class="ms">remove</span></button><b>{{maxP}}</b><button class="icon-btn" aria-label="More" onClick="{{maxUp}}"><span class="ms">add</span></button></span></div>
+<div><div class="lbl" style="margin-bottom:8px"><b style="font-size:13.5px;font-weight:500">Default game mode</b> <code class="mono" style="font-size:11px;color:var(--onv)">gamemode</code></div><div class="cards"><sc-for list="{{gms}}" as="g" hint-placeholder-count="4"><button class="{{g.cls}}" aria-pressed="{{g.on}}" onClick="{{g.pick}}"><span class="ms">{{g.icon}}</span>{{g.label}}<small>{{g.hint}}</small></button></sc-for></div></div>
+<div class="ctl"><span class="lbl"><b>Difficulty</b><code>difficulty</code></span><span class="seg" style="display:inline-flex;border:1px solid var(--ol);border-radius:999px;overflow:hidden;height:38px"><sc-for list="{{diffs}}" as="d" hint-placeholder-count="4"><button style="all:unset;cursor:pointer;padding:0 14px;display:flex;align-items:center;font-size:13px;font-weight:500;border-left:1px solid var(--ol);transition:background var(--d-m);background:{{d.bg}};color:{{d.fg}}" aria-pressed="{{d.on}}" onClick="{{d.pick}}">{{d.label}}</button></sc-for></span></div>
+<div class="ctl"><span class="lbl"><b>PvP</b><small>Players can hurt each other</small><code>pvp</code></span><span><button class="{{pvpCls}}" role="switch" aria-checked="{{pvp}}" aria-label="PvP" onClick="{{togglePvp}}"><i></i></button></span></div>
+<div class="ctl"><span class="lbl"><b>Spawn protection</b><small>Only ops can build this close to spawn</small><code>spawn-protection</code></span><span class="dist"><span class="ring" aria-hidden="true"><i style="left:{{spL}};top:{{spL}};width:{{spW}};height:{{spW}}"></i><b></b></span><span class="slider" style="flex:1"><input type="range" min="0" max="64" value="{{spawnProt}}" onInput="{{onSpawn}}" aria-label="Spawn protection radius"><span class="vbadge">{{spawnProt}}</span></span></span></div>
 </div>
-<div class="card" style="flex:1 1 440px">
-<h2><span class="ms">public</span>World generator</h2>
-<div class="form">
-<div class="f"><label for="seed">Seed</label><input id="seed" class="inp" value="-4172144997902289642"></div>
-<div class="f"><label for="preset">Preset</label><span class="sel"><span class="ms">landscape</span><select id="preset"><option>Default</option><option>Large biomes</option><option>Amplified</option><option>Superflat</option><option>Single biome</option></select></span></div>
+
+<div class="sec"><h2><span class="ms">speed</span>Performance<small>Changes take effect after a restart</small></h2>
+<div class="{{viewCls}}"><span class="lbl"><b>View distance</b><small>Chunks sent to each player · {{viewBlocks}} blocks</small><code>view-distance</code></span><span class="dist"><span class="ring" aria-hidden="true"><i style="left:{{vL}};top:{{vL}};width:{{vW}};height:{{vW}}"></i><i style="left:{{sL}};top:{{sL}};width:{{sW}};height:{{sW}};border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,transparent)"></i><b></b></span><span class="slider" style="flex:1"><input type="range" min="2" max="32" value="{{view}}" onInput="{{onView}}" aria-label="View distance"><span class="vbadge">{{view}}</span></span></span></div>
+<div class="ctl"><span class="lbl"><b>Simulation distance</b><small>Chunks that tick; never more than view distance</small><code>simulation-distance</code></span><span class="slider"><input type="range" min="2" max="{{view}}" value="{{sim}}" onInput="{{onSim}}" aria-label="Simulation distance" style="accent-color:var(--ok)"><span class="vbadge" style="background:var(--ok)">{{sim}}</span></span></div>
+<div class="ctl"><span class="lbl"><b>Network compression</b><small>Packets bigger than this are compressed</small><code>network-compression-threshold</code></span><span class="slider"><input type="range" min="0" max="1024" step="64" value="{{comp}}" onInput="{{onComp}}" aria-label="Network compression threshold"><span class="vbadge">{{compTxt}}</span></span></div>
 </div>
-<div class="lab">Area to pre-generate · drag the box, or use the arrow keys when it has focus</div>
+
+<div class="sec"><h2><span class="ms">lan</span>Network</h2>
+<div class="ctl"><span class="lbl"><b>Port</b><small>Checked live on this machine</small><code>server-port</code></span><span class="bar"><input class="{{portInpCls}}" style="width:110px" value="{{port}}" onInput="{{onPort}}" aria-label="Server port"><span class="{{portCls}}" role="status"><span class="ms" style="font-size:15px">{{portIcon}}</span>{{portTxt}}</span></span></div>
+<div class="ctl"><span class="lbl"><b>Online mode</b><small>Check every account with Mojang</small><code>online-mode</code></span><span class="bar"><button class="{{onlineCls}}" role="switch" aria-checked="{{online}}" aria-label="Online mode" onClick="{{toggleOnline}}"><i></i></button></span></div>
+<div class="{{offWarn}}"><div><div class="note" style="background:var(--errc);color:var(--on)"><span class="ms" style="color:var(--err)">warning</span><span>With online mode off anyone can join as anyone, including as an operator. Only use it behind a proxy like Velocity that checks accounts itself.</span></div></div></div>
+<div class="ctl"><span class="lbl"><b>Resource pack</b><small>Downloaded by players when they join</small><code>resource-pack</code></span><span class="bar"><input class="inp" style="flex:1" value="https://cdn.example.net/pack-v3.zip" aria-label="Resource pack URL"><button class="btn sm tonal" onClick="{{checkPack}}"><span class="ms">verified</span>{{packBtn}}</button></span></div>
+<div class="{{packReveal}}"><div><div class="bar"><span class="tag ok">SHA-1 filled in: 4f3a…9c21</span><span class="tag">18.2 MB</span><span class="lab">Require it</span><button class="sw on" role="switch" aria-checked="true" aria-label="Require resource pack"><i></i></button></div></div></div>
+</div>
+
+<div class="sec"><h2><span class="ms">shield</span>Remote control</h2>
+<div class="ctl"><span class="lbl"><b>RCON</b><small>Remote console over the network</small><code>enable-rcon</code></span><span><button class="{{rconCls}}" role="switch" aria-checked="{{rcon}}" aria-label="RCON" onClick="{{toggleRcon}}"><i></i></button></span></div>
+<div class="{{rconReveal}}"><div class="ctl" style="padding-top:2px"><span class="lbl"><b>RCON password</b><small>Kept in Windows Credential Manager, written only into the running server</small></span><span class="bar"><span class="tag ok"><span class="ms" style="font-size:14px">lock</span>Generated, 32 characters</span><button class="btn sm out">Rotate</button></span></div></div>
+</div>
+
+<div class="bar"><button class="btn sm out" onClick="{{toggleRaw}}"><span class="ms">description</span>{{rawLabel}}</button><span class="lab">Previous versions of this file: 14</span></div>
+<div class="{{rawReveal}}"><div><div class="rawv" aria-label="server.properties as written"><sc-for list="{{raw}}" as="r" hint-placeholder-count="10"><div class="{{r.cls}}">{{r.t}}</div></sc-for></div></div></div>
+<sc-if value="{{dirty}}" hint-placeholder-val="{{ false }}"><div class="savebar" role="status"><span class="ms">edit_note</span><span>{{dirtyTxt}}</span><span class="sp"></span><button class="btn sm text" onClick="{{discard}}">Discard</button><button class="btn sm" onClick="{{saveCfg}}"><span class="ms">save</span>Save and restart later</button></div></sc-if>
+</div>
+</div></div></sc-if>
+
+<sc-if value="{{isMods}}" hint-placeholder-val="{{ false }}"><div class="pane"><div class="cols">
+<div class="card" style="flex:999 1 520px"><div class="bar"><h2><span class="ms">extension</span>Browse plugins</h2><span class="sp"></span><div class="chips"><sc-for list="{{sources}}" as="s" hint-placeholder-count="3"><button class="{{s.cls}}" onClick="{{s.pick}}">{{s.label}}</button></sc-for></div></div>
+<div class="bar"><input class="inp" style="flex:1" placeholder="Search plugins for Paper 1.21.4" aria-label="Search plugins"><div class="chips"><button class="chip on">Compatible only</button><button class="chip">Popular</button><button class="chip">Updated recently</button></div></div>
+<sc-for list="{{mods}}" as="m" hint-placeholder-count="5"><div class="mod" style="animation-delay:{{m.d}}"><span class="ic" style="background:{{m.c}}"><span class="ms">{{m.icon}}</span></span><span style="min-width:0"><b>{{m.n}}</b><small>{{m.desc}}</small><span class="bar" style="margin-top:6px"><span class="{{m.compCls}}">{{m.comp}}</span><span class="tag">{{m.dl}} downloads</span><span class="tag">{{m.src}}</span></span></span><button class="{{m.btnCls}}" onClick="{{m.toggle}}"><span class="ms">{{m.btnIcon}}</span>{{m.btn}}</button></div></sc-for>
+</div>
+<div class="card" style="flex:1 1 360px"><h2><span class="ms">inventory_2</span>Installed</h2>
+<sc-for list="{{installed}}" as="m" hint-placeholder-count="4"><div class="bk"><span class="ms">extension</span><span>{{m.n}} <span class="mono" style="font-size:12px;color:var(--onv)">{{m.v}}</span></span><sc-if value="{{m.upd}}" hint-placeholder-val="{{ false }}"><span class="tag am">Update {{m.nv}}</span></sc-if><button class="icon-btn sm" aria-label="Remove"><span class="ms">delete</span></button></div></sc-for>
+<div class="note"><span class="ms">account_tree</span><span>Dependencies install with the plugin that needs them, and the app refuses a plugin that declares a different server version instead of letting the server crash on start.</span></div>
+<button class="btn tonal"><span class="ms">upload_file</span>Add a custom .jar</button></div>
+</div></div></sc-if>
+
+<sc-if value="{{isWorlds}}" hint-placeholder-val="{{ false }}"><div class="pane"><div class="cols">
+<div class="card" style="flex:999 1 520px"><h2><span class="ms">public</span>Worlds</h2>
+<div class="grid3"><div class="kpi" style="background:var(--s0)"><small>Overworld</small><b>3.2 GB</b><small>41,220 chunks</small></div><div class="kpi" style="background:var(--s0)"><small>Nether</small><b>612 MB</b><small>6,018 chunks</small></div><div class="kpi" style="background:var(--s0)"><small>The End</small><b>188 MB</b><small>2,341 chunks</small></div></div>
+<div class="bar"><button class="btn tonal"><span class="ms">swap_horiz</span>Switch world</button><button class="btn tonal"><span class="ms">upload</span>Upload a world</button><button class="btn tonal"><span class="ms">download</span>Download as ZIP</button><button class="btn out"><span class="ms">cleaning_services</span>Trim unused chunks</button></div>
+</div>
+<div class="card" style="flex:1 1 380px"><div class="bar"><h2><span class="ms">backup</span>Backups</h2><span class="sp"></span><span class="tag ok">Every 2 hours · keep 24</span></div>
+<sc-for list="{{backups}}" as="b" hint-placeholder-count="4"><div class="bk"><span class="ms">inventory</span><span class="mono" style="font-size:12.5px">{{b.t}}</span><span class="lab">{{b.s}}</span><button class="btn sm out">Restore</button></div></sc-for>
+<div class="note"><span class="ms">shield</span><span>Backups save with the server paused for a moment so the world is consistent, and restoring keeps a copy of the world it replaces.</span></div></div>
+</div></div></sc-if>
+
+<sc-if value="{{isGen}}" hint-placeholder-val="{{ false }}"><div class="pane"><div class="cols">
+<div class="card" style="flex:1 1 440px"><h2><span class="ms">grid_on</span>Area to generate</h2>
 <div class="gridwrap" onPointerMove="{{onMove}}" onPointerUp="{{onUp}}" onPointerLeave="{{onUp}}">
+<div class="gen" style="left:{{ax}};top:{{ay}};width:{{aw}};height:{{genH}}"></div>
+<div class="border" style="left:10%;top:10%;width:80%;height:80%"></div>
 <span class="spawn" aria-hidden="true"></span>
-<div class="area" tabindex="0" role="slider" aria-label="Generation area" aria-valuetext="{{areaText}}" style="left:{{ax}};top:{{ay}};width:{{aw}};height:{{ah}}" onPointerDown="{{onDown}}" onKeyDown="{{onKey}}"><span>{{w}} × {{h}}</span></div>
+<div class="area" tabindex="0" role="slider" aria-label="Generation area, arrows move, Shift and arrows resize" aria-valuetext="{{areaText}}" style="left:{{ax}};top:{{ay}};width:{{aw}};height:{{ah}}" onPointerDown="{{onDown}}" onKeyDown="{{onKey}}"><span>{{w}} × {{h}}</span><i class="hnd" onPointerDown="{{onResize}}"></i></div>
 </div>
-<div class="bar"><span class="lab">Width</span><span class="step"><button class="icon-btn sm" aria-label="Narrower" onClick="{{wDown}}"><span class="ms">remove</span></button><b>{{w}}</b><button class="icon-btn sm" aria-label="Wider" onClick="{{wUp}}"><span class="ms">add</span></button></span>
-<span class="lab" style="margin-left:12px">Height</span><span class="step"><button class="icon-btn sm" aria-label="Shorter" onClick="{{hDown}}"><span class="ms">remove</span></button><b>{{h}}</b><button class="icon-btn sm" aria-label="Taller" onClick="{{hUp}}"><span class="ms">add</span></button></span><span class="lab" style="margin-left:auto">{{chunks}} chunks</span></div>
-<div class="bar"><span class="lab">Save to</span><span class="chips"><button class="{{outFolder}}" onClick="{{setFolder}}">Folder</button><button class="{{outZip}}" onClick="{{setZip}}">ZIP</button></span><input class="inp" style="flex:1;min-width:160px" value="{{outPath}}" aria-label="Output path"><button class="btn out"><span class="ms">folder_open</span>Browse</button></div>
-<label class="eula"><input type="checkbox" checked="{{eula}}" onChange="{{toggleEula}}"><span>I accept the Minecraft End User License Agreement. Generation runs this exact server version locally and only starts after you tick this.</span></label>
-<div class="bar"><button class="btn" disabled="{{genDisabled}}" onClick="{{gen}}"><span class="ms">auto_awesome_mosaic</span>Generate world</button><span class="lab">{{genText}}</span></div>
+<div class="bar"><span class="lab">Width</span><input class="inp" style="width:70px" value="{{w}}" aria-label="Width in chunks" onInput="{{onW}}"><span class="lab">Height</span><input class="inp" style="width:70px" value="{{h}}" aria-label="Height in chunks" onInput="{{onH}}"><span class="lab">Centre</span><span class="mono" style="font-size:12.5px">{{cx}}, {{cz}}</span><span class="sp"></span><span class="lab">{{chunks}} chunks · {{blocks}}</span></div>
+<div class="bar"><span class="tag" style="background:color-mix(in srgb,var(--ok) 35%,transparent);color:var(--on)">Generated</span><span class="tag" style="border:2px dashed var(--err);background:transparent">World border</span><span class="tag am">Spawn</span></div>
+</div>
+<div class="card" style="flex:999 1 520px"><h2><span class="ms">landscape</span>World</h2>
+<div class="grid3"><div class="f"><label for="seed">Seed</label><input id="seed" class="inp mono" value="-4172144997902289642"></div><div class="f"><label>Preset</label><div class="sel"><select aria-label="Preset" onChange="{{onPreset}}"><option>Default</option><option>Superflat</option><option>Large biomes</option><option>Amplified</option><option>Single biome</option></select></div></div><div class="f"><label>Single biome</label><div class="sel"><select aria-label="Single biome" disabled="{{ true }}"><option>minecraft:cherry_grove</option></select></div></div></div>
+<sc-if value="{{isFlat}}" hint-placeholder-val="{{ false }}"><h3>Superflat layers, top first</h3><div><sc-for list="{{layers}}" as="ly" hint-placeholder-count="4"><div class="layer"><span class="ms" style="color:var(--onv);cursor:grab">drag_indicator</span><span class="blk" style="background:{{ly.c}}"></span><span class="mono" style="font-size:12.5px">{{ly.b}}</span><input class="inp" style="height:32px" value="{{ly.n}}" aria-label="Layer height"><button class="icon-btn sm" aria-label="Remove layer"><span class="ms">close</span></button></div></sc-for></div><button class="btn sm tonal" style="align-self:flex-start"><span class="ms">add</span>Add layer</button></sc-if>
+<div class="grid4"><div class="f"><label>Difficulty</label><div class="sel"><select><option>Normal</option><option>Peaceful</option><option>Easy</option><option>Hard</option></select></div></div><div class="f"><label>Game mode</label><div class="sel"><select><option>Survival</option><option>Creative</option><option>Adventure</option><option>Spectator</option></select></div></div><div class="f"><label>Hardcore</label><button class="sw" role="switch" aria-checked="false" aria-label="Hardcore"><i></i></button></div><div class="f"><label>Structures</label><button class="sw on" role="switch" aria-checked="true" aria-label="Generate structures"><i></i></button></div></div>
+<h3>Game rules (from the 1.21.4 jar)</h3>
+<div class="grid3"><sc-for list="{{rules}}" as="r" hint-placeholder-count="6"><div class="bk" style="grid-template-columns:minmax(0,1fr) auto"><span class="mono" style="font-size:12px">{{r.k}}</span><sc-if value="{{r.isBool}}" hint-placeholder-val="{{ true }}"><button class="{{r.cls}}" role="switch" aria-checked="{{r.on}}" aria-label="{{r.k}}" onClick="{{r.toggle}}"><i></i></button></sc-if><sc-if value="{{r.isNum}}" hint-placeholder-val="{{ false }}"><input class="inp" style="width:70px;height:32px" value="{{r.v}}" aria-label="{{r.k}}"></sc-if></div></sc-for></div>
+<div class="grid3"><div class="f"><label>World border size</label><input class="inp" value="8000"></div><div class="f"><label>Spawn X, Z</label><input class="inp mono" value="0, 0"></div><div class="f"><label>Batch size</label><div class="sel"><select><option>1,024 chunks</option><option>256 chunks</option><option>4,096 chunks</option></select></div></div></div>
+<div class="bar"><span class="lab">Save to</span><div class="chips"><button class="{{outFolder}}" onClick="{{setFolder}}">Folder</button><button class="{{outZip}}" onClick="{{setZip}}">ZIP</button></div><input class="inp" style="flex:1;min-width:160px" value="{{outPath}}" aria-label="Output path"><button class="btn out"><span class="ms">folder_open</span>Browse</button></div>
+<label class="eula"><input type="checkbox" checked="{{eula}}" onChange="{{toggleEula}}"><span>I accept the Minecraft End User License Agreement. The exact 1.21.4 server generates this world locally, and nothing runs before this box is ticked.</span></label>
+<div class="bar"><button class="btn" disabled="{{genDisabled}}" onClick="{{gen}}"><span class="ms">auto_awesome_mosaic</span>Generate</button><button class="btn out" disabled="{{notGenerating}}"><span class="ms">pause</span>Pause</button><span class="lab">{{genText}}</span></div>
 <div class="prog"><i style="width:{{genPct}}"></i></div>
 </div>
+</div></div></sc-if>
+
+<sc-if value="{{isVersions}}" hint-placeholder-val="{{ false }}"><div class="pane"><div class="cols">
+<div class="card" style="flex:999 1 520px"><div class="bar"><h2><span class="ms">sell</span>Version</h2><span class="sp"></span><div class="chips"><sc-for list="{{eds}}" as="e" hint-placeholder-count="2"><button class="{{e.cls}}" onClick="{{e.pick}}">{{e.label}}</button></sc-for></div></div>
+<div class="chips"><sc-for list="{{chans}}" as="c" hint-placeholder-count="6"><button class="{{c.cls}}" onClick="{{c.pick}}">{{c.label}} <span class="tag">{{c.n}}</span></button></sc-for></div>
+<div class="grid2"><sc-for list="{{vers}}" as="v" hint-placeholder-count="8"><button class="{{v.cls}}" onClick="{{v.pick}}"><span><b style="font-weight:500">{{v.id}}</b> <span class="lab">{{v.date}}</span></span><span class="{{v.tagCls}}">{{v.tag}}</span></button></sc-for></div>
+<div class="note"><span class="ms">info</span><span>{{verNote}}</span></div>
 </div>
+<div class="card" style="flex:1 1 360px"><h2><span class="ms">coffee</span>Java runtime</h2>
+<div class="scroll"><table class="tbl"><thead><tr><th>Versions</th><th>Needs</th><th>Bundled</th></tr></thead><tbody><tr><td>1.20.5 and later</td><td class="mono">Java 21</td><td><span class="tag ok">Temurin 21.0.5</span></td></tr><tr><td>1.18 to 1.20.4</td><td class="mono">Java 17</td><td><span class="tag ok">Temurin 17.0.13</span></td></tr><tr><td>1.17</td><td class="mono">Java 16</td><td><span class="tag ok">Temurin 16.0.2</span></td></tr><tr><td>1.16.5 and earlier</td><td class="mono">Java 8</td><td><span class="tag ok">Temurin 8u432</span></td></tr></tbody></table></div>
+<div class="f"><label>JVM flags</label><div class="sel"><select><option>Aikar's flags (recommended for 4 GB+)</option><option>Default</option><option>Custom…</option></select></div></div>
+<div class="f"><label>Memory</label><div class="sel"><select><option>4 GB min · 6 GB max</option><option>2 GB · 4 GB</option><option>8 GB · 10 GB</option></select></div></div></div>
+</div></div></sc-if>
+
+<sc-if value="{{isHost}}" hint-placeholder-val="{{ false }}"><div class="pane"><div class="card">
+<h2><span class="ms">dns</span>Where it runs</h2>
+<div class="grid4"><sc-for list="{{hosts}}" as="h" hint-placeholder-count="4"><button class="{{h.cls}}" onClick="{{h.pick}}"><span class="ms">{{h.icon}}</span><b>{{h.label}}</b><small>{{h.hint}}</small></button></sc-for></div>
+<div class="grid3"><sc-for list="{{hostFields}}" as="hf" hint-placeholder-count="3"><div class="f"><label>{{hf.l}}</label><input class="inp mono" value="{{hf.v}}" aria-label="{{hf.l}}"></div></sc-for></div>
+<div class="grid3"><div class="f"><label>Port</label><input class="inp mono" value="25565"></div><div class="f"><label>Windows Firewall rule</label><div class="bar"><span class="tag ok">Allowed on private networks</span></div></div><div class="f"><label>Router port forward</label><div class="bar"><span class="tag am">UPnP off</span><button class="btn sm out">Open with UPnP</button></div></div></div>
+<div class="note"><span class="ms">key</span><span>SSH keys and passwords stay in Windows Credential Manager. The app connects with your key, never stores it in server files, logs or exports.</span></div>
+</div></div></sc-if>
+</div>
+</div>
+
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1400}}'>
 class Component extends DCLogic {
-  constructor(p){super(p);this.state={dark:false,srv:0,where:0,fl:1,run:true,x:30,y:30,w:100,h:100,drag:null,out:'zip',eula:false,gen:-1,log:[['','[14:02:11] Starting Minecraft server version 1.21.4'],['','[14:02:12] Loading properties'],['','[14:02:14] Preparing level "world"'],['g','[14:02:19] Done (5.12s)! For help, type "help"'],['','[14:03:40] Sam joined the game']]};}
-  componentDidMount(){this._i=setInterval(()=>{const s=this.state;if(s.gen>=0&&s.gen<100)this.setState({gen:Math.min(100,s.gen+9)});if(s.run&&Math.random()<.4){const msgs=[['','[tick] Saved the game'],['y','[warn] Can\u2019t keep up! 2034ms behind'],['','[chat] <Sam> nice spawn'],['g','[info] Backup finished, 412 MB']];this.setState({log:[...s.log,msgs[Math.floor(Math.random()*4)]].slice(-6)});}},1100);}
+  constructor(p){super(p);const mk=(b,v)=>{const a=[];let x=b;for(let i=0;i<30;i++){x=Math.max(0,x+(Math.random()-.5)*v);a.push(x);}return a;};
+    const G=['Family','Community','Mod packs','Testing','Events','Archive'];const F=['Paper','Purpur','Fabric','Forge','NeoForge','Vanilla','Bedrock'];const H=['This PC','Docker','SSH','SSH Docker'];const V=['1.21.4','1.21.3','1.20.6','1.20.1','25w45a','1.16.5','1.12.2','1.21.50'];const N=['Survival','Creative','Skyblock','Hardcore','SMP','Minigames','Prison','Parkour','Build battle','Factions','Lobby','Anarchy','Vanilla+','Towny','Oneblock','Bedwars','Pixelmon','RLCraft','Create','ATM9'];const ST=['run','run','stop','stop','stop','run','crash','start'];
+    const list=[];for(let i=0;i<112;i++){const st=ST[(i*7+3)%ST.length];list.push({id:i,name:N[i%N.length]+(i>=N.length?' '+(Math.floor(i/N.length)+1):''),g:G[(i*5)%G.length],f:F[(i*3)%F.length],h:H[(i*11)%H.length],v:F[(i*3)%F.length]==='Bedrock'?'1.21.50':V[(i*13)%(V.length-1)],st:st,pl:st==='run'?((i*17)%21):0,tps:st==='run'?(19.9-((i*7)%30)/10).toFixed(1):'—',last:(i*37)%240});}
+    list[0]={...list[0],name:'Survival',g:'Family',f:'Paper',h:'This PC',v:'1.21.4',st:'run',pl:4,tps:'19.8'};
+    this.state={dark:false,cfile:0,motd1:'Welcome to Survival',motd2:'Season 4 · whitelist on',mcol:'#55FF55',bold:false,ital:false,maxP:20,gm:0,diff:2,pvp:true,spawnProt:16,view:10,sim:8,comp:256,port:'25565',online:true,packOk:false,rcon:false,raw:false,base:null,srv:0,srvList:list,sq:'',sf:{run:false,stop:false,crash:false,start:false},hostF:'All hosts',sort:'Sort: group',ssel:{},closed:{Archive:true},tab:0,run:true,host:0,lvl:'all',cmd:'/gamerule ',list:0,pq:'',pg:0,src:0,mods:{0:false,1:true,2:false,3:false,4:false},ed:0,ch:0,ver:0,x:110,y:120,w:100,h:100,drag:null,out:'zip',eula:false,gen:-1,flat:false,rules:{doDaylightCycle:true,keepInventory:false,mobGriefing:true,doFireTick:true,doInsomnia:true,announceAdvancements:true},
+    tps:mk(19.8,.4),ms:mk(28,12),ram:mk(3.2,.3),cpu:mk(34,10),
+    log:[['','[14:02:11 INFO]: Starting minecraft server version 1.21.4'],['','[14:02:12 INFO]: Loading properties'],['b','[14:02:13 INFO]: [Paper] Using 4 worker threads'],['','[14:02:14 INFO]: Preparing level "world"'],['g','[14:02:19 INFO]: Done (5.123s)! For help, type "help"'],['','[14:03:40 INFO]: Sam joined the game'],['y','[14:31:02 WARN]: Can\'t keep up! Running 2034ms behind'],['','[14:32:15 INFO]: <Sam> nice spawn']]};}
+  componentDidMount(){this._i=setInterval(()=>{const s=this.state;const nx=(a,v,lo,hi)=>[...a.slice(1),Math.min(hi,Math.max(lo,a[a.length-1]+(Math.random()-.5)*v))];const up={tps:nx(s.tps,.5,15,20),ms:nx(s.ms,10,8,60),ram:nx(s.ram,.3,2,6),cpu:nx(s.cpu,10,5,95)};if(s.gen>=0&&s.gen<100)up.gen=Math.min(100,s.gen+5);if(s.run&&Math.random()<.35){const m=[['','[INFO]: Saved the game'],['g','[INFO]: Backup finished, 412 MB, verified'],['','[INFO]: <Sam> anyone at the farm?'],['b','[INFO]: [Paper] Chunk system: 128 chunks saved'],['y','[WARN]: Sam moved too quickly! 12.4,0.0,3.1']];up.log=[...s.log,m[Math.floor(Math.random()*m.length)]].slice(-14);}this.setState(up);},1000);}
   componentWillUnmount(){clearInterval(this._i);}
+  spark(a,lo,hi){const n=a.length;const X=i=>i*200/(n-1);const Y=v=>34-((v-lo)/(hi-lo))*32;let d='M0,'+Y(a[0]).toFixed(1);for(let i=1;i<n;i++)d+=' L'+X(i).toFixed(1)+','+Y(a[i]).toFixed(1);return {line:d,area:d+' L200,36 L0,36 Z'};}
   renderVals(){
     const s=this.state;const SZ=400;const pct=v=>(v/SZ*100)+'%';
-    const servers=[{name:'Survival',ver:'1.21.4 Paper'},{name:'Creative test',ver:'25w45a'},{name:'Bedrock family',ver:'1.21.50'}];
-    const wh=[['desktop_windows','This PC','Windows process'],['deployed_code','Docker','On this PC'],['terminal','SSH','Remote process'],['cloud','SSH Docker','Remote container']];
-    const fls=['Vanilla','Paper','Purpur','Fabric','Forge','NeoForge','Bedrock'];
-    const clampXY=(x,y)=>({x:Math.max(0,Math.min(SZ-s.w,x)),y:Math.max(0,Math.min(SZ-s.h,y))});
-    const setW=v=>this.setState({w:Math.max(10,Math.min(SZ,v)),x:Math.min(s.x,SZ-Math.max(10,Math.min(SZ,v)))});
-    const setH=v=>this.setState({h:Math.max(10,Math.min(SZ,v)),y:Math.min(s.y,SZ-Math.max(10,Math.min(SZ,v)))});
+    const tabs=[['dashboard','Dashboard'],['terminal','Console'],['badge','Players'],['tune','Configuration'],['extension','Plugins'],['public','Worlds'],['grid_on','World generator'],['sell','Version'],['dns','Host']];
+    const servers=[['Survival','Paper 1.21.4 · This PC',true],['Creative test','Fabric 25w45a · Docker',false],['Bedrock family','Bedrock 1.21.50 · SSH home-server',false]];
+    const k=[['speed','TPS',s.tps,15,20,v=>v.toFixed(1)],['timer','Tick time',s.ms,0,60,v=>v.toFixed(0)+' ms'],['memory','Memory',s.ram,0,6,v=>v.toFixed(1)+' / 6 GB'],['developer_board','CPU',s.cpu,0,100,v=>v.toFixed(0)+' %']];
+    const players=[['Sam','S','#006493',38,'Overworld','1:42:10',true,4],['Alex','A','#1b7f37',61,'Nether','0:22:04',false,0],['Mei','M','#9a6700',24,'Overworld','0:58:31',false,0],['Kai','K','#6750a4',102,'The End','0:05:12',false,0]];
+    const cmds=[['/gamerule doDaylightCycle <true|false>','boolean'],['/gamerule keepInventory <true|false>','boolean'],['/gamerule randomTickSpeed <int>','integer, default 3'],['/gamerule playersSleepingPercentage <int>','0 to 100']];
+    const listNames=['Whitelist','Operators','Bans','IP bans'];
+    const rowsBy=[[['Sam','S','#006493','069a79f4-44e9-4726-a5be-fca90e38aaf5','—','2026-10-02'],['Alex','A','#1b7f37','853c80ef-3c37-49fd-aa49-938b674adae6','—','2026-10-02'],['Mei','M','#9a6700','f84c6a79-0a4e-45e0-879b-cd49ebd4c4e2','—','2026-10-14']],[['Sam','S','#006493','069a79f4-44e9-4726-a5be-fca90e38aaf5','Level 4, bypasses limit','2026-10-02']],[['griefer123','G','#ba1a1a','5b1e7c2a-1a3b-4c9e-8f00-9a2a33b0c111','Burned the village','2026-11-01']],[]];
+    const PG=['All','World','Players','Network','Performance','Security'];
+    const P=[['World','Level seed','Leave empty for a random seed','level-seed','text','',''],['World','Max world size','Radius in blocks','max-world-size','num','29999984','29999984'],['Players','Max players','Shown in the server list','max-players','num','20','20'],['Players','Default game mode','For new players','gamemode','enum','survival','survival',['survival','creative','adventure','spectator']],['Players','PvP','Players can hurt each other','pvp','bool',true,'on'],['Network','Online mode','Check accounts with Mojang','online-mode','bool',true,'on'],['Network','Server port','TCP port players connect to','server-port','num','25565','25565'],['Performance','View distance','Chunks sent to each player (3 to 32)','view-distance','num','10','10'],['Performance','Simulation distance','Chunks that tick around players','simulation-distance','num','8','10'],['Security','Enforce secure profile','Require signed chat','enforce-secure-profile','bool',true,'on'],['Security','Enable RCON','Remote console over the network','enable-rcon','bool',false,'off']];
+    const props=P.filter(p=>(s.pg===0||p[0]===PG[s.pg])&&(p[1]+p[3]).toLowerCase().includes(s.pq.toLowerCase()));
+    const mods=[['EssentialsX','Homes, warps, kits and economy','#1b7f37','home','Compatible with 1.21.4','12.4M','Hangar'],['LuckPerms','Permissions with a web editor','#006493','admin_panel_settings','Compatible with 1.21.4','9.8M','Modrinth'],['Chunky','Pre-generate chunks in the background','#9a6700','grid_on','Compatible with 1.21.4','3.1M','Modrinth'],['WorldEdit','In-game map editing','#6750a4','construction','Compatible with 1.21.4','21.6M','Hangar'],['OldCombat','1.8 combat on new versions','#71787e','swords','Declares 1.20.x only','410k','Modrinth']];
+    const vers=[[['1.21.4','2024-12-03','Latest release'],['1.21.3','2024-10-23','Release'],['1.20.6','2024-04-29','Release'],['1.20.1','2023-06-12','Release'],['1.16.5','2021-01-15','Release'],['1.12.2','2017-09-18','Release'],['1.8.9','2015-12-09','Release'],['1.7.10','2014-06-26','Release']],[['25w45a','2025-11-05','Snapshot'],['25w44a','2025-10-29','Snapshot'],['1.21.5-pre2','2025-03-18','Pre-release'],['1.21.5-rc1','2025-03-20','Release candidate']],[['b1.7.3','2011-07-08','Old beta'],['b1.6.6','2011-05-31','Old beta']],[['a1.2.6','2010-12-03','Old alpha']]];
+    const chans=['Release','Snapshot','Old beta','Old alpha'];
+    const hosts=[['desktop_windows','This PC','A Windows process the app starts and watches'],['deployed_code','Docker','A container on this PC'],['terminal','SSH','A process on another machine'],['cloud','SSH Docker','A container on another machine']];
+    const hf=[[['Install folder','D:\\Servers\\survival'],['Run as','This Windows user'],['Start with Windows','Off']],[['Image','itzg/minecraft-server:java21'],['Container','mc-creative'],['Volume','mc-creative-data']],[['Host','home-server.lan'],['User','minecraft'],['Folder','/srv/minecraft/bedrock']],[['Host','home-server.lan'],['Context','ssh://minecraft@home-server.lan'],['Container','mc-bedrock']]][s.host];
+    const clamp=(x,y,w,h)=>({x:Math.max(0,Math.min(SZ-w,x)),y:Math.max(0,Math.min(SZ-h,y))});
+    const rules=Object.keys(s.rules).map(key=>({k:key,isBool:true,isNum:false,on:s.rules[key],cls:'sw'+(s.rules[key]?' on':''),toggle:()=>this.setState({rules:{...s.rules,[key]:!s.rules[key]}})}));
+    rules.push({k:'randomTickSpeed',isBool:false,isNum:true,v:'3'},{k:'spawnRadius',isBool:false,isNum:true,v:'10'});
+
+    const SL=s.srvList;const stLabel={run:'Running',stop:'Stopped',crash:'Crashed',start:'Starting'};
+    const anyF=Object.values(s.sf).some(x=>x);const hostMap={'This PC':'This PC','Docker':'Docker','SSH':'SSH','SSH Docker':'SSH Docker'};
+    let fl=SL.filter(x=>(!anyF||s.sf[x.st])&&(s.hostF==='All hosts'||x.h===s.hostF)&&(x.name+' '+x.f+' '+x.v+' '+x.h+' '+x.g).toLowerCase().includes(s.sq.toLowerCase()));
+    const by=s.sort;if(by==='Sort: name')fl=[...fl].sort((a,b)=>a.name.localeCompare(b.name));if(by==='Sort: players')fl=[...fl].sort((a,b)=>b.pl-a.pl);if(by==='Sort: last started')fl=[...fl].sort((a,b)=>a.last-b.last);
+    const rowsOut=[];const grouped=by==='Sort: group';let shown=0;
+    const mkRow=(x,i)=>{shown++;const on=!!s.ssel[x.id];return {isGroup:false,isRow:true,name:x.name,meta:x.f+' '+x.v+' · '+x.h+' · '+stLabel[x.st],p:x.st==='run'?x.pl+'/20':'',tps:x.st==='run'?x.tps+' TPS':'',on:on,d:Math.min(i,12)*25+'ms',cls:'srow'+(on?' on':'')+(s.srv===x.id?' act':''),cbCls:'cbx'+(on?' on':''),dot:'sdot'+(x.st==='run'?' run':(x.st==='crash'?' crash':(x.st==='start'?' start':''))),pick:()=>this.setState({srv:x.id}),tick:e=>{e.stopPropagation();this.setState({ssel:{...s.ssel,[x.id]:!on}});}};};
+    if(grouped){const gs=[...new Set(fl.map(x=>x.g))];gs.forEach(g=>{const items=fl.filter(x=>x.g===g);const open=!s.closed[g];rowsOut.push({isGroup:true,isRow:false,label:g,n:items.length,open:open,cls:'grp'+(open?'':' closed'),toggle:()=>this.setState({closed:{...s.closed,[g]:open}})});if(open)items.forEach((x,i)=>rowsOut.push(mkRow(x,i)));});}
+    else fl.forEach((x,i)=>rowsOut.push(mkRow(x,i)));
+    const cur=SL.find(x=>x.id===s.srv)||SL[0];const selN=Object.values(s.ssel).filter(Boolean).length;
+    const vis=fl.map(x=>x.id);
+
+    const cfgBase={maxP:20,gm:0,diff:2,pvp:true,spawnProt:16,view:10,sim:8,comp:256,port:'25565',online:true,rcon:false,motd1:'Welcome to Survival',motd2:'Season 4 · whitelist on'};
+    const changedKeys=Object.keys(cfgBase).filter(k=>s[k]!==cfgBase[k]);
+    const MC=[['Black','#000000'],['Dark blue','#0000AA'],['Dark green','#00AA00'],['Dark aqua','#00AAAA'],['Dark red','#AA0000'],['Dark purple','#AA00AA'],['Gold','#FFAA00'],['Grey','#AAAAAA'],['Dark grey','#555555'],['Blue','#5555FF'],['Green','#55FF55'],['Aqua','#55FFFF'],['Red','#FF5555'],['Light purple','#FF55FF'],['Yellow','#FFFF55'],['White','#FFFFFF']];
+    const ring=(r,max)=>{const w=Math.max(6,r/max*92);return {w:w+'px',l:(48-w/2)+'px'};};
+    const vr=ring(s.view,32),sr=ring(s.sim,32),sp=ring(s.spawnProt,64);
+    const portNum=parseInt(s.port,10);const portBad=!(portNum>=1024&&portNum<=65535);const portUsed=portNum===8080||portNum===25575;
+    const cfgProps=[['motd',s.motd1+'\\n'+s.motd2,'motd1'],['max-players',s.maxP,'maxP'],['gamemode',['survival','creative','adventure','spectator'][s.gm],'gm'],['difficulty',['peaceful','easy','normal','hard'][s.diff],'diff'],['pvp',s.pvp,'pvp'],['spawn-protection',s.spawnProt,'spawnProt'],['view-distance',s.view,'view'],['simulation-distance',s.sim,'sim'],['network-compression-threshold',s.comp,'comp'],['server-port',s.port,'port'],['online-mode',s.online,'online'],['enable-rcon',s.rcon,'rcon']];
+    const swc=v=>'sw'+(v?' on':'');const ctl=k=>'ctl'+(changedKeys.includes(k)?' changed':'');
     return {
+      cfgFiles:[['dns','Server','server.properties',64],['extension','Bukkit','bukkit.yml',41],['bolt','Spigot','spigot.yml',88],['rocket_launch','Paper global','config/paper-global.yml',212],['public','Paper world defaults','config/paper-world-defaults.yml',306],['admin_panel_settings','LuckPerms','plugins/LuckPerms/config.yml',97],['home','EssentialsX','plugins/Essentials/config.yml',520]].map((f,i)=>({icon:f[0],title:f[1],file:f[2],n:f[3],on:s.cfile===i,cls:'fi'+(s.cfile===i?' on':''),pick:()=>this.setState({cfile:i})})),
+      mcColors:MC.map(c=>({name:c[0],hex:c[1],pick:()=>this.setState({mcol:c[1]})})),mColor:s.mcol,mWeight:s.bold?'700':'400',mStyle:s.ital?'italic':'normal',
+      bold:s.bold,ital:s.ital,bCls:'fbtn'+(s.bold?' on':''),iCls:'fbtn'+(s.ital?' on':''),toggleBold:()=>this.setState({bold:!s.bold}),toggleItal:()=>this.setState({ital:!s.ital}),
+      motd1:s.motd1,motd2:s.motd2,m1n:s.motd1.length,m2n:s.motd2.length,onMotd1:e=>this.setState({motd1:e.target.value}),onMotd2:e=>this.setState({motd2:e.target.value}),onlineTxt:'4/'+s.maxP,
+      maxP:s.maxP,maxCls:ctl('maxP'),maxDown:()=>this.setState({maxP:Math.max(1,s.maxP-1)}),maxUp:()=>this.setState({maxP:Math.min(1000,s.maxP+1)}),
+      gms:[['shield','Survival','Gather, build, survive'],['brush','Creative','Unlimited blocks, flying'],['explore','Adventure','Play maps without breaking them'],['visibility','Spectator','Fly through, only watch']].map((g,i)=>({icon:g[0],label:g[1],hint:g[2],on:s.gm===i,cls:'gcard'+(s.gm===i?' on':''),pick:()=>this.setState({gm:i})})),
+      diffs:['Peaceful','Easy','Normal','Hard'].map((d,i)=>({label:d,on:s.diff===i,bg:s.diff===i?'var(--sc)':'transparent',fg:s.diff===i?'var(--onsc)':'var(--on)',pick:()=>this.setState({diff:i})})),
+      pvp:s.pvp,pvpCls:swc(s.pvp),togglePvp:()=>this.setState({pvp:!s.pvp}),
+      spawnProt:s.spawnProt,onSpawn:e=>this.setState({spawnProt:+e.target.value}),spW:sp.w,spL:sp.l,
+      view:s.view,sim:Math.min(s.sim,s.view),viewBlocks:s.view*16,viewCls:ctl('view'),onView:e=>{const v=+e.target.value;this.setState({view:v,sim:Math.min(s.sim,v)});},onSim:e=>this.setState({sim:+e.target.value}),vW:vr.w,vL:vr.l,sW:sr.w,sL:sr.l,
+      comp:s.comp,compTxt:s.comp===0?'Off':s.comp+' B',onComp:e=>this.setState({comp:+e.target.value}),
+      port:s.port,onPort:e=>this.setState({port:e.target.value}),portInpCls:'inp mono'+(portBad?' bad':''),portCls:'portst '+(portBad||portUsed?'bad':'ok'),portIcon:portBad?'error':(portUsed?'block':'check_circle'),portTxt:portBad?'Use 1024 to 65535':(portUsed?'In use by another app':'Free on this PC'),
+      online:s.online,onlineCls:swc(s.online),toggleOnline:()=>this.setState({online:!s.online}),offWarn:'reveal'+(s.online?'':' open'),
+      checkPack:()=>this.setState({packOk:true}),packBtn:s.packOk?'Checked':'Check and fill hash',packReveal:'reveal'+(s.packOk?' open':''),
+      rcon:s.rcon,rconCls:swc(s.rcon),toggleRcon:()=>this.setState({rcon:!s.rcon}),rconReveal:'reveal'+(s.rcon?' open':''),
+      toggleRaw:()=>this.setState({raw:!s.raw}),rawLabel:s.raw?'Hide file':'Show file as written',rawReveal:'reveal'+(s.raw?' open':''),
+      raw:cfgProps.map(pr=>({t:pr[0]+'='+pr[1],cls:changedKeys.includes(pr[2])?'chg':''})),
+      dirty:changedKeys.length>0,dirtyTxt:changedKeys.length===1?'1 unsaved change':changedKeys.length+' unsaved changes',discard:()=>this.setState({...cfgBase}),saveCfg:()=>this.setState({...cfgBase}),
+      srvCount:SL.length,sq:s.sq,onSq:e=>this.setState({sq:e.target.value}),
+      sfilters:['run','stop','crash','start'].map(k=>({label:stLabel[k],n:SL.filter(x=>x.st===k).length,on:s.sf[k],cls:'chip'+(s.sf[k]?' on':''),pick:()=>this.setState({sf:{...s.sf,[k]:!s.sf[k]}})})),
+      onHostF:e=>this.setState({hostF:e.target.value}),onSort:e=>this.setState({sort:e.target.value}),
+      srvRows:rowsOut,noRows:fl.length===0,shownN:fl.length,selN:selN,bulkCls:'bulk'+(selN?' open':''),clearSel:()=>this.setState({ssel:{}}),
+      onListKey:e=>{const i=vis.indexOf(s.srv);if(e.key==='ArrowDown'&&i<vis.length-1){e.preventDefault();this.setState({srv:vis[i+1]});}if(e.key==='ArrowUp'&&i>0){e.preventDefault();this.setState({srv:vis[i-1]});}if(e.key===' '){e.preventDefault();this.setState({ssel:{...s.ssel,[s.srv]:!s.ssel[s.srv]}});}},
+      curName:cur.name,curMeta:cur.f+' '+cur.v+' · '+cur.h+' · '+stLabel[cur.st],curDot:'sdot'+(cur.st==='run'?' run':(cur.st==='crash'?' crash':'')),
       rootClass:s.dark?'dark':'',toggleDark:()=>this.setState({dark:!s.dark}),
-      servers:servers.map((v,i)=>({...v,on:s.srv===i,cls:'tab'+(s.srv===i?' on':''),dot:'dotst'+(i===0&&s.run?' run':''),pick:()=>this.setState({srv:i})})),
-      wheres:wh.map((w,i)=>({icon:w[0],label:w[1],hint:w[2],on:s.where===i,cls:'wh'+(s.where===i?' on':''),pick:()=>this.setState({where:i})})),
-      flavours:fls.map((l,i)=>({label:l,on:s.fl===i,cls:'chip'+(s.fl===i?' on':''),pick:()=>this.setState({fl:i})})),
+      servers:servers.map((v,i)=>({name:v[0],meta:v[1],on:s.srv===i,cls:'stab'+(s.srv===i?' on':''),dot:'sdot'+(v[2]&&s.run?' run':''),pick:()=>this.setState({srv:i})})),
+      tabs:tabs.map((t,i)=>({icon:t[0],label:t[1],on:s.tab===i,cls:'tab'+(s.tab===i?' on':''),pick:()=>this.setState({tab:i})})),
+      isDash:s.tab===0,isConsole:s.tab===1,isPlayers:s.tab===2,isProps:s.tab===3,isMods:s.tab===4,isWorlds:s.tab===5,isGen:s.tab===6,isVersions:s.tab===7,isHost:s.tab===8,
       runIcon:s.run?'stop':'play_arrow',runLabel:s.run?'Stop':'Start',toggleRun:()=>this.setState({run:!s.run}),
-      log:s.log.map(l=>({c:l[0],t:l[1]})),
-      ax:pct(s.x),ay:pct(s.y),aw:pct(s.w),ah:pct(s.h),w:s.w,h:s.h,chunks:(s.w*s.h).toLocaleString(),areaText:s.w+' by '+s.h+' chunks',
-      onDown:e=>{e.currentTarget.setPointerCapture&&e.currentTarget.setPointerCapture(e.pointerId);const r=e.currentTarget.parentElement.getBoundingClientRect();this.setState({drag:{px:e.clientX,py:e.clientY,x:s.x,y:s.y,k:SZ/r.width}});},
-      onMove:e=>{if(!s.drag)return;const d=s.drag;this.setState(clampXY(Math.round(d.x+(e.clientX-d.px)*d.k),Math.round(d.y+(e.clientY-d.py)*d.k)));},
+      kpis:k.map(x=>({icon:x[0],label:x[1],val:x[5](x[2][x[2].length-1]),...this.spark(x[2],x[3],x[4])})),
+      online:players.length,players:players.map(p=>({n:p[0],i:p[1],c:p[2],ping:p[3],w:p[4],t:p[5],op:p[6],lvl:p[7]})),
+      lvls:['all','info','warn','error'].map(l=>({label:l[0].toUpperCase()+l.slice(1),cls:'chip'+(s.lvl===l?' on':''),pick:()=>this.setState({lvl:l})})),
+      log:s.log.filter(l=>s.lvl==='all'||(s.lvl==='warn'&&l[0]==='y')||(s.lvl==='error'&&l[0]==='r')||(s.lvl==='info'&&l[0]!=='y'&&l[0]!=='r')).map(l=>({c:l[0],t:l[1]})),
+      cmd:s.cmd,onCmd:e=>this.setState({cmd:e.target.value}),showAc:s.cmd.startsWith('/g'),ac:cmds.filter(c=>c[0].startsWith(s.cmd.trim())||s.cmd.trim()==='/gamerule'||s.cmd.trim().length<3).map((c,i)=>({syn:c[0],hint:c[1],cls:'aci'+(i===0?' on':'')})),
+      lists:listNames.map((l,i)=>({label:l,n:rowsBy[i].length,cls:'chip'+(s.list===i?' on':''),pick:()=>this.setState({list:i})})),
+      listCol:['Note','Level','Reason','Reason'][s.list],listRows:rowsBy[s.list].map(r=>({n:r[0],i:r[1],c:r[2],u:r[3],x:r[4],d:r[5]})),
+      pq:s.pq,onPq:e=>this.setState({pq:e.target.value}),pgroups:PG.map((g,i)=>({label:g,cls:'chip'+(s.pg===i?' on':''),pick:()=>this.setState({pg:i})})),
+      props:props.map(p=>({label:p[1],hint:p[2],key:p[3],isBool:p[4]==='bool',isEnum:p[4]==='enum',isNum:p[4]==='num',isText:p[4]==='text',val:p[5],on:p[5],swCls:'sw'+(p[5]?' on':''),opts:p[7]||[],def:'Default: '+(p[6]===''?'empty':p[6]),toggle:()=>{}})),
+      sources:['Modrinth','Hangar','CurseForge'].map((l,i)=>({label:l,cls:'chip'+(s.src===i?' on':''),pick:()=>this.setState({src:i})})),
+      mods:mods.map((m,i)=>{const inst=s.mods[i];const ok=m[4].startsWith('Compatible');return {n:m[0],desc:m[1],c:m[2],icon:m[3],comp:m[4],dl:m[5],src:m[6],d:(i*50)+'ms',compCls:'tag '+(ok?'ok':'err'),btnCls:'btn sm '+(inst?'out':(ok?'':'out')),btn:inst?'Installed':(ok?'Install':'Not for 1.21.4'),btnIcon:inst?'check':(ok?'download':'block'),toggle:()=>{if(ok)this.setState({mods:{...s.mods,[i]:!inst}});}};}),
+      installed:[{n:'LuckPerms',v:'5.4.141',upd:false},{n:'Vault',v:'1.7.3',upd:false},{n:'Dynmap',v:'3.7-beta-6',upd:true,nv:'3.7-beta-7'},{n:'CoreProtect',v:'22.4',upd:false}],
+      backups:[{t:'2026-11-09 14:00',s:'412 MB'},{t:'2026-11-09 12:00',s:'409 MB'},{t:'2026-11-09 10:00',s:'405 MB'},{t:'2026-11-08 22:00',s:'398 MB'}],
+      ax:pct(s.x),ay:pct(s.y),aw:pct(s.w),ah:pct(s.h),genH:pct(s.gen<0?0:s.h*s.gen/100),w:s.w,h:s.h,cx:(s.x+s.w/2-200)*16,cz:(s.y+s.h/2-200)*16,chunks:(s.w*s.h).toLocaleString(),blocks:(s.w*16)+' × '+(s.h*16)+' blocks',areaText:s.w+' by '+s.h+' chunks',
+      onDown:e=>{const r=e.currentTarget.parentElement.getBoundingClientRect();this.setState({drag:{m:'move',px:e.clientX,py:e.clientY,x:s.x,y:s.y,w:s.w,h:s.h,k:SZ/r.width}});},
+      onResize:e=>{e.stopPropagation();const r=e.currentTarget.parentElement.parentElement.getBoundingClientRect();this.setState({drag:{m:'size',px:e.clientX,py:e.clientY,x:s.x,y:s.y,w:s.w,h:s.h,k:SZ/r.width}});},
+      onMove:e=>{const d=s.drag;if(!d)return;const dx=(e.clientX-d.px)*d.k,dy=(e.clientY-d.py)*d.k;if(d.m==='move')this.setState(clamp(Math.round(d.x+dx),Math.round(d.y+dy),s.w,s.h));else this.setState({w:Math.max(10,Math.min(SZ-d.x,Math.round(d.w+dx))),h:Math.max(10,Math.min(SZ-d.y,Math.round(d.h+dy)))});},
       onUp:()=>{if(s.drag)this.setState({drag:null});},
-      onKey:e=>{const st=e.shiftKey?20:5;let p=null;if(e.key==='ArrowLeft')p=clampXY(s.x-st,s.y);if(e.key==='ArrowRight')p=clampXY(s.x+st,s.y);if(e.key==='ArrowUp')p=clampXY(s.x,s.y-st);if(e.key==='ArrowDown')p=clampXY(s.x,s.y+st);if(p){e.preventDefault();this.setState(p);}},
-      wDown:()=>setW(s.w-10),wUp:()=>setW(s.w+10),hDown:()=>setH(s.h-10),hUp:()=>setH(s.h+10),
-      outFolder:'chip'+(s.out==='folder'?' on':''),outZip:'chip'+(s.out==='zip'?' on':''),setFolder:()=>this.setState({out:'folder'}),setZip:()=>this.setState({out:'zip'}),
-      outPath:s.out==='zip'?'D:\\Worlds\\survival-pregen.zip':'D:\\Worlds\\survival-pregen',
-      eula:s.eula,toggleEula:()=>this.setState({eula:!s.eula}),genDisabled:!s.eula,gen:()=>this.setState({gen:0}),
-      genPct:(s.gen<0?0:s.gen)+'%',genText:s.gen<0?(s.eula?'Ready':'Accept the EULA first'):s.gen>=100?'Done · verified and saved':'Generating batch '+Math.ceil(s.gen/10+0.01)+' of 10'
+      onKey:e=>{const st=10;let n=null;if(e.shiftKey){if(e.key==='ArrowRight')n={w:Math.min(SZ-s.x,s.w+st)};if(e.key==='ArrowLeft')n={w:Math.max(10,s.w-st)};if(e.key==='ArrowDown')n={h:Math.min(SZ-s.y,s.h+st)};if(e.key==='ArrowUp')n={h:Math.max(10,s.h-st)};}else{if(e.key==='ArrowLeft')n=clamp(s.x-st,s.y,s.w,s.h);if(e.key==='ArrowRight')n=clamp(s.x+st,s.y,s.w,s.h);if(e.key==='ArrowUp')n=clamp(s.x,s.y-st,s.w,s.h);if(e.key==='ArrowDown')n=clamp(s.x,s.y+st,s.w,s.h);}if(n){e.preventDefault();this.setState(n);}},
+      onW:e=>{const v=parseInt(e.target.value,10);if(v>0)this.setState({w:Math.min(SZ-s.x,v)});},onH:e=>{const v=parseInt(e.target.value,10);if(v>0)this.setState({h:Math.min(SZ-s.y,v)});},
+      isFlat:s.flat,onPreset:e=>this.setState({flat:e.target.value==='Superflat'}),
+      layers:[{b:'minecraft:grass_block',n:'1',c:'#5d9c3a'},{b:'minecraft:dirt',n:'2',c:'#8b5a2b'},{b:'minecraft:stone',n:'60',c:'#7a7a7a'},{b:'minecraft:bedrock',n:'1',c:'#3a3a3a'}],
+      rules:rules,
+      outFolder:'chip'+(s.out==='folder'?' on':''),outZip:'chip'+(s.out==='zip'?' on':''),setFolder:()=>this.setState({out:'folder'}),setZip:()=>this.setState({out:'zip'}),outPath:s.out==='zip'?'D:\\Worlds\\survival-pregen.zip':'D:\\Worlds\\survival-pregen',
+      eula:s.eula,toggleEula:()=>this.setState({eula:!s.eula}),genDisabled:!s.eula||(s.gen>=0&&s.gen<100),notGenerating:!(s.gen>=0&&s.gen<100),gen:()=>this.setState({gen:0}),
+      genPct:(s.gen<0?0:s.gen)+'%',genText:s.gen<0?(s.eula?'Ready · '+Math.ceil(s.w*s.h/1024)+' batches':'Accept the EULA first'):s.gen>=100?'Done · '+(s.out==='zip'?'zipped':'saved')+' and opened to check':'Batch '+Math.max(1,Math.ceil(s.gen/100*Math.ceil(s.w*s.h/1024)))+' of '+Math.ceil(s.w*s.h/1024),
+      eds:['Java','Bedrock'].map((l,i)=>({label:l,cls:'chip'+(s.ed===i?' on':''),pick:()=>this.setState({ed:i})})),
+      chans:chans.map((c,i)=>({label:c,n:vers[i].length,cls:'chip'+(s.ch===i?' on':''),pick:()=>this.setState({ch:i,ver:0})})),
+      vers:vers[s.ch].map((v,i)=>({id:v[0],date:v[1],tag:v[2],tagCls:'tag'+(v[2].startsWith('Latest')?' ok':(s.ch>0?' am':'')),cls:'ver'+(s.ver===i?' on':''),pick:()=>this.setState({ver:i})})),
+      verNote:s.ch===0?'Paper, Purpur, Fabric, Forge and NeoForge builds are listed under each release when they exist; a missing one says so instead of offering the wrong jar.':(s.ch===1?'Snapshots run Vanilla or Fabric only. Worlds opened on a snapshot cannot go back, so the app copies the world first.':'Old versions run with the Java 8 runtime and the classic server jar where Mojang published one.'),
+      hosts:hosts.map((h,i)=>({icon:h[0],label:h[1],hint:h[2],cls:'host'+(s.host===i?' on':''),pick:()=>this.setState({host:i})})),
+      hostFields:hf.map(x=>({l:x[0],v:x[1]}))
     };
   }
 }
