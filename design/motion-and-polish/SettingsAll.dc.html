@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings, every page</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;family=Material+Symbols+Rounded:opsz,wght,FILL@20..48,400,0..1&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#006493}a:hover{color:#004b70}
+.dm{--p:#006493;--onp:#fff;--pc:#c9e6ff;--onpc:#001e30;--sc:#d3e5f5;--onsc:#0c1d29;--bg:#f8f9ff;--s0:#fff;--s1:#f2f3f9;--s2:#eceef4;--s3:#e6e8ee;--s4:#e0e2e8;--on:#191c20;--onv:#41474d;--ol:#71787e;--olv:#c1c7ce;--ok:#1b7f37;--okc:#d2f2d8;--am:#9a6700;--amc:#ffe9b8;--err:#ba1a1a;--errc:#ffdad6;--inv:#2e3135;--oninv:#eff1f7;
+--d-s:200ms;--d-m:300ms;--d-l:500ms;--e-emph:cubic-bezier(.2,0,0,1);--e-dec:cubic-bezier(.05,.7,.1,1);--e-spring:cubic-bezier(.38,1.21,.22,1);
+font-family:Roboto,'Segoe UI',system-ui,sans-serif;color:var(--on);background:var(--bg);min-height:1400px}
+.dm.dark{--p:#8dcdff;--onp:#00344f;--pc:#004b70;--onpc:#c9e6ff;--sc:#394956;--onsc:#d3e5f5;--bg:#101418;--s0:#0b0f12;--s1:#181c20;--s2:#1c2024;--s3:#272a2f;--s4:#32353a;--on:#e0e2e8;--onv:#c1c7ce;--ol:#8b9198;--olv:#41474d;--ok:#7bd88f;--okc:#0f3d1c;--am:#f5c26b;--amc:#4a3300;--err:#ffb4ab;--errc:#93000a;--inv:#e0e2e8;--oninv:#2e3135}
+.ms{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 0,'wght' 400;display:inline-block;vertical-align:middle}
+.mono{font-family:'Roboto Mono',monospace}
+.wrap{max-width:1320px;margin:0 auto;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px}
+h1{margin:0;font-size:28px;font-weight:500}
+h2{margin:0;font-size:22px;font-weight:500;display:flex;align-items:center;gap:10px}
+h3{margin:0;font-size:15px;font-weight:500;display:flex;align-items:center;gap:8px}
+.sub{margin:0;font-size:13px;color:var(--onv);line-height:19px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.sp{flex:1}
+.icon-btn{all:unset;cursor:pointer;width:40px;height:40px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--onv);transition:background var(--d-s),transform var(--d-m) var(--e-spring)}
+.icon-btn:hover{background:var(--s3)}.icon-btn:active{transform:scale(.9)}.icon-btn:focus-visible{outline:3px solid var(--p)}
+.icon-btn.sm{width:28px;height:28px}.icon-btn.sm .ms{font-size:17px}
+.btn{all:unset;cursor:pointer;height:40px;padding:0 16px;border-radius:999px;background:var(--p);color:var(--onp);font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring)}
+.btn:active{transform:scale(.96);border-radius:12px}.btn:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.btn.tonal{background:var(--sc);color:var(--onsc)}.btn.out{background:transparent;color:var(--p);box-shadow:inset 0 0 0 1px var(--ol)}.btn.sm{height:32px;padding:0 12px;font-size:13px}
+.search{display:flex;align-items:center;gap:8px;height:52px;border-radius:999px;background:var(--s3);padding:0 8px 0 18px;transition:background var(--d-m),box-shadow var(--d-m);flex:1;min-width:260px}
+.search:focus-within{background:var(--s0);box-shadow:inset 0 0 0 2px var(--p)}
+.search input{all:unset;flex:1;font-size:15px;min-width:0}
+.shell{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.nav{flex:1 1 240px;max-width:280px;background:var(--s1);border-radius:24px;padding:8px;display:flex;flex-direction:column;gap:1px;position:sticky;top:12px}
+@media (max-width:900px){.nav{max-width:none;position:static;flex-direction:row;overflow-x:auto}}
+.ng{font-size:11.5px;font-weight:500;color:var(--onv);padding:10px 12px 4px;letter-spacing:.3px}
+.ni{all:unset;cursor:pointer;display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:999px;font-size:13.5px;font-weight:500;white-space:nowrap;transition:background var(--d-s),color var(--d-s)}
+.ni:hover{background:var(--s2)}.ni.on{background:var(--sc);color:var(--onsc)}.ni:focus-visible{outline:3px solid var(--p)}
+.ni .ms{font-size:19px}
+.page{flex:999 1 620px;min-width:0;display:flex;flex-direction:column;gap:14px;animation:pageIn var(--d-m) var(--e-dec) both}
+@keyframes pageIn{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.sec{background:var(--s1);border-radius:24px;padding:6px 16px 10px;animation:in var(--d-l) var(--e-dec) both}
+.sec>h3{padding:12px 0 6px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;padding:12px 0;border-top:1px solid var(--olv);position:relative}
+.row:first-of-type{border-top:0}
+.row .lbl{display:flex;align-items:flex-start;gap:8px;min-width:0}
+.row .lbl b{display:block;font-size:14px;font-weight:500}
+.row .lbl small{display:block;font-size:12.5px;color:var(--onv);line-height:17px;margin-top:2px}
+.row.hit{animation:hit 1.6s var(--e-emph)}
+@keyframes hit{0%{background:color-mix(in srgb,var(--p) 22%,transparent)}100%{background:transparent}}
+.info{all:unset;cursor:pointer;width:22px;height:22px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;color:var(--onv);flex:none;margin-top:-1px;transition:background var(--d-s),color var(--d-s)}
+.info:hover,.info.on{background:var(--sc);color:var(--onsc)}.info .ms{font-size:17px}.info:focus-visible{outline:3px solid var(--p)}
+.explain{grid-column:1/-1;display:grid;grid-template-rows:0fr;transition:grid-template-rows var(--d-l) var(--e-spring)}
+.explain.open{grid-template-rows:1fr}.explain>div{overflow:hidden}
+.exin{background:var(--s0);border-radius:16px;padding:12px 14px;font-size:12.5px;line-height:18px;color:var(--onv);display:flex;flex-direction:column;gap:6px}
+.exin b{color:var(--on);font-weight:500}
+.prov{display:flex;flex-wrap:wrap;gap:6px}
+.tag{height:22px;padding:0 8px;border-radius:6px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px;background:var(--s3);color:var(--onv)}
+.tag.ok{background:var(--okc);color:var(--ok)}.tag.am{background:var(--amc);color:var(--am)}
+.sw{all:unset;cursor:pointer;width:52px;height:32px;border-radius:999px;background:var(--s4);box-shadow:inset 0 0 0 2px var(--ol);position:relative;flex:none;transition:background var(--d-m),box-shadow var(--d-m)}
+.sw i{position:absolute;top:8px;left:8px;width:16px;height:16px;border-radius:999px;background:var(--ol);transition:all var(--d-m) var(--e-spring)}
+.sw.on{background:var(--p);box-shadow:none}.sw.on i{left:24px;top:4px;width:24px;height:24px;background:var(--onp)}
+.sw:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.seg{display:inline-flex;border:1px solid var(--ol);border-radius:999px;overflow:hidden;height:36px}
+.seg button{all:unset;cursor:pointer;padding:0 12px;display:flex;align-items:center;gap:4px;font-size:13px;font-weight:500;border-left:1px solid var(--ol);white-space:nowrap;transition:background var(--d-m)}
+.seg button:first-child{border-left:0}.seg button.on{background:var(--sc);color:var(--onsc)}.seg button:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
+.sel{display:flex;align-items:center;gap:8px;height:40px;border-radius:12px;background:var(--s0);padding:0 12px;box-shadow:inset 0 0 0 1px var(--ol);font-size:13.5px;min-width:200px}
+.sel select{all:unset;flex:1;cursor:pointer}
+.slider{display:flex;align-items:center;gap:10px;min-width:240px}.slider input{flex:1;accent-color:var(--p);min-width:0}
+.vb{min-width:36px;height:28px;border-radius:9px;background:var(--p);color:var(--onp);font-family:'Roboto Mono',monospace;font-size:13px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;padding:0 6px;box-sizing:border-box}
+.inp{all:unset;height:40px;border-radius:12px;background:var(--s0);padding:0 12px;box-shadow:inset 0 0 0 1px var(--ol);font-size:13.5px;min-width:240px;transition:box-shadow var(--d-m)}
+.inp:focus{box-shadow:inset 0 0 0 2px var(--p)}
+.lang{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:760px){.lang{grid-template-columns:minmax(0,1fr)}}
+.lc{all:unset;cursor:pointer;border-radius:18px;background:var(--s0);padding:14px;display:flex;flex-direction:column;gap:6px;box-shadow:inset 0 0 0 1px var(--olv);transition:box-shadow var(--d-m),background var(--d-m),transform var(--d-m) var(--e-spring)}
+.lc:hover{transform:translateY(-2px)}.lc.on{box-shadow:inset 0 0 0 2px var(--p);background:var(--pc);color:var(--onpc)}.lc:focus-visible{outline:3px solid var(--p)}
+.lc b{font-size:15px;font-weight:500}.lc small{font-size:12.5px;opacity:.85}
+.sample{background:var(--s0);border-radius:18px;padding:14px;display:flex;gap:12px;align-items:flex-start;font-size:13.5px;line-height:19px}
+.sample .em{font-size:22px;line-height:1}
+.sample b{display:block;font-weight:500;margin-bottom:2px}
+.voice{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px;border-radius:16px;background:var(--s0);margin:6px 0}
+.play{all:unset;cursor:pointer;width:40px;height:40px;border-radius:999px;background:var(--pc);color:var(--onpc);display:flex;align-items:center;justify-content:center;transition:transform var(--d-m) var(--e-spring)}
+.play:active{transform:scale(.9)}.play.on{background:var(--p);color:var(--onp)}.play:focus-visible{outline:3px solid var(--p)}
+.eq{display:inline-flex;gap:2px;align-items:flex-end;height:16px;margin-left:8px}
+.eq i{width:3px;background:var(--p);border-radius:2px;animation:eq 700ms ease-in-out infinite alternate}
+.eq i:nth-child(2){animation-delay:.15s}.eq i:nth-child(3){animation-delay:.3s}.eq i:nth-child(4){animation-delay:.45s}
+@keyframes eq{from{height:3px}to{height:16px}}
+.drop{border:2px dashed var(--ol);border-radius:18px;padding:16px;display:flex;gap:12px;align-items:center;font-size:13px;color:var(--onv);transition:background var(--d-m),border-color var(--d-m)}
+.drop b{display:block;color:var(--on);font-weight:500;font-size:14px}
+.tl{position:relative;height:56px;border-radius:14px;background:var(--s0);overflow:hidden;margin:6px 0}
+.tl .h{position:absolute;top:0;bottom:0;border-left:1px dashed var(--olv);font-size:10px;color:var(--onv);padding:2px 0 0 3px;font-family:'Roboto Mono',monospace}
+.tl .blk{position:absolute;top:18px;height:30px;border-radius:8px;font-size:11.5px;font-weight:500;display:flex;align-items:center;padding:0 8px;white-space:nowrap;overflow:hidden;color:#fff}
+.tl .now{position:absolute;top:0;bottom:0;width:2px;background:var(--err)}
+.rule{display:grid;grid-template-columns:32px minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:10px;border-radius:16px;background:var(--s0);margin:6px 0;animation:in var(--d-m) var(--e-dec) both}
+.rule b{font-size:13.5px;font-weight:500;display:block}.rule small{font-size:12px;color:var(--onv)}
+.days{display:flex;gap:4px;margin-top:4px}
+.day{width:24px;height:24px;border-radius:24px;font-size:11px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;background:var(--s3)}.day.on{background:var(--p);color:var(--onp)}
+.results{background:var(--s1);border-radius:24px;padding:8px;display:flex;flex-direction:column;gap:2px;animation:in var(--d-m) var(--e-dec) both}
+.res{all:unset;cursor:pointer;display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 12px;border-radius:14px;transition:background var(--d-s)}
+.res:hover{background:var(--s2)}.res:focus-visible{outline:3px solid var(--p)}
+.res b{font-size:13.5px;font-weight:500}.res small{display:block;font-size:12px;color:var(--onv)}
+.res mark{background:var(--amc);color:inherit;border-radius:3px;padding:0 1px}
+</style>
+</helmet>
+<div class="dm {{rootClass}}">
+<div class="wrap">
+<div class="bar"><h1>Settings</h1><span class="sp"></span><div class="search"><span class="ms" style="color:var(--onv)">search</span><input placeholder="Search all {{totalSettings}} settings" aria-label="Search all settings" value="{{q}}" onInput="{{onQ}}"><button class="icon-btn" aria-label="Regex builder"><span class="mono" style="font-size:13px;font-weight:500">.*</span></button></div><button class="icon-btn" onClick="{{toggleDark}}" aria-label="Switch light and dark"><span class="ms">contrast</span></button></div>
+<sc-if value="{{searching}}" hint-placeholder-val="{{ false }}"><div class="results" role="listbox" aria-label="Matching settings"><sc-for list="{{results}}" as="r" hint-placeholder-count="6"><button class="res" role="option" onClick="{{r.go}}"><span class="ms">{{r.icon}}</span><span><b>{{r.label}}</b><small>{{r.page}} · {{r.hint}}</small></span><span class="ms" style="color:var(--onv)">arrow_forward</span></button></sc-for><sc-if value="{{noResults}}" hint-placeholder-val="{{ false }}"><div class="sub" style="padding:12px">No setting matches. Try a shorter word, or switch on the regex builder.</div></sc-if></div></sc-if>
+<div class="shell">
+<nav class="nav" aria-label="Settings pages"><sc-for list="{{nav}}" as="n" hint-placeholder-count="20"><sc-if value="{{n.isGroup}}" hint-placeholder-val="{{ false }}"><div class="ng">{{n.label}}</div></sc-if><sc-if value="{{n.isItem}}" hint-placeholder-val="{{ true }}"><button class="{{n.cls}}" aria-current="{{n.on}}" onClick="{{n.pick}}"><span class="ms">{{n.icon}}</span>{{n.label}}</button></sc-if></sc-for></nav>
+<div class="page" role="region" aria-label="{{pageTitle}}">
+<div class="bar"><h2><span class="ms">{{pageIcon}}</span>{{pageTitle}}</h2><span class="sp"></span><button class="btn sm out"><span class="ms">history</span>History</button><button class="btn sm out"><span class="ms">restart_alt</span>Reset page</button></div>
+<p class="sub">{{pageIntro}}</p>
+
+<sc-if value="{{isLang}}" hint-placeholder-val="{{ true }}">
+<div class="sec"><h3>Language</h3><div class="lang" role="radiogroup" aria-label="Language mode" style="padding-bottom:8px"><sc-for list="{{langs}}" as="l" hint-placeholder-count="3"><button class="{{l.cls}}" role="radio" aria-checked="{{l.on}}" onClick="{{l.pick}}"><b>{{l.label}}</b><small>{{l.hint}}</small></button></sc-for></div></div>
+<div class="sec"><h3>Voice</h3>
+<div class="row"><span class="lbl"><span><b>English funny level</b><small>1 is fully serious, 5 is the most playful. Facts never change.</small></span></span><span class="slider"><input type="range" min="1" max="5" value="{{funE}}" onInput="{{onFunE}}" aria-label="English funny level"><span class="vb">{{funE}}</span></span></div>
+<div class="row"><span class="lbl"><span><b>Cantonese funny level</b><small>Set separately from English</small></span></span><span class="slider"><input type="range" min="1" max="5" value="{{funC}}" onInput="{{onFunC}}" aria-label="Cantonese funny level"><span class="vb">{{funC}}</span></span></div>
+<div class="row"><span class="lbl"><span><b>Show emojis in dialogs and message boxes</b><small>One emoji beside the title, never in buttons or names read aloud</small></span></span><button class="{{emojiCls}}" role="switch" aria-checked="{{emoji}}" aria-label="Show emojis in dialogs" onClick="{{toggleEmoji}}"><i></i></button></div>
+<div class="sample" aria-live="polite"><sc-if value="{{emoji}}" hint-placeholder-val="{{ true }}"><span class="em" aria-hidden="true">🥟</span></sc-if><span><b>Preview: push failed</b>{{sampleE}}<br><span style="color:var(--onv)">{{sampleC}}</span></span></div>
+</div>
+<div class="sec"><h3>Personal wording</h3><div class="drop" style="margin:6px 0 12px"><span class="ms" style="font-size:32px;color:var(--p)">upload_file</span><div><b>Drop a personal-vocabulary JSON anywhere in the app</b>Or pick a file. It is checked first, applied at once and kept on this PC only. An invalid file changes nothing.</div><span class="sp"></span><button class="btn sm tonal">Choose file</button></div></div>
+<div class="sec"><h3>Narrator and sounds</h3>
+<sc-for list="{{voices}}" as="v" hint-placeholder-count="3"><div class="voice"><button class="{{v.playCls}}" aria-label="Play a sample of {{v.name}}" onClick="{{v.play}}"><span class="ms">{{v.icon}}</span></button><span><b style="font-size:13.5px;font-weight:500">{{v.name}}</b><sc-if value="{{v.playing}}" hint-placeholder-val="{{ false }}"><span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span></sc-if><small style="display:block;font-size:12px;color:var(--onv)">{{v.meta}}</small></span><span class="sel" style="min-width:150px"><select aria-label="{{v.name}} speed"><option>Normal speed</option><option>Slower</option><option>Faster</option></select></span></div></sc-for>
+<div class="row"><span class="lbl"><span><b>Action sounds</b><small>Short sounds for push, commit, errors and celebrations</small></span></span><button class="sw on" role="switch" aria-checked="true" aria-label="Action sounds"><i></i></button></div>
+</div>
+</sc-if>
+
+<sc-if value="{{isSched}}" hint-placeholder-val="{{ false }}">
+<div class="sec"><h3>Today</h3><div class="tl" role="img" aria-label="Today's active rules on a 24 hour line"><sc-for list="{{hours}}" as="h" hint-placeholder-count="6"><span class="h" style="left:{{h.x}}">{{h.t}}</span></sc-for><sc-for list="{{blocks}}" as="b" hint-placeholder-count="3"><span class="blk" style="left:{{b.x}};width:{{b.w}};background:{{b.c}}">{{b.label}}</span></sc-for><span class="now" style="left:61.5%"></span></div><p class="sub" style="padding-bottom:10px">Later rules win where they overlap. Now 14:46: <b>Calm motion</b> and <b>Cantonese</b> apply.</p></div>
+<div class="sec"><h3>Rules</h3>
+<sc-for list="{{rules}}" as="r" hint-placeholder-count="4"><div class="rule" style="animation-delay:{{r.d}}"><span class="ms" style="color:{{r.c}}">{{r.icon}}</span><span><b>{{r.label}}</b><small>{{r.when}}</small><span class="days"><sc-for list="{{r.days}}" as="dd" hint-placeholder-count="7"><span class="{{dd.cls}}">{{dd.l}}</span></sc-for></span></span><span class="tag">{{r.src}}</span><button class="{{r.swCls}}" role="switch" aria-checked="{{r.on}}" aria-label="{{r.label}}" onClick="{{r.toggle}}"><i></i></button></div></sc-for>
+<div class="bar" style="padding:8px 0"><button class="btn tonal"><span class="ms">add</span>Add rule</button><button class="btn out"><span class="ms">home</span>Connect Home Assistant</button></div>
+</div>
+</sc-if>
+
+<sc-if value="{{isGeneric}}" hint-placeholder-val="{{ false }}">
+<sc-for list="{{sections}}" as="sc" hint-placeholder-count="2"><div class="sec" style="animation-delay:{{sc.d}}"><h3>{{sc.title}}</h3>
+<sc-for list="{{sc.rows}}" as="c" hint-placeholder-count="4"><div class="{{c.rowCls}}">
+<span class="lbl"><button class="{{c.infoCls}}" aria-label="About {{c.label}}" aria-expanded="{{c.exOpen}}" onClick="{{c.toggleEx}}"><span class="ms">info</span></button><span><b>{{c.label}}</b><small>{{c.hint}}</small></span></span>
+<span>
+<sc-if value="{{c.isSwitch}}" hint-placeholder-val="{{ true }}"><button class="{{c.swCls}}" role="switch" aria-checked="{{c.on}}" aria-label="{{c.label}}" onClick="{{c.toggle}}"><i></i></button></sc-if>
+<sc-if value="{{c.isSelect}}" hint-placeholder-val="{{ false }}"><span class="sel"><select aria-label="{{c.label}}"><sc-for list="{{c.opts}}" as="o" hint-placeholder-count="3"><option>{{o}}</option></sc-for></select></span></sc-if>
+<sc-if value="{{c.isSeg}}" hint-placeholder-val="{{ false }}"><span class="seg" role="group" aria-label="{{c.label}}"><sc-for list="{{c.segs}}" as="sg" hint-placeholder-count="3"><button class="{{sg.cls}}" onClick="{{sg.pick}}" aria-pressed="{{sg.on}}">{{sg.l}}</button></sc-for></span></sc-if>
+<sc-if value="{{c.isSlider}}" hint-placeholder-val="{{ false }}"><span class="slider"><input type="range" min="{{c.min}}" max="{{c.max}}" value="{{c.val}}" onInput="{{c.onSlide}}" aria-label="{{c.label}}"><span class="vb">{{c.valTxt}}</span></span></sc-if>
+<sc-if value="{{c.isText}}" hint-placeholder-val="{{ false }}"><input class="inp" value="{{c.val}}" aria-label="{{c.label}}"></sc-if>
+<sc-if value="{{c.isAction}}" hint-placeholder-val="{{ false }}"><button class="btn sm tonal"><span class="ms">{{c.actIcon}}</span>{{c.act}}</button></sc-if>
+</span>
+<div class="{{c.exCls}}"><div><div class="exin"><span><b>What it does.</b> {{c.explain}}</span><span class="prov"><span class="{{c.provCls}}">{{c.prov}}</span><span class="tag">Default: {{c.def}}</span><span class="tag mono">{{c.key}}</span></span></div></div></div>
+</div></sc-for>
+</div></sc-for>
+</sc-if>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1400}}'>
+class Component extends DCLogic {
+  constructor(p){super(p);this.state={dark:false,page:'lang',q:'',lang:0,funE:5,funC:5,emoji:true,playing:-1,ex:{},vals:{},hit:null,rules:{0:true,1:true,2:true,3:false}};}
+  renderVals(){
+    const s=this.state;
+    const sw=(l,h,on,ex)=>({t:'switch',l,h,on,ex});const se=(l,h,opts,ex)=>({t:'select',l,h,opts,ex});const sg=(l,h,opts,ex)=>({t:'seg',l,h,opts,ex});const sl=(l,h,min,max,val,unit,ex)=>({t:'slider',l,h,min,max,val,unit,ex});const tx=(l,h,val,ex)=>({t:'text',l,h,val,ex});const ac=(l,h,act,icon,ex)=>({t:'action',l,h,act,icon,ex});
+    const P=[
+      ['Personal','lang','translate','Language and voice','How the app speaks to you.',null],
+      ['Personal','appearance','palette','Appearance','Theme, colour, fonts and density for every surface.',[['Theme',[sg('Theme','Light, dark or follow Windows',['Light','Dark','System']),se('Accent','Picked with the infinite colour picker',['Blue','Teal','Green','Amber','Rose','Custom…']),se('Interface font','',['Material (Roboto)','System']),sl('Interface scale','Zoom for the whole app',80,200,100,'%')]],['Density',[sg('Toolbar','',['Comfortable','Compact']),sg('Repository list','',['Comfortable','Compact']),sg('Tabs','',['Comfortable','Compact']),sw('Highlight Desktop Material features','Marks features GitHub Desktop does not have',false)]]]],
+      ['Personal','motion','animation','Motion','Level, speed and per-surface motion.',[['Motion',[sg('Motion level','The calmer of this and Windows wins',['System','Full','Calm','Reduced']),sl('Speed','Multiplies every duration',50,200,100,'%'),sw('Dialogs and sheets','',true),sw('Lists and rows','',true),sw('Tabs and panes','',true),sw('Live charts','',true),sw('Celebrations','',true)]]]],
+      ['Personal','access','accessibility_new','Accessibility','Contrast, sizes, focus and reading aids.',[['Reading',[sw('Underline links','',true),sw('Check marks in diffs','Not only colour',true),sl('Minimum target size','For every button',24,48,32,' px'),sw('Always show focus ring','Even after a mouse click',false)]]]],
+      ['Personal','attention','psychology','Attention','ADHD modes: focus, low stimulation and gentle timers.',[['Modes',[sw('Focus mode','Hides everything but the current task',false),sw('Low stimulation','Mutes colour, motion and sounds together',false),sw('Gentle timers','Breaks a long task into 25-minute rounds',false),sw('One thing at a time','Queues notifications until you finish',true)]]]],
+      ['Personal','school','school','School mode','Safe defaults for classrooms.',[['School mode',[sw('School mode','Locks wording to serious, hides personal vocabulary',false),ac('Teacher unlock','Uses the unlock ladder','Set up','key')]]]],
+      ['Personal','sched','schedule','Scheduled settings','Rules that change settings by time or Home Assistant.',null],
+      ['Work','accounts','account_circle','Accounts','GitHub, GitLab, Bitbucket, Jira and Trello.',[['Signed in',[ac('GitHub.com','sam-dev · token in Windows Credential Manager','Sign out','logout'),ac('GitHub Enterprise','Not signed in','Sign in','login'),ac('GitLab','gitlab.com · sam','Sign out','logout'),ac('Jira','Not connected','Connect','link')]],['Behaviour',[sw('Switch account automatically','Per repository owner',true)]]]],
+      ['Work','git','commit','Git','Name, email, default branch and hooks.',[['Identity',[tx('Name','Used for every commit','Sam Lee'),tx('Email','Must match your GitHub email to link commits','sam@example.com'),tx('Default branch for new repositories','','main')]],['Behaviour',[sw('Run Git hooks','',true),se('Pull behaviour','',['Merge','Rebase','Fast-forward only']),sw('Sign commits','With your SSH key',false)]]]],
+      ['Work','integrations','extension','Integrations','Editors, shells, terminal and extensions.',[['Editors',[se('External editor','',['Visual Studio Code','Cursor','JetBrains Rider','Notepad++']),se('Shell','',['PowerShell 7','Windows Terminal','Git Bash','WSL Ubuntu'])]],['Extensions',[ac('Extensions','4 enabled · 1 waiting for permission','Manage','extension')]]]],
+      ['Work','ai','smart_toy','AI and Ollama','Copilot, local models and commit message help.',[['Local models',[ac('Ollama','Running · 6 models · 41 GB','Open suite','hub'),se('Commit message model','',['qwen2.5-coder:14b','llama3.1:8b','Copilot']),sw('Fix failed builds with a local model','Offered after a failed run',true)]]]],
+      ['Work','notify','notifications','Notifications','What reaches you and how.',[['Show',[sw('Pull request reviews','',true),sw('Checks finished','',true),sw('Push and fetch results','',true),se('Toasts stay for','',['5 seconds','10 seconds','Until dismissed'])]]]],
+      ['Work','sound','volume_up','Sound','Volume, quiet hours and themes.',[['Sound',[sl('Volume','',0,100,60,'%'),sw('Quiet hours','',true),sw('Follow reduced motion for sound','',true),se('Repository theme music','',['Off','Per repository','Same for all'])]]]],
+      ['Safety','locks','lock','Locks','Toy locks on elements, and the unlock ladder.',[['Locks',[ac('Locked elements','12 locked across 4 screens','Review','lock'),sl('Ladder steps','How many rungs to climb to unlock',1,5,3,''),sw('Require super confirmation for deletes','Type the name, then hold',true)]]]],
+      ['Safety','auth','password','Authenticator','One-time codes and QR pairing.',[['Codes',[ac('Codes','5 accounts','Open','password'),ac('Pair a phone','Scan a QR code to copy codes over','Show QR','qr_code_2'),sw('Hide codes until clicked','',true)]]]],
+      ['Safety','support','support_agent','Support tickets','A recovery desk when something breaks.',[['Tickets',[ac('Open a ticket','Collects logs without personal data','New ticket','add'),ac('Past tickets','2 open, 7 closed','View','list')]]]],
+      ['System','status','monitor_heart','Status Hub','Live status, Discord, panic and Tidbyt.',[['Status Hub',[sw('Report status','To your Status Hub',true),tx('Hub address','','https://status.example.net'),sw('Discord bridge','Mirrors status into a channel',false),sw('Tidbyt frames','Shows status on your Tidbyt',false),ac('Panic test','Sends a signed test to your panic webhook','Send test','emergency')]]]],
+      ['System','updates','update','Updates','Automatic updates like Chrome.',[['Updates',[sw('Download updates automatically','',true),se('Channel','',['Stable','Beta']),ac('Check now','Last checked 14:02, up to date','Check','refresh')]]]],
+      ['System','advanced','tune','Advanced','Proxies, logs, large repositories, SSH.',[['Advanced',[sw('Verbose logging','',false),sw('Detect large repositories','',true),sw('Use Windows OpenSSH','',true),ac('SSH keys','2 keys','Manage','key'),ac('Global ignore','~/.gitignore_global','Edit','edit')]]]],
+      ['System','about','info','About','Version, code name, licences.',[['This build',[ac('Desktop Material 4.0.1348','Har gow · updated 2026-11-09 14:12:08 EST','Changelog','history'),ac('Acknowledgements','Open source licences','View','description'),ac('Free, no upsell','Support GitHub Desktop and its contributors if you want to give back','Learn more','volunteer_activism')]]]]
+    ];
+    const page=P.find(p=>p[1]===s.page)||P[0];
+    const allRows=[];P.forEach(p=>{(p[5]||[]).forEach(sec=>sec[1].forEach(r=>allRows.push({page:p[3],pid:p[1],icon:p[2],l:r.l,h:r.h})));});
+    allRows.push({page:'Language and voice',pid:'lang',icon:'translate',l:'Language mode',h:'English, Cantonese or both'},{page:'Language and voice',pid:'lang',icon:'translate',l:'Funny level',h:'Voice, never facts'},{page:'Language and voice',pid:'lang',icon:'translate',l:'Narrator voice',h:''},{page:'Scheduled settings',pid:'sched',icon:'schedule',l:'Rules',h:'By time or Home Assistant'});
+    const q=s.q.trim().toLowerCase();
+    const hl=t=>t;
+    const res=q?allRows.filter(r=>(r.l+' '+r.h+' '+r.page).toLowerCase().includes(q)).slice(0,8):[];
+    let lastG='';const nav=[];P.forEach(p=>{if(p[0]!==lastG){nav.push({isGroup:true,isItem:false,label:p[0]});lastG=p[0];}nav.push({isGroup:false,isItem:true,label:p[3],icon:p[2],on:s.page===p[1],cls:'ni'+(s.page===p[1]?' on':''),pick:()=>this.setState({page:p[1],q:''})});});
+    const fE=['Push did not reach origin. Your 2 commits are safe here.','Push did not reach origin. Your 2 commits are safe here; try again when the network is back.','Push did not reach origin. Nothing was lost, your 2 commits are waiting here.','Push did not reach origin. Your 2 commits are sitting here like dumplings in a steamer.','Push bounced off origin! Your 2 commits are safe, warm and waiting. Try again soon.'];
+    const fC=['推送未能到達 origin。你嘅 2 個 commit 仍然喺度。','推送未到 origin。2 個 commit 安全，網絡返嚟再試。','推送失敗，冇嘢唔見，2 個 commit 等緊你。','推送彈返轉頭，2 個 commit 好似點心咁喺蒸籠度等緊。','哎呀推唔到 origin！2 個 commit 熱辣辣咁等緊你，遲啲再試啦！'];
+    const voices=[['English narrator','Jenny · Windows voice'],['Cantonese narrator','HiuGaai · Windows voice'],['Celebrations','Bundled tada and level-up']];
+    const DY=['M','T','W','T','F','S','S'];const mkDays=on=>DY.map((l,i)=>({l,cls:'day'+(on.includes(i)?' on':'')}));
+    const R=[['bedtime','#6750a4','Calm motion after 22:00','22:00 → 07:00 · local time',[0,1,2,3,4],'Local'],['translate','#006493','Cantonese on weekday afternoons','13:00 → 18:00',[0,1,2,3,4],'Local'],['home','#1b7f37','Reduced motion while focus mode is on','input_boolean.focus_mode is on','0123456'.split('').map(Number),'Home Assistant'],['dark_mode','#9a6700','Dark theme on weekends','All day',[5,6],'Local']];
+    const sections=(page[5]||[]).map((sec,si)=>({title:sec[0],d:(si*60)+'ms',rows:sec[1].map((r,ri)=>{const key=page[1]+'.'+si+'.'+ri;const v=s.vals[key];const exOpen=!!s.ex[key];
+      const on=v===undefined?r.on:v;const cur=v===undefined?(r.t==='slider'?r.val:0):v;
+      return {label:r.l,hint:r.h,rowCls:'row'+(s.hit===r.l?' hit':''),isSwitch:r.t==='switch',isSelect:r.t==='select',isSeg:r.t==='seg',isSlider:r.t==='slider',isText:r.t==='text',isAction:r.t==='action',
+        on:on,swCls:'sw'+(on?' on':''),toggle:()=>this.setState({vals:{...s.vals,[key]:!on}}),opts:r.opts||[],
+        segs:(r.opts||[]).map((o,oi)=>({l:o,on:(r.t==='seg'&&cur===oi),cls:(r.t==='seg'&&cur===oi)?'on':'',pick:()=>this.setState({vals:{...s.vals,[key]:oi}})})),
+        min:r.min,max:r.max,val:r.t==='text'?r.val:cur,valTxt:cur+(r.unit||''),onSlide:e=>this.setState({vals:{...s.vals,[key]:+e.target.value}}),act:r.act,actIcon:r.icon,
+        exOpen:exOpen,infoCls:'info'+(exOpen?' on':''),toggleEx:()=>this.setState({ex:{...s.ex,[key]:!exOpen}}),exCls:'explain'+(exOpen?' open':''),
+        explain:(r.h?r.h+'. ':'')+'Changes apply at once and are saved to this profile. You can undo them from History.',prov:v===undefined?'Shipped value':'Chosen by you',provCls:'tag '+(v===undefined?'':'ok'),def:r.t==='switch'?(r.on?'On':'Off'):(r.t==='slider'?r.val+(r.unit||''):(r.opts?r.opts[0]:(r.val||'—'))),key:page[1]+'.'+r.l.toLowerCase().replace(/[^a-z0-9]+/g,'-')};})}));
+    const total=allRows.length;
+    return {
+      rootClass:s.dark?'dark':'',toggleDark:()=>this.setState({dark:!s.dark}),totalSettings:total,
+      q:s.q,onQ:e=>this.setState({q:e.target.value}),searching:q.length>0,noResults:q.length>0&&res.length===0,
+      results:res.map(r=>({icon:r.icon,label:r.l,page:r.page,hint:r.h||'Open',go:()=>{this.setState({page:r.pid,q:'',hit:r.l});setTimeout(()=>this.setState({hit:null}),1700);}})),
+      nav:nav,pageTitle:page[3],pageIcon:page[2],pageIntro:page[4],
+      isLang:page[1]==='lang',isSched:page[1]==='sched',isGeneric:!!page[5],sections:sections,
+      langs:[['English','Every label and message in English'],['廣東話 Cantonese','Playful Hong Kong Cantonese'],['Bilingual','English first, Cantonese beside it']].map((l,i)=>({label:l[0],hint:l[1],on:s.lang===i,cls:'lc'+(s.lang===i?' on':''),pick:()=>this.setState({lang:i})})),
+      funE:s.funE,funC:s.funC,onFunE:e=>this.setState({funE:+e.target.value}),onFunC:e=>this.setState({funC:+e.target.value}),
+      emoji:s.emoji,emojiCls:'sw'+(s.emoji?' on':''),toggleEmoji:()=>this.setState({emoji:!s.emoji}),
+      sampleE:s.lang===1?fC[s.funC-1]:fE[s.funE-1],sampleC:s.lang===2?fC[s.funC-1]:'',
+      voices:voices.map((v,i)=>({name:v[0],meta:v[1],playing:s.playing===i,icon:s.playing===i?'stop':'play_arrow',playCls:'play'+(s.playing===i?' on':''),play:()=>{const on=s.playing===i;this.setState({playing:on?-1:i});clearTimeout(this._p);if(!on)this._p=setTimeout(()=>this.setState({playing:-1}),2500);}})),
+      hours:[0,4,8,12,16,20].map(h=>({x:(h/24*100)+'%',t:String(h).padStart(2,'0')+':00'})),
+      blocks:[{x:'0%',w:'29.2%',c:'#6750a4',label:'Calm motion'},{x:'91.7%',w:'8.3%',c:'#6750a4',label:'Calm'},{x:'54.2%',w:'20.8%',c:'#006493',label:'Cantonese'}],
+      rules:R.map((r,i)=>({icon:r[0],c:r[1],label:r[2],when:r[3],days:mkDays(r[4]),src:r[5],d:(i*60)+'ms',on:s.rules[i],swCls:'sw'+(s.rules[i]?' on':''),toggle:()=>this.setState({rules:{...s.rules,[i]:!s.rules[i]}})}))
+    };
+  }
+}
+</script>
+</body>
+</html>

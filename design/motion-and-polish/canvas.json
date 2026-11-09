@@ -90,6 +90,15 @@
       "title": "Motion setting, schedule, provenance and honest app",
       "expand": "fill",
       "is_interactive": true
+    },
+    "SettingsAll.dc.html": {
+      "x": 0,
+      "y": 4500,
+      "w": 1280,
+      "h": 1400,
+      "title": "Every settings page, searchable, with info icons",
+      "expand": "fill",
+      "is_interactive": true
     }
   },
   "order": [
@@ -101,7 +110,8 @@
     "Toolbox.dc.html",
     "VirtualDisks.dc.html",
     "Minecraft.dc.html",
-    "Settings.dc.html"
+    "Settings.dc.html",
+    "SettingsAll.dc.html"
   ],
   "notes": {
     "row1": {
@@ -122,6 +132,13 @@
       "x": 0,
       "y": 2380,
       "text": "New required features, part two",
+      "kind": "title1",
+      "maxW": 4000
+    },
+    "row4": {
+      "x": 0,
+      "y": 4200,
+      "text": "Every app display, polished",
       "kind": "title1",
       "maxW": 4000
     }

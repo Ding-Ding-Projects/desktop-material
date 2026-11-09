@@ -116,6 +116,33 @@ h3{margin:0;font-size:13px;font-weight:500;color:var(--onv)}
 .savebar .btn.text{background:transparent;color:#8dcdff}
 .rawv{font-family:'Roboto Mono',monospace;font-size:12px;line-height:19px;background:#0b0f12;color:#c1c7ce;border-radius:14px;padding:10px 0;max-height:260px;overflow:auto}
 .rawv div{padding:0 14px;white-space:pre}.rawv .chg{background:rgba(0,100,147,.35);color:#fff}
+.remote{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
+.hero{background:linear-gradient(135deg,var(--pc),var(--s1));border-radius:28px;padding:22px;display:flex;flex-direction:column;gap:14px;flex:999 1 560px;min-width:0}
+.hero h2{font-size:22px}
+.big{all:unset;cursor:pointer;height:56px;padding:0 26px;border-radius:999px;background:var(--p);color:var(--onp);font-size:16px;font-weight:500;display:inline-flex;align-items:center;gap:10px;align-self:flex-start;box-shadow:0 4px 14px rgba(0,100,147,.35);transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring),background var(--d-m)}
+.big:active{transform:scale(.96);border-radius:18px}.big:focus-visible{outline:3px solid var(--p);outline-offset:3px}
+.big.stop{background:var(--s0);color:var(--err);box-shadow:inset 0 0 0 1px var(--ol)}
+.steps2{display:flex;flex-direction:column;gap:6px}
+.st2{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:10px;align-items:center;font-size:13px;animation:in var(--d-m) var(--e-dec) both}
+.st2 .ms{font-size:20px;color:var(--onv)}.st2.done .ms{color:var(--ok)}.st2.run .ms{color:var(--p);animation:spin 1s linear infinite}
+.live2{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:center;animation:in var(--d-l) var(--e-spring) both}
+@media (max-width:760px){.live2{grid-template-columns:minmax(0,1fr)}}
+.qr{width:168px;height:168px;background:#fff;border-radius:16px;padding:10px;box-sizing:border-box;display:grid;grid-template-columns:repeat(25,1fr);gap:0;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+.qr i{display:block;aspect-ratio:1/1}.qr i.b{background:#111}
+.url{font-family:'Roboto Mono',monospace;font-size:18px;font-weight:500;color:var(--on);word-break:break-all}
+.pair{display:inline-flex;gap:6px}.pair b{width:34px;height:44px;border-radius:10px;background:var(--s0);display:flex;align-items:center;justify-content:center;font-family:'Roboto Mono',monospace;font-size:22px;font-weight:500;animation:pop var(--d-m) var(--e-spring) both}
+.ttl{height:4px;border-radius:4px;background:var(--s3);overflow:hidden;width:240px}.ttl i{display:block;height:100%;background:var(--p);transition:width 1s linear}
+.dev{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--s0);border-radius:14px;padding:10px 12px;font-size:13px;animation:in var(--d-m) var(--e-dec) both}
+.dev b{display:block;font-weight:500}.dev small{color:var(--onv);font-size:12px}
+.phone{width:250px;flex:none;border-radius:36px;background:#111;padding:10px;box-shadow:0 12px 30px rgba(0,0,0,.25)}
+.screen{border-radius:28px;background:var(--bg);height:470px;overflow:hidden;display:flex;flex-direction:column;gap:8px;padding:28px 12px 12px;box-sizing:border-box;font-size:12px}
+.screen .pt{font-size:16px;font-weight:500}
+.screen .pr{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:8px;align-items:center;background:var(--s1);border-radius:12px;padding:8px 10px}
+.screen .pr small{display:block;color:var(--onv);font-size:10.5px}
+.screen .con{background:#0b0f12;color:#c1c7ce;border-radius:12px;padding:8px;font-family:'Roboto Mono',monospace;font-size:10px;line-height:14px;flex:1;overflow:hidden}
+.screen .pbtn{display:flex;gap:6px}.screen .pbtn span{flex:1;height:32px;border-radius:999px;background:var(--p);color:var(--onp);display:flex;align-items:center;justify-content:center;font-weight:500}
+.screen .pbtn span.t{background:var(--sc);color:var(--onsc)}
+.cando{display:flex;flex-wrap:wrap;gap:6px}
 .stabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
 .stab{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;height:52px;padding:0 14px 0 10px;border-radius:16px;background:var(--s1);font-size:14px;font-weight:500;white-space:nowrap;box-shadow:inset 0 0 0 1px transparent;transition:background var(--d-m),box-shadow var(--d-m)}
 .stab.on{background:var(--sc);color:var(--onsc);box-shadow:inset 0 0 0 2px var(--p)}
@@ -233,7 +260,7 @@ h3{margin:0;font-size:13px;font-weight:500;color:var(--onv)}
 <div class="tabs" role="tablist" aria-label="Server sections"><sc-for list="{{tabs}}" as="t" hint-placeholder-count="9"><button class="{{t.cls}}" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}"><span class="ms">{{t.icon}}</span>{{t.label}}</button></sc-for></div>
 
 <sc-if value="{{isDash}}" hint-placeholder-val="{{ true }}"><div class="pane">
-<div class="bar"><button class="btn" onClick="{{toggleRun}}"><span class="ms">{{runIcon}}</span>{{runLabel}}</button><button class="btn tonal"><span class="ms">restart_alt</span>Restart</button><button class="btn tonal"><span class="ms">backup</span>Back up now</button><button class="btn out"><span class="ms">campaign</span>Broadcast</button><span class="sp"></span><span class="tag ok"><span class="ms" style="font-size:14px">public</span>play.example.net:25565 reachable</span></div>
+<div class="bar"><button class="btn" onClick="{{toggleRun}}"><span class="ms">{{runIcon}}</span>{{runLabel}}</button><button class="btn tonal"><span class="ms">restart_alt</span>Restart</button><button class="btn tonal"><span class="ms">backup</span>Back up now</button><button class="btn out"><span class="ms">campaign</span>Broadcast</button><button class="btn tonal" onClick="{{goRemote}}"><span class="ms">phonelink</span>Manage from phone</button><span class="sp"></span><span class="tag ok"><span class="ms" style="font-size:14px">public</span>play.example.net:25565 reachable</span></div>
 <div class="kpis"><sc-for list="{{kpis}}" as="k" hint-placeholder-count="4"><div class="kpi"><small><span class="ms" style="font-size:16px">{{k.icon}}</span>{{k.label}}</small><b>{{k.val}}</b><svg class="spark" viewBox="0 0 200 36" preserveAspectRatio="none" aria-hidden="true"><path class="a" d="{{k.area}}"></path><path d="{{k.line}}"></path></svg></div></sc-for></div>
 <div class="cols">
 <div class="card" style="flex:999 1 520px"><div class="bar"><h2><span class="ms">group</span>Online now</h2><span class="sp"></span><span class="lab">{{online}} of 20</span></div>
@@ -379,6 +406,39 @@ h3{margin:0;font-size:13px;font-weight:500;color:var(--onv)}
 <div class="grid3"><div class="f"><label>Port</label><input class="inp mono" value="25565"></div><div class="f"><label>Windows Firewall rule</label><div class="bar"><span class="tag ok">Allowed on private networks</span></div></div><div class="f"><label>Router port forward</label><div class="bar"><span class="tag am">UPnP off</span><button class="btn sm out">Open with UPnP</button></div></div></div>
 <div class="note"><span class="ms">key</span><span>SSH keys and passwords stay in Windows Credential Manager. The app connects with your key, never stores it in server files, logs or exports.</span></div>
 </div></div></sc-if>
+<sc-if value="{{isRemote}}" hint-placeholder-val="{{ false }}"><div class="pane"><div class="remote">
+<div class="hero">
+<div class="bar"><h2><span class="ms">phonelink</span>Manage from another device</h2><span class="sp"></span><span class="{{remTagCls}}">{{remTag}}</span></div>
+<p class="sub" style="font-size:14px;max-width:620px">One click starts a small management web app in Docker on this PC. Any phone, tablet or computer on your home network can then run every part of these servers: start and stop, console, players, configuration, plugins, worlds, backups and the world generator.</p>
+<button class="{{bigCls}}" onClick="{{toggleRemote}}"><span class="ms">{{bigIcon}}</span>{{bigLabel}}</button>
+<sc-if value="{{remStarting}}" hint-placeholder-val="{{ false }}"><div class="steps2"><sc-for list="{{remSteps}}" as="r" hint-placeholder-count="5"><div class="{{r.cls}}" style="animation-delay:{{r.d}}"><span class="ms">{{r.icon}}</span><span>{{r.label}}</span><span class="lab mono">{{r.meta}}</span></div></sc-for></div></sc-if>
+<sc-if value="{{remOn}}" hint-placeholder-val="{{ false }}"><div class="live2">
+<div class="qr" role="img" aria-label="QR code for the panel address"><sc-for list="{{qr}}" as="q" hint-placeholder-count="625"><i class="{{q}}"></i></sc-for></div>
+<div style="display:flex;flex-direction:column;gap:10px;min-width:0"><span class="lab">Open on your phone, or scan the code</span><span class="url">https://desktop-pc.local:8443</span><span class="lab">Also by address on your network</span>
+<span class="lab" style="margin-top:6px">Pairing code for a new device</span><span class="pair"><sc-for list="{{pairDigits}}" as="d" hint-placeholder-count="6"><b>{{d}}</b></sc-for></span><span class="ttl"><i style="width:{{ttl}}"></i></span><span class="lab">New code in {{ttlS}} s · works once</span>
+<div class="bar"><button class="btn sm out"><span class="ms">content_copy</span>Copy address</button><button class="btn sm out"><span class="ms">share</span>Send to a paired phone</button></div></div>
+</div></sc-if>
+</div>
+<div class="phone" aria-label="How it looks on a phone"><div class="screen">
+<span class="pt">Servers</span>
+<div class="pr"><span class="sdot run"></span><span><b>Survival</b><small>4/20 · 19.8 TPS</small></span><span class="ms" style="font-size:18px">chevron_right</span></div>
+<div class="pr"><span class="sdot run"></span><span><b>Prison</b><small>18/20 · 18.7 TPS</small></span><span class="ms" style="font-size:18px">chevron_right</span></div>
+<div class="pr"><span class="sdot"></span><span><b>Creative test</b><small>Stopped</small></span><span class="ms" style="font-size:18px">chevron_right</span></div>
+<div class="con">[14:32] &lt;Sam&gt; nice spawn<br>[14:33] Saved the game<br>[14:33] Backup 412 MB verified<br>&gt; /time set day</div>
+<div class="pbtn"><span>Stop</span><span class="t">Restart</span></div>
+</div></div>
+<div class="card" style="flex:1 1 380px">
+<h2><span class="ms">devices</span>Paired devices</h2>
+<sc-for list="{{devices}}" as="d" hint-placeholder-count="2"><div class="dev"><span class="ms">{{d.icon}}</span><span><b>{{d.name}}</b><small>{{d.meta}}</small></span><button class="btn sm out" onClick="{{d.revoke}}">Revoke</button></div></sc-for>
+<h2 style="margin-top:6px"><span class="ms">verified_user</span>Kept safe</h2>
+<div class="note"><span class="ms">wifi_lock</span><span>Home network only. Nothing is opened to the internet; the Windows Firewall rule is limited to private networks.</span></div>
+<div class="note"><span class="ms">passkey</span><span>Each device pairs once with the 6-digit code, then signs in with a passkey. No passwords, and you can revoke a device here any time.</span></div>
+<div class="note"><span class="ms">https</span><span>HTTPS with a certificate made for this PC, pinned on the phone when it pairs.</span></div>
+<div class="note"><span class="ms">deployed_code</span><span>Runs as its own Docker container next to the servers, stops when you click Stop, and starts again with Windows only if you ask.</span></div>
+<div class="bar"><span class="lab">Start with Windows</span><button class="sw" role="switch" aria-checked="false" aria-label="Start the panel with Windows"><i></i></button><span class="lab" style="margin-left:8px">Read-only devices</span><button class="sw" role="switch" aria-checked="false" aria-label="Allow read-only devices"><i></i></button></div>
+</div>
+</div></div></sc-if>
+
 </div>
 </div>
 
@@ -391,16 +451,16 @@ class Component extends DCLogic {
     const G=['Family','Community','Mod packs','Testing','Events','Archive'];const F=['Paper','Purpur','Fabric','Forge','NeoForge','Vanilla','Bedrock'];const H=['This PC','Docker','SSH','SSH Docker'];const V=['1.21.4','1.21.3','1.20.6','1.20.1','25w45a','1.16.5','1.12.2','1.21.50'];const N=['Survival','Creative','Skyblock','Hardcore','SMP','Minigames','Prison','Parkour','Build battle','Factions','Lobby','Anarchy','Vanilla+','Towny','Oneblock','Bedwars','Pixelmon','RLCraft','Create','ATM9'];const ST=['run','run','stop','stop','stop','run','crash','start'];
     const list=[];for(let i=0;i<112;i++){const st=ST[(i*7+3)%ST.length];list.push({id:i,name:N[i%N.length]+(i>=N.length?' '+(Math.floor(i/N.length)+1):''),g:G[(i*5)%G.length],f:F[(i*3)%F.length],h:H[(i*11)%H.length],v:F[(i*3)%F.length]==='Bedrock'?'1.21.50':V[(i*13)%(V.length-1)],st:st,pl:st==='run'?((i*17)%21):0,tps:st==='run'?(19.9-((i*7)%30)/10).toFixed(1):'—',last:(i*37)%240});}
     list[0]={...list[0],name:'Survival',g:'Family',f:'Paper',h:'This PC',v:'1.21.4',st:'run',pl:4,tps:'19.8'};
-    this.state={dark:false,cfile:0,motd1:'Welcome to Survival',motd2:'Season 4 · whitelist on',mcol:'#55FF55',bold:false,ital:false,maxP:20,gm:0,diff:2,pvp:true,spawnProt:16,view:10,sim:8,comp:256,port:'25565',online:true,packOk:false,rcon:false,raw:false,base:null,srv:0,srvList:list,sq:'',sf:{run:false,stop:false,crash:false,start:false},hostF:'All hosts',sort:'Sort: group',ssel:{},closed:{Archive:true},tab:0,run:true,host:0,lvl:'all',cmd:'/gamerule ',list:0,pq:'',pg:0,src:0,mods:{0:false,1:true,2:false,3:false,4:false},ed:0,ch:0,ver:0,x:110,y:120,w:100,h:100,drag:null,out:'zip',eula:false,gen:-1,flat:false,rules:{doDaylightCycle:true,keepInventory:false,mobGriefing:true,doFireTick:true,doInsomnia:true,announceAdvancements:true},
+    this.state={dark:false,rem:'off',remT:0,devs:[1,1],cfile:0,motd1:'Welcome to Survival',motd2:'Season 4 · whitelist on',mcol:'#55FF55',bold:false,ital:false,maxP:20,gm:0,diff:2,pvp:true,spawnProt:16,view:10,sim:8,comp:256,port:'25565',online:true,packOk:false,rcon:false,raw:false,base:null,srv:0,srvList:list,sq:'',sf:{run:false,stop:false,crash:false,start:false},hostF:'All hosts',sort:'Sort: group',ssel:{},closed:{Archive:true},tab:0,run:true,host:0,lvl:'all',cmd:'/gamerule ',list:0,pq:'',pg:0,src:0,mods:{0:false,1:true,2:false,3:false,4:false},ed:0,ch:0,ver:0,x:110,y:120,w:100,h:100,drag:null,out:'zip',eula:false,gen:-1,flat:false,rules:{doDaylightCycle:true,keepInventory:false,mobGriefing:true,doFireTick:true,doInsomnia:true,announceAdvancements:true},
     tps:mk(19.8,.4),ms:mk(28,12),ram:mk(3.2,.3),cpu:mk(34,10),
     log:[['','[14:02:11 INFO]: Starting minecraft server version 1.21.4'],['','[14:02:12 INFO]: Loading properties'],['b','[14:02:13 INFO]: [Paper] Using 4 worker threads'],['','[14:02:14 INFO]: Preparing level "world"'],['g','[14:02:19 INFO]: Done (5.123s)! For help, type "help"'],['','[14:03:40 INFO]: Sam joined the game'],['y','[14:31:02 WARN]: Can\'t keep up! Running 2034ms behind'],['','[14:32:15 INFO]: <Sam> nice spawn']]};}
-  componentDidMount(){this._i=setInterval(()=>{const s=this.state;const nx=(a,v,lo,hi)=>[...a.slice(1),Math.min(hi,Math.max(lo,a[a.length-1]+(Math.random()-.5)*v))];const up={tps:nx(s.tps,.5,15,20),ms:nx(s.ms,10,8,60),ram:nx(s.ram,.3,2,6),cpu:nx(s.cpu,10,5,95)};if(s.gen>=0&&s.gen<100)up.gen=Math.min(100,s.gen+5);if(s.run&&Math.random()<.35){const m=[['','[INFO]: Saved the game'],['g','[INFO]: Backup finished, 412 MB, verified'],['','[INFO]: <Sam> anyone at the farm?'],['b','[INFO]: [Paper] Chunk system: 128 chunks saved'],['y','[WARN]: Sam moved too quickly! 12.4,0.0,3.1']];up.log=[...s.log,m[Math.floor(Math.random()*m.length)]].slice(-14);}this.setState(up);},1000);}
+  componentDidMount(){this._i=setInterval(()=>{const s=this.state;const nx=(a,v,lo,hi)=>[...a.slice(1),Math.min(hi,Math.max(lo,a[a.length-1]+(Math.random()-.5)*v))];if(s.rem==='starting'&&s.remT>=10){this.setState({rem:'on',remT:0});}const up={remT:s.remT+1,tps:nx(s.tps,.5,15,20),ms:nx(s.ms,10,8,60),ram:nx(s.ram,.3,2,6),cpu:nx(s.cpu,10,5,95)};if(s.gen>=0&&s.gen<100)up.gen=Math.min(100,s.gen+5);if(s.run&&Math.random()<.35){const m=[['','[INFO]: Saved the game'],['g','[INFO]: Backup finished, 412 MB, verified'],['','[INFO]: <Sam> anyone at the farm?'],['b','[INFO]: [Paper] Chunk system: 128 chunks saved'],['y','[WARN]: Sam moved too quickly! 12.4,0.0,3.1']];up.log=[...s.log,m[Math.floor(Math.random()*m.length)]].slice(-14);}this.setState(up);},1000);}
   componentWillUnmount(){clearInterval(this._i);}
   spark(a,lo,hi){const n=a.length;const X=i=>i*200/(n-1);const Y=v=>34-((v-lo)/(hi-lo))*32;let d='M0,'+Y(a[0]).toFixed(1);for(let i=1;i<n;i++)d+=' L'+X(i).toFixed(1)+','+Y(a[i]).toFixed(1);return {line:d,area:d+' L200,36 L0,36 Z'};}
   renderVals(){
     const s=this.state;const SZ=400;const pct=v=>(v/SZ*100)+'%';
-    const tabs=[['dashboard','Dashboard'],['terminal','Console'],['badge','Players'],['tune','Configuration'],['extension','Plugins'],['public','Worlds'],['grid_on','World generator'],['sell','Version'],['dns','Host']];
-    const servers=[['Survival','Paper 1.21.4 · This PC',true],['Creative test','Fabric 25w45a · Docker',false],['Bedrock family','Bedrock 1.21.50 · SSH home-server',false]];
+    const tabs=[['dashboard','Dashboard'],['terminal','Console'],['badge','Players'],['tune','Configuration'],['extension','Plugins'],['public','Worlds'],['grid_on','World generator'],['sell','Version'],['dns','Host'],['phonelink','Remote panel']];
+    const servers=[['Survival','Paper 1.21.4 · This PC',true],['Creative test','Fabric 25w45a · Docker',false],['Bedrock family','Bedrock 1.21.50 · SSH game-box',false]];
     const k=[['speed','TPS',s.tps,15,20,v=>v.toFixed(1)],['timer','Tick time',s.ms,0,60,v=>v.toFixed(0)+' ms'],['memory','Memory',s.ram,0,6,v=>v.toFixed(1)+' / 6 GB'],['developer_board','CPU',s.cpu,0,100,v=>v.toFixed(0)+' %']];
     const players=[['Sam','S','#006493',38,'Overworld','1:42:10',true,4],['Alex','A','#1b7f37',61,'Nether','0:22:04',false,0],['Mei','M','#9a6700',24,'Overworld','0:58:31',false,0],['Kai','K','#6750a4',102,'The End','0:05:12',false,0]];
     const cmds=[['/gamerule doDaylightCycle <true|false>','boolean'],['/gamerule keepInventory <true|false>','boolean'],['/gamerule randomTickSpeed <int>','integer, default 3'],['/gamerule playersSleepingPercentage <int>','0 to 100']];
@@ -413,7 +473,7 @@ class Component extends DCLogic {
     const vers=[[['1.21.4','2024-12-03','Latest release'],['1.21.3','2024-10-23','Release'],['1.20.6','2024-04-29','Release'],['1.20.1','2023-06-12','Release'],['1.16.5','2021-01-15','Release'],['1.12.2','2017-09-18','Release'],['1.8.9','2015-12-09','Release'],['1.7.10','2014-06-26','Release']],[['25w45a','2025-11-05','Snapshot'],['25w44a','2025-10-29','Snapshot'],['1.21.5-pre2','2025-03-18','Pre-release'],['1.21.5-rc1','2025-03-20','Release candidate']],[['b1.7.3','2011-07-08','Old beta'],['b1.6.6','2011-05-31','Old beta']],[['a1.2.6','2010-12-03','Old alpha']]];
     const chans=['Release','Snapshot','Old beta','Old alpha'];
     const hosts=[['desktop_windows','This PC','A Windows process the app starts and watches'],['deployed_code','Docker','A container on this PC'],['terminal','SSH','A process on another machine'],['cloud','SSH Docker','A container on another machine']];
-    const hf=[[['Install folder','D:\\Servers\\survival'],['Run as','This Windows user'],['Start with Windows','Off']],[['Image','itzg/minecraft-server:java21'],['Container','mc-creative'],['Volume','mc-creative-data']],[['Host','home-server.lan'],['User','minecraft'],['Folder','/srv/minecraft/bedrock']],[['Host','home-server.lan'],['Context','ssh://minecraft@home-server.lan'],['Container','mc-bedrock']]][s.host];
+    const hf=[[['Install folder','D:\\Servers\\survival'],['Run as','This Windows user'],['Start with Windows','Off']],[['Image','itzg/minecraft-server:java21'],['Container','mc-creative'],['Volume','mc-creative-data']],[['Host','game-box.lan'],['User','minecraft'],['Folder','/srv/minecraft/bedrock']],[['Host','game-box.lan'],['Context','ssh://minecraft@game-box.lan'],['Container','mc-bedrock']]][s.host];
     const clamp=(x,y,w,h)=>({x:Math.max(0,Math.min(SZ-w,x)),y:Math.max(0,Math.min(SZ-h,y))});
     const rules=Object.keys(s.rules).map(key=>({k:key,isBool:true,isNum:false,on:s.rules[key],cls:'sw'+(s.rules[key]?' on':''),toggle:()=>this.setState({rules:{...s.rules,[key]:!s.rules[key]}})}));
     rules.push({k:'randomTickSpeed',isBool:false,isNum:true,v:'3'},{k:'spawnRadius',isBool:false,isNum:true,v:'10'});
@@ -437,7 +497,20 @@ class Component extends DCLogic {
     const portNum=parseInt(s.port,10);const portBad=!(portNum>=1024&&portNum<=65535);const portUsed=portNum===8080||portNum===25575;
     const cfgProps=[['motd',s.motd1+'\\n'+s.motd2,'motd1'],['max-players',s.maxP,'maxP'],['gamemode',['survival','creative','adventure','spectator'][s.gm],'gm'],['difficulty',['peaceful','easy','normal','hard'][s.diff],'diff'],['pvp',s.pvp,'pvp'],['spawn-protection',s.spawnProt,'spawnProt'],['view-distance',s.view,'view'],['simulation-distance',s.sim,'sim'],['network-compression-threshold',s.comp,'comp'],['server-port',s.port,'port'],['online-mode',s.online,'online'],['enable-rcon',s.rcon,'rcon']];
     const swc=v=>'sw'+(v?' on':'');const ctl=k=>'ctl'+(changedKeys.includes(k)?' changed':'');
+
+    const rs=[['download','Pull the panel image','dm-mc-panel:4.0 · 38 MB'],['deployed_code','Start the container','mc-panel'],['https','Make a certificate for this PC','desktop-pc.local'],['shield','Allow it through Windows Firewall','private networks'],['wifi','Find this PC on the network','desktop-pc.local']];
+    let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+    const fin=(r,c)=>(r<7&&c<7)||(r<7&&c>17)||(r>17&&c<7);
+    const qrc=[];for(let r=0;r<25;r++)for(let c=0;c<25;c++){let b;if(fin(r,c)){const rr=r>17?r-18:r,cc=c>17?c-18:c;b=(rr===0||rr===6||cc===0||cc===6||(rr>=2&&rr<=4&&cc>=2&&cc<=4));}else b=rnd()>.52;qrc.push(b?'b':'');}
+    const pc=String(482913+Math.floor(s.remT/30)*7919).slice(-6);
     return {
+      goRemote:()=>this.setState({tab:9}),isRemote:s.tab===9,
+      remOn:s.rem==='on',remStarting:s.rem==='starting',remTag:s.rem==='on'?'Running on your network':(s.rem==='starting'?'Starting':'Off'),remTagCls:'tag '+(s.rem==='on'?'ok':(s.rem==='starting'?'am':'')),
+      bigCls:'big'+(s.rem==='on'?' stop':''),bigIcon:s.rem==='on'?'stop_circle':'rocket_launch',bigLabel:s.rem==='on'?'Stop the panel':(s.rem==='starting'?'Starting…':'Host the panel on my network'),
+      toggleRemote:()=>{if(s.rem==='on'){this.setState({rem:'off'});return;}if(s.rem==='starting')return;this.setState({rem:'starting',remT:0});},
+      remSteps:rs.map((r,i)=>{const done=s.remT>i*2+1,run=!done&&s.remT>=i*2;return {label:r[1],meta:r[2],d:(i*60)+'ms',icon:done?'check_circle':(run?'progress_activity':r[0]),cls:'st2'+(done?' done':(run?' run':''))};}),
+      qr:qrc,pairDigits:pc.split(''),ttl:(100-(s.remT%30)/30*100)+'%',ttlS:30-(s.remT%30),
+      devices:[['phone_iphone','Sam’s phone','Paired 2026-11-09 · last seen now'],['laptop','Living room laptop','Paired 2026-11-02 · last seen yesterday']].filter((d,i)=>s.devs[i]).map((d,i)=>({icon:d[0],name:d[1],meta:d[2],revoke:()=>{const n=[...s.devs];n[i]=0;this.setState({devs:n});}})),
       cfgFiles:[['dns','Server','server.properties',64],['extension','Bukkit','bukkit.yml',41],['bolt','Spigot','spigot.yml',88],['rocket_launch','Paper global','config/paper-global.yml',212],['public','Paper world defaults','config/paper-world-defaults.yml',306],['admin_panel_settings','LuckPerms','plugins/LuckPerms/config.yml',97],['home','EssentialsX','plugins/Essentials/config.yml',520]].map((f,i)=>({icon:f[0],title:f[1],file:f[2],n:f[3],on:s.cfile===i,cls:'fi'+(s.cfile===i?' on':''),pick:()=>this.setState({cfile:i})})),
       mcColors:MC.map(c=>({name:c[0],hex:c[1],pick:()=>this.setState({mcol:c[1]})})),mColor:s.mcol,mWeight:s.bold?'700':'400',mStyle:s.ital?'italic':'normal',
       bold:s.bold,ital:s.ital,bCls:'fbtn'+(s.bold?' on':''),iCls:'fbtn'+(s.ital?' on':''),toggleBold:()=>this.setState({bold:!s.bold}),toggleItal:()=>this.setState({ital:!s.ital}),
@@ -465,7 +538,7 @@ class Component extends DCLogic {
       rootClass:s.dark?'dark':'',toggleDark:()=>this.setState({dark:!s.dark}),
       servers:servers.map((v,i)=>({name:v[0],meta:v[1],on:s.srv===i,cls:'stab'+(s.srv===i?' on':''),dot:'sdot'+(v[2]&&s.run?' run':''),pick:()=>this.setState({srv:i})})),
       tabs:tabs.map((t,i)=>({icon:t[0],label:t[1],on:s.tab===i,cls:'tab'+(s.tab===i?' on':''),pick:()=>this.setState({tab:i})})),
-      isDash:s.tab===0,isConsole:s.tab===1,isPlayers:s.tab===2,isProps:s.tab===3,isMods:s.tab===4,isWorlds:s.tab===5,isGen:s.tab===6,isVersions:s.tab===7,isHost:s.tab===8,
+      isDash:s.tab===0,isConsole:s.tab===1,isPlayers:s.tab===2,isProps:s.tab===3,isMods:s.tab===4,isWorlds:s.tab===5,isGen:s.tab===6,isVersions:s.tab===7,isHost:s.tab===8,isRemote:s.tab===9,
       runIcon:s.run?'stop':'play_arrow',runLabel:s.run?'Stop':'Start',toggleRun:()=>this.setState({run:!s.run}),
       kpis:k.map(x=>({icon:x[0],label:x[1],val:x[5](x[2][x[2].length-1]),...this.spark(x[2],x[3],x[4])})),
       online:players.length,players:players.map(p=>({n:p[0],i:p[1],c:p[2],ping:p[3],w:p[4],t:p[5],op:p[6],lvl:p[7]})),
