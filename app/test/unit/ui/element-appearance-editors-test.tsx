@@ -26,7 +26,7 @@ describe('element appearance editor content', () => {
       surfacePalette: 'tonal' | 'neutral'
       elevation: 'standard' | 'subtle' | 'flat'
       uiFont: 'material' | 'system'
-      motion: 'system' | 'reduced'
+      motion: 'system' | 'full' | 'calm' | 'reduced'
     }>()
     let historyRequests = 0
 

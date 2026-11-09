@@ -12,6 +12,12 @@ import {
 import { tabTitleStyleToCss } from '../models/repository-tab'
 import { LanguageModeChangedEvent } from '../lib/i18n'
 import { prefersReducedMotion } from './lib/ripple'
+import { motionSurfaces } from '../models/motion-settings'
+import {
+  applyMotionToBody,
+  clearMotionFromBody,
+  onSystemMotionPreferenceChanged,
+} from './lib/motion-runtime'
 
 interface IAppThemeProps {
   readonly theme: ApplicationTheme
@@ -25,7 +31,6 @@ const appearanceAttributes = [
   'data-dm-elevation',
   'data-dm-ui-font',
   'data-dm-monospace-font',
-  'data-dm-motion',
   'data-dm-toolbar-labels',
   'data-dm-toolbar-density',
   'data-dm-toolbar-typography',
@@ -81,9 +86,15 @@ export class AppTheme extends React.PureComponent<IAppThemeProps> {
   /** Fallback timer that removes the reveal overlay if `animationend` never fires. */
   private revealFallbackTimer: number | null = null
 
+  /** Stops following the operating-system animation setting. */
+  private unsubscribeSystemMotion: (() => void) | null = null
+
   public componentDidMount() {
     this.applyAppearance()
     this.ensureTheme(true)
+    this.unsubscribeSystemMotion = onSystemMotionPreferenceChanged(() =>
+      applyMotionToBody(document.body, this.props.appearance)
+    )
   }
 
   public componentDidUpdate(prevProps: IAppThemeProps) {
@@ -105,6 +116,8 @@ export class AppTheme extends React.PureComponent<IAppThemeProps> {
 
   public componentWillUnmount() {
     this.themeRequestId++
+    this.unsubscribeSystemMotion?.()
+    this.unsubscribeSystemMotion = null
     this.clearThemes()
     this.clearAppearance()
     this.clearThemeReveal()
@@ -124,7 +137,7 @@ export class AppTheme extends React.PureComponent<IAppThemeProps> {
     body.setAttribute('data-dm-elevation', appearance.elevation)
     body.setAttribute('data-dm-ui-font', appearance.uiFont)
     body.setAttribute('data-dm-monospace-font', appearance.monospaceFont)
-    body.setAttribute('data-dm-motion', appearance.motion)
+    applyMotionToBody(body, appearance)
     body.setAttribute('data-dm-toolbar-labels', appearance.toolbarLabels)
     body.setAttribute('data-dm-toolbar-density', appearance.toolbarDensity)
     this.applyToolbarTypography()
@@ -223,6 +236,8 @@ export class AppTheme extends React.PureComponent<IAppThemeProps> {
       left.uiFont === right.uiFont &&
       left.monospaceFont === right.monospaceFont &&
       left.motion === right.motion &&
+      left.motionSpeed === right.motionSpeed &&
+      motionSurfacesEqual(left.motionSurfaces, right.motionSurfaces) &&
       left.toolbarLabels === right.toolbarLabels &&
       left.toolbarDensity === right.toolbarDensity &&
       JSON.stringify(normalizeToolbarTextStyle(left.toolbarTextStyle)) ===
@@ -352,6 +367,7 @@ export class AppTheme extends React.PureComponent<IAppThemeProps> {
     for (const property of toolbarTypographyProperties) {
       document.body.style.removeProperty(property)
     }
+    clearMotionFromBody(document.body)
     document.documentElement.lang = 'en'
     document.documentElement.removeAttribute('data-language-mode')
   }
@@ -359,4 +375,11 @@ export class AppTheme extends React.PureComponent<IAppThemeProps> {
   public render() {
     return null
   }
+}
+
+function motionSurfacesEqual(
+  left: IAppearanceCustomization['motionSurfaces'],
+  right: IAppearanceCustomization['motionSurfaces']
+): boolean {
+  return motionSurfaces.every(surface => left[surface] === right[surface])
 }

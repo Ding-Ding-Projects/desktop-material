@@ -178,6 +178,8 @@ export function AppWorkspaceAppearanceEditor(
           value={props.value.motion}
           options={[
             { value: 'system', label: 'Follow system setting' },
+            { value: 'full', label: 'Full motion' },
+            { value: 'calm', label: 'Calm motion' },
             { value: 'reduced', label: 'Reduce motion' },
           ]}
           onChange={(motion: MotionPreference) => update({ motion })}

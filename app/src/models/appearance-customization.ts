@@ -1,4 +1,13 @@
 import {
+  DefaultMotionSpeed,
+  DefaultMotionSurfaceSwitches,
+  MotionLevelPreference,
+  MotionSurfaceSwitches,
+  motionLevelPreferences,
+  normalizeMotionSpeed,
+  normalizeMotionSurfaces,
+} from './motion-settings'
+import {
   DefaultAppIdentityCustomization,
   IAppIdentityCustomization,
   normalizeAppIdentityCustomization,
@@ -31,7 +40,7 @@ export type SurfacePalette = 'tonal' | 'neutral'
 export type ElevationPreference = 'standard' | 'subtle' | 'flat'
 export type UIFontPreference = 'material' | 'system'
 export type MonospaceFontPreference = 'platform' | 'consolas' | 'sf-mono'
-export type MotionPreference = 'system' | 'reduced'
+export type MotionPreference = MotionLevelPreference
 export type ToolbarLabelPreference = 'auto' | 'labels' | 'icons'
 export type DensityPreference = 'comfortable' | 'compact'
 export type TabWidthPreference = 'compact' | 'standard' | 'wide'
@@ -52,6 +61,10 @@ export interface IAppearanceCustomization {
   readonly uiFont: UIFontPreference
   readonly monospaceFont: MonospaceFontPreference
   readonly motion: MotionPreference
+  /** Speed multiplier for every animation; 1 is the design speed. */
+  readonly motionSpeed: number
+  /** Per-surface switches; an off surface takes the reduced path. */
+  readonly motionSurfaces: MotionSurfaceSwitches
   readonly toolbarLabels: ToolbarLabelPreference
   readonly toolbarDensity: DensityPreference
   /** Validated typography applied to toolbar title and description text. */
@@ -157,6 +170,8 @@ export const DefaultAppearanceCustomization: IAppearanceCustomization = {
   uiFont: 'material',
   monospaceFont: 'platform',
   motion: 'system',
+  motionSpeed: DefaultMotionSpeed,
+  motionSurfaces: DefaultMotionSurfaceSwitches,
   toolbarLabels: 'auto',
   toolbarDensity: 'comfortable',
   toolbarTextStyle: null,
@@ -199,10 +214,8 @@ export const uiFontPreferences: ReadonlyArray<UIFontPreference> = [
 ]
 export const monospaceFontPreferences: ReadonlyArray<MonospaceFontPreference> =
   ['platform', 'consolas', 'sf-mono']
-export const motionPreferences: ReadonlyArray<MotionPreference> = [
-  'system',
-  'reduced',
-]
+export const motionPreferences: ReadonlyArray<MotionPreference> =
+  motionLevelPreferences
 export const toolbarLabelPreferences: ReadonlyArray<ToolbarLabelPreference> = [
   'auto',
   'labels',
@@ -270,6 +283,8 @@ export function normalizeAppearanceCustomization(
     motion: isOneOf(source.motion, motionPreferences)
       ? source.motion
       : defaults.motion,
+    motionSpeed: normalizeMotionSpeed(source.motionSpeed),
+    motionSurfaces: normalizeMotionSurfaces(source.motionSurfaces),
     toolbarLabels: isOneOf(source.toolbarLabels, toolbarLabelPreferences)
       ? source.toolbarLabels
       : defaults.toolbarLabels,
