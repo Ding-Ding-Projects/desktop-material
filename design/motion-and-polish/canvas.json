@@ -144,6 +144,15 @@
       "title": "Tools: file converter, Ollama, sketch pad and editor hand-off",
       "expand": "fill",
       "is_interactive": true
+    },
+    "Onboarding.dc.html": {
+      "x": 0,
+      "y": 8140,
+      "w": 1280,
+      "h": 960,
+      "title": "Onboarding, offline documentation, dim sum surprise and Status Hub",
+      "expand": "fill",
+      "is_interactive": true
     }
   },
   "order": [
@@ -161,7 +170,8 @@
     "CommandPalette.dc.html",
     "Activity.dc.html",
     "Locks.dc.html",
-    "Tools.dc.html"
+    "Tools.dc.html",
+    "Onboarding.dc.html"
   ],
   "notes": {
     "row1": {
@@ -196,6 +206,13 @@
       "x": 0,
       "y": 6020,
       "text": "Records, locks and tools",
+      "kind": "title1",
+      "maxW": 4000
+    },
+    "row6": {
+      "x": 0,
+      "y": 7840,
+      "text": "First run and repository screens",
       "kind": "title1",
       "maxW": 4000
     }

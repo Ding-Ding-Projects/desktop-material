@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>First run, offline docs, dim sum and Status Hub</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;family=Material+Symbols+Rounded:opsz,wght,FILL@20..48,400,0..1&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#006493}a:hover{color:#004b70}
+.dm{--p:#006493;--onp:#fff;--pc:#c9e6ff;--onpc:#001e30;--sc:#d3e5f5;--onsc:#0c1d29;--bg:#f8f9ff;--s0:#fff;--s1:#f2f3f9;--s2:#eceef4;--s3:#e6e8ee;--s4:#e0e2e8;--on:#191c20;--onv:#41474d;--ol:#71787e;--olv:#c1c7ce;--ok:#1b7f37;--okc:#d2f2d8;--err:#ba1a1a;--errc:#ffdad6;--warn:#7a5200;--warnc:#ffe2a8;--add:#d2f2d8;--del:#ffdad6;--inv:#2e3135;--oninv:#eff1f7;
+--d-s:200ms;--d-m:300ms;--d-l:500ms;--e-emph:cubic-bezier(.2,0,0,1);--e-spring:cubic-bezier(.38,1.21,.22,1);
+font-family:Roboto,'Segoe UI',system-ui,sans-serif;color:var(--on);background:var(--bg);min-height:1400px;transition:background var(--d-l),color var(--d-l)}
+.dm.dark{--p:#8dcdff;--onp:#00344f;--pc:#004b70;--onpc:#c9e6ff;--sc:#394956;--onsc:#d3e5f5;--bg:#101418;--s0:#0b0f12;--s1:#181c20;--s2:#1c2024;--s3:#272a2f;--s4:#32353a;--on:#e0e2e8;--onv:#c1c7ce;--ol:#8b9198;--olv:#41474d;--ok:#7bd88f;--okc:#0f3d1c;--err:#ffb4ab;--errc:#93000a;--warn:#ffd27a;--warnc:#4a3300;--add:#0f3d1c;--del:#5c1512;--inv:#e0e2e8;--oninv:#2e3135}
+.ms{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 0,'wght' 400;display:inline-block;vertical-align:middle;flex:none}
+.mono{font-family:'Roboto Mono',monospace}
+.wrap{max-width:1240px;margin:0 auto;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:28px;font-weight:500}
+h2{margin:0;font-size:18px;font-weight:500;display:flex;align-items:center;gap:8px}
+h3{margin:0;font-size:12px;font-weight:500;color:var(--onv)}
+p{margin:0}
+.sub{margin:4px 0 0;font-size:14px;color:var(--onv);line-height:20px}
+.hint{font-size:12.5px;color:var(--onv);line-height:18px}.hint.bad{color:var(--err)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.grow{flex:1;min-width:0}
+.cols{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{background:var(--s1);border-radius:28px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0;box-sizing:border-box}
+.icon-btn{all:unset;cursor:pointer;width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--onv);flex:none;transition:background var(--d-s),transform var(--d-m) var(--e-spring)}
+.icon-btn:hover{background:var(--s3)}.icon-btn:active{transform:scale(.9)}.icon-btn:focus-visible{outline:3px solid var(--p)}
+.icon-btn.on{background:var(--pc);color:var(--onpc)}
+.btn{all:unset;cursor:pointer;height:44px;padding:0 18px;border-radius:999px;background:var(--p);color:var(--onp);font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px;box-sizing:border-box;white-space:nowrap;transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring),background var(--d-s)}
+.btn:active{transform:scale(.96);border-radius:12px}.btn:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.btn.tonal{background:var(--sc);color:var(--onsc)}.btn.text{background:transparent;color:var(--p);padding:0 12px}.btn.danger{background:var(--err);color:var(--bg)}
+.btn.off{background:var(--s3);color:var(--onv);cursor:not-allowed}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;background:var(--s2);border-radius:999px;padding:4px;align-self:flex-start;max-width:100%;box-sizing:border-box}
+.tab{all:unset;cursor:pointer;height:44px;padding:0 18px;border-radius:999px;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--onv);box-sizing:border-box;transition:background var(--d-m) var(--e-emph),color var(--d-m),transform var(--d-m) var(--e-spring)}
+.tab:hover{background:var(--s3)}.tab.on{background:var(--p);color:var(--onp)}.tab:active{transform:scale(.96)}.tab:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.tab b{font-weight:500;font-size:12px;min-width:20px;height:20px;border-radius:10px;background:var(--s0);color:var(--on);display:inline-flex;align-items:center;justify-content:center;padding:0 6px;box-sizing:border-box}
+.pane{display:flex;flex-direction:column;gap:14px;animation:pane var(--d-m) var(--e-emph)}
+@keyframes pane{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+.chip{all:unset;cursor:pointer;height:36px;padding:0 14px;border-radius:10px;box-shadow:inset 0 0 0 1px var(--ol);display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;box-sizing:border-box;transition:background var(--d-m),color var(--d-m),border-radius var(--d-m) var(--e-spring)}
+.chip.on{background:var(--sc);color:var(--onsc);box-shadow:none;border-radius:18px}.chip:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.search{display:flex;align-items:center;gap:8px;background:var(--s0);border-radius:999px;padding:0 6px 0 16px;box-shadow:inset 0 0 0 1px var(--olv);flex:1 1 260px;min-width:0;transition:box-shadow var(--d-s)}
+.search:focus-within{box-shadow:inset 0 0 0 2px var(--p)}
+.search input{all:unset;flex:1;min-width:0;height:48px;font-size:14px;color:var(--on)}.search input::placeholder{color:var(--onv)}
+.field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:var(--onv);min-width:0}
+.field input,.field select,.field textarea{all:unset;box-sizing:border-box;min-height:48px;border-radius:12px;background:var(--s0);padding:0 14px;font-size:14px;font-weight:400;color:var(--on);box-shadow:inset 0 0 0 1px var(--ol);transition:box-shadow var(--d-s)}
+.field textarea{padding:12px 14px;min-height:84px;line-height:20px;white-space:pre-wrap}
+.field input:focus,.field select:focus,.field textarea:focus{box-shadow:inset 0 0 0 2px var(--p)}
+.field.bad input{box-shadow:inset 0 0 0 2px var(--err)}
+.rows{display:flex;flex-direction:column;gap:4px}
+.li{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 12px;border-radius:16px;background:var(--s0);font-size:14px;box-sizing:border-box;min-width:0;transition:background var(--d-m),border-radius var(--d-m) var(--e-spring),opacity var(--d-m)}
+button.li{all:unset;cursor:pointer;display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 12px;border-radius:16px;background:var(--s0);font-size:14px;box-sizing:border-box;min-width:0;transition:background var(--d-m),border-radius var(--d-m) var(--e-spring)}
+button.li:hover{background:var(--s2)}button.li:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
+.li.on{background:var(--sc);color:var(--onsc);border-radius:24px}
+.li .t{flex:1;min-width:0;overflow-wrap:anywhere}.li small,.t small{display:block;font-size:12.5px;color:var(--onv);line-height:17px}
+.li.on small{color:inherit}
+.li input[type=checkbox],.ck input{width:20px;height:20px;margin:12px;accent-color:var(--p);flex:none}
+.ck{display:inline-flex;align-items:center;gap:2px;font-size:14px;min-height:44px}
+.badge{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 10px;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;background:var(--s3);color:var(--on)}
+.badge.ok{background:var(--okc);color:var(--ok)}.badge.no{background:var(--errc);color:var(--err)}.badge.warn{background:var(--warnc);color:var(--warn)}.badge.pri{background:var(--pc);color:var(--onpc)}
+.note{display:flex;gap:10px;align-items:flex-start;background:var(--s2);border-radius:16px;padding:12px 14px;font-size:13px;line-height:19px;color:var(--onv)}
+.note.warn{background:var(--warnc);color:var(--warn)}
+kbd{font-family:'Roboto Mono',monospace;font-size:11.5px;padding:3px 7px;border-radius:6px;background:var(--s3);color:var(--on);box-shadow:inset 0 -1px 0 var(--ol);white-space:nowrap}
+.dot{width:10px;height:10px;border-radius:999px;background:var(--p);flex:none}
+.prog{height:6px;border-radius:6px;background:var(--s3);overflow:hidden}.prog i{display:block;height:100%;background:var(--p);border-radius:6px;transition:width var(--d-l) var(--e-emph)}
+.snack{position:sticky;bottom:16px;align-self:center;display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:var(--inv);color:var(--oninv);border-radius:20px;padding:8px 8px 8px 20px;font-size:14px;animation:rise var(--d-l) var(--e-spring)}
+.snack .btn.text{color:var(--pc)}.dark .snack .btn.text{color:var(--p)}
+@keyframes rise{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.dm *{transition-duration:1ms!important;animation-duration:1ms!important}}
+.dm{min-height:960px}
+.stepper{display:flex;flex-wrap:wrap;gap:6px}
+.stp{display:flex;align-items:center;gap:8px;height:40px;padding:0 14px 0 6px;border-radius:999px;background:var(--s2);font-size:13px;font-weight:500;color:var(--onv);transition:background var(--d-m),color var(--d-m)}
+.stp i{width:28px;height:28px;border-radius:999px;background:var(--s0);display:flex;align-items:center;justify-content:center;font-style:normal;font-size:12px}
+.stp.on{background:var(--p);color:var(--onp)}.stp.on i{color:var(--on)}.stp.done{background:var(--okc);color:var(--ok)}
+.themes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.themes button{all:unset;cursor:pointer;min-height:64px;border-radius:16px;background:var(--s0);box-shadow:inset 0 0 0 1px var(--olv);display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:500;transition:box-shadow var(--d-s),transform var(--d-m) var(--e-spring)}
+.themes button.on{box-shadow:inset 0 0 0 3px var(--p);transform:scale(1.02)}.themes button:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+input[type=range]{width:100%;height:44px;margin:0;accent-color:var(--p)}
+.docs{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:820px){.docs{grid-template-columns:minmax(0,1fr)}}
+.art{background:var(--s0);border-radius:20px;padding:20px;font-size:14px;line-height:22px;display:flex;flex-direction:column;gap:10px}
+.art b{font-size:20px;font-weight:500}
+.toast{display:flex;gap:14px;align-items:center;background:var(--inv);color:var(--oninv);border-radius:24px;padding:12px 18px 12px 12px;max-width:440px;animation:rise var(--d-l) var(--e-spring)}
+.dish{width:72px;height:72px;border-radius:18px;background:var(--s3);color:var(--onv);display:flex;align-items:center;justify-content:center;text-align:center;font-size:10.5px;line-height:13px;flex:none;padding:4px;box-sizing:border-box}
+.toast b{display:block;font-size:16px;font-weight:500}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media (max-width:720px){.facts{grid-template-columns:minmax(0,1fr)}}
+</style>
+</helmet>
+<div class="dm {{rootClass}}">
+<div class="wrap">
+<div class="bar"><div class="grow" style="min-width:260px"><h1>First run, offline docs, dim sum and Status Hub</h1><p class="sub">A short setup that can be skipped at any step, documentation that works with no network, the dim sum surprise, and an honest status line for agent sessions.</p></div><button class="icon-btn" onClick="{{toggleDark}}" aria-label="Switch light and dark"><span class="ms" aria-hidden="true">contrast</span></button></div>
+<div class="tabs" role="tablist" aria-label="Section"><sc-for list="{{tabs}}" as="t" hint-placeholder-count="4"><button class="{{t.cls}}" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}"><span class="ms" aria-hidden="true">{{t.icon}}</span>{{t.label}}</button></sc-for></div>
+
+<sc-if value="{{isWiz}}" hint-placeholder-val="{{ true }}"><div class="card pane">
+<div class="stepper" role="list"><sc-for list="{{steps}}" as="st" hint-placeholder-count="5"><div class="{{st.cls}}" role="listitem" aria-current="{{st.cur}}"><i>{{st.mark}}</i>{{st.label}}</div></sc-for></div>
+<sc-if value="{{w0}}" hint-placeholder-val="{{ true }}"><div class="pane"><h2>Sign in, or skip for now</h2><p class="hint">Signing in lets the app list your repositories. Everything local works without it.</p><div class="bar"><button class="btn"><span class="ms" aria-hidden="true">login</span>Sign in with your browser</button><button class="btn tonal"><span class="ms" aria-hidden="true">content_copy</span>Copy the sign-in link instead</button></div></div></sc-if>
+<sc-if value="{{w1}}" hint-placeholder-val="{{ false }}"><div class="pane"><h2>Who writes your commits</h2><div class="bar" style="align-items:flex-start"><div class="{{nameCls}}" style="flex:1 1 240px"><label for="ob-n">Name</label><input id="ob-n" value="{{name}}" onChange="{{setName}}"><span class="{{nameHintCls}}">{{nameHint}}</span></div><div class="{{mailCls}}" style="flex:1 1 240px"><label for="ob-m">Email</label><input id="ob-m" type="email" value="{{mail}}" onChange="{{setMail}}"><span class="{{mailHintCls}}">{{mailHint}}</span></div></div></div></sc-if>
+<sc-if value="{{w2}}" hint-placeholder-val="{{ false }}"><div class="pane"><h2>How it looks and talks</h2><div class="themes" role="group" aria-label="Theme"><sc-for list="{{themes}}" as="th" hint-placeholder-count="3"><button class="{{th.cls}}" aria-pressed="{{th.on}}" onClick="{{th.pick}}"><span class="ms" aria-hidden="true">{{th.icon}}</span>{{th.label}}</button></sc-for></div>
+<div class="bar" role="group" aria-label="Language"><sc-for list="{{langs}}" as="l" hint-placeholder-count="3"><button class="{{l.cls}}" aria-pressed="{{l.on}}" onClick="{{l.pick}}">{{l.label}}</button></sc-for></div>
+<div class="field"><label for="ob-f">Funny level: {{funny}} of 5</label><input id="ob-f" type="range" min="1" max="5" value="{{funny}}" onChange="{{setFunny}}"><span class="hint">{{funnyText}}</span></div></div></sc-if>
+<sc-if value="{{w3}}" hint-placeholder-val="{{ false }}"><div class="pane"><h2>Your editor</h2><div class="rows"><sc-for list="{{eds}}" as="e" hint-placeholder-count="3"><button class="{{e.cls}}" aria-pressed="{{e.on}}" onClick="{{e.pick}}"><span class="ms" aria-hidden="true">code</span><span class="t">{{e.label}}<small>Found on this computer</small></span></button></sc-for></div></div></sc-if>
+<sc-if value="{{w4}}" hint-placeholder-val="{{ false }}"><div class="pane"><h2><span class="ms" aria-hidden="true">check_circle</span>Ready</h2><p class="hint">{{summary}}</p><div class="bar"><button class="btn"><span class="ms" aria-hidden="true">download</span>Clone a repository</button><button class="btn tonal"><span class="ms" aria-hidden="true">folder_open</span>Add a folder from this computer</button></div></div></sc-if>
+<div class="bar"><button class="{{backCls}}" aria-disabled="{{first}}" onClick="{{back}}">Back</button><span class="grow"></span><sc-if value="{{notLast}}" hint-placeholder-val="{{ true }}"><button class="btn text" onClick="{{skip}}">Skip setup</button></sc-if><sc-if value="{{notLast}}" hint-placeholder-val="{{ true }}"><button class="{{nextCls}}" aria-disabled="{{blocked}}" onClick="{{next}}">Next</button></sc-if></div>
+<p class="hint">Every choice here can be changed later in Settings. Skipping keeps the defaults.</p>
+</div></sc-if>
+
+<sc-if value="{{isDocs}}" hint-placeholder-val="{{ false }}"><div class="card pane">
+<div class="bar"><div class="search"><span class="ms" aria-hidden="true">search</span><input aria-label="Search titles and text" placeholder="Search titles and text" value="{{dq}}" onChange="{{setDq}}"><button class="icon-btn" aria-label="Open regex builder"><span class="ms" aria-hidden="true">regular_expression</span></button></div><span class="badge ok"><span class="ms" style="font-size:16px" aria-hidden="true">cloud_off</span>Works offline</span></div>
+<div class="docs"><div class="rows"><sc-for list="{{arts}}" as="a" hint-placeholder-count="4"><button class="{{a.cls}}" aria-pressed="{{a.on}}" onClick="{{a.pick}}"><span class="ms" aria-hidden="true">article</span><span class="t">{{a.title}}<small>{{a.cat}}</small></span></button></sc-for><sc-if value="{{noArts}}" hint-placeholder-val="{{ false }}"><p class="hint">No article mentions that. Try another word.</p></sc-if></div>
+<div class="art"><b>{{artTitle}}</b><span>{{artBody}}</span><span class="hint">Links between articles open here. Nothing is fetched from the network.</span></div></div>
+</div></sc-if>
+
+<sc-if value="{{isDim}}" hint-placeholder-val="{{ false }}"><div class="card pane">
+<div class="bar"><h2 class="grow"><span class="ms" aria-hidden="true">celebration</span>The dim sum surprise</h2><button class="btn tonal" onClick="{{another}}"><span class="ms" aria-hidden="true">casino</span>Show another dish</button></div>
+<div class="toast" role="status"><span class="dish" role="img" aria-label="{{dishAlt}}">Bundled photo of {{dishEn}}</span><span><b>{{dishEn}}</b>{{dishZh}}</span></div>
+<div class="facts"><sc-for list="{{facts}}" as="f" hint-placeholder-count="6"><div class="note"><span class="ms" aria-hidden="true">{{f.icon}}</span><span>{{f.text}}</span></div></sc-for></div>
+</div></sc-if>
+
+<sc-if value="{{isHub}}" hint-placeholder-val="{{ false }}"><div class="card pane">
+<div class="bar"><h2 class="grow"><span class="ms" aria-hidden="true">hub</span>Agents: status line</h2><button class="btn tonal" onClick="{{toggleHub}}">{{hubBtn}}</button></div>
+<sc-if value="{{hubOn}}" hint-placeholder-val="{{ true }}"><div class="col"><div class="li"><span class="dot" style="background:#1b7f37"></span><span class="t">desktop-material · session running<small>Heartbeat {{beat}} s ago · registered repository</small></span><button class="btn tonal"><span class="ms" aria-hidden="true">open_in_new</span>Open in the Hub</button></div>
+<div class="rows"><sc-for list="{{evid}}" as="e" hint-placeholder-count="4"><div class="li"><span class="ms" aria-hidden="true">{{e.icon}}</span><span class="t">{{e.title}}<small>{{e.detail}}</small></span><span class="{{e.cls}}">{{e.state}}</span></div></sc-for></div></div></sc-if>
+<sc-if value="{{hubOff}}" hint-placeholder-val="{{ false }}"><div class="note"><span class="ms" aria-hidden="true">link_off</span><span>No Status Hub address or credential is set up, so nothing is reported and no link is shown. Local work is unaffected.</span></div></sc-if>
+<p class="hint">Evidence is only ever verified, running, unrun or blocked. A local build or a label never turns something green by itself.</p>
+</div></sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+function dmBase(c){return {rootClass:c.state.dark?'dark':'',toggleDark:function(){c.setState({dark:!c.state.dark});}};}
+class Component extends DCLogic {
+  constructor(p){super(p);this.state={dark:false,tab:0,w:0,name:'',mail:'',theme:0,lang:0,funny:2,ed:0,dq:'',art:0,dish:0,hub:true,t:3};
+    this.docs=[['Open a folder to add its repository','Repository management','Opening a real Git repository from Explorer or the command line adds and selects it without the Add local repository dialog. The dialog still opens for a folder that is not a usable repository.'],['Repository pages for every remote','Repository management','View on … opens the web page of any remote. With several remotes, a Remote dropdown lists each one. Credentials are never shown or opened.'],['Surface locks','Design system','A for-fun password or one-time code on a tab, a tab group or an appearance value. Off by default and never described as security.'],['Unlock ladder','Design system','A bounded activity that may clear a wait after too many wrong answers. It never unlocks anything by itself.'],['Named stash manager','Repository management','Keep several named stashes, preview them, and apply or drop each one.']];
+    this.dishes=[['Har gow','蝦餃'],['Siu mai','燒賣'],['Char siu bao','叉燒包'],['Egg tart','蛋撻']];}
+  componentDidMount(){this._i=setInterval(()=>this.setState({t:(this.state.t+1)%30}),1000);}
+  componentWillUnmount(){clearInterval(this._i);}
+  renderVals(){
+    const s=this.state,set=o=>this.setState(o),labels=['Sign in','Identity','Look and language','Editor','Ready'];
+    const nameOk=s.name.trim().length>0,mailOk=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s.mail),blocked=s.w===1&&!(nameOk&&mailOk);
+    const hits=this.docs.map((d,i)=>({d:d,i:i})).filter(x=>(x.d[0]+' '+x.d[2]).toLowerCase().indexOf(s.dq.toLowerCase())>=0);
+    const cur=this.docs[s.art],dish=this.dishes[s.dish],langs=['English','Cantonese','Both'],eds=['Visual Studio Code','JetBrains WebStorm','Sublime Text'];
+    return {...dmBase(this),
+      tabs:[['rocket_launch','First run'],['menu_book','Offline docs'],['celebration','Dim sum'],['hub','Status Hub']].map((t,i)=>({icon:t[0],label:t[1],on:s.tab===i,cls:'tab'+(s.tab===i?' on':''),pick:()=>set({tab:i})})),
+      isWiz:s.tab===0,isDocs:s.tab===1,isDim:s.tab===2,isHub:s.tab===3,
+      steps:labels.map((l,i)=>({label:l,mark:i<s.w?'✓':String(i+1),cur:i===s.w?'step':'false',cls:'stp'+(i===s.w?' on':i<s.w?' done':'')})),
+      w0:s.w===0,w1:s.w===1,w2:s.w===2,w3:s.w===3,w4:s.w===4,first:s.w===0,notLast:s.w<4,blocked:blocked,
+      backCls:'btn tonal'+(s.w===0?' off':''),nextCls:'btn'+(blocked?' off':''),back:()=>{if(s.w>0)set({w:s.w-1});},next:()=>{if(!blocked)set({w:s.w+1});},skip:()=>set({w:4}),
+      name:s.name,setName:e=>set({name:e.target.value}),mail:s.mail,setMail:e=>set({mail:e.target.value}),
+      nameCls:'field'+(nameOk||!s.name?'':' bad'),nameHintCls:'hint',nameHint:'Shown as the author of each commit.',
+      mailCls:'field'+(mailOk||!s.mail?'':' bad'),mailHintCls:'hint'+(mailOk||!s.mail?'':' bad'),mailHint:mailOk||!s.mail?'Use the address your Git host knows, so commits link to you.':'That does not look like an email address yet.',
+      themes:[['light_mode','Light'],['dark_mode','Dark'],['brightness_auto','Follow Windows']].map((t,i)=>({icon:t[0],label:t[1],on:s.theme===i,cls:s.theme===i?'on':'',pick:()=>set({theme:i,dark:i===1})})),
+      langs:langs.map((l,i)=>({label:l,on:s.lang===i,cls:'chip'+(s.lang===i?' on':''),pick:()=>set({lang:i})})),
+      funny:s.funny,setFunny:e=>set({funny:+e.target.value}),funnyText:['Fully serious.','A light touch.','Some jokes.','Plenty of jokes.','As silly as it goes.'][s.funny-1]+' The level changes the voice, never the facts.',
+      eds:eds.map((l,i)=>({label:l,on:s.ed===i,cls:'li'+(s.ed===i?' on':''),pick:()=>set({ed:i})})),
+      summary:(nameOk&&mailOk?'Commits will be written as '+s.name.trim()+'. ':'No commit identity yet: the app asks before your first commit. ')+langs[s.lang]+', funny level '+s.funny+', opening files in '+eds[s.ed]+'.',
+      dq:s.dq,setDq:e=>set({dq:e.target.value}),arts:hits.map(x=>({title:x.d[0],cat:x.d[1],on:s.art===x.i,cls:'li'+(s.art===x.i?' on':''),pick:()=>set({art:x.i})})),noArts:hits.length===0,artTitle:cur[0],artBody:cur[2],
+      dishEn:dish[0],dishZh:dish[1],dishAlt:'Photo of '+dish[0],another:()=>set({dish:(s.dish+1)%this.dishes.length}),
+      facts:[['casino','A 10% chance on each launch, drawn fresh, and never twice in one launch.'],['translate','The dish is named in both languages beside its picture.'],['timer','It dismisses itself, never takes focus and never delays startup.'],['block','It never appears on a first run, on an error or during an update.'],['image','Pictures are bundled with the app. Nothing is generated or downloaded.'],['toggle_off','There is no setting to turn it off.']].map(f=>({icon:f[0],text:f[1]})),
+      hubOn:s.hub,hubOff:!s.hub,hubBtn:s.hub?'Show the not-set-up state':'Show the connected state',toggleHub:()=>set({hub:!s.hub}),beat:s.t,
+      evid:[['rule','Unit tests for the motion model','Reported by this session','verified','badge ok'],['build','Windows x64 build','Started 4 minutes ago','running','badge pri'],['photo_camera','Captures of the installed app','Not started','unrun','badge'],['devices','Installed-app check on the owner\'s computer','That computer cannot be reached from here','blocked','badge warn']].map(e=>({icon:e[0],title:e[1],detail:e[2],state:e[3],cls:e[4]}))
+    };
+  }
+}
+</script>
+</body>
+</html>
