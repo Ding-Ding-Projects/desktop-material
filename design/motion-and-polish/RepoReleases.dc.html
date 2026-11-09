@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Repository: releases, clone and add</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;family=Material+Symbols+Rounded:opsz,wght,FILL@20..48,400,0..1&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#006493}a:hover{color:#004b70}
+.dm{--p:#006493;--onp:#fff;--pc:#c9e6ff;--onpc:#001e30;--sc:#d3e5f5;--onsc:#0c1d29;--bg:#f8f9ff;--s0:#fff;--s1:#f2f3f9;--s2:#eceef4;--s3:#e6e8ee;--s4:#e0e2e8;--on:#191c20;--onv:#41474d;--ol:#71787e;--olv:#c1c7ce;--ok:#1b7f37;--okc:#d2f2d8;--err:#ba1a1a;--errc:#ffdad6;--warn:#7a5200;--warnc:#ffe2a8;--add:#d2f2d8;--del:#ffdad6;--inv:#2e3135;--oninv:#eff1f7;
+--d-s:200ms;--d-m:300ms;--d-l:500ms;--e-emph:cubic-bezier(.2,0,0,1);--e-spring:cubic-bezier(.38,1.21,.22,1);
+font-family:Roboto,'Segoe UI',system-ui,sans-serif;color:var(--on);background:var(--bg);min-height:1400px;transition:background var(--d-l),color var(--d-l)}
+.dm.dark{--p:#8dcdff;--onp:#00344f;--pc:#004b70;--onpc:#c9e6ff;--sc:#394956;--onsc:#d3e5f5;--bg:#101418;--s0:#0b0f12;--s1:#181c20;--s2:#1c2024;--s3:#272a2f;--s4:#32353a;--on:#e0e2e8;--onv:#c1c7ce;--ol:#8b9198;--olv:#41474d;--ok:#7bd88f;--okc:#0f3d1c;--err:#ffb4ab;--errc:#93000a;--warn:#ffd27a;--warnc:#4a3300;--add:#0f3d1c;--del:#5c1512;--inv:#e0e2e8;--oninv:#2e3135}
+.ms{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 0,'wght' 400;display:inline-block;vertical-align:middle;flex:none}
+.mono{font-family:'Roboto Mono',monospace}
+.wrap{max-width:1240px;margin:0 auto;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:28px;font-weight:500}
+h2{margin:0;font-size:18px;font-weight:500;display:flex;align-items:center;gap:8px}
+h3{margin:0;font-size:12px;font-weight:500;color:var(--onv)}
+p{margin:0}
+.sub{margin:4px 0 0;font-size:14px;color:var(--onv);line-height:20px}
+.hint{font-size:12.5px;color:var(--onv);line-height:18px}.hint.bad{color:var(--err)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.grow{flex:1;min-width:0}
+.cols{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{background:var(--s1);border-radius:28px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0;box-sizing:border-box}
+.icon-btn{all:unset;cursor:pointer;width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--onv);flex:none;transition:background var(--d-s),transform var(--d-m) var(--e-spring)}
+.icon-btn:hover{background:var(--s3)}.icon-btn:active{transform:scale(.9)}.icon-btn:focus-visible{outline:3px solid var(--p)}
+.icon-btn.on{background:var(--pc);color:var(--onpc)}
+.btn{all:unset;cursor:pointer;height:44px;padding:0 18px;border-radius:999px;background:var(--p);color:var(--onp);font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px;box-sizing:border-box;white-space:nowrap;transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring),background var(--d-s)}
+.btn:active{transform:scale(.96);border-radius:12px}.btn:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.btn.tonal{background:var(--sc);color:var(--onsc)}.btn.text{background:transparent;color:var(--p);padding:0 12px}.btn.danger{background:var(--err);color:var(--bg)}
+.btn.off{background:var(--s3);color:var(--onv);cursor:not-allowed}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;background:var(--s2);border-radius:999px;padding:4px;align-self:flex-start;max-width:100%;box-sizing:border-box}
+.tab{all:unset;cursor:pointer;height:44px;padding:0 18px;border-radius:999px;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--onv);box-sizing:border-box;transition:background var(--d-m) var(--e-emph),color var(--d-m),transform var(--d-m) var(--e-spring)}
+.tab:hover{background:var(--s3)}.tab.on{background:var(--p);color:var(--onp)}.tab:active{transform:scale(.96)}.tab:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.tab b{font-weight:500;font-size:12px;min-width:20px;height:20px;border-radius:10px;background:var(--s0);color:var(--on);display:inline-flex;align-items:center;justify-content:center;padding:0 6px;box-sizing:border-box}
+.pane{display:flex;flex-direction:column;gap:14px;animation:pane var(--d-m) var(--e-emph)}
+@keyframes pane{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+.chip{all:unset;cursor:pointer;height:36px;padding:0 14px;border-radius:10px;box-shadow:inset 0 0 0 1px var(--ol);display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;box-sizing:border-box;transition:background var(--d-m),color var(--d-m),border-radius var(--d-m) var(--e-spring)}
+.chip.on{background:var(--sc);color:var(--onsc);box-shadow:none;border-radius:18px}.chip:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.search{display:flex;align-items:center;gap:8px;background:var(--s0);border-radius:999px;padding:0 6px 0 16px;box-shadow:inset 0 0 0 1px var(--olv);flex:1 1 260px;min-width:0;transition:box-shadow var(--d-s)}
+.search:focus-within{box-shadow:inset 0 0 0 2px var(--p)}
+.search input{all:unset;flex:1;min-width:0;height:48px;font-size:14px;color:var(--on)}.search input::placeholder{color:var(--onv)}
+.field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:var(--onv);min-width:0}
+.field input,.field select,.field textarea{all:unset;box-sizing:border-box;min-height:48px;border-radius:12px;background:var(--s0);padding:0 14px;font-size:14px;font-weight:400;color:var(--on);box-shadow:inset 0 0 0 1px var(--ol);transition:box-shadow var(--d-s)}
+.field textarea{padding:12px 14px;min-height:84px;line-height:20px;white-space:pre-wrap}
+.field input:focus,.field select:focus,.field textarea:focus{box-shadow:inset 0 0 0 2px var(--p)}
+.field.bad input{box-shadow:inset 0 0 0 2px var(--err)}
+.rows{display:flex;flex-direction:column;gap:4px}
+.li{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 12px;border-radius:16px;background:var(--s0);font-size:14px;box-sizing:border-box;min-width:0;transition:background var(--d-m),border-radius var(--d-m) var(--e-spring),opacity var(--d-m)}
+button.li{all:unset;cursor:pointer;display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 12px;border-radius:16px;background:var(--s0);font-size:14px;box-sizing:border-box;min-width:0;transition:background var(--d-m),border-radius var(--d-m) var(--e-spring)}
+button.li:hover{background:var(--s2)}button.li:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
+.li.on{background:var(--sc);color:var(--onsc);border-radius:24px}
+.li .t{flex:1;min-width:0;overflow-wrap:anywhere}.li small,.t small{display:block;font-size:12.5px;color:var(--onv);line-height:17px}
+.li.on small{color:inherit}
+.li input[type=checkbox],.ck input{width:20px;height:20px;margin:12px;accent-color:var(--p);flex:none}
+.ck{display:inline-flex;align-items:center;gap:2px;font-size:14px;min-height:44px}
+.badge{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 10px;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;background:var(--s3);color:var(--on)}
+.badge.ok{background:var(--okc);color:var(--ok)}.badge.no{background:var(--errc);color:var(--err)}.badge.warn{background:var(--warnc);color:var(--warn)}.badge.pri{background:var(--pc);color:var(--onpc)}
+.note{display:flex;gap:10px;align-items:flex-start;background:var(--s2);border-radius:16px;padding:12px 14px;font-size:13px;line-height:19px;color:var(--onv)}
+.note.warn{background:var(--warnc);color:var(--warn)}
+kbd{font-family:'Roboto Mono',monospace;font-size:11.5px;padding:3px 7px;border-radius:6px;background:var(--s3);color:var(--on);box-shadow:inset 0 -1px 0 var(--ol);white-space:nowrap}
+.dot{width:10px;height:10px;border-radius:999px;background:var(--p);flex:none}
+.prog{height:6px;border-radius:6px;background:var(--s3);overflow:hidden}.prog i{display:block;height:100%;background:var(--p);border-radius:6px;transition:width var(--d-l) var(--e-emph)}
+.snack{position:sticky;bottom:16px;align-self:center;display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:var(--inv);color:var(--oninv);border-radius:20px;padding:8px 8px 8px 20px;font-size:14px;animation:rise var(--d-l) var(--e-spring)}
+.snack .btn.text{color:var(--pc)}.dark .snack .btn.text{color:var(--p)}
+@keyframes rise{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.dm *{transition-duration:1ms!important;animation-duration:1ms!important}}
+.card>.search,.col>.search,.pane>.search{flex:none}
+.dm{min-height:960px}
+.two{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:860px){.two{grid-template-columns:minmax(0,1fr)}}
+</style>
+</helmet>
+<div class="dm {{rootClass}}">
+<div class="wrap">
+<div class="bar"><div class="grow" style="min-width:260px"><h1>Repository: releases, clone and add</h1><p class="sub">Every release with its real files, a clone screen with one GitHub tab and an account picker, and an Add screen that tells you what a folder is before it adds it.</p></div><button class="icon-btn" onClick="{{toggleDark}}" aria-label="Switch light and dark"><span class="ms" aria-hidden="true">contrast</span></button></div>
+<div class="tabs" role="tablist" aria-label="Screen"><sc-for list="{{tabs}}" as="t" hint-placeholder-count="3"><button class="{{t.cls}}" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}"><span class="ms" aria-hidden="true">{{t.icon}}</span>{{t.label}}</button></sc-for></div>
+
+<sc-if value="{{isRel}}" hint-placeholder-val="{{ true }}"><div class="two pane" style="display:grid">
+<div class="card" style="padding:16px">
+<div class="rows"><sc-for list="{{rels}}" as="r" hint-placeholder-count="3"><button class="{{r.cls}}" aria-pressed="{{r.on}}" onClick="{{r.pick}}"><span class="ms" aria-hidden="true">sell</span><span class="t mono" style="font-size:13.5px">{{r.tag}}<small style="font-family:Roboto,sans-serif">{{r.meta}}</small></span><sc-if value="{{r.latest}}" hint-placeholder-val="{{ false }}"><span class="badge ok">Latest</span></sc-if></button></sc-for></div>
+<div class="{{tagCls}}"><label for="rl-tag">Draft a release: tag</label><input id="rl-tag" class="mono" value="{{tag}}" onChange="{{setTag}}" placeholder="v4.0.136805"><span class="{{tagHintCls}}">{{tagHint}}</span></div>
+<button class="{{draftCls}}" aria-disabled="{{cantDraft}}"><span class="ms" aria-hidden="true">edit_document</span>Start the draft</button>
+</div>
+<div class="card" style="padding:16px">
+<div class="bar"><h2 class="mono grow">{{relTag}}</h2><span class="hint">{{relMeta}}</span></div>
+<h3>Files</h3>
+<div class="rows"><sc-for list="{{assets}}" as="a" hint-placeholder-count="4"><div class="li" style="min-height:48px"><span class="ms" aria-hidden="true">{{a.icon}}</span><span class="t mono" style="font-size:13px">{{a.name}}<small style="font-family:Roboto,sans-serif">{{a.note}}</small></span><button class="icon-btn" aria-label="{{a.dl}}"><span class="ms" aria-hidden="true">download</span></button></div></sc-for></div>
+<div class="note"><span class="ms" aria-hidden="true">functions</span><span>Each release states the project's line count, broken down by area and counted by the same run that built the installers.</span></div>
+<div class="bar"><button class="btn tonal"><span class="ms" aria-hidden="true">notes</span>Read the notes</button><button class="btn text"><span class="ms" aria-hidden="true">open_in_new</span>Open on the remote</button></div>
+</div>
+</div></sc-if>
+
+<sc-if value="{{isClone}}" hint-placeholder-val="{{ false }}"><div class="two pane" style="display:grid">
+<div class="card" style="padding:16px">
+<div class="bar" role="group" aria-label="Source"><sc-for list="{{sources}}" as="c" hint-placeholder-count="2"><button class="{{c.cls}}" aria-pressed="{{c.on}}" onClick="{{c.pick}}">{{c.label}}</button></sc-for></div>
+<sc-if value="{{fromHost}}" hint-placeholder-val="{{ true }}"><div class="col">
+<div class="field"><label for="rl-acct">Account</label><select id="rl-acct" value="{{acct}}" onChange="{{setAcct}}"><option value="0">riley-chan · github.com</option><option value="1">riley · git.example-company.com</option></select></div>
+<div class="search"><span class="ms" aria-hidden="true">search</span><input aria-label="Filter repositories" placeholder="Filter repositories" value="{{cq}}" onChange="{{setCq}}"><button class="icon-btn" aria-label="Open regex builder"><span class="ms" aria-hidden="true">regular_expression</span></button></div>
+<div class="rows"><sc-for list="{{repos}}" as="r" hint-placeholder-count="4"><div class="{{r.cls}}"><input type="checkbox" aria-label="{{r.selLabel}}" checked="{{r.sel}}" onChange="{{r.toggle}}"><span class="t">{{r.name}}<small>{{r.meta}}</small></span><sc-if value="{{r.priv}}" hint-placeholder-val="{{ false }}"><span class="badge"><span class="ms" style="font-size:14px" aria-hidden="true">lock</span>Private</span></sc-if></div></sc-for></div>
+</div></sc-if>
+<sc-if value="{{fromUrl}}" hint-placeholder-val="{{ false }}"><div class="{{urlCls}}"><label for="rl-url">Repository address</label><input id="rl-url" class="mono" value="{{url}}" onChange="{{setUrl}}" placeholder="https://host/owner/name.git"><span class="{{urlHintCls}}">{{urlHint}}</span></div></sc-if>
+</div>
+<div class="card" style="padding:16px">
+<div class="field"><label for="rl-path">Clone into</label><input id="rl-path" class="mono" value="C:\Users\you\Documents\GitHub"></div>
+<div class="bar"><label class="ck"><input type="checkbox" checked="{{parallel}}" onChange="{{togglePar}}">Clone several at once</label><span class="grow"></span><button class="{{cloneCls}}" aria-disabled="{{cantClone}}" onClick="{{startClone}}"><span class="ms" aria-hidden="true">download</span>{{cloneLabel}}</button></div>
+<div class="rows"><sc-for list="{{queue}}" as="q" hint-placeholder-count="2"><div class="li"><span class="ms" aria-hidden="true">{{q.icon}}</span><span class="t">{{q.name}}<small>{{q.meta}}</small><div class="prog" style="margin-top:6px"><i style="width:{{q.pct}}"></i></div></span><span class="{{q.cls}}">{{q.state}}</span></div></sc-for></div>
+<sc-if value="{{noQueue}}" hint-placeholder-val="{{ true }}"><p class="hint">Tick repositories or paste an address, then clone. Progress appears here and keeps going if you close this screen.</p></sc-if>
+</div>
+</div></sc-if>
+
+<sc-if value="{{isAdd}}" hint-placeholder-val="{{ false }}"><div class="card pane">
+<div class="{{pathCls}}"><label for="rl-add">Folder on this computer</label><input id="rl-add" class="mono" value="{{addPath}}" onChange="{{setAdd}}"><span class="hint">Paste a path with or without quotation marks, or drop a folder on the window.</span></div>
+<div class="bar"><sc-for list="{{samples}}" as="x" hint-placeholder-count="4"><button class="chip" onClick="{{x.pick}}">{{x.label}}</button></sc-for></div>
+<div class="{{verdictCls}}" role="status"><span class="ms" aria-hidden="true">{{verdictIcon}}</span><span>{{verdictText}}</span></div>
+<div class="bar"><span class="grow"></span><sc-if value="{{canCreate}}" hint-placeholder-val="{{ false }}"><button class="btn tonal"><span class="ms" aria-hidden="true">add</span>Create a repository here</button></sc-if><button class="{{addCls}}" aria-disabled="{{cantAdd}}"><span class="ms" aria-hidden="true">add_circle</span>Add repository</button></div>
+<p class="hint">Opening a repository from Explorer or the command line skips this screen and adds it directly. This screen appears only when the folder needs a decision.</p>
+</div></sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+function dmBase(c){return {rootClass:c.state.dark?'dark':'',toggleDark:function(){c.setState({dark:!c.state.dark});}};}
+class Component extends DCLogic {
+  constructor(p){super(p);this.state={dark:false,tab:0,rel:0,tag:'',src:0,acct:'0',cq:'',sel:{0:true},url:'',parallel:true,q:[],addPath:'"C:\\Users\\you\\Documents\\GitHub\\worldlens"'};
+    this.rels=[['v4.0.136804','Today · built from a8d2242',[['install_desktop','DesktopMaterialSetup.exe','Installer for Windows x64'],['inventory_2','DesktopMaterialSetup.msi','For managed installs'],['package_2','DesktopMaterial-4.0.136804-full.nupkg','Update package'],['description','RELEASES','Update index'],['folder_zip','DesktopMaterial-win32-x64.zip','Portable copy']]],
+      ['Earlier release (sample)','Oct 30 · sign-in link fallback',[['install_desktop','DesktopMaterialSetup.exe','Installer for Windows x64'],['package_2','DesktopMaterial-full.nupkg','Update package']]],
+      ['Older release (sample)','Oct 15 · bug audit fixes',[['install_desktop','DesktopMaterialSetup.exe','Installer for Windows x64']]]];
+    this.repos=[['desktop-material','TypeScript · updated today',false],['material-docker-image','TypeScript · updated today',false],['monitoring-tools','Python · updated Nov 4',false],['job-2027','TypeScript · updated Nov 2',true]];}
+  componentWillUnmount(){clearInterval(this._q);}
+  classify(raw){const p=raw.trim().replace(/^"(.*)"$/,'$1');if(!p)return ['none','info','Type or paste a folder path.'];if(/worldlens$/i.test(p))return ['repo','check_circle','A Git repository on branch main with 1 remote. Ready to add.'];if(/\.git$/i.test(p))return ['bare','warning','This is a bare repository with no working files. It cannot be added; clone it instead.'];if(/Downloads/i.test(p))return ['plain','help','This folder is not a Git repository yet. You can create one here.'];if(/^\\\\/.test(p))return ['untrusted','gpp_maybe','Git does not trust this folder because another user owns it. Add it only if you know where it came from.'];return ['missing','error','There is no folder at this path.'];}
+  renderVals(){
+    const s=this.state,set=o=>this.setState(o),r=this.rels[s.rel];
+    const tagBad=!s.tag?'':!/^v\d+\.\d+\.\d+$/.test(s.tag)?'Use the form v4.0.136805.':this.rels.some(x=>x[0]===s.tag)?'This tag is already published. Tags are never reused.':'';
+    const shown=this.repos.map((x,i)=>({x:x,i:i})).filter(y=>y.x[0].indexOf(s.cq.toLowerCase())>=0),nSel=Object.keys(s.sel).filter(k=>s.sel[k]).length;
+    const urlOk=/^(https:\/\/|git@|ssh:\/\/)[^\s]+$/.test(s.url.trim()),n=s.src===0?nSel:(urlOk?1:0),busy=s.q.some(q=>q.pct<100);
+    const v=this.classify(s.addPath);
+    return {...dmBase(this),
+      tabs:[['sell','Releases'],['download','Clone'],['add_circle','Add']].map((t,i)=>({icon:t[0],label:t[1],on:s.tab===i,cls:'tab'+(s.tab===i?' on':''),pick:()=>set({tab:i})})),
+      isRel:s.tab===0,isClone:s.tab===1,isAdd:s.tab===2,
+      rels:this.rels.map((x,i)=>({tag:x[0],meta:x[1],latest:i===0,on:s.rel===i,cls:'li'+(s.rel===i?' on':''),pick:()=>set({rel:i})})),
+      relTag:r[0],relMeta:r[1],assets:r[2].map(a=>({icon:a[0],name:a[1],note:a[2],dl:'Download '+a[1]})),
+      tag:s.tag,setTag:e=>set({tag:e.target.value.trim()}),tagCls:'field'+(tagBad?' bad':''),tagHintCls:'hint'+(tagBad?' bad':''),tagHint:tagBad||'A new, unused tag. Published releases and their files are never replaced.',cantDraft:!s.tag||!!tagBad,draftCls:'btn tonal'+(!s.tag||tagBad?' off':''),
+      sources:['From an account','From an address'].map((l,i)=>({label:l,on:s.src===i,cls:'chip'+(s.src===i?' on':''),pick:()=>set({src:i})})),fromHost:s.src===0,fromUrl:s.src===1,
+      acct:s.acct,setAcct:e=>set({acct:e.target.value}),cq:s.cq,setCq:e=>set({cq:e.target.value}),
+      repos:shown.map(y=>({name:y.x[0],meta:y.x[1],priv:y.x[2],sel:!!s.sel[y.i],selLabel:'Select '+y.x[0],cls:'li'+(s.sel[y.i]?' on':''),toggle:()=>set({sel:{...s.sel,[y.i]:!s.sel[y.i]}})})),
+      url:s.url,setUrl:e=>set({url:e.target.value}),urlCls:'field'+(s.url&&!urlOk?' bad':''),urlHintCls:'hint'+(s.url&&!urlOk?' bad':''),urlHint:s.url&&!urlOk?'Use an https, ssh or git@ address.':'Any Git host works. Sign-in is asked for only if the host requires it.',
+      parallel:s.parallel,togglePar:()=>set({parallel:!s.parallel}),
+      cantClone:n===0||busy,cloneCls:'btn'+(n===0||busy?' off':''),cloneLabel:busy?'Cloning…':n===0?'Nothing selected':'Clone '+n+(n===1?' repository':' repositories'),
+      startClone:()=>{if(n===0||busy)return;const names=s.src===0?this.repos.filter((x,i)=>s.sel[i]).map(x=>x[0]):[s.url.trim().split('/').pop().replace(/\.git$/,'')];set({q:names.map(nm=>({name:nm,pct:0}))});clearInterval(this._q);this._q=setInterval(()=>{const st=this.state;let first=true;const q=st.q.map(x=>{if(x.pct>=100)return x;if(st.parallel||first){first=false;return {...x,pct:Math.min(100,x.pct+17)};}return x;});if(q.every(x=>x.pct>=100))clearInterval(this._q);this.setState({q:q});},450);},
+      queue:s.q.map(x=>({name:x.name,pct:x.pct+'%',icon:x.pct>=100?'check_circle':'downloading',meta:x.pct>=100?'Cloned and added to the list':x.pct===0?'Waiting its turn':'Receiving objects · '+x.pct+'%',state:x.pct>=100?'Done':x.pct===0?'Queued':'Cloning',cls:'badge '+(x.pct>=100?'ok':x.pct===0?'':'pri')})),noQueue:s.q.length===0,
+      addPath:s.addPath,setAdd:e=>set({addPath:e.target.value}),pathCls:'field'+(v[0]==='missing'?' bad':''),
+      samples:[['A repository, in quotes','"C:\\Users\\you\\Documents\\GitHub\\worldlens"'],['A plain folder','C:\\Users\\you\\Downloads\\notes'],['A bare repository','D:\\mirrors\\tools.git'],['A network folder','\\\\nas\\shared\\project']].map(x=>({label:x[0],pick:()=>set({addPath:x[1]})})),
+      verdictCls:'note'+(v[0]==='repo'||v[0]==='none'?'':' warn'),verdictIcon:v[1],verdictText:v[2],canCreate:v[0]==='plain',cantAdd:v[0]!=='repo'&&v[0]!=='untrusted',addCls:'btn'+(v[0]==='repo'||v[0]==='untrusted'?'':' off')
+    };
+  }
+}
+</script>
+</body>
+</html>

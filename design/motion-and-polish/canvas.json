@@ -180,6 +180,15 @@
       "title": "Repository: pull request review and Actions",
       "expand": "fill",
       "is_interactive": true
+    },
+    "RepoReleases.dc.html": {
+      "x": 1360,
+      "y": 9960,
+      "w": 1280,
+      "h": 960,
+      "title": "Repository: releases, clone and add",
+      "expand": "fill",
+      "is_interactive": true
     }
   },
   "order": [
@@ -201,7 +210,8 @@
     "Onboarding.dc.html",
     "RepoChanges.dc.html",
     "RepoHistory.dc.html",
-    "RepoReview.dc.html"
+    "RepoReview.dc.html",
+    "RepoReleases.dc.html"
   ],
   "notes": {
     "row1": {
