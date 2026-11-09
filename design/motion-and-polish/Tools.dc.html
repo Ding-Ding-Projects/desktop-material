@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tools: file converter, Ollama, sketch pad and editors</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;family=Material+Symbols+Rounded:opsz,wght,FILL@20..48,400,0..1&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#006493}a:hover{color:#004b70}
+.dm{--p:#006493;--onp:#fff;--pc:#c9e6ff;--onpc:#001e30;--sc:#d3e5f5;--onsc:#0c1d29;--bg:#f8f9ff;--s0:#fff;--s1:#f2f3f9;--s2:#eceef4;--s3:#e6e8ee;--s4:#e0e2e8;--on:#191c20;--onv:#41474d;--ol:#71787e;--olv:#c1c7ce;--ok:#1b7f37;--okc:#d2f2d8;--err:#ba1a1a;--errc:#ffdad6;--warn:#7a5200;--warnc:#ffe2a8;--add:#d2f2d8;--del:#ffdad6;--inv:#2e3135;--oninv:#eff1f7;
+--d-s:200ms;--d-m:300ms;--d-l:500ms;--e-emph:cubic-bezier(.2,0,0,1);--e-spring:cubic-bezier(.38,1.21,.22,1);
+font-family:Roboto,'Segoe UI',system-ui,sans-serif;color:var(--on);background:var(--bg);min-height:1400px;transition:background var(--d-l),color var(--d-l)}
+.dm.dark{--p:#8dcdff;--onp:#00344f;--pc:#004b70;--onpc:#c9e6ff;--sc:#394956;--onsc:#d3e5f5;--bg:#101418;--s0:#0b0f12;--s1:#181c20;--s2:#1c2024;--s3:#272a2f;--s4:#32353a;--on:#e0e2e8;--onv:#c1c7ce;--ol:#8b9198;--olv:#41474d;--ok:#7bd88f;--okc:#0f3d1c;--err:#ffb4ab;--errc:#93000a;--warn:#ffd27a;--warnc:#4a3300;--add:#0f3d1c;--del:#5c1512;--inv:#e0e2e8;--oninv:#2e3135}
+.ms{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 0,'wght' 400;display:inline-block;vertical-align:middle;flex:none}
+.mono{font-family:'Roboto Mono',monospace}
+.wrap{max-width:1240px;margin:0 auto;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:28px;font-weight:500}
+h2{margin:0;font-size:18px;font-weight:500;display:flex;align-items:center;gap:8px}
+h3{margin:0;font-size:12px;font-weight:500;color:var(--onv)}
+p{margin:0}
+.sub{margin:4px 0 0;font-size:14px;color:var(--onv);line-height:20px}
+.hint{font-size:12.5px;color:var(--onv);line-height:18px}.hint.bad{color:var(--err)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.grow{flex:1;min-width:0}
+.cols{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{background:var(--s1);border-radius:28px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0;box-sizing:border-box}
+.icon-btn{all:unset;cursor:pointer;width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--onv);flex:none;transition:background var(--d-s),transform var(--d-m) var(--e-spring)}
+.icon-btn:hover{background:var(--s3)}.icon-btn:active{transform:scale(.9)}.icon-btn:focus-visible{outline:3px solid var(--p)}
+.icon-btn.on{background:var(--pc);color:var(--onpc)}
+.btn{all:unset;cursor:pointer;height:44px;padding:0 18px;border-radius:999px;background:var(--p);color:var(--onp);font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px;box-sizing:border-box;white-space:nowrap;transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring),background var(--d-s)}
+.btn:active{transform:scale(.96);border-radius:12px}.btn:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.btn.tonal{background:var(--sc);color:var(--onsc)}.btn.text{background:transparent;color:var(--p);padding:0 12px}.btn.danger{background:var(--err);color:var(--bg)}
+.btn.off{background:var(--s3);color:var(--onv);cursor:not-allowed}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;background:var(--s2);border-radius:999px;padding:4px;align-self:flex-start;max-width:100%;box-sizing:border-box}
+.tab{all:unset;cursor:pointer;height:44px;padding:0 18px;border-radius:999px;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--onv);box-sizing:border-box;transition:background var(--d-m) var(--e-emph),color var(--d-m),transform var(--d-m) var(--e-spring)}
+.tab:hover{background:var(--s3)}.tab.on{background:var(--p);color:var(--onp)}.tab:active{transform:scale(.96)}.tab:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.tab b{font-weight:500;font-size:12px;min-width:20px;height:20px;border-radius:10px;background:var(--s0);color:var(--on);display:inline-flex;align-items:center;justify-content:center;padding:0 6px;box-sizing:border-box}
+.pane{display:flex;flex-direction:column;gap:14px;animation:pane var(--d-m) var(--e-emph)}
+@keyframes pane{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+.chip{all:unset;cursor:pointer;height:36px;padding:0 14px;border-radius:10px;box-shadow:inset 0 0 0 1px var(--ol);display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;box-sizing:border-box;transition:background var(--d-m),color var(--d-m),border-radius var(--d-m) var(--e-spring)}
+.chip.on{background:var(--sc);color:var(--onsc);box-shadow:none;border-radius:18px}.chip:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.search{display:flex;align-items:center;gap:8px;background:var(--s0);border-radius:999px;padding:0 6px 0 16px;box-shadow:inset 0 0 0 1px var(--olv);flex:1 1 260px;min-width:0;transition:box-shadow var(--d-s)}
+.search:focus-within{box-shadow:inset 0 0 0 2px var(--p)}
+.search input{all:unset;flex:1;min-width:0;height:48px;font-size:14px;color:var(--on)}.search input::placeholder{color:var(--onv)}
+.field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:var(--onv);min-width:0}
+.field input,.field select,.field textarea{all:unset;box-sizing:border-box;min-height:48px;border-radius:12px;background:var(--s0);padding:0 14px;font-size:14px;font-weight:400;color:var(--on);box-shadow:inset 0 0 0 1px var(--ol);transition:box-shadow var(--d-s)}
+.field textarea{padding:12px 14px;min-height:84px;line-height:20px;white-space:pre-wrap}
+.field input:focus,.field select:focus,.field textarea:focus{box-shadow:inset 0 0 0 2px var(--p)}
+.field.bad input{box-shadow:inset 0 0 0 2px var(--err)}
+.rows{display:flex;flex-direction:column;gap:4px}
+.li{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 12px;border-radius:16px;background:var(--s0);font-size:14px;box-sizing:border-box;min-width:0;transition:background var(--d-m),border-radius var(--d-m) var(--e-spring),opacity var(--d-m)}
+button.li{all:unset;cursor:pointer;display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 12px;border-radius:16px;background:var(--s0);font-size:14px;box-sizing:border-box;min-width:0;transition:background var(--d-m),border-radius var(--d-m) var(--e-spring)}
+button.li:hover{background:var(--s2)}button.li:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
+.li.on{background:var(--sc);color:var(--onsc);border-radius:24px}
+.li .t{flex:1;min-width:0;overflow-wrap:anywhere}.li small,.t small{display:block;font-size:12.5px;color:var(--onv);line-height:17px}
+.li.on small{color:inherit}
+.li input[type=checkbox],.ck input{width:20px;height:20px;margin:12px;accent-color:var(--p);flex:none}
+.ck{display:inline-flex;align-items:center;gap:2px;font-size:14px;min-height:44px}
+.badge{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 10px;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;background:var(--s3);color:var(--on)}
+.badge.ok{background:var(--okc);color:var(--ok)}.badge.no{background:var(--errc);color:var(--err)}.badge.warn{background:var(--warnc);color:var(--warn)}.badge.pri{background:var(--pc);color:var(--onpc)}
+.note{display:flex;gap:10px;align-items:flex-start;background:var(--s2);border-radius:16px;padding:12px 14px;font-size:13px;line-height:19px;color:var(--onv)}
+.note.warn{background:var(--warnc);color:var(--warn)}
+kbd{font-family:'Roboto Mono',monospace;font-size:11.5px;padding:3px 7px;border-radius:6px;background:var(--s3);color:var(--on);box-shadow:inset 0 -1px 0 var(--ol);white-space:nowrap}
+.dot{width:10px;height:10px;border-radius:999px;background:var(--p);flex:none}
+.prog{height:6px;border-radius:6px;background:var(--s3);overflow:hidden}.prog i{display:block;height:100%;background:var(--p);border-radius:6px;transition:width var(--d-l) var(--e-emph)}
+.snack{position:sticky;bottom:16px;align-self:center;display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:var(--inv);color:var(--oninv);border-radius:20px;padding:8px 8px 8px 20px;font-size:14px;animation:rise var(--d-l) var(--e-spring)}
+.snack .btn.text{color:var(--pc)}.dark .snack .btn.text{color:var(--p)}
+@keyframes rise{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.dm *{transition-duration:1ms!important;animation-duration:1ms!important}}
+.dm{min-height:960px}
+.cats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:760px){.cats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.cat{all:unset;cursor:pointer;min-height:76px;border-radius:18px;background:var(--s0);box-shadow:inset 0 0 0 1px var(--olv);padding:10px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;justify-content:center;font-size:13.5px;font-weight:500;transition:box-shadow var(--d-s),transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring)}
+.cat small{font-weight:400;font-size:12px;color:var(--onv)}
+.cat.on{box-shadow:inset 0 0 0 3px var(--p);border-radius:26px}.cat:active{transform:scale(.97)}.cat:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.pad{background:var(--s0);border-radius:20px;box-shadow:inset 0 0 0 1px var(--olv);touch-action:none;cursor:crosshair;width:100%;height:420px;display:block}
+.swatch{all:unset;cursor:pointer;width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;transition:transform var(--d-m) var(--e-spring)}
+.swatch i{width:28px;height:28px;border-radius:999px;display:block;box-shadow:inset 0 0 0 1px var(--ol)}
+.swatch.on{transform:scale(1.15);box-shadow:inset 0 0 0 3px var(--p)}.swatch:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+</style>
+</helmet>
+<div class="dm {{rootClass}}">
+<div class="wrap">
+<div class="bar"><div class="grow" style="min-width:260px"><h1>Tools: file converter, Ollama, sketch pad and editors</h1><p class="sub">Local tools that work on your own files and your own machine. Each one says what it can really do right now, and never shows a button for something that is not installed.</p></div><button class="icon-btn" onClick="{{toggleDark}}" aria-label="Switch light and dark"><span class="ms" aria-hidden="true">contrast</span></button></div>
+<div class="tabs" role="tablist" aria-label="Tool"><sc-for list="{{tabs}}" as="t" hint-placeholder-count="4"><button class="{{t.cls}}" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}"><span class="ms" aria-hidden="true">{{t.icon}}</span>{{t.label}}</button></sc-for></div>
+
+<sc-if value="{{isConv}}" hint-placeholder-val="{{ true }}"><div class="card pane">
+<div class="li"><span class="ms" aria-hidden="true">image</span><span class="t mono">workspace-dark.png<small style="font-family:Roboto,sans-serif">PNG image, 184 KB · identified from its bytes, not its name</small></span><button class="btn tonal"><span class="ms" aria-hidden="true">folder_open</span>Choose another file</button></div>
+<div class="cats" role="group" aria-label="Category"><sc-for list="{{cats}}" as="c" hint-placeholder-count="8"><button class="{{c.cls}}" aria-pressed="{{c.on}}" onClick="{{c.pick}}"><span class="ms" aria-hidden="true">{{c.icon}}</span>{{c.label}}<small>{{c.note}}</small></button></sc-for></div>
+<div class="note"><span class="ms" aria-hidden="true">info</span><span>{{convText}}</span></div>
+<div><h3 style="margin-bottom:6px">Queue, kept between restarts</h3><div class="rows"><div class="li"><span class="ms" aria-hidden="true">schedule</span><span class="t mono">workspace-dark.png<small style="font-family:Roboto,sans-serif">Waiting for an adapter. The original file is never changed or removed.</small></span><span class="badge warn">No adapter</span><button class="icon-btn" aria-label="Remove from queue"><span class="ms" aria-hidden="true">close</span></button></div></div></div>
+</div></sc-if>
+
+<sc-if value="{{isOll}}" hint-placeholder-val="{{ false }}"><div class="card pane">
+<div class="bar"><h2 class="grow"><span class="ms" aria-hidden="true">smart_toy</span>Ollama models</h2><span class="{{srvCls}}"><span class="ms" style="font-size:16px" aria-hidden="true">{{srvIcon}}</span>{{srvText}}</span><button class="btn tonal" onClick="{{toggleSrv}}">{{srvBtn}}</button></div>
+<sc-if value="{{srvOff}}" hint-placeholder-val="{{ false }}"><div class="note warn"><span class="ms" aria-hidden="true">power_off</span><span>Ollama is not answering on this computer. Start it, or add the local provider in Settings, then come back. No sign-in is needed for this tab.</span></div></sc-if>
+<sc-if value="{{srvOn}}" hint-placeholder-val="{{ true }}"><div class="col">
+<div class="bar"><div class="search"><span class="ms" aria-hidden="true">download</span><input aria-label="Model to pull" placeholder="Model name to pull" value="{{pullName}}" onChange="{{setPull}}" class="mono"></div><button class="{{pullCls}}" aria-disabled="{{noPull}}" onClick="{{pull}}">Pull model</button></div>
+<div class="rows"><sc-for list="{{models}}" as="m" hint-placeholder-count="3"><div class="li"><span class="ms" aria-hidden="true">deployed_code</span><span class="t mono">{{m.name}}<small style="font-family:Roboto,sans-serif">{{m.detail}}</small><sc-if value="{{m.pulling}}" hint-placeholder-val="{{ false }}"><div class="prog" style="margin-top:6px"><i style="width:{{m.pct}}"></i></div></sc-if></span><sc-if value="{{m.ready}}" hint-placeholder-val="{{ true }}"><button class="btn tonal"><span class="ms" aria-hidden="true">chat</span>Chat</button></sc-if><button class="icon-btn" aria-label="{{m.delLabel}}" onClick="{{m.del}}"><span class="ms" aria-hidden="true">delete</span></button></div></sc-for></div>
+</div></sc-if>
+<p class="hint">Models are managed through set actions only. There is no free-form request editor for the Ollama API.</p>
+</div></sc-if>
+
+<sc-if value="{{isPad}}" hint-placeholder-val="{{ false }}"><div class="card pane">
+<div class="bar"><h2 class="grow"><span class="ms" aria-hidden="true">draw</span>Sketch pad</h2><sc-for list="{{inks}}" as="k" hint-placeholder-count="4"><button class="{{k.cls}}" aria-pressed="{{k.on}}" aria-label="{{k.label}}" onClick="{{k.pick}}"><i style="background:{{k.color}}"></i></button></sc-for><button class="{{undoCls}}" aria-disabled="{{noStrokes}}" onClick="{{undoStroke}}"><span class="ms" aria-hidden="true">undo</span>Undo</button><button class="{{undoCls}}" aria-disabled="{{noStrokes}}" onClick="{{clearPad}}"><span class="ms" aria-hidden="true">delete</span>Clear</button></div>
+<svg class="pad" viewBox="0 0 1000 420" preserveAspectRatio="none" role="img" aria-label="{{padLabel}}" onPointerDown="{{down}}" onPointerMove="{{move}}" onPointerUp="{{up}}" onPointerLeave="{{up}}"><sc-for list="{{strokes}}" as="k" hint-placeholder-count="1"><polyline points="{{k.pts}}" fill="none" stroke="{{k.color}}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polyline></sc-for></svg>
+<div class="bar"><span class="hint grow" role="status">{{padText}}</span><button class="btn tonal"><span class="ms" aria-hidden="true">image</span>Save as PNG</button><button class="btn"><span class="ms" aria-hidden="true">attach_file</span>Attach to commit</button></div>
+</div></sc-if>
+
+<sc-if value="{{isEd}}" hint-placeholder-val="{{ false }}"><div class="cols pane" style="flex-direction:row">
+<div class="card" style="flex:999 1 480px">
+<h2><span class="ms" aria-hidden="true">edit_square</span>Editors found on this computer</h2>
+<div class="rows"><sc-for list="{{editors}}" as="e" hint-placeholder-count="4"><button class="{{e.cls}}" aria-pressed="{{e.on}}" onClick="{{e.pick}}"><span class="ms" aria-hidden="true">{{e.icon}}</span><span class="t">{{e.name}}<small>{{e.path}}</small></span><sc-if value="{{e.on}}" hint-placeholder-val="{{ false }}"><span class="badge pri">Default</span></sc-if></button></sc-for></div>
+<div class="bar"><button class="btn"><span class="ms" aria-hidden="true">open_in_new</span>Open file in {{edName}}</button><button class="btn tonal"><span class="ms" aria-hidden="true">folder_open</span>Open repository in {{edName}}</button></div>
+</div>
+<div class="card" style="flex:1 1 340px">
+<h2><span class="ms" aria-hidden="true">terminal</span>Custom editor</h2>
+<div class="field"><label for="tl-exe">Program</label><input id="tl-exe" class="mono" value="{{exe}}" onChange="{{setExe}}"></div>
+<div class="{{argFieldCls}}"><label for="tl-arg">Arguments</label><input id="tl-arg" class="mono" value="{{args}}" onChange="{{setArgs}}"><span class="{{argHintCls}}">{{argHint}}</span></div>
+<p class="hint">A repository can override the default editor in its own settings without changing any other repository.</p>
+</div>
+</div></sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+function dmBase(c){return {rootClass:c.state.dark?'dark':'',toggleDark:function(){c.setState({dark:!c.state.dark});}};}
+class Component extends DCLogic {
+  constructor(p){super(p);this.state={dark:false,tab:0,cat:1,srv:true,pullName:'',ink:0,strokes:[{c:0,p:[[120,300],[200,180],[300,260],[420,120],[520,240]]}],draw:false,ed:0,exe:'C:\\Tools\\editor.exe',args:'--goto %TARGET_PATH%',
+    models:[{name:'llama3.2:3b',detail:'2.0 GB · ready',pct:100},{name:'qwen2.5-coder:7b',detail:'4.7 GB · ready',pct:100}]};}
+  componentWillUnmount(){clearInterval(this._p);}
+  renderVals(){
+    const s=this.state,set=o=>this.setState(o),inks=['#191c20','#006493','#ba1a1a','#1b7f37'],inkNames=['Black','Blue','Red','Green'];
+    const cats=[['description','Documents and PDF'],['image','Images'],['graphic_eq','Audio'],['movie','Video'],['folder_zip','Archives'],['table','Data and spreadsheets'],['code','Code and text'],['data_object','Binary encodings']];
+    const pt=e=>{const r=e.currentTarget.getBoundingClientRect();return [Math.round((e.clientX-r.left)/r.width*1000),Math.round((e.clientY-r.top)/r.height*420)];};
+    const eds=[['Visual Studio Code','C:\\Users\\you\\AppData\\Local\\Programs\\Microsoft VS Code','code'],['JetBrains WebStorm','C:\\Program Files\\JetBrains\\WebStorm','integration_instructions'],['Sublime Text','C:\\Program Files\\Sublime Text','edit_note'],['Neovim','C:\\Program Files\\Neovim','terminal']];
+    const argOk=s.args.indexOf('%TARGET_PATH%')>=0,noPull=!s.pullName.trim();
+    return {...dmBase(this),
+      tabs:[['swap_horiz','File converter'],['smart_toy','Ollama'],['draw','Sketch pad'],['edit_square','Editors']].map((t,i)=>({icon:t[0],label:t[1],on:s.tab===i,cls:'tab'+(s.tab===i?' on':''),pick:()=>set({tab:i})})),
+      isConv:s.tab===0,isOll:s.tab===1,isPad:s.tab===2,isEd:s.tab===3,
+      cats:cats.map((c,i)=>({icon:c[0],label:c[1],note:'No adapter installed',on:s.cat===i,cls:'cat'+(s.cat===i?' on':''),pick:()=>set({cat:i})})),
+      convText:cats[s.cat][1]+': no conversion is offered yet, because no verified adapter for this category is installed on this computer. Targets appear here only when one is.',
+      srvOn:s.srv,srvOff:!s.srv,srvCls:'badge '+(s.srv?'ok':'no'),srvIcon:s.srv?'check_circle':'error',srvText:s.srv?'Running on this computer':'Not running',srvBtn:s.srv?'Show the stopped state':'Show the running state',toggleSrv:()=>set({srv:!s.srv}),
+      pullName:s.pullName,setPull:e=>set({pullName:e.target.value}),noPull:noPull,pullCls:'btn'+(noPull?' off':''),
+      pull:()=>{if(noPull)return;const name=s.pullName.trim();set({pullName:'',models:s.models.concat([{name:name,detail:'Pulling',pct:4}])});clearInterval(this._p);this._p=setInterval(()=>{const ms=this.state.models.map(m=>m.name===name&&m.pct<100?{...m,pct:Math.min(100,m.pct+12)}:m);const cur=ms.filter(m=>m.name===name)[0];if(!cur||cur.pct>=100)clearInterval(this._p);this.setState({models:ms.map(m=>m.name===name&&m.pct>=100?{...m,detail:'Ready'}:m)});},500);},
+      models:s.models.map(m=>({name:m.name,detail:m.pct<100?'Pulling · '+m.pct+'% · cancel any time':m.detail,pulling:m.pct<100,ready:m.pct>=100,pct:m.pct+'%',delLabel:'Delete '+m.name,del:()=>set({models:s.models.filter(x=>x.name!==m.name)})})),
+      inks:inks.map((c,i)=>({color:c,label:inkNames[i]+' ink',on:s.ink===i,cls:'swatch'+(s.ink===i?' on':''),pick:()=>set({ink:i})})),
+      strokes:s.strokes.map(k=>({color:inks[k.c],pts:k.p.map(q=>q.join(',')).join(' ')})),
+      down:e=>set({draw:true,strokes:s.strokes.concat([{c:s.ink,p:[pt(e)]}])}),
+      move:e=>{if(!s.draw)return;const ks=s.strokes.slice(),last=ks[ks.length-1];ks[ks.length-1]={c:last.c,p:last.p.concat([pt(e)])};set({strokes:ks});},
+      up:()=>{if(s.draw)set({draw:false});},
+      noStrokes:s.strokes.length===0,undoCls:'btn tonal'+(s.strokes.length?'':' off'),undoStroke:()=>set({strokes:s.strokes.slice(0,-1)}),clearPad:()=>set({strokes:[]}),
+      padLabel:'Sketch with '+s.strokes.length+' strokes',padText:s.strokes.length?s.strokes.length+(s.strokes.length===1?' stroke':' strokes')+'. Drag to draw.':'Empty. Drag to draw.',
+      editors:eds.map((e,i)=>({name:e[0],path:e[1],icon:e[2],on:s.ed===i,cls:'li'+(s.ed===i?' on':''),pick:()=>set({ed:i})})),edName:eds[s.ed][0],
+      exe:s.exe,setExe:e=>set({exe:e.target.value}),args:s.args,setArgs:e=>set({args:e.target.value}),
+      argFieldCls:'field'+(argOk?'':' bad'),argHintCls:'hint'+(argOk?'':' bad'),argHint:argOk?'%TARGET_PATH% is replaced with the file or folder being opened.':'Include %TARGET_PATH% so the editor knows what to open.'
+    };
+  }
+}
+</script>
+</body>
+</html>

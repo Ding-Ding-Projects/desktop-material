@@ -135,6 +135,15 @@
       "title": "Surface locks, unlock ladder, authenticator and support tickets",
       "expand": "fill",
       "is_interactive": true
+    },
+    "Tools.dc.html": {
+      "x": 2720,
+      "y": 6320,
+      "w": 1280,
+      "h": 960,
+      "title": "Tools: file converter, Ollama, sketch pad and editor hand-off",
+      "expand": "fill",
+      "is_interactive": true
     }
   },
   "order": [
@@ -151,7 +160,8 @@
     "AppearanceStudio.dc.html",
     "CommandPalette.dc.html",
     "Activity.dc.html",
-    "Locks.dc.html"
+    "Locks.dc.html",
+    "Tools.dc.html"
   ],
   "notes": {
     "row1": {
