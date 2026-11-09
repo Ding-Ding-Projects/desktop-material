@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Repository: changes, diff and stashes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;family=Material+Symbols+Rounded:opsz,wght,FILL@20..48,400,0..1&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#006493}a:hover{color:#004b70}
+.dm{--p:#006493;--onp:#fff;--pc:#c9e6ff;--onpc:#001e30;--sc:#d3e5f5;--onsc:#0c1d29;--bg:#f8f9ff;--s0:#fff;--s1:#f2f3f9;--s2:#eceef4;--s3:#e6e8ee;--s4:#e0e2e8;--on:#191c20;--onv:#41474d;--ol:#71787e;--olv:#c1c7ce;--ok:#1b7f37;--okc:#d2f2d8;--err:#ba1a1a;--errc:#ffdad6;--warn:#7a5200;--warnc:#ffe2a8;--add:#d2f2d8;--del:#ffdad6;--inv:#2e3135;--oninv:#eff1f7;
+--d-s:200ms;--d-m:300ms;--d-l:500ms;--e-emph:cubic-bezier(.2,0,0,1);--e-spring:cubic-bezier(.38,1.21,.22,1);
+font-family:Roboto,'Segoe UI',system-ui,sans-serif;color:var(--on);background:var(--bg);min-height:1400px;transition:background var(--d-l),color var(--d-l)}
+.dm.dark{--p:#8dcdff;--onp:#00344f;--pc:#004b70;--onpc:#c9e6ff;--sc:#394956;--onsc:#d3e5f5;--bg:#101418;--s0:#0b0f12;--s1:#181c20;--s2:#1c2024;--s3:#272a2f;--s4:#32353a;--on:#e0e2e8;--onv:#c1c7ce;--ol:#8b9198;--olv:#41474d;--ok:#7bd88f;--okc:#0f3d1c;--err:#ffb4ab;--errc:#93000a;--warn:#ffd27a;--warnc:#4a3300;--add:#0f3d1c;--del:#5c1512;--inv:#e0e2e8;--oninv:#2e3135}
+.ms{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 0,'wght' 400;display:inline-block;vertical-align:middle;flex:none}
+.mono{font-family:'Roboto Mono',monospace}
+.wrap{max-width:1240px;margin:0 auto;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:28px;font-weight:500}
+h2{margin:0;font-size:18px;font-weight:500;display:flex;align-items:center;gap:8px}
+h3{margin:0;font-size:12px;font-weight:500;color:var(--onv)}
+p{margin:0}
+.sub{margin:4px 0 0;font-size:14px;color:var(--onv);line-height:20px}
+.hint{font-size:12.5px;color:var(--onv);line-height:18px}.hint.bad{color:var(--err)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.grow{flex:1;min-width:0}
+.cols{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{background:var(--s1);border-radius:28px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0;box-sizing:border-box}
+.icon-btn{all:unset;cursor:pointer;width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--onv);flex:none;transition:background var(--d-s),transform var(--d-m) var(--e-spring)}
+.icon-btn:hover{background:var(--s3)}.icon-btn:active{transform:scale(.9)}.icon-btn:focus-visible{outline:3px solid var(--p)}
+.icon-btn.on{background:var(--pc);color:var(--onpc)}
+.btn{all:unset;cursor:pointer;height:44px;padding:0 18px;border-radius:999px;background:var(--p);color:var(--onp);font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px;box-sizing:border-box;white-space:nowrap;transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring),background var(--d-s)}
+.btn:active{transform:scale(.96);border-radius:12px}.btn:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.btn.tonal{background:var(--sc);color:var(--onsc)}.btn.text{background:transparent;color:var(--p);padding:0 12px}.btn.danger{background:var(--err);color:var(--bg)}
+.btn.off{background:var(--s3);color:var(--onv);cursor:not-allowed}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;background:var(--s2);border-radius:999px;padding:4px;align-self:flex-start;max-width:100%;box-sizing:border-box}
+.tab{all:unset;cursor:pointer;height:44px;padding:0 18px;border-radius:999px;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--onv);box-sizing:border-box;transition:background var(--d-m) var(--e-emph),color var(--d-m),transform var(--d-m) var(--e-spring)}
+.tab:hover{background:var(--s3)}.tab.on{background:var(--p);color:var(--onp)}.tab:active{transform:scale(.96)}.tab:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.tab b{font-weight:500;font-size:12px;min-width:20px;height:20px;border-radius:10px;background:var(--s0);color:var(--on);display:inline-flex;align-items:center;justify-content:center;padding:0 6px;box-sizing:border-box}
+.pane{display:flex;flex-direction:column;gap:14px;animation:pane var(--d-m) var(--e-emph)}
+@keyframes pane{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+.chip{all:unset;cursor:pointer;height:36px;padding:0 14px;border-radius:10px;box-shadow:inset 0 0 0 1px var(--ol);display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;box-sizing:border-box;transition:background var(--d-m),color var(--d-m),border-radius var(--d-m) var(--e-spring)}
+.chip.on{background:var(--sc);color:var(--onsc);box-shadow:none;border-radius:18px}.chip:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.search{display:flex;align-items:center;gap:8px;background:var(--s0);border-radius:999px;padding:0 6px 0 16px;box-shadow:inset 0 0 0 1px var(--olv);flex:1 1 260px;min-width:0;transition:box-shadow var(--d-s)}
+.search:focus-within{box-shadow:inset 0 0 0 2px var(--p)}
+.search input{all:unset;flex:1;min-width:0;height:48px;font-size:14px;color:var(--on)}.search input::placeholder{color:var(--onv)}
+.field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:var(--onv);min-width:0}
+.field input,.field select,.field textarea{all:unset;box-sizing:border-box;min-height:48px;border-radius:12px;background:var(--s0);padding:0 14px;font-size:14px;font-weight:400;color:var(--on);box-shadow:inset 0 0 0 1px var(--ol);transition:box-shadow var(--d-s)}
+.field textarea{padding:12px 14px;min-height:84px;line-height:20px;white-space:pre-wrap}
+.field input:focus,.field select:focus,.field textarea:focus{box-shadow:inset 0 0 0 2px var(--p)}
+.field.bad input{box-shadow:inset 0 0 0 2px var(--err)}
+.rows{display:flex;flex-direction:column;gap:4px}
+.li{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 12px;border-radius:16px;background:var(--s0);font-size:14px;box-sizing:border-box;min-width:0;transition:background var(--d-m),border-radius var(--d-m) var(--e-spring),opacity var(--d-m)}
+button.li{all:unset;cursor:pointer;display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 12px;border-radius:16px;background:var(--s0);font-size:14px;box-sizing:border-box;min-width:0;transition:background var(--d-m),border-radius var(--d-m) var(--e-spring)}
+button.li:hover{background:var(--s2)}button.li:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
+.li.on{background:var(--sc);color:var(--onsc);border-radius:24px}
+.li .t{flex:1;min-width:0;overflow-wrap:anywhere}.li small,.t small{display:block;font-size:12.5px;color:var(--onv);line-height:17px}
+.li.on small{color:inherit}
+.li input[type=checkbox],.ck input{width:20px;height:20px;margin:12px;accent-color:var(--p);flex:none}
+.ck{display:inline-flex;align-items:center;gap:2px;font-size:14px;min-height:44px}
+.badge{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 10px;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;background:var(--s3);color:var(--on)}
+.badge.ok{background:var(--okc);color:var(--ok)}.badge.no{background:var(--errc);color:var(--err)}.badge.warn{background:var(--warnc);color:var(--warn)}.badge.pri{background:var(--pc);color:var(--onpc)}
+.note{display:flex;gap:10px;align-items:flex-start;background:var(--s2);border-radius:16px;padding:12px 14px;font-size:13px;line-height:19px;color:var(--onv)}
+.note.warn{background:var(--warnc);color:var(--warn)}
+kbd{font-family:'Roboto Mono',monospace;font-size:11.5px;padding:3px 7px;border-radius:6px;background:var(--s3);color:var(--on);box-shadow:inset 0 -1px 0 var(--ol);white-space:nowrap}
+.dot{width:10px;height:10px;border-radius:999px;background:var(--p);flex:none}
+.prog{height:6px;border-radius:6px;background:var(--s3);overflow:hidden}.prog i{display:block;height:100%;background:var(--p);border-radius:6px;transition:width var(--d-l) var(--e-emph)}
+.snack{position:sticky;bottom:16px;align-self:center;display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:var(--inv);color:var(--oninv);border-radius:20px;padding:8px 8px 8px 20px;font-size:14px;animation:rise var(--d-l) var(--e-spring)}
+.snack .btn.text{color:var(--pc)}.dark .snack .btn.text{color:var(--p)}
+@keyframes rise{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.dm *{transition-duration:1ms!important;animation-duration:1ms!important}}
+.dm{min-height:960px}
+.two{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:860px){.two{grid-template-columns:minmax(0,1fr)}}
+.st{width:24px;height:24px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:'Roboto Mono',monospace;flex:none}
+.st.M{background:var(--warnc);color:var(--warn)}.st.A{background:var(--okc);color:var(--ok)}.st.D{background:var(--errc);color:var(--err)}
+.frow{display:flex;align-items:center;gap:4px;min-height:48px;border-radius:14px;background:var(--s0);padding-right:10px;transition:background var(--d-m),border-radius var(--d-m) var(--e-spring)}
+.frow.on{background:var(--sc);color:var(--onsc);border-radius:22px}
+.frow input{width:20px;height:20px;margin:12px;accent-color:var(--p);flex:none}
+.frow button{all:unset;cursor:pointer;flex:1;min-width:0;min-height:48px;display:flex;align-items:center;font-family:'Roboto Mono',monospace;font-size:13px;overflow-wrap:anywhere}
+.frow button:focus-visible{outline:3px solid var(--p);outline-offset:-3px;border-radius:12px}
+.diff{background:var(--s0);border-radius:16px;padding:8px 0;font-family:'Roboto Mono',monospace;font-size:13px;line-height:21px;overflow-x:auto}
+.dl{display:grid;grid-template-columns:44px 44px 20px minmax(0,1fr);white-space:pre;min-width:520px}
+.dl span{padding:0 6px}.dl .n{color:var(--ol);text-align:right;user-select:none}
+.dl.a{background:var(--add)}.dl.d{background:var(--del)}.dl.h{background:var(--s2);color:var(--onv)}
+.count{font-size:12px;font-family:'Roboto Mono',monospace}
+</style>
+</helmet>
+<div class="dm {{rootClass}}">
+<div class="wrap">
+<div class="bar"><div class="grow" style="min-width:260px"><h1>Repository: changes, diff and stashes</h1><p class="sub">The same panes as today, with the controls finished: a filter that counts, checkboxes that say what will be committed, a diff that does not rely on colour alone, and stashes you can name and preview.</p></div><button class="icon-btn" onClick="{{toggleDark}}" aria-label="Switch light and dark"><span class="ms" aria-hidden="true">contrast</span></button></div>
+<div class="tabs" role="tablist" aria-label="Screen"><sc-for list="{{tabs}}" as="t" hint-placeholder-count="2"><button class="{{t.cls}}" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}"><span class="ms" aria-hidden="true">{{t.icon}}</span>{{t.label}}<b>{{t.count}}</b></button></sc-for></div>
+
+<sc-if value="{{isChanges}}" hint-placeholder-val="{{ true }}"><div class="two pane" style="display:grid">
+<div class="card" style="padding:16px">
+<div class="search"><span class="ms" aria-hidden="true">filter_list</span><input aria-label="Filter changed files" placeholder="Filter changed files" value="{{fq}}" onChange="{{setFq}}"><button class="icon-btn" aria-label="Open regex builder"><span class="ms" aria-hidden="true">regular_expression</span></button></div>
+<div class="bar"><label class="ck"><input type="checkbox" checked="{{allOn}}" onChange="{{toggleAll}}">{{inclText}}</label></div>
+<div class="rows"><sc-for list="{{files}}" as="f" hint-placeholder-count="4"><div class="{{f.cls}}"><input type="checkbox" aria-label="{{f.inclLabel}}" checked="{{f.incl}}" onChange="{{f.toggle}}"><button aria-pressed="{{f.on}}" onClick="{{f.pick}}">{{f.path}}</button><span class="{{f.stCls}}" role="img" aria-label="{{f.stLabel}}">{{f.st}}</span></div></sc-for></div>
+<sc-if value="{{noFiles}}" hint-placeholder-val="{{ false }}"><p class="hint">No changed file matches the filter.</p></sc-if>
+<div class="{{sumCls}}"><label for="rc-s">Summary</label><input id="rc-s" value="{{summary}}" onChange="{{setSummary}}" placeholder="What changed"><span class="{{sumHintCls}}">{{sumHint}}</span></div>
+<div class="field"><label for="rc-d">Description</label><textarea id="rc-d" placeholder="Why, if it is not obvious"></textarea></div>
+<div class="bar"><button class="{{commitCls}}" aria-disabled="{{cantCommit}}" onClick="{{commit}}" style="flex:1;justify-content:center"><span class="ms" aria-hidden="true">check</span>{{commitLabel}}</button><button class="{{stashCls}}" aria-disabled="{{noneIncl}}" onClick="{{stashSel}}"><span class="ms" aria-hidden="true">inventory_2</span>Stash selected</button></div>
+<sc-if value="{{cantCommit}}" hint-placeholder-val="{{ false }}"><p class="hint" role="status">{{whyNot}}</p></sc-if>
+</div>
+<div class="card" style="padding:16px">
+<div class="bar"><span class="mono grow" style="font-size:14px;overflow-wrap:anywhere">{{curPath}}</span><span class="badge ok">+{{adds}}</span><span class="badge no">−{{dels}}</span><button class="icon-btn" aria-label="Open in editor"><span class="ms" aria-hidden="true">open_in_new</span></button></div>
+<div class="diff" role="table" aria-label="Diff"><sc-for list="{{diff}}" as="d" hint-placeholder-count="8"><div class="{{d.cls}}" role="row"><span class="n">{{d.o}}</span><span class="n">{{d.n}}</span><span aria-label="{{d.signLabel}}">{{d.sign}}</span><span>{{d.text}}</span></div></sc-for></div>
+<p class="hint">Added and removed lines carry a + or − as well as a colour.</p>
+</div>
+</div></sc-if>
+
+<sc-if value="{{isStash}}" hint-placeholder-val="{{ false }}"><div class="two pane" style="display:grid">
+<div class="card" style="padding:16px">
+<div class="rows"><sc-for list="{{stashes}}" as="k" hint-placeholder-count="3"><button class="{{k.cls}}" aria-pressed="{{k.on}}" onClick="{{k.pick}}"><span class="ms" aria-hidden="true">inventory_2</span><span class="t">{{k.name}}<small>{{k.meta}}</small></span></button></sc-for></div>
+<sc-if value="{{noStash}}" hint-placeholder-val="{{ false }}"><p class="hint">No stashes. Use Stash selected on the Changes tab to set work aside.</p></sc-if>
+</div>
+<sc-if value="{{hasStash}}" hint-placeholder-val="{{ true }}"><div class="card" style="padding:16px">
+<div class="field"><label for="rc-n">Name</label><input id="rc-n" value="{{stName}}" onChange="{{renameStash}}"></div>
+<div class="rows"><sc-for list="{{stFiles}}" as="p" hint-placeholder-count="2"><div class="li" style="min-height:44px"><span class="st M" role="img" aria-label="Modified">M</span><span class="t mono" style="font-size:13px">{{p}}</span></div></sc-for></div>
+<div class="bar"><button class="btn" onClick="{{applyStash}}"><span class="ms" aria-hidden="true">unarchive</span>Apply and keep</button><button class="btn tonal" onClick="{{popStash}}">Apply and remove</button><span class="grow"></span><button class="{{dropCls}}" onClick="{{dropStash}}"><span class="ms" aria-hidden="true">delete</span>{{dropLabel}}</button></div>
+<p class="hint" role="status">{{stMsg}}</p>
+</div></sc-if>
+</div></sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+function dmBase(c){return {rootClass:c.state.dark?'dark':'',toggleDark:function(){c.setState({dark:!c.state.dark});}};}
+class Component extends DCLogic {
+  constructor(p){super(p);this.state={dark:false,tab:0,fq:'',cur:0,summary:'',done:false,stCur:0,confirm:false,stMsg:'Applying never deletes a stash unless you choose Apply and remove.',
+    files:[{path:'app/styles/material/_transitions.scss',st:'M',incl:true},{path:'app/src/models/motion-settings.ts',st:'A',incl:true},{path:'app/src/lib/i18n-resources.ts',st:'M',incl:true},{path:'app/test/fixtures/md3-contract.json',st:'D',incl:false}],
+    stashes:[{name:'Half-done chart tooltips',meta:'main · today 13:20 · 2 files',files:['app/src/ui/charts/live-chart.tsx','app/styles/ui/_live-chart.scss']},{name:'Try a wider sidebar',meta:'main · Nov 7 · 1 file',files:['app/styles/ui/_sidebar.scss']}]};
+    this.diffs=[[['h','','','@@ -12,6 +12,9 @@'],[' ',12,12,'.dialog {'],['d',13,'','  transition: opacity 250ms ease;'],['a','',13,'  transition:'],['a','',14,'    opacity var(--dm-motion-medium) var(--dm-motion-ease),'],['a','',15,'    transform var(--dm-motion-medium) var(--dm-motion-spring);'],[' ',14,16,'}'],[' ',15,17,''],['a','',18,'[data-dm-motion-off~="dialogs"] .dialog { transition: none; }']],
+      [['h','','','@@ -0,0 +1,6 @@'],['a','',1,"export type MotionLevel = 'system' | 'full' | 'calm' | 'reduced'"],['a','',2,''],['a','',3,'export interface IMotionSettings {'],['a','',4,'  readonly level: MotionLevel'],['a','',5,'  readonly speed: number'],['a','',6,'}']],
+      [['h','','','@@ -4410,6 +4410,7 @@'],[' ',4410,4410,"  'appearance.theme': 'Theme',"],['a','',4411,"  'appearance.motion': 'Motion',"],[' ',4411,4412,"  'appearance.density': 'Density',"]],
+      [['h','','','@@ -1,3 +0,0 @@'],['d',1,'','{'],['d',2,'','  "routes": []'],['d',3,'','}']]];}
+  renderVals(){
+    const s=this.state,set=o=>this.setState(o);
+    const shown=s.files.map((f,i)=>({f:f,i:i})).filter(x=>x.f.path.toLowerCase().indexOf(s.fq.toLowerCase())>=0);
+    const incl=s.files.filter(f=>f.incl).length,d=this.diffs[s.cur]||[],len=s.summary.length,noSum=!s.summary.trim(),cant=noSum||incl===0;
+    const stl={M:'Modified',A:'Added',D:'Deleted'},st=s.stashes[s.stCur];
+    return {...dmBase(this),
+      tabs:[['difference','Changes',s.files.length],['inventory_2','Stashes',s.stashes.length]].map((t,i)=>({icon:t[0],label:t[1],count:t[2],on:s.tab===i,cls:'tab'+(s.tab===i?' on':''),pick:()=>set({tab:i})})),
+      isChanges:s.tab===0,isStash:s.tab===1,
+      fq:s.fq,setFq:e=>set({fq:e.target.value}),
+      allOn:incl===s.files.length&&incl>0,toggleAll:()=>{const all=incl===s.files.length;set({files:s.files.map(f=>({...f,incl:!all}))});},
+      inclText:incl+' of '+s.files.length+' files will be committed',
+      files:shown.map(x=>({path:x.f.path,st:x.f.st,stCls:'st '+x.f.st,stLabel:stl[x.f.st],incl:x.f.incl,inclLabel:'Include '+x.f.path,on:s.cur===x.i,cls:'frow'+(s.cur===x.i?' on':''),pick:()=>set({cur:x.i}),toggle:()=>set({files:s.files.map((f,j)=>j===x.i?{...f,incl:!f.incl}:f),done:false})})),
+      noFiles:shown.length===0&&s.files.length>0,
+      summary:s.summary,setSummary:e=>set({summary:e.target.value,done:false}),
+      sumCls:'field',sumHintCls:'hint'+(len>72?' bad':''),sumHint:len>72?len+' characters. Hosts cut summaries off after about 72; move detail to the description.':len+' of 72 characters',
+      cantCommit:cant,noneIncl:incl===0,commitCls:'btn'+(cant?' off':''),stashCls:'btn tonal'+(incl===0?' off':''),
+      commitLabel:s.done?'Committed':'Commit '+incl+(incl===1?' file':' files')+' to main',
+      whyNot:s.done?'Committed. Push from the toolbar when ready.':incl===0?'Tick at least one file to commit.':'Write a summary to commit.',
+      commit:()=>{if(cant)return;const left=s.files.filter(f=>!f.incl);set({files:left,summary:'',cur:0,done:true});},
+      stashSel:()=>{if(incl===0)return;const take=s.files.filter(f=>f.incl);set({files:s.files.filter(f=>!f.incl),cur:0,stashes:[{name:'Stash from Changes',meta:'main · just now · '+take.length+(take.length===1?' file':' files'),files:take.map(f=>f.path)}].concat(s.stashes),stCur:0});},
+      curPath:s.files[s.cur]?s.files[s.cur].path:'No file selected',adds:d.filter(x=>x[0]==='a').length,dels:d.filter(x=>x[0]==='d').length,
+      diff:s.files[s.cur]?d.map(x=>({cls:'dl'+(x[0]===' '?'':' '+x[0]),o:x[1],n:x[2],sign:x[0]==='a'?'+':x[0]==='d'?'−':'',signLabel:x[0]==='a'?'Added':x[0]==='d'?'Removed':'',text:x[3]})):[],
+      stashes:s.stashes.map((k,i)=>({name:k.name,meta:k.meta,on:s.stCur===i,cls:'li'+(s.stCur===i?' on':''),pick:()=>set({stCur:i,confirm:false})})),
+      noStash:s.stashes.length===0,hasStash:!!st,stName:st?st.name:'',stFiles:st?st.files:[],
+      renameStash:e=>set({stashes:s.stashes.map((k,i)=>i===s.stCur?{...k,name:e.target.value}:k)}),
+      applyStash:()=>set({stMsg:'Applied. The stash is still here.',confirm:false}),
+      popStash:()=>set({stashes:s.stashes.filter((k,i)=>i!==s.stCur),stCur:0,stMsg:'Applied and removed.',confirm:false}),
+      dropCls:'btn '+(s.confirm?'danger':'text'),dropLabel:s.confirm?'Really delete this stash':'Delete',
+      dropStash:()=>{if(!s.confirm)set({confirm:true,stMsg:'Deleting a stash cannot be undone. Press again to confirm.'});else set({stashes:s.stashes.filter((k,i)=>i!==s.stCur),stCur:0,confirm:false,stMsg:'Stash deleted.'});},
+      stMsg:s.stMsg
+    };
+  }
+}
+</script>
+</body>
+</html>

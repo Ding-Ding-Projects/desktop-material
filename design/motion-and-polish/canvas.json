@@ -153,6 +153,15 @@
       "title": "Onboarding, offline documentation, dim sum surprise and Status Hub",
       "expand": "fill",
       "is_interactive": true
+    },
+    "RepoChanges.dc.html": {
+      "x": 1360,
+      "y": 8140,
+      "w": 1280,
+      "h": 960,
+      "title": "Repository: changes, diff and stash manager",
+      "expand": "fill",
+      "is_interactive": true
     }
   },
   "order": [
@@ -171,7 +180,8 @@
     "Activity.dc.html",
     "Locks.dc.html",
     "Tools.dc.html",
-    "Onboarding.dc.html"
+    "Onboarding.dc.html",
+    "RepoChanges.dc.html"
   ],
   "notes": {
     "row1": {
