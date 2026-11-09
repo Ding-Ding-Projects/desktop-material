@@ -1,40 +1,39 @@
-# October 15 bug audit continuation
+# Closeout prompt
 
-The latest request restored the investigation scope and asked to continue
-frequent pushes after a preservation checkpoint. Fifteen reviewed fixes are pushed on main through
-fa629d4368e0ad2b227cf733b6bce0d4154d7fa1. This documentation commit records the
-state after those fixes and must itself be pushed and verified.
+Copy the block below to continue this work in a fresh session. It reflects the repository state at
+the commit that contains this file.
 
-Read docs/features/quality-and-reliability/bug-audit-2026-10-15.md for exact
-commits and verification. Focused suites passed 154 tests;
-the final TypeScript check passed. Windows builds remain running or queued.
-Packaged UI, installer, and installed acceptance are unverified for this audit.
+```
+Project: Desktop Material, a GitHub Desktop fork (Electron, React, TypeScript) for Windows, plus a
+Linux terminal app. Repository: Ding-Ding-Projects/desktop-material. Read README.md, AGENTS.md,
+ROADMAP.md and HANDOFF.md first.
 
-All six Astra helpers resumed for a second pass and completed their assigned
-implementation and independent reviews. No temporary task branches, linked worktrees, or
-stashes were created. Retain the primary checkout and existing remote branches;
-no deletion candidates were identified. No credentials, private instructions,
-or private captures were added to this repository.
+State (2026-11-09): main at a8d2242 plus this file, pushed. v4.0.136804 is released from a8d2242
+(Setup.exe, MSI, full nupkg, RELEASES, zip, line count). The usage allowance ran low, so this is a
+preservation closeout.
 
-The directory-cap Git-marker boundary, rename overlap forecasting, and runtime
-schedule restoration are now fixed. Next work: check the remote build results
-and verify Windows packaged/installed behavior. Further bug investigation may
-continue with new reproducible findings. Preserve the frozen shell
-and user data. Continue small reviewed commits and pushes on main.
+Done and checked this session:
+- Opening a real Git repository from Explorer, --cli-open, the desktop-material helper, quick
+  actions or another app adds and selects it without the Add local repository dialog; the dialog
+  stays for folders that are not usable repositories. Tests: app/test/unit/cli-open-adds-repository-test.ts.
+- View on ... opens the web page of any remote (GitHub, GitLab, Bitbucket, Azure DevOps, Codeberg,
+  Gitea, self-hosted), with a Remote dropdown on the No local changes card when there are several;
+  credentials are never shown or opened. Tests: app/test/unit/remote-web-page-test.ts and
+  app/test/unit/ui/no-changes-remote-pages-test.tsx (60 focused tests pass).
+- Windows CI green for x64 and arm64; the installer run needed retries after GitHub download 504s.
 
-The earlier clone-recovery instructions below remain an independent unfinished
-handoff, preserved without changing their historical verification claims.
+Known and unchanged on main: three source-pattern tests (palette-settings-coverage,
+repository-transfer-surface, rewrite-surface-coverage) and eight ESLint errors in
+app/src/lib/stores/app-store.ts already failed before this work. In build-installers.yml the
+release-notes artifact name includes the run attempt, so re-running only failed jobs cannot publish;
+re-run the whole workflow instead.
 
-## Earlier clone recovery continuation, incomplete installed delivery
+Remote branches: feature/open-adds-directly-remote-links is fully merged and listed for the
+maintainer to delete in issue #261, with the other branches to review. Nothing was deleted.
 
-Objective: finish the approved direct-clone recovery repair, safely recover the installed application and preserve existing repositories. Source repair, focused checks, both exact root builds and the released package are verified. The installed-copy outcome remains unfinished.
-
-Source baseline before this preservation commit: main at 100f001da700315d4155680cf0a9c1268ca75c25. Product source cc4c89c168cb129be77defc2a7e16f8e1540ad25 is the exact normal release v4.0.134701 tag and target. Its Windows/Linux/documentation/publisher runs succeeded. Downloaded unsigned setup/full-package/RELEASES hashes and the Squirrel package row passed. Scene a59bde224a4244aa2770f10a6788be7f538c9c10 is integrated.
-
-Verified 48 renderer presentation tuples and 96 inspected original PNGs at exact CSS 1440x960/960x660 and actual process raster scales 1/1.25/1.5/2. Journal/sentinel preservation and resolved clone filesystem proofs passed. These are private originals containing host-identifying synthetic paths. No current image was publicly promoted. Native OS display-setting and keyboard/pointer delivery are unverified.
-
-The prior application was normally closed after explicit authorization. Its full current profile has a restricted hash-verified recovery copy. Setup and actual-profile launch have NOT started. The prior installation remains unchanged and closed. Next: revalidate installed-process absence and backup freshness, run the verified current-user Squirrel setup on a named hidden desktop, verify installed version/bytes against the package, let production startup reconcile the obsolete journal, and open the existing requested repository through supported Add Local/Open. Never edit/delete the journal manually or clone over an occupied destination. Preserve pre-existing edits in the retained destination.
-
-One earlier synthetic process remains with no eligible application window; its server is absent. Retain its run, immutable executable and private receipts. Only retire exact task-owned source candidates after verified complete archives, remote/default ancestry and preservation. Keep all unrelated or active work. Issue #240 stays open for its separate sorting evidence and unfinished installed acceptance.
-
-This is an account-boundary handoff, not completion. No host power/login operation, forced termination, history rewrite, security weakening, unrelated implementation or unproved deletion is authorized. The existing explicit visible-close authorization remains recorded; do not ask again merely to repeat an already permitted step.
+Next steps:
+1. Check the installed app opening a folder and a repository with several remotes; this session
+   could not reach the maintainer's computer.
+2. Update the HANDOFF entry for 2026-11-09, which predates the release.
+3. Make every page and destination tab open by default (new shared default for every app).
+```
