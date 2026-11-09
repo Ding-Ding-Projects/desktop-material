@@ -1,3 +1,51 @@
+## November 9, 2026 (later): design pass finished, first implementation, upstream ports
+
+All pushed to `main`; the last commit of this entry is the one that contains it.
+
+**Design (designs only, not shipped behaviour).** Every board listed in issue
+#262 is drawn in `design/motion-and-polish/` (18 boards), and the Minecraft
+management web panel has its own canvas in `design/minecraft-web-panel/`: one
+click public link through a free Cloudflare quick tunnel with its limits stated,
+a Discord webhook that posts the link and a one-time pairing code and posts
+again when the link changes, and a nine-page panel. Renders at 1280 and 390 px
+are in each folder's `frames/`. See each folder's `HANDOFF.md` or `README.md`.
+
+**Implemented in the app.**
+
+- Motion speed and per-surface switches in the app workspace appearance editor,
+  with `app/styles/material/_transitions.scss`
+  ([article](docs/features/design-system/motion-settings.md), `956b065`).
+- Svelte syntax highlighting, ported from GitHub Desktop 3.6.8 (`e3eb9f4`).
+- Always show worktree list, ported from GitHub Desktop 3.6.7
+  ([article](docs/features/identity-and-workspace/always-show-worktree-list.md),
+  `6e55b8c`).
+
+**Verification.** On Linux: 19 motion tests, 2 Svelte tests and the worktree and
+Appearance tests pass; the TypeScript check reports no errors. In the wider
+appearance and shell test set 30 tests fail identically with and without these
+changes, so they are not caused by them, but they were not investigated. ESLint
+was not run (the custom rules did not load outside the project script). The
+Windows build, installer and installed app are **not verified**, and Windows CI
+for these commits had not reported when this was written.
+
+**Not done.**
+
+- No screenshot was renewed. Captures must come from the built Windows
+  application through `script/capture-app.js`, which cannot run in the Linux
+  session that did this work.
+- Every other design board is still only a design: nothing else from the boards
+  is implemented.
+- Upstream: 435 commits since the 2026-08-28 ledger tip are still unclassified
+  (issue #212). Released items not yet ported: short-lived sign-in tokens
+  (3.6.8, a ten-part series), Git 2.56.0 / Git LFS 3.8.1 / Git Credential
+  Manager 2.9.1, Electron 44.9.1, the improved check-summary icon contrast
+  (3.6.7), the folder-reveal confirmation and .gitignore handling (3.6.6), and
+  the fixes in 3.6.6 to 3.6.10.
+
+廣東話交接：設計圖畫晒（十八塊，另加網頁面板自己一份）。真正寫入 app 嘅得三樣：動態速度同
+逐個版面開關、Svelte 語法上色、永遠顯示工作樹清單。Linux 上相關測試過晒，TypeScript 冇錯；
+Windows build、安裝程式同實機未驗證。截圖一張都未更新，因為要喺 Windows 用真 app 影。
+
 ## November 9, 2026: opening folders and remote pages
 
 On branch `feature/open-adds-directly-remote-links`:

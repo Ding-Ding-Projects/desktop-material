@@ -37,3 +37,17 @@ handler runs once without an exception in a scripted check. No independent
 fresh-eye review was done for these two boards. Keyboard shortcuts shown in the
 palette are proposals, apart from Ctrl+Shift+F for Show in Explorer, which the
 roadmap records.
+
+## Third pass
+
+`Activity`, `Locks`, `Tools`, `Onboarding`, `RepoChanges`, `RepoHistory`,
+`RepoReview` and `RepoReleases` were rendered at 1280 x 960 and 390 x 960.
+Looked at by eye at 1280 px: `Activity` and `RepoChanges` only. The others were
+rendered and passed the scripted check (every template value resolves, every
+handler runs once without an exception) but their frames were not reviewed, and
+no 390 px frame was reviewed.
+
+| Finding | Fix |
+| --- | --- |
+| The filter field on `RepoChanges` grew to fill its column | Search fields inside a column no longer flex vertically (`97f976a`). |
+| Tabbed boards left a tall empty band | Tabbed boards are 960 px tall instead of 1400 px. |

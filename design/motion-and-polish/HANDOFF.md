@@ -27,6 +27,15 @@ dresses controls and surfaces, never the pane layout or navigation.
 | `Minecraft.dc.html` | Minecraft server manager (local, Docker, SSH, SSH Docker; flavours; versions; console) and the world generator (seed, preset, draggable area with keyboard moves, 100 × 100 chunk default, Folder or ZIP, EULA gate, batched progress). |
 | `AppearanceStudio.dc.html` | Appearance studio: any accent colour by hue, saturation, lightness or hex with a live contrast readout, a per-element editor (corner, height, fill) with per-element reset, logo shape and app name, a live preview and an unsaved-changes bar. |
 | `CommandPalette.dc.html` | Command palette with plain-text search by default and regex as an explicit switch, plus the full regex builder editing the same pattern: anchors, classes, quantifiers, groups, flags, live tester, and lookaround and backreferences shown as unavailable with the reason. |
+| `SettingsAll.dc.html` | Every Settings page on one searchable board, with a per-setting info button. |
+| `Activity.dc.html` | Notification centre with search, filters and bulk actions with undo; local version history with a diff and non-destructive restore; changelog with date range, search and kind filters; one export for all of it. |
+| `Locks.dc.html` | Lock manager and setup, the anchored unlock prompt, the wait-skip ladder, the local authenticator with QR registration, and support tickets. |
+| `Tools.dc.html` | File converter with drag and drop of files and folders, results beside each original and batch progress; Ollama model manager; a sketch pad; editor discovery and a custom editor. |
+| `Onboarding.dc.html` | A skippable first-run wizard, the offline documentation browser, the dim sum surprise and the agents status line. |
+| `RepoChanges.dc.html` | Changes list, commit composer, diff and the named stash manager. |
+| `RepoHistory.dc.html` | History, commit details and the branch list. |
+| `RepoReview.dc.html` | Pull request review and workflow runs. |
+| `RepoReleases.dc.html` | Releases, clone and add. |
 | `Settings.dc.html` | Motion as a persisted, resettable, schedulable appearance value; front-screen version and updated-at provenance; dim sum code name; free-by-default note; vocabulary drop celebration. |
 
 ## Stageshow
@@ -48,15 +57,18 @@ dresses controls and surfaces, never the pane layout or navigation.
 Added `AppearanceStudio.dc.html` and `CommandPalette.dc.html`. A fresh Stageshow
 install was refused by the sandbox again, so the pinned cache at commit
 `299140fafd08df55a9c234e610c3f64af3f45531` was consulted (`references/craft.md`
-and `references/review.md` only this time). `SettingsAll.dc.html` from the first
-pass has no row in the table above yet.
+and `references/review.md` only this time). 
 
-Boards still to draw: notifications centre, local history, changelog, universal
-export and bulk actions; surface locks, unlock ladder, support tickets,
-authenticator and QR pairing; tools (file converter, Ollama suite, Drawesome,
-external editor hand-off); onboarding wizard, offline docs, dim sum and Status
-Hub; and the repository screens (Changes and diff, History, Branches, pull
-request review, Actions, Releases, Clone and Add, Stash manager).
+Third pass, same day: every board listed in issue #262 is now drawn. The
+Minecraft web panel moved to its own canvas and folder,
+`design/minecraft-web-panel/`, at the owner's request.
+
+Assumptions to confirm, because no feature article describes them yet: the
+sketch pad's scope, the first-run wizard's steps, and the keyboard shortcuts
+shown in the command palette.
+
+The repository-screen boards keep today's pane layout and dress the controls
+inside it. They are not a shell redesign.
 
 ## Review findings and fixes
 

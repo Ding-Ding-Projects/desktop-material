@@ -6,34 +6,28 @@ the commit that contains this file.
 ```
 Project: Desktop Material, a GitHub Desktop fork (Electron, React, TypeScript) for Windows, plus a
 Linux terminal app. Repository: Ding-Ding-Projects/desktop-material. Read README.md, AGENTS.md,
-ROADMAP.md and HANDOFF.md first.
+ROADMAP.md and HANDOFF.md first (the top HANDOFF entry is this session).
 
-State (2026-11-09): main at a8d2242 plus this file, pushed. v4.0.136804 is released from a8d2242
-(Setup.exe, MSI, full nupkg, RELEASES, zip, line count). The usage allowance ran low, so this is a
-preservation closeout.
+State (2026-11-09, later): everything is on main and pushed.
 
-Done and checked this session:
-- Opening a real Git repository from Explorer, --cli-open, the desktop-material helper, quick
-  actions or another app adds and selects it without the Add local repository dialog; the dialog
-  stays for folders that are not usable repositories. Tests: app/test/unit/cli-open-adds-repository-test.ts.
-- View on ... opens the web page of any remote (GitHub, GitLab, Bitbucket, Azure DevOps, Codeberg,
-  Gitea, self-hosted), with a Remote dropdown on the No local changes card when there are several;
-  credentials are never shown or opened. Tests: app/test/unit/remote-web-page-test.ts and
-  app/test/unit/ui/no-changes-remote-pages-test.tsx (60 focused tests pass).
-- Windows CI green for x64 and arm64; the installer run needed retries after GitHub download 504s.
+Done this session:
+- Design: all boards from issue #262 are drawn in design/motion-and-polish (18 boards). The
+  Minecraft web panel has its own folder, design/minecraft-web-panel (free Cloudflare quick tunnel
+  link, Discord webhook with link and one-time pairing code, auto resend on change, nine-page panel).
+  Designs only.
+- Implemented: motion speed and per-surface switches (956b065), Svelte highlighting from upstream
+  3.6.8 (e3eb9f4), Always show worktree list from upstream 3.6.7 (6e55b8c).
+- Checked on Linux only: focused tests pass, TypeScript reports no errors. 30 tests in the wider
+  appearance and shell set fail the same way with and without these changes.
 
-Known and unchanged on main: three source-pattern tests (palette-settings-coverage,
-repository-transfer-surface, rewrite-surface-coverage) and eight ESLint errors in
-app/src/lib/stores/app-store.ts already failed before this work. In build-installers.yml the
-release-notes artifact name includes the run attempt, so re-running only failed jobs cannot publish;
-re-run the whole workflow instead.
-
-Remote branches: feature/open-adds-directly-remote-links is fully merged and listed for the
-maintainer to delete in issue #261, with the other branches to review. Nothing was deleted.
-
-Next steps:
-1. Check the installed app opening a folder and a repository with several remotes; this session
-   could not reach the maintainer's computer.
-2. Update the HANDOFF entry for 2026-11-09, which predates the release.
-3. Make every page and destination tab open by default (new shared default for every app).
+Not done:
+1. Windows CI result for these commits was not seen. Check it first.
+2. No screenshot was renewed: captures need the built Windows app and script/capture-app.js.
+3. Implement the remaining boards one feature per commit, starting with the file converter quick
+   drop (results beside the original, folders and batches) and the web panel public link with the
+   Discord webhook.
+4. Upstream (issue #212): port short-lived sign-in tokens (3.6.8), the Git, Git LFS and Electron
+   updates, check-summary icon contrast (3.6.7), folder-reveal confirmation (3.6.6) and the fixes in
+   3.6.6 to 3.6.10; then classify the rest of the 435 commits since b17e06dd.
+5. Confirm three design assumptions: sketch pad scope, first-run wizard steps, palette shortcuts.
 ```
