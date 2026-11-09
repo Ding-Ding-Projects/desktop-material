@@ -114,7 +114,7 @@ kbd{font-family:'Roboto Mono',monospace;font-size:11.5px;padding:3px 7px;border-
 <div class="bar"><button class="btn tonal" onClick="{{restart}}"><span class="ms" aria-hidden="true">restart_alt</span>Get a new link</button><span class="hint grow">{{urlNote}}</span></div>
 </div></sc-if>
 <sc-if value="{{isPublic}}" hint-placeholder-val="{{ true }}"><div class="col" style="gap:8px">
-<div class="note warn"><span class="ms" aria-hidden="true">warning</span><span>A public link is on the internet. Anyone who has it reaches the sign-in page, so every device still pairs with a one-time code from this PC before it can do anything.</span></div>
+<div class="note warn"><span class="ms" aria-hidden="true">warning</span><span>A public link is on the internet. Anyone who has it reaches the sign-in page, so every device still pairs with a one-time code before it can do anything.</span></div>
 <div class="note"><span class="ms" aria-hidden="true">info</span><span>Free quick tunnels need no Cloudflare account. The link is random and changes every time the tunnel starts, there is no uptime guarantee, and at most 200 requests are served at once. Because each new link is a new address, devices pair again after a change. For a link that never changes, use your own Cloudflare account and domain.</span></div>
 </div></sc-if>
 </div>
@@ -125,10 +125,12 @@ kbd{font-family:'Roboto Mono',monospace;font-size:11.5px;padding:3px 7px;border-
 <label class="ck"><input type="checkbox" checked="{{auto}}" onChange="{{toggleAuto}}">Send again automatically when the link changes</label>
 <label class="ck"><input type="checkbox" checked="{{replace}}" onChange="{{toggleReplace}}">Update the earlier message instead of posting a new one</label>
 <label class="ck"><input type="checkbox" checked="{{sayStop}}" onChange="{{toggleStop}}">Say so when the panel goes offline</label>
-<div class="msg" role="img" aria-label="Preview of the message"><span class="av"><span class="ms" aria-hidden="true">dns</span></span><span><b>Minecraft panel</b><br>{{msgLead}}<br><span class="mono">{{msgUrl}}</span><br><span class="hint">Pairing code needed. Ask the host.</span></span></div>
-<div class="bar"><button class="{{sendCls}}" aria-disabled="{{hookBad}}" onClick="{{sendNow}}"><span class="ms" aria-hidden="true">send</span>Send now</button><span class="hint grow">The pairing code is never sent to Discord.</span></div>
+<label class="ck"><input type="checkbox" checked="{{withCode}}" onChange="{{toggleCode}}">Send a pairing code with the link</label>
+<div class="msg" role="img" aria-label="Preview of the message"><span class="av"><span class="ms" aria-hidden="true">dns</span></span><span><b>Minecraft panel</b><br>{{msgLead}}<br><span class="mono">{{msgUrl}}</span><br><span class="hint">{{msgCode}}</span></span></div>
+<div class="bar"><button class="{{sendCls}}" aria-disabled="{{hookBad}}" onClick="{{sendNow}}"><span class="ms" aria-hidden="true">send</span>Send now</button><button class="{{codeBtnCls}}" aria-disabled="{{noCodeSend}}" onClick="{{sendCode}}"><span class="ms" aria-hidden="true">pin</span>Send a fresh code</button></div>
 <div><h3 style="margin-bottom:6px">Sent</h3><div class="rows"><sc-for list="{{log}}" as="g" hint-placeholder-count="2"><div class="li" style="min-height:48px"><span class="ms" aria-hidden="true">{{g.icon}}</span><span class="t">{{g.text}}<small>{{g.when}}</small></span><span class="{{g.cls}}">{{g.tag}}</span></div></sc-for></div>
 <sc-if value="{{noLog}}" hint-placeholder-val="{{ false }}"><p class="hint">Nothing sent yet.</p></sc-if></div>
+<sc-if value="{{withCode}}" hint-placeholder-val="{{ true }}"><div class="note warn"><span class="ms" aria-hidden="true">warning</span><span>With the code in the same channel as the link, anyone who can read that channel can pair a device. Each code works once and for 10 minutes, every pairing shows up under Paired devices where it can be revoked, and the audit log names the device.</span></div></sc-if>
 <p class="hint">The webhook address is kept in Windows Credential Manager, never in server files, logs or exports. If Discord cannot be reached the panel keeps running and the send is retried.</p>
 </div>
 </div>
@@ -163,16 +165,17 @@ kbd{font-family:'Roboto Mono',monospace;font-size:11.5px;padding:3px 7px;border-
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1400}}'>
 function dmBase(c){return {rootClass:c.state.dark?'dark':'',toggleDark:function(){c.setState({dark:!c.state.dark});}};}
 class Component extends DCLogic {
-  constructor(p){super(p);this.state={dark:false,mode:1,run:'on',t:0,n:0,hook:'https://discord.com/api/webhooks/000000000000000000/sample-token',auto:true,replace:true,sayStop:true,page:0,lvl:0,cmd:'',srv:[true,true,false],
+  constructor(p){super(p);this.state={dark:false,mode:1,run:'on',t:0,n:0,hook:'https://discord.com/api/webhooks/000000000000000000/sample-token',auto:true,replace:true,sayStop:true,withCode:true,code:0,page:0,lvl:0,cmd:'',srv:[true,true,false],
     out:['[15:02:11] [Server thread/INFO]: Done (4.812s)! For help, type "help"','[15:03:40] [Server thread/INFO]: Sam joined the game','[15:04:02] [Server thread/WARN]: Can\'t keep up! Running 2100ms behind','[15:05:00] [Server thread/INFO]: Saved the game'],
     log:[{text:'Link sent',when:'Today 15:02 · first link',tag:'Sent',cls:'badge ok',icon:'send'}],tps:[19.9,20,19.8,20,19.7,19.9,20,19.6,19.9,20,20,19.8]};
     this.words=[['amber','otter','signal','maple'],['quiet','harbor','violet','lane'],['rapid','cedar','north','field']];}
   componentDidMount(){this._i=setInterval(()=>{const s=this.state,tps=s.tps.slice(1).concat([Math.round((19.4+Math.random()*.6)*10)/10]);if(s.run==='starting'&&s.t>=8)this.landed(tps);else this.setState({t:s.t+1,tps:tps});},800);}
   componentWillUnmount(){clearInterval(this._i);}
+  pair(n){return String(482913+n*7919).slice(-6).replace(/(...)(...)/,'$1 $2');}
   urlFor(n){return 'https://'+this.words[n%3].join('-')+'.trycloudflare.com';}
-  post(log,n,first){const s=this.state;if(!this.hookOk()||!s.auto&&!first)return log;return [{text:first?'Link sent':s.replace?'Earlier message updated with the new link':'New link sent',when:'Just now · '+this.urlFor(n).slice(8,30)+'…',tag:first?'Sent':'Resent',cls:'badge ok',icon:s.replace&&!first?'edit':'send'}].concat(log).slice(0,4);}
+  post(log,n,first){const s=this.state;if(!this.hookOk()||!s.auto&&!first)return log;return [{text:(first?'Link sent':s.replace?'Earlier message updated with the new link':'New link sent')+(s.withCode?', with a fresh pairing code':''),when:'Just now · '+this.urlFor(n).slice(8,30)+'…',tag:first?'Sent':'Resent',cls:'badge ok',icon:s.replace&&!first?'edit':'send'}].concat(log).slice(0,4);}
   hookOk(){return /^https:\/\/discord\.com\/api\/webhooks\/\d+\/[\w-]+$/.test(this.state.hook.trim());}
-  landed(tps){const s=this.state,n=s.n+1;this.setState({run:'on',t:0,n:n,tps:tps,log:s.mode===1?this.post(s.log,n,false):s.log});}
+  landed(tps){const s=this.state,n=s.n+1;this.setState({run:'on',t:0,n:n,code:s.code+1,tps:tps,log:s.mode===1?this.post(s.log,n,false):s.log});}
   renderVals(){
     const s=this.state,set=o=>this.setState(o),pub=s.mode===1,on=s.run==='on',starting=s.run==='starting',ok=this.hookOk();
     const url=pub?this.urlFor(s.n):s.mode===0?'https://desktop-pc.local:8443':'https://panel.your-domain.example';
@@ -200,7 +203,9 @@ class Component extends DCLogic {
       hook:s.hook,setHook:e=>set({hook:e.target.value}),hookBad:!ok,
       hookFieldCls:'field'+(ok?'':' bad'),hookHintCls:'hint'+(ok?'':' bad'),hookHint:ok?'Looks like a Discord webhook. Shown hidden; paste a new one to replace it.':'This is not a Discord webhook address. It starts with https://discord.com/api/webhooks/ and ends with the token.',
       hookBadge:ok?(s.auto?'Auto send on':'Manual only'):'Not set up',hookBadgeCls:'badge '+(ok?(s.auto?'ok':''):'warn'),
-      auto:s.auto,replace:s.replace,sayStop:s.sayStop,toggleAuto:()=>set({auto:!s.auto}),toggleReplace:()=>set({replace:!s.replace}),toggleStop:()=>set({sayStop:!s.sayStop}),
+      auto:s.auto,replace:s.replace,sayStop:s.sayStop,toggleAuto:()=>set({auto:!s.auto}),toggleReplace:()=>set({replace:!s.replace}),toggleStop:()=>set({sayStop:!s.sayStop}),withCode:s.withCode,toggleCode:()=>set({withCode:!s.withCode}),
+      msgCode:!on?'':s.withCode?'Pairing code: '+this.pair(s.code)+' · works once, for 10 minutes':'Pairing code needed. Ask the host.',
+      noCodeSend:!(ok&&on&&s.withCode),codeBtnCls:'btn tonal'+(ok&&on&&s.withCode?'':' off'),sendCode:()=>{if(ok&&on&&s.withCode)set({code:s.code+1,log:[{text:'Fresh pairing code sent',when:'Just now · the earlier code stopped working',tag:'Sent',cls:'badge ok',icon:'pin'}].concat(s.log).slice(0,4)});},
       msgLead:on?'The panel is online at a new link:':'The panel is offline.',msgUrl:on?url:'No link right now',
       sendCls:'btn'+(ok&&on?'':' off'),sendNow:()=>{if(ok&&on)set({log:this.post(s.log,s.n,true)});},
       log:s.log,noLog:s.log.length===0,

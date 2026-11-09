@@ -80,6 +80,9 @@ kbd{font-family:'Roboto Mono',monospace;font-size:11.5px;padding:3px 7px;border-
 .cat{all:unset;cursor:pointer;min-height:76px;border-radius:18px;background:var(--s0);box-shadow:inset 0 0 0 1px var(--olv);padding:10px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;justify-content:center;font-size:13.5px;font-weight:500;transition:box-shadow var(--d-s),transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring)}
 .cat small{font-weight:400;font-size:12px;color:var(--onv)}
 .cat.on{box-shadow:inset 0 0 0 3px var(--p);border-radius:26px}.cat:active{transform:scale(.97)}.cat:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.dropz{display:flex;flex-wrap:wrap;gap:14px;align-items:center;border:2px dashed var(--ol);border-radius:24px;padding:20px;transition:background var(--d-m),border-color var(--d-m),transform var(--d-m) var(--e-spring)}
+.dropz.hot{background:var(--pc);border-color:var(--p);transform:scale(1.01)}
+.dropz b{display:block;font-size:15px;font-weight:500}.dropz small{font-size:12.5px;color:var(--onv);line-height:18px}
 .pad{background:var(--s0);border-radius:20px;box-shadow:inset 0 0 0 1px var(--olv);touch-action:none;cursor:crosshair;width:100%;height:420px;display:block}
 .swatch{all:unset;cursor:pointer;width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;transition:transform var(--d-m) var(--e-spring)}
 .swatch i{width:28px;height:28px;border-radius:999px;display:block;box-shadow:inset 0 0 0 1px var(--ol)}
@@ -92,10 +95,12 @@ kbd{font-family:'Roboto Mono',monospace;font-size:11.5px;padding:3px 7px;border-
 <div class="tabs" role="tablist" aria-label="Tool"><sc-for list="{{tabs}}" as="t" hint-placeholder-count="4"><button class="{{t.cls}}" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}"><span class="ms" aria-hidden="true">{{t.icon}}</span>{{t.label}}</button></sc-for></div>
 
 <sc-if value="{{isConv}}" hint-placeholder-val="{{ true }}"><div class="card pane">
-<div class="li"><span class="ms" aria-hidden="true">image</span><span class="t mono">workspace-dark.png<small style="font-family:Roboto,sans-serif">PNG image, 184 KB · identified from its bytes, not its name</small></span><button class="btn tonal"><span class="ms" aria-hidden="true">folder_open</span>Choose another file</button></div>
-<div class="cats" role="group" aria-label="Category"><sc-for list="{{cats}}" as="c" hint-placeholder-count="8"><button class="{{c.cls}}" aria-pressed="{{c.on}}" onClick="{{c.pick}}"><span class="ms" aria-hidden="true">{{c.icon}}</span>{{c.label}}<small>{{c.note}}</small></button></sc-for></div>
-<div class="note"><span class="ms" aria-hidden="true">info</span><span>{{convText}}</span></div>
-<div><h3 style="margin-bottom:6px">Queue, kept between restarts</h3><div class="rows"><div class="li"><span class="ms" aria-hidden="true">schedule</span><span class="t mono">workspace-dark.png<small style="font-family:Roboto,sans-serif">Waiting for an adapter. The original file is never changed or removed.</small></span><span class="badge warn">No adapter</span><button class="icon-btn" aria-label="Remove from queue"><span class="ms" aria-hidden="true">close</span></button></div></div></div>
+<div class="{{dropCls}}" onDragOver="{{dragOver}}" onDragLeave="{{dragLeave}}" onDrop="{{drop}}"><span class="ms" style="font-size:40px;color:var(--p)" aria-hidden="true">place_item</span><div class="grow"><b>Drop files or folders here to convert them</b><small>Each result is written beside its original, in the folder it was dragged from. Originals are never changed, moved or overwritten.</small></div><button class="btn tonal" onClick="{{addFiles}}"><span class="ms" aria-hidden="true">upload_file</span>Add files</button><button class="btn tonal" onClick="{{addFolder}}"><span class="ms" aria-hidden="true">create_new_folder</span>Add a folder</button></div>
+<div class="bar"><sc-for list="{{rules}}" as="r" hint-placeholder-count="3"><div class="field" style="flex:1 1 200px"><label for="{{r.id}}">{{r.label}}</label><select id="{{r.id}}" value="{{r.value}}" onChange="{{r.set}}" disabled="{{r.off}}"><sc-for list="{{r.opts}}" as="o" hint-placeholder-count="3"><option value="{{o}}">{{o}}</option></sc-for></select><span class="hint">{{r.note}}</span></div></sc-for></div>
+<div class="bar"><label class="ck"><input type="checkbox" checked="{{deep}}" onChange="{{toggleDeep}}">Include subfolders</label><label class="ck"><input type="checkbox" checked="{{skipSame}}" onChange="{{toggleSkipSame}}">Skip files already in the target format</label><span class="grow"></span><span class="hint" role="status">{{batchText}}</span><button class="{{pauseCls}}" aria-disabled="{{idle}}" onClick="{{togglePause}}"><span class="ms" aria-hidden="true">{{pauseIcon}}</span>{{pauseLabel}}</button><button class="{{clearCls}}" aria-disabled="{{noJobs}}" onClick="{{clearJobs}}">Clear finished</button></div>
+<div class="rows"><sc-for list="{{jobs}}" as="j" hint-placeholder-count="3"><div class="li"><span class="ms" aria-hidden="true">{{j.icon}}</span><span class="t mono">{{j.name}}<small style="font-family:Roboto,sans-serif">{{j.detail}}</small><sc-if value="{{j.busy}}" hint-placeholder-val="{{ false }}"><div class="prog" style="margin-top:6px"><i style="width:{{j.pct}}"></i></div></sc-if></span><span class="{{j.cls}}">{{j.tag}}</span><button class="icon-btn" aria-label="{{j.rmLabel}}" onClick="{{j.rm}}"><span class="ms" aria-hidden="true">close</span></button></div></sc-for></div>
+<sc-if value="{{noJobs}}" hint-placeholder-val="{{ false }}"><p class="hint">Nothing queued. Drop something above, or use the buttons.</p></sc-if>
+<div class="note"><span class="ms" aria-hidden="true">info</span><span>A file is identified from its bytes, not its name. A target is offered only when a verified adapter for it is installed on this computer; anything else is skipped and listed with the reason. If a result name is taken, a number is added instead of overwriting. The queue survives a restart.</span></div>
 </div></sc-if>
 
 <sc-if value="{{isOll}}" hint-placeholder-val="{{ false }}"><div class="card pane">
@@ -133,9 +138,10 @@ kbd{font-family:'Roboto Mono',monospace;font-size:11.5px;padding:3px 7px;border-
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
 function dmBase(c){return {rootClass:c.state.dark?'dark':'',toggleDark:function(){c.setState({dark:!c.state.dark});}};}
 class Component extends DCLogic {
-  constructor(p){super(p);this.state={dark:false,tab:0,cat:1,srv:true,pullName:'',ink:0,strokes:[{c:0,p:[[120,300],[200,180],[300,260],[420,120],[520,240]]}],draw:false,ed:0,exe:'C:\\Tools\\editor.exe',args:'--goto %TARGET_PATH%',
+  constructor(p){super(p);this.state={dark:false,tab:0,cat:1,hot:false,deep:true,skipSame:true,paused:false,img:'WebP',doc:'PDF',jobs:[{id:1,kind:'folder',name:'C:\\Photos\\trip\\',n:38,skip:2,done:14},{id:2,kind:'file',name:'C:\\Work\\notes.docx',n:1,skip:0,done:1},{id:3,kind:'file',name:'C:\\Music\\demo.flac',n:1,skip:1,done:0}],srv:true,pullName:'',ink:0,strokes:[{c:0,p:[[120,300],[200,180],[300,260],[420,120],[520,240]]}],draw:false,ed:0,exe:'C:\\Tools\\editor.exe',args:'--goto %TARGET_PATH%',
     models:[{name:'llama3.2:3b',detail:'2.0 GB · ready',pct:100},{name:'qwen2.5-coder:7b',detail:'4.7 GB · ready',pct:100}]};}
-  componentWillUnmount(){clearInterval(this._p);}
+  componentDidMount(){this._c=setInterval(()=>{const s=this.state;if(s.paused)return;let moved=false;const jobs=s.jobs.map(j=>{if(!moved&&j.done<j.n-j.skip){moved=true;return {...j,done:j.done+1};}return j;});if(moved)this.setState({jobs:jobs});},700);}
+  componentWillUnmount(){clearInterval(this._p);clearInterval(this._c);}
   renderVals(){
     const s=this.state,set=o=>this.setState(o),inks=['#191c20','#006493','#ba1a1a','#1b7f37'],inkNames=['Black','Blue','Red','Green'];
     const cats=[['description','Documents and PDF'],['image','Images'],['graphic_eq','Audio'],['movie','Video'],['folder_zip','Archives'],['table','Data and spreadsheets'],['code','Code and text'],['data_object','Binary encodings']];
@@ -145,6 +151,19 @@ class Component extends DCLogic {
     return {...dmBase(this),
       tabs:[['swap_horiz','File converter'],['smart_toy','Ollama'],['draw','Sketch pad'],['edit_square','Editors']].map((t,i)=>({icon:t[0],label:t[1],on:s.tab===i,cls:'tab'+(s.tab===i?' on':''),pick:()=>set({tab:i})})),
       isConv:s.tab===0,isOll:s.tab===1,isPad:s.tab===2,isEd:s.tab===3,
+      dropCls:'dropz'+(s.hot?' hot':''),dragOver:e=>{e.preventDefault();if(!s.hot)set({hot:true});},dragLeave:()=>set({hot:false}),
+      drop:e=>{e.preventDefault();const fs=e.dataTransfer&&e.dataTransfer.files?Array.prototype.slice.call(e.dataTransfer.files):[];const add=fs.length?fs.map((f,i)=>({id:Date.now()+i,kind:'file',name:f.name,n:1,skip:0,done:0})):[{id:Date.now(),kind:'file',name:'C:\\Photos\\dropped.png',n:1,skip:0,done:0}];set({hot:false,jobs:s.jobs.concat(add)});},
+      addFiles:()=>set({jobs:s.jobs.concat([{id:Date.now(),kind:'file',name:'C:\\Photos\\banner.png',n:1,skip:0,done:0}])}),
+      addFolder:()=>set({jobs:s.jobs.concat([{id:Date.now(),kind:'folder',name:'C:\\Scans\\2026\\',n:s.deep?24:9,skip:1,done:0}])}),
+      rules:[['Images become','tl-img','img',['WebP','JPEG','PNG'],'Adapter installed'],['Documents become','tl-doc','doc',['PDF','Markdown'],'Adapter installed'],['Audio becomes','tl-aud','aud',['No adapter installed'],'Audio files are skipped until one is installed']].map(r=>({label:r[0],id:r[1],value:s[r[2]]||r[3][0],opts:r[3],note:r[4],off:r[2]==='aud',set:e=>set({[r[2]]:e.target.value})})),
+      deep:s.deep,toggleDeep:()=>set({deep:!s.deep}),skipSame:s.skipSame,toggleSkipSame:()=>set({skipSame:!s.skipSame}),
+      jobs:s.jobs.map(j=>{const todo=j.n-j.skip,fin=j.done>=todo,none=todo===0;return {name:j.name,icon:j.kind==='folder'?'folder':'draft',busy:!fin&&!none,pct:(todo?j.done/todo*100:0)+'%',
+        detail:none?'Skipped: no adapter is installed for this kind of file. The original is untouched.':j.kind==='folder'?(fin?'Done':'Converting')+' · '+j.done+' of '+todo+' files'+(s.deep?', subfolders included':'')+(j.skip?' · '+j.skip+' skipped, no adapter':'')+' · results beside each original':(fin?'Saved beside the original':'Converting')+' · same folder',
+        tag:none?'Skipped':fin?'Done':s.paused?'Paused':'Working',cls:'badge '+(none?'warn':fin?'ok':'pri'),rmLabel:'Remove '+j.name+' from the queue',rm:()=>set({jobs:s.jobs.filter(x=>x.id!==j.id)})};}),
+      noJobs:s.jobs.length===0,idle:!s.jobs.some(j=>j.done<j.n-j.skip),
+      batchText:(()=>{const t=s.jobs.reduce((a,j)=>a+j.n-j.skip,0),d=s.jobs.reduce((a,j)=>a+j.done,0);return t?d+' of '+t+' files converted':'';})(),
+      pauseCls:'btn tonal'+(s.jobs.some(j=>j.done<j.n-j.skip)?'':' off'),pauseIcon:s.paused?'play_arrow':'pause',pauseLabel:s.paused?'Resume':'Pause',togglePause:()=>set({paused:!s.paused}),
+      clearCls:'btn text',clearJobs:()=>set({jobs:s.jobs.filter(j=>j.done<j.n-j.skip)}),
       cats:cats.map((c,i)=>({icon:c[0],label:c[1],note:'No adapter installed',on:s.cat===i,cls:'cat'+(s.cat===i?' on':''),pick:()=>set({cat:i})})),
       convText:cats[s.cat][1]+': no conversion is offered yet, because no verified adapter for this category is installed on this computer. Targets appear here only when one is.',
       srvOn:s.srv,srvOff:!s.srv,srvCls:'badge '+(s.srv?'ok':'no'),srvIcon:s.srv?'check_circle':'error',srvText:s.srv?'Running on this computer':'Not running',srvBtn:s.srv?'Show the stopped state':'Show the running state',toggleSrv:()=>set({srv:!s.srv}),
