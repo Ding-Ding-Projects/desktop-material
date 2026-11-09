@@ -854,6 +854,13 @@
       d: 'Desktop Material contains two independent failures found in the July 31, 2026 production log so background maintenance cannot flood the notification stack or silently stop.',
     },
     {
+      t: 'Bug audit, October 15, 2026',
+      h: 'features/quality-and-reliability/bug-audit-2026-10-15.html',
+      s: 'features/quality-and-reliability/bug-audit-2026-10-15.md',
+      c: 'features',
+      d: 'Fifteen bounded fixes were reviewed and pushed individually to main. No new configuration is needed. These are source and focused regression results, not an installed-release…',
+    },
+    {
       t: 'Canonical remote preflight warning',
       h: 'features/quality-and-reliability/canonical-remote-preflight-warning.html',
       s: 'features/quality-and-reliability/canonical-remote-preflight-warning.md',
@@ -921,7 +928,7 @@
       h: 'features/quality-and-reliability/',
       s: 'features/quality-and-reliability/README.md',
       c: 'features',
-      d: 'Central diagnostic logging — opt-in',
+      d: 'October 15 bug audit: fifteen focused fixes,',
     },
     {
       t: 'Renderer startup bundle safety',
@@ -1113,6 +1120,13 @@
       d: 'Add local repository accepts normal UNC shares, Windows mapped drives, and WSL UNC shares as first-class repository locations. It preserves the exact UNC root instead of…',
     },
     {
+      t: 'Opening a folder adds the repository directly',
+      h: 'features/repository-management/open-folder-adds-repository.html',
+      s: 'features/repository-management/open-folder-adds-repository.md',
+      c: 'features',
+      d: 'When a folder reaches Desktop Material from outside the app, a Git repository in that folder is added to the repository list and selected straight away. The Add local…',
+    },
+    {
       t: 'Parent-folder repository discovery',
       h: 'features/repository-management/parent-folder-repository-discovery.html',
       s: 'features/repository-management/parent-folder-repository-discovery.md',
@@ -1167,6 +1181,13 @@
       s: 'features/repository-management/release-backed-cheap-lfs.md',
       c: 'features',
       d: 'The generated mark above is documentation artwork. It is not embedded in the pointer format and is not required by the transfer protocol.',
+    },
+    {
+      t: 'Repository pages for every remote',
+      h: 'features/repository-management/remote-web-pages.html',
+      s: 'features/repository-management/remote-web-pages.md',
+      c: 'features',
+      d: 'View on GitHub used to work only for a repository whose remote is on GitHub. It now opens the web page of any remote that has one, on GitHub, GitLab, Bitbucket, Azure DevOps,…',
     },
     {
       t: 'Custom repository group management',
@@ -2233,6 +2254,13 @@
       d: 'The custom integration argument parser now runs in TypeScript without loading windows-argv-parser.node. Its exported interface remains compatible. Windows startup repair…',
     },
     {
+      t: 'Direct clone recovery',
+      h: 'wiki/published/Direct-Clone-Recovery.html',
+      s: 'wiki/published/Direct-Clone-Recovery.md',
+      c: 'wiki',
+      d: 'Direct cloning records a recovery journal before creating its staging directory. If the application stops between those operations, a stale record can survive even though no…',
+    },
+    {
       t: 'October 2026 feature contract review',
       h: 'wiki/published/Feature-Contract-Review.html',
       s: 'wiki/published/Feature-Contract-Review.md',
@@ -2258,7 +2286,7 @@
       h: 'wiki/published/',
       s: 'wiki/published/README.md',
       c: 'wiki',
-      d: 'This directory contains every Markdown article from the hosted wiki at 9f411c7d2fb227397e7c99cf1cbf50e254bf8530, with only documentation-navigation links adapted for this tree.…',
+      d: 'This directory contains every Markdown article from the hosted wiki at 70084f80efcdb8ddf429dde01befd6455c788101, with only documentation-navigation links adapted for this tree.…',
     },
     {
       t: 'Regex guide — how search works in Desktop Material',
@@ -2275,11 +2303,11 @@
       d: 'Preserve existing articles and contributions. This repository contains only wiki documentation. GitHub publishes the load-bearing master branch; keep it while mirroring…',
     },
     {
-      t: 'Wiki continuation',
+      t: 'Wiki preservation continuation',
       h: 'wiki/published/Source-CLOSEOUT_PROMPT.html',
       s: 'wiki/published/Source-CLOSEOUT_PROMPT.md',
       c: 'wiki',
-      d: 'Objective: keep the startup-repair and updated feature-contract documentation accurate while the application task finishes installed acceptance and safe cleanup.',
+      d: 'Wiki-only documentation is complete. Preserve load-bearing master and mirror its exact source on main. Application installation and actual-profile recovery remain incomplete.',
     },
     {
       t: 'Startup repair documentation handoff',
@@ -2300,7 +2328,7 @@
       h: 'wiki/published/Source-ROADMAP.html',
       s: 'wiki/published/Source-ROADMAP.md',
       c: 'wiki',
-      d: '[x] Add the complete native-free startup repair article.',
+      d: '[x] Record the normal published package, completed private renderer matrix and protected current-profile preservation.',
     },
     {
       t: 'Submodules — little projects inside your project',

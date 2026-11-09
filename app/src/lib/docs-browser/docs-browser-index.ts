@@ -884,6 +884,15 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
         'docs/features/quality-and-reliability/background-git-reliability.md',
     },
     {
+      id: 'quality-and-reliability/bug-audit-2026-10-15',
+      category: 'quality-and-reliability',
+      title: 'Bug audit, October 15, 2026',
+      description:
+        'Fifteen bounded fixes were reviewed and pushed individually to main. No new configuration is needed. These are source and focused regression results, not an installed-release…',
+      sourcePath:
+        'docs/features/quality-and-reliability/bug-audit-2026-10-15.md',
+    },
+    {
       id: 'quality-and-reliability/canonical-remote-preflight-warning',
       category: 'quality-and-reliability',
       title: 'Canonical remote preflight warning',
@@ -967,7 +976,7 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       id: 'quality-and-reliability/README',
       category: 'quality-and-reliability',
       title: 'Quality and reliability / 品質同可靠性',
-      description: 'Central diagnostic logging — opt-in',
+      description: 'October 15 bug audit: fifteen focused fixes,',
       sourcePath: 'docs/features/quality-and-reliability/README.md',
     },
     {
@@ -1208,6 +1217,15 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
         'docs/features/repository-management/network-and-wsl-repository-paths.md',
     },
     {
+      id: 'repository-management/open-folder-adds-repository',
+      category: 'repository-management',
+      title: 'Opening a folder adds the repository directly',
+      description:
+        'When a folder reaches Desktop Material from outside the app, a Git repository in that folder is added to the repository list and selected straight away. The Add local…',
+      sourcePath:
+        'docs/features/repository-management/open-folder-adds-repository.md',
+    },
+    {
       id: 'repository-management/parent-folder-repository-discovery',
       category: 'repository-management',
       title: 'Parent-folder repository discovery',
@@ -1275,6 +1293,14 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
         'The generated mark above is documentation artwork. It is not embedded in the pointer format and is not required by the transfer protocol.',
       sourcePath:
         'docs/features/repository-management/release-backed-cheap-lfs.md',
+    },
+    {
+      id: 'repository-management/remote-web-pages',
+      category: 'repository-management',
+      title: 'Repository pages for every remote',
+      description:
+        'View on GitHub used to work only for a repository whose remote is on GitHub. It now opens the web page of any remote that has one, on GitHub, GitLab, Bitbucket, Azure DevOps,…',
+      sourcePath: 'docs/features/repository-management/remote-web-pages.md',
     },
     {
       id: 'repository-management/repository-group-management',
@@ -1518,12 +1544,12 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'quality-and-reliability',
     label: 'Quality And Reliability',
-    count: 17,
+    count: 18,
   },
   {
     name: 'repository-management',
     label: 'Repository Management',
-    count: 44,
+    count: 46,
   },
   {
     name: 'review-and-diff',
@@ -1538,4 +1564,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 173
+export const DocsBrowserArticleCount = 176
