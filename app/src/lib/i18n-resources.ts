@@ -1278,6 +1278,10 @@ export type TranslationKey =
   | 'networkRepository.wslShare'
   | 'networkRepository.uncShare'
   | 'networkRepository.detected'
+  | 'remoteWebPage.titleOne'
+  | 'remoteWebPage.titleMany'
+  | 'remoteWebPage.remoteLabel'
+  | 'remoteWebPage.button'
   | 'pullBranchDeleted.title'
   | 'pullBranchDeleted.loading'
   | 'pullBranchDeleted.reviewAria'
@@ -7383,6 +7387,12 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'networkRepository.uncShare': 'UNC network share',
   'networkRepository.detected':
     'Detected a {location}. Desktop Material keeps its exact path; reconnect it before Git operations if the location goes offline.',
+  'remoteWebPage.titleOne':
+    'Open the repository page on {host} in your browser',
+  'remoteWebPage.titleMany':
+    'Open the repository page of any remote in your browser',
+  'remoteWebPage.remoteLabel': 'Remote',
+  'remoteWebPage.button': 'View on {host}',
   'pullBranchDeleted.title': 'Remote branch is gone',
   'pullBranchDeleted.loading':
     'Checking what switching branches would do in this repository…',
@@ -14555,6 +14565,10 @@ export const cantoneseTranslations: Readonly<
   'networkRepository.uncShare': 'UNC 網絡共享',
   'networkRepository.detected':
     '偵測到以下位置：{location}。Desktop Material 會保留精確路徑；如果位置離線，做 Git 操作前請先重新連接。',
+  'remoteWebPage.titleOne': '喺瀏覽器打開 {host} 上面嘅儲存庫網頁',
+  'remoteWebPage.titleMany': '揀個遠端，喺瀏覽器打開佢嘅儲存庫網頁',
+  'remoteWebPage.remoteLabel': '遠端',
+  'remoteWebPage.button': '去 {host} 睇',
   'pullBranchDeleted.title': '遠端分支已經冇咗',
   'pullBranchDeleted.loading': '睇緊喺呢個 repo 轉分支會發生咩事…',
   'pullBranchDeleted.reviewAria': '遠端分支被刪救援',

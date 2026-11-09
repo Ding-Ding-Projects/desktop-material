@@ -1,5 +1,11 @@
 # Desktop Material roadmap
 
+## November 9, 2026: opening folders and remote pages
+
+- [x] Add and select a Git repository opened from Explorer, the command line, a quick action or another app without the Add local repository dialog, which stays for folders that are not usable repositories; six focused tests against real repositories on disk.
+- [x] Open the web page of any remote (GitHub, GitLab, Bitbucket, Azure DevOps, Codeberg, Gitea, SourceHut, AWS CodeCommit, Hugging Face, self-hosted) from the No local changes card and Repository → View on …, with a dropdown of every remote when there are several and credentials removed; 54 focused tests.
+- [ ] Verify the Windows build and installer for this source, then the installed app opening a folder and a multi-remote repository.
+
 ## October 15, 2026: focused bug audit
 
 - [x] Push fifteen independently reviewed fixes on main, with 154 passing focused tests and final TypeScript checking; see the [audit record](docs/features/quality-and-reliability/bug-audit-2026-10-15.md).

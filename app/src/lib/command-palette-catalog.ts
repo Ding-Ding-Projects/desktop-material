@@ -519,6 +519,8 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     event: 'view-repository-on-github',
     title: 'View on GitHub',
     group: 'Repository',
+    keywords:
+      'remote web page browser gitlab bitbucket gitea codeberg azure devops',
   },
   {
     event: 'open-working-directory',

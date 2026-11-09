@@ -55,6 +55,13 @@ interface ISuggestedActionProps {
   readonly image?: JSX.Element
 
   /**
+   * An optional control the action depends on, such as a dropdown that picks
+   * what the button acts on. Rendered under the description, inside the text
+   * column, so it stays next to the words that explain it.
+   */
+  readonly control?: JSX.Element
+
+  /**
    * When this action hands a path to something outside the app, the guard key
    * of that open (built with `externalOpenTarget`). The button then reports
    * `aria-busy` for exactly as long as the shared guard is suppressing repeats.
@@ -85,6 +92,9 @@ export class SuggestedAction extends React.Component<ISuggestedActionProps> {
         <div className="text-wrapper">
           <h2>{this.props.title}</h2>
           {description}
+          {this.props.control && (
+            <div className="control">{this.props.control}</div>
+          )}
           {this.props.discoverabilityContent && (
             <p className="discoverability">
               {this.props.discoverabilityContent}

@@ -13,6 +13,7 @@ import {
   HistoryTabMode,
   CommitOptions,
 } from '../lib/app-state'
+import { getDefaultRemoteWebPage } from '../lib/repository-remote-web-pages'
 import { Dispatcher } from './dispatcher'
 import {
   AppStore,
@@ -55,7 +56,6 @@ import { MenuEvent, isTestMenuEvent } from '../main-process/menu'
 import {
   Repository,
   SubmoduleRepository,
-  getGitHubHtmlUrl,
   getNonForkGitHubRepository,
   isRepositoryWithGitHubRepository,
 } from '../models/repository'
@@ -8891,7 +8891,15 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
 
-    const url = getGitHubHtmlUrl(repository)
+    // The GitHub page exactly as before; otherwise the page of the default
+    // remote, so "View on …" also works for GitLab, Bitbucket, Gitea and any
+    // other host with a web page.
+    const state = this.props.repositoryStateManager.getIfPresent(repository)
+    const url = getDefaultRemoteWebPage(
+      repository,
+      state?.remotes ?? [],
+      state?.remote?.name ?? null
+    )?.url
 
     if (url) {
       this.props.dispatcher.openInBrowser(url)

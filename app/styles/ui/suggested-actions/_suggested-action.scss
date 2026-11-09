@@ -58,6 +58,15 @@
     margin-bottom: var(--spacing-half);
   }
 
+  // A control the action depends on, such as the remote picker of the
+  // "View on …" action. It may shrink with the window; the select inside
+  // truncates rather than pushing the button out of the card.
+  .control {
+    min-width: 0;
+    max-width: 100%;
+    margin: 0 0 var(--spacing-half);
+  }
+
   p.discoverability {
     margin: 0;
     padding: 0;

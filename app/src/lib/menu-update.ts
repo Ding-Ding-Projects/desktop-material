@@ -1,4 +1,5 @@
 import { MenuIDs } from '../models/menu-ids'
+import { getRemoteWebUrl } from './remote-web-page'
 import { merge } from './merge'
 import { IAppState, SelectionType } from '../lib/app-state'
 import {
@@ -182,6 +183,7 @@ function getRepositoryMenuBuilder(state: IAppState): MenuStateBuilder {
   let hasPublishedBranch = false
   let networkActionInProgress = false
   let hasRemote = false
+  let hasRemoteWebPage = false
   let tipStateIsUnknown = false
   let branchIsUnborn = false
   let rebaseInProgress = false
@@ -235,6 +237,9 @@ function getRepositoryMenuBuilder(state: IAppState): MenuStateBuilder {
 
     networkActionInProgress = selectedState.state.isPushPullFetchInProgress
     hasRemote = selectedState.state.remote !== null
+    hasRemoteWebPage = selectedState.state.remotes.some(
+      r => getRemoteWebUrl(r.url) !== null
+    )
 
     const { conflictState, workingDirectory } = selectedState.state.changesState
 
@@ -319,7 +324,10 @@ function getRepositoryMenuBuilder(state: IAppState): MenuStateBuilder {
       isHostedOnGitHub && hasPublishedBranch
     )
 
-    menuStateBuilder.setEnabled('view-repository-on-github', isHostedOnGitHub)
+    menuStateBuilder.setEnabled(
+      'view-repository-on-github',
+      isHostedOnGitHub || hasRemoteWebPage
+    )
     menuStateBuilder.setEnabled(
       'fork-repository',
       canForkRepository(state.accounts, selectedRepository)

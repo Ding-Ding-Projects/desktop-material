@@ -41,6 +41,10 @@ Material is displaying or how a repository is represented in the application.
   Explorer, the command line, a quick action or another app is added and
   selected without the Add local repository dialog, which stays for folders
   that are not usable repositories.
+- [Repository pages for every remote](remote-web-pages.md) — View on GitHub
+  also opens GitLab, Bitbucket, Azure DevOps, Gitea, Codeberg and self-hosted
+  remotes, with a dropdown of every remote when there are several, and never
+  shows or opens a credential from a remote URL.
 - [Network and WSL repository
   paths](network-and-wsl-repository-paths.md) — retain UNC roots, detect mapped
   drives and WSL shares, and provide offline reconnection guidance.

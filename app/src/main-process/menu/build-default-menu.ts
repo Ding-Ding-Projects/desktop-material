@@ -54,6 +54,7 @@ export function buildDefaultMenuTemplate(
     isStashedChangesVisible = false,
     askForConfirmationWhenStashingAllChanges = true,
     isChangesFilterVisible = true,
+    remoteWebHostName = 'GitHub',
   }: MenuLabelsEvent,
   openWebLink: OpenWebLink = openWithSystemBrowser
 ): Electron.MenuItemConstructorOptions[] {
@@ -398,7 +399,9 @@ export function buildDefaultMenuTemplate(
       separator,
       {
         id: 'view-repository-on-github',
-        label: __DARWIN__ ? 'View on GitHub' : '&View on GitHub',
+        label: __DARWIN__
+          ? `View on ${remoteWebHostName}`
+          : `&View on ${remoteWebHostName.replace(/&/g, '&&')}`,
         accelerator: 'CmdOrCtrl+Shift+G',
         click: emit('view-repository-on-github'),
       },

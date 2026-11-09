@@ -555,6 +555,8 @@ matches ask you to choose. Account credentials are never returned in a result.
 - Use repository pinning/grouping, branch presets/default-branch controls, and per-repository editor overrides
 - Add, lock, move, rename, repair, remove, or prune worktrees, and open repositories or worktrees in separate windows with isolated per-window selection and persisted tabs
 - Choose **File → Add local repository → Auto-detect repositories…** to scan a parent folder with bounded, link-safe traversal, review the discovered Git repositories, and add them together
+- Open a repository from Explorer, the command line, a quick action, or another app and it is added and selected straight away; the **Add local repository** dialog only opens for a folder that is not a usable repository
+- **View on GitHub** also opens GitLab, Bitbucket, Azure DevOps, Gitea, Codeberg, and self-hosted remotes, with a dropdown of every remote when a repository has several; credentials in a remote URL are never shown or opened
 
 **進階用戶嘅歷史、stash 同視窗**
 
@@ -565,6 +567,8 @@ matches ask you to choose. Account credentials are never returned in a result.
 - 使用儲存庫釘選／分組、分支預設／預設分支控制，同逐儲存庫嘅編輯器覆寫
 - 新增、鎖定、移動、改名、修復、移除或者修剪 worktree，並且喺獨立視窗打開儲存庫或者 worktree，每個視窗有自己隔離嘅選取同持久分頁
 - 揀 **File → Add local repository → Auto-detect repositories…** 用有界、防連結陷阱嘅遍歷掃描一個上層資料夾，覆核搵到嘅 Git 儲存庫，然後一次過加入
+- 喺 Explorer、命令列、快速動作或者其他 app 開一個儲存庫，會即刻加入兼揀埋；淨係唔係可用儲存庫嘅資料夾先會彈 **Add local repository** 對話框
+- **View on GitHub** 而家連 GitLab、Bitbucket、Azure DevOps、Gitea、Codeberg 同自架伺服器嘅遠端都開得到；有幾個遠端就用下拉清單揀，遠端 URL 入面嘅憑證一律唔會顯示或者打開
 
 **Guided Git and provider administration**
 - Manage cone-mode sparse checkout through a three-step **Choose/Adjust/Restore → Review selection → Apply and refresh** guide that remains visible above the scrolling editor and review content. State-aware guidance distinguishes empty, invalid, ready, running, and completed states; review freezes and shows every bounded normalized selection entry before Git updates and refreshes the worktree

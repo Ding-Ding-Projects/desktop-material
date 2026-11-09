@@ -717,6 +717,7 @@ import {
 } from './helpers/repository-indicator-cache'
 import { BackgroundFetcher } from './helpers/background-fetcher'
 import { RepositoryStateCache } from './repository-state-cache'
+import { getDefaultRemoteWebPage } from '../repository-remote-web-pages'
 import { readEmoji } from '../read-emoji'
 import { Emoji } from '../emoji'
 import { GitStoreCache } from './git-store-cache'
@@ -5968,6 +5969,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
       hasCurrentPullRequest: currentPullRequest !== null,
       askForConfirmationWhenStashingAllChanges,
       isChangesFilterVisible: this.showChangesFilter,
+      remoteWebHostName:
+        selectedRepository instanceof Repository
+          ? getDefaultRemoteWebPage(
+              selectedRepository,
+              state.remotes,
+              state.remote?.name ?? null
+            )?.hostName
+          : undefined,
     })
   }
 

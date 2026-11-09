@@ -6,7 +6,10 @@ import { MenuIDs } from '../../models/menu-ids'
 import { IMenu, MenuItem } from '../../models/app-menu'
 import memoizeOne from 'memoize-one'
 import { getPlatformSpecificNameOrSymbolForModifier } from '../../lib/menu-item'
-import { MenuBackedSuggestedAction } from '../suggested-actions'
+import {
+  MenuBackedSuggestedAction,
+  SuggestedAction,
+} from '../suggested-actions'
 import { IRepositoryState } from '../../lib/app-state'
 import { TipState, IValidBranch } from '../../models/tip'
 import { Ref } from '../lib/ref'
@@ -33,6 +36,10 @@ import { KeyboardShortcut } from '../keyboard-shortcut/keyboard-shortcut'
 import { formatNumber } from '../../lib/format-number'
 import { externalOpenTarget } from '../../lib/external-open-guard'
 import { MaterialSymbol } from '../lib/material-symbol'
+import { Select } from '../lib/select'
+import { t } from '../../lib/i18n'
+import { IRemoteWebPage } from '../../lib/remote-web-page'
+import { getRepositoryRemoteWebPages } from '../../lib/repository-remote-web-pages'
 
 function formatMenuItemLabel(text: string) {
   if (__WIN32__ || __LINUX__) {
@@ -135,6 +142,12 @@ interface INoChangesState {
    * initially appearing.
    */
   readonly enableTransitions: boolean
+
+  /**
+   * The remote picked in the "View on …" dropdown, by name. `null` until the
+   * user picks one, which means the default remote.
+   */
+  readonly selectedRemoteName: string | null
 }
 
 function getItemAcceleratorKeys(item: MenuItem) {
@@ -196,11 +209,31 @@ export class NoChanges extends React.Component<
    */
   private transitionTimer: number | null = null
 
+  /** Every remote with a web page, default first. */
+  private getRemoteWebPages = memoizeOne(
+    (
+      repository: Repository,
+      remotes: ReadonlyArray<IRemote>,
+      currentRemoteName: string | null
+    ): ReadonlyArray<IRemoteWebPage> =>
+      getRepositoryRemoteWebPages(repository, remotes, currentRemoteName)
+  )
+
   public constructor(props: INoChangesProps) {
     super(props)
     this.state = {
       enableTransitions: false,
+      selectedRemoteName: null,
     }
+  }
+
+  private getPagesForProps() {
+    const { repository, repositoryState } = this.props
+    return this.getRemoteWebPages(
+      repository,
+      repositoryState.remotes,
+      repositoryState.remote?.name ?? null
+    )
   }
 
   private getMenuItemInfo(menuItemId: MenuIDs): IMenuItemInfo | undefined {
@@ -296,6 +329,79 @@ export class NoChanges extends React.Component<
 
   private onViewOnGitHubClicked = () =>
     this.props.dispatcher.incrementMetric('suggestedStepViewOnGitHub')
+
+  /**
+   * "View on …" for every remote with a web page. A repository with only its
+   * GitHub remote keeps the menu-backed GitHub action and its shortcut; any
+   * other remote, or more than one, gets this card, with a dropdown listing
+   * every remote when there is more than one.
+   */
+  private renderViewOnRemote() {
+    const { repository } = this.props
+    const pages = this.getPagesForProps()
+
+    if (
+      pages.length === 0 ||
+      (pages.length === 1 &&
+        pages[0].hostName === 'GitHub' &&
+        repository.gitHubRepository !== null)
+    ) {
+      return this.renderViewOnGitHub()
+    }
+
+    const selected = this.getSelectedRemoteWebPage(pages)
+    const title =
+      pages.length === 1
+        ? t('remoteWebPage.titleOne', { host: selected.hostName })
+        : t('remoteWebPage.titleMany')
+
+    return (
+      <SuggestedAction
+        title={title}
+        control={pages.length > 1 ? this.renderRemotePicker(pages) : undefined}
+        buttonText={t('remoteWebPage.button', { host: selected.hostName })}
+        onClick={this.onViewOnRemoteClicked}
+      />
+    )
+  }
+
+  private getSelectedRemoteWebPage(pages: ReadonlyArray<IRemoteWebPage>) {
+    const { selectedRemoteName } = this.state
+    return pages.find(p => p.remoteName === selectedRemoteName) ?? pages[0]
+  }
+
+  private renderRemotePicker(pages: ReadonlyArray<IRemoteWebPage>) {
+    const selected = this.getSelectedRemoteWebPage(pages)
+    return (
+      <Select
+        className="remote-web-page-picker"
+        label={t('remoteWebPage.remoteLabel')}
+        value={selected.remoteName}
+        onChange={this.onRemotePicked}
+      >
+        {pages.map(p => (
+          <option key={p.remoteName} value={p.remoteName}>
+            {`${p.remoteName} (${p.displayUrl})`}
+          </option>
+        ))}
+      </Select>
+    )
+  }
+
+  private onRemotePicked = (event: React.FormEvent<HTMLSelectElement>) => {
+    this.setState({ selectedRemoteName: event.currentTarget.value })
+  }
+
+  private onViewOnRemoteClicked = () => {
+    const pages = this.getPagesForProps()
+    if (pages.length === 0) {
+      return
+    }
+    this.props.dispatcher.incrementMetric('suggestedStepViewOnGitHub')
+    this.props.dispatcher.openInBrowser(
+      this.getSelectedRemoteWebPage(pages).url
+    )
+  }
 
   private openIntegrationPreferences = () => {
     this.props.dispatcher.showPopup({
@@ -755,7 +861,7 @@ export class NoChanges extends React.Component<
         <SuggestedActionGroup>
           {this.renderOpenInExternalEditor()}
           {this.renderShowInFileManager()}
-          {this.renderViewOnGitHub()}
+          {this.renderViewOnRemote()}
         </SuggestedActionGroup>
       </>
     )
@@ -766,6 +872,16 @@ export class NoChanges extends React.Component<
       this.setState({ enableTransitions: true })
       this.transitionTimer = null
     }, 500)
+  }
+
+  public componentDidUpdate(prevProps: INoChangesProps) {
+    // A pick belongs to the repository it was made in.
+    if (
+      prevProps.repository.id !== this.props.repository.id &&
+      this.state.selectedRemoteName !== null
+    ) {
+      this.setState({ selectedRemoteName: null })
+    }
   }
 
   public componentWillUnmount() {

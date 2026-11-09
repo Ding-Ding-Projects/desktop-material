@@ -1,3 +1,39 @@
+## November 9, 2026: opening folders and remote pages
+
+On branch `feature/open-adds-directly-remote-links`:
+
+- **Opening a folder adds the repository directly.** `dispatchCLIAction`
+  (`open-repository`, used by Explorer's Open in Desktop Material, `--cli-open`,
+  the `desktop-material` helper and quick actions) now adds and selects a
+  regular Git repository that is not in the list yet, the same work as
+  confirming Add local repository. The dialog still opens for a folder that is
+  not a repository, a bare repository, or one Git does not trust. See
+  [the article](docs/features/repository-management/open-folder-adds-repository.md).
+- **Repository pages for every remote.** `app/src/lib/remote-web-page.ts` turns
+  remote URLs into web pages without credentials, queries or fragments. The No
+  local changes card offers every remote with a page in a **Remote** dropdown
+  when there are several; Repository → View on … is named after the service
+  and enabled for any remote with a page, and still opens the GitHub page
+  exactly as before for GitHub repositories. See
+  [the article](docs/features/repository-management/remote-web-pages.md).
+
+Verification: 60 focused tests pass locally
+(`cli-open-adds-repository-test.ts`, `remote-web-page-test.ts`,
+`ui/no-changes-remote-pages-test.tsx`), and the menu, command palette, context
+menu and submodule render tests that touch these surfaces pass. TypeScript
+checking passes. Three unrelated source-pattern tests
+(`palette-settings-coverage-test.ts`, `repository-transfer-surface-test.ts`,
+`rewrite-surface-coverage-test.ts`) and eight ESLint errors in
+`app/src/lib/stores/app-store.ts` already fail on `main` at `74f2d95` and were
+not changed. The Windows build, installer and installed-app behavior are not
+verified yet.
+
+廣東話交接：喺 Explorer、命令列、快速動作或者其他 app 開 Git 儲存庫，而家即刻
+加入兼揀埋，唔使再撳對話框；唔係可用儲存庫先開對話框。View on GitHub 而家連
+GitLab、Bitbucket、Azure DevOps、Gitea、Codeberg 同自架伺服器都開得到，有幾個
+遠端就用下拉清單揀，憑證唔會顯示或者打開。60 個相關測試喺本機過晒；Windows
+build、安裝程式同裝好之後嘅實機行為仲未驗證。
+
 ## October 15, 2026: focused bug audit checkpoint
 
 Fifteen fixes are pushed individually on main through

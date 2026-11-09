@@ -67,4 +67,11 @@ export type MenuLabelsEvent = {
    * says "Show changes filter" or "Hide changes filter".
    */
   readonly isChangesFilterVisible?: boolean
+
+  /**
+   * The service the Repository menu's "View on …" item opens for the selected
+   * repository, such as "GitHub", "GitLab" or a self-hosted server's name.
+   * Omit it to show "View on GitHub".
+   */
+  readonly remoteWebHostName?: string
 }
