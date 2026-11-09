@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Command palette and regex builder</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;family=Material+Symbols+Rounded:opsz,wght,FILL@20..48,400,0..1&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#006493}a:hover{color:#004b70}
+.dm{--p:#006493;--onp:#fff;--pc:#c9e6ff;--onpc:#001e30;--sc:#d3e5f5;--onsc:#0c1d29;--bg:#f8f9ff;--s0:#fff;--s1:#f2f3f9;--s2:#eceef4;--s3:#e6e8ee;--s4:#e0e2e8;--on:#191c20;--onv:#41474d;--ol:#71787e;--olv:#c1c7ce;--ok:#1b7f37;--okc:#d2f2d8;--err:#ba1a1a;--errc:#ffdad6;--hl:#ffe08a;--onhl:#241a00;
+--d-s:200ms;--d-m:300ms;--d-l:500ms;--e-emph:cubic-bezier(.2,0,0,1);--e-spring:cubic-bezier(.38,1.21,.22,1);
+font-family:Roboto,'Segoe UI',system-ui,sans-serif;color:var(--on);background:var(--bg);min-height:1400px;transition:background var(--d-l),color var(--d-l)}
+.dm.dark{--p:#8dcdff;--onp:#00344f;--pc:#004b70;--onpc:#c9e6ff;--sc:#394956;--onsc:#d3e5f5;--bg:#101418;--s0:#0b0f12;--s1:#181c20;--s2:#1c2024;--s3:#272a2f;--s4:#32353a;--on:#e0e2e8;--onv:#c1c7ce;--ol:#8b9198;--olv:#41474d;--ok:#7bd88f;--okc:#0f3d1c;--err:#ffb4ab;--errc:#93000a;--hl:#5c4a00;--onhl:#ffe08a}
+.ms{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 0,'wght' 400;display:inline-block;vertical-align:middle}
+.wrap{max-width:1240px;margin:0 auto;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:28px;font-weight:500}
+h2{margin:0;font-size:18px;font-weight:500;display:flex;align-items:center;gap:8px}
+h3{margin:0;font-size:12px;font-weight:500;color:var(--onv)}
+.sub{margin:4px 0 0;font-size:14px;color:var(--onv);line-height:20px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.cols{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.card{background:var(--s1);border-radius:28px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0;box-sizing:border-box}
+.icon-btn{all:unset;cursor:pointer;width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--onv);flex:none;transition:background var(--d-s),transform var(--d-m) var(--e-spring)}
+.icon-btn:hover{background:var(--s3)}.icon-btn:active{transform:scale(.9)}.icon-btn:focus-visible{outline:3px solid var(--p)}
+.icon-btn.on{background:var(--pc);color:var(--onpc)}
+.btn{all:unset;cursor:pointer;height:44px;padding:0 18px;border-radius:999px;background:var(--p);color:var(--onp);font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px;box-sizing:border-box;transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring)}
+.btn:active{transform:scale(.96);border-radius:12px}.btn:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.btn.tonal{background:var(--sc);color:var(--onsc)}
+.pal{background:var(--s0);border-radius:28px;box-shadow:0 8px 28px rgba(0,0,0,.16),inset 0 0 0 1px var(--olv);overflow:hidden;animation:drop var(--d-l) var(--e-spring)}
+@keyframes drop{from{opacity:0;transform:translateY(-12px) scale(.97)}to{opacity:1;transform:none}}
+.q{display:flex;align-items:center;gap:8px;padding:8px 8px 8px 20px;border-bottom:1px solid var(--olv);transition:background var(--d-m)}
+.q.rx{background:var(--pc)}.q.bad{background:var(--errc)}
+.q input{all:unset;flex:1;min-width:0;height:48px;font-size:16px;color:var(--on)}
+.q.rx input{font-family:'Roboto Mono',monospace;font-size:15px}
+.q input::placeholder{color:var(--onv)}
+.msg{display:flex;gap:8px;align-items:flex-start;padding:10px 20px;font-size:13px;line-height:18px;color:var(--err);animation:pop var(--d-m) var(--e-spring)}
+@keyframes pop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.list{max-height:520px;overflow:auto;padding:8px}
+.grp{padding:10px 12px 4px;font-size:12px;font-weight:500;color:var(--onv)}
+.cmd{all:unset;cursor:pointer;box-sizing:border-box;width:100%;min-height:48px;padding:6px 12px;border-radius:14px;display:flex;align-items:center;gap:12px;font-size:14px;transition:background var(--d-s),border-radius var(--d-m) var(--e-spring)}
+.cmd:hover{background:var(--s2)}.cmd.on{background:var(--sc);color:var(--onsc);border-radius:24px}
+.cmd:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
+.cmd .t{flex:1;min-width:0}.cmd small{display:block;font-size:12px;color:var(--onv)}
+kbd{font-family:'Roboto Mono',monospace;font-size:11.5px;padding:3px 7px;border-radius:6px;background:var(--s3);color:var(--on);box-shadow:inset 0 -1px 0 var(--ol);white-space:nowrap}
+.foot{display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:10px 20px;border-top:1px solid var(--olv);font-size:12px;color:var(--onv)}
+.empty{padding:28px 20px;text-align:center;font-size:14px;color:var(--onv)}
+.empty b{display:block;color:var(--on);font-weight:500;margin-bottom:4px}
+.pat{display:flex;align-items:center;gap:6px;background:var(--s0);border-radius:16px;padding:0 6px 0 14px;box-shadow:inset 0 0 0 1px var(--ol);font-family:'Roboto Mono',monospace;transition:box-shadow var(--d-s)}
+.pat:focus-within{box-shadow:inset 0 0 0 2px var(--p)}.pat.bad{box-shadow:inset 0 0 0 2px var(--err)}
+.pat span{color:var(--onv);font-size:16px}
+.pat input{all:unset;flex:1;min-width:0;height:52px;font-size:15px;color:var(--on)}
+.toks{display:flex;flex-wrap:wrap;gap:6px}
+.tok{all:unset;cursor:pointer;min-height:44px;padding:4px 12px;border-radius:12px;background:var(--s0);box-shadow:inset 0 0 0 1px var(--olv);display:inline-flex;flex-direction:column;justify-content:center;box-sizing:border-box;transition:transform var(--d-m) var(--e-spring),background var(--d-s)}
+.tok:hover{background:var(--pc)}.tok:active{transform:scale(.94)}.tok:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.tok code{font-family:'Roboto Mono',monospace;font-size:13px;font-weight:500;color:var(--on)}
+.tok small{font-size:11.5px;color:var(--onv)}
+.tok.off{cursor:not-allowed;opacity:1;background:var(--s2)}.tok.off code{text-decoration:line-through;color:var(--onv)}
+.flag{all:unset;cursor:pointer;height:44px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--ol);display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:500;transition:background var(--d-m),color var(--d-m),border-radius var(--d-m) var(--e-spring)}
+.flag.on{background:var(--sc);color:var(--onsc);box-shadow:none;border-radius:22px}.flag:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.flag code{font-family:'Roboto Mono',monospace}
+.test{background:var(--s0);border-radius:16px;padding:6px;display:flex;flex-direction:column;gap:2px}
+.ln{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;font-family:'Roboto Mono',monospace;font-size:13px;line-height:19px;transition:background var(--d-m)}
+.ln.hit{background:var(--okc)}
+.ln .tx{flex:1;min-width:0;overflow-wrap:anywhere}
+.ln mark{background:var(--hl);color:var(--onhl);border-radius:4px;padding:1px 0}
+.ln .ms{font-size:18px;color:var(--ol)}.ln.hit .ms{color:var(--ok)}
+.note{display:flex;gap:10px;align-items:flex-start;background:var(--s2);border-radius:16px;padding:12px 14px;font-size:13px;line-height:19px;color:var(--onv)}
+.guide{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:760px){.guide{grid-template-columns:minmax(0,1fr)}}
+.g{background:var(--s0);border-radius:16px;padding:12px 14px;font-size:13px;line-height:19px;color:var(--onv)}
+.g b{display:block;color:var(--on);font-weight:500;margin-bottom:2px}.g code{font-family:'Roboto Mono',monospace;color:var(--on)}
+@media (prefers-reduced-motion:reduce){.dm *{transition-duration:1ms!important;animation-duration:1ms!important}}
+</style>
+</helmet>
+<div class="dm {{rootClass}}">
+<div class="wrap">
+<div class="bar"><div style="flex:1;min-width:260px"><h1>Command palette and regex builder</h1><p class="sub">One search field, two ways to use it. Plain text is the default. Regex is an explicit switch, and the builder edits the same pattern the field holds.</p></div><button class="icon-btn" onClick="{{toggleDark}}" aria-label="Switch light and dark"><span class="ms" aria-hidden="true">contrast</span></button></div>
+
+<div class="cols">
+<div style="flex:1 1 460px;min-width:0;display:flex;flex-direction:column;gap:12px">
+<div class="pal">
+<div class="{{qCls}}"><span class="ms" aria-hidden="true">{{qIcon}}</span><input id="cp-q" aria-label="{{qLabel}}" placeholder="{{qHint}}" value="{{query}}" onChange="{{setQuery}}" onKeyDown="{{onKey}}" spellcheck="false" autocomplete="off"><button class="{{rxBtnCls}}" aria-pressed="{{regex}}" aria-label="Use regular expression" onClick="{{toggleRegex}}"><span class="ms" aria-hidden="true">regular_expression</span></button><button class="{{bldBtnCls}}" aria-pressed="{{builder}}" aria-label="Open regex builder" onClick="{{toggleBuilder}}"><span class="ms" aria-hidden="true">construction</span></button></div>
+<sc-if value="{{hasErr}}" hint-placeholder-val="{{ false }}"><div class="msg" role="alert"><span class="ms" style="font-size:18px" aria-hidden="true">error</span><span>{{errText}}</span></div></sc-if>
+<div class="list" role="listbox" aria-label="Commands">
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="3"><div class="grp">{{g.name}}</div>
+<sc-for list="{{g.items}}" as="c" hint-placeholder-count="3"><button class="{{c.cls}}" role="option" aria-selected="{{c.on}}" onClick="{{c.pick}}"><span class="ms" aria-hidden="true">{{c.icon}}</span><span class="t">{{c.label}}<small>{{c.where}}</small></span><sc-if value="{{c.hasKey}}" hint-placeholder-val="{{ true }}"><kbd>{{c.key}}</kbd></sc-if></button></sc-for></sc-for>
+<sc-if value="{{none}}" hint-placeholder-val="{{ false }}"><div class="empty"><b>No command matches</b>{{noneText}}</div></sc-if>
+</div>
+<div class="foot"><span><kbd>↑</kbd> <kbd>↓</kbd> move</span><span><kbd>Enter</kbd> run</span><span><kbd>Alt</kbd>+<kbd>R</kbd> regex</span><span style="flex:1"></span><span role="status">{{countText}}</span></div>
+</div>
+<div class="note"><span class="ms" aria-hidden="true">info</span><span>{{ranText}}</span></div>
+</div>
+
+<sc-if value="{{builder}}" hint-placeholder-val="{{ true }}">
+<div class="card" style="flex:1 1 520px">
+<div class="bar"><h2 style="flex:1"><span class="ms" aria-hidden="true">construction</span>Regex builder</h2><button class="btn tonal" onClick="{{clear}}"><span class="ms" aria-hidden="true">backspace</span>Clear</button></div>
+<div class="{{patCls}}"><span aria-hidden="true">/</span><input id="cp-p" aria-label="Pattern" value="{{pattern}}" onChange="{{setQuery}}" spellcheck="false" autocomplete="off"><span aria-hidden="true">/{{flagText}}</span></div>
+<sc-for list="{{palette}}" as="grp" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;gap:6px"><h3>{{grp.name}}</h3><div class="toks"><sc-for list="{{grp.toks}}" as="t" hint-placeholder-count="4"><button class="{{t.cls}}" aria-disabled="{{t.off}}" onClick="{{t.add}}"><code>{{t.code}}</code><small>{{t.label}}</small></button></sc-for></div></div></sc-for>
+<div style="display:flex;flex-direction:column;gap:6px"><h3>Flags</h3><div class="bar"><sc-for list="{{flags}}" as="f" hint-placeholder-count="3"><button class="{{f.cls}}" aria-pressed="{{f.on}}" onClick="{{f.toggle}}"><code>{{f.code}}</code>{{f.label}}</button></sc-for></div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><div class="bar"><h3 style="flex:1">Live tester</h3><span style="font-size:12px;color:var(--onv)" role="status">{{testText}}</span></div>
+<div class="test"><sc-for list="{{lines}}" as="l" hint-placeholder-count="5"><div class="{{l.cls}}"><span class="ms" aria-hidden="true">{{l.icon}}</span><span class="tx">{{l.pre}}<mark>{{l.hit}}</mark>{{l.post}}</span></div></sc-for></div></div>
+<div class="note"><span class="ms" aria-hidden="true">shield</span><span>Patterns run with linear-time matching, bounded in time and size, so no pattern can hang the app. That is why lookaround and backreferences are not offered: they are shown struck through with the reason instead of being hidden.</span></div>
+</div>
+</sc-if>
+</div>
+
+<div class="card">
+<h2><span class="ms" aria-hidden="true">school</span>How regex works</h2>
+<div class="guide">
+<div class="g"><b>Literal text matches itself</b><code>push</code> finds every command with those four letters in a row.</div>
+<div class="g"><b>Anchors pin the position</b><code>^Push</code> matches only at the start, <code>main$</code> only at the end.</div>
+<div class="g"><b>Classes match one character</b><code>\d</code> is a digit, <code>\w</code> a word character, <code>[a-f]</code> a range, <code>.</code> anything.</div>
+<div class="g"><b>Quantifiers repeat</b><code>*</code> zero or more, <code>+</code> one or more, <code>?</code> optional, <code>{2,4}</code> a counted range.</div>
+<div class="g"><b>Groups and alternatives</b><code>(pull|push)</code> matches either word, and the group can take a quantifier.</div>
+<div class="g"><b>Escape special characters</b><code>\.</code> matches a real dot. The builder escapes text you paste when you ask it to.</div>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1400}}'>
+class Component extends DCLogic {
+  constructor(p){super(p);this.state={dark:false,regex:true,builder:true,query:'^(Push|Pull)',fi:true,fm:false,fs:false,sel:0,ran:''};
+    this.cmds=[['Repository','Push origin','upload','Repository menu','Ctrl+P'],['Repository','Pull origin','download','Repository menu','Ctrl+Shift+P'],['Repository','Fetch every remote','sync','Repository menu','Ctrl+Shift+T'],['Repository','Show in Explorer','folder_open','Repository menu','Ctrl+Shift+F'],['Branch','New branch','add','Branch menu','Ctrl+Shift+N'],['Branch','Merge into current branch','merge','Branch menu','Ctrl+Shift+M'],['Branch','Push all branches','publish','Branch menu',''],['Branch','Pull request: create','rate_review','Branch menu','Ctrl+R'],['Settings','Appearance: accent colour','palette','Settings, Appearance',''],['Settings','Motion: level and speed','animation','Settings, Appearance',''],['Settings','Language and funny level','translate','Settings, Language',''],['Tools','Base64 toolkit','data_object','Tools',''],['Tools','Virtual disk manager','hard_drive','Tools','']];
+    this.sample=['Push origin','Pull origin','pull request: create','Fetch every remote','Push all branches'];}
+  compile(){const s=this.state,q=s.query;if(!s.regex)return {};
+    if(/\(\?<?[=!]/.test(q))return {err:'Lookaround such as (?=…) is not available. Matching stays linear-time so a pattern cannot hang the app. Try a group or an anchor instead.'};
+    if(/\\[1-9]/.test(q))return {err:'Backreferences such as \\1 are not available with linear-time matching. Repeat the group instead.'};
+    try{return {re:new RegExp(q,(s.fi?'i':'')+(s.fm?'m':'')+(s.fs?'s':''))};}catch(e){return {err:String(e.message).replace(/^Invalid regular expression: /,'Pattern is not valid: ')};}}
+  renderVals(){
+    const s=this.state,c=this.compile(),q=s.query;
+    const match=t=>{if(!q)return true;if(s.regex)return c.re?c.re.test(t):false;return t.toLowerCase().indexOf(q.toLowerCase())>=0;};
+    const hits=c.err?[]:this.cmds.filter(x=>match(x[1]));const sel=Math.min(s.sel,Math.max(hits.length-1,0));
+    const run=x=>this.setState({ran:x[1]});
+    const names=[...new Set(hits.map(x=>x[0]))];
+    const groups=names.map(n=>({name:n,items:hits.filter(x=>x[0]===n).map(x=>{const i=hits.indexOf(x);return {label:x[1],icon:x[2],where:x[3],key:x[4],hasKey:!!x[4],on:i===sel,cls:'cmd'+(i===sel?' on':''),pick:()=>{this.setState({sel:i});run(x);}};})}));
+    const add=t=>()=>this.setState({query:q+t,regex:true,sel:0});
+    const tk=(code,label,ins)=>({code:code,label:label,cls:'tok',off:false,add:add(ins===undefined?code:ins)});
+    const off=(code,label)=>({code:code,label:label,cls:'tok off',off:true,add:()=>{}});
+    const lines=this.sample.map(t=>{let m=null;if(c.re&&q){m=c.re.exec(t);if(m&&m[0]==='')m=null;}return m?{cls:'ln hit',icon:'check_circle',pre:t.slice(0,m.index),hit:m[0],post:t.slice(m.index+m[0].length)}:{cls:'ln',icon:'remove',pre:t,hit:'',post:''};});
+    const nHit=lines.filter(l=>l.hit).length;
+    return {
+      rootClass:s.dark?'dark':'',toggleDark:()=>this.setState({dark:!s.dark}),
+      regex:s.regex,builder:s.builder,query:q,pattern:q,
+      qCls:'q'+(c.err?' bad':s.regex?' rx':''),qIcon:s.regex?'regular_expression':'search',qLabel:s.regex?'Search commands with a regular expression':'Search commands',qHint:s.regex?'Type a pattern':'Type a command or setting',
+      rxBtnCls:'icon-btn'+(s.regex?' on':''),bldBtnCls:'icon-btn'+(s.builder?' on':''),
+      setQuery:e=>this.setState({query:e.target.value,sel:0}),
+      toggleRegex:()=>this.setState({regex:!s.regex,sel:0}),toggleBuilder:()=>this.setState({builder:!s.builder}),
+      onKey:e=>{if(e.key==='ArrowDown'){e.preventDefault();this.setState({sel:Math.min(sel+1,hits.length-1)});}else if(e.key==='ArrowUp'){e.preventDefault();this.setState({sel:Math.max(sel-1,0)});}else if(e.key==='Enter'&&hits[sel]){run(hits[sel]);}else if(e.altKey&&(e.key==='r'||e.key==='R')){e.preventDefault();this.setState({regex:!s.regex,sel:0});}},
+      hasErr:!!c.err,errText:c.err||'',groups:groups,none:hits.length===0&&!c.err,
+      noneText:s.regex?'Nothing matches this pattern. Check the tester on the right, or switch regex off to search plain text.':'Try fewer letters, or switch regex on for a pattern.',
+      countText:c.err?'Pattern needs fixing':hits.length+' of '+this.cmds.length+' commands',
+      ranText:s.ran?'Ran "'+s.ran+'". The palette keeps the query, the mode and the flags for next time.':'Pick a command to run it. The query, the mode and the flags are remembered between openings.',
+      clear:()=>this.setState({query:'',sel:0}),patCls:'pat'+(c.err?' bad':''),flagText:(s.fi?'i':'')+(s.fm?'m':'')+(s.fs?'s':''),
+      palette:[
+        {name:'Anchors',toks:[tk('^','Start'),tk('$','End'),tk('\\b','Word edge')]},
+        {name:'Character classes',toks:[tk('.','Any character'),tk('\\d','Digit'),tk('\\w','Word character'),tk('\\s','Space'),tk('[a-z]','Range'),tk('[^…]','Not these','[^ ]')]},
+        {name:'Quantifiers',toks:[tk('*','Zero or more'),tk('+','One or more'),tk('?','Optional'),tk('{2,4}','Counted')]},
+        {name:'Groups and alternation',toks:[tk('(…)','Group','()'),tk('(?:…)','Group, not captured','(?:)'),tk('|','Or'),off('(?=…)','Lookaround: unavailable'),off('\\1','Backreference: unavailable')]}
+      ],
+      flags:[['i','Ignore case','fi'],['m','Multiline anchors','fm'],['s','Dot matches newline','fs']].map(f=>({code:f[0],label:f[1],on:s[f[2]],cls:'flag'+(s[f[2]]?' on':''),toggle:()=>this.setState({[f[2]]:!s[f[2]],sel:0})})),
+      lines:lines,testText:c.err?'Fix the pattern to test it':!q?'Type a pattern to test it':nHit+' of '+lines.length+' sample lines match'
+    };
+  }
+}
+</script>
+</body>
+</html>

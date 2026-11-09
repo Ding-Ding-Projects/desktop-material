@@ -27,3 +27,13 @@ were reported for any artboard at either width.
   already uses, not measured per pixel.
 - Fonts load from Google Fonts in these files; the application uses its own
   vendored copies.
+
+## Second pass
+
+`AppearanceStudio` and `CommandPalette` were rendered the same way at
+1280 x 1400 and 390 x 1400. The 1280 px frames were looked at; the 390 px frames
+were produced but not reviewed by eye. Every template value resolves and every
+handler runs once without an exception in a scripted check. No independent
+fresh-eye review was done for these two boards. Keyboard shortcuts shown in the
+palette are proposals, apart from Ctrl+Shift+F for Show in Explorer, which the
+roadmap records.

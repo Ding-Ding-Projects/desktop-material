@@ -108,6 +108,15 @@
       "title": "Appearance studio: colour, per-element editor, logo and name",
       "expand": "fill",
       "is_interactive": true
+    },
+    "CommandPalette.dc.html": {
+      "x": 2720,
+      "y": 4500,
+      "w": 1280,
+      "h": 1400,
+      "title": "Command palette and full regex builder",
+      "expand": "fill",
+      "is_interactive": true
     }
   },
   "order": [
@@ -121,7 +130,8 @@
     "Minecraft.dc.html",
     "Settings.dc.html",
     "SettingsAll.dc.html",
-    "AppearanceStudio.dc.html"
+    "AppearanceStudio.dc.html",
+    "CommandPalette.dc.html"
   ],
   "notes": {
     "row1": {
