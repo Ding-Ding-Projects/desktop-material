@@ -171,6 +171,7 @@ interface IPreferencesProps {
   readonly autoFitZoomEnabled: boolean
   readonly windowZoomFactor: number
   readonly selectedTabSize: number
+  readonly alwaysShowWorktreeList: boolean
   readonly useCustomEditor: boolean
   readonly customEditor: ICustomIntegration | null
   readonly useCustomShell: boolean
@@ -263,6 +264,8 @@ interface IPreferencesState {
   readonly underlineLinks: boolean
 
   readonly showDiffCheckMarks: boolean
+
+  readonly alwaysShowWorktreeList: boolean
 
   readonly selectedGitTabIndex?: number
   readonly enableGitHookEnv: boolean | undefined
@@ -424,6 +427,7 @@ export class Preferences extends React.Component<
         this.props.appearanceCustomization,
       initiallyScheduledSettings: this.props.scheduledSettings,
       initiallySelectedTabSize: this.props.selectedTabSize,
+      alwaysShowWorktreeList: this.props.alwaysShowWorktreeList,
       scheduledSettings: this.props.scheduledSettings,
       isLoadingGitConfig: true,
       underlineLinks: this.props.underlineLinks,
@@ -1253,6 +1257,10 @@ export class Preferences extends React.Component<
             onAutoFitZoomEnabledChanged={this.onAutoFitZoomEnabledChanged}
             windowZoomFactor={this.props.windowZoomFactor}
             selectedTabSize={this.props.selectedTabSize}
+            alwaysShowWorktreeList={this.state.alwaysShowWorktreeList}
+            onAlwaysShowWorktreeListChanged={
+              this.onAlwaysShowWorktreeListChanged
+            }
             onSelectedTabSizeChanged={this.onSelectedTabSizeChanged}
             selectedDateFormat={
               this.state.selectedDateFormat ?? getDateFormatPreference()
@@ -1676,6 +1684,12 @@ export class Preferences extends React.Component<
     this.setState({ underlineLinks })
   }
 
+  private onAlwaysShowWorktreeListChanged = (
+    alwaysShowWorktreeList: boolean
+  ) => {
+    this.setState({ alwaysShowWorktreeList })
+  }
+
   private onShowDiffCheckMarksChanged = (showDiffCheckMarks: boolean) => {
     this.setState({ showDiffCheckMarks })
   }
@@ -1955,6 +1969,7 @@ export class Preferences extends React.Component<
     dispatcher.setUnderlineLinksSetting(this.state.underlineLinks)
 
     dispatcher.setDiffCheckMarksSetting(this.state.showDiffCheckMarks)
+    dispatcher.setAlwaysShowWorktreeList(this.state.alwaysShowWorktreeList)
 
     dispatcher.setSelectedCopilotModelsByAccount(
       this.state.selectedCopilotModelsByAccount

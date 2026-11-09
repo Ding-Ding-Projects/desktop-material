@@ -361,6 +361,15 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       sourcePath: 'docs/features/github-desktop-demand-backlog.md',
     },
     {
+      id: 'identity-and-workspace/always-show-worktree-list',
+      category: 'identity-and-workspace',
+      title: 'Always show worktree list / 永遠顯示工作樹清單',
+      description:
+        'Ported from GitHub Desktop 3.6.7 (upstream desktop/desktop#22898).',
+      sourcePath:
+        'docs/features/identity-and-workspace/always-show-worktree-list.md',
+    },
+    {
       id: 'identity-and-workspace/authenticator-and-qr-registration',
       category: 'identity-and-workspace',
       title: 'The built-in authenticator and QR pairing / 內置驗證器同 QR 配對',
@@ -1537,7 +1546,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'identity-and-workspace',
     label: 'Identity And Workspace',
-    count: 15,
+    count: 16,
   },
   {
     name: 'integrations',
@@ -1572,4 +1581,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 177
+export const DocsBrowserArticleCount = 178

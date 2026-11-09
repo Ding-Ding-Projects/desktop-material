@@ -122,6 +122,7 @@ import type {
   INewAgentSessionRequest,
 } from '../models/agent-session'
 import { listWorktrees } from '../lib/git/worktree'
+import { shouldShowWorktreeDropdown } from '../lib/worktree-dropdown'
 import {
   cancelAgentSessionRun,
   detectAgentRunnerAvailability,
@@ -4948,6 +4949,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             onEditGlobalGitConfig={this.editGlobalGitConfig}
             underlineLinks={this.state.underlineLinks}
             showDiffCheckMarks={this.state.showDiffCheckMarks}
+            alwaysShowWorktreeList={this.state.alwaysShowWorktreeList}
             selectedCopilotModels={this.state.selectedCopilotModels}
             selectedCopilotModelsByAccount={
               this.state.selectedCopilotModelsByAccount
@@ -9469,10 +9471,16 @@ export class App extends React.Component<IAppProps, IAppState> {
     const isOpen =
       currentFoldout !== null && currentFoldout.type === FoldoutType.Worktree
 
-    // Only show the worktree dropdown when there are linked worktrees or if the
-    // foldout is open. This allows the user to create a worktree from the app
-    // menu even when there are no worktrees.
-    if (worktrees.length <= 1 && !isOpen) {
+    // Show the worktree dropdown when there are linked worktrees, when the
+    // foldout is open (so a first worktree can be created from the app menu),
+    // or when the Appearance setting asks for it always.
+    if (
+      !shouldShowWorktreeDropdown(
+        worktrees.length,
+        isOpen,
+        this.state.alwaysShowWorktreeList
+      )
+    ) {
       return null
     }
 

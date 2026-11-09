@@ -1043,6 +1043,7 @@ import {
   findPullRequestsByNumbers,
 } from '../pull-request-refs'
 import { resolveWithin } from '../path'
+import { shouldShowWorktreeDropdown } from '../worktree-dropdown'
 import {
   IWorktreeMaintenancePreview,
   WorktreeEntry,
@@ -1221,6 +1222,8 @@ export const underlineLinksDefault = true
 
 export const showDiffCheckMarksDefault = true
 export const showDiffCheckMarksKey = 'diff-check-marks-visible'
+
+const alwaysShowWorktreeListKey = 'always-show-worktree-list'
 
 const commitMessageGenerationDisclaimerLastSeenKey =
   'commit-message-generation-disclaimer-last-seen'
@@ -2071,6 +2074,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     | undefined = undefined
 
   private showDiffCheckMarks: boolean = showDiffCheckMarksDefault
+  private alwaysShowWorktreeList: boolean = false
 
   private preferAbsoluteDates: boolean = false
   private branchSortOrder = DefaultBranchSortOrder
@@ -3189,6 +3193,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       cachedRepoRulesets: this.cachedRepoRulesets,
       underlineLinks: this.underlineLinks,
       showDiffCheckMarks: this.showDiffCheckMarks,
+      alwaysShowWorktreeList: this.alwaysShowWorktreeList,
       preferAbsoluteDates: this.preferAbsoluteDates,
       branchSortOrder: this.branchSortOrder,
       updateState: updateStore.state,
@@ -5334,6 +5339,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
       showDiffCheckMarksDefault
     )
 
+    this.alwaysShowWorktreeList = getBoolean(alwaysShowWorktreeListKey, false)
+
     this.preferAbsoluteDates = getPreferAbsoluteDates()
     this.branchSortOrder =
       getEnum(branchSortOrderKey, BranchSortOrder) ?? DefaultBranchSortOrder
@@ -5712,16 +5719,16 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return false
     }
 
-    if (this.currentFoldout?.type === FoldoutType.Worktree) {
-      return true
+    const repository = this.selectedRepository
+    if (!(repository instanceof Repository)) {
+      return false
     }
 
-    const repository = this.selectedRepository
-    const worktreeCount =
-      repository instanceof Repository
-        ? this.repositoryStateCache.get(repository).worktrees.length
-        : 0
-    return worktreeCount > 1
+    return shouldShowWorktreeDropdown(
+      this.repositoryStateCache.get(repository).worktrees.length,
+      this.currentFoldout?.type === FoldoutType.Worktree,
+      this.alwaysShowWorktreeList
+    )
   }
 
   /**
@@ -27740,6 +27747,16 @@ export class AppStore extends TypedBaseStore<IAppState> {
     if (showDiffCheckMarks !== this.showDiffCheckMarks) {
       this.showDiffCheckMarks = showDiffCheckMarks
       setBoolean(showDiffCheckMarksKey, showDiffCheckMarks)
+      this.emitUpdate()
+    }
+  }
+
+  /** This shouldn't be called directly. See 'Dispatcher'. */
+  public _setAlwaysShowWorktreeList(alwaysShowWorktreeList: boolean) {
+    if (alwaysShowWorktreeList !== this.alwaysShowWorktreeList) {
+      this.alwaysShowWorktreeList = alwaysShowWorktreeList
+      setBoolean(alwaysShowWorktreeListKey, alwaysShowWorktreeList)
+      this.updateResizableConstraints()
       this.emitUpdate()
     }
   }

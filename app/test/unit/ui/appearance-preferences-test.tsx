@@ -36,6 +36,7 @@ describe('Appearance preferences', () => {
         funnySettings = settings
       },
     }
+    const worktreeListChanges = new Array<boolean>()
     const commonProps = {
       selectedTheme: ApplicationTheme.Light,
       onSelectedThemeChanged: () => {},
@@ -48,6 +49,9 @@ describe('Appearance preferences', () => {
       windowZoomFactor: 1,
       selectedTabSize: 4,
       onSelectedTabSizeChanged: () => {},
+      alwaysShowWorktreeList: false,
+      onAlwaysShowWorktreeListChanged: (value: boolean) =>
+        worktreeListChanges.push(value),
       selectedDateFormat: dateFormats[0].pattern,
       onSelectedDateFormatChanged: () => {},
       selectedTimeFormat: timeFormats[0].pattern,
@@ -71,6 +75,15 @@ describe('Appearance preferences', () => {
         appearanceCustomization={DefaultAppearanceCustomization}
       />
     )
+
+    // Ported with the upstream "Always show worktree list" setting: the
+    // checkbox starts off and reports the new value when it is ticked.
+    const worktreeList = screen.getByLabelText(
+      'Always show worktree list'
+    ) as HTMLInputElement
+    assert.equal(worktreeList.checked, false)
+    fireEvent.click(worktreeList)
+    assert.deepEqual(worktreeListChanges, [true])
 
     // The pane is where the Shift+Right-click gesture is advertised, so the
     // note names the gesture, what a plain right-click does instead, and the

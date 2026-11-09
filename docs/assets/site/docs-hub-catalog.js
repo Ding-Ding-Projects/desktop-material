@@ -413,6 +413,13 @@
       d: 'This ledger maps the 30 user-demand statements in the supplied research brief to their Desktop Material implementation and feature contract. Complete means the behavior is…',
     },
     {
+      t: 'Always show worktree list / 永遠顯示工作樹清單',
+      h: 'features/identity-and-workspace/always-show-worktree-list.html',
+      s: 'features/identity-and-workspace/always-show-worktree-list.md',
+      c: 'features',
+      d: 'Ported from GitHub Desktop 3.6.7 (upstream desktop/desktop#22898).',
+    },
+    {
       t: 'The built-in authenticator and QR pairing / 內置驗證器同 QR 配對',
       h: 'features/identity-and-workspace/authenticator-and-qr-registration.html',
       s: 'features/identity-and-workspace/authenticator-and-qr-registration.md',

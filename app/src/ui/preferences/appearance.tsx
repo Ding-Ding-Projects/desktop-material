@@ -114,6 +114,9 @@ interface IAppearanceProps {
   readonly windowZoomFactor: number
   readonly selectedTabSize: number
   readonly onSelectedTabSizeChanged: (tabSize: number) => void
+  /** Whether the worktree button stays in the toolbar without linked worktrees. */
+  readonly alwaysShowWorktreeList?: boolean
+  readonly onAlwaysShowWorktreeListChanged?: (value: boolean) => void
   readonly selectedDateFormat: DateFormat
   readonly onSelectedDateFormatChanged: (format: DateFormat) => void
   readonly selectedTimeFormat: TimeFormat
@@ -398,8 +401,7 @@ export class Appearance extends React.Component<
   private renderFunnyLevel(
     language: 'english' | 'cantonese',
     labelKey:
-      | 'appearance.englishPlayfulness'
-      | 'appearance.cantonesePlayfulness',
+      'appearance.englishPlayfulness' | 'appearance.cantonesePlayfulness',
     value: number,
     onChange: (value: number) => void
   ) {
@@ -520,6 +522,12 @@ export class Appearance extends React.Component<
     event: React.FormEvent<HTMLInputElement>
   ) => {
     this.props.onAutoFitZoomEnabledChanged(event.currentTarget.checked)
+  }
+
+  private onAlwaysShowWorktreeListChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.props.onAlwaysShowWorktreeListChanged?.(event.currentTarget.checked)
   }
 
   private onSelectedTabSizeChanged = (
@@ -987,6 +995,21 @@ export class Appearance extends React.Component<
           shippedCantonese={tabSizeDefault.toString()}
           storageKey={tabSizeKey}
         />
+
+        <Checkbox
+          className="always-show-worktree-list"
+          label="Always show worktree list"
+          value={
+            this.props.alwaysShowWorktreeList === true
+              ? CheckboxValue.On
+              : CheckboxValue.Off
+          }
+          onChange={this.onAlwaysShowWorktreeListChanged}
+        />
+        <p className="always-show-worktree-list-note">
+          Keeps the worktree button in the toolbar even when the repository has
+          no linked worktrees.
+        </p>
       </div>
     )
   }

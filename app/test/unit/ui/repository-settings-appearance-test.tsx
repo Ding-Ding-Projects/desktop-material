@@ -9,6 +9,7 @@ import {
   ProfileAppearanceElementId,
   RepositoryAppearanceElementId,
 } from '../../../src/models/element-appearance'
+import { DefaultAppearanceCustomization } from '../../../src/models/appearance-customization'
 import { DefaultAppIdentityCustomization } from '../../../src/models/app-identity'
 import { Repository } from '../../../src/models/repository'
 import { DefaultRepositoryLogoDesign } from '../../../src/models/repository-logo'
@@ -35,6 +36,8 @@ const ProfileDefaults: IProfileAppearanceElementSettings = {
     elevation: 'standard',
     uiFont: 'material',
     motion: 'system',
+    motionSpeed: DefaultAppearanceCustomization.motionSpeed,
+    motionSurfaces: DefaultAppearanceCustomization.motionSurfaces,
   },
   [ProfileAppearanceElementId.UpdateProgress]: {
     updateProgressPalette: 'accent',
@@ -133,7 +136,7 @@ function createOwnerStore(
       return `${SettingsPathPrefix}${id}`
     },
     setRepositoryAppearanceElement: async <
-      K extends RepositoryAppearanceElementId
+      K extends RepositoryAppearanceElementId,
     >(
       _repository: Repository,
       id: K,

@@ -7,6 +7,7 @@ Material installation manages many identities, repositories, and branches.
 
 ## Features / 功能
 
+- [Always show worktree list](always-show-worktree-list.md) — keep the worktree button in the toolbar for every repository; ported from GitHub Desktop 3.6.7.
 - [Multiple accounts, rich account picker, and repository
   identity](multiple-accounts-and-repository-identity.md)
 - [Repository sidebar and
