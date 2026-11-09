@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Appearance studio</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;family=Material+Symbols+Rounded:opsz,wght,FILL@20..48,400,0..1&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#006493}a:hover{color:#004b70}
+.dm{--p:#006493;--onp:#fff;--pc:#c9e6ff;--onpc:#001e30;--sc:#d3e5f5;--onsc:#0c1d29;--bg:#f8f9ff;--s0:#fff;--s1:#f2f3f9;--s2:#eceef4;--s3:#e6e8ee;--s4:#e0e2e8;--on:#191c20;--onv:#41474d;--ol:#71787e;--olv:#c1c7ce;--ok:#1b7f37;--okc:#d2f2d8;--err:#ba1a1a;--errc:#ffdad6;--inv:#2e3135;--oninv:#eff1f7;
+--d-s:200ms;--d-m:300ms;--d-l:500ms;--e-emph:cubic-bezier(.2,0,0,1);--e-spring:cubic-bezier(.38,1.21,.22,1);
+font-family:Roboto,'Segoe UI',system-ui,sans-serif;color:var(--on);background:var(--bg);min-height:1400px;transition:background var(--d-l),color var(--d-l)}
+.dm.dark{--p:#8dcdff;--onp:#00344f;--pc:#004b70;--onpc:#c9e6ff;--sc:#394956;--onsc:#d3e5f5;--bg:#101418;--s0:#0b0f12;--s1:#181c20;--s2:#1c2024;--s3:#272a2f;--s4:#32353a;--on:#e0e2e8;--onv:#c1c7ce;--ol:#8b9198;--olv:#41474d;--ok:#7bd88f;--okc:#0f3d1c;--err:#ffb4ab;--errc:#93000a;--inv:#e0e2e8;--oninv:#2e3135}
+.ms{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 0,'wght' 400;display:inline-block;vertical-align:middle}
+.wrap{max-width:1240px;margin:0 auto;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:28px;font-weight:500}
+h2{margin:0;font-size:18px;font-weight:500;display:flex;align-items:center;gap:8px}
+.sub{margin:4px 0 0;font-size:14px;color:var(--onv);line-height:20px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.cols{display:flex;flex-wrap:wrap;gap:16px;align-items:stretch}
+.card{background:var(--s1);border-radius:28px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0;box-sizing:border-box}
+.icon-btn{all:unset;cursor:pointer;width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--onv);transition:background var(--d-s),transform var(--d-m) var(--e-spring)}
+.icon-btn:hover{background:var(--s3)}.icon-btn:active{transform:scale(.9)}.icon-btn:focus-visible{outline:3px solid var(--p)}
+.btn{all:unset;cursor:pointer;height:44px;padding:0 18px;border-radius:999px;background:var(--p);color:var(--onp);font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px;box-sizing:border-box;transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring)}
+.btn:active{transform:scale(.96);border-radius:12px}.btn:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.btn.tonal{background:var(--sc);color:var(--onsc)}.btn.text{background:transparent;color:var(--p);padding:0 12px}
+.row{display:grid;grid-template-columns:96px minmax(0,1fr) 56px;gap:12px;align-items:center;font-size:13px;color:var(--onv)}
+.row output{font-family:'Roboto Mono',monospace;font-size:12.5px;color:var(--on);text-align:right}
+input[type=range]{width:100%;height:44px;margin:0;accent-color:var(--p);cursor:pointer}
+input[type=range]:focus-visible{outline:3px solid var(--p);outline-offset:2px;border-radius:8px}
+.hue{height:14px;border-radius:999px;background:linear-gradient(90deg,hsl(0 80% 45%),hsl(60 80% 45%),hsl(120 80% 40%),hsl(180 80% 40%),hsl(240 80% 55%),hsl(300 80% 45%),hsl(360 80% 45%))}
+.big{height:112px;border-radius:20px;display:flex;align-items:flex-end;justify-content:space-between;padding:14px;box-sizing:border-box;font-family:'Roboto Mono',monospace;font-size:14px;transition:background var(--d-m) var(--e-emph),color var(--d-m)}
+.field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:var(--onv)}
+.field input,.field select{all:unset;box-sizing:border-box;height:48px;border-radius:12px;background:var(--s0);padding:0 14px;font-size:14px;font-weight:400;color:var(--on);box-shadow:inset 0 0 0 1px var(--ol);transition:box-shadow var(--d-s)}
+.field input:focus,.field select:focus{box-shadow:inset 0 0 0 2px var(--p)}
+.field.bad input{box-shadow:inset 0 0 0 2px var(--err)}
+.hint{font-size:12px;color:var(--onv);line-height:17px;font-weight:400}.hint.bad{color:var(--err)}
+.sw{display:flex;flex-wrap:wrap;gap:8px}
+.sw button{all:unset;cursor:pointer;width:44px;height:44px;border-radius:14px;box-shadow:inset 0 0 0 1px var(--olv);transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring)}
+.sw button:hover{transform:scale(1.08);border-radius:22px}.sw button:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.roles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.role{border-radius:14px;padding:10px 12px;font-size:12px;font-weight:500;min-height:52px;box-sizing:border-box;transition:background var(--d-m),color var(--d-m)}
+.role small{display:block;font-family:'Roboto Mono',monospace;font-weight:400;font-size:11.5px;margin-top:4px}
+.badge{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 10px;border-radius:8px;font-size:12px;font-weight:700}
+.badge.ok{background:var(--okc);color:var(--ok)}.badge.no{background:var(--errc);color:var(--err)}
+.els{display:flex;flex-direction:column;gap:4px}
+.els button{all:unset;cursor:pointer;min-height:48px;padding:0 14px;border-radius:14px;display:flex;align-items:center;gap:12px;font-size:14px;transition:background var(--d-s),border-radius var(--d-m) var(--e-spring)}
+.els button:hover{background:var(--s3)}.els button.on{background:var(--sc);color:var(--onsc);border-radius:24px}
+.els button:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
+.els button em{margin-left:auto;font-style:normal;font-size:12px;color:var(--onv)}
+.seg{display:inline-flex;border:1px solid var(--ol);border-radius:999px;overflow:hidden;height:44px;align-self:flex-start}
+.seg button{all:unset;cursor:pointer;padding:0 16px;display:flex;align-items:center;font-size:13px;font-weight:500;border-left:1px solid var(--ol);transition:background var(--d-m),color var(--d-m)}
+.seg button:first-child{border-left:0}.seg button.on{background:var(--sc);color:var(--onsc)}.seg button:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
+.logos{display:flex;gap:10px;flex-wrap:wrap}
+.logos button{all:unset;cursor:pointer;width:64px;height:64px;display:flex;align-items:center;justify-content:center;border-radius:18px;background:var(--s0);box-shadow:inset 0 0 0 1px var(--olv);transition:box-shadow var(--d-s),transform var(--d-m) var(--e-spring)}
+.logos button.on{box-shadow:inset 0 0 0 3px var(--p);transform:scale(1.04)}.logos button:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.mark{width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;transition:border-radius var(--d-l) var(--e-spring),background var(--d-m),color var(--d-m)}
+.pv{background:var(--s0);border-radius:20px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--olv)}
+.pv-head{display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--s2);transition:height var(--d-m) var(--e-emph)}
+.pv-head b{font-size:15px;font-weight:500}
+.pv-tabs{display:flex;gap:6px;padding:8px 16px 0;flex-wrap:wrap}
+.pv-tab{padding:0 16px;display:flex;align-items:center;font-size:13px;font-weight:500;background:var(--s2);color:var(--onv);transition:border-radius var(--d-m) var(--e-spring),height var(--d-m),background var(--d-m),color var(--d-m)}
+.pv-list{padding:8px 16px;display:flex;flex-direction:column;gap:4px}
+.pv-row{display:flex;align-items:center;gap:12px;padding:0 12px;font-size:13px;background:var(--s1);transition:border-radius var(--d-m) var(--e-spring),height var(--d-m) var(--e-emph)}
+.pv-row code{font-family:'Roboto Mono',monospace;font-size:12.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pv-foot{display:flex;justify-content:flex-end;gap:8px;padding:8px 16px 16px;flex-wrap:wrap}
+.pv-btn{padding:0 20px;display:flex;align-items:center;font-size:14px;font-weight:500;transition:border-radius var(--d-m) var(--e-spring),height var(--d-m),background var(--d-m),color var(--d-m)}
+.save{position:sticky;bottom:16px;align-self:center;display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:var(--inv);color:var(--oninv);border-radius:20px;padding:8px 8px 8px 20px;font-size:14px;animation:rise var(--d-l) var(--e-spring)}
+.save .btn.text{color:var(--pc)}.dark .save .btn.text{color:var(--p)}
+@keyframes rise{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.dm *{transition-duration:1ms!important;animation-duration:1ms!important}}
+</style>
+</helmet>
+<div class="dm {{rootClass}}">
+<div class="wrap">
+<div class="bar"><div style="flex:1;min-width:260px"><h1>Appearance studio</h1><p class="sub">Any colour, any element, your own logo and name. Every change previews below before it is saved, and each value can be reset on its own.</p></div><button class="icon-btn" onClick="{{toggleDark}}" aria-label="Switch light and dark"><span class="ms" aria-hidden="true">contrast</span></button></div>
+
+<div class="cols">
+<div class="card" style="flex:1 1 380px">
+<h2><span class="ms" aria-hidden="true">palette</span>Accent colour</h2>
+<div class="big" style="background:{{hex}};color:{{onHex}}"><span>{{hex}}</span><span>{{hslText}}</span></div>
+<div class="hue" aria-hidden="true"></div>
+<div class="row"><label for="as-h">Hue</label><input id="as-h" type="range" min="0" max="360" value="{{h}}" onChange="{{setH}}"><output>{{h}}°</output></div>
+<div class="row"><label for="as-s">Saturation</label><input id="as-s" type="range" min="0" max="100" value="{{s}}" onChange="{{setS}}"><output>{{s}}%</output></div>
+<div class="row"><label for="as-l">Lightness</label><input id="as-l" type="range" min="8" max="92" value="{{l}}" onChange="{{setL}}"><output>{{l}}%</output></div>
+<div class="{{hexFieldCls}}"><label for="as-hex">Hex value</label><input id="as-hex" value="{{hexDraft}}" onChange="{{setHex}}" spellcheck="false" autocomplete="off" style="font-family:'Roboto Mono',monospace"><span class="{{hexHintCls}}">{{hexHint}}</span></div>
+<div class="bar"><span class="{{ratioCls}}"><span class="ms" style="font-size:16px" aria-hidden="true">{{ratioIcon}}</span>{{ratioText}}</span><span class="hint">Label text on this colour. 4.5:1 is the minimum for body text.</span></div>
+<div><div class="hint" style="margin-bottom:8px;font-weight:500">Recently used</div>
+<div class="sw"><sc-for list="{{recent}}" as="c" hint-placeholder-count="6"><button style="background:{{c.hex}}" aria-label="{{c.label}}" onClick="{{c.pick}}"></button></sc-for></div></div>
+<div class="roles">
+<div class="role" style="background:{{hex}};color:{{onHex}}">Primary<small>{{hex}}</small></div>
+<div class="role" style="background:{{contHex}};color:{{onContHex}}">Container<small>{{contHex}}</small></div>
+<div class="role" style="background:{{secHex}};color:{{onSecHex}}">Secondary<small>{{secHex}}</small></div>
+</div>
+</div>
+
+<div class="card" style="flex:1 1 380px">
+<h2><span class="ms" aria-hidden="true">tune</span>Per-element editor</h2>
+<p class="hint" style="margin:0">Pick an element, then shape it. Other elements keep their own values.</p>
+<div class="els" role="group" aria-label="Element"><sc-for list="{{elements}}" as="e" hint-placeholder-count="4"><button class="{{e.cls}}" aria-pressed="{{e.on}}" onClick="{{e.pick}}"><span class="ms" aria-hidden="true">{{e.icon}}</span>{{e.label}}<em>{{e.note}}</em></button></sc-for></div>
+<div class="row"><label for="as-r">Corner</label><input id="as-r" type="range" min="0" max="28" value="{{elRadius}}" onChange="{{setRadius}}"><output>{{elRadius}} px</output></div>
+<div class="row"><label for="as-z">Height</label><input id="as-z" type="range" min="40" max="64" step="4" value="{{elHeight}}" onChange="{{setHeight}}"><output>{{elHeight}} px</output></div>
+<div class="field" style="gap:8px"><span id="as-fill">Fill</span><div class="seg" role="group" aria-labelledby="as-fill"><sc-for list="{{fills}}" as="f" hint-placeholder-count="3"><button class="{{f.cls}}" aria-pressed="{{f.on}}" onClick="{{f.pick}}">{{f.label}}</button></sc-for></div></div>
+<div class="bar"><button class="btn tonal" onClick="{{resetEl}}"><span class="ms" aria-hidden="true">restart_alt</span>Reset {{elName}}</button><button class="btn text" onClick="{{copyToAll}}">Apply corner to all</button></div>
+<p class="hint" style="margin:0">Heights stop at 40 px so every control keeps a comfortable target.</p>
+</div>
+
+<div class="card" style="flex:1 1 300px">
+<h2><span class="ms" aria-hidden="true">badge</span>Logo and name</h2>
+<div class="{{nameFieldCls}}"><label for="as-n">App name</label><input id="as-n" value="{{name}}" onChange="{{setName}}" maxlength="40"><span class="{{nameHintCls}}">{{nameHint}}</span></div>
+<div class="field" style="gap:8px"><span id="as-shape">Logo shape</span>
+<div class="logos" role="group" aria-labelledby="as-shape"><sc-for list="{{shapes}}" as="g" hint-placeholder-count="4"><button class="{{g.cls}}" aria-pressed="{{g.on}}" aria-label="{{g.label}}" onClick="{{g.pick}}"><span class="mark" style="background:{{hex}};color:{{onHex}};border-radius:{{g.radius}}">{{initial}}</span></button></sc-for></div></div>
+<div class="bar"><button class="btn tonal"><span class="ms" aria-hidden="true">upload</span>Use an image</button></div>
+<p class="hint" style="margin:0">PNG or SVG from this computer. The file is copied into the app's own data folder and is never uploaded.</p>
+</div>
+</div>
+
+<div class="card">
+<div class="bar"><h2 style="flex:1"><span class="ms" aria-hidden="true">preview</span>Live preview</h2><span class="hint">{{changeText}}</span></div>
+<div class="pv">
+<div class="pv-head" style="height:{{hd.h}}"><span class="mark" style="background:{{hex}};color:{{onHex}};border-radius:{{markRadius}}">{{initial}}</span><b>{{shownName}}</b></div>
+<div class="pv-tabs"><div class="pv-tab" style="height:{{tb.h}};border-radius:{{tb.r}};background:{{tb.bg}};color:{{tb.fg}}">Changes</div><div class="pv-tab" style="height:{{tb.h}};border-radius:{{tb.r}}">History</div><div class="pv-tab" style="height:{{tb.h}};border-radius:{{tb.r}}">Branches</div></div>
+<div class="pv-list">
+<div class="pv-row" style="height:{{rw.h}};border-radius:{{rw.r}};background:{{rw.bg}};color:{{rw.fg}}"><span class="ms" aria-hidden="true">edit_document</span><code>app/styles/material/_transitions.scss</code><span>+42</span></div>
+<div class="pv-row" style="height:{{rw.h}};border-radius:{{rw.r}}"><span class="ms" aria-hidden="true">add_circle</span><code>app/src/models/motion-settings.ts</code><span>+118</span></div>
+<div class="pv-row" style="height:{{rw.h}};border-radius:{{rw.r}}"><span class="ms" aria-hidden="true">edit_document</span><code>app/src/lib/i18n-resources.ts</code><span>+9</span></div>
+</div>
+<div class="pv-foot"><div class="pv-btn" style="height:{{bt.h}};border-radius:{{bt.r}};background:var(--s3);color:var(--on)">Discard</div><div class="pv-btn" style="height:{{bt.h}};border-radius:{{bt.r}};background:{{bt.bg}};color:{{bt.fg}}">Commit to main</div></div>
+</div>
+</div>
+
+<sc-if value="{{dirty}}" hint-placeholder-val="{{ true }}"><div class="save" role="status"><span>{{changeText}}</span><button class="btn text" onClick="{{undoAll}}">Undo all</button><button class="btn" onClick="{{save}}"><span class="ms" aria-hidden="true">check</span>Save appearance</button></div></sc-if>
+<sc-if value="{{saved}}" hint-placeholder-val="{{ false }}"><div class="save" role="status"><span class="ms" aria-hidden="true">check_circle</span><span>Saved. The previous appearance is kept in settings history.</span></div></sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1400}}'>
+class Component extends DCLogic {
+  constructor(p){super(p);this.base={h:201,s:100,l:29,name:'Desktop Material',shape:1,els:{header:{r:0,h:56,fill:0},tab:{r:20,h:40,fill:1},row:{r:12,h:48,fill:1},button:{r:20,h:44,fill:2}}};
+    this.state={dark:false,sel:'tab',hexDraft:null,hexBad:false,saved:false,...JSON.parse(JSON.stringify(this.base))};}
+  hex(h,s,l){s/=100;l/=100;const k=n=>(n+h/30)%12,a=s*Math.min(l,1-l),f=n=>{const v=l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));return Math.round(v*255).toString(16).padStart(2,'0');};return '#'+f(0)+f(8)+f(4);}
+  lum(x){const c=[1,3,5].map(i=>parseInt(x.substr(i,2),16)/255).map(v=>v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4));return .2126*c[0]+.7152*c[1]+.0722*c[2];}
+  ratio(a,b){const x=this.lum(a),y=this.lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);}
+  on(x){return this.ratio(x,'#ffffff')>=this.ratio(x,'#111111')?'#ffffff':'#111111';}
+  fromHex(x){const r=parseInt(x.substr(1,2),16)/255,g=parseInt(x.substr(3,2),16)/255,b=parseInt(x.substr(5,2),16)/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2,d=mx-mn;let h=0,s=0;if(d){s=d/(1-Math.abs(2*l-1));h=mx===r?((g-b)/d)%6:mx===g?(b-r)/d+2:(r-g)/d+4;h=Math.round(h*60);if(h<0)h+=360;}return {h:h,s:Math.round(s*100),l:Math.min(92,Math.max(8,Math.round(l*100)))};}
+  renderVals(){
+    const s=this.state,t=this,touch=o=>this.setState({saved:false,...o});
+    const hex=this.hex(s.h,s.s,s.l),onHex=this.on(hex),cont=this.hex(s.h,Math.min(s.s,70),s.dark?24:90),sec=this.hex(s.h,Math.min(s.s,28),s.dark?30:86);
+    const ratio=this.ratio(hex,onHex),pass=ratio>=4.5;
+    const meta={header:['Header','web_asset'],tab:['Tabs','tab'],row:['List rows','view_list'],button:['Buttons','smart_button']};
+    const el=s.els[s.sel],setEl=o=>touch({els:{...s.els,[s.sel]:{...el,...o}}});
+    const paint=(k,selected)=>{const e=s.els[k];const filled=selected&&e.fill>0;return {h:e.h+'px',r:e.r+'px',bg:filled?(e.fill===2?hex:cont):'',fg:filled?(e.fill===2?onHex:this.on(cont)):''};};
+    const changes=['h','s','l','name','shape'].filter(k=>s[k]!==this.base[k]).length+Object.keys(s.els).filter(k=>JSON.stringify(s.els[k])!==JSON.stringify(this.base.els[k])).length;
+    const nm=s.name.trim(),radii=['8px','12px','18px','999px'];
+    return {
+      rootClass:s.dark?'dark':'',toggleDark:()=>this.setState({dark:!s.dark}),
+      h:s.h,s:s.s,l:s.l,hex:hex,onHex:onHex,hslText:'hsl('+s.h+' '+s.s+'% '+s.l+'%)',
+      setH:e=>touch({h:+e.target.value,hexDraft:null,hexBad:false}),setS:e=>touch({s:+e.target.value,hexDraft:null,hexBad:false}),setL:e=>touch({l:+e.target.value,hexDraft:null,hexBad:false}),
+      hexDraft:s.hexDraft===null?hex:s.hexDraft,
+      setHex:e=>{const v=e.target.value.trim();if(/^#[0-9a-fA-F]{6}$/.test(v))touch({...t.fromHex(v),hexDraft:null,hexBad:false});else this.setState({hexDraft:v,hexBad:true});},
+      hexFieldCls:'field'+(s.hexBad?' bad':''),hexHintCls:'hint'+(s.hexBad?' bad':''),hexHint:s.hexBad?'Use six hex digits after #, for example #006493. The colour above is unchanged.':'Type or paste any colour. Nothing is limited to a preset list.',
+      ratioCls:'badge '+(pass?'ok':'no'),ratioIcon:pass?'check':'warning',ratioText:ratio.toFixed(1)+':1 '+(pass?'passes':'too low'),
+      recent:[[201,100,29],[262,52,47],[16,82,42],[152,68,27],[338,70,40],[45,90,32]].map(c=>{const x=this.hex(c[0],c[1],c[2]);return {hex:x,label:'Use '+x,pick:()=>touch({h:c[0],s:c[1],l:c[2],hexDraft:null,hexBad:false})};}),
+      contHex:cont,onContHex:this.on(cont),secHex:sec,onSecHex:this.on(sec),
+      elements:Object.keys(meta).map(k=>({label:meta[k][0],icon:meta[k][1],on:s.sel===k,cls:s.sel===k?'on':'',note:s.els[k].r+' px · '+s.els[k].h+' px',pick:()=>this.setState({sel:k})})),
+      elName:meta[s.sel][0].toLowerCase(),elRadius:el.r,elHeight:el.h,setRadius:e=>setEl({r:+e.target.value}),setHeight:e=>setEl({h:+e.target.value}),
+      fills:['None','Tonal','Accent'].map((l,i)=>({label:l,on:el.fill===i,cls:el.fill===i?'on':'',pick:()=>setEl({fill:i})})),
+      resetEl:()=>touch({els:{...s.els,[s.sel]:{...this.base.els[s.sel]}}}),
+      copyToAll:()=>{const o={};Object.keys(s.els).forEach(k=>o[k]={...s.els[k],r:el.r});touch({els:o});},
+      name:s.name,setName:e=>touch({name:e.target.value}),shownName:nm||'Desktop Material',initial:(nm||'D').charAt(0).toUpperCase(),
+      nameFieldCls:'field'+(nm?'':' bad'),nameHintCls:'hint'+(nm?'':' bad'),nameHint:nm?nm.length+' of 40 characters. Shown in the header and the window title.':'A name is needed. The default name is shown until you type one.',
+      shapes:['Soft square','Rounded','Squircle','Circle'].map((l,i)=>({label:l,radius:radii[i],on:s.shape===i,cls:s.shape===i?'on':'',pick:()=>touch({shape:i})})),markRadius:radii[s.shape],
+      hd:paint('header',false),tb:paint('tab',true),rw:paint('row',true),bt:paint('button',true),
+      dirty:changes>0&&!s.saved,saved:s.saved,changeText:changes===0?'No unsaved changes':changes===1?'1 unsaved change':changes+' unsaved changes',
+      undoAll:()=>this.setState({hexDraft:null,hexBad:false,...JSON.parse(JSON.stringify(this.base))}),
+      save:()=>{this.base=JSON.parse(JSON.stringify({h:s.h,s:s.s,l:s.l,name:s.name,shape:s.shape,els:s.els}));this.setState({saved:true});}
+    };
+  }
+}
+</script>
+</body>
+</html>

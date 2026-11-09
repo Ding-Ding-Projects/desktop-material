@@ -99,6 +99,15 @@
       "title": "Every settings page, searchable, with info icons",
       "expand": "fill",
       "is_interactive": true
+    },
+    "AppearanceStudio.dc.html": {
+      "x": 1360,
+      "y": 4500,
+      "w": 1280,
+      "h": 1400,
+      "title": "Appearance studio: colour, per-element editor, logo and name",
+      "expand": "fill",
+      "is_interactive": true
     }
   },
   "order": [
@@ -111,7 +120,8 @@
     "VirtualDisks.dc.html",
     "Minecraft.dc.html",
     "Settings.dc.html",
-    "SettingsAll.dc.html"
+    "SettingsAll.dc.html",
+    "AppearanceStudio.dc.html"
   ],
   "notes": {
     "row1": {
