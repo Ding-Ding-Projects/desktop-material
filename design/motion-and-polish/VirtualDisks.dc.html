@@ -48,13 +48,36 @@ h3{margin:0;font-size:14px;font-weight:500;color:var(--onv)}
 @media (max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .kpi{background:var(--s1);border-radius:20px;padding:14px 16px}
 .kpi small{font-size:12px;color:var(--onv);display:flex;align-items:center;gap:6px}.kpi b{display:block;font-size:24px;font-weight:500;margin-top:4px}
+.tool{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--s0);border-radius:18px;padding:8px}
+.tool .who{display:flex;align-items:center;gap:8px;font-size:13px;padding:0 6px;min-width:0}
+.tool .who b{font-family:'Roboto Mono',monospace;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
+.vsep{width:1px;height:28px;background:var(--olv)}
+.mbtn{all:unset;cursor:pointer;height:36px;padding:0 10px 0 12px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:500;color:var(--on);transition:background var(--d-s)}
+.mbtn:hover{background:var(--s3)}.mbtn.open{background:var(--sc);color:var(--onsc)}
+.mbtn .chev{font-size:18px;transition:transform var(--d-m) var(--e-spring)}.mbtn.open .chev{transform:rotate(180deg)}
+.mbtn:focus-visible{outline:3px solid var(--p)}
+.mwrap{position:relative}
+.menu{position:absolute;top:42px;left:0;min-width:300px;background:var(--s2);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.2);padding:6px;z-index:6;transform-origin:top left;animation:mIn var(--d-m) var(--e-spring) both}
+@keyframes mIn{from{opacity:0;transform:scale(.92) translateY(-6px)}to{opacity:1;transform:none}}
+.mi{all:unset;cursor:pointer;display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:12px;align-items:center;padding:9px 10px;border-radius:12px;width:calc(100% - 20px);animation:in var(--d-m) var(--e-dec) both;transition:background var(--d-s)}
+.mi:hover{background:var(--s4)}.mi:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
+.mi b{display:block;font-size:13.5px;font-weight:500}.mi small{font-size:12px;color:var(--onv)}
+.mi .k{font-family:'Roboto Mono',monospace;font-size:11px;color:var(--onv)}
+.mi[disabled]{opacity:.4;cursor:default}
+.alist{display:flex;flex-direction:column;gap:2px}
+.agrp{font-size:12px;font-weight:500;color:var(--onv);padding:10px 8px 4px}
+.aitem{all:unset;cursor:pointer;display:grid;grid-template-columns:36px minmax(0,1fr) 20px;gap:12px;align-items:center;padding:8px;border-radius:14px;transition:background var(--d-s),transform var(--d-m) var(--e-spring)}
+.aitem:hover{background:var(--s2);transform:translateX(2px)}.aitem:focus-visible{outline:3px solid var(--p)}
+.aitem .ic{width:36px;height:36px;border-radius:12px;background:var(--pc);color:var(--onpc);display:flex;align-items:center;justify-content:center}
+.aitem b{display:block;font-size:13.5px;font-weight:500}.aitem small{font-size:12px;color:var(--onv)}
+.aitem[disabled]{opacity:.4;cursor:default}
 .tbl{width:100%;border-collapse:separate;border-spacing:0 4px;font-size:13px}
 .tbl th{text-align:left;font-weight:500;font-size:12px;color:var(--onv);padding:4px 10px}
 .tbl td{background:var(--s0);padding:9px 10px;white-space:nowrap}
 .tbl tr td:first-child{border-radius:12px 0 0 12px}.tbl tr td:last-child{border-radius:0 12px 12px 0}
-.tbl tr.sel td{background:var(--sc);color:var(--onsc)}
+.tbl tr.rsel td{background:var(--sc);color:var(--onsc)}
 .tbl tr{cursor:pointer;animation:in var(--d-l) var(--e-dec) both}
-.tbl tr:hover td{background:var(--s3)}.tbl tr.sel:hover td{background:var(--sc)}
+.tbl tr:hover td{background:var(--s3)}.tbl tr.rsel:hover td{background:var(--sc)}
 @keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .scroll{overflow-x:auto}
 .st{height:22px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px}
@@ -149,10 +172,19 @@ h3{margin:0;font-size:14px;font-weight:500;color:var(--onv)}
 <div class="kpi"><small><span class="ms" style="font-size:16px">compress</span>Reclaimable by compact</small><b>18.4 GB</b></div>
 </div>
 <div class="card"><div class="bar"><h2><span class="ms">list</span>All disks</h2><span class="sp"></span><button class="btn sm out"><span class="ms">filter_list</span>Filters</button><button class="btn sm out"><span class="ms">download</span>Export list</button></div>
+<div class="tool" role="toolbar" aria-label="Actions for the selected disk">
+<span class="who"><span class="ms">hard_drive</span><b>{{selShort}}</b></span>
+<button class="btn sm" onClick="{{toggleAttach}}"><span class="ms">{{attachIcon}}</span>{{attachLabel}}</button>
+<span class="vsep"></span>
+<sc-for list="{{menus}}" as="m" hint-placeholder-count="4"><span class="mwrap"><button class="{{m.cls}}" aria-haspopup="menu" aria-expanded="{{m.open}}" onClick="{{m.toggle}}"><span class="ms">{{m.icon}}</span>{{m.label}}<span class="ms chev">expand_more</span></button>
+<sc-if value="{{m.open}}" hint-placeholder-val="{{ false }}"><div class="menu" role="menu" aria-label="{{m.label}}"><sc-for list="{{m.items}}" as="it" hint-placeholder-count="4"><button class="mi" role="menuitem" disabled="{{it.off}}" style="animation-delay:{{it.d}}" onClick="{{it.go}}"><span class="ms">{{it.icon}}</span><span><b>{{it.label}}</b><small>{{it.hint}}</small></span><span class="k">{{it.key}}</span></button></sc-for></div></sc-if></span></sc-for>
+<span class="sp"></span>
+<button class="icon-btn sm" aria-label="Details" onClick="{{goDetail}}"><span class="ms">info</span></button>
+</div>
 <div class="scroll"><table class="tbl"><thead><tr><th>File</th><th>Format</th><th>Type</th><th>Virtual</th><th>On disk</th><th>State</th><th>Mounted as</th><th>Parent</th></tr></thead><tbody>
 <sc-for list="{{disks}}" as="d" hint-placeholder-count="6"><tr class="{{d.cls}}" style="animation-delay:{{d.delay}}" onClick="{{d.pick}}"><td class="mono">{{d.name}}</td><td><span class="fmt">{{d.fmt}}</span></td><td>{{d.type}}</td><td class="mono">{{d.vsize}}</td><td class="mono">{{d.psize}}</td><td><span class="{{d.stCls}}"><span class="ms" style="font-size:14px">{{d.stIcon}}</span>{{d.state}}</span></td><td class="mono">{{d.letter}}</td><td class="mono">{{d.parent}}</td></tr></sc-for>
 </tbody></table></div>
-<div class="bar"><button class="btn sm tonal" onClick="{{toggleAttach}}"><span class="ms">{{attachIcon}}</span>{{attachLabel}} {{selShort}}</button><button class="btn sm out" onClick="{{goDetail}}"><span class="ms">tune</span>Details</button><button class="btn sm out" onClick="{{goResize}}"><span class="ms">open_in_full</span>Resize</button><button class="btn sm out" onClick="{{goChain}}"><span class="ms">account_tree</span>Chain</button><button class="btn sm out"><span class="ms">compress</span>Compact</button><button class="btn sm out"><span class="ms">swap_horiz</span>Convert</button><button class="btn sm out"><span class="ms">content_copy</span>Copy</button><button class="btn sm out"><span class="ms">drive_file_move</span>Move</button></div>
+
 </div>
 <div class="card"><div class="bar"><h2><span class="ms">pending_actions</span>Operations</h2><span class="sp"></span><span class="lab">Runs one at a time per disk, never while files are open on it</span></div>
 <div class="queue"><sc-for list="{{queue}}" as="q" hint-placeholder-count="3"><div class="q"><span class="ms">{{q.icon}}</span><div style="min-width:0"><b>{{q.title}}</b><small>{{q.sub}}</small><div class="{{q.progCls}}"><i style="width:{{q.pct}}"></i></div></div><span class="mono" style="font-size:12px;color:var(--onv)">{{q.route}}</span></div></sc-for></div>
@@ -184,16 +216,7 @@ h3{margin:0;font-size:14px;font-weight:500;color:var(--onv)}
 </div>
 <div class="card" style="flex:1 1 380px">
 <h2><span class="ms">bolt</span>Actions</h2>
-<div class="grid2">
-<button class="opt" onClick="{{goResize}}"><span class="ms">open_in_full</span>Grow or shrink<small>Then extend or shrink the volume inside</small></button>
-<button class="opt"><span class="ms">compress</span>Compact<small>Full, quick or retrim</small></button>
-<button class="opt"><span class="ms">swap_horiz</span>Convert<small>VHD ⇄ VHDX ⇄ VHD Set, fixed ⇄ dynamic</small></button>
-<button class="opt" onClick="{{goChain}}"><span class="ms">call_merge</span>Merge<small>Into parent or to a new disk</small></button>
-<button class="opt"><span class="ms">badge</span>New identity<small>Reset the disk ID for a copy</small></button>
-<button class="opt"><span class="ms">optimize</span>Optimize<small>Defragment the file on the host</small></button>
-<button class="opt"><span class="ms">developer_board</span>Make Dev Drive<small>ReFS with performance mode</small></button>
-<button class="opt" onClick="{{goBoot}}"><span class="ms">power_settings_new</span>Native boot<small>Add a boot menu entry</small></button>
-</div>
+<div class="alist"><sc-for list="{{actionList}}" as="a" hint-placeholder-count="12"><sc-if value="{{a.isHead}}" hint-placeholder-val="{{ false }}"><div class="agrp">{{a.label}}</div></sc-if><sc-if value="{{a.isItem}}" hint-placeholder-val="{{ true }}"><button class="aitem" disabled="{{a.off}}" onClick="{{a.go}}"><span class="ic"><span class="ms">{{a.icon}}</span></span><span><b>{{a.label}}</b><small>{{a.hint}}</small></span><span class="ms" style="color:var(--onv)">chevron_right</span></button></sc-if></sc-for></div>
 <div class="route"><span class="ms">route</span><span>Last action used <b>Mount-DiskImage</b> from the Storage module, available on Windows Home.</span></div>
 <div class="code">{{script}}</div>
 <div class="bar"><button class="btn sm out"><span class="ms">content_copy</span>Copy script</button><button class="btn sm out"><span class="ms">save</span>Save as .ps1</button></div>
@@ -270,7 +293,7 @@ h3{margin:0;font-size:14px;font-weight:500;color:var(--onv)}
 <p class="sub" style="margin:0">Boot this PC straight into a Windows image inside a VHDX. The app checks the disk holds a bootable Windows, adds an entry with bcdedit, and keeps your current entry as the default unless you change it.</p>
 <div class="scroll"><table class="tbl"><thead><tr><th>Boot entry</th><th>Device</th><th>Default</th><th></th></tr></thead><tbody>
 <tr><td>Windows 11</td><td class="mono">partition=C:</td><td><span class="st a">Default</span></td><td></td></tr>
-<tr class="sel"><td>Windows 11 (base-win11.vhdx)</td><td class="mono">vhd=[D:]\VMs\base-win11.vhdx</td><td></td><td><button class="btn sm out">Remove</button></td></tr>
+<tr class="rsel"><td>Windows 11 (base-win11.vhdx)</td><td class="mono">vhd=[D:]\VMs\base-win11.vhdx</td><td></td><td><button class="btn sm out">Remove</button></td></tr>
 </tbody></table></div>
 <div class="row" style="border-top:0"><span class="ms">timer</span><span style="flex:1">Boot menu timeout<small>Seconds the menu waits before the default</small></span><span class="mono">10 s</span></div>
 <div class="code">bcdedit /copy {current} /d "Windows 11 (base-win11.vhdx)"
@@ -294,7 +317,7 @@ bcdedit /set {new-guid} detecthal on</div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1400}}'>
 class Component extends DCLogic {
-  constructor(p){super(p);this.state={dark:false,tab:0,sel:0,rct:true,mir:false,auto:true,ro:false,grow:true,newSize:96,chainSel:4,ckCur:2,cks:[{name:'Clean install',when:'2026-10-01 09:12',size:'0 B'},{name:'Toolchain 17.12',when:'2026-10-20 18:40',size:'6.1 GB'},{name:'Before cache rebuild',when:'2026-11-08 22:03',size:'2.4 GB'}],step:0,fmt:1,type:1,csize:128,hot:false,pack:0,q:12,
+  constructor(p){super(p);this.state={dark:false,tab:0,menu:null,sel:0,rct:true,mir:false,auto:true,ro:false,grow:true,newSize:96,chainSel:4,ckCur:2,cks:[{name:'Clean install',when:'2026-10-01 09:12',size:'0 B'},{name:'Toolchain 17.12',when:'2026-10-20 18:40',size:'6.1 GB'},{name:'Before cache rebuild',when:'2026-11-08 22:03',size:'2.4 GB'}],step:0,fmt:1,type:1,csize:128,hot:false,pack:0,q:12,
     disks:[{name:'D:\\VMs\\base-win11.vhdx',fmt:'VHDX',type:'Dynamic',vsize:'64 GB',psize:'39.6 GB',att:false,letter:'—',parent:'—'},
     {name:'D:\\VMs\\dev-tools.avhdx',fmt:'VHDX',type:'Differencing',vsize:'64 GB',psize:'11.2 GB',att:false,letter:'—',parent:'base-win11.vhdx'},
     {name:'D:\\VMs\\today.avhdx',fmt:'VHDX',type:'Differencing',vsize:'64 GB',psize:'2.8 GB',att:true,letter:'G:',parent:'dev-tools.avhdx'},
@@ -320,6 +343,12 @@ class Component extends DCLogic {
     const ph=[['Scan','search','18,402 files · 41.8 GB'],['Size','straighten','Starts at 46 GB with 10% room'],['Create','add_circle','Photos-2026.vhdx'],['Copy','content_copy','2.1 GB/s'],['Grow','open_in_full','Grew to 52 GB, no question asked'],['Verify','verified','SHA-256 of every file']];
     const pk=s.pack;
     const routes=[['Create','VirtDisk CreateVirtualDisk','New-VHD'],['Attach / detach','Mount-DiskImage','Mount-VHD'],['Grow','VirtDisk ResizeVirtualDisk','Resize-VHD'],['Shrink','VirtDisk ResizeVirtualDisk','Resize-VHD -ToMinimumSize'],['Compact','diskpart compact vdisk','Optimize-VHD -Mode Full'],['Convert','VirtDisk CreateVirtualDisk (source)','Convert-VHD'],['Merge','VirtDisk MergeVirtualDisk','Merge-VHD'],['Checkpoints','VirtDisk SetVirtualDiskInformation','Get-VHDSet / Optimize-VHDSet'],['Identity','VirtDisk SetVirtualDiskInformation','Set-VHD -ResetDiskIdentifier'],['Dev Drive','Format-Volume -DevDrive','Format-Volume -DevDrive'],['Native boot','bcdedit','bcdedit']];
+
+    const groups=[['size','straighten','Size',[['open_in_full','Grow','Add space, then extend the volume','Ctrl+G',()=>this.setState({tab:2,grow:true,newSize:96,menu:null})],['close_fullscreen','Shrink','Remove free space after the last volume','',()=>this.setState({tab:2,grow:false,newSize:48,menu:null})],['compress','Compact','Full, quick or retrim to reclaim space','',null],['optimize','Optimize file','Defragment the disk file on the host','',null]]],
+      ['change','tune','Format and identity',[['swap_horiz','Convert','VHD, VHDX or VHD Set; fixed or dynamic','',null],['content_copy','Copy','Duplicate with a new identity','Ctrl+D',null],['drive_file_move','Move','To another folder or drive, links updated','',null],['badge','New identity','Reset the disk ID of a copy','',null]]],
+      ['chain','account_tree','Chain',[['call_merge','Merge','Into its parent or a new disk','',()=>this.setState({tab:3,menu:null})],['link','Reparent','Point a child at a moved parent','',()=>this.setState({tab:3,menu:null})],['bookmarks','Checkpoints','VHD Set restore points','',()=>this.setState({tab:4,menu:null})]]],
+      ['boot','power_settings_new','Use as',[['developer_board','Dev Drive','Format as ReFS with performance mode','',null],['power_settings_new','Native boot','Add a boot menu entry','',()=>this.setState({tab:7,menu:null})],['folder_special','Mount in a folder','Instead of a drive letter','',null]]]];
+    const isoOff={size:true,change:false,chain:true,boot:true};
     const used=s.type===0?s.csize+' GB':(s.type===1?'4 MB':'2 MB');
     return {
       rootClass:s.dark?'dark':'',toggleDark:toggleKey('dark'),
@@ -327,9 +356,11 @@ class Component extends DCLogic {
       isOverview:s.tab===0,isDetail:s.tab===1,isResize:s.tab===2,isChain:s.tab===3,isCheckpoints:s.tab===4,isCreate:s.tab===5,isPack:s.tab===6,isBoot:s.tab===7,isRoutes:s.tab===8,
       goDetail:set(1),goResize:set(2),goChain:set(3),goCreate:set(5),goBoot:set(7),
       diskCount:s.disks.length,attachedCount:s.disks.filter(x=>x.att).length,virtualTotal:'589.7 GB',
-      disks:s.disks.map((x,i)=>({...x,delay:(i*45)+'ms',cls:s.sel===i?'sel':'',pick:()=>this.setState({sel:i}),state:x.att?'Attached':'Detached',stCls:'st '+(x.att?'a':'d'),stIcon:x.att?'link':'link_off'})),
+      disks:s.disks.map((x,i)=>({...x,delay:(i*45)+'ms',cls:s.sel===i?'rsel':'',pick:()=>this.setState({sel:i}),state:x.att?'Attached':'Detached',stCls:'st '+(x.att?'a':'d'),stIcon:x.att?'link':'link_off'})),
       sel:d,selShort:sh,selState:d.att?'Attached':'Detached',selStCls:'st '+(d.att?'a':'d'),
       attachIcon:d.att?'eject':'link',attachLabel:d.att?'Detach':'Attach',toggleAttach:()=>this.setState({disks:s.disks.map((x,i)=>i===s.sel?{...x,att:!x.att,letter:x.att?'—':'H:'}:x)}),
+      menus:groups.map(g=>({label:g[2],icon:g[1],open:s.menu===g[0],cls:'mbtn'+(s.menu===g[0]?' open':''),toggle:()=>this.setState({menu:s.menu===g[0]?null:g[0]}),items:g[3].map((it,j)=>({icon:it[0],label:it[1],hint:it[2],key:it[3],d:(j*30)+'ms',off:iso&&isoOff[g[0]],go:it[4]||(()=>this.setState({menu:null}))}))})),
+      actionList:groups.flatMap(g=>[{isHead:true,isItem:false,label:g[2]},...g[3].map(it=>({isHead:false,isItem:true,icon:it[0],label:it[1],hint:it[2],off:iso&&isoOff[g[0]],go:it[4]||(()=>{})}))]),
       queue:[{icon:'compress',title:'Compact devdrive.vhdx',sub:'Retrim, then full compact · 12.1 GB reclaimable',pct:s.q+'%',progCls:'prog',route:'diskpart'},{icon:'swap_horiz',title:'Convert xp-tools.vhd to VHDX (dynamic)',sub:'Waiting for the compact to finish',pct:'0%',progCls:'prog',route:'CreateVirtualDisk'},{icon:'verified',title:'Verify builds.vhds checkpoints',sub:'Done · 3 checkpoints consistent',pct:'100%',progCls:'prog ok',route:'GetVirtualDiskInformation'}],
       parts:[{name:'EFI',size:'100 MB',w:'6%',bg:'#50606e',cls:'pseg'},{name:'MSR',size:'16 MB',w:'4%',bg:'#71787e',cls:'pseg'},{name:'Windows (G:)',size:'58.2 GB · 61% used',w:'78%',bg:'#006493',cls:'pseg'},{name:'Free',size:'5.6 GB',w:'12%',bg:'',cls:'pseg free'}],
       pmapLabel:'EFI 100 MB, MSR 16 MB, Windows 58.2 GB, 5.6 GB free',
