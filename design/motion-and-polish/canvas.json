@@ -144,6 +144,15 @@
       "title": "Tools: file converter, Ollama, sketch pad and editor hand-off",
       "expand": "fill",
       "is_interactive": true
+    },
+    "PanelHosting.dc.html": {
+      "x": 2720,
+      "y": 9960,
+      "w": 1280,
+      "h": 1400,
+      "title": "Web panel: free Cloudflare tunnel link, Discord webhook and the full panel",
+      "expand": "fill",
+      "is_interactive": true
     }
   },
   "order": [
@@ -161,7 +170,8 @@
     "CommandPalette.dc.html",
     "Activity.dc.html",
     "Locks.dc.html",
-    "Tools.dc.html"
+    "Tools.dc.html",
+    "PanelHosting.dc.html"
   ],
   "notes": {
     "row1": {
@@ -196,6 +206,13 @@
       "x": 0,
       "y": 6020,
       "text": "Records, locks and tools",
+      "kind": "title1",
+      "maxW": 4000
+    },
+    "row7": {
+      "x": 0,
+      "y": 9660,
+      "text": "Review, automation and releases",
       "kind": "title1",
       "maxW": 4000
     }

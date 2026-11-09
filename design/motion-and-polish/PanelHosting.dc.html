@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Web panel: public link, Discord and the full panel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;family=Material+Symbols+Rounded:opsz,wght,FILL@20..48,400,0..1&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#006493}a:hover{color:#004b70}
+.dm{--p:#006493;--onp:#fff;--pc:#c9e6ff;--onpc:#001e30;--sc:#d3e5f5;--onsc:#0c1d29;--bg:#f8f9ff;--s0:#fff;--s1:#f2f3f9;--s2:#eceef4;--s3:#e6e8ee;--s4:#e0e2e8;--on:#191c20;--onv:#41474d;--ol:#71787e;--olv:#c1c7ce;--ok:#1b7f37;--okc:#d2f2d8;--err:#ba1a1a;--errc:#ffdad6;--warn:#7a5200;--warnc:#ffe2a8;--add:#d2f2d8;--del:#ffdad6;--inv:#2e3135;--oninv:#eff1f7;
+--d-s:200ms;--d-m:300ms;--d-l:500ms;--e-emph:cubic-bezier(.2,0,0,1);--e-spring:cubic-bezier(.38,1.21,.22,1);
+font-family:Roboto,'Segoe UI',system-ui,sans-serif;color:var(--on);background:var(--bg);min-height:1400px;transition:background var(--d-l),color var(--d-l)}
+.dm.dark{--p:#8dcdff;--onp:#00344f;--pc:#004b70;--onpc:#c9e6ff;--sc:#394956;--onsc:#d3e5f5;--bg:#101418;--s0:#0b0f12;--s1:#181c20;--s2:#1c2024;--s3:#272a2f;--s4:#32353a;--on:#e0e2e8;--onv:#c1c7ce;--ol:#8b9198;--olv:#41474d;--ok:#7bd88f;--okc:#0f3d1c;--err:#ffb4ab;--errc:#93000a;--warn:#ffd27a;--warnc:#4a3300;--add:#0f3d1c;--del:#5c1512;--inv:#e0e2e8;--oninv:#2e3135}
+.ms{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 0,'wght' 400;display:inline-block;vertical-align:middle;flex:none}
+.mono{font-family:'Roboto Mono',monospace}
+.wrap{max-width:1240px;margin:0 auto;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:28px;font-weight:500}
+h2{margin:0;font-size:18px;font-weight:500;display:flex;align-items:center;gap:8px}
+h3{margin:0;font-size:12px;font-weight:500;color:var(--onv)}
+p{margin:0}
+.sub{margin:4px 0 0;font-size:14px;color:var(--onv);line-height:20px}
+.hint{font-size:12.5px;color:var(--onv);line-height:18px}.hint.bad{color:var(--err)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.grow{flex:1;min-width:0}
+.cols{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{background:var(--s1);border-radius:28px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0;box-sizing:border-box}
+.icon-btn{all:unset;cursor:pointer;width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--onv);flex:none;transition:background var(--d-s),transform var(--d-m) var(--e-spring)}
+.icon-btn:hover{background:var(--s3)}.icon-btn:active{transform:scale(.9)}.icon-btn:focus-visible{outline:3px solid var(--p)}
+.icon-btn.on{background:var(--pc);color:var(--onpc)}
+.btn{all:unset;cursor:pointer;height:44px;padding:0 18px;border-radius:999px;background:var(--p);color:var(--onp);font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px;box-sizing:border-box;white-space:nowrap;transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring),background var(--d-s)}
+.btn:active{transform:scale(.96);border-radius:12px}.btn:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.btn.tonal{background:var(--sc);color:var(--onsc)}.btn.text{background:transparent;color:var(--p);padding:0 12px}.btn.danger{background:var(--err);color:var(--bg)}
+.btn.off{background:var(--s3);color:var(--onv);cursor:not-allowed}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;background:var(--s2);border-radius:999px;padding:4px;align-self:flex-start;max-width:100%;box-sizing:border-box}
+.tab{all:unset;cursor:pointer;height:44px;padding:0 18px;border-radius:999px;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--onv);box-sizing:border-box;transition:background var(--d-m) var(--e-emph),color var(--d-m),transform var(--d-m) var(--e-spring)}
+.tab:hover{background:var(--s3)}.tab.on{background:var(--p);color:var(--onp)}.tab:active{transform:scale(.96)}.tab:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.tab b{font-weight:500;font-size:12px;min-width:20px;height:20px;border-radius:10px;background:var(--s0);color:var(--on);display:inline-flex;align-items:center;justify-content:center;padding:0 6px;box-sizing:border-box}
+.pane{display:flex;flex-direction:column;gap:14px;animation:pane var(--d-m) var(--e-emph)}
+@keyframes pane{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+.chip{all:unset;cursor:pointer;height:36px;padding:0 14px;border-radius:10px;box-shadow:inset 0 0 0 1px var(--ol);display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;box-sizing:border-box;transition:background var(--d-m),color var(--d-m),border-radius var(--d-m) var(--e-spring)}
+.chip.on{background:var(--sc);color:var(--onsc);box-shadow:none;border-radius:18px}.chip:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.search{display:flex;align-items:center;gap:8px;background:var(--s0);border-radius:999px;padding:0 6px 0 16px;box-shadow:inset 0 0 0 1px var(--olv);flex:1 1 260px;min-width:0;transition:box-shadow var(--d-s)}
+.search:focus-within{box-shadow:inset 0 0 0 2px var(--p)}
+.search input{all:unset;flex:1;min-width:0;height:48px;font-size:14px;color:var(--on)}.search input::placeholder{color:var(--onv)}
+.field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:var(--onv);min-width:0}
+.field input,.field select,.field textarea{all:unset;box-sizing:border-box;min-height:48px;border-radius:12px;background:var(--s0);padding:0 14px;font-size:14px;font-weight:400;color:var(--on);box-shadow:inset 0 0 0 1px var(--ol);transition:box-shadow var(--d-s)}
+.field textarea{padding:12px 14px;min-height:84px;line-height:20px;white-space:pre-wrap}
+.field input:focus,.field select:focus,.field textarea:focus{box-shadow:inset 0 0 0 2px var(--p)}
+.field.bad input{box-shadow:inset 0 0 0 2px var(--err)}
+.rows{display:flex;flex-direction:column;gap:4px}
+.li{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 12px;border-radius:16px;background:var(--s0);font-size:14px;box-sizing:border-box;min-width:0;transition:background var(--d-m),border-radius var(--d-m) var(--e-spring),opacity var(--d-m)}
+button.li{all:unset;cursor:pointer;display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 12px;border-radius:16px;background:var(--s0);font-size:14px;box-sizing:border-box;min-width:0;transition:background var(--d-m),border-radius var(--d-m) var(--e-spring)}
+button.li:hover{background:var(--s2)}button.li:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
+.li.on{background:var(--sc);color:var(--onsc);border-radius:24px}
+.li .t{flex:1;min-width:0;overflow-wrap:anywhere}.li small,.t small{display:block;font-size:12.5px;color:var(--onv);line-height:17px}
+.li.on small{color:inherit}
+.li input[type=checkbox],.ck input{width:20px;height:20px;margin:12px;accent-color:var(--p);flex:none}
+.ck{display:inline-flex;align-items:center;gap:2px;font-size:14px;min-height:44px}
+.badge{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 10px;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;background:var(--s3);color:var(--on)}
+.badge.ok{background:var(--okc);color:var(--ok)}.badge.no{background:var(--errc);color:var(--err)}.badge.warn{background:var(--warnc);color:var(--warn)}.badge.pri{background:var(--pc);color:var(--onpc)}
+.note{display:flex;gap:10px;align-items:flex-start;background:var(--s2);border-radius:16px;padding:12px 14px;font-size:13px;line-height:19px;color:var(--onv)}
+.note.warn{background:var(--warnc);color:var(--warn)}
+kbd{font-family:'Roboto Mono',monospace;font-size:11.5px;padding:3px 7px;border-radius:6px;background:var(--s3);color:var(--on);box-shadow:inset 0 -1px 0 var(--ol);white-space:nowrap}
+.dot{width:10px;height:10px;border-radius:999px;background:var(--p);flex:none}
+.prog{height:6px;border-radius:6px;background:var(--s3);overflow:hidden}.prog i{display:block;height:100%;background:var(--p);border-radius:6px;transition:width var(--d-l) var(--e-emph)}
+.snack{position:sticky;bottom:16px;align-self:center;display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:var(--inv);color:var(--oninv);border-radius:20px;padding:8px 8px 8px 20px;font-size:14px;animation:rise var(--d-l) var(--e-spring)}
+.snack .btn.text{color:var(--pc)}.dark .snack .btn.text{color:var(--p)}
+@keyframes rise{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.dm *{transition-duration:1ms!important;animation-duration:1ms!important}}
+.dm{min-height:1400px}
+.big{all:unset;cursor:pointer;min-height:64px;border-radius:22px;background:var(--p);color:var(--onp);padding:0 24px;display:inline-flex;align-items:center;gap:12px;font-size:16px;font-weight:500;box-sizing:border-box;align-self:flex-start;transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring),background var(--d-m)}
+.big:active{transform:scale(.97);border-radius:14px}.big:focus-visible{outline:3px solid var(--p);outline-offset:3px}
+.big.stop{background:var(--err);color:var(--bg)}.big.busy{background:var(--s3);color:var(--onv);cursor:progress}
+.step{display:flex;align-items:center;gap:10px;font-size:13.5px;padding:8px 12px;border-radius:12px;background:var(--s0);color:var(--onv);animation:pane var(--d-m) var(--e-emph) both}
+.step.done{color:var(--ok)}.step.run{color:var(--on);font-weight:500}
+.url{display:flex;align-items:center;gap:8px;background:var(--s0);border-radius:16px;padding:6px 6px 6px 16px;font-family:'Roboto Mono',monospace;font-size:14px;box-shadow:inset 0 0 0 2px var(--p);animation:pop var(--d-m) var(--e-spring)}
+.url span{flex:1;min-width:0;overflow-wrap:anywhere}
+.msg{background:var(--s0);border-radius:16px;padding:12px 14px;font-size:13.5px;line-height:20px;box-shadow:inset 0 0 0 1px var(--olv);display:flex;gap:12px}
+.msg .av{width:36px;height:36px;border-radius:999px;background:var(--pc);color:var(--onpc);display:flex;align-items:center;justify-content:center;flex:none}
+.msg b{font-weight:500}.msg .mono{color:var(--p);overflow-wrap:anywhere}
+.panel{display:flex;flex-wrap:wrap;background:var(--s0);border-radius:20px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--olv)}
+.nav{flex:1 1 190px;display:flex;flex-direction:column;gap:2px;padding:10px;background:var(--s2);box-sizing:border-box}
+.nav button{all:unset;cursor:pointer;min-height:44px;padding:0 14px;border-radius:999px;display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:500;color:var(--onv);transition:background var(--d-m),color var(--d-m)}
+.nav button:hover{background:var(--s3)}.nav button.on{background:var(--sc);color:var(--onsc)}.nav button:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
+.view{flex:999 1 520px;min-width:0;padding:16px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:820px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{background:var(--s1);border-radius:16px;padding:12px 14px;font-size:12.5px;color:var(--onv);display:flex;flex-direction:column;gap:2px}
+.tile b{font-size:22px;font-weight:500;color:var(--on);font-family:'Roboto Mono',monospace}
+.spark{width:100%;height:36px;display:block}
+.con{background:#0b0f12;color:#d7e3ee;border-radius:14px;padding:12px;font-family:'Roboto Mono',monospace;font-size:12.5px;line-height:19px;min-height:150px;overflow-wrap:anywhere}
+.view .li{background:var(--s1)}
+</style>
+</helmet>
+<div class="dm {{rootClass}}">
+<div class="wrap">
+<div class="bar"><div class="grow" style="min-width:260px"><h1>Web panel: public link, Discord and the full panel</h1><p class="sub">One click puts the Minecraft management panel on a free Cloudflare quick tunnel, posts the link to Discord, and posts it again whenever the link changes. The panel itself is a full manager, not only a console.</p></div><button class="icon-btn" onClick="{{toggleDark}}" aria-label="Switch light and dark"><span class="ms" aria-hidden="true">contrast</span></button></div>
+<div class="cols">
+<div class="card" style="flex:1 1 520px">
+<div class="bar"><h2 class="grow"><span class="ms" aria-hidden="true">public</span>Where the panel can be reached</h2><span class="{{stateCls}}">{{stateText}}</span></div>
+<div class="bar" role="group" aria-label="Reach"><sc-for list="{{modes}}" as="m" hint-placeholder-count="3"><button class="{{m.cls}}" aria-pressed="{{m.on}}" onClick="{{m.pick}}"><span class="ms" aria-hidden="true">{{m.icon}}</span>{{m.label}}</button></sc-for></div>
+<p class="hint">{{modeText}}</p>
+<button class="{{bigCls}}" onClick="{{toggle}}"><span class="ms" aria-hidden="true">{{bigIcon}}</span>{{bigLabel}}</button>
+<sc-if value="{{starting}}" hint-placeholder-val="{{ false }}"><div class="col" style="gap:4px" role="status"><sc-for list="{{steps}}" as="st" hint-placeholder-count="4"><div class="{{st.cls}}"><span class="ms" aria-hidden="true">{{st.icon}}</span><span class="grow">{{st.label}}</span><span class="hint mono">{{st.meta}}</span></div></sc-for></div></sc-if>
+<sc-if value="{{running}}" hint-placeholder-val="{{ true }}"><div class="col">
+<div class="url"><span>{{url}}</span><button class="icon-btn" aria-label="Copy link"><span class="ms" aria-hidden="true">content_copy</span></button><button class="icon-btn" aria-label="Show QR code"><span class="ms" aria-hidden="true">qr_code_2</span></button></div>
+<div class="bar"><button class="btn tonal" onClick="{{restart}}"><span class="ms" aria-hidden="true">restart_alt</span>Get a new link</button><span class="hint grow">{{urlNote}}</span></div>
+</div></sc-if>
+<sc-if value="{{isPublic}}" hint-placeholder-val="{{ true }}"><div class="col" style="gap:8px">
+<div class="note warn"><span class="ms" aria-hidden="true">warning</span><span>A public link is on the internet. Anyone who has it reaches the sign-in page, so every device still pairs with a one-time code from this PC before it can do anything.</span></div>
+<div class="note"><span class="ms" aria-hidden="true">info</span><span>Free quick tunnels need no Cloudflare account. The link is random and changes every time the tunnel starts, there is no uptime guarantee, and at most 200 requests are served at once. Because each new link is a new address, devices pair again after a change. For a link that never changes, use your own Cloudflare account and domain.</span></div>
+</div></sc-if>
+</div>
+
+<div class="card" style="flex:1 1 420px">
+<div class="bar"><h2 class="grow"><span class="ms" aria-hidden="true">forum</span>Send the link to Discord</h2><span class="{{hookBadgeCls}}">{{hookBadge}}</span></div>
+<div class="{{hookFieldCls}}"><label for="ph-hook">Webhook address</label><input id="ph-hook" class="mono" type="password" value="{{hook}}" onChange="{{setHook}}" autocomplete="off" spellcheck="false"><span class="{{hookHintCls}}">{{hookHint}}</span></div>
+<label class="ck"><input type="checkbox" checked="{{auto}}" onChange="{{toggleAuto}}">Send again automatically when the link changes</label>
+<label class="ck"><input type="checkbox" checked="{{replace}}" onChange="{{toggleReplace}}">Update the earlier message instead of posting a new one</label>
+<label class="ck"><input type="checkbox" checked="{{sayStop}}" onChange="{{toggleStop}}">Say so when the panel goes offline</label>
+<div class="msg" role="img" aria-label="Preview of the message"><span class="av"><span class="ms" aria-hidden="true">dns</span></span><span><b>Minecraft panel</b><br>{{msgLead}}<br><span class="mono">{{msgUrl}}</span><br><span class="hint">Pairing code needed. Ask the host.</span></span></div>
+<div class="bar"><button class="{{sendCls}}" aria-disabled="{{hookBad}}" onClick="{{sendNow}}"><span class="ms" aria-hidden="true">send</span>Send now</button><span class="hint grow">The pairing code is never sent to Discord.</span></div>
+<div><h3 style="margin-bottom:6px">Sent</h3><div class="rows"><sc-for list="{{log}}" as="g" hint-placeholder-count="2"><div class="li" style="min-height:48px"><span class="ms" aria-hidden="true">{{g.icon}}</span><span class="t">{{g.text}}<small>{{g.when}}</small></span><span class="{{g.cls}}">{{g.tag}}</span></div></sc-for></div>
+<sc-if value="{{noLog}}" hint-placeholder-val="{{ false }}"><p class="hint">Nothing sent yet.</p></sc-if></div>
+<p class="hint">The webhook address is kept in Windows Credential Manager, never in server files, logs or exports. If Discord cannot be reached the panel keeps running and the send is retried.</p>
+</div>
+</div>
+
+<div class="card">
+<div class="bar"><h2 class="grow"><span class="ms" aria-hidden="true">dashboard</span>What the panel can do</h2><span class="hint">The same pages on a phone, a tablet or a computer</span></div>
+<div class="panel">
+<div class="nav" role="tablist" aria-label="Panel page"><sc-for list="{{pages}}" as="p" hint-placeholder-count="8"><button class="{{p.cls}}" role="tab" aria-selected="{{p.on}}" onClick="{{p.pick}}"><span class="ms" aria-hidden="true">{{p.icon}}</span>{{p.label}}</button></sc-for></div>
+<div class="view">
+<sc-if value="{{isDash}}" hint-placeholder-val="{{ true }}"><div class="pane">
+<div class="tiles"><sc-for list="{{tiles}}" as="t" hint-placeholder-count="4"><div class="tile">{{t.label}}<b>{{t.value}}</b>{{t.note}}</div></sc-for></div>
+<div class="tile"><span>Ticks per second, last 60 seconds</span><svg class="spark" viewBox="0 0 300 36" preserveAspectRatio="none" role="img" aria-label="{{sparkLabel}}"><polyline points="{{spark}}" fill="none" stroke="#006493" stroke-width="2" stroke-linejoin="round"></polyline></svg></div>
+<div class="rows"><sc-for list="{{servers}}" as="v" hint-placeholder-count="3"><div class="li"><span class="{{v.dotCls}}" style="background:{{v.dot}}"></span><span class="t">{{v.name}}<small>{{v.detail}}</small></span><span class="{{v.badgeCls}}">{{v.state}}</span><button class="btn tonal" onClick="{{v.act}}">{{v.actText}}</button></div></sc-for></div>
+</div></sc-if>
+<sc-if value="{{isCon}}" hint-placeholder-val="{{ false }}"><div class="pane">
+<div class="bar"><sc-for list="{{levels}}" as="l" hint-placeholder-count="3"><button class="{{l.cls}}" aria-pressed="{{l.on}}" onClick="{{l.pick}}">{{l.label}}</button></sc-for></div>
+<div class="con" role="log" aria-label="Server console"><sc-for list="{{lines}}" as="l" hint-placeholder-count="5"><div>{{l}}</div></sc-for></div>
+<div class="bar"><div class="search"><span class="ms" aria-hidden="true">chevron_right</span><input class="mono" aria-label="Command" placeholder="Type a command" value="{{cmd}}" onChange="{{setCmd}}" onKeyDown="{{cmdKey}}"></div><button class="btn" onClick="{{runCmd}}">Run</button></div>
+<p class="hint">The console streams over a WebSocket, which quick tunnels carry. Commands that stop or wipe a server ask first.</p>
+</div></sc-if>
+<sc-if value="{{isList}}" hint-placeholder-val="{{ false }}"><div class="pane">
+<div class="bar"><div class="search"><span class="ms" aria-hidden="true">search</span><input aria-label="{{listSearch}}" placeholder="{{listSearch}}"><button class="icon-btn" aria-label="Open regex builder"><span class="ms" aria-hidden="true">regular_expression</span></button></div><button class="btn tonal"><span class="ms" aria-hidden="true">{{listActIcon}}</span>{{listAct}}</button></div>
+<div class="rows"><sc-for list="{{items}}" as="i" hint-placeholder-count="4"><div class="li"><span class="ms" aria-hidden="true">{{i.icon}}</span><span class="t">{{i.title}}<small>{{i.detail}}</small></span><span class="{{i.cls}}">{{i.tag}}</span><button class="btn tonal">{{i.act}}</button></div></sc-for></div>
+<p class="hint">{{listNote}}</p>
+</div></sc-if>
+</div>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1400}}'>
+function dmBase(c){return {rootClass:c.state.dark?'dark':'',toggleDark:function(){c.setState({dark:!c.state.dark});}};}
+class Component extends DCLogic {
+  constructor(p){super(p);this.state={dark:false,mode:1,run:'on',t:0,n:0,hook:'https://discord.com/api/webhooks/000000000000000000/sample-token',auto:true,replace:true,sayStop:true,page:0,lvl:0,cmd:'',srv:[true,true,false],
+    out:['[15:02:11] [Server thread/INFO]: Done (4.812s)! For help, type "help"','[15:03:40] [Server thread/INFO]: Sam joined the game','[15:04:02] [Server thread/WARN]: Can\'t keep up! Running 2100ms behind','[15:05:00] [Server thread/INFO]: Saved the game'],
+    log:[{text:'Link sent',when:'Today 15:02 · first link',tag:'Sent',cls:'badge ok',icon:'send'}],tps:[19.9,20,19.8,20,19.7,19.9,20,19.6,19.9,20,20,19.8]};
+    this.words=[['amber','otter','signal','maple'],['quiet','harbor','violet','lane'],['rapid','cedar','north','field']];}
+  componentDidMount(){this._i=setInterval(()=>{const s=this.state,tps=s.tps.slice(1).concat([Math.round((19.4+Math.random()*.6)*10)/10]);if(s.run==='starting'&&s.t>=8)this.landed(tps);else this.setState({t:s.t+1,tps:tps});},800);}
+  componentWillUnmount(){clearInterval(this._i);}
+  urlFor(n){return 'https://'+this.words[n%3].join('-')+'.trycloudflare.com';}
+  post(log,n,first){const s=this.state;if(!this.hookOk()||!s.auto&&!first)return log;return [{text:first?'Link sent':s.replace?'Earlier message updated with the new link':'New link sent',when:'Just now · '+this.urlFor(n).slice(8,30)+'…',tag:first?'Sent':'Resent',cls:'badge ok',icon:s.replace&&!first?'edit':'send'}].concat(log).slice(0,4);}
+  hookOk(){return /^https:\/\/discord\.com\/api\/webhooks\/\d+\/[\w-]+$/.test(this.state.hook.trim());}
+  landed(tps){const s=this.state,n=s.n+1;this.setState({run:'on',t:0,n:n,tps:tps,log:s.mode===1?this.post(s.log,n,false):s.log});}
+  renderVals(){
+    const s=this.state,set=o=>this.setState(o),pub=s.mode===1,on=s.run==='on',starting=s.run==='starting',ok=this.hookOk();
+    const url=pub?this.urlFor(s.n):s.mode===0?'https://desktop-pc.local:8443':'https://panel.your-domain.example';
+    const stepDefs=pub?[['download','Check the tunnel helper','cloudflared · signature verified'],['deployed_code','Start the panel container','mc-panel'],['cloud_sync','Open the quick tunnel','outbound only'],['link','Receive the public link','trycloudflare.com']]:[['deployed_code','Start the panel container','mc-panel'],['https','Make a certificate for this PC','desktop-pc.local'],['shield','Allow it on private networks','Windows Firewall'],['wifi','Find this PC on the network','desktop-pc.local']];
+    const pages=[['dashboard','Dashboard'],['terminal','Console'],['group','Players'],['folder','Files'],['tune','Configuration'],['extension','Plugins'],['backup','Backups'],['event_repeat','Schedules'],['fact_check','Audit log']];
+    const lists={2:['Search players','person_add','Add to whitelist','Kick, ban, operator and whitelist changes take effect at once and are written to the audit log.',[['person','Sam','Online · 42 ms · survival','Operator','badge pri','Manage'],['person','Riley','Online · 61 ms · survival','Player','badge','Manage'],['person_off','Jordan','Last seen yesterday','Whitelisted','badge','Manage']]],
+      3:['Search files','upload','Upload','Edits are saved as a new version first, so any change can be rolled back.',[['description','server.properties','64 settings · edited today','Text','badge','Edit'],['folder','world','412 MB · 3 dimensions','Folder','badge','Open'],['description','logs/latest.log','2.1 MB','Log','badge','View']]],
+      4:['Search every setting','restart_alt','Reset page','Each setting is a real control with its allowed range, not a text file. Changes that need a restart say so.',[['groups','Max players','20 · shown in the server list','Live','badge ok','Change'],['visibility','View distance','10 chunks','Restart','badge warn','Change'],['swords','PvP','On','Live','badge ok','Change']]],
+      5:['Search plugins','add','Install','Only versions marked compatible with this server version are offered.',[['extension','EssentialsX','Homes, warps, kits and economy','Up to date','badge ok','Configure'],['admin_panel_settings','LuckPerms','Permissions','Update ready','badge warn','Update']]],
+      6:['Search backups','backup','Back up now','Every backup is verified after it is written. Restoring stops the server first and keeps the current world as its own backup.',[['inventory_2','Today 15:00','412 MB · verified','Automatic','badge ok','Restore'],['inventory_2','Today 09:00','409 MB · verified','Automatic','badge ok','Restore'],['inventory_2','Before the 1.21.4 update','398 MB · verified','Manual','badge pri','Restore']]],
+      7:['Search schedules','add','New schedule','Schedules use this PC\'s local time and keep running when no browser is open.',[['schedule','Back up','Every 6 hours','On','badge ok','Edit'],['restart_alt','Restart with a 5 minute warning','Every day at 05:00','On','badge ok','Edit'],['campaign','Announce the rules','Every 30 minutes','Off','badge','Edit']]],
+      8:['Search the audit log','ios_share','Export','Every action records the device that did it. Entries cannot be edited from the panel.',[['phone_iphone','Restarted Survival','Paired phone · today 14:58','Done','badge ok','Details'],['computer','Changed view distance to 10','This PC · today 14:20','Done','badge ok','Details'],['block','Sign-in refused: wrong pairing code','Unknown device · today 13:07','Refused','badge no','Details']]]};
+    const L=lists[s.page],lv=['All','Warnings','Chat and joins'],lines=s.out.filter(l=>s.lvl===0||(s.lvl===1?l.indexOf('WARN')>=0:/joined|left|</.test(l)));
+    const names=['Survival','Prison','Creative test'],det=['4/20 players · 19.8 TPS · 3.1 of 6 GB','18/20 players · 18.7 TPS · 5.2 of 8 GB','Paper 1.21.4'];
+    const run=()=>{const c=s.cmd.trim();if(c)set({cmd:'',out:s.out.concat(['> '+c,'[15:06:00] [Server thread/INFO]: Ran '+c.split(' ')[0]]).slice(-8)});};
+    return {...dmBase(this),
+      modes:[['home','Home network only'],['public','Free public link'],['verified','My own domain']].map((m,i)=>({icon:m[0],label:m[1],on:s.mode===i,cls:'chip'+(s.mode===i?' on':''),pick:()=>set({mode:i,run:'off',t:0})})),
+      modeText:['Reachable only from devices on your home network. Nothing is opened to the internet.','Reachable from anywhere through a Cloudflare quick tunnel. No account, no router changes and no open port: this PC connects outwards.','A named tunnel on your own Cloudflare account and domain. The address never changes, so paired devices stay paired.'][s.mode],
+      isPublic:pub,running:on,starting:starting,
+      stateText:on?['Running on your network','Public link is live','Running on your domain'][s.mode]:starting?'Starting':'Off',stateCls:'badge '+(on?(pub?'warn':'ok'):starting?'pri':''),
+      bigCls:'big'+(on?' stop':starting?' busy':''),bigIcon:on?'stop_circle':starting?'progress_activity':'rocket_launch',bigLabel:on?'Stop hosting':starting?'Starting…':['Host on my network','Get a public link','Connect my domain'][s.mode],
+      toggle:()=>{if(starting)return;if(on)set({run:'off',log:pub&&s.sayStop&&ok?[{text:'Offline notice sent',when:'Just now',tag:'Sent',cls:'badge',icon:'cloud_off'}].concat(s.log).slice(0,4):s.log});else set({run:'starting',t:0});},
+      steps:stepDefs.map((d,i)=>{const done=s.t>i*2+1,r=!done&&s.t>=i*2;return {label:d[1],meta:d[2],icon:done?'check_circle':r?'progress_activity':d[0],cls:'step'+(done?' done':r?' run':'')};}),
+      url:url,urlNote:pub?'This link stops working when hosting stops.':'',restart:()=>{if(pub)set({run:'starting',t:0});},
+      hook:s.hook,setHook:e=>set({hook:e.target.value}),hookBad:!ok,
+      hookFieldCls:'field'+(ok?'':' bad'),hookHintCls:'hint'+(ok?'':' bad'),hookHint:ok?'Looks like a Discord webhook. Shown hidden; paste a new one to replace it.':'This is not a Discord webhook address. It starts with https://discord.com/api/webhooks/ and ends with the token.',
+      hookBadge:ok?(s.auto?'Auto send on':'Manual only'):'Not set up',hookBadgeCls:'badge '+(ok?(s.auto?'ok':''):'warn'),
+      auto:s.auto,replace:s.replace,sayStop:s.sayStop,toggleAuto:()=>set({auto:!s.auto}),toggleReplace:()=>set({replace:!s.replace}),toggleStop:()=>set({sayStop:!s.sayStop}),
+      msgLead:on?'The panel is online at a new link:':'The panel is offline.',msgUrl:on?url:'No link right now',
+      sendCls:'btn'+(ok&&on?'':' off'),sendNow:()=>{if(ok&&on)set({log:this.post(s.log,s.n,true)});},
+      log:s.log,noLog:s.log.length===0,
+      pages:pages.map((p,i)=>({icon:p[0],label:p[1],on:s.page===i,cls:s.page===i?'on':'',pick:()=>set({page:i})})),
+      isDash:s.page===0,isCon:s.page===1,isList:s.page>1,
+      tiles:[['Servers running',s.srv.filter(Boolean).length+' of 3','on this PC'],['Players online',s.srv[0]&&s.srv[1]?'22':s.srv[0]?'4':s.srv[1]?'18':'0','across all servers'],['Memory in use','8.3 GB','of 16 GB'],['Last backup','15:00','verified']].map(t=>({label:t[0],value:t[1],note:t[2]})),
+      spark:s.tps.map((v,i)=>(i*27.2).toFixed(0)+','+(34-(v-19)*30).toFixed(1)).join(' '),sparkLabel:'Ticks per second, now '+s.tps[s.tps.length-1],
+      servers:names.map((n,i)=>({name:n,detail:s.srv[i]?det[i]:'Stopped · '+(i===2?det[2]:'ready to start'),dot:s.srv[i]?'#1b7f37':'#71787e',dotCls:'dot',state:s.srv[i]?'Running':'Stopped',badgeCls:'badge '+(s.srv[i]?'ok':''),actText:s.srv[i]?'Stop':'Start',act:()=>set({srv:s.srv.map((x,j)=>j===i?!x:x)})})),
+      levels:lv.map((l,i)=>({label:l,on:s.lvl===i,cls:'chip'+(s.lvl===i?' on':''),pick:()=>set({lvl:i})})),lines:lines,
+      cmd:s.cmd,setCmd:e=>set({cmd:e.target.value}),runCmd:run,cmdKey:e=>{if(e.key==='Enter')run();},
+      listSearch:L?L[0]:'',listActIcon:L?L[1]:'',listAct:L?L[2]:'',listNote:L?L[3]:'',items:L?L[4].map(x=>({icon:x[0],title:x[1],detail:x[2],tag:x[3],cls:x[4],act:x[5]})):[]
+    };
+  }
+}
+</script>
+</body>
+</html>
