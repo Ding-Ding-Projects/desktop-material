@@ -16,6 +16,7 @@ import {
   IFileConverterStoragePreflight,
   IFileSignatureInspection,
 } from './file-converter'
+import { IBinaryEncodingResult, IDropPlan } from './file-converter-drop'
 import { ThemeSource } from '../ui/lib/theme-source'
 import { DesktopNotificationPermission } from 'desktop-notifications'
 import { NotificationCallback } from 'desktop-notifications'
@@ -520,6 +521,13 @@ export type RequestResponseChannels = {
     destinationPath: string,
     requiredBytes: number
   ) => Promise<IFileConverterStoragePreflight>
+  'file-converter-expand-drop': (
+    paths: ReadonlyArray<string>,
+    includeSubfolders: boolean
+  ) => Promise<IDropPlan>
+  'file-converter-convert-binary-encoding': (
+    sourcePath: string
+  ) => Promise<IBinaryEncodingResult>
   'is-window-maximized': () => Promise<boolean>
   'get-apple-action-on-double-click': () => Promise<Electron.AppleActionOnDoubleClickPref>
   'should-use-dark-colors': () => Promise<boolean>

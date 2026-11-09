@@ -187,6 +187,8 @@ describe('IPC channel contract', () => {
     'show-open-dialog-multiple',
     'file-converter-inspect-source',
     'file-converter-preflight-storage',
+    'file-converter-expand-drop',
+    'file-converter-convert-binary-encoding',
     'is-window-maximized',
     'get-apple-action-on-double-click',
     'should-use-dark-colors',

@@ -83,3 +83,40 @@ batch results, and safe overwrite refusal.
 
 The converter works on local selected files and bundled adapters. It adds no
 HTTP endpoint, so a Postman collection is not applicable.
+
+## Quick convert: drop files or folders (November 9, 2026)
+
+The first working adapter is **Base64 text beside the original**, under Binary
+Encodings.
+
+- Drop files or folders on **Quick convert** in **Repository tools → Local file
+  converter**, or use **Choose files**. The drop is claimed by the converter,
+  so a dropped folder is not added as a repository.
+- Every regular file is encoded to `name.ext.base64.txt` in the folder it was
+  dragged from. A `name.ext.base64.txt` file is decoded back to `name.ext`.
+- Folders are expanded. **Include subfolders** (on by default) decides whether
+  nested folders are walked; a dropped folder itself is always opened. One drop
+  takes at most 5,000 files and says so when it stops there.
+- Nothing is overwritten, moved or uploaded. When the result name is taken a
+  number is added, for example `data (1).bin` or `photo.png (1).base64.txt`.
+- Each result is written to a temporary file, checked, and only then published.
+  Encoding is checked by decoding the result and comparing SHA-256 with the
+  source. Decoding is strict: whitespace is ignored, and any other character,
+  padding before the end or an incomplete length is refused with its offset.
+- One failed file never stops the rest. Links, unfinished `.partial` files and
+  (when the box is off) subfolders are listed as skipped with the reason.
+
+Conversions run one after another in the privileged process
+(`app/src/main-process/file-converter-drop.ts`); the rules are in
+`app/src/lib/file-converter-drop.ts`. Other categories still have no adapter
+and are not offered.
+
+Verification: `app/test/unit/file-converter-drop-test.ts` (7 tests, including a
+real round trip on disk) and
+`app/test/unit/ui/file-converter-quick-convert-test.tsx` pass on Linux, and the
+TypeScript check passes. The built Windows application has not been checked and
+no capture exists yet.
+
+廣東話：將檔案或者成個資料夾掟落「Quick convert」，每個檔案會喺原本個資料夾變成
+Base64 文字檔，`.base64.txt` 掟返落去就還原。唔會覆蓋、搬走或者上載任何嘢；撞名就
+加號碼。暫時得 Base64 呢個轉換器係真正用得。

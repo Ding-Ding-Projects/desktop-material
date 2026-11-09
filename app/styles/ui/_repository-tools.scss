@@ -1153,7 +1153,10 @@
   min-height: 30px;
   overflow-wrap: anywhere;
   padding: 3px 12px;
-  transition: background-color 220ms var(--emph), border-color 220ms var(--emph), color 220ms var(--emph);
+  transition:
+    background-color 220ms var(--emph),
+    border-color 220ms var(--emph),
+    color 220ms var(--emph);
 
   &:hover {
     background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
@@ -1194,7 +1197,9 @@
   gap: 10px;
   padding: 8px 12px;
   text-align: left;
-  transition: background-color 200ms var(--emph), color 200ms var(--emph);
+  transition:
+    background-color 200ms var(--emph),
+    color 200ms var(--emph);
 
   &:hover {
     background: color-mix(in srgb, var(--md-sys-color-on-surface) 6%, transparent);
@@ -2111,4 +2116,55 @@
     flex: none;
     max-height: 96px;
   }
+}
+
+// Quick convert: drop files or folders, results land beside the originals.
+.file-converter-quick {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.file-converter-drop {
+  align-items: center;
+  border: 2px dashed var(--md-sys-color-outline);
+  border-radius: var(--md-sys-shape-corner-large, 16px);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 16px;
+  transition:
+    background-color var(--md-sys-motion-duration-medium2),
+    border-color var(--md-sys-motion-duration-medium2);
+
+  > div {
+    flex: 1 1 260px;
+    min-width: 0;
+  }
+
+  p {
+    color: var(--md-sys-color-on-surface-variant);
+    margin: 4px 0 0;
+  }
+
+  .material-symbol {
+    color: var(--md-sys-color-primary);
+    font-size: 32px;
+  }
+
+  &.file-converter-drop-active {
+    background: var(--md-sys-color-primary-container);
+    border-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary-container);
+
+    p {
+      color: inherit;
+    }
+  }
+}
+
+.file-converter-quick-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }

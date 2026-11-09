@@ -463,6 +463,18 @@ export const preflightFileConverterStorage = invokeProxy(
   2
 )
 
+/** Expand dropped files and folders into the regular files to convert. */
+export const expandFileConverterDrop = invokeProxy(
+  'file-converter-expand-drop',
+  2
+)
+
+/** Encode or decode one file as Base64 text beside its original. */
+export const convertFileConverterBinaryEncoding = invokeProxy(
+  'file-converter-convert-binary-encoding',
+  1
+)
+
 /** Tell the main process read/save the user GUID from/to file */
 export const saveGUID = invokeProxy('save-guid', 1)
 export const getGUID = invokeProxy('get-guid', 0)

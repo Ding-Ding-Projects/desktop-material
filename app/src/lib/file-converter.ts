@@ -143,13 +143,11 @@ export const FileConverterAdapterRegistry: ReadonlyArray<IFileConverterAdapter> 
   {
     id: 'binary-encoding-conversion',
     category: 'Binary Encodings',
-    title: 'Binary encoding conversion',
-    sourceFormats: ['Base64', 'hex'],
-    targetFormats: ['Base64', 'hex'],
-    availability: 'unavailable',
-    unavailableReason:
-      'Unavailable: no bundled offline binary encoding adapter is declared.',
-    bundled: false,
+    title: 'Base64 text beside the original',
+    sourceFormats: ['Any file', 'Base64 text (.base64.txt)'],
+    targetFormats: ['Base64 text (.base64.txt)', 'Original file'],
+    availability: 'available',
+    bundled: true,
     networkAccess: 'never',
     operationIds: ['encode', 'decode'],
   },

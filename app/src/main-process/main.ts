@@ -191,6 +191,10 @@ import {
   inspectLocalFileForConversion,
   preflightFileConverterStorage,
 } from './file-converter'
+import {
+  convertBinaryEncodingBesideSource,
+  expandDroppedPaths,
+} from './file-converter-drop'
 
 app.setAppLogsPath()
 enableSourceMaps()
@@ -2077,6 +2081,23 @@ app.on('ready', () => {
     'file-converter-preflight-storage',
     async (_event, destinationPath: string, requiredBytes: number) =>
       preflightFileConverterStorage(destinationPath, requiredBytes)
+  )
+
+  /**
+   * Quick conversion of dropped files and folders. Folders are expanded and
+   * every byte is read and written in the privileged process; results land
+   * beside their originals and never replace an existing file.
+   */
+  ipcMain.handle(
+    'file-converter-expand-drop',
+    async (_event, paths: ReadonlyArray<string>, includeSubfolders: boolean) =>
+      expandDroppedPaths(paths, includeSubfolders)
+  )
+
+  ipcMain.handle(
+    'file-converter-convert-binary-encoding',
+    async (_event, sourcePath: string) =>
+      convertBinaryEncodingBesideSource(sourcePath)
   )
 
   /**
