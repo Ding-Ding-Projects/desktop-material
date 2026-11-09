@@ -120,3 +120,23 @@ no capture exists yet.
 廣東話：將檔案或者成個資料夾掟落「Quick convert」，每個檔案會喺原本個資料夾變成
 Base64 文字檔，`.base64.txt` 掟返落去就還原。唔會覆蓋、搬走或者上載任何嘢；撞名就
 加號碼。暫時得 Base64 呢個轉換器係真正用得。
+
+## Base64 text (November 9, 2026)
+
+Below Quick convert, **Base64 text** encodes and decodes text as you type.
+
+- Variants: Standard, URL-safe and MIME (76-character lines). **Padding** keeps
+  or drops the trailing `=` when encoding.
+- **Strict decoding** (on by default) requires a correct length and padding;
+  switch it off to accept missing padding. Whitespace is always ignored.
+- A character that does not belong is reported with its offset, and bytes that
+  are not UTF-8 text are refused rather than shown as garbage. **Swap** changes
+  direction and carries a good result over. **Copy result** is disabled while
+  there is an error.
+- Text is limited to 1,000,000 characters; use Quick convert for files.
+
+Rules: `app/src/lib/base64-toolkit.ts`. Screen:
+`app/src/ui/repository-tools/base64-toolkit.tsx`. Verification:
+`app/test/unit/base64-toolkit-test.ts` (6 tests) and
+`app/test/unit/ui/base64-toolkit-test.tsx` (3 tests) pass on Linux. The built
+Windows application has not been checked.

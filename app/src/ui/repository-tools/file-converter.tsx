@@ -25,6 +25,7 @@ import {
   writeFileConverterQueueState,
 } from '../../lib/file-converter'
 import { MaterialSymbol } from '../lib/material-symbol'
+import { Base64Toolkit } from './base64-toolkit'
 
 interface IFileConverterProps {
   /** Injectable seams keep file selection and byte inspection out of the UI. */
@@ -529,6 +530,7 @@ export class FileConverter extends React.Component<
         )}
 
         {this.renderQuickConvert()}
+        <Base64Toolkit />
 
         <section
           className="file-converter-queue"

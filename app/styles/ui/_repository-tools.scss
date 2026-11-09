@@ -2168,3 +2168,56 @@
   margin: 0;
   padding: 0;
 }
+
+// Base64 text toolkit inside the local file converter.
+.base64-toolkit {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.base64-toolkit-options {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.base64-toolkit-panes {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  textarea {
+    background: var(--md-sys-color-surface-container-lowest);
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: var(--md-sys-shape-corner-medium, 12px);
+    color: var(--md-sys-color-on-surface);
+    font-family: var(--font-family-monospace);
+    min-height: 120px;
+    padding: 10px;
+    resize: vertical;
+
+    &:focus-visible {
+      border-color: var(--md-sys-color-primary);
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 1px;
+    }
+
+    &[aria-invalid='true'] {
+      border-color: var(--md-sys-color-error);
+    }
+  }
+
+  @media (max-width: 720px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
