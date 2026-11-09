@@ -68,7 +68,7 @@
       "x": 0,
       "y": 2680,
       "w": 1280,
-      "h": 960,
+      "h": 1400,
       "title": "Windows virtual disk manager",
       "expand": "fill",
       "is_interactive": true
@@ -77,7 +77,7 @@
       "x": 1360,
       "y": 2680,
       "w": 1280,
-      "h": 960,
+      "h": 1400,
       "title": "Minecraft server manager and world generator",
       "expand": "fill",
       "is_interactive": true
@@ -86,8 +86,8 @@
       "x": 2720,
       "y": 2680,
       "w": 1280,
-      "h": 960,
-      "title": "Motion setting, schedule, provenance and honest pricing",
+      "h": 1400,
+      "title": "Motion setting, schedule, provenance and honest app",
       "expand": "fill",
       "is_interactive": true
     }
