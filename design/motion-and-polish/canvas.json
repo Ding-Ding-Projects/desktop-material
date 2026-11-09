@@ -126,6 +126,15 @@
       "title": "Notifications, local history, changelog, export and bulk actions",
       "expand": "fill",
       "is_interactive": true
+    },
+    "Locks.dc.html": {
+      "x": 1360,
+      "y": 6320,
+      "w": 1280,
+      "h": 960,
+      "title": "Surface locks, unlock ladder, authenticator and support tickets",
+      "expand": "fill",
+      "is_interactive": true
     }
   },
   "order": [
@@ -141,7 +150,8 @@
     "SettingsAll.dc.html",
     "AppearanceStudio.dc.html",
     "CommandPalette.dc.html",
-    "Activity.dc.html"
+    "Activity.dc.html",
+    "Locks.dc.html"
   ],
   "notes": {
     "row1": {

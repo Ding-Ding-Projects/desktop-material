@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Locks, unlock ladder, authenticator and support tickets</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;family=Material+Symbols+Rounded:opsz,wght,FILL@20..48,400,0..1&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#006493}a:hover{color:#004b70}
+.dm{--p:#006493;--onp:#fff;--pc:#c9e6ff;--onpc:#001e30;--sc:#d3e5f5;--onsc:#0c1d29;--bg:#f8f9ff;--s0:#fff;--s1:#f2f3f9;--s2:#eceef4;--s3:#e6e8ee;--s4:#e0e2e8;--on:#191c20;--onv:#41474d;--ol:#71787e;--olv:#c1c7ce;--ok:#1b7f37;--okc:#d2f2d8;--err:#ba1a1a;--errc:#ffdad6;--warn:#7a5200;--warnc:#ffe2a8;--add:#d2f2d8;--del:#ffdad6;--inv:#2e3135;--oninv:#eff1f7;
+--d-s:200ms;--d-m:300ms;--d-l:500ms;--e-emph:cubic-bezier(.2,0,0,1);--e-spring:cubic-bezier(.38,1.21,.22,1);
+font-family:Roboto,'Segoe UI',system-ui,sans-serif;color:var(--on);background:var(--bg);min-height:1400px;transition:background var(--d-l),color var(--d-l)}
+.dm.dark{--p:#8dcdff;--onp:#00344f;--pc:#004b70;--onpc:#c9e6ff;--sc:#394956;--onsc:#d3e5f5;--bg:#101418;--s0:#0b0f12;--s1:#181c20;--s2:#1c2024;--s3:#272a2f;--s4:#32353a;--on:#e0e2e8;--onv:#c1c7ce;--ol:#8b9198;--olv:#41474d;--ok:#7bd88f;--okc:#0f3d1c;--err:#ffb4ab;--errc:#93000a;--warn:#ffd27a;--warnc:#4a3300;--add:#0f3d1c;--del:#5c1512;--inv:#e0e2e8;--oninv:#2e3135}
+.ms{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 0,'wght' 400;display:inline-block;vertical-align:middle;flex:none}
+.mono{font-family:'Roboto Mono',monospace}
+.wrap{max-width:1240px;margin:0 auto;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:28px;font-weight:500}
+h2{margin:0;font-size:18px;font-weight:500;display:flex;align-items:center;gap:8px}
+h3{margin:0;font-size:12px;font-weight:500;color:var(--onv)}
+p{margin:0}
+.sub{margin:4px 0 0;font-size:14px;color:var(--onv);line-height:20px}
+.hint{font-size:12.5px;color:var(--onv);line-height:18px}.hint.bad{color:var(--err)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.grow{flex:1;min-width:0}
+.cols{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{background:var(--s1);border-radius:28px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0;box-sizing:border-box}
+.icon-btn{all:unset;cursor:pointer;width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--onv);flex:none;transition:background var(--d-s),transform var(--d-m) var(--e-spring)}
+.icon-btn:hover{background:var(--s3)}.icon-btn:active{transform:scale(.9)}.icon-btn:focus-visible{outline:3px solid var(--p)}
+.icon-btn.on{background:var(--pc);color:var(--onpc)}
+.btn{all:unset;cursor:pointer;height:44px;padding:0 18px;border-radius:999px;background:var(--p);color:var(--onp);font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px;box-sizing:border-box;white-space:nowrap;transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring),background var(--d-s)}
+.btn:active{transform:scale(.96);border-radius:12px}.btn:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.btn.tonal{background:var(--sc);color:var(--onsc)}.btn.text{background:transparent;color:var(--p);padding:0 12px}.btn.danger{background:var(--err);color:var(--bg)}
+.btn.off{background:var(--s3);color:var(--onv);cursor:not-allowed}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;background:var(--s2);border-radius:999px;padding:4px;align-self:flex-start;max-width:100%;box-sizing:border-box}
+.tab{all:unset;cursor:pointer;height:44px;padding:0 18px;border-radius:999px;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--onv);box-sizing:border-box;transition:background var(--d-m) var(--e-emph),color var(--d-m),transform var(--d-m) var(--e-spring)}
+.tab:hover{background:var(--s3)}.tab.on{background:var(--p);color:var(--onp)}.tab:active{transform:scale(.96)}.tab:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.tab b{font-weight:500;font-size:12px;min-width:20px;height:20px;border-radius:10px;background:var(--s0);color:var(--on);display:inline-flex;align-items:center;justify-content:center;padding:0 6px;box-sizing:border-box}
+.pane{display:flex;flex-direction:column;gap:14px;animation:pane var(--d-m) var(--e-emph)}
+@keyframes pane{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+.chip{all:unset;cursor:pointer;height:36px;padding:0 14px;border-radius:10px;box-shadow:inset 0 0 0 1px var(--ol);display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;box-sizing:border-box;transition:background var(--d-m),color var(--d-m),border-radius var(--d-m) var(--e-spring)}
+.chip.on{background:var(--sc);color:var(--onsc);box-shadow:none;border-radius:18px}.chip:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.search{display:flex;align-items:center;gap:8px;background:var(--s0);border-radius:999px;padding:0 6px 0 16px;box-shadow:inset 0 0 0 1px var(--olv);flex:1 1 260px;min-width:0;transition:box-shadow var(--d-s)}
+.search:focus-within{box-shadow:inset 0 0 0 2px var(--p)}
+.search input{all:unset;flex:1;min-width:0;height:48px;font-size:14px;color:var(--on)}.search input::placeholder{color:var(--onv)}
+.field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:var(--onv);min-width:0}
+.field input,.field select,.field textarea{all:unset;box-sizing:border-box;min-height:48px;border-radius:12px;background:var(--s0);padding:0 14px;font-size:14px;font-weight:400;color:var(--on);box-shadow:inset 0 0 0 1px var(--ol);transition:box-shadow var(--d-s)}
+.field textarea{padding:12px 14px;min-height:84px;line-height:20px;white-space:pre-wrap}
+.field input:focus,.field select:focus,.field textarea:focus{box-shadow:inset 0 0 0 2px var(--p)}
+.field.bad input{box-shadow:inset 0 0 0 2px var(--err)}
+.rows{display:flex;flex-direction:column;gap:4px}
+.li{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 12px;border-radius:16px;background:var(--s0);font-size:14px;box-sizing:border-box;min-width:0;transition:background var(--d-m),border-radius var(--d-m) var(--e-spring),opacity var(--d-m)}
+button.li{all:unset;cursor:pointer;display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 12px;border-radius:16px;background:var(--s0);font-size:14px;box-sizing:border-box;min-width:0;transition:background var(--d-m),border-radius var(--d-m) var(--e-spring)}
+button.li:hover{background:var(--s2)}button.li:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
+.li.on{background:var(--sc);color:var(--onsc);border-radius:24px}
+.li .t{flex:1;min-width:0;overflow-wrap:anywhere}.li small,.t small{display:block;font-size:12.5px;color:var(--onv);line-height:17px}
+.li.on small{color:inherit}
+.li input[type=checkbox],.ck input{width:20px;height:20px;margin:12px;accent-color:var(--p);flex:none}
+.ck{display:inline-flex;align-items:center;gap:2px;font-size:14px;min-height:44px}
+.badge{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 10px;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;background:var(--s3);color:var(--on)}
+.badge.ok{background:var(--okc);color:var(--ok)}.badge.no{background:var(--errc);color:var(--err)}.badge.warn{background:var(--warnc);color:var(--warn)}.badge.pri{background:var(--pc);color:var(--onpc)}
+.note{display:flex;gap:10px;align-items:flex-start;background:var(--s2);border-radius:16px;padding:12px 14px;font-size:13px;line-height:19px;color:var(--onv)}
+.note.warn{background:var(--warnc);color:var(--warn)}
+kbd{font-family:'Roboto Mono',monospace;font-size:11.5px;padding:3px 7px;border-radius:6px;background:var(--s3);color:var(--on);box-shadow:inset 0 -1px 0 var(--ol);white-space:nowrap}
+.dot{width:10px;height:10px;border-radius:999px;background:var(--p);flex:none}
+.prog{height:6px;border-radius:6px;background:var(--s3);overflow:hidden}.prog i{display:block;height:100%;background:var(--p);border-radius:6px;transition:width var(--d-l) var(--e-emph)}
+.snack{position:sticky;bottom:16px;align-self:center;display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:var(--inv);color:var(--oninv);border-radius:20px;padding:8px 8px 8px 20px;font-size:14px;animation:rise var(--d-l) var(--e-spring)}
+.snack .btn.text{color:var(--pc)}.dark .snack .btn.text{color:var(--p)}
+@keyframes rise{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.dm *{transition-duration:1ms!important;animation-duration:1ms!important}}
+.dm{min-height:960px}
+.honest{display:flex;gap:10px;align-items:center;border-radius:16px;padding:12px 14px;font-size:13px;line-height:19px;background:var(--warnc);color:var(--warn);font-weight:500}
+.prompt{background:var(--s0);border-radius:24px;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 6px 20px rgba(0,0,0,.14),inset 0 0 0 1px var(--olv);animation:pop var(--d-m) var(--e-spring)}
+.shake{animation:shake 320ms var(--e-emph)}
+@keyframes shake{0%,100%{transform:none}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.rungs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:720px){.rungs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.rung{border-radius:16px;padding:10px 12px;background:var(--s0);font-size:12.5px;line-height:17px;color:var(--onv);box-shadow:inset 0 0 0 1px var(--olv);transition:background var(--d-m),box-shadow var(--d-m),transform var(--d-m) var(--e-spring)}
+.rung b{display:block;font-size:13.5px;color:var(--on);font-weight:500}
+.rung.on{background:var(--pc);color:var(--onpc);box-shadow:none;transform:translateY(-3px)}.rung.on b{color:var(--onpc)}
+.choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.choices button{all:unset;cursor:pointer;min-height:52px;border-radius:16px;background:var(--s0);box-shadow:inset 0 0 0 1px var(--ol);padding:6px 14px;box-sizing:border-box;font-size:14px;transition:background var(--d-s),transform var(--d-m) var(--e-spring)}
+.choices button:hover{background:var(--pc)}.choices button:active{transform:scale(.96)}.choices button:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.code{font-family:'Roboto Mono',monospace;font-size:26px;letter-spacing:3px;font-weight:500}
+.ring{width:36px;height:36px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:12px;font-family:'Roboto Mono',monospace;flex:none}
+.ring span{width:28px;height:28px;border-radius:999px;background:var(--s0);display:flex;align-items:center;justify-content:center}
+.qr{width:168px;height:168px;border-radius:16px;background:var(--s0);box-shadow:inset 0 0 0 1px var(--ol);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:12px;color:var(--onv);text-align:center;padding:12px;box-sizing:border-box;flex:none}
+</style>
+</helmet>
+<div class="dm {{rootClass}}">
+<div class="wrap">
+<div class="bar"><div class="grow" style="min-width:260px"><h1>Locks, unlock ladder, authenticator and support tickets</h1><p class="sub">For-fun speed bumps you choose yourself, and an honest way back in. Every surface that creates or answers a lock says the same thing: this is not security.</p></div><button class="icon-btn" onClick="{{toggleDark}}" aria-label="Switch light and dark"><span class="ms" aria-hidden="true">contrast</span></button></div>
+<div class="honest" role="note"><span class="ms" aria-hidden="true">sentiment_satisfied</span><span>A lock is just for fun. Nothing is encrypted, and deleting the app's data folder removes every lock on this computer.</span></div>
+<div class="tabs" role="tablist" aria-label="Section"><sc-for list="{{tabs}}" as="t" hint-placeholder-count="4"><button class="{{t.cls}}" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}"><span class="ms" aria-hidden="true">{{t.icon}}</span>{{t.label}}</button></sc-for></div>
+
+<sc-if value="{{isMgr}}" hint-placeholder-val="{{ true }}"><div class="cols pane" style="flex-direction:row">
+<div class="card" style="flex:999 1 520px">
+<h2><span class="ms" aria-hidden="true">lock</span>Lock manager</h2>
+<div class="rows"><sc-for list="{{locks}}" as="l" hint-placeholder-count="3"><div class="li"><span class="ms" aria-hidden="true">{{l.icon}}</span><span class="t">{{l.target}}<small>{{l.detail}}</small></span><span class="{{l.badgeCls}}">{{l.stateText}}</span><button class="btn tonal" onClick="{{l.act}}">{{l.actText}}</button></div></sc-for></div>
+<p class="hint">Each lock has its own answer. Locking a group does not relock its members, and there is no master password.</p>
+</div>
+<div class="card" style="flex:1 1 340px">
+<h2><span class="ms" aria-hidden="true">add_moderator</span>Lock this tab</h2>
+<div class="field"><span id="lk-f">Answered by</span><div class="bar" role="group" aria-labelledby="lk-f"><button class="{{pwCls}}" aria-pressed="{{pwOn}}" onClick="{{pickPw}}"><span class="ms" aria-hidden="true">password</span>Password</button><button class="{{otpCls}}" aria-pressed="{{otpOn}}" aria-disabled="{{noAuth}}" onClick="{{pickOtp}}"><span class="ms" aria-hidden="true">pin</span>One-time code</button></div></div>
+<sc-if value="{{noAuth}}" hint-placeholder-val="{{ false }}"><p class="hint">One-time code needs an authenticator entry first. Add one on the Authenticator tab.</p></sc-if>
+<label class="ck"><input type="checkbox" checked="{{onLaunch}}" onChange="{{toggleLaunch}}">Lock again every time the app starts</label>
+<button class="btn" onClick="{{addLock}}"><span class="ms" aria-hidden="true">lock</span>Create lock</button>
+</div>
+</div></sc-if>
+
+<sc-if value="{{isUnlock}}" hint-placeholder-val="{{ false }}"><div class="cols pane" style="flex-direction:row">
+<div class="col" style="flex:1 1 380px">
+<div class="{{promptCls}}">
+<h2><span class="ms" aria-hidden="true">lock_open</span>Unlock “Settings history”</h2>
+<sc-if value="{{canType}}" hint-placeholder-val="{{ true }}"><div class="{{pwFieldCls}}"><label for="lk-pw">Password for this lock</label><input id="lk-pw" type="password" value="{{pw}}" onChange="{{setPw}}" autocomplete="off"><span class="{{pwHintCls}}">{{pwHint}}</span></div></sc-if>
+<sc-if value="{{waiting}}" hint-placeholder-val="{{ false }}"><div class="note warn" role="status"><span class="ms" aria-hidden="true">hourglass_top</span><span>{{waitText}}</span></div></sc-if>
+<div class="field"><span id="lk-d">Stay unlocked</span><div class="bar" role="group" aria-labelledby="lk-d"><sc-for list="{{durs}}" as="d" hint-placeholder-count="3"><button class="{{d.cls}}" aria-pressed="{{d.on}}" onClick="{{d.pick}}">{{d.label}}</button></sc-for></div></div>
+<p class="hint" style="font-weight:500">This is just for fun and is not security.</p>
+<p class="hint">Forgot it? Deleting the app's data folder removes the lock. <a href="#lk-tickets">Forgotten your password?</a></p>
+<div class="bar"><span class="grow"></span><button class="btn text">Cancel</button><button class="{{unlockCls}}" aria-disabled="{{waiting}}" onClick="{{tryUnlock}}">Unlock</button></div>
+</div>
+<sc-if value="{{unlocked}}" hint-placeholder-val="{{ false }}"><div class="note" role="status"><span class="ms" aria-hidden="true">check_circle</span><span>Unlocked. Open the tab again to continue: the interrupted action is not replayed for you.</span></div></sc-if>
+<p class="hint">Try it: the sample password is <span class="mono">dimsum</span>. Three wrong answers start the wait.</p>
+</div>
+<div class="card" style="flex:999 1 480px">
+<div class="bar"><h2 class="grow"><span class="ms" aria-hidden="true">stairs</span>Unlock ladder</h2><span class="badge pri">{{skipText}}</span></div>
+<div class="rungs"><sc-for list="{{rungs}}" as="r" hint-placeholder-count="4"><div class="{{r.cls}}"><b>{{r.name}}</b>{{r.note}}</div></sc-for></div>
+<sc-if value="{{waiting}}" hint-placeholder-val="{{ false }}"><div class="col"><p style="font-size:15px;font-weight:500">Which of these is a steamed shrimp dumpling?</p><div class="choices"><sc-for list="{{dishes}}" as="d" hint-placeholder-count="4"><button onClick="{{d.pick}}">{{d.label}}</button></sc-for></div><span class="{{ladderHintCls}}" role="status">{{ladderHint}}</span></div></sc-if>
+<sc-if value="{{notWaiting}}" hint-placeholder-val="{{ true }}"><div class="note"><span class="ms" aria-hidden="true">info</span><span>The ladder appears only while you are waiting. A right answer skips the wait and returns you to the password field. It never unlocks anything, and at most three waits can be skipped in an hour.</span></div></sc-if>
+</div>
+</div></sc-if>
+
+<sc-if value="{{isAuth}}" hint-placeholder-val="{{ false }}"><div class="cols pane" style="flex-direction:row">
+<div class="card" style="flex:999 1 460px">
+<h2><span class="ms" aria-hidden="true">pin</span>Authenticator</h2>
+<div class="rows"><sc-for list="{{codes}}" as="c" hint-placeholder-count="2"><div class="li"><span class="t">{{c.name}}<small>{{c.account}}</small></span><span class="code" aria-label="{{c.spoken}}">{{c.code}}</span><span class="ring" style="background:conic-gradient(var(--p) {{secDeg}},var(--s3) 0)" role="img" aria-label="{{secLabel}}"><span>{{sec}}</span></span><button class="icon-btn" aria-label="{{c.copyLabel}}"><span class="ms" aria-hidden="true">content_copy</span></button></div></sc-for></div>
+<p class="hint">Everything is local: no account, no sync and no network request, including for drawing the QR code.</p>
+</div>
+<div class="card" style="flex:1 1 380px">
+<h2><span class="ms" aria-hidden="true">qr_code_2</span>Register a factor</h2>
+<div class="bar" style="align-items:flex-start;flex-wrap:nowrap"><div class="qr" role="img" aria-label="QR code placeholder"><span class="ms" style="font-size:40px" aria-hidden="true">qr_code_2</span>QR drawn on this machine from a new secret</div>
+<div class="col grow"><div class="{{regFieldCls}}"><label for="lk-code">Type one working code back</label><input id="lk-code" inputmode="numeric" maxlength="6" class="mono" value="{{reg}}" onChange="{{setReg}}" autocomplete="off"><span class="{{regHintCls}}">{{regHint}}</span></div><button class="{{regBtnCls}}" aria-disabled="{{regBad}}" onClick="{{register}}">Save factor</button></div></div>
+<p class="hint">Nothing is stored until one code has been typed back correctly. The sample accepts the code shown for “Sample account”.</p>
+</div>
+</div></sc-if>
+
+<sc-if value="{{isTix}}" hint-placeholder-val="{{ false }}"><div class="card pane" id="lk-tickets">
+<div class="bar"><h2 class="grow"><span class="ms" aria-hidden="true">support_agent</span>Support tickets</h2><button class="btn tonal"><span class="ms" aria-hidden="true">ios_share</span>Export</button><button class="btn" onClick="{{newTicket}}"><span class="ms" aria-hidden="true">add</span>New ticket</button></div>
+<div class="rows"><sc-for list="{{tickets}}" as="k" hint-placeholder-count="2"><div class="li"><span class="mono hint">{{k.no}}</span><span class="t">{{k.title}}<small>{{k.detail}}</small></span><span class="{{k.cls}}">{{k.status}}</span></div></sc-for></div>
+<div class="note"><span class="ms" aria-hidden="true">folder_open</span><span class="grow">The service desk is a joke, and it says so. The one resolution that works: open the application data folder and delete it yourself. Every lock goes with it.</span></div>
+<div class="bar"><span class="grow"></span><button class="btn tonal"><span class="ms" aria-hidden="true">folder_open</span>Open the application data folder</button></div>
+</div></sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+function dmBase(c){return {rootClass:c.state.dark?'dark':'',toggleDark:function(){c.setState({dark:!c.state.dark});}};}
+class Component extends DCLogic {
+  constructor(p){super(p);this.state={dark:false,tab:0,factor:0,onLaunch:true,hasAuth:true,pw:'',wrong:0,waiting:false,unlocked:false,dur:1,skips:0,ladderMsg:'',shake:false,t:0,reg:'',registered:false,
+    locks:[{target:'Tab: Settings history',factor:'Password',open:false},{target:'Tab group: Work repositories',factor:'One-time code',open:true},{target:'Appearance value: accent colour',factor:'Password',open:false}],
+    tickets:[{no:'#0002',title:'Forgot the password for “Settings history”',detail:'Opened today · resolution offered',status:'Waiting on you',cls:'badge warn'},{no:'#0001',title:'Lost the one-time code entry',detail:'Opened Nov 2 · data folder opened',status:'Resolved',cls:'badge ok'}]};}
+  componentDidMount(){this._i=setInterval(()=>this.setState({t:this.state.t+1}),1000);}
+  componentWillUnmount(){clearInterval(this._i);}
+  code(seed){const w=Math.floor(this.state.t/30);return String((seed*7919+w*104729)%1000000).padStart(6,'0');}
+  renderVals(){
+    const s=this.state,set=o=>this.setState(o),sec=30-(s.t%30),c1=this.code(31),c2=this.code(57);
+    const regOk=s.reg===c2,regTyped=s.reg.length===6;
+    const codes=[['GitHub','work account',c1],['Sample account','registered here',c2]].concat(s.registered?[['New factor','just added',this.code(83)]]:[]);
+    return {...dmBase(this),
+      tabs:[['lock','Locks'],['lock_open','Unlock and ladder'],['pin','Authenticator'],['support_agent','Support tickets']].map((t,i)=>({icon:t[0],label:t[1],on:s.tab===i,cls:'tab'+(s.tab===i?' on':''),pick:()=>set({tab:i})})),
+      isMgr:s.tab===0,isUnlock:s.tab===1,isAuth:s.tab===2,isTix:s.tab===3,
+      locks:s.locks.map((l,i)=>({target:l.target,detail:l.factor+' · locks again at start-up',icon:l.open?'lock_open':'lock',stateText:l.open?'Unlocked for 10 minutes':'Locked',badgeCls:'badge '+(l.open?'ok':'pri'),actText:l.open?'Lock again':'Unlock',act:()=>{if(l.open)set({locks:s.locks.map((x,j)=>j===i?{...x,open:false}:x)});else set({tab:1});}})),
+      pwOn:s.factor===0,otpOn:s.factor===1,noAuth:!s.hasAuth,pwCls:'chip'+(s.factor===0?' on':''),otpCls:'chip'+(s.factor===1?' on':''),pickPw:()=>set({factor:0}),pickOtp:()=>{if(s.hasAuth)set({factor:1});},
+      onLaunch:s.onLaunch,toggleLaunch:()=>set({onLaunch:!s.onLaunch}),
+      addLock:()=>set({locks:s.locks.concat([{target:'Tab: History',factor:s.factor?'One-time code':'Password',open:false}])}),
+      promptCls:'prompt'+(s.shake?' shake':''),canType:!s.waiting,waiting:s.waiting,notWaiting:!s.waiting,unlocked:s.unlocked,
+      pw:s.pw,setPw:e=>set({pw:e.target.value,shake:false}),
+      pwFieldCls:'field'+(s.wrong&&!s.unlocked?' bad':''),pwHintCls:'hint'+(s.wrong&&!s.unlocked?' bad':''),
+      pwHint:s.unlocked?'Correct.':s.wrong?'That is not the password for this lock. '+(3-s.wrong)+' more before a wait.':'Only this lock uses this password.',
+      waitText:'Too many wrong answers. Wait 2 minutes, or answer the question on the right to skip the wait.',
+      durs:['This surface only','For 10 minutes','Until the app closes'].map((l,i)=>({label:l,on:s.dur===i,cls:'chip'+(s.dur===i?' on':''),pick:()=>set({dur:i})})),
+      unlockCls:'btn'+(s.waiting?' off':''),
+      tryUnlock:()=>{if(s.waiting)return;if(s.pw==='dimsum')set({unlocked:true,wrong:0,pw:''});else{const w=s.wrong+1;set({wrong:w>=3?0:w,waiting:w>=3,shake:true,unlocked:false,pw:'',ladderMsg:''});}},
+      skipText:s.skips+' of 3 skips used this hour',
+      rungs:[['Dim sum question','Four choices'],['Ten sums','After five wrong dishes'],['Mole round','Timed, after a wrong sum'],['The clock','The original wait']].map((r,i)=>({name:r[0],note:r[1],cls:'rung'+(s.waiting&&i===0?' on':'')})),
+      dishes:['Siu mai','Har gow','Char siu bao','Cheung fun'].map((d,i)=>({label:d,pick:()=>{if(i===1)set({waiting:false,skips:Math.min(3,s.skips+1),ladderMsg:''});else set({ladderMsg:'Not that one. Try again.'});}})),
+      ladderHint:s.ladderMsg||'A right answer only ends the wait. You still type the password.',ladderHintCls:'hint'+(s.ladderMsg?' bad':''),
+      codes:codes.map(c=>({name:c[0],account:c[1],code:c[2].slice(0,3)+' '+c[2].slice(3),spoken:'Code '+c[2].split('').join(' '),copyLabel:'Copy code for '+c[0]})),
+      sec:sec,secDeg:(sec*12)+'deg',secLabel:sec+' seconds left',
+      reg:s.reg,setReg:e=>set({reg:e.target.value.replace(/\D/g,'').slice(0,6)}),regBad:!regOk,
+      regFieldCls:'field'+(regTyped&&!regOk?' bad':''),regHintCls:'hint'+(regTyped&&!regOk?' bad':''),
+      regHint:s.registered?'Saved. It now appears in the list.':regTyped&&!regOk?'That code does not match. Check the clock on the other device.':'Six digits from the device that scanned the code.',
+      regBtnCls:'btn'+(regOk?'':' off'),register:()=>{if(regOk)set({registered:true,reg:''});},
+      tickets:s.tickets,newTicket:()=>set({tickets:[{no:'#'+String(s.tickets.length+1).padStart(4,'0'),title:'New ticket',detail:'Opened just now · in the queue',status:'Open',cls:'badge pri'}].concat(s.tickets)})
+    };
+  }
+}
+</script>
+</body>
+</html>
