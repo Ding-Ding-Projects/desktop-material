@@ -162,6 +162,15 @@
       "title": "Repository: changes, diff and stash manager",
       "expand": "fill",
       "is_interactive": true
+    },
+    "RepoHistory.dc.html": {
+      "x": 2720,
+      "y": 8140,
+      "w": 1280,
+      "h": 960,
+      "title": "Repository: history, commit details and branches",
+      "expand": "fill",
+      "is_interactive": true
     }
   },
   "order": [
@@ -181,7 +190,8 @@
     "Locks.dc.html",
     "Tools.dc.html",
     "Onboarding.dc.html",
-    "RepoChanges.dc.html"
+    "RepoChanges.dc.html",
+    "RepoHistory.dc.html"
   ],
   "notes": {
     "row1": {

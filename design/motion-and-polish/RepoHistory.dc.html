@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Repository: history, commit details and branches</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;family=Material+Symbols+Rounded:opsz,wght,FILL@20..48,400,0..1&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#006493}a:hover{color:#004b70}
+.dm{--p:#006493;--onp:#fff;--pc:#c9e6ff;--onpc:#001e30;--sc:#d3e5f5;--onsc:#0c1d29;--bg:#f8f9ff;--s0:#fff;--s1:#f2f3f9;--s2:#eceef4;--s3:#e6e8ee;--s4:#e0e2e8;--on:#191c20;--onv:#41474d;--ol:#71787e;--olv:#c1c7ce;--ok:#1b7f37;--okc:#d2f2d8;--err:#ba1a1a;--errc:#ffdad6;--warn:#7a5200;--warnc:#ffe2a8;--add:#d2f2d8;--del:#ffdad6;--inv:#2e3135;--oninv:#eff1f7;
+--d-s:200ms;--d-m:300ms;--d-l:500ms;--e-emph:cubic-bezier(.2,0,0,1);--e-spring:cubic-bezier(.38,1.21,.22,1);
+font-family:Roboto,'Segoe UI',system-ui,sans-serif;color:var(--on);background:var(--bg);min-height:1400px;transition:background var(--d-l),color var(--d-l)}
+.dm.dark{--p:#8dcdff;--onp:#00344f;--pc:#004b70;--onpc:#c9e6ff;--sc:#394956;--onsc:#d3e5f5;--bg:#101418;--s0:#0b0f12;--s1:#181c20;--s2:#1c2024;--s3:#272a2f;--s4:#32353a;--on:#e0e2e8;--onv:#c1c7ce;--ol:#8b9198;--olv:#41474d;--ok:#7bd88f;--okc:#0f3d1c;--err:#ffb4ab;--errc:#93000a;--warn:#ffd27a;--warnc:#4a3300;--add:#0f3d1c;--del:#5c1512;--inv:#e0e2e8;--oninv:#2e3135}
+.ms{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 0,'wght' 400;display:inline-block;vertical-align:middle;flex:none}
+.mono{font-family:'Roboto Mono',monospace}
+.wrap{max-width:1240px;margin:0 auto;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:28px;font-weight:500}
+h2{margin:0;font-size:18px;font-weight:500;display:flex;align-items:center;gap:8px}
+h3{margin:0;font-size:12px;font-weight:500;color:var(--onv)}
+p{margin:0}
+.sub{margin:4px 0 0;font-size:14px;color:var(--onv);line-height:20px}
+.hint{font-size:12.5px;color:var(--onv);line-height:18px}.hint.bad{color:var(--err)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.grow{flex:1;min-width:0}
+.cols{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{background:var(--s1);border-radius:28px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0;box-sizing:border-box}
+.icon-btn{all:unset;cursor:pointer;width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--onv);flex:none;transition:background var(--d-s),transform var(--d-m) var(--e-spring)}
+.icon-btn:hover{background:var(--s3)}.icon-btn:active{transform:scale(.9)}.icon-btn:focus-visible{outline:3px solid var(--p)}
+.icon-btn.on{background:var(--pc);color:var(--onpc)}
+.btn{all:unset;cursor:pointer;height:44px;padding:0 18px;border-radius:999px;background:var(--p);color:var(--onp);font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px;box-sizing:border-box;white-space:nowrap;transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring),background var(--d-s)}
+.btn:active{transform:scale(.96);border-radius:12px}.btn:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.btn.tonal{background:var(--sc);color:var(--onsc)}.btn.text{background:transparent;color:var(--p);padding:0 12px}.btn.danger{background:var(--err);color:var(--bg)}
+.btn.off{background:var(--s3);color:var(--onv);cursor:not-allowed}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;background:var(--s2);border-radius:999px;padding:4px;align-self:flex-start;max-width:100%;box-sizing:border-box}
+.tab{all:unset;cursor:pointer;height:44px;padding:0 18px;border-radius:999px;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--onv);box-sizing:border-box;transition:background var(--d-m) var(--e-emph),color var(--d-m),transform var(--d-m) var(--e-spring)}
+.tab:hover{background:var(--s3)}.tab.on{background:var(--p);color:var(--onp)}.tab:active{transform:scale(.96)}.tab:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.tab b{font-weight:500;font-size:12px;min-width:20px;height:20px;border-radius:10px;background:var(--s0);color:var(--on);display:inline-flex;align-items:center;justify-content:center;padding:0 6px;box-sizing:border-box}
+.pane{display:flex;flex-direction:column;gap:14px;animation:pane var(--d-m) var(--e-emph)}
+@keyframes pane{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+.chip{all:unset;cursor:pointer;height:36px;padding:0 14px;border-radius:10px;box-shadow:inset 0 0 0 1px var(--ol);display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;box-sizing:border-box;transition:background var(--d-m),color var(--d-m),border-radius var(--d-m) var(--e-spring)}
+.chip.on{background:var(--sc);color:var(--onsc);box-shadow:none;border-radius:18px}.chip:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.search{display:flex;align-items:center;gap:8px;background:var(--s0);border-radius:999px;padding:0 6px 0 16px;box-shadow:inset 0 0 0 1px var(--olv);flex:1 1 260px;min-width:0;transition:box-shadow var(--d-s)}
+.search:focus-within{box-shadow:inset 0 0 0 2px var(--p)}
+.search input{all:unset;flex:1;min-width:0;height:48px;font-size:14px;color:var(--on)}.search input::placeholder{color:var(--onv)}
+.field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:var(--onv);min-width:0}
+.field input,.field select,.field textarea{all:unset;box-sizing:border-box;min-height:48px;border-radius:12px;background:var(--s0);padding:0 14px;font-size:14px;font-weight:400;color:var(--on);box-shadow:inset 0 0 0 1px var(--ol);transition:box-shadow var(--d-s)}
+.field textarea{padding:12px 14px;min-height:84px;line-height:20px;white-space:pre-wrap}
+.field input:focus,.field select:focus,.field textarea:focus{box-shadow:inset 0 0 0 2px var(--p)}
+.field.bad input{box-shadow:inset 0 0 0 2px var(--err)}
+.rows{display:flex;flex-direction:column;gap:4px}
+.li{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 12px;border-radius:16px;background:var(--s0);font-size:14px;box-sizing:border-box;min-width:0;transition:background var(--d-m),border-radius var(--d-m) var(--e-spring),opacity var(--d-m)}
+button.li{all:unset;cursor:pointer;display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 12px;border-radius:16px;background:var(--s0);font-size:14px;box-sizing:border-box;min-width:0;transition:background var(--d-m),border-radius var(--d-m) var(--e-spring)}
+button.li:hover{background:var(--s2)}button.li:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
+.li.on{background:var(--sc);color:var(--onsc);border-radius:24px}
+.li .t{flex:1;min-width:0;overflow-wrap:anywhere}.li small,.t small{display:block;font-size:12.5px;color:var(--onv);line-height:17px}
+.li.on small{color:inherit}
+.li input[type=checkbox],.ck input{width:20px;height:20px;margin:12px;accent-color:var(--p);flex:none}
+.ck{display:inline-flex;align-items:center;gap:2px;font-size:14px;min-height:44px}
+.badge{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 10px;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;background:var(--s3);color:var(--on)}
+.badge.ok{background:var(--okc);color:var(--ok)}.badge.no{background:var(--errc);color:var(--err)}.badge.warn{background:var(--warnc);color:var(--warn)}.badge.pri{background:var(--pc);color:var(--onpc)}
+.note{display:flex;gap:10px;align-items:flex-start;background:var(--s2);border-radius:16px;padding:12px 14px;font-size:13px;line-height:19px;color:var(--onv)}
+.note.warn{background:var(--warnc);color:var(--warn)}
+kbd{font-family:'Roboto Mono',monospace;font-size:11.5px;padding:3px 7px;border-radius:6px;background:var(--s3);color:var(--on);box-shadow:inset 0 -1px 0 var(--ol);white-space:nowrap}
+.dot{width:10px;height:10px;border-radius:999px;background:var(--p);flex:none}
+.prog{height:6px;border-radius:6px;background:var(--s3);overflow:hidden}.prog i{display:block;height:100%;background:var(--p);border-radius:6px;transition:width var(--d-l) var(--e-emph)}
+.snack{position:sticky;bottom:16px;align-self:center;display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:var(--inv);color:var(--oninv);border-radius:20px;padding:8px 8px 8px 20px;font-size:14px;animation:rise var(--d-l) var(--e-spring)}
+.snack .btn.text{color:var(--pc)}.dark .snack .btn.text{color:var(--p)}
+@keyframes rise{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.dm *{transition-duration:1ms!important;animation-duration:1ms!important}}
+.card>.search,.col>.search,.pane>.search{flex:none}
+.dm{min-height:960px}
+.two{display:grid;grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:860px){.two{grid-template-columns:minmax(0,1fr)}}
+.av{width:32px;height:32px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:none;background:var(--pc);color:var(--onpc)}
+.sha{font-family:'Roboto Mono',monospace;font-size:12px}
+.grp{font-size:12px;font-weight:500;color:var(--onv);padding:8px 4px 2px}
+</style>
+</helmet>
+<div class="dm {{rootClass}}">
+<div class="wrap">
+<div class="bar"><div class="grow" style="min-width:260px"><h1>Repository: history, commit details and branches</h1><p class="sub">History you can search and act on, commit details with every file, and a branch list that shows where each branch stands before you switch, merge or delete.</p></div><button class="icon-btn" onClick="{{toggleDark}}" aria-label="Switch light and dark"><span class="ms" aria-hidden="true">contrast</span></button></div>
+<div class="tabs" role="tablist" aria-label="Screen"><sc-for list="{{tabs}}" as="t" hint-placeholder-count="2"><button class="{{t.cls}}" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}"><span class="ms" aria-hidden="true">{{t.icon}}</span>{{t.label}}</button></sc-for></div>
+
+<sc-if value="{{isHist}}" hint-placeholder-val="{{ true }}"><div class="two pane" style="display:grid">
+<div class="card" style="padding:16px">
+<div class="search"><span class="ms" aria-hidden="true">search</span><input aria-label="Search commits" placeholder="Search message, author or SHA" value="{{hq}}" onChange="{{setHq}}"><button class="icon-btn" aria-label="Open regex builder"><span class="ms" aria-hidden="true">regular_expression</span></button></div>
+<div class="bar"><sc-for list="{{hFilters}}" as="f" hint-placeholder-count="2"><button class="{{f.cls}}" aria-pressed="{{f.on}}" onClick="{{f.pick}}">{{f.label}}</button></sc-for><span class="grow"></span><span class="hint" role="status">{{hCount}}</span></div>
+<div class="rows"><sc-for list="{{commits}}" as="c" hint-placeholder-count="5"><button class="{{c.cls}}" aria-pressed="{{c.on}}" onClick="{{c.pick}}"><span class="av" aria-hidden="true">{{c.init}}</span><span class="t">{{c.msg}}<small>{{c.author}} · {{c.when}} · <span class="sha">{{c.sha}}</span></small></span><sc-if value="{{c.unpushed}}" hint-placeholder-val="{{ false }}"><span class="badge warn"><span class="ms" style="font-size:14px" aria-hidden="true">arrow_upward</span>Not pushed</span></sc-if><sc-if value="{{c.hasTag}}" hint-placeholder-val="{{ false }}"><span class="badge pri">{{c.tag}}</span></sc-if></button></sc-for></div>
+<sc-if value="{{noCommits}}" hint-placeholder-val="{{ false }}"><p class="hint">No commit matches.</p></sc-if>
+</div>
+<div class="card" style="padding:16px">
+<h2 style="align-items:flex-start">{{dMsg}}</h2>
+<div class="bar"><span class="av" aria-hidden="true">{{dInit}}</span><span class="grow" style="font-size:13.5px">{{dAuthor}}<br><span class="hint">{{dWhen}}</span></span><span class="sha">{{dSha}}</span><button class="icon-btn" aria-label="Copy full SHA"><span class="ms" aria-hidden="true">content_copy</span></button></div>
+<h3>{{dFilesText}}</h3>
+<div class="rows"><sc-for list="{{dFiles}}" as="f" hint-placeholder-count="3"><div class="li" style="min-height:44px"><span class="ms" aria-hidden="true">{{f.icon}}</span><span class="t mono" style="font-size:13px">{{f.path}}</span><span class="badge ok">+{{f.a}}</span><span class="badge no">−{{f.d}}</span></div></sc-for></div>
+<div class="bar"><button class="btn tonal"><span class="ms" aria-hidden="true">undo</span>Revert this commit</button><button class="btn tonal"><span class="ms" aria-hidden="true">content_paste_go</span>Cherry-pick</button><button class="btn tonal"><span class="ms" aria-hidden="true">fork_right</span>Branch from here</button><button class="btn text"><span class="ms" aria-hidden="true">open_in_new</span>View on the remote</button></div>
+<p class="hint">Reverting adds a new commit that undoes this one. History is never rewritten from this screen.</p>
+</div>
+</div></sc-if>
+
+<sc-if value="{{isBr}}" hint-placeholder-val="{{ false }}"><div class="two pane" style="display:grid">
+<div class="card" style="padding:16px">
+<div class="search"><span class="ms" aria-hidden="true">filter_list</span><input aria-label="Filter branches" placeholder="Filter branches" value="{{bq}}" onChange="{{setBq}}"><button class="icon-btn" aria-label="Open regex builder"><span class="ms" aria-hidden="true">regular_expression</span></button></div>
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="2"><div><div class="grp">{{g.name}}</div><div class="rows"><sc-for list="{{g.items}}" as="b" hint-placeholder-count="2"><button class="{{b.cls}}" aria-pressed="{{b.on}}" onClick="{{b.pick}}"><span class="ms" aria-hidden="true">{{b.icon}}</span><span class="t mono" style="font-size:13.5px">{{b.name}}<small style="font-family:Roboto,sans-serif">{{b.meta}}</small></span><sc-if value="{{b.current}}" hint-placeholder-val="{{ false }}"><span class="badge ok">Current</span></sc-if></button></sc-for></div></div></sc-for>
+<div class="{{newCls}}"><label for="rh-new">New branch from {{curName}}</label><input id="rh-new" class="mono" value="{{newName}}" onChange="{{setNew}}" placeholder="feature/short-name"><span class="{{newHintCls}}">{{newHint}}</span></div>
+<button class="{{createCls}}" aria-disabled="{{cantCreate}}" onClick="{{create}}"><span class="ms" aria-hidden="true">add</span>Create branch</button>
+</div>
+<div class="card" style="padding:16px">
+<h2 class="mono">{{selName}}</h2>
+<div class="bar"><span class="badge ok"><span class="ms" style="font-size:14px" aria-hidden="true">arrow_upward</span>{{selAhead}} ahead</span><span class="badge warn"><span class="ms" style="font-size:14px" aria-hidden="true">arrow_downward</span>{{selBehind}} behind</span><span class="hint">compared with {{curName}}</span></div>
+<p class="hint">{{selNote}}</p>
+<div class="bar"><button class="{{switchCls}}" aria-disabled="{{switchOff}}" onClick="{{doSwitch}}"><span class="ms" aria-hidden="true">{{switchIcon}}</span>{{switchLabel}}</button><button class="{{mergeCls}}" aria-disabled="{{selIsCur}}"><span class="ms" aria-hidden="true">merge</span>Merge into {{curName}}</button><button class="btn text">Rename</button><span class="grow"></span><button class="{{delCls}}" aria-disabled="{{delOff}}" onClick="{{del}}"><span class="ms" aria-hidden="true">delete</span>{{delLabel}}</button></div>
+<p class="hint" role="status">{{brMsg}}</p>
+</div>
+</div></sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+function dmBase(c){return {rootClass:c.state.dark?'dark':'',toggleDark:function(){c.setState({dark:!c.state.dark});}};}
+class Component extends DCLogic {
+  constructor(p){super(p);this.state={dark:false,tab:0,hq:'',hf:0,c:0,bq:'',sel:1,cur:0,switching:false,confirm:false,newName:'',brMsg:'',
+    branches:[{name:'main',grp:'Default',ahead:0,behind:0,note:'The default branch. It cannot be deleted here.'},{name:'feature/motion-settings',grp:'Recent',ahead:4,behind:1,note:'Last commit today. Not merged yet: deleting it would lose 4 commits.'},{name:'design/motion-polish-boards',grp:'Recent',ahead:0,behind:0,note:'Fully contained in main. Safe to delete.'},{name:'fix/clone-quoted-path',grp:'Other',ahead:1,behind:12,note:'Last commit Oct 30. Not merged yet: deleting it would lose 1 commit.'}]};
+    this.commits=[['Add the changes, diff and stash manager design board','Riley Chan','12 min ago','ab46738',true,'',[['add_circle','design/motion-and-polish/RepoChanges.dc.html',212,0],['edit_document','design/motion-and-polish/canvas.json',9,0]]],
+      ['Add the tools design board','Riley Chan','40 min ago','341b4c2',true,'',[['add_circle','design/motion-and-polish/Tools.dc.html',180,0]]],
+      ['Open the web page of any remote, with a dropdown of every remote','Sam Wong','Today 00:52','adb94af',false,'v4.0.136804',[['add_circle','app/src/lib/remote-web-page.ts',164,0],['edit_document','app/src/ui/changes/no-changes.tsx',58,11],['add_circle','app/test/unit/remote-web-page-test.ts',240,0]]],
+      ['Add a repository directly when a folder is opened in the app','Sam Wong','Today 00:40','df79c59',false,'',[['edit_document','app/src/ui/dispatcher/dispatcher.ts',47,9],['add_circle','app/test/unit/cli-open-adds-repository-test.ts',133,0]]],
+      ['Add copy and paste sign-in link when the browser does not open','Riley Chan','Oct 30','74f2d95',false,'',[['edit_document','app/src/ui/sign-in/sign-in.tsx',36,4]]]];}
+  componentWillUnmount(){clearTimeout(this._s);}
+  renderVals(){
+    const s=this.state,set=o=>this.setState(o);
+    const hits=this.commits.map((c,i)=>({c:c,i:i})).filter(x=>(s.hf===0||x.c[4])&&(x.c[0]+' '+x.c[1]+' '+x.c[3]).toLowerCase().indexOf(s.hq.toLowerCase())>=0);
+    const d=this.commits[s.c],ini=n=>n.split(' ').map(w=>w[0]).join('');
+    const bs=s.branches,sel=bs[s.sel]||bs[0],cur=bs[s.cur],selIsCur=s.sel===s.cur;
+    const shownB=bs.map((b,i)=>({b:b,i:i})).filter(x=>x.b.name.toLowerCase().indexOf(s.bq.toLowerCase())>=0);
+    const nn=s.newName,bad=!nn?'':/\s/.test(nn)?'Branch names cannot contain spaces. Use a hyphen.':/^-/.test(nn)?'A branch name cannot start with a hyphen.':/\.\.|[~^:?*\[\\]|\/$|\.lock$/.test(nn)?'That name uses characters Git does not allow in a branch name.':bs.some(b=>b.name===nn)?'A branch with this name already exists.':'';
+    const merged=sel.ahead===0,isDefault=sel.grp==='Default',delOff=isDefault||selIsCur||s.switching;
+    return {...dmBase(this),
+      tabs:[['history','History'],['account_tree','Branches']].map((t,i)=>({icon:t[0],label:t[1],on:s.tab===i,cls:'tab'+(s.tab===i?' on':''),pick:()=>set({tab:i})})),
+      isHist:s.tab===0,isBr:s.tab===1,
+      hq:s.hq,setHq:e=>set({hq:e.target.value}),hFilters:['All commits','Not pushed'].map((l,i)=>({label:l,on:s.hf===i,cls:'chip'+(s.hf===i?' on':''),pick:()=>set({hf:i})})),
+      hCount:hits.length+' of '+this.commits.length+' commits',noCommits:hits.length===0,
+      commits:hits.map(x=>({msg:x.c[0],author:x.c[1],when:x.c[2],sha:x.c[3],init:ini(x.c[1]),unpushed:x.c[4],hasTag:!!x.c[5],tag:x.c[5],on:s.c===x.i,cls:'li'+(s.c===x.i?' on':''),pick:()=>set({c:x.i})})),
+      dMsg:d[0],dAuthor:d[1],dInit:ini(d[1]),dWhen:d[2],dSha:d[3],dFilesText:d[6].length+(d[6].length===1?' file changed':' files changed'),dFiles:d[6].map(f=>({icon:f[0],path:f[1],a:f[2],d:f[3]})),
+      bq:s.bq,setBq:e=>set({bq:e.target.value}),
+      groups:['Default','Recent','Other'].map(g=>({name:g,items:shownB.filter(x=>x.b.grp===g).map(x=>({name:x.b.name,meta:x.i===s.cur?'Checked out':x.b.ahead+' ahead, '+x.b.behind+' behind '+cur.name,icon:x.b.grp==='Default'?'shield':'fork_right',current:x.i===s.cur,on:s.sel===x.i,cls:'li'+(s.sel===x.i?' on':''),pick:()=>set({sel:x.i,confirm:false,brMsg:''})}))})).filter(g=>g.items.length),
+      curName:cur.name,newName:nn,setNew:e=>set({newName:e.target.value}),newCls:'field'+(bad?' bad':''),newHintCls:'hint'+(bad?' bad':''),newHint:bad||'Lower case with hyphens works on every host.',
+      cantCreate:!nn||!!bad,createCls:'btn tonal'+(!nn||bad?' off':''),create:()=>{if(!nn||bad)return;set({branches:bs.concat([{name:nn,grp:'Recent',ahead:0,behind:0,note:'Just created from '+cur.name+'.'}]),sel:bs.length,newName:'',brMsg:'Created '+nn+'. It is not checked out yet.'});},
+      selName:sel.name,selAhead:selIsCur?0:sel.ahead,selBehind:selIsCur?0:sel.behind,selNote:selIsCur?'This branch is checked out.':sel.note,selIsCur:selIsCur,
+      switchOff:selIsCur||s.switching,switchCls:'btn'+(selIsCur||s.switching?' off':''),switchIcon:s.switching?'progress_activity':'swap_horiz',switchLabel:s.switching?'Switching…':'Switch to this branch',
+      doSwitch:()=>{if(selIsCur||s.switching)return;set({switching:true,brMsg:'Switching. The button stays disabled until Git finishes, so it cannot run twice.'});clearTimeout(this._s);this._s=setTimeout(()=>this.setState({switching:false,cur:this.state.sel,brMsg:'Now on '+sel.name+'.'}),1400);},
+      mergeCls:'btn tonal'+(selIsCur?' off':''),
+      delOff:delOff,delCls:'btn '+(delOff?'off':s.confirm?'danger':'text'),delLabel:s.confirm?(merged?'Really delete':'Delete and lose '+sel.ahead+(sel.ahead===1?' commit':' commits')):'Delete',
+      del:()=>{if(delOff)return;if(!s.confirm)set({confirm:true,brMsg:merged?'Every commit is already in '+cur.name+'. Press again to delete.':'This branch has commits that are nowhere else. Press again only if you mean to lose them.'});else {const nc=s.sel<s.cur?s.cur-1:s.cur;set({branches:bs.filter((b,i)=>i!==s.sel),cur:nc,sel:nc,confirm:false,brMsg:'Deleted '+sel.name+'.'});}},
+      brMsg:s.brMsg||(isDefault?'The default branch is protected from deletion.':'')
+    };
+  }
+}
+</script>
+</body>
+</html>
