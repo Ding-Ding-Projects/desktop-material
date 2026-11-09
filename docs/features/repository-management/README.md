@@ -36,6 +36,11 @@ Material is displaying or how a repository is represented in the application.
   cleanup](reviewed-bulk-branch-deletion.md) — merge one branch, merge and
   delete only after success, or review exact local branch tips in bulk while
   protecting current/default/remote refs and retaining per-branch recovery IDs.
+- [Opening a folder adds the repository
+  directly](open-folder-adds-repository.md) — a Git repository opened from
+  Explorer, the command line, a quick action or another app is added and
+  selected without the Add local repository dialog, which stays for folders
+  that are not usable repositories.
 - [Network and WSL repository
   paths](network-and-wsl-repository-paths.md) — retain UNC roots, detect mapped
   drives and WSL shares, and provide offline reconnection guidance.

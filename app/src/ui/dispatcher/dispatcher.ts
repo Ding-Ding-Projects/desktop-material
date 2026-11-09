@@ -5125,23 +5125,21 @@ export class Dispatcher {
       // user may accidentally provide a folder within the repository
       // this ensures we use the repository root, if it is actually a repository
       // otherwise we consider it an untracked repository
-      const path = await getRepositoryType(action.path)
-        .then(t =>
-          t.kind === 'regular' ? t.topLevelWorkingDirectory : action.path
-        )
-        .catch(e => {
-          log.error('Could not determine repository type', e)
-          return action.path
-        })
+      const repositoryType = await getRepositoryType(action.path).catch(e => {
+        log.error('Could not determine repository type', e)
+        return null
+      })
+      const path =
+        repositoryType?.kind === 'regular'
+          ? repositoryType.topLevelWorkingDirectory
+          : action.path
 
       const { repositories } = this.appStore.getState()
       const existingRepository = matchExistingRepository(repositories, path)
+      const persistSelection = action.persistSelection ?? true
 
       if (existingRepository) {
-        await this.selectRepository(
-          existingRepository,
-          action.persistSelection ?? true
-        )
+        await this.selectRepository(existingRepository, persistSelection)
         return
       }
 
@@ -5160,8 +5158,24 @@ export class Dispatcher {
         await this.switchWorktree(
           sharedCommonDirRepository,
           worktree,
-          action.persistSelection ?? true
+          persistSelection
         )
+        return
+      }
+
+      // Opening a real Git repository from Explorer, a quick action, the
+      // command line or another app adds it to the list and selects it, the
+      // same as confirming Add local repository would. The dialog is kept for
+      // a folder that is not a usable repository (missing, bare, or owned by
+      // someone Git does not trust), where it explains why and offers the way
+      // forward.
+      if (repositoryType?.kind === 'regular') {
+        const added = await this.addRepositories([path])
+        if (added.length > 0) {
+          await this.closeFoldout(FoldoutType.Repository)
+          await this.selectRepository(added[0], persistSelection)
+          this.recordAddExistingRepository()
+        }
         return
       }
 

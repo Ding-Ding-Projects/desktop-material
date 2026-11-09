@@ -241,8 +241,9 @@ the capture never races the strip's measurement pass.
 These were all tried while attempting the captures behind #22, #73, and #75.
 They fail; the fixture exists because of them.
 
-- **`--cli-open` with several paths.** Only the first path is honoured. It opens
-  the Add-repository dialog for that one path, and one tab results.
+- **`--cli-open` with several paths.** Only the first path is honoured. It adds
+  and selects that one repository (a folder that is not a repository opens the
+  Add-repository dialog instead), and one tab results.
 - **Clicking _Open a repository in a new tab_ and filling `input[type="text"]`.**
   The typed path lands in the repositories-sheet filter, not the dialog, and the
   list then reports that it cannot find that repository.
