@@ -171,6 +171,15 @@
       "title": "Repository: history, commit details and branches",
       "expand": "fill",
       "is_interactive": true
+    },
+    "RepoReview.dc.html": {
+      "x": 0,
+      "y": 9960,
+      "w": 1280,
+      "h": 960,
+      "title": "Repository: pull request review and Actions",
+      "expand": "fill",
+      "is_interactive": true
     }
   },
   "order": [
@@ -191,7 +200,8 @@
     "Tools.dc.html",
     "Onboarding.dc.html",
     "RepoChanges.dc.html",
-    "RepoHistory.dc.html"
+    "RepoHistory.dc.html",
+    "RepoReview.dc.html"
   ],
   "notes": {
     "row1": {
@@ -233,6 +243,13 @@
       "x": 0,
       "y": 7840,
       "text": "First run and repository screens",
+      "kind": "title1",
+      "maxW": 4000
+    },
+    "row7": {
+      "x": 0,
+      "y": 9660,
+      "text": "Review, automation and releases",
       "kind": "title1",
       "maxW": 4000
     }

@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Repository: pull request review and Actions</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;family=Material+Symbols+Rounded:opsz,wght,FILL@20..48,400,0..1&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#006493}a:hover{color:#004b70}
+.dm{--p:#006493;--onp:#fff;--pc:#c9e6ff;--onpc:#001e30;--sc:#d3e5f5;--onsc:#0c1d29;--bg:#f8f9ff;--s0:#fff;--s1:#f2f3f9;--s2:#eceef4;--s3:#e6e8ee;--s4:#e0e2e8;--on:#191c20;--onv:#41474d;--ol:#71787e;--olv:#c1c7ce;--ok:#1b7f37;--okc:#d2f2d8;--err:#ba1a1a;--errc:#ffdad6;--warn:#7a5200;--warnc:#ffe2a8;--add:#d2f2d8;--del:#ffdad6;--inv:#2e3135;--oninv:#eff1f7;
+--d-s:200ms;--d-m:300ms;--d-l:500ms;--e-emph:cubic-bezier(.2,0,0,1);--e-spring:cubic-bezier(.38,1.21,.22,1);
+font-family:Roboto,'Segoe UI',system-ui,sans-serif;color:var(--on);background:var(--bg);min-height:1400px;transition:background var(--d-l),color var(--d-l)}
+.dm.dark{--p:#8dcdff;--onp:#00344f;--pc:#004b70;--onpc:#c9e6ff;--sc:#394956;--onsc:#d3e5f5;--bg:#101418;--s0:#0b0f12;--s1:#181c20;--s2:#1c2024;--s3:#272a2f;--s4:#32353a;--on:#e0e2e8;--onv:#c1c7ce;--ol:#8b9198;--olv:#41474d;--ok:#7bd88f;--okc:#0f3d1c;--err:#ffb4ab;--errc:#93000a;--warn:#ffd27a;--warnc:#4a3300;--add:#0f3d1c;--del:#5c1512;--inv:#e0e2e8;--oninv:#2e3135}
+.ms{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 0,'wght' 400;display:inline-block;vertical-align:middle;flex:none}
+.mono{font-family:'Roboto Mono',monospace}
+.wrap{max-width:1240px;margin:0 auto;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:28px;font-weight:500}
+h2{margin:0;font-size:18px;font-weight:500;display:flex;align-items:center;gap:8px}
+h3{margin:0;font-size:12px;font-weight:500;color:var(--onv)}
+p{margin:0}
+.sub{margin:4px 0 0;font-size:14px;color:var(--onv);line-height:20px}
+.hint{font-size:12.5px;color:var(--onv);line-height:18px}.hint.bad{color:var(--err)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.grow{flex:1;min-width:0}
+.cols{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{background:var(--s1);border-radius:28px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0;box-sizing:border-box}
+.icon-btn{all:unset;cursor:pointer;width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--onv);flex:none;transition:background var(--d-s),transform var(--d-m) var(--e-spring)}
+.icon-btn:hover{background:var(--s3)}.icon-btn:active{transform:scale(.9)}.icon-btn:focus-visible{outline:3px solid var(--p)}
+.icon-btn.on{background:var(--pc);color:var(--onpc)}
+.btn{all:unset;cursor:pointer;height:44px;padding:0 18px;border-radius:999px;background:var(--p);color:var(--onp);font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px;box-sizing:border-box;white-space:nowrap;transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring),background var(--d-s)}
+.btn:active{transform:scale(.96);border-radius:12px}.btn:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.btn.tonal{background:var(--sc);color:var(--onsc)}.btn.text{background:transparent;color:var(--p);padding:0 12px}.btn.danger{background:var(--err);color:var(--bg)}
+.btn.off{background:var(--s3);color:var(--onv);cursor:not-allowed}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;background:var(--s2);border-radius:999px;padding:4px;align-self:flex-start;max-width:100%;box-sizing:border-box}
+.tab{all:unset;cursor:pointer;height:44px;padding:0 18px;border-radius:999px;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--onv);box-sizing:border-box;transition:background var(--d-m) var(--e-emph),color var(--d-m),transform var(--d-m) var(--e-spring)}
+.tab:hover{background:var(--s3)}.tab.on{background:var(--p);color:var(--onp)}.tab:active{transform:scale(.96)}.tab:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.tab b{font-weight:500;font-size:12px;min-width:20px;height:20px;border-radius:10px;background:var(--s0);color:var(--on);display:inline-flex;align-items:center;justify-content:center;padding:0 6px;box-sizing:border-box}
+.pane{display:flex;flex-direction:column;gap:14px;animation:pane var(--d-m) var(--e-emph)}
+@keyframes pane{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+.chip{all:unset;cursor:pointer;height:36px;padding:0 14px;border-radius:10px;box-shadow:inset 0 0 0 1px var(--ol);display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;box-sizing:border-box;transition:background var(--d-m),color var(--d-m),border-radius var(--d-m) var(--e-spring)}
+.chip.on{background:var(--sc);color:var(--onsc);box-shadow:none;border-radius:18px}.chip:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.search{display:flex;align-items:center;gap:8px;background:var(--s0);border-radius:999px;padding:0 6px 0 16px;box-shadow:inset 0 0 0 1px var(--olv);flex:1 1 260px;min-width:0;transition:box-shadow var(--d-s)}
+.search:focus-within{box-shadow:inset 0 0 0 2px var(--p)}
+.search input{all:unset;flex:1;min-width:0;height:48px;font-size:14px;color:var(--on)}.search input::placeholder{color:var(--onv)}
+.field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:var(--onv);min-width:0}
+.field input,.field select,.field textarea{all:unset;box-sizing:border-box;min-height:48px;border-radius:12px;background:var(--s0);padding:0 14px;font-size:14px;font-weight:400;color:var(--on);box-shadow:inset 0 0 0 1px var(--ol);transition:box-shadow var(--d-s)}
+.field textarea{padding:12px 14px;min-height:84px;line-height:20px;white-space:pre-wrap}
+.field input:focus,.field select:focus,.field textarea:focus{box-shadow:inset 0 0 0 2px var(--p)}
+.field.bad input{box-shadow:inset 0 0 0 2px var(--err)}
+.rows{display:flex;flex-direction:column;gap:4px}
+.li{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 12px;border-radius:16px;background:var(--s0);font-size:14px;box-sizing:border-box;min-width:0;transition:background var(--d-m),border-radius var(--d-m) var(--e-spring),opacity var(--d-m)}
+button.li{all:unset;cursor:pointer;display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 12px;border-radius:16px;background:var(--s0);font-size:14px;box-sizing:border-box;min-width:0;transition:background var(--d-m),border-radius var(--d-m) var(--e-spring)}
+button.li:hover{background:var(--s2)}button.li:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
+.li.on{background:var(--sc);color:var(--onsc);border-radius:24px}
+.li .t{flex:1;min-width:0;overflow-wrap:anywhere}.li small,.t small{display:block;font-size:12.5px;color:var(--onv);line-height:17px}
+.li.on small{color:inherit}
+.li input[type=checkbox],.ck input{width:20px;height:20px;margin:12px;accent-color:var(--p);flex:none}
+.ck{display:inline-flex;align-items:center;gap:2px;font-size:14px;min-height:44px}
+.badge{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 10px;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;background:var(--s3);color:var(--on)}
+.badge.ok{background:var(--okc);color:var(--ok)}.badge.no{background:var(--errc);color:var(--err)}.badge.warn{background:var(--warnc);color:var(--warn)}.badge.pri{background:var(--pc);color:var(--onpc)}
+.note{display:flex;gap:10px;align-items:flex-start;background:var(--s2);border-radius:16px;padding:12px 14px;font-size:13px;line-height:19px;color:var(--onv)}
+.note.warn{background:var(--warnc);color:var(--warn)}
+kbd{font-family:'Roboto Mono',monospace;font-size:11.5px;padding:3px 7px;border-radius:6px;background:var(--s3);color:var(--on);box-shadow:inset 0 -1px 0 var(--ol);white-space:nowrap}
+.dot{width:10px;height:10px;border-radius:999px;background:var(--p);flex:none}
+.prog{height:6px;border-radius:6px;background:var(--s3);overflow:hidden}.prog i{display:block;height:100%;background:var(--p);border-radius:6px;transition:width var(--d-l) var(--e-emph)}
+.snack{position:sticky;bottom:16px;align-self:center;display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:var(--inv);color:var(--oninv);border-radius:20px;padding:8px 8px 8px 20px;font-size:14px;animation:rise var(--d-l) var(--e-spring)}
+.snack .btn.text{color:var(--pc)}.dark .snack .btn.text{color:var(--p)}
+@keyframes rise{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.dm *{transition-duration:1ms!important;animation-duration:1ms!important}}
+.card>.search,.col>.search,.pane>.search{flex:none}
+.dm{min-height:960px}
+.two{display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:860px){.two{grid-template-columns:minmax(0,1fr)}}
+.cm{background:var(--s0);border-radius:16px;padding:12px 14px;font-size:13.5px;line-height:20px}
+.cm b{font-weight:500}
+.sdot{width:22px;height:22px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.log{background:#0b0f12;color:#d7e3ee;border-radius:14px;padding:12px;font-family:'Roboto Mono',monospace;font-size:12.5px;line-height:19px;overflow-x:auto;white-space:pre}
+.log .e{color:#ffb4ab}
+</style>
+</helmet>
+<div class="dm {{rootClass}}">
+<div class="wrap">
+<div class="bar"><div class="grow" style="min-width:260px"><h1>Repository: pull request review and Actions</h1><p class="sub">Review a pull request file by file with your progress kept, and follow workflow runs down to the failing step without leaving the app.</p></div><button class="icon-btn" onClick="{{toggleDark}}" aria-label="Switch light and dark"><span class="ms" aria-hidden="true">contrast</span></button></div>
+<div class="tabs" role="tablist" aria-label="Screen"><sc-for list="{{tabs}}" as="t" hint-placeholder-count="2"><button class="{{t.cls}}" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}"><span class="ms" aria-hidden="true">{{t.icon}}</span>{{t.label}}</button></sc-for></div>
+
+<sc-if value="{{isPr}}" hint-placeholder-val="{{ true }}"><div class="col pane">
+<div class="card" style="padding:16px"><div class="bar"><h2 class="grow" style="align-items:flex-start">Motion settings: level, speed and per-surface switches <span class="hint">#263</span></h2><span class="badge ok">Open</span><span class="{{checksCls}}"><span class="ms" style="font-size:14px" aria-hidden="true">{{checksIcon}}</span>{{checksText}}</span></div>
+<div class="bar"><span class="hint grow">feature/motion-settings into main · 4 commits · {{viewedText}}</span><div class="prog" style="flex:0 1 220px" role="img" aria-label="{{viewedText}}"><i style="width:{{viewedPct}}"></i></div></div></div>
+<div class="two" style="display:grid">
+<div class="card" style="padding:16px"><div class="rows"><sc-for list="{{files}}" as="f" hint-placeholder-count="3"><div class="{{f.cls}}"><input type="checkbox" aria-label="{{f.viewLabel}}" checked="{{f.viewed}}" onChange="{{f.toggle}}"><span class="t mono" style="font-size:13px">{{f.path}}<small style="font-family:Roboto,sans-serif">{{f.meta}}</small></span></div></sc-for></div>
+<p class="hint">Tick a file when you have read it. Your place is kept if you close the review.</p></div>
+<div class="card" style="padding:16px">
+<h3>Conversation</h3>
+<sc-for list="{{comments}}" as="c" hint-placeholder-count="2"><div class="cm"><b>{{c.who}}</b> <span class="hint">{{c.when}} · {{c.where}}</span><br>{{c.text}}</div></sc-for>
+<div class="field"><label for="rr-c">Your review</label><textarea id="rr-c" value="{{draft}}" onChange="{{setDraft}}" placeholder="Leave a comment"></textarea></div>
+<div class="bar" role="group" aria-label="Verdict"><sc-for list="{{verdicts}}" as="v" hint-placeholder-count="3"><button class="{{v.cls}}" aria-pressed="{{v.on}}" onClick="{{v.pick}}"><span class="ms" aria-hidden="true">{{v.icon}}</span>{{v.label}}</button></sc-for><span class="grow"></span><button class="{{submitCls}}" aria-disabled="{{cantSubmit}}" onClick="{{submit}}">Submit review</button></div>
+<p class="{{submitHintCls}}" role="status">{{submitHint}}</p>
+</div></div>
+</div></sc-if>
+
+<sc-if value="{{isAct}}" hint-placeholder-val="{{ false }}"><div class="two pane" style="display:grid">
+<div class="card" style="padding:16px">
+<div class="bar"><sc-for list="{{rFilters}}" as="f" hint-placeholder-count="3"><button class="{{f.cls}}" aria-pressed="{{f.on}}" onClick="{{f.pick}}">{{f.label}}</button></sc-for></div>
+<div class="rows"><sc-for list="{{runs}}" as="r" hint-placeholder-count="4"><button class="{{r.cls}}" aria-pressed="{{r.on}}" onClick="{{r.pick}}"><span class="sdot" style="background:{{r.bg}};color:{{r.fg}}" role="img" aria-label="{{r.state}}"><span class="ms" style="font-size:16px" aria-hidden="true">{{r.icon}}</span></span><span class="t">{{r.name}}<small>{{r.meta}}</small></span></button></sc-for></div>
+<sc-if value="{{noRuns}}" hint-placeholder-val="{{ false }}"><p class="hint">No run with that status.</p></sc-if>
+</div>
+<div class="card" style="padding:16px">
+<div class="bar"><h2 class="grow">{{runName}}</h2><span class="{{runBadgeCls}}">{{runState}}</span></div>
+<div class="rows"><sc-for list="{{jobs}}" as="j" hint-placeholder-count="3"><div class="li" style="min-height:48px"><span class="ms" aria-hidden="true">{{j.icon}}</span><span class="t">{{j.name}}<small>{{j.meta}}</small></span><span class="{{j.cls}}">{{j.state}}</span></div></sc-for></div>
+<sc-if value="{{runFailed}}" hint-placeholder-val="{{ false }}"><div class="col"><h3>Failing step: Download build dependencies</h3><div class="log" role="log" aria-label="Log of the failing step"><span>Downloading electron-v44.9.1-win32-x64.zip</span>
+<span class="e">Error: Request failed with status 504 (attempt 3 of 3)</span>
+<span class="e">Process completed with exit code 1.</span></div>
+<div class="note"><span class="ms" aria-hidden="true">info</span><span>Re-run the whole workflow for this one. Re-running only the failed job cannot publish, because the release-notes artifact is named after the run attempt.</span></div></div></sc-if>
+<div class="bar"><button class="{{rerunCls}}" onClick="{{rerun}}"><span class="ms" aria-hidden="true">replay</span>Re-run the whole workflow</button><button class="btn tonal"><span class="ms" aria-hidden="true">play_arrow</span>Run workflow…</button><button class="btn text"><span class="ms" aria-hidden="true">open_in_new</span>Open on the remote</button></div>
+<p class="hint" role="status">{{runMsg}}</p>
+</div>
+</div></sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+function dmBase(c){return {rootClass:c.state.dark?'dark':'',toggleDark:function(){c.setState({dark:!c.state.dark});}};}
+class Component extends DCLogic {
+  constructor(p){super(p);this.state={dark:false,tab:0,viewed:{0:true},pf:0,draft:'',verdict:0,sent:false,rf:0,run:1,rerun:false};
+    this.files=[['app/src/models/motion-settings.ts','+118 −0'],['app/src/ui/lib/motion-runtime.ts','+86 −0'],['app/src/ui/preferences/appearance.tsx','+64 −7'],['app/test/unit/motion-settings-test.ts','+142 −0']];
+    this.runs=[['Windows x64 and arm64','main · push · 6 min','ok'],['Build installers','main · push · failed after 11 min','fail'],['Linux terminal app','main · push · running','run'],['Pages','main · push · 2 min','ok']];}
+  renderVals(){
+    const s=this.state,set=o=>this.setState(o),nView=this.files.filter((f,i)=>s.viewed[i]).length;
+    const col={ok:['#d2f2d8','#1b7f37','check','Passed','badge ok'],fail:['#ffdad6','#ba1a1a','close','Failed','badge no'],run:['#c9e6ff','#001e30','progress_activity','Running','badge pri']};
+    const runs=this.runs.map((r,i)=>({r:r,i:i,st:i===1&&s.rerun?'run':r[2]})).filter(x=>s.rf===0||(s.rf===1?x.st==='fail':x.st==='run'));
+    const cur=this.runs[s.run],curSt=s.run===1&&s.rerun?'run':cur[2],needText=s.verdict===2&&!s.draft.trim();
+    const jobsFor={ok:[['check_circle','Lint','1 min','Passed','badge ok'],['check_circle','Unit tests','4 min','Passed','badge ok'],['check_circle','Package','1 min','Passed','badge ok']],fail:[['check_circle','Build x64','6 min','Passed','badge ok'],['cancel','Build installer','Failed at step 3 of 9','Failed','badge no'],['do_not_disturb_on','Publish release','Skipped','Skipped','badge']],run:[['check_circle','Set up','40 s','Passed','badge ok'],['progress_activity','Tests','Running for 2 min','Running','badge pri'],['schedule','Package','Waiting','Queued','badge']]};
+    return {...dmBase(this),
+      tabs:[['rate_review','Pull request'],['play_circle','Actions']].map((t,i)=>({icon:t[0],label:t[1],on:s.tab===i,cls:'tab'+(s.tab===i?' on':''),pick:()=>set({tab:i})})),
+      isPr:s.tab===0,isAct:s.tab===1,
+      checksCls:'badge warn',checksIcon:'progress_activity',checksText:'3 of 4 checks passed, 1 running',
+      viewedText:nView+' of '+this.files.length+' files viewed',viewedPct:(nView/this.files.length*100)+'%',
+      files:this.files.map((f,i)=>({path:f[0],meta:f[1],viewed:!!s.viewed[i],viewLabel:'Viewed '+f[0],on:s.pf===i,cls:'li'+(s.viewed[i]?' on':''),toggle:()=>set({viewed:{...s.viewed,[i]:!s.viewed[i]}})})),
+      comments:[{who:'Sam Wong',when:'1 h ago',where:'motion-runtime.ts line 41',text:'Should the speed multiplier clamp before or after the reduced level is applied?'},{who:'Riley Chan',when:'40 min ago',where:'reply',text:'Before. Reduced always wins, so a speed of 2 never turns motion back on. Added a test for it.'}],
+      draft:s.draft,setDraft:e=>set({draft:e.target.value,sent:false}),
+      verdicts:[['comment','Comment'],['check_circle','Approve'],['edit_note','Request changes']].map((v,i)=>({icon:v[0],label:v[1],on:s.verdict===i,cls:'chip'+(s.verdict===i?' on':''),pick:()=>set({verdict:i,sent:false})})),
+      cantSubmit:needText||(s.verdict===0&&!s.draft.trim()),submitCls:'btn'+(needText||(s.verdict===0&&!s.draft.trim())?' off':''),
+      submit:()=>{if(needText||(s.verdict===0&&!s.draft.trim()))return;set({sent:true,draft:''});},
+      submitHint:s.sent?'Review submitted.':needText?'Say what needs to change before requesting changes.':s.verdict===0&&!s.draft.trim()?'Write a comment to submit.':nView<this.files.length?'You have not ticked every file yet. You can still submit.':'Every file viewed.',submitHintCls:'hint'+(needText?' bad':''),
+      rFilters:['All','Failed','Running'].map((l,i)=>({label:l,on:s.rf===i,cls:'chip'+(s.rf===i?' on':''),pick:()=>set({rf:i})})),noRuns:runs.length===0,
+      runs:runs.map(x=>({name:x.r[0],meta:x.st==='run'&&x.i===1?'main · re-run · running':x.r[1],bg:col[x.st][0],fg:col[x.st][1],icon:col[x.st][2],state:col[x.st][3],on:s.run===x.i,cls:'li'+(s.run===x.i?' on':''),pick:()=>set({run:x.i})})),
+      runName:cur[0],runState:col[curSt][3],runBadgeCls:col[curSt][4],runFailed:curSt==='fail',
+      jobs:jobsFor[curSt].map(j=>({icon:j[0],name:j[1],meta:j[2],state:j[3],cls:j[4]})),
+      rerunCls:'btn'+(curSt==='run'?' off':''),rerun:()=>{if(curSt!=='run'&&s.run===1)set({rerun:true});},
+      runMsg:curSt==='run'?'Running. The result appears here and as a notification; nothing is predicted before it lands.':curSt==='fail'?'Failed. No release was published from this run.':'Passed.'
+    };
+  }
+}
+</script>
+</body>
+</html>
