@@ -20,6 +20,11 @@ are in each folder's `frames/`. See each folder's `HANDOFF.md` or `README.md`.
   ([article](docs/features/identity-and-workspace/always-show-worktree-list.md),
   `6e55b8c`).
 
+- Quick convert in the local file converter: dropped files and folders become
+  Base64 text beside their originals, and back (`e9a8b02`), plus a Base64 text
+  toolkit (`f1ed021`). See
+  [the article](docs/features/integrations/local-file-converter.md).
+
 **Verification.** On Linux: 19 motion tests, 2 Svelte tests and the worktree and
 Appearance tests pass; the TypeScript check reports no errors. In the wider
 appearance and shell test set 30 tests fail identically with and without these
@@ -31,10 +36,14 @@ for these commits had not reported when this was written.
 **Not done.**
 
 - No screenshot was renewed. Captures must come from the built Windows
-  application through `script/capture-app.js`, which cannot run in the Linux
-  session that did this work.
-- Every other design board is still only a design: nothing else from the boards
-  is implemented.
+  application through `script/capture-app.js`. A development build was also
+  attempted in the Linux session (Electron 42.0.1 fetched, Xvfb present) so the
+  harness could at least run there, but webpack was killed for lack of memory
+  on a 7 GB machine (exit 137). Captures need a Windows machine or runner.
+- Every other design board is still only a design. Not started: extension
+  support, live charts, virtual disk manager, Minecraft server manager and its
+  web panel (public link, Discord webhook), screen recording, the first-run
+  wizard, every tab open by default, and converter adapters other than Base64.
 - Upstream: 435 commits since the 2026-08-28 ledger tip are still unclassified
   (issue #212). Released items not yet ported: short-lived sign-in tokens
   (3.6.8, a ten-part series), Git 2.56.0 / Git LFS 3.8.1 / Git Credential

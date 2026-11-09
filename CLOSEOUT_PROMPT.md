@@ -16,16 +16,18 @@ Done this session:
   link, Discord webhook with link and one-time pairing code, auto resend on change, nine-page panel).
   Designs only.
 - Implemented: motion speed and per-surface switches (956b065), Svelte highlighting from upstream
-  3.6.8 (e3eb9f4), Always show worktree list from upstream 3.6.7 (6e55b8c).
+  3.6.8 (e3eb9f4), Always show worktree list from upstream 3.6.7 (6e55b8c), Quick convert of dropped
+  files and folders to Base64 text beside the originals (e9a8b02), Base64 text toolkit (f1ed021).
 - Checked on Linux only: focused tests pass, TypeScript reports no errors. 30 tests in the wider
   appearance and shell set fail the same way with and without these changes.
 
 Not done:
 1. Windows CI result for these commits was not seen. Check it first.
-2. No screenshot was renewed: captures need the built Windows app and script/capture-app.js.
-3. Implement the remaining boards one feature per commit, starting with the file converter quick
-   drop (results beside the original, folders and batches) and the web panel public link with the
-   Discord webhook.
+2. No screenshot was renewed: captures need the built Windows app and script/capture-app.js. A Linux
+   development build was tried and webpack ran out of memory on a 7 GB machine.
+3. Implement the remaining boards one feature per commit, starting with the Minecraft server
+   manager and its web panel (free Cloudflare quick tunnel link, Discord webhook with link and pairing
+   code, resend on change), then extensions, live charts, virtual disks, recording, first-run wizard.
 4. Upstream (issue #212): port short-lived sign-in tokens (3.6.8), the Git, Git LFS and Electron
    updates, check-summary icon contrast (3.6.7), folder-reveal confirmation (3.6.6) and the fixes in
    3.6.6 to 3.6.10; then classify the rest of the 435 commits since b17e06dd.
