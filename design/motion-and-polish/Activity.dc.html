@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Notifications, history, changelog and export</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;family=Material+Symbols+Rounded:opsz,wght,FILL@20..48,400,0..1&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#006493}a:hover{color:#004b70}
+.dm{--p:#006493;--onp:#fff;--pc:#c9e6ff;--onpc:#001e30;--sc:#d3e5f5;--onsc:#0c1d29;--bg:#f8f9ff;--s0:#fff;--s1:#f2f3f9;--s2:#eceef4;--s3:#e6e8ee;--s4:#e0e2e8;--on:#191c20;--onv:#41474d;--ol:#71787e;--olv:#c1c7ce;--ok:#1b7f37;--okc:#d2f2d8;--err:#ba1a1a;--errc:#ffdad6;--warn:#7a5200;--warnc:#ffe2a8;--add:#d2f2d8;--del:#ffdad6;--inv:#2e3135;--oninv:#eff1f7;
+--d-s:200ms;--d-m:300ms;--d-l:500ms;--e-emph:cubic-bezier(.2,0,0,1);--e-spring:cubic-bezier(.38,1.21,.22,1);
+font-family:Roboto,'Segoe UI',system-ui,sans-serif;color:var(--on);background:var(--bg);min-height:1400px;transition:background var(--d-l),color var(--d-l)}
+.dm.dark{--p:#8dcdff;--onp:#00344f;--pc:#004b70;--onpc:#c9e6ff;--sc:#394956;--onsc:#d3e5f5;--bg:#101418;--s0:#0b0f12;--s1:#181c20;--s2:#1c2024;--s3:#272a2f;--s4:#32353a;--on:#e0e2e8;--onv:#c1c7ce;--ol:#8b9198;--olv:#41474d;--ok:#7bd88f;--okc:#0f3d1c;--err:#ffb4ab;--errc:#93000a;--warn:#ffd27a;--warnc:#4a3300;--add:#0f3d1c;--del:#5c1512;--inv:#e0e2e8;--oninv:#2e3135}
+.ms{font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 0,'wght' 400;display:inline-block;vertical-align:middle;flex:none}
+.mono{font-family:'Roboto Mono',monospace}
+.wrap{max-width:1240px;margin:0 auto;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:28px;font-weight:500}
+h2{margin:0;font-size:18px;font-weight:500;display:flex;align-items:center;gap:8px}
+h3{margin:0;font-size:12px;font-weight:500;color:var(--onv)}
+p{margin:0}
+.sub{margin:4px 0 0;font-size:14px;color:var(--onv);line-height:20px}
+.hint{font-size:12.5px;color:var(--onv);line-height:18px}.hint.bad{color:var(--err)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.grow{flex:1;min-width:0}
+.cols{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{background:var(--s1);border-radius:28px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0;box-sizing:border-box}
+.icon-btn{all:unset;cursor:pointer;width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--onv);flex:none;transition:background var(--d-s),transform var(--d-m) var(--e-spring)}
+.icon-btn:hover{background:var(--s3)}.icon-btn:active{transform:scale(.9)}.icon-btn:focus-visible{outline:3px solid var(--p)}
+.icon-btn.on{background:var(--pc);color:var(--onpc)}
+.btn{all:unset;cursor:pointer;height:44px;padding:0 18px;border-radius:999px;background:var(--p);color:var(--onp);font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px;box-sizing:border-box;white-space:nowrap;transition:transform var(--d-m) var(--e-spring),border-radius var(--d-m) var(--e-spring),background var(--d-s)}
+.btn:active{transform:scale(.96);border-radius:12px}.btn:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.btn.tonal{background:var(--sc);color:var(--onsc)}.btn.text{background:transparent;color:var(--p);padding:0 12px}.btn.danger{background:var(--err);color:var(--bg)}
+.btn.off{background:var(--s3);color:var(--onv);cursor:not-allowed}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;background:var(--s2);border-radius:999px;padding:4px;align-self:flex-start;max-width:100%;box-sizing:border-box}
+.tab{all:unset;cursor:pointer;height:44px;padding:0 18px;border-radius:999px;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--onv);box-sizing:border-box;transition:background var(--d-m) var(--e-emph),color var(--d-m),transform var(--d-m) var(--e-spring)}
+.tab:hover{background:var(--s3)}.tab.on{background:var(--p);color:var(--onp)}.tab:active{transform:scale(.96)}.tab:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.tab b{font-weight:500;font-size:12px;min-width:20px;height:20px;border-radius:10px;background:var(--s0);color:var(--on);display:inline-flex;align-items:center;justify-content:center;padding:0 6px;box-sizing:border-box}
+.pane{display:flex;flex-direction:column;gap:14px;animation:pane var(--d-m) var(--e-emph)}
+@keyframes pane{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+.chip{all:unset;cursor:pointer;height:36px;padding:0 14px;border-radius:10px;box-shadow:inset 0 0 0 1px var(--ol);display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;box-sizing:border-box;transition:background var(--d-m),color var(--d-m),border-radius var(--d-m) var(--e-spring)}
+.chip.on{background:var(--sc);color:var(--onsc);box-shadow:none;border-radius:18px}.chip:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.search{display:flex;align-items:center;gap:8px;background:var(--s0);border-radius:999px;padding:0 6px 0 16px;box-shadow:inset 0 0 0 1px var(--olv);flex:1 1 260px;min-width:0;transition:box-shadow var(--d-s)}
+.search:focus-within{box-shadow:inset 0 0 0 2px var(--p)}
+.search input{all:unset;flex:1;min-width:0;height:48px;font-size:14px;color:var(--on)}.search input::placeholder{color:var(--onv)}
+.field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:500;color:var(--onv);min-width:0}
+.field input,.field select,.field textarea{all:unset;box-sizing:border-box;min-height:48px;border-radius:12px;background:var(--s0);padding:0 14px;font-size:14px;font-weight:400;color:var(--on);box-shadow:inset 0 0 0 1px var(--ol);transition:box-shadow var(--d-s)}
+.field textarea{padding:12px 14px;min-height:84px;line-height:20px;white-space:pre-wrap}
+.field input:focus,.field select:focus,.field textarea:focus{box-shadow:inset 0 0 0 2px var(--p)}
+.field.bad input{box-shadow:inset 0 0 0 2px var(--err)}
+.rows{display:flex;flex-direction:column;gap:4px}
+.li{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 12px;border-radius:16px;background:var(--s0);font-size:14px;box-sizing:border-box;min-width:0;transition:background var(--d-m),border-radius var(--d-m) var(--e-spring),opacity var(--d-m)}
+button.li{all:unset;cursor:pointer;display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 12px;border-radius:16px;background:var(--s0);font-size:14px;box-sizing:border-box;min-width:0;transition:background var(--d-m),border-radius var(--d-m) var(--e-spring)}
+button.li:hover{background:var(--s2)}button.li:focus-visible{outline:3px solid var(--p);outline-offset:-3px}
+.li.on{background:var(--sc);color:var(--onsc);border-radius:24px}
+.li .t{flex:1;min-width:0;overflow-wrap:anywhere}.li small,.t small{display:block;font-size:12.5px;color:var(--onv);line-height:17px}
+.li.on small{color:inherit}
+.li input[type=checkbox],.ck input{width:20px;height:20px;margin:12px;accent-color:var(--p);flex:none}
+.ck{display:inline-flex;align-items:center;gap:2px;font-size:14px;min-height:44px}
+.badge{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 10px;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;background:var(--s3);color:var(--on)}
+.badge.ok{background:var(--okc);color:var(--ok)}.badge.no{background:var(--errc);color:var(--err)}.badge.warn{background:var(--warnc);color:var(--warn)}.badge.pri{background:var(--pc);color:var(--onpc)}
+.note{display:flex;gap:10px;align-items:flex-start;background:var(--s2);border-radius:16px;padding:12px 14px;font-size:13px;line-height:19px;color:var(--onv)}
+.note.warn{background:var(--warnc);color:var(--warn)}
+kbd{font-family:'Roboto Mono',monospace;font-size:11.5px;padding:3px 7px;border-radius:6px;background:var(--s3);color:var(--on);box-shadow:inset 0 -1px 0 var(--ol);white-space:nowrap}
+.dot{width:10px;height:10px;border-radius:999px;background:var(--p);flex:none}
+.prog{height:6px;border-radius:6px;background:var(--s3);overflow:hidden}.prog i{display:block;height:100%;background:var(--p);border-radius:6px;transition:width var(--d-l) var(--e-emph)}
+.snack{position:sticky;bottom:16px;align-self:center;display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:var(--inv);color:var(--oninv);border-radius:20px;padding:8px 8px 8px 20px;font-size:14px;animation:rise var(--d-l) var(--e-spring)}
+.snack .btn.text{color:var(--pc)}.dark .snack .btn.text{color:var(--p)}
+@keyframes rise{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.dm *{transition-duration:1ms!important;animation-duration:1ms!important}}
+.dm{min-height:960px}
+.unread{font-weight:500}
+.li.gone{opacity:0;transform:translateX(24px)}
+.ver{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:820px){.ver{grid-template-columns:minmax(0,1fr)}}
+.diff{background:var(--s0);border-radius:16px;padding:8px;font-family:'Roboto Mono',monospace;font-size:13px;line-height:21px;overflow-x:auto}
+.diff div{padding:0 10px;border-radius:6px;white-space:pre}
+.diff .a{background:var(--add)}.diff .d{background:var(--del)}
+.rel{background:var(--s0);border-radius:20px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.rel h3{font-size:15px;color:var(--on);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ent{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:20px}
+.fmt{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:720px){.fmt{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.fmt button{all:unset;cursor:pointer;min-height:72px;border-radius:16px;background:var(--s0);box-shadow:inset 0 0 0 1px var(--olv);padding:10px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:2px;justify-content:center;font-size:14px;font-weight:500;transition:box-shadow var(--d-s),transform var(--d-m) var(--e-spring)}
+.fmt button.on{box-shadow:inset 0 0 0 3px var(--p);transform:scale(1.02)}.fmt button:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.fmt small{font-weight:400;font-size:12px;color:var(--onv)}
+.file{display:flex;align-items:center;gap:12px;background:var(--s0);border-radius:16px;padding:14px 16px;font-size:13.5px}
+</style>
+</helmet>
+<div class="dm {{rootClass}}">
+<div class="wrap">
+<div class="bar"><div class="grow" style="min-width:260px"><h1>Notifications, history, changelog and export</h1><p class="sub">Everything the app has told you, every saved version of your documents, every release, and one export for all of it. Nothing here blocks your work, and bulk actions always show what they will touch first.</p></div><button class="icon-btn" onClick="{{toggleDark}}" aria-label="Switch light and dark"><span class="ms" aria-hidden="true">contrast</span></button></div>
+<div class="tabs" role="tablist" aria-label="Section"><sc-for list="{{tabs}}" as="t" hint-placeholder-count="4"><button class="{{t.cls}}" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}"><span class="ms" aria-hidden="true">{{t.icon}}</span>{{t.label}}<sc-if value="{{t.hasCount}}" hint-placeholder-val="{{ false }}"><b>{{t.count}}</b></sc-if></button></sc-for></div>
+
+<sc-if value="{{isNotif}}" hint-placeholder-val="{{ true }}"><div class="card pane">
+<div class="bar"><div class="search"><span class="ms" aria-hidden="true">search</span><input aria-label="Search notifications" placeholder="Search notifications" value="{{nq}}" onChange="{{setNq}}"><button class="icon-btn" aria-label="Open regex builder"><span class="ms" aria-hidden="true">regular_expression</span></button></div>
+<sc-for list="{{nFilters}}" as="f" hint-placeholder-count="3"><button class="{{f.cls}}" aria-pressed="{{f.on}}" onClick="{{f.pick}}">{{f.label}}</button></sc-for></div>
+<div class="bar"><label class="ck"><input type="checkbox" checked="{{allSel}}" onChange="{{toggleAll}}">Select all shown</label><span class="grow"></span><span class="hint" role="status">{{selText}}</span>
+<button class="{{bulkCls}}" aria-disabled="{{noSel}}" onClick="{{markRead}}"><span class="ms" aria-hidden="true">mark_email_read</span>Mark read</button><button class="{{bulkCls}}" aria-disabled="{{noSel}}" onClick="{{markUnread}}"><span class="ms" aria-hidden="true">mark_email_unread</span>Mark unread</button><button class="{{bulkCls}}" aria-disabled="{{noSel}}" onClick="{{del}}"><span class="ms" aria-hidden="true">delete</span>Delete</button></div>
+<div class="rows"><sc-for list="{{notes}}" as="n" hint-placeholder-count="5"><div class="{{n.cls}}"><input type="checkbox" aria-label="{{n.selLabel}}" checked="{{n.sel}}" onChange="{{n.toggle}}"><span class="ms" aria-hidden="true">{{n.icon}}</span><span class="t"><span class="{{n.titleCls}}">{{n.title}}</span><small>{{n.detail}}</small></span><sc-if value="{{n.unread}}" hint-placeholder-val="{{ true }}"><span class="dot" role="img" aria-label="Unread"></span></sc-if><span class="hint">{{n.when}}</span></div></sc-for></div>
+<sc-if value="{{noNotes}}" hint-placeholder-val="{{ false }}"><div class="note"><span class="ms" aria-hidden="true">inbox</span><span>{{noNotesText}}</span></div></sc-if>
+<div class="note"><span class="ms" aria-hidden="true">info</span><span>Notifications are kept in their own local history beside the app's data. Deleting one here removes it from this list only; the event it describes is not undone.</span></div>
+</div></sc-if>
+
+<sc-if value="{{isHist}}" hint-placeholder-val="{{ false }}"><div class="card pane">
+<div class="bar"><h2 class="grow"><span class="ms" aria-hidden="true">history</span>release-notes.md</h2><span class="badge pri">{{verCount}} versions</span></div>
+<div class="ver">
+<div class="rows"><sc-for list="{{versions}}" as="v" hint-placeholder-count="4"><button class="{{v.cls}}" aria-pressed="{{v.on}}" onClick="{{v.pick}}"><span class="ms" aria-hidden="true">{{v.icon}}</span><span class="t">{{v.label}}<small>{{v.when}}</small></span></button></sc-for></div>
+<div class="col">
+<div class="diff" role="img" aria-label="{{diffLabel}}"><sc-for list="{{diff}}" as="d" hint-placeholder-count="5"><div class="{{d.cls}}">{{d.text}}</div></sc-for></div>
+<div class="bar"><span class="hint grow">{{diffText}}</span><button class="{{restoreCls}}" aria-disabled="{{isLatest}}" onClick="{{restore}}"><span class="ms" aria-hidden="true">settings_backup_restore</span>Restore this version</button></div>
+</div>
+</div>
+<div class="note"><span class="ms" aria-hidden="true">folder_special</span><span>Versions live in an isolated repository beside the app's own data. Nothing is ever written into a .git folder inside your own folder, and restoring adds a new version on top, so no version is lost.</span></div>
+</div></sc-if>
+
+<sc-if value="{{isLog}}" hint-placeholder-val="{{ false }}"><div class="card pane">
+<div class="bar"><div class="search"><span class="ms" aria-hidden="true">search</span><input aria-label="Search the changelog" placeholder="Search every release" value="{{cq}}" onChange="{{setCq}}"><button class="icon-btn" aria-label="Open regex builder"><span class="ms" aria-hidden="true">regular_expression</span></button></div>
+<div class="field" style="flex:0 1 170px"><label for="ac-from">From</label><input id="ac-from" type="date" value="{{from}}" onChange="{{setFrom}}"></div>
+<div class="field" style="flex:0 1 170px"><label for="ac-to">To</label><input id="ac-to" type="date" value="{{to}}" onChange="{{setTo}}"></div></div>
+<div class="bar"><sc-for list="{{kinds}}" as="k" hint-placeholder-count="3"><button class="{{k.cls}}" aria-pressed="{{k.on}}" onClick="{{k.pick}}">{{k.label}}</button></sc-for><span class="grow"></span><span class="hint" role="status">{{logText}}</span></div>
+<sc-for list="{{rels}}" as="r" hint-placeholder-count="3"><div class="rel"><h3>{{r.name}}<span class="hint">{{r.date}}</span></h3><sc-for list="{{r.items}}" as="e" hint-placeholder-count="2"><div class="ent"><span class="{{e.cls}}">{{e.kind}}</span><span>{{e.text}}</span></div></sc-for></div></sc-for>
+<sc-if value="{{noRels}}" hint-placeholder-val="{{ false }}"><div class="note"><span class="ms" aria-hidden="true">search_off</span><span>No entry matches. Widen the dates, clear the search or switch a filter back on.</span></div></sc-if>
+</div></sc-if>
+
+<sc-if value="{{isExp}}" hint-placeholder-val="{{ false }}"><div class="card pane">
+<h2><span class="ms" aria-hidden="true">ios_share</span>Universal export</h2>
+<div><h3 style="margin-bottom:6px">What to export</h3><div class="bar"><sc-for list="{{sources}}" as="s" hint-placeholder-count="4"><label class="ck"><input type="checkbox" checked="{{s.on}}" onChange="{{s.toggle}}">{{s.label}}</label></sc-for></div></div>
+<div><h3 style="margin-bottom:6px">Format</h3><div class="fmt" role="group" aria-label="Format"><sc-for list="{{formats}}" as="f" hint-placeholder-count="4"><button class="{{f.cls}}" aria-pressed="{{f.on}}" onClick="{{f.pick}}">{{f.label}}<small>{{f.note}}</small></button></sc-for></div></div>
+<div class="file"><span class="ms" aria-hidden="true">draft</span><span class="t mono">{{fileName}}<small style="font-family:Roboto,sans-serif">{{fileNote}}</small></span><button class="{{expCls}}" aria-disabled="{{noSources}}" onClick="{{doExport}}"><span class="ms" aria-hidden="true">download</span>Export</button></div>
+<sc-if value="{{exporting}}" hint-placeholder-val="{{ false }}"><div class="col" role="status"><span class="hint">{{expText}}</span><div class="prog"><i style="width:{{expPct}}"></i></div></div></sc-if>
+<div class="note"><span class="ms" aria-hidden="true">key_off</span><span>Passwords, tokens and other credentials stay in the operating system vault and are never written to an export. Exports are saved where you choose and are not uploaded.</span></div>
+</div></sc-if>
+
+<sc-if value="{{hasUndo}}" hint-placeholder-val="{{ false }}"><div class="snack" role="status"><span>{{undoText}}</span><button class="btn text" onClick="{{undo}}">Undo</button></div></sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+function dmBase(c){return {rootClass:c.state.dark?'dark':'',toggleDark:function(){c.setState({dark:!c.state.dark});}};}
+class Component extends DCLogic {
+  constructor(p){super(p);
+    this.state={dark:false,tab:0,nq:'',nf:0,sel:{},undo:null,ver:1,restored:false,cq:'',from:'2026-10-01',to:'2026-11-09',kinds:{Added:true,Fixed:true,Removed:true},fmt:0,src:{n:true,h:false,c:true,s:false},exp:0,
+      notes:[
+        {id:1,icon:'cloud_done',title:'Pushed 2 commits to origin/main',detail:'desktop-material · design boards and handoff notes',when:'3 min ago',unread:true},
+        {id:2,icon:'rule',title:'Windows x64 build finished',detail:'Run on main · all jobs passed',when:'18 min ago',unread:true},
+        {id:3,icon:'error',title:'Installer run needs a retry',detail:'A download returned 504. Re-run the whole workflow, not only the failed job.',when:'1 h ago',unread:true},
+        {id:4,icon:'merge',title:'Pull request review requested',detail:'material-docker-image · Dockerfile builder',when:'Yesterday',unread:false},
+        {id:5,icon:'schedule',title:'Scheduled appearance rule applied',detail:'Dark theme, every day at 19:00',when:'Yesterday',unread:false},
+        {id:6,icon:'download_done',title:'Clone finished',detail:'monitoring-tools · 1,204 files',when:'Nov 7',unread:false}]};
+    this.vers=[{label:'Current version',when:'Today 15:02 · saved automatically',icon:'radio_button_checked'},{label:'Reworded the summary',when:'Today 14:40',icon:'edit'},{label:'Added the remote pages entry',when:'Yesterday 23:51',icon:'add'},{label:'First draft',when:'Yesterday 22:10',icon:'draft'}];
+    this.diffs=[[[' ','## 4.0.136804'],[' ','- Opening a folder adds the repository directly.'],[' ','- View on any remote, with a dropdown of every remote.']],
+      [[' ','## 4.0.136804'],['d','- Opening a folder adds the repository directly.'],['a','- Open a folder to add its repository.'],[' ','- View on any remote, with a dropdown of every remote.']],
+      [[' ','## 4.0.136804'],[' ','- Open a folder to add its repository.'],['d','- View on any remote, with a dropdown of every remote.']],
+      [['d','- Open a folder to add its repository.'],['d','- View on any remote, with a dropdown of every remote.'],['a','- Notes to come.']]];
+    this.log=[{name:'4.0.136804',date:'2026-11-09',items:[['Added','Opening a real Git repository from Explorer or the command line adds and selects it without the Add local repository dialog.'],['Added','View on … opens the web page of any remote, with a Remote dropdown when there are several.']]},
+      {name:'Sign-in fallback',date:'2026-10-30',items:[['Added','Copy and paste the sign-in link when the browser does not open.']]},
+      {name:'Bug audit',date:'2026-10-15',items:[['Fixed','Selected branch refs stay intact during merge review.'],['Fixed','Effective schedules reload when a profile is restored.'],['Fixed','Mismatched OAuth signing keys are rejected before startup.']]},
+      {name:'4.0.0',date:'2026-10-05',items:[['Fixed','Links to the site unfurl with the product preview card.'],['Removed','The issue summarizer workflow, which failed on every new issue.'],['Fixed','The command palette card is centred so it can no longer sit past the right edge.']]}];
+  }
+  componentWillUnmount(){clearInterval(this._e);}
+  renderVals(){
+    const s=this.state,set=o=>this.setState(o);
+    const shown=s.notes.filter(n=>(s.nf===0||(s.nf===1?n.unread:!n.unread))&&(n.title+' '+n.detail).toLowerCase().indexOf(s.nq.toLowerCase())>=0);
+    const selIds=shown.filter(n=>s.sel[n.id]).map(n=>n.id),noSel=selIds.length===0;
+    const mark=u=>()=>{if(noSel)return;set({notes:s.notes.map(n=>selIds.indexOf(n.id)>=0?{...n,unread:u}:n),sel:{}});};
+    const unread=s.notes.filter(n=>n.unread).length;
+    const kindCls={Added:'badge ok',Fixed:'badge pri',Removed:'badge warn'};
+    const rels=this.log.filter(r=>r.date>=s.from&&r.date<=s.to).map(r=>({name:r.name,date:r.date,items:r.items.filter(e=>s.kinds[e[0]]&&e[1].toLowerCase().indexOf(s.cq.toLowerCase())>=0).map(e=>({kind:e[0],cls:kindCls[e[0]],text:e[1]}))})).filter(r=>r.items.length);
+    const nEnt=rels.reduce((a,r)=>a+r.items.length,0);
+    const fmts=[['JSON','Every field, for tools'],['CSV','One row per item'],['Markdown','Readable, for notes'],['HTML','Opens in any browser']],ext=['json','csv','md','html'];
+    const srcs=[['n','Notifications'],['h','Local history'],['c','Changelog'],['s','Settings and appearance']],picked=srcs.filter(x=>s.src[x[0]]);
+    const d=this.diffs[s.ver];
+    return {...dmBase(this),
+      tabs:[['notifications','Notifications',unread],['history','Local history',0],['new_releases','Changelog',0],['ios_share','Export',0]].map((t,i)=>({icon:t[0],label:t[1],count:t[2],hasCount:t[2]>0,on:s.tab===i,cls:'tab'+(s.tab===i?' on':''),pick:()=>set({tab:i})})),
+      isNotif:s.tab===0,isHist:s.tab===1,isLog:s.tab===2,isExp:s.tab===3,
+      nq:s.nq,setNq:e=>set({nq:e.target.value}),
+      nFilters:['All','Unread','Read'].map((l,i)=>({label:l,on:s.nf===i,cls:'chip'+(s.nf===i?' on':''),pick:()=>set({nf:i})})),
+      notes:shown.map(n=>({...n,sel:!!s.sel[n.id],cls:'li'+(s.sel[n.id]?' on':''),titleCls:n.unread?'unread':'',selLabel:'Select: '+n.title,toggle:()=>set({sel:{...s.sel,[n.id]:!s.sel[n.id]}})})),
+      noNotes:shown.length===0,noNotesText:s.notes.length===0?'No notifications. New ones appear here without interrupting you.':'Nothing matches this search and filter.',
+      allSel:shown.length>0&&selIds.length===shown.length,toggleAll:()=>{const all=selIds.length===shown.length,o={...s.sel};shown.forEach(n=>o[n.id]=!all);set({sel:o});},
+      selText:noSel?'Select items to act on several at once':selIds.length+' of '+shown.length+' selected',noSel:noSel,bulkCls:'btn tonal'+(noSel?' off':''),
+      markRead:mark(false),markUnread:mark(true),
+      del:()=>{if(noSel)return;set({undo:{notes:s.notes,n:selIds.length},notes:s.notes.filter(n=>selIds.indexOf(n.id)<0),sel:{}});},
+      hasUndo:!!s.undo,undoText:s.undo?(s.undo.n===1?'1 notification deleted':s.undo.n+' notifications deleted'):'',undo:()=>{if(s.undo)set({notes:s.undo.notes,undo:null});},
+      verCount:this.vers.length+(s.restored?1:0),
+      versions:this.vers.map((v,i)=>({...v,on:s.ver===i,cls:'li'+(s.ver===i?' on':''),pick:()=>set({ver:i})})),
+      diff:d.map(x=>({cls:x[0]==='a'?'a':x[0]==='d'?'d':'',text:(x[0]==='a'?'+ ':x[0]==='d'?'- ':'  ')+x[1]})),
+      diffLabel:'Difference between this version and the one after it',isLatest:s.ver===0,
+      diffText:s.ver===0?(s.restored?'Restored. The earlier text was added as a new version on top.':'This is what the file holds now.'):'Compared with the version saved after it.',
+      restoreCls:'btn'+(s.ver===0?' off':''),restore:()=>{if(s.ver!==0)set({ver:0,restored:true});},
+      cq:s.cq,setCq:e=>set({cq:e.target.value}),from:s.from,to:s.to,setFrom:e=>set({from:e.target.value}),setTo:e=>set({to:e.target.value}),
+      kinds:Object.keys(s.kinds).map(k=>({label:k,on:s.kinds[k],cls:'chip'+(s.kinds[k]?' on':''),pick:()=>set({kinds:{...s.kinds,[k]:!s.kinds[k]}})})),
+      rels:rels,noRels:rels.length===0,logText:nEnt+(nEnt===1?' entry in ':' entries in ')+rels.length+(rels.length===1?' release':' releases'),
+      sources:srcs.map(x=>({label:x[1],on:s.src[x[0]],toggle:()=>set({src:{...s.src,[x[0]]:!s.src[x[0]]},exp:0})})),
+      formats:fmts.map((f,i)=>({label:f[0],note:f[1],on:s.fmt===i,cls:s.fmt===i?'on':'',pick:()=>set({fmt:i,exp:0})})),
+      fileName:'desktop-material-export-2026-11-09.'+ext[s.fmt],noSources:picked.length===0,
+      fileNote:picked.length?picked.map(x=>x[1]).join(', '):'Choose at least one thing to export',
+      expCls:'btn'+(picked.length?'':' off'),
+      doExport:()=>{if(!picked.length)return;clearInterval(this._e);this.setState({exp:5});this._e=setInterval(()=>{const v=this.state.exp+19;if(v>=100){clearInterval(this._e);this.setState({exp:100});}else this.setState({exp:v});},350);},
+      exporting:s.exp>0,expPct:s.exp+'%',expText:s.exp>=100?'Saved. Nothing was uploaded.':'Writing the file · '+s.exp+'%'
+    };
+  }
+}
+</script>
+</body>
+</html>

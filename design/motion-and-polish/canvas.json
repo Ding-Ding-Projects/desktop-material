@@ -117,6 +117,15 @@
       "title": "Command palette and full regex builder",
       "expand": "fill",
       "is_interactive": true
+    },
+    "Activity.dc.html": {
+      "x": 0,
+      "y": 6320,
+      "w": 1280,
+      "h": 960,
+      "title": "Notifications, local history, changelog, export and bulk actions",
+      "expand": "fill",
+      "is_interactive": true
     }
   },
   "order": [
@@ -131,7 +140,8 @@
     "Settings.dc.html",
     "SettingsAll.dc.html",
     "AppearanceStudio.dc.html",
-    "CommandPalette.dc.html"
+    "CommandPalette.dc.html",
+    "Activity.dc.html"
   ],
   "notes": {
     "row1": {
@@ -159,6 +169,13 @@
       "x": 0,
       "y": 4200,
       "text": "Every app display, polished",
+      "kind": "title1",
+      "maxW": 4000
+    },
+    "row5": {
+      "x": 0,
+      "y": 6020,
+      "text": "Records, locks and tools",
       "kind": "title1",
       "maxW": 4000
     }
