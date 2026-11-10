@@ -29,6 +29,8 @@ import { WebPanelServer } from './web-panel-server'
 const SettingsFileName = 'panel-settings.json'
 export const WebPanelCredentialService = 'Desktop Material - Web panel'
 export const WebPanelWebhookAccount = 'discord-webhook'
+const VaultUnavailableMessage =
+  'The system vault could not be used, so no Discord webhook is available.'
 
 export interface IWebPanelVault {
   readonly getPassword: (
@@ -81,6 +83,7 @@ export class WebPanelController {
   private webhookError: string | null = null
   private webhookSentAt: number | null = null
   private loaded = false
+  private vaultUnavailable = false
   /** Announcements run one after another so edits never race. */
   private queue: Promise<void> = Promise.resolve()
 
@@ -130,22 +133,35 @@ export class WebPanelController {
     )
   }
 
+  /**
+   * The stored address, or null. A vault that cannot be read is treated as
+   * holding nothing, so the panel itself keeps working without Discord.
+   */
   private async webhook(): Promise<string | null> {
-    const value = await this.vault.getPassword(
-      WebPanelCredentialService,
-      WebPanelWebhookAccount
-    )
-    return value !== null && isDiscordWebhookUrl(value) ? value : null
+    try {
+      const value = await this.vault.getPassword(
+        WebPanelCredentialService,
+        WebPanelWebhookAccount
+      )
+      this.vaultUnavailable = false
+      return value !== null && isDiscordWebhookUrl(value) ? value : null
+    } catch {
+      this.vaultUnavailable = true
+      return null
+    }
   }
 
   public async status(): Promise<IWebPanelStatus> {
     await this.load()
+    const webhookSet = (await this.webhook()) !== null
     return {
       port: this.panel.port,
       tunnel: this.tunnel,
-      webhookSet: (await this.webhook()) !== null,
+      webhookSet,
       options: this.options,
-      webhookError: this.webhookError,
+      webhookError: this.vaultUnavailable
+        ? VaultUnavailableMessage
+        : this.webhookError,
       webhookSentAt: this.webhookSentAt,
       devices: await this.panel.devices(),
       activity: this.panel.activity.slice(0, 50),
@@ -233,10 +249,14 @@ export class WebPanelController {
   public async setWebhook(address: string): Promise<string | null> {
     const trimmed = address.trim()
     if (trimmed.length === 0) {
-      await this.vault.deletePassword(
-        WebPanelCredentialService,
-        WebPanelWebhookAccount
-      )
+      try {
+        await this.vault.deletePassword(
+          WebPanelCredentialService,
+          WebPanelWebhookAccount
+        )
+      } catch {
+        return VaultUnavailableMessage
+      }
       this.announcer = EmptyPanelAnnouncerState
       this.webhookError = null
       this.webhookSentAt = null
@@ -246,11 +266,15 @@ export class WebPanelController {
     if (!isDiscordWebhookUrl(trimmed)) {
       return 'That is not a Discord webhook address.'
     }
-    await this.vault.setPassword(
-      WebPanelCredentialService,
-      WebPanelWebhookAccount,
-      trimmed
-    )
+    try {
+      await this.vault.setPassword(
+        WebPanelCredentialService,
+        WebPanelWebhookAccount,
+        trimmed
+      )
+    } catch {
+      return VaultUnavailableMessage
+    }
     this.announcer = EmptyPanelAnnouncerState
     this.webhookError = null
     await this.save()

@@ -33,3 +33,16 @@ What this means for reading them:
 | `v4.0.140801-local-file-converter.png` | v4.0.140801 | Local file converter with Quick convert and Base64 text |
 | `v4.0.140801-sketch-pad.png` | v4.0.140801 | Repository tools, Sketch pad, empty |
 | `v4.0.140801-virtual-disk-planner.png` | v4.0.140801 | Virtual disk planner with a create plan |
+| `v4.0.141101-minecraft-servers.png` | v4.0.141101 | Minecraft servers with one server added and the EULA step |
+
+## What the runs found
+
+- v4.0.140801: the live chart slider was drawn as a thick block, and the
+  pinned shortcut took half of the Repository tools rail. Both fixed in
+  `d2fbaf0`.
+- v4.0.141101: the web panel card showed a raw error instead of its controls,
+  because the credential store cannot be reached in this Linux run and reading
+  the Discord webhook from it failed the whole status request. The panel now
+  treats an unreadable vault as "no webhook" and keeps working. On Windows the
+  vault is Credential Manager; whether the card had the same failure there is
+  not known.

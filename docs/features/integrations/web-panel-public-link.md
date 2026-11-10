@@ -78,6 +78,8 @@ Minecraft 伺服器，撳一下就有免費公開連結，連結一變仲可以�
 - **Send now** always sends. A failed delivery is shown on the card without the
   address and is retried on the next change or **Send now**.
 - Mentions are switched off in every message.
+- If the system vault cannot be read or written, the card says so, treats the
+  webhook as not set, and the panel itself keeps working.
 
 ## Security considerations
 

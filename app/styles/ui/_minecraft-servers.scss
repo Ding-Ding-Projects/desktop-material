@@ -61,6 +61,11 @@
 .minecraft-servers-eula {
   background: var(--md-sys-color-tertiary-container);
   color: var(--md-sys-color-on-tertiary-container);
+
+  // Buttons keep their own width instead of stretching across the card.
+  .button-component {
+    align-self: flex-start;
+  }
 }
 
 .minecraft-servers-heading {

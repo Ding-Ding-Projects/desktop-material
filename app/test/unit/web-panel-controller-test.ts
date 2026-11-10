@@ -238,4 +238,41 @@ describe('WebPanelController', () => {
     assert.equal(tunnels.length, 2)
     await controller.stopPanel()
   })
+
+  it('keeps the panel working when the system vault cannot be used', async () => {
+    const root = await mkdtemp(Path.join(tmpdir(), 'panel-controller-'))
+    const broken = async () => {
+      throw new Error('no keyring')
+    }
+    const panel = new WebPanelServer(
+      {
+        list: async () => [],
+        start: async () => null,
+        stop: async () => {},
+        command: async () => false,
+        console: () => ({ next: 0, lines: [], status: 'stopped' }),
+        players: () => [],
+        settings: async () => [],
+        setSetting: async () => null,
+        backups: async () => [],
+        backup: async () => null,
+        addOns: async () => [],
+      },
+      root
+    )
+    const controller = new WebPanelController(
+      panel,
+      root,
+      { getPassword: broken, setPassword: broken, deletePassword: broken },
+      async () => ({ status: 200, json: async () => ({}) })
+    )
+    const status = await controller.status()
+    assert.equal(status.webhookSet, false)
+    assert.match(status.webhookError ?? '', /system vault/)
+    assert.match((await controller.setWebhook(Webhook)) ?? '', /system vault/)
+    assert.equal(await controller.startPanel(0), null)
+    assert.equal(typeof (await controller.status()).port, 'number')
+    assert.equal((await controller.newPairingCode()).length, 9)
+    await controller.stopPanel()
+  })
 })

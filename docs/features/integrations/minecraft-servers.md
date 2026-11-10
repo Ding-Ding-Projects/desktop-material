@@ -50,3 +50,9 @@ The web panel, its free public link and the Discord webhook are described in
 Unit tests cover the rules, the host with a stand-in Java process, and the
 screen with a stand-in client. It has not been run against a real Minecraft
 server jar.
+
+## Picture
+
+![Minecraft servers in release v4.0.141101, run under Linux with stand-in native modules](../../assets/linux-run/v4.0.141101-minecraft-servers.png)
+
+This is not a Windows capture. See [how it was made](../../assets/linux-run/README.md).
