@@ -44,8 +44,18 @@ import {
   redactMinecraftSecrets,
   tailMinecraftText,
 } from '../lib/minecraft/files'
+import {
+  IMinecraftSchedule,
+  MaxMinecraftSchedules,
+  MinecraftScheduleDraft,
+  describeMinecraftSchedule,
+  dueMinecraftSchedules,
+  validateMinecraftSchedule,
+} from '../lib/minecraft/schedules'
 
 const StateFileName = 'servers.json'
+const SchedulesFileName = 'schedules.json'
+const RestartWaitMs = 60_000
 const MaxServers = 50
 const StopGraceMs = 20_000
 const MaxBackups = 50
@@ -123,6 +133,9 @@ export class MinecraftServerHost {
   >()
   private readonly messages = new Map<string, string>()
   private readonly online = new Map<string, ReadonlyArray<string>>()
+  private allSchedules: ReadonlyArray<IMinecraftSchedule> | null = null
+  private readonly exitWaiters = new Map<string, Array<() => void>>()
+  private lastTick: Date | null = null
 
   public constructor(
     private readonly root: string,
@@ -260,6 +273,9 @@ export class MinecraftServerHost {
     await this.save((await this.load()).filter(s => s.id !== id))
     this.consoles.delete(id)
     this.messages.delete(id)
+    await this.saveSchedules(
+      (await this.loadSchedules()).filter(s => s.serverId !== id)
+    )
   }
 
   /** Record that the person accepted the Minecraft EULA for this folder. */
@@ -346,6 +362,10 @@ export class MinecraftServerHost {
       }
       this.running.delete(id)
       this.online.delete(id)
+      for (const waiter of this.exitWaiters.get(id) ?? []) {
+        waiter()
+      }
+      this.exitWaiters.delete(id)
       const asked = entry.status === 'stopping'
       if (!asked && reason !== null) {
         this.messages.set(id, reason)
@@ -701,6 +721,163 @@ export class MinecraftServerHost {
       }
     }
     return found.sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  private async loadSchedules(): Promise<ReadonlyArray<IMinecraftSchedule>> {
+    if (this.allSchedules !== null) {
+      return this.allSchedules
+    }
+    let schedules: ReadonlyArray<IMinecraftSchedule> = []
+    try {
+      const parsed = JSON.parse(
+        await readFile(Path.join(this.root, SchedulesFileName), 'utf8')
+      )
+      if (Array.isArray(parsed?.schedules)) {
+        schedules = parsed.schedules
+          .filter(
+            (s: any) =>
+              typeof s?.id === 'string' &&
+              typeof s?.serverId === 'string' &&
+              typeof s?.time === 'string' &&
+              (s.command === null || typeof s.command === 'string') &&
+              validateMinecraftSchedule(s).length === 0
+          )
+          .slice(0, MaxMinecraftSchedules)
+          .map((s: IMinecraftSchedule) => ({
+            id: s.id,
+            serverId: s.serverId,
+            time: s.time,
+            action: s.action,
+            command: s.command,
+          }))
+      }
+    } catch {
+      // No schedules yet.
+    }
+    this.allSchedules = schedules
+    return schedules
+  }
+
+  private async saveSchedules(schedules: ReadonlyArray<IMinecraftSchedule>) {
+    this.allSchedules = schedules
+    await mkdir(this.root, { recursive: true })
+    await writeFile(
+      Path.join(this.root, SchedulesFileName),
+      JSON.stringify({ version: 1, schedules }, null, 2)
+    )
+  }
+
+  /** The schedules of one server, earliest time first. */
+  public async schedules(
+    id: string
+  ): Promise<ReadonlyArray<IMinecraftSchedule>> {
+    return (await this.loadSchedules())
+      .filter(schedule => schedule.serverId === id)
+      .sort((a, b) => a.time.localeCompare(b.time))
+  }
+
+  /** Add a daily schedule. Returns every problem with it. */
+  public async addSchedule(
+    draft: MinecraftScheduleDraft
+  ): Promise<ReadonlyArray<string>> {
+    await this.find(draft.serverId)
+    const command =
+      draft.action === 'command'
+        ? normalizeMinecraftCommand(draft.command ?? '')
+        : null
+    const clean: MinecraftScheduleDraft = {
+      serverId: draft.serverId,
+      time: draft.time,
+      action: draft.action,
+      command: draft.action === 'command' ? (command ?? draft.command) : null,
+    }
+    const errors = validateMinecraftSchedule(clean)
+    if (errors.length > 0) {
+      return errors
+    }
+    const schedules = await this.loadSchedules()
+    if (schedules.length >= MaxMinecraftSchedules) {
+      return [`There can be at most ${MaxMinecraftSchedules} schedules.`]
+    }
+    await this.saveSchedules([...schedules, { id: randomUUID(), ...clean }])
+    return []
+  }
+
+  public async removeSchedule(scheduleId: string): Promise<void> {
+    await this.saveSchedules(
+      (await this.loadSchedules()).filter(s => s.id !== scheduleId)
+    )
+  }
+
+  private whenStopped(id: string, timeoutMs: number): Promise<boolean> {
+    if (!this.running.has(id)) {
+      return Promise.resolve(true)
+    }
+    return new Promise(resolve => {
+      const timer = setTimeout(() => resolve(false), timeoutMs)
+      const waiters = this.exitWaiters.get(id) ?? []
+      waiters.push(() => {
+        clearTimeout(timer)
+        resolve(true)
+      })
+      this.exitWaiters.set(id, waiters)
+    })
+  }
+
+  private async runSchedule(schedule: IMinecraftSchedule): Promise<void> {
+    const id = schedule.serverId
+    let outcome: string | null = null
+    try {
+      switch (schedule.action) {
+        case 'start':
+          outcome = this.running.has(id) ? null : await this.start(id)
+          break
+        case 'stop':
+          await this.stop(id)
+          break
+        case 'restart':
+          await this.stop(id)
+          outcome = (await this.whenStopped(id, RestartWaitMs))
+            ? await this.start(id)
+            : 'The server did not stop in time, so it was not started again.'
+          break
+        case 'backup':
+          outcome = await this.backup(id)
+          break
+        case 'command':
+          outcome = (await this.command(id, schedule.command ?? ''))
+            ? null
+            : 'The command was not sent because the server is not running.'
+          break
+      }
+    } catch (error) {
+      outcome = (error as Error).message
+    }
+    this.record(
+      id,
+      `--- Schedule (${describeMinecraftSchedule(schedule)})${
+        outcome === null ? ' ran' : `: ${outcome}`
+      } ---\n`
+    )
+  }
+
+  /**
+   * Run whatever became due since the last tick. Called on a timer; the first
+   * call only notes the time, so nothing runs just because the app opened.
+   */
+  public async tick(now: Date = this.now()): Promise<void> {
+    const previous = this.lastTick
+    this.lastTick = now
+    if (previous === null) {
+      return
+    }
+    const servers = await this.load()
+    const due = dueMinecraftSchedules(
+      await this.loadSchedules(),
+      previous,
+      now
+    ).filter(schedule => servers.some(s => s.id === schedule.serverId))
+    await Promise.all(due.map(schedule => this.runSchedule(schedule)))
   }
 
   /** Stop everything at once; used when the app is closing. */

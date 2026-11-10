@@ -5,6 +5,7 @@ import * as Path from 'node:path'
 import { describe, it } from 'node:test'
 import { Script } from 'node:vm'
 
+import { IMinecraftSchedule } from '../../src/lib/minecraft/schedules'
 import { IMinecraftServerState } from '../../src/lib/minecraft/server'
 import {
   IPanelServers,
@@ -14,6 +15,7 @@ import { PanelHtml, PanelJs } from '../../src/lib/web-panel/panel-page'
 
 function fakeServers() {
   const calls = new Array<string>()
+  let schedules: ReadonlyArray<IMinecraftSchedule> = []
   let state: IMinecraftServerState = {
     server: {
       id: 'one',
@@ -77,6 +79,17 @@ function fakeServers() {
       return name === 'world-2026-11-10T030405Z'
         ? null
         : 'That backup is no longer in the backups folder.'
+    },
+    schedules: async () => schedules,
+    addSchedule: async draft => {
+      if (draft.time !== '04:30') {
+        return ['Give the time as HH:MM on a 24 hour clock, such as 04:30.']
+      }
+      schedules = [...schedules, { id: 's1', ...draft }]
+      return []
+    },
+    removeSchedule: async scheduleId => {
+      schedules = schedules.filter(s => s.id !== scheduleId)
     },
     addOns: async () => [{ name: 'Essentials.jar', kind: 'plugin', bytes: 3 }],
     files: async (_id, relative) =>
@@ -477,6 +490,67 @@ describe('WebPanelServer', () => {
         ).status,
         404
       )
+    } finally {
+      await panel.stop()
+    }
+  })
+
+  it('adds, lists and removes schedules for paired devices', async () => {
+    const { panel, call, pair } = await setup()
+    try {
+      assert.equal((await call('GET', '/api/schedules?id=one')).status, 401)
+      const cookie = await pair()
+      const bad = await call(
+        'POST',
+        '/api/schedule',
+        { id: 'one', time: '25:00', action: 'restart' },
+        cookie
+      )
+      assert.equal(bad.status, 409)
+      assert.match(bad.body.error, /HH:MM/)
+      assert.equal(
+        (
+          await call(
+            'POST',
+            '/api/schedule',
+            { id: 'one', time: '04:30', action: 'restart' },
+            cookie
+          )
+        ).status,
+        200
+      )
+      const listed = await call(
+        'GET',
+        '/api/schedules?id=one',
+        undefined,
+        cookie
+      )
+      assert.deepEqual(listed.body.schedules, [
+        { id: 's1', text: 'Every day at 04:30: Restart the server' },
+      ])
+      assert.equal(
+        (
+          await call(
+            'POST',
+            '/api/schedule-remove',
+            { id: 'one', scheduleId: 'other' },
+            cookie
+          )
+        ).status,
+        404
+      )
+      assert.equal(
+        (
+          await call(
+            'POST',
+            '/api/schedule-remove',
+            { id: 'one', scheduleId: 's1' },
+            cookie
+          )
+        ).status,
+        200
+      )
+      assert.equal(panel.activity[0].what, 'Removed a schedule on Survival')
     } finally {
       await panel.stop()
     }

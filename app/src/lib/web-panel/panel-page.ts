@@ -45,6 +45,7 @@ export const PanelHtml = `<!doctype html>
       <button type="button" data-page="settings" aria-pressed="false">Settings</button>
       <button type="button" data-page="files" aria-pressed="false">Files</button>
       <button type="button" data-page="backups" aria-pressed="false">Backups</button>
+      <button type="button" data-page="schedules" aria-pressed="false">Schedules</button>
       <button type="button" data-page="addons" aria-pressed="false">Plugins</button>
       <button type="button" data-page="activity" aria-pressed="false">Activity</button>
     </nav>
@@ -96,6 +97,30 @@ export const PanelHtml = `<!doctype html>
       <div class="actions"><button id="backup" type="button">Back up now</button></div>
       <p id="backups-empty">No backups yet.</p>
       <ul id="backups"></ul>
+    </div>
+    <div id="page-schedules" class="page" hidden>
+      <h2>Schedules</h2>
+      <p>Daily, in this computer's local time. They run only while Desktop Material is open, and a time that passed while the computer slept is skipped.</p>
+      <p id="schedules-empty">No schedules yet.</p>
+      <ul id="schedules"></ul>
+      <form id="schedule-form">
+        <label>Time (24 hour, HH:MM)
+          <input id="schedule-time" inputmode="numeric" maxlength="5" placeholder="04:30" required>
+        </label>
+        <label>What it does
+          <select id="schedule-action">
+            <option value="restart">Restart the server</option>
+            <option value="start">Start the server</option>
+            <option value="stop">Stop the server</option>
+            <option value="backup">Back up the world (server must be stopped)</option>
+            <option value="command">Run a console command</option>
+          </select>
+        </label>
+        <label id="schedule-command-label" hidden>Console command
+          <input id="schedule-command" maxlength="256" autocomplete="off" spellcheck="false">
+        </label>
+        <button type="submit">Add schedule</button>
+      </form>
     </div>
     <div id="page-addons" class="page" hidden>
       <h2>Plugins and mods</h2>
@@ -285,6 +310,20 @@ function loadPage(){
       if(r.body.entries.length===0){row(list,'This folder is empty.','')}
     }).catch(function(){});
   }
+  if(page==='schedules'){
+    api('GET','/api/schedules?id='+id).then(function(r){
+      if(r.status!==200||want!==selected){return}
+      var list=$('schedules');list.textContent='';
+      r.body.schedules.forEach(function(s){
+        var li=document.createElement('li'),text=document.createElement('span'),remove=document.createElement('button');
+        text.textContent=s.text;remove.type='button';remove.textContent='Remove';
+        remove.setAttribute('aria-label','Remove: '+s.text);
+        remove.addEventListener('click',function(){act('/api/schedule-remove',{id:selected,scheduleId:s.id}).then(loadPage)});
+        li.appendChild(text);li.appendChild(remove);list.appendChild(li);
+      });
+      $('schedules-empty').hidden=r.body.schedules.length>0;
+    }).catch(function(){});
+  }
   if(page==='backups'){
     api('GET','/api/backups?id='+id).then(function(r){
       if(r.status!==200||want!==selected){return}
@@ -331,6 +370,15 @@ $('server').addEventListener('change',function(e){selected=e.target.value;folder
 $('files-up').addEventListener('click',function(){folder=folder.split('/').slice(0,-1).join('/');$('file-view').hidden=true;loadPage()});
 $('backup').addEventListener('click',function(){$('backup').disabled=true;act('/api/backup',{id:selected}).then(function(){$('backup').disabled=false;loadPage()})});
 $('settings-form').addEventListener('submit',function(e){e.preventDefault()});
+$('schedule-action').addEventListener('change',function(e){$('schedule-command-label').hidden=e.target.value!=='command'});
+$('schedule-form').addEventListener('submit',function(e){
+  e.preventDefault();
+  var action=$('schedule-action').value;
+  act('/api/schedule',{id:selected,time:$('schedule-time').value.trim(),action:action,command:action==='command'?$('schedule-command').value:''}).then(function(){
+    if(!$('notice').textContent){$('schedule-time').value='';$('schedule-command').value=''}
+    loadPage();
+  });
+});
 $('start').addEventListener('click',function(){act('/api/start',{id:selected})});
 $('stop').addEventListener('click',function(){act('/api/stop',{id:selected})});
 $('command-form').addEventListener('submit',function(e){

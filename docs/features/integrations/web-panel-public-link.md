@@ -20,7 +20,7 @@ Minecraft 伺服器，撳一下就有免費公開連結，連結一變仲可以�
   **Console** (live output and a command line), **Players** (who is online,
   with Kick), **Settings** (ten `server.properties` values), **Backups** (copy
   the world, list the copies), **Files** (browse the server folder and open
-  text files, read-only), **Plugins** (the jar files in `plugins/` and
+  text files, read-only), **Schedules**, **Plugins** (the jar files in `plugins/` and
   `mods/`, read-only) and **Activity** (what paired devices did, newest
   first).
 - **Settings** can change only: message of the day, maximum players,
@@ -35,6 +35,13 @@ Minecraft 伺服器，撳一下就有免費公開連結，連結一變仲可以�
   `.properties`, `.json`, `.yml` and similar), at most the newest 256 KB, and
   values on lines whose key names a password, secret, token or API key are
   shown as `(hidden)`. Nothing can be changed, uploaded or deleted.
+- **Schedules** are daily, in this computer's local time: start, stop,
+  restart, back up (only while stopped) or run one console command. They run
+  only while Desktop Material is open, a time that passed while the computer
+  slept by more than five minutes is skipped instead of run late, and nothing
+  runs just because the app was opened. Each run writes a line to the console.
+  At most 50. Schedules are managed from the panel; the in-app screen does not
+  list them yet.
 - **Backups** copies the world folder into `backups/<world>-<UTC time>/` in the
   server folder. The server must be stopped first, so a copy is never taken
   from a world that is being written. At most 50 are kept. **Restore** needs
@@ -106,7 +113,8 @@ Minecraft 伺服器，撳一下就有免費公開連結，連結一變仲可以�
 
 ## Not built
 
-Schedules; editing, uploading or deleting files; installing or removing
+Weekly or one-off schedules; managing schedules in the app; editing,
+uploading or deleting files; installing or removing
 plugins; deleting backups; backing up a running server; a named tunnel on
 your own domain; downloading or verifying `cloudflared`; a WebSocket console
 (the console polls once a second).
@@ -114,7 +122,7 @@ your own domain; downloading or verifying `cloudflared`; a WebSocket console
 ## Verification
 
 `web-panel-hosting-test.ts`, `web-panel-pairing-test.ts`, `minecraft-properties-test.ts`,
-`minecraft-files-test.ts`,
+`minecraft-files-test.ts`, `minecraft-schedules-test.ts`,
 `web-panel-server-test.ts` (real loopback requests),
 `web-panel-controller-test.ts` (stand-in tunnel helper, vault and Discord) and
 `ui/web-panel-card-test.tsx`.

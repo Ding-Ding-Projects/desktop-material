@@ -2149,6 +2149,12 @@ app.on('ready', () => {
     Path.join(app.getPath('userData'), 'minecraft')
   )
   app.on('will-quit', () => minecraftHost.stopAll())
+  // Daily schedules are checked twice a minute while the app is open.
+  setInterval(() => {
+    minecraftHost.tick().catch(error => {
+      log.error('Unable to run Minecraft schedules', error)
+    })
+  }, 30_000).unref()
   ipcMain.handle('minecraft-list', async () => minecraftHost.list())
   ipcMain.handle(
     'minecraft-save',

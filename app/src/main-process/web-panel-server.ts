@@ -20,6 +20,11 @@ import {
   revokePairedDevice,
 } from '../lib/web-panel/pairing'
 import { IMinecraftPropertySpec } from '../lib/minecraft/properties'
+import {
+  IMinecraftSchedule,
+  MinecraftScheduleDraft,
+  describeMinecraftSchedule,
+} from '../lib/minecraft/schedules'
 import { PanelCss, PanelHtml, PanelJs } from '../lib/web-panel/panel-page'
 
 const CookieName = 'dm_panel'
@@ -81,6 +86,11 @@ export interface IPanelServers {
     id: string,
     relative: string
   ) => Promise<{ readonly text: string; readonly truncated: boolean } | null>
+  readonly schedules: (id: string) => Promise<ReadonlyArray<IMinecraftSchedule>>
+  readonly addSchedule: (
+    draft: MinecraftScheduleDraft
+  ) => Promise<ReadonlyArray<string>>
+  readonly removeSchedule: (scheduleId: string) => Promise<void>
   readonly addOns: (id: string) => Promise<
     ReadonlyArray<{
       readonly name: string
@@ -372,6 +382,19 @@ export class WebPanelServer {
         : this.json(response, 200, file)
     }
 
+    if (route === 'GET /api/schedules') {
+      const id = url.searchParams.get('id') ?? ''
+      if (!(await this.known(id))) {
+        return this.json(response, 404, { error: 'No such server.' })
+      }
+      return this.json(response, 200, {
+        schedules: (await this.servers.schedules(id)).map(schedule => ({
+          id: schedule.id,
+          text: describeMinecraftSchedule(schedule),
+        })),
+      })
+    }
+
     if (
       route === 'GET /api/config' ||
       route === 'GET /api/backups' ||
@@ -479,6 +502,35 @@ export class WebPanelServer {
           return this.json(response, 409, { error: problem })
         }
         this.record(device.label, `Restored ${backup} on ${name}`)
+        return this.json(response, 200, {})
+      }
+      case 'POST /api/schedule': {
+        const draft: MinecraftScheduleDraft = {
+          serverId: id,
+          time: String(body.time ?? ''),
+          action: String(body.action ?? '') as MinecraftScheduleDraft['action'],
+          command:
+            typeof body.command === 'string' && body.command.length > 0
+              ? body.command
+              : null,
+        }
+        const errors = await this.servers.addSchedule(draft)
+        if (errors.length > 0) {
+          return this.json(response, 409, { error: errors.join(' ') })
+        }
+        this.record(device.label, `Added a ${draft.time} schedule on ${name}`)
+        return this.json(response, 200, {})
+      }
+      case 'POST /api/schedule-remove': {
+        const scheduleId = String(body.scheduleId ?? '')
+        const owned = (await this.servers.schedules(id)).some(
+          schedule => schedule.id === scheduleId
+        )
+        if (!owned) {
+          return this.json(response, 404, { error: 'No such schedule.' })
+        }
+        await this.servers.removeSchedule(scheduleId)
+        this.record(device.label, `Removed a schedule on ${name}`)
         return this.json(response, 200, {})
       }
       case 'POST /api/kick': {

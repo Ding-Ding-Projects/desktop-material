@@ -326,4 +326,67 @@ describe('MinecraftServerHost', () => {
     await host.start(id)
     assert.match((await host.restore(id, backup.name)) ?? '', /Stop the server/)
   })
+
+  it('runs daily schedules when their minute arrives, and never on the first tick', async () => {
+    const { root, directory, spawned, host, draft } = await setup()
+    await host.saveServer(draft, null)
+    const id = (await host.list())[0].server.id
+    await writeFile(Path.join(directory, 'server.jar'), 'jar')
+    await host.acceptEula(id)
+
+    assert.equal(
+      (
+        await host.addSchedule({
+          serverId: id,
+          time: '4:30',
+          action: 'start',
+          command: null,
+        })
+      ).length,
+      1
+    )
+    for (const [time, action, command] of [
+      ['04:30', 'start', null],
+      ['04:31', 'command', '/say hello'],
+      ['04:32', 'restart', null],
+    ] as const) {
+      assert.deepEqual(
+        await host.addSchedule({ serverId: id, time, action, command }),
+        []
+      )
+    }
+    assert.deepEqual(
+      (await host.schedules(id)).map(s => `${s.time} ${s.action} ${s.command}`),
+      ['04:30 start null', '04:31 command say hello', '04:32 restart null']
+    )
+    assert.equal((await new MinecraftServerHost(root).schedules(id)).length, 3)
+
+    const at = (minutes: number, seconds: number) =>
+      new Date(2026, 10, 10, 4, minutes, seconds)
+    await host.tick(at(30, 5))
+    assert.equal(spawned.length, 0)
+    await host.tick(at(30, 35))
+    assert.equal(spawned.length, 0)
+
+    await host.tick(at(29, 50))
+    await host.tick(at(30, 20))
+    assert.equal(spawned.length, 1)
+    spawned[0].java.stdout.emit('data', '[INFO]: Done (1s)! For help\n')
+
+    await host.tick(at(31, 10))
+    assert.deepEqual(spawned[0].java.written, ['say hello\n'])
+
+    await host.tick(at(32, 10))
+    assert.equal(spawned.length, 2)
+    assert.equal((await host.list())[0].status, 'starting')
+    assert.equal(
+      host.console(id, 0).lines.filter(line => line.includes('Schedule'))
+        .length,
+      3
+    )
+
+    const [first] = await host.schedules(id)
+    await host.removeSchedule(first.id)
+    assert.equal((await host.schedules(id)).length, 2)
+  })
 })
