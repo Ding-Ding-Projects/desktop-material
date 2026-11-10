@@ -259,6 +259,13 @@
       d: 'Roughly one launch in ten, Desktop Material puts a small photograph of a Hong Kong dim sum dish in the bottom-left corner, names it in English and Traditional Chinese, and…',
     },
     {
+      t: 'Live charts / 即時圖表',
+      h: 'features/design-system/live-charts.html',
+      s: 'features/design-system/live-charts.md',
+      c: 'features',
+      d: 'A reusable line chart for values that change while you watch, and its first use: Repository tools → Live memory chart, which shows the memory this window is using.',
+    },
+    {
       t: 'The Material Design 3 site',
       h: 'features/design-system/material-design-3-site.html',
       s: 'features/design-system/material-design-3-site.md',

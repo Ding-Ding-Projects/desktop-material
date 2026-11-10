@@ -8,6 +8,7 @@ import * as React from 'react'
 import './setup'
 
 import {
+  act,
   fireEvent,
   render as rtlRender,
   type RenderOptions,
@@ -33,4 +34,4 @@ export function render(
   return rtlRender(element, options)
 }
 
-export { fireEvent, screen, waitFor, within }
+export { act, fireEvent, screen, waitFor, within }

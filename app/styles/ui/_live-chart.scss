@@ -1,0 +1,110 @@
+// Live charts: a line of real samples with a live dot and a value in text.
+.live-chart {
+  background: var(--md-sys-color-surface-container-low);
+  border-radius: var(--md-sys-shape-corner-large, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+}
+
+.live-chart-header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  h3 {
+    flex: 1 1 200px;
+    margin: 0;
+  }
+}
+
+.live-chart-status {
+  background: var(--md-sys-color-secondary-container);
+  border-radius: 8px;
+  color: var(--md-sys-color-on-secondary-container);
+  font-weight: var(--font-weight-semibold);
+  padding: 2px 10px;
+
+  .live-chart[data-status='stale'] & {
+    background: var(--md-sys-color-error-container);
+    color: var(--md-sys-color-on-error-container);
+  }
+}
+
+.live-chart-value {
+  font-family: var(--font-family-monospace);
+  font-size: var(--font-size-md);
+  margin: 0;
+}
+
+.live-chart-plot {
+  background: var(--md-sys-color-surface-container-lowest);
+  border-radius: var(--md-sys-shape-corner-medium, 12px);
+  cursor: crosshair;
+  display: block;
+  height: 140px;
+  width: 100%;
+}
+
+.live-chart-line {
+  fill: none;
+  stroke: var(--md-sys-color-primary);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.live-chart-dot {
+  fill: var(--md-sys-color-primary);
+  stroke: var(--md-sys-color-surface-container-lowest);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+@keyframes liveChartPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+body[data-dm-motion='full'] .live-chart-dot-live,
+body[data-dm-motion='calm'] .live-chart-dot-live {
+  animation: liveChartPulse 1600ms ease-in-out infinite;
+}
+
+.live-chart-scrub {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  input[type='range'] {
+    accent-color: var(--md-sys-color-primary);
+    flex: 1 1 200px;
+    min-height: 32px;
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+  }
+}
+
+.live-chart-message,
+.live-chart-note {
+  color: var(--md-sys-color-on-surface-variant);
+  margin: 0;
+}
+
+.app-memory-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

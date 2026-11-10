@@ -84,6 +84,7 @@ import { teleportAnchor } from '../../lib/teleport-targets'
 import { GitflowManager } from './gitflow'
 import { RepositoryCommitRewrite } from './commit-rewrite'
 import { FileConverter } from './file-converter'
+import { AppMemoryChart } from './app-memory-chart'
 import { MaterialSymbol } from '../lib/material-symbol'
 
 const MaxOutputBytes = 4 * 1024 * 1024
@@ -170,6 +171,7 @@ export type RepositoryToolsHubToolID =
   | 'gitflow'
   | 'interactive-rebase'
   | 'file-converter'
+  | 'app-memory'
 
 type RepositoryToolsHubCategory =
   | RepositoryToolCategory
@@ -365,6 +367,14 @@ const UnsortedHubEntries: ReadonlyArray<IRepositoryToolsHubEntry> = [
       'Inspect locally selected source bytes, keep a durable bounded queue, and show every bundled or unavailable conversion adapter honestly.',
     category: 'Share & transfer',
     icon: octicons.fileDiff,
+  },
+  {
+    id: 'app-memory',
+    title: 'Live memory chart',
+    description:
+      'Watch the memory this window is using, sampled once a second, with pause and sample inspection.',
+    category: 'Search & inspect',
+    icon: octicons.pulse,
   },
   {
     id: 'export-artifacts',
@@ -2832,6 +2842,7 @@ export class RepositoryTools extends React.Component<
         {selected === 'subtree-manager' && this.renderSubtreeManager()}
         {selected === 'cheap-lfs' && this.renderCheapLfs()}
         {selected === 'file-converter' && this.renderFileConverter()}
+        {selected === 'app-memory' && <AppMemoryChart />}
         {selected === 'tag-lifecycle' && this.renderTagLifecycle()}
         {selected === 'github-projects' && this.renderGitHubProjects()}
         {selected === 'github-api-functions' && this.renderGitHubAPIFunctions()}

@@ -182,6 +182,14 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       sourcePath: 'docs/features/design-system/dim-sum-surprise.md',
     },
     {
+      id: 'design-system/live-charts',
+      category: 'design-system',
+      title: 'Live charts / 即時圖表',
+      description:
+        'A reusable line chart for values that change while you watch, and its first use: Repository tools → Live memory chart, which shows the memory this window is using.',
+      sourcePath: 'docs/features/design-system/live-charts.md',
+    },
+    {
       id: 'design-system/material-design-3-site',
       category: 'design-system',
       title: 'The Material Design 3 site',
@@ -1550,7 +1558,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'design-system',
     label: 'Design System',
-    count: 30,
+    count: 31,
   },
   {
     name: 'identity-and-workspace',
@@ -1590,4 +1598,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 179
+export const DocsBrowserArticleCount = 180
