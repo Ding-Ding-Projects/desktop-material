@@ -43,9 +43,9 @@ Not done:
 1. Windows CI result for these commits was not seen. Check it first.
 2. No screenshot was renewed: captures need the built Windows app and script/capture-app.js. A Linux
    development build was tried and webpack ran out of memory on a 7 GB machine.
-3. Next: (a) the web panel was checked end to end on release v4.0.142301 under Linux (see
-   docs/assets/linux-run/README.md); the public link, Discord and a real server jar are still
-   unexercised and need cloudflared, a webhook and Java.
+3. Verified on published releases run under Linux (docs/assets/linux-run/README.md): web panel end
+   to end over loopback (v4.0.142301), live chart slider and folded categories (v4.0.143701), the
+   unreachable-push banner (v4.0.143901). Unexercised: Cloudflare link, Discord, a real server jar.
    (b) Boards were audited (see the top HANDOFF entry): most surfaces already existed. Not in the
    app: inline banners for failures other than an unreachable push, row stagger in popover lists,
    the release code name.

@@ -36,4 +36,10 @@ version of this, was run under Linux against a repository whose remote name
 cannot be looked up: the banner did **not** appear and the general error
 notice did, because Git's own classification does not cover a failed name
 lookup during a push. The handler now reads Git's output for that. The
-corrected version has not been seen in a running build yet.
+corrected version was then seen in release v4.0.143901 run the same way: the
+banner appeared and the general notice did not. Try again was not pressed in
+that run, and nothing was checked on Windows.
+
+![The banner in release v4.0.143901, run under Linux with stand-in native modules](../../assets/linux-run/v4.0.143901-push-did-not-reach-remote.png)
+
+This is not a Windows capture. See [how it was made](../../assets/linux-run/README.md).

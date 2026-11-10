@@ -36,6 +36,7 @@ What this means for reading them:
 | `v4.0.141101-minecraft-servers.png` | v4.0.141101 | Minecraft servers with one server added and the EULA step |
 | `v4.0.142301-web-panel-card-paired.png` | v4.0.142301 | Web panel card after the panel was turned on and a device paired over loopback |
 | `v4.0.143701-live-memory-chart.png` | v4.0.143701 | Repository tools with folded categories and the live memory chart, slider as a 16px track |
+| `v4.0.143901-push-did-not-reach-remote.png` | v4.0.143901 | The banner after a push to a remote whose name cannot be looked up |
 
 ## What the runs found
 
@@ -85,3 +86,5 @@ What this means for reading them:
   without a network.
 - v4.0.143701, unmodified: the live chart slider is a 16px track and the
   category chips start folded. The slider fault is closed.
+- v4.0.143901: the same push now shows the banner with **Try again** and no
+  general error notice. Try again itself was not pressed in this run.
