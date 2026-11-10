@@ -120,14 +120,14 @@ export function checkMinecraftProperty(
         ? { ok: true, value: text }
         : { ok: false, error: `${spec.label} must be on or off.` }
     case 'integer': {
-      const number = Number(text)
+      const parsed = Number(text)
       return /^\d+$/.test(text) &&
-        number >= spec.type.min &&
-        number <= spec.type.max
-        ? { ok: true, value: String(number) }
+        parsed >= spec.type.min &&
+        parsed <= spec.type.max
+        ? { ok: true, value: String(parsed) }
         : {
             ok: false,
-            error: `${spec.label} must be a whole number from ${spec.type.min} to ${spec.type.max}.`,
+            error: `${spec.label} must be a whole parsed from ${spec.type.min} to ${spec.type.max}.`,
           }
     }
     case 'choice':
