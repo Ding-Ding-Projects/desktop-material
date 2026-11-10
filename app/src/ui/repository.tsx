@@ -1293,8 +1293,8 @@ export class RepositoryView extends React.Component<
       tip.kind === TipState.Valid
         ? tip.branch.name
         : tip.kind === TipState.Unborn
-        ? tip.ref
-        : undefined
+          ? tip.ref
+          : undefined
 
     if (selection.kind === ChangesSelectionKind.Stash) {
       return this.renderStashedChangesContent()
@@ -1532,6 +1532,14 @@ export class RepositoryView extends React.Component<
         }
         repository={this.props.repository}
         repositoryPath={this.props.repository.path}
+        branchName={
+          this.props.state.branchesState.tip.kind === TipState.Valid
+            ? this.props.state.branchesState.tip.branch.name
+            : null
+        }
+        changedFiles={this.props.state.changesState.workingDirectory.files.map(
+          file => file.path
+        )}
         onRefreshRepository={this.refreshRepository}
         submoduleInventoryState={
           inventoryBelongsToRepository

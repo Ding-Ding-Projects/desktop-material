@@ -547,6 +547,10 @@ export interface IRepositoryToolsProps {
   /** Repository identity used to fail closed for temporary child workspaces. */
   readonly repository?: Repository
   readonly repositoryPath: string
+  /** Current branch, for extensions that were allowed to see it. */
+  readonly branchName?: string | null
+  /** Changed file paths, for extensions that were allowed to see them. */
+  readonly changedFiles?: ReadonlyArray<string>
   readonly onRefreshRepository: () => Promise<void>
   /** Exact hub destination requested by the lazy Repository view. */
   readonly initialTool?: RepositoryToolsHubToolID
@@ -2865,7 +2869,11 @@ export class RepositoryTools extends React.Component<
         {selected === 'app-memory' && <AppMemoryChart />}
         {selected === 'sketch-pad' && <SketchPad />}
         {selected === 'extensions' && (
-          <ExtensionManager repositoryPath={this.props.repositoryPath} />
+          <ExtensionManager
+            repositoryPath={this.props.repositoryPath}
+            branchName={this.props.branchName}
+            changedFiles={this.props.changedFiles}
+          />
         )}
         {selected === 'tag-lifecycle' && this.renderTagLifecycle()}
         {selected === 'github-projects' && this.renderGitHubProjects()}

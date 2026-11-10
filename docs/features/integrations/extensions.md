@@ -102,8 +102,6 @@ process.stdout.write(JSON.stringify({
 
 ## Known gaps
 
-The current branch name and the changed-file list are not passed by the tools
-screen yet, so `branchName` is `null` and `changedFiles` is empty for now.
 There is no screen for installing from a file or a URL.
 
 ## Verification
