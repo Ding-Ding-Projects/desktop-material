@@ -166,12 +166,13 @@ export async function getBranchMergeBaseDiff(
   const args = [
     'diff',
     '--merge-base',
-    baseBranchName,
-    comparisonBranchName,
     ...(hideWhitespaceInDiff ? ['-w'] : []),
     '--patch-with-raw',
     '-z',
     '--no-color',
+    '--end-of-options',
+    baseBranchName,
+    comparisonBranchName,
     '--',
     ensureRelativePath(file.path),
   ]
@@ -262,13 +263,14 @@ export async function getBranchMergeBaseChangedFiles(
   const baseArgs = [
     'diff',
     '--merge-base',
-    baseBranchName,
-    comparisonBranchName,
     '-C',
     '-M',
     '-z',
     '--raw',
     '--numstat',
+    '--end-of-options',
+    baseBranchName,
+    comparisonBranchName,
     '--',
   ]
 

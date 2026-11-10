@@ -294,7 +294,7 @@ export async function addWorktree(
     args.push('-b', options.createBranch)
   }
 
-  args.push(path)
+  args.push('--', path)
 
   if (options.commitish) {
     args.push(options.commitish)

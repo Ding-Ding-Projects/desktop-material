@@ -146,15 +146,8 @@ export async function push(
   options?: PushOptions,
   progressCallback?: (progress: IPushProgress) => void
 ): Promise<void> {
-  const args = [
-    'push',
-    remote.name,
-    remoteBranch ? `${localBranch}:${remoteBranch}` : localBranch,
-  ]
+  const args = ['push']
 
-  if (tagsToPush !== null) {
-    args.push(...tagsToPush)
-  }
   if (!remoteBranch) {
     args.push('--set-upstream')
   } else if (options?.forceWithLease) {
@@ -207,6 +200,18 @@ export async function push(
       remote: remote.name,
       branch: localBranch,
     })
+  }
+
+  // The remote and refs go after `--` so a name that starts with a dash is
+  // never read as an option.
+  args.push(
+    '--',
+    remote.name,
+    remoteBranch ? `${localBranch}:${remoteBranch}` : localBranch
+  )
+
+  if (tagsToPush !== null) {
+    args.push(...tagsToPush)
   }
 
   await pushWithGitHubCLIFallback(

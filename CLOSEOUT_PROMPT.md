@@ -52,7 +52,6 @@ Not done:
    studio, Settings items, first-run wizard changes, Activity and Locks gaps.
    Nothing has been run against Cloudflare, Discord or a real Minecraft server jar.
 4. Upstream (issue #212): port short-lived sign-in tokens (3.6.8), the Git, Git LFS and Electron
-   updates, and dash-prefixed names (#22862), which does not apply as a patch and needs a manual
-   port across app/src/lib/git (#22872 and the visible part of #22607 are done); then classify the rest of the 435 commits since b17e06dd.
+   updates (#22862, #22872 and the visible part of #22607 are done); then classify the rest of the 435 commits since b17e06dd.
 5. Confirm three design assumptions: sketch pad scope, first-run wizard steps, palette shortcuts.
 ```

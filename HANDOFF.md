@@ -38,7 +38,13 @@ All pushed to `main`; the last commit of this entry is the one that contains it.
 rest of #22872 concerns macOS application bundles and does not apply to this
 Windows app), and the warning icon for a worktree whose folder is gone from
 #22607 (this fork already labelled such rows "missing"; the deferred-checkout
-dialog changes in #22607 were not ported).
+dialog changes in #22607 were not ported). Then #22862: remote, branch and revision
+names that start with a dash are passed after `--` or `--end-of-options` in
+branch, checkout, diff, fetch, log, merge, pull, push, rebase, remote,
+rev-list, show, tag and worktree commands, and pulling from such a remote is
+refused. Upstream's tests for it pass here except those that need a Git with
+`submodule`, the hook proxy binary, or background remote HEAD updates, which
+fail the same way for a remote named `origin`.
 
 **Verification.** Focused unit tests and the TypeScript check pass on Linux;
 ESLint with the project rules passes on the new files. Windows CI is green

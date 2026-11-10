@@ -16,6 +16,7 @@ async function getFetchArgs(
     ...(progressCallback ? ['--progress'] : []),
     '--prune',
     '--recurse-submodules=on-demand',
+    '--',
     remote,
   ]
 }
@@ -113,6 +114,7 @@ export async function fetchRefspec(
     [
       ...largeRepositoryGitArgsForPath(repository.path),
       'fetch',
+      '--',
       remote.name,
       refspec,
     ],
