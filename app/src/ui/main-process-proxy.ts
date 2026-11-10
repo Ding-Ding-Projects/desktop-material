@@ -490,6 +490,18 @@ export const backUpMinecraftWorld = invokeProxy('minecraft-backup', 1)
 export const restoreMinecraftBackup = invokeProxy('minecraft-restore', 2)
 export const listMinecraftAddOns = invokeProxy('minecraft-addons', 1)
 
+export const listMinecraftSchedules = invokeProxy('minecraft-schedules', 1)
+export const addMinecraftSchedule = invokeProxy('minecraft-add-schedule', 1)
+export const removeMinecraftSchedule = invokeProxy(
+  'minecraft-remove-schedule',
+  1
+)
+export const readMinecraftCurrentWorld = invokeProxy(
+  'minecraft-current-world',
+  1
+)
+export const createMinecraftWorld = invokeProxy('minecraft-new-world', 2)
+
 export const getWebPanelStatus = invokeProxy('web-panel-status', 0)
 export const startWebPanel = invokeProxy('web-panel-start', 0)
 export const stopWebPanel = invokeProxy('web-panel-stop', 0)

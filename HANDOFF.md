@@ -60,8 +60,8 @@ Windows.
 - Panel settings, backups and plugin list pages were added after `4121e55`
   (ten checked `server.properties` values, world copies while stopped,
   read-only jar list), then a read-only Files page. Restore was added next (two presses, the replaced world is kept). Daily schedules followed (panel only). A World page sets up a new world
-  for the next start. Still missing: file editing, schedules and the World
-  form on the in-app screen, a
+  for the next start. Schedules and the new-world form are on the in-app
+  screen too. Still missing: file editing, a
   named tunnel, downloading or verifying `cloudflared`, world generator, and
   the same settings and backups on the in-app screen.
 - Canonical screenshots are still not renewed, and cannot be from here: the

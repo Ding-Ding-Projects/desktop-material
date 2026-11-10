@@ -48,7 +48,7 @@ Not done:
    request http://127.0.0.1:25580/ and pair with the code shown, and record the result; in release
    v4.0.141101 the card showed a raw vault error instead, fixed in 70e75b5 but not yet seen running.
    (b) Panel has restore and daily schedules now; and a World page that sets up a new
-   world; still to do: schedules and the World form on the in-app screen. (c) Boards: Popovers, recording, Appearance
+   world, both also on the in-app screen. (c) Boards: Popovers, recording, Appearance
    studio, Settings items, first-run wizard changes, Activity and Locks gaps.
    Nothing has been run against Cloudflare, Discord or a real Minecraft server jar.
 4. Upstream (issue #212): port short-lived sign-in tokens (3.6.8), the Git, Git LFS and Electron

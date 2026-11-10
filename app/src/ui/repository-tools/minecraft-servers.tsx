@@ -16,6 +16,7 @@ import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { LinkButton } from '../lib/link-button'
 import { TextBox } from '../lib/text-box'
 import { MinecraftServerExtras } from './minecraft-server-extras'
+import { MinecraftServerPlanning } from './minecraft-server-planning'
 import { WebPanelCard } from './web-panel-card'
 import {
   acceptMinecraftEula,
@@ -452,6 +453,9 @@ export class MinecraftServers extends React.Component<
         </form>
         {this.props.hideExtras !== true && (
           <MinecraftServerExtras serverId={server.id} active={active} />
+        )}
+        {this.props.hideExtras !== true && (
+          <MinecraftServerPlanning serverId={server.id} active={active} />
         )}
       </div>
     )

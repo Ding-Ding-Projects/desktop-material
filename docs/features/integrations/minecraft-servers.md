@@ -25,6 +25,8 @@ console with a command line.
 | Stop | Sends `stop` so the world is saved; the process is ended only if it has not exited after 20 seconds. |
 | Settings | Ten `server.properties` values (message of the day, maximum players, difficulty, game mode, PvP, allow-list, hardcore, flight, view distance, spawn protection), each checked. Nothing else in the file can be written. |
 | Backups | **Back up world** copies the world folder into `backups/<world>-<UTC time>/`. Only while the server is stopped; at most 50. **Restore** takes two presses and keeps the replaced world as a `before-restore` backup. |
+| Schedules | Daily start, stop, restart, backup or one console command, in local time. They run only while the app is open; a time missed by more than five minutes is skipped. |
+| New world | A name, optional seed, type and structures switch. Needs a stopped server and a name not already in the folder; the server generates it on its next start and the current world is left untouched. |
 | Plugins and mods | The jar files in `plugins/` and `mods/`, read-only. |
 | Remove from list | Forgets the entry. The folder and the world are never deleted. |
 

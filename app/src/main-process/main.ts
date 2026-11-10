@@ -2216,6 +2216,34 @@ app.on('ready', () => {
     minecraftHost.addOns(String(id))
   )
 
+  ipcMain.handle('minecraft-schedules', async (_event, id: string) =>
+    minecraftHost.schedules(String(id))
+  )
+  ipcMain.handle('minecraft-add-schedule', async (_event, draft: any) =>
+    minecraftHost.addSchedule({
+      serverId: String(draft?.serverId ?? ''),
+      time: String(draft?.time ?? ''),
+      action: String(draft?.action ?? '') as any,
+      command: typeof draft?.command === 'string' ? draft.command : null,
+    })
+  )
+  ipcMain.handle('minecraft-remove-schedule', async (_event, id: string) =>
+    minecraftHost.removeSchedule(String(id))
+  )
+  ipcMain.handle('minecraft-current-world', async (_event, id: string) =>
+    minecraftHost.currentWorld(String(id))
+  )
+  ipcMain.handle(
+    'minecraft-new-world',
+    async (_event, id: string, world: any) =>
+      minecraftHost.newWorld(String(id), {
+        name: String(world?.name ?? '').trim(),
+        seed: String(world?.seed ?? ''),
+        type: String(world?.type ?? ''),
+        structures: world?.structures !== false,
+      })
+  )
+
   /**
    * Web panel: a loopback-only server for the Minecraft servers, an optional
    * free public link, and a Discord webhook that is told the link. The

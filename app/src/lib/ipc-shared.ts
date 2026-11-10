@@ -19,7 +19,14 @@ import {
 import { IBinaryEncodingResult, IDropPlan } from './file-converter-drop'
 import { IInstalledExtension } from './extensions/manifest'
 import { IWebPanelOptions, IWebPanelStatus } from './web-panel/status'
-import { IMinecraftPropertySpec } from './minecraft/properties'
+import {
+  IMinecraftNewWorld,
+  IMinecraftPropertySpec,
+} from './minecraft/properties'
+import {
+  IMinecraftSchedule,
+  MinecraftScheduleDraft,
+} from './minecraft/schedules'
 import {
   IMinecraftServerState,
   MinecraftServerDraft,
@@ -586,6 +593,18 @@ export type RequestResponseChannels = {
       readonly bytes: number
     }>
   >
+  'minecraft-schedules': (
+    id: string
+  ) => Promise<ReadonlyArray<IMinecraftSchedule>>
+  'minecraft-add-schedule': (
+    draft: MinecraftScheduleDraft
+  ) => Promise<ReadonlyArray<string>>
+  'minecraft-remove-schedule': (scheduleId: string) => Promise<void>
+  'minecraft-current-world': (id: string) => Promise<string | null>
+  'minecraft-new-world': (
+    id: string,
+    world: IMinecraftNewWorld
+  ) => Promise<ReadonlyArray<string>>
   'web-panel-status': () => Promise<IWebPanelStatus>
   'web-panel-start': () => Promise<string | null>
   'web-panel-stop': () => Promise<void>

@@ -47,8 +47,7 @@ Minecraft 伺服器，撳一下就有免費公開連結，連結一變仲可以�
   only while Desktop Material is open, a time that passed while the computer
   slept by more than five minutes is skipped instead of run late, and nothing
   runs just because the app was opened. Each run writes a line to the console.
-  At most 50. Schedules are managed from the panel; the in-app screen does not
-  list them yet.
+  At most 50. The in-app screen has the same schedules.
 - **Backups** copies the world folder into `backups/<world>-<UTC time>/` in the
   server folder. The server must be stopped first, so a copy is never taken
   from a world that is being written. At most 50 are kept. **Restore** needs
@@ -120,7 +119,7 @@ Minecraft 伺服器，撳一下就有免費公開連結，連結一變仲可以�
 
 ## Not built
 
-Switching back to an earlier world; weekly or one-off schedules; managing schedules in the app; editing,
+Switching back to an earlier world; weekly or one-off schedules; editing,
 uploading or deleting files; installing or removing
 plugins; deleting backups; backing up a running server; a named tunnel on
 your own domain; downloading or verifying `cloudflared`; a WebSocket console
