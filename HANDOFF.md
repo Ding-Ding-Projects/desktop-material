@@ -80,9 +80,24 @@ Windows.
   and files, refused traversal, EULA guard, setting write, refused key).
   `docs/assets/linux-run/README.md` has the details. The public link and
   Discord were not exercised.
-- Remaining boards: Workspace filter chips and statistics, Popovers, screen
-  recording, Appearance studio, Settings items, first-run wizard, every tab
-  open by default, Activity and Locks gaps.
+- Boards, audited against the source on November 10 rather than assumed:
+  - Already in the app before this work, so the boards only dress them:
+    notification centre with bulk actions, document version restore, export,
+    unlock ladder, authenticator codes, support tickets, the colour picker and
+    per-element appearance editor, custom logo and name, vocabulary import,
+    offline documentation browser, dim sum surprise, agent status, welcome
+    flow with a first-run checklist, toolbar chevron spring and foldout sheet
+    motion, hold-to-confirm destructive gate, scheduled motion.
+  - Added in this work: motion speed and per-surface switches, motion polish,
+    live charts, sketch pad, Base64 toolkit, quick convert, extensions,
+    virtual disk planner, Minecraft servers and web panel, tools category
+    counts and fold, build commit and free note in About.
+  - Not in the app: an inline, retryable error banner for failures that can
+    wait (errors still open dialogs), shortcut hints in context menus, row
+    stagger in popover lists (virtualised rows would replay it on scroll),
+    the release's dim sum code name in the app (chosen after the build).
+  - "Recording" on the Toolbox board is a committed walkthrough video, not an
+    in-app recorder; none was made.
 - Remaining upstream items in issue #212.
 - Tests in this sandbox: the project expects Node 24.15 and the sandbox has
   Node 22, so many UI test files cannot load (`addEventListener is not a
