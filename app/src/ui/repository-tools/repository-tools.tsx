@@ -88,6 +88,7 @@ import { AppMemoryChart } from './app-memory-chart'
 import { SketchPad } from './sketch-pad'
 import { ExtensionManager } from './extension-manager'
 import { VirtualDiskPlanner } from './virtual-disk-planner'
+import { MinecraftServers } from './minecraft-servers'
 import { MaterialSymbol } from '../lib/material-symbol'
 
 const MaxOutputBytes = 4 * 1024 * 1024
@@ -178,6 +179,7 @@ export type RepositoryToolsHubToolID =
   | 'sketch-pad'
   | 'extensions'
   | 'virtual-disks'
+  | 'minecraft-servers'
 
 type RepositoryToolsHubCategory =
   | RepositoryToolCategory
@@ -389,6 +391,14 @@ const UnsortedHubEntries: ReadonlyArray<IRepositoryToolsHubEntry> = [
       'Run small add-on programs on this repository. Each one shows what it may see and needs your consent first.',
     category: 'Search & inspect',
     icon: octicons.plug,
+  },
+  {
+    id: 'minecraft-servers',
+    title: 'Minecraft servers',
+    description:
+      'Keep your local Minecraft servers in one place: accept the EULA, start and stop them, and use the live console.',
+    category: 'Search & inspect',
+    icon: octicons.server,
   },
   {
     id: 'virtual-disks',
@@ -2879,6 +2889,7 @@ export class RepositoryTools extends React.Component<
         {selected === 'app-memory' && <AppMemoryChart />}
         {selected === 'sketch-pad' && <SketchPad />}
         {selected === 'virtual-disks' && <VirtualDiskPlanner />}
+        {selected === 'minecraft-servers' && <MinecraftServers />}
         {selected === 'extensions' && (
           <ExtensionManager
             repositoryPath={this.props.repositoryPath}

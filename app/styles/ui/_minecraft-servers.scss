@@ -1,0 +1,131 @@
+// Minecraft server manager inside Repository tools.
+.minecraft-servers {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  p {
+    margin: 0;
+  }
+}
+
+.minecraft-servers-list,
+.minecraft-servers-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.minecraft-servers-chip {
+  align-items: center;
+  background: var(--md-sys-color-surface-container-low);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 14px;
+
+  span {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 12px;
+  }
+
+  &[aria-pressed='true'] {
+    background: var(--md-sys-color-secondary-container);
+    border-color: transparent;
+    color: var(--md-sys-color-on-secondary-container);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.minecraft-servers-form,
+.minecraft-servers-detail,
+.minecraft-servers-eula {
+  background: var(--md-sys-color-surface-container-low);
+  border-radius: var(--md-sys-shape-corner-large, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+}
+
+.minecraft-servers-eula {
+  background: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
+}
+
+.minecraft-servers-heading {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+
+  h4 {
+    font-size: 16px;
+    margin: 0;
+  }
+}
+
+.minecraft-servers-status {
+  background: var(--md-sys-color-surface-container-high);
+  border-radius: 999px;
+  font-size: 12px;
+  padding: 3px 10px;
+}
+
+.minecraft-servers-status-running {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.minecraft-servers-status-crashed {
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+.minecraft-servers-meta {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.minecraft-servers-message,
+.minecraft-servers-errors {
+  color: var(--md-sys-color-error);
+}
+
+.minecraft-servers-errors {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.minecraft-servers-console {
+  background: var(--md-sys-color-surface-container-highest);
+  border-radius: var(--md-sys-shape-corner-medium, 12px);
+  font-family: var(--font-family-monospace);
+  font-size: 12px;
+  height: 260px;
+  margin: 0;
+  overflow: auto;
+  padding: 10px 12px;
+  white-space: pre-wrap;
+}
+
+.minecraft-servers-command {
+  align-items: flex-end;
+  display: flex;
+  gap: 8px;
+
+  .text-box-component {
+    flex: 1 1 auto;
+  }
+}

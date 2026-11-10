@@ -679,6 +679,13 @@
       d: 'Desktop Material is establishing a local file-converter workspace for files a person chooses from their own machine. The workspace must identify source bytes before offering a…',
     },
     {
+      t: 'Minecraft servers / Minecraft 伺服器',
+      h: 'features/integrations/minecraft-servers.html',
+      s: 'features/integrations/minecraft-servers.md',
+      c: 'features',
+      d: 'Repository tools → Minecraft servers keeps the Minecraft servers you run on this computer in one place: the EULA step, a start and stop switch, and a live console with a…',
+    },
+    {
       t: 'Ollama model manager',
       h: 'features/integrations/ollama-model-manager.html',
       s: 'features/integrations/ollama-model-manager.md',

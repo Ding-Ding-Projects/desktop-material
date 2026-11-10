@@ -192,6 +192,8 @@ import {
   preflightFileConverterStorage,
 } from './file-converter'
 import { ExtensionHost } from './extension-host'
+import { MinecraftServerHost } from './minecraft-server-host'
+import { MinecraftServerDraft } from '../lib/minecraft/server'
 import { IExtensionContext } from '../lib/extensions/protocol'
 import {
   convertBinaryEncodingBesideSource,
@@ -2134,6 +2136,61 @@ app.on('ready', () => {
   )
   ipcMain.handle('extensions-open-folder', async () => {
     await shell.openPath(extensionHost.folder)
+  })
+
+  /**
+   * Minecraft servers: the saved list, the EULA guard and the Java processes
+   * live in the privileged process. The window only asks.
+   */
+  const minecraftHost = new MinecraftServerHost(
+    Path.join(app.getPath('userData'), 'minecraft')
+  )
+  app.on('will-quit', () => minecraftHost.stopAll())
+  ipcMain.handle('minecraft-list', async () => minecraftHost.list())
+  ipcMain.handle(
+    'minecraft-save',
+    async (_event, draft: MinecraftServerDraft, id: string | null) =>
+      minecraftHost.saveServer(
+        {
+          name: String(draft?.name ?? ''),
+          directory: String(draft?.directory ?? ''),
+          jar: String(draft?.jar ?? ''),
+          javaPath: String(draft?.javaPath ?? ''),
+          memoryMegabytes: Number(draft?.memoryMegabytes),
+          port: Number(draft?.port),
+        },
+        typeof id === 'string' ? id : null
+      )
+  )
+  ipcMain.handle('minecraft-remove', async (_event, id: string) =>
+    minecraftHost.remove(String(id))
+  )
+  ipcMain.handle('minecraft-accept-eula', async (_event, id: string) =>
+    minecraftHost.acceptEula(String(id))
+  )
+  ipcMain.handle('minecraft-start', async (_event, id: string) =>
+    minecraftHost.start(String(id))
+  )
+  ipcMain.handle('minecraft-stop', async (_event, id: string) =>
+    minecraftHost.stop(String(id))
+  )
+  ipcMain.handle(
+    'minecraft-command',
+    async (_event, id: string, command: string) =>
+      minecraftHost.command(String(id), String(command))
+  )
+  ipcMain.handle(
+    'minecraft-console',
+    async (_event, id: string, after: number) =>
+      minecraftHost.console(String(id), Number(after))
+  )
+  ipcMain.handle('minecraft-open-folder', async (_event, id: string) => {
+    const state = (await minecraftHost.list()).find(
+      s => s.server.id === String(id)
+    )
+    if (state !== undefined) {
+      await shell.openPath(state.server.directory)
+    }
   })
 
   ipcMain.handle(

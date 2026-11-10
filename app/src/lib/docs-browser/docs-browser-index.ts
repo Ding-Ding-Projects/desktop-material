@@ -681,6 +681,14 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       sourcePath: 'docs/features/integrations/local-file-converter.md',
     },
     {
+      id: 'integrations/minecraft-servers',
+      category: 'integrations',
+      title: 'Minecraft servers / Minecraft 伺服器',
+      description:
+        'Repository tools → Minecraft servers keeps the Minecraft servers you run on this computer in one place: the EULA step, a start and stop switch, and a live console with a…',
+      sourcePath: 'docs/features/integrations/minecraft-servers.md',
+    },
+    {
       id: 'integrations/ollama-model-manager',
       category: 'integrations',
       title: 'Ollama model manager',
@@ -1592,7 +1600,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'integrations',
     label: 'Integrations',
-    count: 35,
+    count: 36,
   },
   {
     name: 'linux-tui',
@@ -1622,4 +1630,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 183
+export const DocsBrowserArticleCount = 184

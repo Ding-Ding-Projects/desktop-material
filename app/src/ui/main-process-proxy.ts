@@ -473,6 +473,16 @@ export const revokeExtensionConsent = invokeProxy(
 export const runExtension = invokeProxy('extensions-run', 2)
 export const openExtensionsFolder = invokeProxy('extensions-open-folder', 0)
 
+export const listMinecraftServers = invokeProxy('minecraft-list', 0)
+export const saveMinecraftServer = invokeProxy('minecraft-save', 2)
+export const removeMinecraftServer = invokeProxy('minecraft-remove', 1)
+export const acceptMinecraftEula = invokeProxy('minecraft-accept-eula', 1)
+export const startMinecraftServer = invokeProxy('minecraft-start', 1)
+export const stopMinecraftServer = invokeProxy('minecraft-stop', 1)
+export const sendMinecraftCommand = invokeProxy('minecraft-command', 2)
+export const readMinecraftConsole = invokeProxy('minecraft-console', 2)
+export const openMinecraftServerFolder = invokeProxy('minecraft-open-folder', 1)
+
 /** Expand dropped files and folders into the regular files to convert. */
 export const expandFileConverterDrop = invokeProxy(
   'file-converter-expand-drop',

@@ -18,6 +18,11 @@ import {
 } from './file-converter'
 import { IBinaryEncodingResult, IDropPlan } from './file-converter-drop'
 import { IInstalledExtension } from './extensions/manifest'
+import {
+  IMinecraftServerState,
+  MinecraftServerDraft,
+  MinecraftServerStatus,
+} from './minecraft/server'
 import { ExtensionRunResult, IExtensionContext } from './extensions/protocol'
 import { ThemeSource } from '../ui/lib/theme-source'
 import { DesktopNotificationPermission } from 'desktop-notifications'
@@ -535,6 +540,25 @@ export type RequestResponseChannels = {
     context: IExtensionContext
   ) => Promise<ExtensionRunResult>
   'extensions-open-folder': () => Promise<void>
+  'minecraft-list': () => Promise<ReadonlyArray<IMinecraftServerState>>
+  'minecraft-save': (
+    draft: MinecraftServerDraft,
+    id: string | null
+  ) => Promise<ReadonlyArray<string>>
+  'minecraft-remove': (id: string) => Promise<void>
+  'minecraft-accept-eula': (id: string) => Promise<void>
+  'minecraft-start': (id: string) => Promise<string | null>
+  'minecraft-stop': (id: string) => Promise<void>
+  'minecraft-command': (id: string, command: string) => Promise<boolean>
+  'minecraft-console': (
+    id: string,
+    after: number
+  ) => Promise<{
+    readonly next: number
+    readonly lines: ReadonlyArray<string>
+    readonly status: MinecraftServerStatus
+  }>
+  'minecraft-open-folder': (id: string) => Promise<void>
   'file-converter-expand-drop': (
     paths: ReadonlyArray<string>,
     includeSubfolders: boolean
