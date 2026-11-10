@@ -774,9 +774,11 @@ export class RepositoryTools extends React.Component<
       toolFilterMode: readPersistedFilterMode(RepositoryToolsFilterId),
       toolFilterCaseSensitive: false,
       toolCategory: 'All',
+      // Folded by default: in the rail the chips stack one per row and would
+      // leave the tool list a single visible row.
       toolCategoriesCollapsed: getBoolean(
         RepositoryToolsCategoriesCollapsedKey,
-        false
+        true
       ),
       selectedTool,
       languageMode: getPersistedLanguageMode(),

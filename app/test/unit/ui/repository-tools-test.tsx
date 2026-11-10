@@ -1,4 +1,4 @@
-import { describe, it } from 'node:test'
+import { beforeEach, describe, it } from 'node:test'
 import assert from 'node:assert'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -179,6 +179,29 @@ function getSelectedToolCard(title: string) {
 }
 
 describe('Repository tools', () => {
+  // Most of these tests look at the category chips, so they start unfolded;
+  // the default (folded) has its own test.
+  beforeEach(() => {
+    localStorage.setItem('repository-tools-categories-collapsed', '0')
+  })
+
+  it('starts with the category chips folded away and names the fold', async () => {
+    localStorage.removeItem('repository-tools-categories-collapsed')
+    const client = new FakeRepositoryToolsClient()
+    renderTools(client)
+    await screen.findByText('git version 2.55.0')
+    const toggle = screen.getByRole('button', { name: 'Categories' })
+    assert.equal(toggle.getAttribute('aria-expanded'), 'false')
+    assert.equal(
+      document
+        .getElementById('repository-tools-filter-chips')
+        ?.hasAttribute('hidden'),
+      true
+    )
+    fireEvent.click(toggle)
+    assert.ok(screen.getByRole('group', { name: 'Tool categories' }))
+  })
+
   it('classifies every direct CLI mutation while retaining read-only recipes', () => {
     for (const id of [
       'maintenance-run',

@@ -88,8 +88,15 @@ body[data-dm-motion='calm'] .live-chart-dot-live {
   input[type='range'] {
     // The shared slider is a 16px track; a taller box would stretch its
     // filled side into a block. The margin keeps a comfortable pointer target.
+    // Repository tools gives every input a text-field box (36px tall, padded,
+    // bordered). Undo that here or the track becomes a thick block; seen in
+    // release v4.0.141601.
+    border: 0;
     flex: 1 1 200px;
+    height: 16px;
     margin: 8px 0;
+    min-height: 0;
+    padding: 0;
 
     &:focus-visible {
       outline: 2px solid var(--md-sys-color-primary);

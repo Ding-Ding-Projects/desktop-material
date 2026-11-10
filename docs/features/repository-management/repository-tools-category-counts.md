@@ -13,7 +13,9 @@ Repository tools 條欄而家會講每個分類有幾多個工具、列緊幾多
   `Search & inspect 10`. **All** counts every tool.
 - A line above the chips says `31 tools`, or `4 of 31 tools shown` while a
   search or a category narrows the list.
-- **Categories** folds the chips away and brings them back. While folded with a
+- **Categories** folds the chips away and brings them back. They start folded,
+  because in the rail the chips stack one per row and would leave the tool
+  list a single visible row. While folded with a
   category chosen, the button reads `Categories: <name>` so the active filter
   stays visible. The choice is remembered on this computer.
 - The pinned signing shortcut above the search keeps to its own height. It used
@@ -31,6 +33,7 @@ Repository tools 條欄而家會講每個分類有幾多個工具、列緊幾多
 
 `repository-tools-statistics-test.ts`, the chip and fold assertions in
 `ui/repository-tools-test.tsx`, and
-`repository-tools-responsive-style-test.ts` pass on Linux. Not yet seen in a
-running build: the release that contains it had not been published when this
-was written.
+`repository-tools-responsive-style-test.ts` pass on Linux. Seen running in
+published release v4.0.141601 under Linux with stand-in native modules: the
+counts, the `36 of 37 tools shown` line and the fold button were present. That
+run is why the chips now start folded.

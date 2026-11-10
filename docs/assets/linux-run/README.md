@@ -46,3 +46,10 @@ What this means for reading them:
   treats an unreadable vault as "no webhook" and keeps working. On Windows the
   vault is Credential Manager; whether the card had the same failure there is
   not known.
+- v4.0.141601: the category counts, the statistics line and the fold button
+  were present, and the pinned shortcut no longer took half the rail. Two
+  things were still wrong: the live chart slider was still a thick block (the
+  cause was a text-field rule that Repository tools applies to every input,
+  not the height removed earlier), and the unfolded chips stacked one per row
+  and left the tool list one visible row. The slider now undoes that rule and
+  the chips start folded.
