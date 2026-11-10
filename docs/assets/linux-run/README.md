@@ -76,3 +76,9 @@ What this means for reading them:
   inside this release's stylesheet, where the track is 16px. The motion speed
   slider in the appearance editor had the same fault and got the same fix; it
   was not looked at in a running build.
+- v4.0.143401: a push to a remote whose name cannot be looked up showed the
+  app's general error notice, not the new banner. The first version of the
+  banner relied on Git's own error classification, which does not cover that
+  case for a push. It now reads Git's output. For this run the stand-in Git
+  wrapper also cleared the proxy variables so the lookup failed as it would
+  without a network.

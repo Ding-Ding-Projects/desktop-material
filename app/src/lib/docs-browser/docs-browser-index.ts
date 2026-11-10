@@ -1051,9 +1051,9 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       id: 'quality-and-reliability/push-did-not-reach-remote-banner',
       category: 'quality-and-reliability',
       title:
-        'Push did not reach the remote: a banner, not a dialog / 推送去唔到遠端：用橫額唔用對話框',
+        'Push did not reach the remote: a banner with Try again / 推送去唔到遠端：有「再試」嘅橫額',
       description:
-        'When a push you started cannot reach its remote at all, Desktop Material now shows a banner with Try again instead of stopping you with an error dialog.',
+        'When a push you started cannot reach its remote at all, Desktop Material now shows a banner that says your commits are safe and offers Try again. Before this, the same failure…',
       sourcePath:
         'docs/features/quality-and-reliability/push-did-not-reach-remote-banner.md',
     },

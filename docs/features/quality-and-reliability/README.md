@@ -109,4 +109,4 @@ no HTTP endpoint, so a Postman collection is not applicable.
 呢啲契約改變嘅係本機桌面嘅排程同清理行為。佢哋唔加 HTTP 端點，所以唔適用 Postman 集合。
 
 - [Native-free Windows startup argument parsing](windows-startup-argument-parser.md)
-- [Push did not reach the remote: a banner, not a dialog](push-did-not-reach-remote-banner.md) — a push that cannot reach its host shows a banner with Try again instead of an error dialog.
+- [Push did not reach the remote: a banner with Try again](push-did-not-reach-remote-banner.md) — a push that cannot reach its host shows a banner that says the commits are safe and offers Try again.

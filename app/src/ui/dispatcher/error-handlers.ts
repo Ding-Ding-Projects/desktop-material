@@ -12,6 +12,7 @@ import { UpstreamAlreadyExistsError } from '../../lib/stores/upstream-already-ex
 
 import { PopupType } from '../../models/popup'
 import { BannerType } from '../../models/banner'
+import { isUnreachableRemoteOutput } from '../../lib/unreachable-remote'
 import {
   Repository,
   isRepositoryWithGitHubRepository,
@@ -219,7 +220,16 @@ export async function pushDidNotReachRemoteHandler(
   }
 
   const gitError = asGitError(e.underlyingError)
-  if (!gitError || gitError.result.gitError !== DugiteError.HostDown) {
+  if (!gitError) {
+    return error
+  }
+  // Git's own classification only covers a host that is down; a failed name
+  // lookup or a refused connection during a push is recognised from the
+  // output instead.
+  if (
+    gitError.result.gitError !== DugiteError.HostDown &&
+    !isUnreachableRemoteOutput(String(gitError.result.stderr ?? ''))
+  ) {
     return error
   }
 
