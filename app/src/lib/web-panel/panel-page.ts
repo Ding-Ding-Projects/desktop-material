@@ -42,6 +42,9 @@ export const PanelHtml = `<!doctype html>
       <button type="button" data-page="dashboard" aria-pressed="true">Dashboard</button>
       <button type="button" data-page="console" aria-pressed="false">Console</button>
       <button type="button" data-page="players" aria-pressed="false">Players</button>
+      <button type="button" data-page="settings" aria-pressed="false">Settings</button>
+      <button type="button" data-page="backups" aria-pressed="false">Backups</button>
+      <button type="button" data-page="addons" aria-pressed="false">Plugins</button>
       <button type="button" data-page="activity" aria-pressed="false">Activity</button>
     </nav>
     <p id="notice" role="status"></p>
@@ -73,6 +76,23 @@ export const PanelHtml = `<!doctype html>
       <h2>Players</h2>
       <p id="players-empty">Nobody is online.</p>
       <ul id="players"></ul>
+    </div>
+    <div id="page-settings" class="page" hidden>
+      <h2>Settings</h2>
+      <p>These are written to server.properties. A running server reads them the next time it starts.</p>
+      <form id="settings-form"></form>
+    </div>
+    <div id="page-backups" class="page" hidden>
+      <h2>Backups</h2>
+      <p>A backup is a copy of the world in the server's backups folder. The server must be stopped first.</p>
+      <div class="actions"><button id="backup" type="button">Back up now</button></div>
+      <p id="backups-empty">No backups yet.</p>
+      <ul id="backups"></ul>
+    </div>
+    <div id="page-addons" class="page" hidden>
+      <h2>Plugins and mods</h2>
+      <p id="addons-empty">No plugin or mod files were found.</p>
+      <ul id="addons"></ul>
     </div>
     <div id="page-activity" class="page" hidden>
       <h2>Activity</h2>
@@ -106,6 +126,8 @@ button:disabled{opacity:.5;cursor:default}
 label{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--soft)}
 .pick{flex-direction:row;align-items:center;gap:8px}
 form{display:flex;flex-direction:column;gap:12px;max-width:420px}
+select{width:100%;border-radius:12px}.pick select{width:auto;border-radius:22px}
+small{color:var(--soft);white-space:nowrap}
 #command-form{flex-direction:row;align-items:flex-end;max-width:none}#command-form label{flex:1 1 auto}
 dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:0}
 dl div{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 16px}
@@ -192,6 +214,56 @@ function readConsole(){
     }
   }).catch(function(){}).then(function(){busy=false});
 }
+function row(parent,left,right){
+  var li=document.createElement('li'),a=document.createElement('span'),b=document.createElement('small');
+  a.textContent=left;b.textContent=right;li.appendChild(a);li.appendChild(b);parent.appendChild(li);
+}
+function size(bytes){return bytes<1048576?Math.max(1,Math.round(bytes/1024))+' KB':(bytes/1048576).toFixed(1)+' MB'}
+function loadPage(){
+  if(!selected){return}
+  var id=encodeURIComponent(selected),want=selected;
+  if(page==='settings'){
+    api('GET','/api/config?id='+id).then(function(r){
+      if(r.status!==200||want!==selected||page!=='settings'){return}
+      var form=$('settings-form');form.textContent='';
+      r.body.settings.forEach(function(s){
+        var label=document.createElement('label'),input;
+        label.appendChild(document.createTextNode(s.label));
+        if(s.type.kind==='boolean'||s.type.kind==='choice'){
+          input=document.createElement('select');
+          (s.type.kind==='boolean'?['true','false']:s.type.choices).forEach(function(c){
+            var o=document.createElement('option');o.value=c;
+            o.textContent=s.type.kind==='boolean'?(c==='true'?'On':'Off'):c;input.appendChild(o);
+          });
+        }else{
+          input=document.createElement('input');
+          if(s.type.kind==='integer'){input.inputMode='numeric'}else{input.maxLength=s.type.maxLength}
+        }
+        input.value=s.value;
+        input.addEventListener('change',function(){
+          act('/api/config',{id:selected,key:s.key,value:input.value}).then(loadPage);
+        });
+        label.appendChild(input);form.appendChild(label);
+      });
+    }).catch(function(){});
+  }
+  if(page==='backups'){
+    api('GET','/api/backups?id='+id).then(function(r){
+      if(r.status!==200||want!==selected){return}
+      var list=$('backups');list.textContent='';
+      r.body.backups.forEach(function(b){row(list,b.name,new Date(b.createdAt).toLocaleString())});
+      $('backups-empty').hidden=r.body.backups.length>0;
+    }).catch(function(){});
+  }
+  if(page==='addons'){
+    api('GET','/api/addons?id='+id).then(function(r){
+      if(r.status!==200||want!==selected){return}
+      var list=$('addons');list.textContent='';
+      r.body.addOns.forEach(function(a){row(list,a.name,(a.kind==='mod'?'Mod':'Plugin')+' · '+size(a.bytes))});
+      $('addons-empty').hidden=r.body.addOns.length>0;
+    }).catch(function(){});
+  }
+}
 function act(path,body){
   notice('');
   return api('POST',path,body).then(function(r){
@@ -208,7 +280,9 @@ $('pair-form').addEventListener('submit',function(e){
   }).catch(function(){$('pair-error').textContent='The panel cannot be reached right now.'});
 });
 $('signout').addEventListener('click',function(){api('POST','/api/signout',{}).then(function(){state=null;show(false)})});
-$('server').addEventListener('change',function(e){selected=e.target.value;paint();readConsole()});
+$('server').addEventListener('change',function(e){selected=e.target.value;paint();readConsole();loadPage()});
+$('backup').addEventListener('click',function(){$('backup').disabled=true;act('/api/backup',{id:selected}).then(function(){$('backup').disabled=false;loadPage()})});
+$('settings-form').addEventListener('submit',function(e){e.preventDefault()});
 $('start').addEventListener('click',function(){act('/api/start',{id:selected})});
 $('stop').addEventListener('click',function(){act('/api/stop',{id:selected})});
 $('command-form').addEventListener('submit',function(e){
@@ -221,7 +295,7 @@ Array.prototype.forEach.call(document.querySelectorAll('nav button'),function(bu
     page=button.getAttribute('data-page');
     Array.prototype.forEach.call(document.querySelectorAll('nav button'),function(b){b.setAttribute('aria-pressed',String(b===button))});
     Array.prototype.forEach.call(document.querySelectorAll('.page'),function(p){p.hidden=p.id!=='page-'+page});
-    readConsole();
+    readConsole();loadPage();
   });
 });
 refresh();

@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import { ChildProcess } from 'node:child_process'
 import { EventEmitter } from 'node:events'
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import * as Path from 'node:path'
 import { describe, it } from 'node:test'
@@ -167,5 +167,78 @@ describe('MinecraftServerHost', () => {
     assert.equal(state.status, 'crashed')
     assert.match(state.message ?? '', /exit code 1/)
     assert.equal(await host.command(id, 'list'), false)
+  })
+
+  it('changes only listed settings and keeps the rest of the file', async () => {
+    const { directory, host, draft } = await setup()
+    await host.saveServer(draft, null)
+    const id = (await host.list())[0].server.id
+    assert.equal(
+      (await host.settings(id)).find(s => s.spec.key === 'pvp')?.value,
+      'true'
+    )
+    await writeFile(
+      Path.join(directory, 'server.properties'),
+      '#header\nonline-mode=true\npvp=true\n'
+    )
+    assert.equal(await host.setSetting(id, 'pvp', 'false'), null)
+    assert.match(
+      (await host.setSetting(id, 'online-mode', 'false')) ?? '',
+      /cannot be changed/
+    )
+    assert.match((await host.setSetting(id, 'max-players', '0')) ?? '', /1 to/)
+    assert.equal(
+      await readFile(Path.join(directory, 'server.properties'), 'utf8'),
+      '#header\nonline-mode=true\npvp=false\n'
+    )
+  })
+
+  it('backs up the world only while the server is stopped', async () => {
+    const { directory, host, draft } = await setup()
+    await host.saveServer(draft, null)
+    const id = (await host.list())[0].server.id
+    assert.match((await host.backup(id)) ?? '', /no world folder/)
+
+    await mkdir(Path.join(directory, 'world', 'region'), { recursive: true })
+    await writeFile(Path.join(directory, 'world', 'region', 'r.0.0.mca'), 'x')
+    assert.equal(await host.backup(id), null)
+    const backups = await host.backups(id)
+    assert.deepEqual(
+      backups.map(b => b.name),
+      ['world-2026-11-09T200000Z']
+    )
+    assert.equal(
+      await readFile(
+        Path.join(directory, 'backups', backups[0].name, 'region', 'r.0.0.mca'),
+        'utf8'
+      ),
+      'x'
+    )
+    assert.match((await host.backup(id)) ?? '', /already exists/)
+
+    await writeFile(
+      Path.join(directory, 'server.properties'),
+      'level-name=..\n'
+    )
+    assert.match((await host.backup(id)) ?? '', /cannot be backed up/)
+
+    await writeFile(Path.join(directory, 'server.properties'), '')
+    await writeFile(Path.join(directory, 'server.jar'), 'jar')
+    await host.acceptEula(id)
+    await host.start(id)
+    assert.match((await host.backup(id)) ?? '', /Stop the server/)
+  })
+
+  it('lists plugin and mod jars', async () => {
+    const { directory, host, draft } = await setup()
+    await host.saveServer(draft, null)
+    const id = (await host.list())[0].server.id
+    assert.deepEqual(await host.addOns(id), [])
+    await mkdir(Path.join(directory, 'plugins'))
+    await writeFile(Path.join(directory, 'plugins', 'Essentials.jar'), 'abc')
+    await writeFile(Path.join(directory, 'plugins', 'notes.txt'), 'x')
+    assert.deepEqual(await host.addOns(id), [
+      { name: 'Essentials.jar', kind: 'plugin', bytes: 3 },
+    ])
   })
 })

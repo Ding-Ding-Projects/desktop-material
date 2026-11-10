@@ -40,8 +40,11 @@ Windows.
 
 **Not done.**
 
-- Panel pages for files, configuration, plugins, backups and schedules; a
-  named tunnel; downloading or verifying `cloudflared`; world generator.
+- Panel settings, backups and plugin list pages were added after `4121e55`
+  (ten checked `server.properties` values, world copies while stopped,
+  read-only jar list). Still missing: files and schedules pages, restore, a
+  named tunnel, downloading or verifying `cloudflared`, world generator, and
+  the same settings and backups on the in-app screen.
 - Canonical screenshots are still not renewed.
 - Remaining boards: Workspace filter chips and statistics, Popovers, screen
   recording, Appearance studio, Settings items, first-run wizard, every tab

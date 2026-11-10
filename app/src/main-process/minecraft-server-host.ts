@@ -1,6 +1,6 @@
 import { ChildProcess, spawn as nodeSpawn } from 'child_process'
 import { randomUUID } from 'crypto'
-import { mkdir, readFile, stat, writeFile } from 'fs/promises'
+import { cp, mkdir, readFile, readdir, stat, writeFile } from 'fs/promises'
 import * as Path from 'path'
 
 import {
@@ -15,12 +15,34 @@ import {
   minecraftServerArguments,
   normalizeMinecraftCommand,
   reduceMinecraftPlayers,
+  setMinecraftServerProperty,
   validateMinecraftServer,
 } from '../lib/minecraft/server'
+import {
+  IMinecraftPropertySpec,
+  MaxMinecraftPropertiesBytes,
+  checkMinecraftProperty,
+  editableMinecraftProperties,
+  minecraftBackupName,
+  minecraftWorldFolder,
+} from '../lib/minecraft/properties'
 
 const StateFileName = 'servers.json'
 const MaxServers = 50
 const StopGraceMs = 20_000
+const MaxBackups = 50
+const BackupsFolder = 'backups'
+
+export interface IMinecraftBackup {
+  readonly name: string
+  readonly createdAt: number
+}
+
+export interface IMinecraftAddOn {
+  readonly name: string
+  readonly kind: 'plugin' | 'mod'
+  readonly bytes: number
+}
 
 /** Environment names a Java server legitimately needs. Nothing else passes. */
 const PassedEnvironment = [
@@ -364,6 +386,149 @@ export class MinecraftServerHost {
   /** Who is online, from the server's join and leave lines. */
   public players(id: string): ReadonlyArray<string> {
     return this.online.get(id) ?? []
+  }
+
+  private async readProperties(server: IMinecraftServer): Promise<string> {
+    try {
+      const path = Path.join(server.directory, 'server.properties')
+      if ((await stat(path)).size > MaxMinecraftPropertiesBytes) {
+        throw new Error('server.properties is too large to read.')
+      }
+      return await readFile(path, 'utf8')
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        return ''
+      }
+      throw error
+    }
+  }
+
+  /** The settings that may be changed, with their current values. */
+  public async settings(id: string): Promise<
+    ReadonlyArray<{
+      readonly spec: IMinecraftPropertySpec
+      readonly value: string
+    }>
+  > {
+    return editableMinecraftProperties(
+      await this.readProperties(await this.find(id))
+    )
+  }
+
+  /**
+   * Change one listed setting. Returns why it was refused, or null. A running
+   * server reads the file only when it starts.
+   */
+  public async setSetting(
+    id: string,
+    key: string,
+    value: string
+  ): Promise<string | null> {
+    const server = await this.find(id)
+    const checked = checkMinecraftProperty(key, value)
+    if (!checked.ok) {
+      return checked.error
+    }
+    const text = await this.readProperties(server)
+    await writeFile(
+      Path.join(server.directory, 'server.properties'),
+      setMinecraftServerProperty(text, key, checked.value)
+    )
+    return null
+  }
+
+  /** Backups of the world, newest first. */
+  public async backups(id: string): Promise<ReadonlyArray<IMinecraftBackup>> {
+    const server = await this.find(id)
+    const folder = Path.join(server.directory, BackupsFolder)
+    try {
+      const entries = await readdir(folder, { withFileTypes: true })
+      const backups = await Promise.all(
+        entries
+          .filter(entry => entry.isDirectory())
+          .map(async entry => ({
+            name: entry.name,
+            createdAt: (await stat(Path.join(folder, entry.name))).mtimeMs,
+          }))
+      )
+      return backups.sort((a, b) => b.createdAt - a.createdAt)
+    } catch {
+      return []
+    }
+  }
+
+  /**
+   * Copy the world into `backups/`. Only while the server is stopped, so the
+   * copy is never taken from a world that is being written.
+   */
+  public async backup(id: string): Promise<string | null> {
+    const server = await this.find(id)
+    if (this.running.has(id)) {
+      return 'Stop the server before backing up its world.'
+    }
+    const world = minecraftWorldFolder(await this.readProperties(server))
+    if (world === null) {
+      return 'The world folder name in server.properties cannot be backed up from here.'
+    }
+    const source = Path.join(server.directory, world)
+    try {
+      if (!(await stat(source)).isDirectory()) {
+        throw new Error('not a folder')
+      }
+    } catch {
+      return `There is no ${world} folder to back up yet.`
+    }
+    if ((await this.backups(id)).length >= MaxBackups) {
+      return `There are already ${MaxBackups} backups. Remove some from the backups folder first.`
+    }
+    const destination = Path.join(
+      server.directory,
+      BackupsFolder,
+      minecraftBackupName(world, this.now())
+    )
+    await mkdir(Path.dirname(destination), { recursive: true })
+    try {
+      await cp(source, destination, {
+        recursive: true,
+        errorOnExist: true,
+        force: false,
+      })
+    } catch (error) {
+      return (error as NodeJS.ErrnoException).code === 'ERR_FS_CP_EEXIST'
+        ? 'A backup with this time already exists. Try again in a moment.'
+        : 'The world could not be copied.'
+    }
+    return null
+  }
+
+  /** Jar files in `plugins/` and `mods/`. Read-only. */
+  public async addOns(id: string): Promise<ReadonlyArray<IMinecraftAddOn>> {
+    const server = await this.find(id)
+    const found = new Array<IMinecraftAddOn>()
+    for (const [folder, kind] of [
+      ['plugins', 'plugin'],
+      ['mods', 'mod'],
+    ] as const) {
+      try {
+        const entries = await readdir(Path.join(server.directory, folder), {
+          withFileTypes: true,
+        })
+        for (const entry of entries.slice(0, 500)) {
+          if (entry.isFile() && /\.jar$/i.test(entry.name)) {
+            found.push({
+              name: entry.name,
+              kind,
+              bytes: (
+                await stat(Path.join(server.directory, folder, entry.name))
+              ).size,
+            })
+          }
+        }
+      } catch {
+        // No such folder on this kind of server.
+      }
+    }
+    return found.sort((a, b) => a.name.localeCompare(b.name))
   }
 
   /** Stop everything at once; used when the app is closing. */

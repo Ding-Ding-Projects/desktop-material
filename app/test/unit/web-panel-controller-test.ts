@@ -60,6 +60,11 @@ async function setup() {
       command: async () => false,
       console: () => ({ next: 0, lines: [], status: 'stopped' }),
       players: () => [],
+      settings: async () => [],
+      setSetting: async () => null,
+      backups: async () => [],
+      backup: async () => null,
+      addOns: async () => [],
     },
     root
   )

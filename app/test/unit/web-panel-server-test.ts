@@ -48,6 +48,29 @@ function fakeServers() {
       status: state.status,
     }),
     players: () => ['Steve'],
+    settings: async () => [
+      {
+        spec: {
+          key: 'pvp',
+          label: 'Players can hurt each other',
+          type: { kind: 'boolean' as const },
+          fallback: 'true',
+        },
+        value: 'true',
+      },
+    ],
+    setSetting: async (id, key, value) => {
+      calls.push(`set:${id}:${key}=${value}`)
+      return key === 'pvp' ? null : 'That setting cannot be changed here.'
+    },
+    backups: async () => [{ name: 'world-2026-11-10T030405Z', createdAt: 5 }],
+    backup: async id => {
+      calls.push(`backup:${id}`)
+      return state.status === 'running'
+        ? 'Stop the server before backing up its world.'
+        : null
+    },
+    addOns: async () => [{ name: 'Essentials.jar', kind: 'plugin', bytes: 3 }],
   }
   return { servers, calls }
 }
@@ -305,6 +328,69 @@ describe('WebPanelServer', () => {
         )
       }
       assert.equal((await call('POST', '/api/pair', { code })).status, 429)
+    } finally {
+      await panel.stop()
+    }
+  })
+
+  it('serves settings, backups and add-ons to paired devices only', async () => {
+    const { panel, calls, call, pair } = await setup()
+    try {
+      for (const path of ['/api/config', '/api/backups', '/api/addons']) {
+        assert.equal((await call('GET', `${path}?id=one`)).status, 401)
+      }
+      const cookie = await pair()
+      const config = await call('GET', '/api/config?id=one', undefined, cookie)
+      assert.deepEqual(config.body.settings[0], {
+        key: 'pvp',
+        label: 'Players can hurt each other',
+        type: { kind: 'boolean' },
+        value: 'true',
+      })
+      assert.equal(
+        (await call('GET', '/api/backups?id=one', undefined, cookie)).body
+          .backups.length,
+        1
+      )
+      assert.equal(
+        (await call('GET', '/api/addons?id=one', undefined, cookie)).body
+          .addOns[0].name,
+        'Essentials.jar'
+      )
+      assert.equal(
+        (await call('GET', '/api/config?id=nope', undefined, cookie)).status,
+        404
+      )
+
+      assert.equal(
+        (
+          await call(
+            'POST',
+            '/api/config',
+            { id: 'one', key: 'pvp', value: 'false' },
+            cookie
+          )
+        ).status,
+        200
+      )
+      const refused = await call(
+        'POST',
+        '/api/config',
+        { id: 'one', key: 'online-mode', value: 'false' },
+        cookie
+      )
+      assert.equal(refused.status, 409)
+      assert.match(refused.body.error, /cannot be changed/)
+      assert.equal(
+        (await call('POST', '/api/backup', { id: 'one' }, cookie)).status,
+        409
+      )
+      assert.deepEqual(calls, [
+        'set:one:pvp=false',
+        'set:one:online-mode=false',
+        'backup:one',
+      ])
+      assert.equal(panel.activity[0].what, 'Changed pvp on Survival')
     } finally {
       await panel.stop()
     }

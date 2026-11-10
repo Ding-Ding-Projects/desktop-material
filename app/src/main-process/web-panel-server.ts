@@ -19,6 +19,7 @@ import {
   redeemPairingCode,
   revokePairedDevice,
 } from '../lib/web-panel/pairing'
+import { IMinecraftPropertySpec } from '../lib/minecraft/properties'
 import { PanelCss, PanelHtml, PanelJs } from '../lib/web-panel/panel-page'
 
 const CookieName = 'dm_panel'
@@ -49,6 +50,30 @@ export interface IPanelServers {
     readonly status: MinecraftServerStatus
   }
   readonly players: (id: string) => ReadonlyArray<string>
+  readonly settings: (id: string) => Promise<
+    ReadonlyArray<{
+      readonly spec: IMinecraftPropertySpec
+      readonly value: string
+    }>
+  >
+  readonly setSetting: (
+    id: string,
+    key: string,
+    value: string
+  ) => Promise<string | null>
+  readonly backups: (
+    id: string
+  ) => Promise<
+    ReadonlyArray<{ readonly name: string; readonly createdAt: number }>
+  >
+  readonly backup: (id: string) => Promise<string | null>
+  readonly addOns: (id: string) => Promise<
+    ReadonlyArray<{
+      readonly name: string
+      readonly kind: 'plugin' | 'mod'
+      readonly bytes: number
+    }>
+  >
 }
 
 export interface IPanelActivity {
@@ -315,6 +340,36 @@ export class WebPanelServer {
       )
     }
 
+    if (
+      route === 'GET /api/config' ||
+      route === 'GET /api/backups' ||
+      route === 'GET /api/addons'
+    ) {
+      const id = url.searchParams.get('id') ?? ''
+      if (!(await this.known(id))) {
+        return this.json(response, 404, { error: 'No such server.' })
+      }
+      if (route === 'GET /api/config') {
+        const settings = await this.servers.settings(id)
+        return this.json(response, 200, {
+          settings: settings.map(({ spec, value }) => ({
+            key: spec.key,
+            label: spec.label,
+            type: spec.type,
+            value,
+          })),
+        })
+      }
+      if (route === 'GET /api/backups') {
+        return this.json(response, 200, {
+          backups: await this.servers.backups(id),
+        })
+      }
+      return this.json(response, 200, {
+        addOns: await this.servers.addOns(id),
+      })
+    }
+
     if (request.method !== 'POST') {
       return this.json(response, 404, { error: 'Not found.' })
     }
@@ -362,6 +417,27 @@ export class WebPanelServer {
           })
         }
         this.record(device.label, `Ran "${command}" on ${name}`)
+        return this.json(response, 200, {})
+      }
+      case 'POST /api/config': {
+        const key = String(body.key ?? '')
+        const problem = await this.servers.setSetting(
+          id,
+          key,
+          String(body.value ?? '')
+        )
+        if (problem !== null) {
+          return this.json(response, 409, { error: problem })
+        }
+        this.record(device.label, `Changed ${key} on ${name}`)
+        return this.json(response, 200, {})
+      }
+      case 'POST /api/backup': {
+        const problem = await this.servers.backup(id)
+        if (problem !== null) {
+          return this.json(response, 409, { error: problem })
+        }
+        this.record(device.label, `Backed up ${name}`)
         return this.json(response, 200, {})
       }
       case 'POST /api/kick': {
