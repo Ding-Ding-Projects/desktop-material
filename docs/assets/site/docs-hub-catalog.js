@@ -609,6 +609,13 @@
       d: 'Desktop Material discovers a broad curated set of installed Windows editors, including Visual Studio Code/VSCodium variants, JetBrains IDEs, Sublime Text, and Vim/Neovim front…',
     },
     {
+      t: 'Extensions / 擴充功能',
+      h: 'features/integrations/extensions.html',
+      s: 'features/integrations/extensions.md',
+      c: 'features',
+      d: 'Repository tools → Extensions runs small add-on programs on the selected repository. An extension is a folder with a manifest. It runs as its own process, so it can be written…',
+    },
+    {
       t: 'GitHub CLI push credential fallback',
       h: 'features/integrations/gh-cli-push-fallback.html',
       s: 'features/integrations/gh-cli-push-fallback.md',

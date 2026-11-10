@@ -463,6 +463,16 @@ export const preflightFileConverterStorage = invokeProxy(
   2
 )
 
+export const listExtensions = invokeProxy('extensions-list', 0)
+export const setExtensionEnabled = invokeProxy('extensions-set-enabled', 2)
+export const grantExtensionConsent = invokeProxy('extensions-grant-consent', 1)
+export const revokeExtensionConsent = invokeProxy(
+  'extensions-revoke-consent',
+  1
+)
+export const runExtension = invokeProxy('extensions-run', 2)
+export const openExtensionsFolder = invokeProxy('extensions-open-folder', 0)
+
 /** Expand dropped files and folders into the regular files to convert. */
 export const expandFileConverterDrop = invokeProxy(
   'file-converter-expand-drop',

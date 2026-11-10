@@ -191,6 +191,8 @@ import {
   inspectLocalFileForConversion,
   preflightFileConverterStorage,
 } from './file-converter'
+import { ExtensionHost } from './extension-host'
+import { IExtensionContext } from '../lib/extensions/protocol'
 import {
   convertBinaryEncodingBesideSource,
   expandDroppedPaths,
@@ -2088,6 +2090,52 @@ app.on('ready', () => {
    * every byte is read and written in the privileged process; results land
    * beside their originals and never replace an existing file.
    */
+  /**
+   * Extensions: discovery, consent, enablement and running all happen here in
+   * the privileged process. Built-ins run on the app's own Node runtime.
+   */
+  const extensionHost = new ExtensionHost(
+    Path.join(app.getPath('userData'), 'extensions'),
+    { command: process.execPath, env: { ELECTRON_RUN_AS_NODE: '1' } }
+  )
+  const extensionsReady = extensionHost.installBuiltIns().catch(error => {
+    log.error('Unable to install the built-in extensions', error)
+  })
+
+  ipcMain.handle('extensions-list', async () => {
+    await extensionsReady
+    return {
+      folder: extensionHost.folder,
+      extensions: await extensionHost.list(),
+    }
+  })
+  ipcMain.handle(
+    'extensions-set-enabled',
+    async (_event, id: string, enabled: boolean) =>
+      extensionHost.setEnabled(String(id), enabled === true)
+  )
+  ipcMain.handle('extensions-grant-consent', async (_event, id: string) =>
+    extensionHost.grantConsent(String(id))
+  )
+  ipcMain.handle('extensions-revoke-consent', async (_event, id: string) =>
+    extensionHost.revokeConsent(String(id))
+  )
+  ipcMain.handle(
+    'extensions-run',
+    async (_event, id: string, context: IExtensionContext) =>
+      extensionHost.run(String(id), {
+        repositoryPath: String(context?.repositoryPath ?? ''),
+        branchName:
+          typeof context?.branchName === 'string' ? context.branchName : null,
+        changedFiles: Array.isArray(context?.changedFiles)
+          ? context.changedFiles.filter(f => typeof f === 'string')
+          : [],
+      })
+  )
+  ipcMain.handle('extensions-open-folder', async () => {
+    await shell.openPath(extensionHost.folder)
+  })
+
   ipcMain.handle(
     'file-converter-expand-drop',
     async (_event, paths: ReadonlyArray<string>, includeSubfolders: boolean) =>

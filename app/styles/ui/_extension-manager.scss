@@ -1,0 +1,98 @@
+// Extension manager inside Repository tools.
+.extension-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.extension-manager-toolbar {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  .text-box-component {
+    flex: 1 1 220px;
+  }
+}
+
+.extension-manager-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.extension-manager-item {
+  background: var(--md-sys-color-surface-container-low);
+  border-radius: var(--md-sys-shape-corner-large, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+
+  p {
+    margin: 0;
+  }
+}
+
+.extension-manager-heading {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  .checkbox-component {
+    margin-left: auto;
+  }
+}
+
+.extension-manager-version {
+  color: var(--md-sys-color-on-surface-variant);
+  font-family: var(--font-family-monospace);
+}
+
+.extension-manager-badge {
+  background: var(--md-sys-color-secondary-container);
+  border-radius: 8px;
+  color: var(--md-sys-color-on-secondary-container);
+  font-weight: var(--font-weight-semibold);
+  margin-left: 8px;
+  padding: 1px 8px;
+
+  &[data-kind='error'],
+  &[data-kind='new'] {
+    background: var(--md-sys-color-error-container);
+    color: var(--md-sys-color-on-error-container);
+  }
+}
+
+.extension-manager-permissions ul,
+.extension-manager-reasons {
+  margin: 4px 0 0;
+  padding-left: 20px;
+}
+
+.extension-manager-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.extension-manager-note {
+  color: var(--md-sys-color-on-surface-variant);
+  margin: 0;
+}
+
+.extension-manager-result pre {
+  background: var(--md-sys-color-surface-container-lowest);
+  border-radius: var(--md-sys-shape-corner-medium, 12px);
+  font-family: var(--font-family-monospace);
+  margin: 6px 0 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: 10px;
+  white-space: pre-wrap;
+}

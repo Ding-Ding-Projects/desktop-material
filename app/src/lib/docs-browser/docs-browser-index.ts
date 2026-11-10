@@ -601,6 +601,14 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
         'docs/features/integrations/editor-discovery-and-one-click-opening.md',
     },
     {
+      id: 'integrations/extensions',
+      category: 'integrations',
+      title: 'Extensions / 擴充功能',
+      description:
+        'Repository tools → Extensions runs small add-on programs on the selected repository. An extension is a folder with a manifest. It runs as its own process, so it can be written…',
+      sourcePath: 'docs/features/integrations/extensions.md',
+    },
+    {
       id: 'integrations/gh-cli-push-fallback',
       category: 'integrations',
       title: 'GitHub CLI push credential fallback',
@@ -1576,7 +1584,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'integrations',
     label: 'Integrations',
-    count: 33,
+    count: 34,
   },
   {
     name: 'linux-tui',
@@ -1606,4 +1614,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 181
+export const DocsBrowserArticleCount = 182

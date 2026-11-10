@@ -6,6 +6,7 @@ credentials or machine-specific state in a repository.
 
 Desktop Material 嘅整合功能將 Git 工作流程接上作業系統、編輯器、shell、供應方同用戶層級嘅 Git 設定，同時唔會將憑證或者機器專有狀態放入儲存庫。
 
+- [Extensions](extensions.md) — add-on programs with a manifest, declared permissions, consent, limits, three built-ins and an author guide with samples.
 - [App-hosted browser](app-hosted-browser.md) — open HTTP(S) links in a
   sandboxed `WebContentsView` tab with address/navigation controls, bookmarks,
   popup and redirect capture, a persisted internal/external choice, and an

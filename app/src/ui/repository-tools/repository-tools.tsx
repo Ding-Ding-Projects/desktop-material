@@ -86,6 +86,7 @@ import { RepositoryCommitRewrite } from './commit-rewrite'
 import { FileConverter } from './file-converter'
 import { AppMemoryChart } from './app-memory-chart'
 import { SketchPad } from './sketch-pad'
+import { ExtensionManager } from './extension-manager'
 import { MaterialSymbol } from '../lib/material-symbol'
 
 const MaxOutputBytes = 4 * 1024 * 1024
@@ -174,6 +175,7 @@ export type RepositoryToolsHubToolID =
   | 'file-converter'
   | 'app-memory'
   | 'sketch-pad'
+  | 'extensions'
 
 type RepositoryToolsHubCategory =
   | RepositoryToolCategory
@@ -377,6 +379,14 @@ const UnsortedHubEntries: ReadonlyArray<IRepositoryToolsHubEntry> = [
       'Watch the memory this window is using, sampled once a second, with pause and sample inspection.',
     category: 'Search & inspect',
     icon: octicons.pulse,
+  },
+  {
+    id: 'extensions',
+    title: 'Extensions',
+    description:
+      'Run small add-on programs on this repository. Each one shows what it may see and needs your consent first.',
+    category: 'Search & inspect',
+    icon: octicons.plug,
   },
   {
     id: 'sketch-pad',
@@ -2854,6 +2864,9 @@ export class RepositoryTools extends React.Component<
         {selected === 'file-converter' && this.renderFileConverter()}
         {selected === 'app-memory' && <AppMemoryChart />}
         {selected === 'sketch-pad' && <SketchPad />}
+        {selected === 'extensions' && (
+          <ExtensionManager repositoryPath={this.props.repositoryPath} />
+        )}
         {selected === 'tag-lifecycle' && this.renderTagLifecycle()}
         {selected === 'github-projects' && this.renderGitHubProjects()}
         {selected === 'github-api-functions' && this.renderGitHubAPIFunctions()}

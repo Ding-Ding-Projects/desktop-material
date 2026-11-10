@@ -17,6 +17,8 @@ import {
   IFileSignatureInspection,
 } from './file-converter'
 import { IBinaryEncodingResult, IDropPlan } from './file-converter-drop'
+import { IInstalledExtension } from './extensions/manifest'
+import { ExtensionRunResult, IExtensionContext } from './extensions/protocol'
 import { ThemeSource } from '../ui/lib/theme-source'
 import { DesktopNotificationPermission } from 'desktop-notifications'
 import { NotificationCallback } from 'desktop-notifications'
@@ -521,6 +523,18 @@ export type RequestResponseChannels = {
     destinationPath: string,
     requiredBytes: number
   ) => Promise<IFileConverterStoragePreflight>
+  'extensions-list': () => Promise<{
+    readonly folder: string
+    readonly extensions: ReadonlyArray<IInstalledExtension>
+  }>
+  'extensions-set-enabled': (id: string, enabled: boolean) => Promise<void>
+  'extensions-grant-consent': (id: string) => Promise<void>
+  'extensions-revoke-consent': (id: string) => Promise<void>
+  'extensions-run': (
+    id: string,
+    context: IExtensionContext
+  ) => Promise<ExtensionRunResult>
+  'extensions-open-folder': () => Promise<void>
   'file-converter-expand-drop': (
     paths: ReadonlyArray<string>,
     includeSubfolders: boolean
