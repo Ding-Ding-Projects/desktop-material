@@ -8,9 +8,14 @@ and can tell a Discord channel the link every time it changes.
 Minecraft 伺服器，撳一下就有免費公開連結，連結一變仲可以自動通知 Discord 頻道。
 
 > [!IMPORTANT]
-> Verified with unit tests and by loading the real panel page in Chromium on
-> Linux against a stand-in server list. It has **not** been run against
-> Cloudflare, Discord or a real Minecraft server, and not on Windows.
+> Verified with unit tests, by loading the real panel page in Chromium on
+> Linux against a stand-in server list, and end to end against published
+> release v4.0.142301 run under Linux: turning the panel on in the app,
+> pairing over loopback with the code shown on the card, and reading and
+> changing a server through the paired session
+> ([details](../../assets/linux-run/README.md)). It has **not** been run
+> against Cloudflare, Discord or a real Minecraft server process, and not on
+> Windows.
 
 ## The panel
 

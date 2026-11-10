@@ -34,6 +34,7 @@ What this means for reading them:
 | `v4.0.140801-sketch-pad.png` | v4.0.140801 | Repository tools, Sketch pad, empty |
 | `v4.0.140801-virtual-disk-planner.png` | v4.0.140801 | Virtual disk planner with a create plan |
 | `v4.0.141101-minecraft-servers.png` | v4.0.141101 | Minecraft servers with one server added and the EULA step |
+| `v4.0.142301-web-panel-card-paired.png` | v4.0.142301 | Web panel card after the panel was turned on and a device paired over loopback |
 
 ## What the runs found
 
@@ -53,3 +54,15 @@ What this means for reading them:
   not the height removed earlier), and the unfolded chips stacked one per row
   and left the tool list one visible row. The slider now undoes that rule and
   the chips start folded.
+- v4.0.142301: the web panel was checked end to end against the running
+  release. **Turn on** started it; `http://127.0.0.1:25580/` returned the page
+  and `/api/state` returned 401 before pairing. A wrong code was refused (403),
+  the code shown on the card paired (200) and was refused when used again
+  (403). The paired session read the server list and the server folder, a
+  `..` path was refused (404), Start was refused because the EULA had not been
+  accepted in the app, `motd` was written to `server.properties`,
+  `online-mode` was refused (409), and a change without the request header was
+  refused (400). The card then listed the paired device. The vault message on
+  the card is this Linux run's missing credential store; the panel kept
+  working, which is the fix from `70e75b5`. Not covered: the public link,
+  Discord, and a real server process.

@@ -43,10 +43,9 @@ Not done:
 1. Windows CI result for these commits was not seen. Check it first.
 2. No screenshot was renewed: captures need the built Windows app and script/capture-app.js. A Linux
    development build was tried and webpack ran out of memory on a 7 GB machine.
-3. Next, in this order: (a) when a release at or after 70e75b5 is published, run it under Linux
-   (tools: prep the zip as described above), turn the web panel on from the Minecraft servers tool,
-   request http://127.0.0.1:25580/ and pair with the code shown, and record the result; in release
-   v4.0.141101 the card showed a raw vault error instead, fixed in 70e75b5 but not yet seen running.
+3. Next: (a) the web panel was checked end to end on release v4.0.142301 under Linux (see
+   docs/assets/linux-run/README.md); the public link, Discord and a real server jar are still
+   unexercised and need cloudflared, a webhook and Java.
    (b) Panel has restore and daily schedules now; and a World page that sets up a new
    world, both also on the in-app screen. (c) Boards: Popovers, recording, Appearance
    studio, Settings items, first-run wizard changes, Activity and Locks gaps.

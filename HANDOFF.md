@@ -75,6 +75,11 @@ Windows.
   half of the Repository tools rail.
 - The command palette opened with a repository open in that run, so the
   reported palette crash is still not reproduced.
+- Release v4.0.142301 was run the same way and the web panel was checked end
+  to end over loopback (turn on, pair with the code on the card, read state
+  and files, refused traversal, EULA guard, setting write, refused key).
+  `docs/assets/linux-run/README.md` has the details. The public link and
+  Discord were not exercised.
 - Remaining boards: Workspace filter chips and statistics, Popovers, screen
   recording, Appearance studio, Settings items, first-run wizard, every tab
   open by default, Activity and Locks gaps.
