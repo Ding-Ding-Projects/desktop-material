@@ -26,7 +26,7 @@ Done this session:
   devices only, one-click free Cloudflare quick tunnel through an installed cloudflared, Discord
   webhook in the system vault with resend on change and optional one-time pairing code (4121e55).
   Upstream ports: #22881, #22889, #22883, #23019, #23046, #23056, #22900.
-- Later: panel and in-app settings, backups and plugin list (346c111, ac4e7f6), category counts and a
+- Later: read-only Files page in the panel (818cd6e), panel and in-app settings, backups and plugin list (346c111, ac4e7f6), category counts and a
   folding chip row in Repository tools (ba85f02), vault failure no longer breaks the web panel card
   (70e75b5). docs/assets/linux-run holds labelled captures of published releases run under Linux;
   its README lists what those runs found. Tools: /tmp shim `globalThis.addEventListener ??= () => {}`
@@ -43,11 +43,15 @@ Not done:
 1. Windows CI result for these commits was not seen. Check it first.
 2. No screenshot was renewed: captures need the built Windows app and script/capture-app.js. A Linux
    development build was tried and webpack ran out of memory on a 7 GB machine.
-3. Implement the remaining boards one feature per commit: panel pages for files, configuration,
-   plugins, backups and schedules; world generator; Workspace filter chips and statistics; Popovers;
-   recording; Appearance studio; Settings items; first-run wizard; every tab open by default.
-   The web panel has not been run against Cloudflare, Discord or a real server.
+3. Next, in this order: (a) when a release at or after 70e75b5 is published, run it under Linux
+   (tools: prep the zip as described above), turn the web panel on from the Minecraft servers tool,
+   request http://127.0.0.1:25580/ and pair with the code shown, and record the result; in release
+   v4.0.141101 the card showed a raw vault error instead, fixed in 70e75b5 but not yet seen running.
+   (b) Panel: schedules, restore, world generator. (c) Boards: Popovers, recording, Appearance
+   studio, Settings items, first-run wizard changes, Activity and Locks gaps.
+   Nothing has been run against Cloudflare, Discord or a real Minecraft server jar.
 4. Upstream (issue #212): port short-lived sign-in tokens (3.6.8), the Git, Git LFS and Electron
-   updates, folder-reveal confirmation (3.6.6) and the remaining fixes in 3.6.6 to 3.6.10; then classify the rest of the 435 commits since b17e06dd.
+   updates, folder-reveal confirmation (#22872), missing-worktree warning (#22607) and dash-prefixed
+   names (#22862); these three do not apply as patches and need a manual port; then classify the rest of the 435 commits since b17e06dd.
 5. Confirm three design assumptions: sketch pad scope, first-run wizard steps, palette shortcuts.
 ```
