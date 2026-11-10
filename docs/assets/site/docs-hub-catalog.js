@@ -420,6 +420,13 @@
       d: 'This ledger maps the 30 user-demand statements in the supplied research brief to their Desktop Material implementation and feature contract. Complete means the behavior is…',
     },
     {
+      t: 'About: build commit and the free note / 關於：組建來源同免費聲明',
+      h: 'features/identity-and-workspace/about-build-provenance.html',
+      s: 'features/identity-and-workspace/about-build-provenance.md',
+      c: 'features',
+      d: 'Help → About Desktop Material now says which commit the running build was made from, and states that the app is free.',
+    },
+    {
       t: 'Always show worktree list / 永遠顯示工作樹清單',
       h: 'features/identity-and-workspace/always-show-worktree-list.html',
       s: 'features/identity-and-workspace/always-show-worktree-list.md',

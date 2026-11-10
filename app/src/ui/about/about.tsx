@@ -1,6 +1,10 @@
 import * as React from 'react'
 
 import { Row } from '../lib/row'
+import {
+  FreeForeverNote,
+  describeBuildProvenance,
+} from '../../lib/build-provenance'
 import { Button } from '../lib/button'
 import {
   Dialog,
@@ -373,9 +377,13 @@ export class About extends React.Component<IAboutProps, IAboutState> {
             </span>{' '}
             ({releaseNotesLink}, {changelogLink})
           </p>
+          <p className="no-padding about-provenance selectable-text">
+            {describeBuildProvenance(__SHA__)}
+          </p>
           {this.renderUpdateDetails()}
           {this.renderUpdateButton()}
           {this.renderBetaLink()}
+          <p className="about-free-note">{FreeForeverNote}</p>
           <div className="terms-and-license-container">
             <p className="no-padding terms-and-license">
               <LinkButton onClick={this.props.onShowSupportTickets}>

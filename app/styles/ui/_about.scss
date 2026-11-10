@@ -38,6 +38,16 @@ dialog#about {
       }
     }
 
+    .about-provenance,
+    .about-free-note {
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: var(--font-size-sm);
+    }
+
+    .about-free-note {
+      margin: var(--spacing) 0 0;
+    }
+
     .terms-and-license-container {
       margin-top: var(--spacing);
     }
@@ -74,7 +84,9 @@ dialog#about {
       place-items: center;
       background: var(--md-sys-color-primary-container);
       color: var(--md-sys-color-on-primary-container);
-      transition: background-color 480ms var(--emph), color 480ms var(--emph);
+      transition:
+        background-color 480ms var(--emph),
+        color 480ms var(--emph);
 
       .material-symbol {
         color: inherit;

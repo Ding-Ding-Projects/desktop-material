@@ -369,6 +369,15 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       sourcePath: 'docs/features/github-desktop-demand-backlog.md',
     },
     {
+      id: 'identity-and-workspace/about-build-provenance',
+      category: 'identity-and-workspace',
+      title: 'About: build commit and the free note / 關於：組建來源同免費聲明',
+      description:
+        'Help → About Desktop Material now says which commit the running build was made from, and states that the app is free.',
+      sourcePath:
+        'docs/features/identity-and-workspace/about-build-provenance.md',
+    },
+    {
       id: 'identity-and-workspace/always-show-worktree-list',
       category: 'identity-and-workspace',
       title: 'Always show worktree list / 永遠顯示工作樹清單',
@@ -1605,7 +1614,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'identity-and-workspace',
     label: 'Identity And Workspace',
-    count: 16,
+    count: 17,
   },
   {
     name: 'integrations',
@@ -1640,4 +1649,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 185
+export const DocsBrowserArticleCount = 186
