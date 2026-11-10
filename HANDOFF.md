@@ -25,6 +25,16 @@ are in each folder's `frames/`. See each folder's `HANDOFF.md` or `README.md`.
   toolkit (`f1ed021`). See
   [the article](docs/features/integrations/local-file-converter.md).
 
+- Motion polish on existing controls, from the design pass
+  (`app/styles/material/_polish.scss`, `480baf7`): state changes ease and a
+  press settles with a spring; nothing changes at rest.
+- A reported command palette crash could not be reproduced: release
+  v4.0.139501 was run under Linux (Windows-only native modules replaced by
+  empty stand-ins, bundled Git replaced by the system Git) and the palette
+  opened and searched without error on a fresh profile with no repository
+  open. The palette with a repository open is untested. The reported text
+  "webview error" does not occur anywhere in the source or the released bundle.
+
 **Verification.** On Linux: 19 motion tests, 2 Svelte tests and the worktree and
 Appearance tests pass; the TypeScript check reports no errors. In the wider
 appearance and shell test set 30 tests fail identically with and without these

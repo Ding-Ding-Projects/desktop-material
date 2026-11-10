@@ -17,9 +17,15 @@ Done this session:
   Designs only.
 - Implemented: motion speed and per-surface switches (956b065), Svelte highlighting from upstream
   3.6.8 (e3eb9f4), Always show worktree list from upstream 3.6.7 (6e55b8c), Quick convert of dropped
-  files and folders to Base64 text beside the originals (e9a8b02), Base64 text toolkit (f1ed021).
+  files and folders to Base64 text beside the originals (e9a8b02), Base64 text toolkit (f1ed021), motion polish on existing
+  controls (480baf7).
 - Checked on Linux only: focused tests pass, TypeScript reports no errors. 30 tests in the wider
   appearance and shell set fail the same way with and without these changes.
+
+Useful: a published release zip can be run under Linux for checks and captures by replacing
+registry.node, fs_admin.node and desktop-notifications.node with an empty N-API module, keytar.node
+with the Linux build, and git/cmd/git.exe with a wrapper around the system Git. Label such captures
+as a Linux run, not a Windows capture. A reported palette crash ("webview error") was not reproduced.
 
 Not done:
 1. Windows CI result for these commits was not seen. Check it first.
