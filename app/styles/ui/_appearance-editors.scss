@@ -439,10 +439,17 @@
     font-size: var(--font-size-sm);
   }
 
-  input[type='range'] {
+  // Doubled class: see the same note in `_live-chart.scss`. Without it the
+  // shell's text-field rule for inputs wins and the track becomes a block.
+  &.element-appearance-motion-speed input[type='range'] {
+    background: var(--md-sys-color-secondary-container);
+    border: 0;
+    border-radius: var(--md-sys-shape-corner-full);
+    height: 16px;
+    margin: 8px 0;
+    min-height: 0;
+    padding: 0;
     width: 100%;
-    min-height: 32px;
-    accent-color: var(--md-sys-color-primary);
 
     &:focus-visible {
       outline: 2px solid var(--md-sys-color-primary);

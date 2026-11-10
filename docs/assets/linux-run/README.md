@@ -66,3 +66,13 @@ What this means for reading them:
   the card is this Linux run's missing credential store; the panel kept
   working, which is the fix from `70e75b5`. Not covered: the public link,
   Discord, and a real server process.
+- v4.0.142801: the category chips started folded and the tool list had its
+  room back. The live chart slider was **still** a thick block, although the
+  rule from `58bc719` was in the stylesheet. The real cause: the shell styles
+  every input that is not a checkbox or radio as a 40px bordered text field,
+  with the same specificity and later in the file, so it won. The earlier
+  check had appended the rule at the end of the stylesheet, which hid this.
+  The rule now outranks the shell's and was checked in its real position
+  inside this release's stylesheet, where the track is 16px. The motion speed
+  slider in the appearance editor had the same fault and got the same fix; it
+  was not looked at in a running build.

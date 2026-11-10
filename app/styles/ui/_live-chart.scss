@@ -85,13 +85,15 @@ body[data-dm-motion='calm'] .live-chart-dot-live {
   flex-wrap: wrap;
   gap: 10px;
 
-  input[type='range'] {
-    // The shared slider is a 16px track; a taller box would stretch its
-    // filled side into a block. The margin keeps a comfortable pointer target.
-    // Repository tools gives every input a text-field box (36px tall, padded,
-    // bordered). Undo that here or the track becomes a thick block; seen in
-    // release v4.0.141601.
+  // The class is doubled on purpose. The shell styles every input that is not
+  // a checkbox or radio as a 40px bordered text field, with the same
+  // specificity as a single class plus `input[type='range']` and later in the
+  // stylesheet, so a plain rule here loses. Seen in releases v4.0.141601 and
+  // v4.0.142801, where the track was drawn as a thick block.
+  &.live-chart-scrub input[type='range'] {
+    background: var(--md-sys-color-secondary-container);
     border: 0;
+    border-radius: var(--md-sys-shape-corner-full);
     flex: 1 1 200px;
     height: 16px;
     margin: 8px 0;
