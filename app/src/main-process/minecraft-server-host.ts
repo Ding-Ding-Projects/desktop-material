@@ -29,12 +29,15 @@ import {
   validateMinecraftServer,
 } from '../lib/minecraft/server'
 import {
+  IMinecraftNewWorld,
   IMinecraftPropertySpec,
   MaxMinecraftPropertiesBytes,
   checkMinecraftProperty,
   editableMinecraftProperties,
   minecraftBackupName,
+  minecraftNewWorldProperties,
   minecraftWorldFolder,
+  validateMinecraftNewWorld,
 } from '../lib/minecraft/properties'
 import {
   MaxMinecraftFileBytes,
@@ -481,6 +484,46 @@ export class MinecraftServerHost {
       setMinecraftServerProperty(text, key, checked.value)
     )
     return null
+  }
+
+  /** The folder name of the world the server uses now, if it is a plain one. */
+  public async currentWorld(id: string): Promise<string | null> {
+    return minecraftWorldFolder(await this.readProperties(await this.find(id)))
+  }
+
+  /**
+   * Point the server at a new world that it will generate the next time it
+   * starts. Only while stopped, and only to a folder name that does not exist
+   * yet, so no existing world is touched or replaced.
+   */
+  public async newWorld(
+    id: string,
+    world: IMinecraftNewWorld
+  ): Promise<ReadonlyArray<string>> {
+    const server = await this.find(id)
+    if (this.running.has(id)) {
+      return ['Stop the server before creating a new world.']
+    }
+    const errors = validateMinecraftNewWorld(world)
+    if (errors.length > 0) {
+      return errors
+    }
+    try {
+      const existing = await readdir(server.directory)
+      if (
+        existing.some(name => name.toLowerCase() === world.name.toLowerCase())
+      ) {
+        return ['Something with that name is already in the server folder.']
+      }
+    } catch {
+      return ['The server folder could not be read.']
+    }
+    let text = await this.readProperties(server)
+    for (const [key, value] of minecraftNewWorldProperties(world)) {
+      text = setMinecraftServerProperty(text, key, value)
+    }
+    await writeFile(Path.join(server.directory, 'server.properties'), text)
+    return []
   }
 
   /** Backups of the world, newest first. */

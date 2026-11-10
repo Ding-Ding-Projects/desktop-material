@@ -186,3 +186,53 @@ export function minecraftBackupName(world: string, now: Date): string {
     .replace(/:/g, '')
   return `${world}-${stamp}`
 }
+
+export const MinecraftWorldTypes = [
+  { id: 'minecraft:normal', label: 'Default' },
+  { id: 'minecraft:flat', label: 'Superflat' },
+  { id: 'minecraft:large_biomes', label: 'Large biomes' },
+  { id: 'minecraft:amplified', label: 'Amplified' },
+] as const
+
+export interface IMinecraftNewWorld {
+  /** Folder name of the new world inside the server folder. */
+  readonly name: string
+  /** Empty for a random seed. */
+  readonly seed: string
+  readonly type: string
+  readonly structures: boolean
+}
+
+/** Every problem with a new world request, in plain words. */
+export function validateMinecraftNewWorld(
+  world: IMinecraftNewWorld
+): ReadonlyArray<string> {
+  const errors = new Array<string>()
+  if (
+    minecraftWorldFolder(`level-name=${world.name}\n`) !== world.name ||
+    world.name.toLowerCase() === 'backups'
+  ) {
+    errors.push(
+      'Name the world with 1 to 64 letters, digits, spaces, dots, dashes or underscores.'
+    )
+  }
+  if (world.seed.length > 32 || !/^[\x20-\x7e]*$/.test(world.seed)) {
+    errors.push('The seed must be at most 32 plain characters, or empty.')
+  }
+  if (!MinecraftWorldTypes.some(type => type.id === world.type)) {
+    errors.push('Choose one of the listed world types.')
+  }
+  return errors
+}
+
+/** The `server.properties` values that make the server create the world. */
+export function minecraftNewWorldProperties(
+  world: IMinecraftNewWorld
+): ReadonlyArray<readonly [string, string]> {
+  return [
+    ['level-name', world.name],
+    ['level-seed', world.seed.trim()],
+    ['level-type', world.type.replace(':', '\\:')],
+    ['generate-structures', world.structures ? 'true' : 'false'],
+  ]
+}

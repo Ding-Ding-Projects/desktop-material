@@ -5,7 +5,9 @@ import {
   checkMinecraftProperty,
   editableMinecraftProperties,
   minecraftBackupName,
+  minecraftNewWorldProperties,
   minecraftWorldFolder,
+  validateMinecraftNewWorld,
   parseMinecraftProperties,
 } from '../../src/lib/minecraft/properties'
 
@@ -59,6 +61,35 @@ describe('Minecraft server properties', () => {
     assert.equal(
       minecraftBackupName('world', new Date('2026-11-10T03:04:05.678Z')),
       'world-2026-11-10T030405Z'
+    )
+  })
+
+  it('checks a new world and writes the values that create it', () => {
+    const world = {
+      name: 'Skyblock 2',
+      seed: ' 12345 ',
+      type: 'minecraft:flat',
+      structures: false,
+    }
+    assert.deepEqual(validateMinecraftNewWorld(world), [])
+    assert.deepEqual(minecraftNewWorldProperties(world), [
+      ['level-name', 'Skyblock 2'],
+      ['level-seed', '12345'],
+      ['level-type', 'minecraft\\:flat'],
+      ['generate-structures', 'false'],
+    ])
+    assert.equal(
+      validateMinecraftNewWorld({
+        name: '../x',
+        seed: 'a\nb',
+        type: 'custom',
+        structures: true,
+      }).length,
+      3
+    )
+    assert.equal(
+      validateMinecraftNewWorld({ ...world, name: 'Backups' }).length,
+      1
     )
   })
 })

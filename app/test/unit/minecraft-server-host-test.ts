@@ -389,4 +389,45 @@ describe('MinecraftServerHost', () => {
     await host.removeSchedule(first.id)
     assert.equal((await host.schedules(id)).length, 2)
   })
+
+  it('points a stopped server at a new world without touching the old one', async () => {
+    const { directory, host, draft } = await setup()
+    await host.saveServer(draft, null)
+    const id = (await host.list())[0].server.id
+    await mkdir(Path.join(directory, 'world'))
+    await writeFile(Path.join(directory, 'world', 'level.dat'), 'old')
+    await writeFile(
+      Path.join(directory, 'server.properties'),
+      'motd=Hi\nlevel-name=world\n'
+    )
+    const world = {
+      name: 'Flatland',
+      seed: '42',
+      type: 'minecraft:flat',
+      structures: false,
+    }
+    assert.match(
+      (await host.newWorld(id, { ...world, name: 'WORLD' }))[0],
+      /already in the server folder/
+    )
+    assert.equal((await host.newWorld(id, { ...world, type: 'x' })).length, 1)
+    assert.deepEqual(await host.newWorld(id, world), [])
+    assert.equal(await host.currentWorld(id), 'Flatland')
+    assert.equal(
+      await readFile(Path.join(directory, 'server.properties'), 'utf8'),
+      'motd=Hi\nlevel-name=Flatland\nlevel-seed=42\nlevel-type=minecraft\\:flat\ngenerate-structures=false\n'
+    )
+    assert.equal(
+      await readFile(Path.join(directory, 'world', 'level.dat'), 'utf8'),
+      'old'
+    )
+
+    await writeFile(Path.join(directory, 'server.jar'), 'jar')
+    await host.acceptEula(id)
+    await host.start(id)
+    assert.match(
+      (await host.newWorld(id, { ...world, name: 'Another' }))[0],
+      /Stop the server/
+    )
+  })
 })

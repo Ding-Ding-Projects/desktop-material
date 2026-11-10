@@ -19,7 +19,11 @@ import {
   redeemPairingCode,
   revokePairedDevice,
 } from '../lib/web-panel/pairing'
-import { IMinecraftPropertySpec } from '../lib/minecraft/properties'
+import {
+  IMinecraftNewWorld,
+  IMinecraftPropertySpec,
+  MinecraftWorldTypes,
+} from '../lib/minecraft/properties'
 import {
   IMinecraftSchedule,
   MinecraftScheduleDraft,
@@ -91,6 +95,11 @@ export interface IPanelServers {
     draft: MinecraftScheduleDraft
   ) => Promise<ReadonlyArray<string>>
   readonly removeSchedule: (scheduleId: string) => Promise<void>
+  readonly currentWorld: (id: string) => Promise<string | null>
+  readonly newWorld: (
+    id: string,
+    world: IMinecraftNewWorld
+  ) => Promise<ReadonlyArray<string>>
   readonly addOns: (id: string) => Promise<
     ReadonlyArray<{
       readonly name: string
@@ -382,6 +391,17 @@ export class WebPanelServer {
         : this.json(response, 200, file)
     }
 
+    if (route === 'GET /api/world') {
+      const id = url.searchParams.get('id') ?? ''
+      if (!(await this.known(id))) {
+        return this.json(response, 404, { error: 'No such server.' })
+      }
+      return this.json(response, 200, {
+        current: await this.servers.currentWorld(id),
+        types: MinecraftWorldTypes,
+      })
+    }
+
     if (route === 'GET /api/schedules') {
       const id = url.searchParams.get('id') ?? ''
       if (!(await this.known(id))) {
@@ -531,6 +551,20 @@ export class WebPanelServer {
         }
         await this.servers.removeSchedule(scheduleId)
         this.record(device.label, `Removed a schedule on ${name}`)
+        return this.json(response, 200, {})
+      }
+      case 'POST /api/world': {
+        const world: IMinecraftNewWorld = {
+          name: String(body.name ?? '').trim(),
+          seed: String(body.seed ?? ''),
+          type: String(body.type ?? ''),
+          structures: body.structures !== false,
+        }
+        const errors = await this.servers.newWorld(id, world)
+        if (errors.length > 0) {
+          return this.json(response, 409, { error: errors.join(' ') })
+        }
+        this.record(device.label, `Set up new world ${world.name} on ${name}`)
         return this.json(response, 200, {})
       }
       case 'POST /api/kick': {

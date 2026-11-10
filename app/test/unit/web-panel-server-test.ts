@@ -80,6 +80,13 @@ function fakeServers() {
         ? null
         : 'That backup is no longer in the backups folder.'
     },
+    currentWorld: async () => 'world',
+    newWorld: async (id, world) => {
+      calls.push(`world:${id}:${world.name}:${world.type}:${world.structures}`)
+      return world.name === 'world'
+        ? ['Something with that name is already in the server folder.']
+        : []
+    },
     schedules: async () => schedules,
     addSchedule: async draft => {
       if (draft.time !== '04:30') {
@@ -551,6 +558,51 @@ describe('WebPanelServer', () => {
         200
       )
       assert.equal(panel.activity[0].what, 'Removed a schedule on Survival')
+    } finally {
+      await panel.stop()
+    }
+  })
+
+  it('shows the current world and sets up a new one for paired devices', async () => {
+    const { panel, calls, call, pair } = await setup()
+    try {
+      assert.equal((await call('GET', '/api/world?id=one')).status, 401)
+      const cookie = await pair()
+      const info = await call('GET', '/api/world?id=one', undefined, cookie)
+      assert.equal(info.body.current, 'world')
+      assert.equal(info.body.types[1].id, 'minecraft:flat')
+      const taken = await call(
+        'POST',
+        '/api/world',
+        { id: 'one', name: 'world', type: 'minecraft:normal' },
+        cookie
+      )
+      assert.equal(taken.status, 409)
+      assert.equal(
+        (
+          await call(
+            'POST',
+            '/api/world',
+            {
+              id: 'one',
+              name: ' Flatland ',
+              seed: '42',
+              type: 'minecraft:flat',
+              structures: false,
+            },
+            cookie
+          )
+        ).status,
+        200
+      )
+      assert.deepEqual(calls, [
+        'world:one:world:minecraft:normal:true',
+        'world:one:Flatland:minecraft:flat:false',
+      ])
+      assert.equal(
+        panel.activity[0].what,
+        'Set up new world Flatland on Survival'
+      )
     } finally {
       await panel.stop()
     }

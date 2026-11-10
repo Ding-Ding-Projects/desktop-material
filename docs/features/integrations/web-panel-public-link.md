@@ -20,7 +20,7 @@ Minecraft 伺服器，撳一下就有免費公開連結，連結一變仲可以�
   **Console** (live output and a command line), **Players** (who is online,
   with Kick), **Settings** (ten `server.properties` values), **Backups** (copy
   the world, list the copies), **Files** (browse the server folder and open
-  text files, read-only), **Schedules**, **Plugins** (the jar files in `plugins/` and
+  text files, read-only), **World**, **Schedules**, **Plugins** (the jar files in `plugins/` and
   `mods/`, read-only) and **Activity** (what paired devices did, newest
   first).
 - **Settings** can change only: message of the day, maximum players,
@@ -35,6 +35,13 @@ Minecraft 伺服器，撳一下就有免費公開連結，連結一變仲可以�
   `.properties`, `.json`, `.yml` and similar), at most the newest 256 KB, and
   values on lines whose key names a password, secret, token or API key are
   shown as `(hidden)`. Nothing can be changed, uploaded or deleted.
+- **World** shows the current world folder and sets up a new one: a name, an
+  optional seed, a type (default, superflat, large biomes, amplified) and
+  whether structures are generated. It only writes four `server.properties`
+  values; the server generates the world the next time it starts. It needs a
+  stopped server and a name that is not already in the server folder, so the
+  current world is never touched or deleted. Switching back to an old world is
+  done by editing `level-name` in the file yourself.
 - **Schedules** are daily, in this computer's local time: start, stop,
   restart, back up (only while stopped) or run one console command. They run
   only while Desktop Material is open, a time that passed while the computer
@@ -113,7 +120,7 @@ Minecraft 伺服器，撳一下就有免費公開連結，連結一變仲可以�
 
 ## Not built
 
-Weekly or one-off schedules; managing schedules in the app; editing,
+Switching back to an earlier world; weekly or one-off schedules; managing schedules in the app; editing,
 uploading or deleting files; installing or removing
 plugins; deleting backups; backing up a running server; a named tunnel on
 your own domain; downloading or verifying `cloudflared`; a WebSocket console

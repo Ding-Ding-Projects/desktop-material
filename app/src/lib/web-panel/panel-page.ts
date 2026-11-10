@@ -43,6 +43,7 @@ export const PanelHtml = `<!doctype html>
       <button type="button" data-page="console" aria-pressed="false">Console</button>
       <button type="button" data-page="players" aria-pressed="false">Players</button>
       <button type="button" data-page="settings" aria-pressed="false">Settings</button>
+      <button type="button" data-page="world" aria-pressed="false">World</button>
       <button type="button" data-page="files" aria-pressed="false">Files</button>
       <button type="button" data-page="backups" aria-pressed="false">Backups</button>
       <button type="button" data-page="schedules" aria-pressed="false">Schedules</button>
@@ -83,6 +84,24 @@ export const PanelHtml = `<!doctype html>
       <h2>Settings</h2>
       <p>These are written to server.properties. A running server reads them the next time it starts.</p>
       <form id="settings-form"></form>
+    </div>
+    <div id="page-world" class="page" hidden>
+      <h2>World</h2>
+      <p>Current world folder: <strong id="world-current">-</strong></p>
+      <p>A new world is generated the next time the server starts. The server must be stopped first. The current world stays in the server folder untouched; nothing is deleted.</p>
+      <form id="world-form">
+        <label>Name of the new world
+          <input id="world-name" maxlength="64" required>
+        </label>
+        <label>Seed (leave empty for a random one)
+          <input id="world-seed" maxlength="32" autocomplete="off" spellcheck="false">
+        </label>
+        <label>World type
+          <select id="world-type"></select>
+        </label>
+        <label class="check"><input id="world-structures" type="checkbox" checked> Generate villages and other structures</label>
+        <button type="submit">Use a new world</button>
+      </form>
     </div>
     <div id="page-files" class="page" hidden>
       <h2>Files</h2>
@@ -157,7 +176,8 @@ button[type=submit],#start,nav button[aria-pressed=true]{background:var(--accent
 button:disabled{opacity:.5;cursor:default}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 label{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--soft)}
-.pick{flex-direction:row;align-items:center;gap:8px}
+.pick,.check{flex-direction:row;align-items:center;gap:8px}
+.check input{width:auto;min-height:0;height:20px;aspect-ratio:1;padding:0}
 form{display:flex;flex-direction:column;gap:12px;max-width:420px}
 select{width:100%;border-radius:12px}.pick select{width:auto;border-radius:22px}
 small{color:var(--soft);white-space:nowrap}
@@ -310,6 +330,16 @@ function loadPage(){
       if(r.body.entries.length===0){row(list,'This folder is empty.','')}
     }).catch(function(){});
   }
+  if(page==='world'){
+    api('GET','/api/world?id='+id).then(function(r){
+      if(r.status!==200||want!==selected){return}
+      $('world-current').textContent=r.body.current||'(not a plain folder name)';
+      var select=$('world-type');
+      if(select.options.length===0){
+        r.body.types.forEach(function(t){var o=document.createElement('option');o.value=t.id;o.textContent=t.label;select.appendChild(o)});
+      }
+    }).catch(function(){});
+  }
   if(page==='schedules'){
     api('GET','/api/schedules?id='+id).then(function(r){
       if(r.status!==200||want!==selected){return}
@@ -370,6 +400,13 @@ $('server').addEventListener('change',function(e){selected=e.target.value;folder
 $('files-up').addEventListener('click',function(){folder=folder.split('/').slice(0,-1).join('/');$('file-view').hidden=true;loadPage()});
 $('backup').addEventListener('click',function(){$('backup').disabled=true;act('/api/backup',{id:selected}).then(function(){$('backup').disabled=false;loadPage()})});
 $('settings-form').addEventListener('submit',function(e){e.preventDefault()});
+$('world-form').addEventListener('submit',function(e){
+  e.preventDefault();
+  act('/api/world',{id:selected,name:$('world-name').value,seed:$('world-seed').value,type:$('world-type').value,structures:$('world-structures').checked}).then(function(){
+    if(!$('notice').textContent){$('world-name').value='';$('world-seed').value='';notice('The new world will be generated the next time the server starts.')}
+    loadPage();
+  });
+});
 $('schedule-action').addEventListener('change',function(e){$('schedule-command-label').hidden=e.target.value!=='command'});
 $('schedule-form').addEventListener('submit',function(e){
   e.preventDefault();
