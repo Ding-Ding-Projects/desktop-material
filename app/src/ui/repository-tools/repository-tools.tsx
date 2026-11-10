@@ -85,6 +85,7 @@ import { GitflowManager } from './gitflow'
 import { RepositoryCommitRewrite } from './commit-rewrite'
 import { FileConverter } from './file-converter'
 import { AppMemoryChart } from './app-memory-chart'
+import { SketchPad } from './sketch-pad'
 import { MaterialSymbol } from '../lib/material-symbol'
 
 const MaxOutputBytes = 4 * 1024 * 1024
@@ -172,6 +173,7 @@ export type RepositoryToolsHubToolID =
   | 'interactive-rebase'
   | 'file-converter'
   | 'app-memory'
+  | 'sketch-pad'
 
 type RepositoryToolsHubCategory =
   | RepositoryToolCategory
@@ -375,6 +377,14 @@ const UnsortedHubEntries: ReadonlyArray<IRepositoryToolsHubEntry> = [
       'Watch the memory this window is using, sampled once a second, with pause and sample inspection.',
     category: 'Search & inspect',
     icon: octicons.pulse,
+  },
+  {
+    id: 'sketch-pad',
+    title: 'Sketch pad',
+    description:
+      'Draw a quick freehand sketch in four inks, undo strokes, and copy the result as an SVG.',
+    category: 'Share & transfer',
+    icon: octicons.pencil,
   },
   {
     id: 'export-artifacts',
@@ -2843,6 +2853,7 @@ export class RepositoryTools extends React.Component<
         {selected === 'cheap-lfs' && this.renderCheapLfs()}
         {selected === 'file-converter' && this.renderFileConverter()}
         {selected === 'app-memory' && <AppMemoryChart />}
+        {selected === 'sketch-pad' && <SketchPad />}
         {selected === 'tag-lifecycle' && this.renderTagLifecycle()}
         {selected === 'github-projects' && this.renderGitHubProjects()}
         {selected === 'github-api-functions' && this.renderGitHubAPIFunctions()}

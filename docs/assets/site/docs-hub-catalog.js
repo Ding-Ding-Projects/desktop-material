@@ -721,6 +721,13 @@
       d: 'Every self-hosted Windows job bootstraps its declared dependencies before it builds, tests, packages, or publishes. A warm runner may reuse compatible tools and exact…',
     },
     {
+      t: 'Sketch pad / 畫板',
+      h: 'features/integrations/sketch-pad.html',
+      s: 'features/integrations/sketch-pad.md',
+      c: 'features',
+      d: 'Repository tools → Sketch pad is a small freehand drawing surface for a quick diagram or annotation.',
+    },
+    {
       t: 'SSH working copies and remote clone',
       h: 'features/integrations/ssh-working-copy-and-remote-clone.html',
       s: 'features/integrations/ssh-working-copy-and-remote-clone.md',

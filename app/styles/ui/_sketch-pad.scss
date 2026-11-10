@@ -1,0 +1,67 @@
+// Sketch pad: a freehand drawing surface inside Repository tools.
+.sketch-pad {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sketch-pad-toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  h3 {
+    flex: 1 1 160px;
+    margin: 0;
+  }
+}
+
+.sketch-pad-inks {
+  align-items: center;
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+
+  legend {
+    float: left;
+    margin-right: 4px;
+    padding: 0;
+  }
+
+  label {
+    align-items: center;
+    display: inline-flex;
+    gap: 6px;
+    min-height: 32px;
+  }
+}
+
+.sketch-pad-swatch {
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: 50%;
+  display: inline-block;
+  height: 16px;
+  width: 16px;
+}
+
+.sketch-pad-surface {
+  background: #fff;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-large, 16px);
+  cursor: crosshair;
+  display: block;
+  height: 360px;
+  touch-action: none;
+  width: 100%;
+}
+
+.sketch-pad-status,
+.sketch-pad-note {
+  color: var(--md-sys-color-on-surface-variant);
+  margin: 0;
+}

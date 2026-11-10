@@ -731,6 +731,14 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
         'docs/features/integrations/self-hosted-windows-dependency-bootstrap.md',
     },
     {
+      id: 'integrations/sketch-pad',
+      category: 'integrations',
+      title: 'Sketch pad / 畫板',
+      description:
+        'Repository tools → Sketch pad is a small freehand drawing surface for a quick diagram or annotation.',
+      sourcePath: 'docs/features/integrations/sketch-pad.md',
+    },
+    {
       id: 'integrations/ssh-working-copy-and-remote-clone',
       category: 'integrations',
       title: 'SSH working copies and remote clone',
@@ -1568,7 +1576,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'integrations',
     label: 'Integrations',
-    count: 32,
+    count: 33,
   },
   {
     name: 'linux-tui',
@@ -1598,4 +1606,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 180
+export const DocsBrowserArticleCount = 181
