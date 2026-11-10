@@ -52,7 +52,7 @@ Not done:
    studio, Settings items, first-run wizard changes, Activity and Locks gaps.
    Nothing has been run against Cloudflare, Discord or a real Minecraft server jar.
 4. Upstream (issue #212): port short-lived sign-in tokens (3.6.8), the Git, Git LFS and Electron
-   updates, folder-reveal confirmation (#22872), missing-worktree warning (#22607) and dash-prefixed
-   names (#22862); these three do not apply as patches and need a manual port; then classify the rest of the 435 commits since b17e06dd.
+   updates, missing-worktree warning (#22607) and dash-prefixed names (#22862); these two do not
+   apply as patches and need a manual port (#22872 is done where it applies to Windows); then classify the rest of the 435 commits since b17e06dd.
 5. Confirm three design assumptions: sketch pad scope, first-run wizard steps, palette shortcuts.
 ```
