@@ -721,6 +721,13 @@
       d: 'Repository Settings → Remote includes an SSH Working Copy manager for a canonical checkout on a chosen host. After saving and testing non-secret host metadata, a user can clone…',
     },
     {
+      t: 'Web panel public link and Discord webhook (groundwork) / 網頁面板公開連結同 Discord（底層）',
+      h: 'features/integrations/web-panel-public-link.html',
+      s: 'features/integrations/web-panel-public-link.md',
+      c: 'features',
+      d: '呢度只係底層規則，有測試，但未有畫面、未會真係開隧道或者發訊息，因為佢哋要跟住嘅 Minecraft 伺服器管理器同網頁面板仲未起好。',
+    },
+    {
       t: 'Windows Explorer context menu and quick-action window',
       h: 'features/integrations/windows-explorer-context-menu.html',
       s: 'features/integrations/windows-explorer-context-menu.md',

@@ -732,6 +732,15 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
         'docs/features/integrations/ssh-working-copy-and-remote-clone.md',
     },
     {
+      id: 'integrations/web-panel-public-link',
+      category: 'integrations',
+      title:
+        'Web panel public link and Discord webhook (groundwork) / 網頁面板公開連結同 Discord（底層）',
+      description:
+        '呢度只係底層規則，有測試，但未有畫面、未會真係開隧道或者發訊息，因為佢哋要跟住嘅 Minecraft 伺服器管理器同網頁面板仲未起好。',
+      sourcePath: 'docs/features/integrations/web-panel-public-link.md',
+    },
+    {
       id: 'integrations/windows-explorer-context-menu',
       category: 'integrations',
       title: 'Windows Explorer context menu and quick-action window',
@@ -1551,7 +1560,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'integrations',
     label: 'Integrations',
-    count: 31,
+    count: 32,
   },
   {
     name: 'linux-tui',
@@ -1581,4 +1590,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 178
+export const DocsBrowserArticleCount = 179

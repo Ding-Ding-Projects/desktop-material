@@ -89,6 +89,7 @@ Desktop Material 嘅整合功能將 Git 工作流程接上作業系統、編輯�
 - [逐儲存庫 GitHub Packages 瀏覽器](github-packages-explorer.md)
 - [SSH 工作副本同遠端 clone](ssh-working-copy-and-remote-clone.md)
 - [GitHub CLI 推送憑證後備](gh-cli-push-fallback.md)
+- [Web panel public link and Discord webhook (groundwork)](web-panel-public-link.md) — tested rules for a free Cloudflare quick tunnel and a Discord webhook that announces the link; no screen yet.
 
 Credential and sign-in prompts are serialized through one recoverable FIFO so
 concurrent Git/SSH requests cannot lose their visible completion path. See the
