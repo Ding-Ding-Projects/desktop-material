@@ -34,7 +34,11 @@ All pushed to `main`; the last commit of this entry is the one that contains it.
 **Upstream ports (issue #212).** SSH fix #22881 (`591ad5f`), LFS tailer #22889
 (`8690ffa`), Cygwin #22883 (`e9f4519`), focus #23019 (`520e670`), `getHTMLURL`
 #23046 (`9d281b7`), worktree rename #23056, check icon contrast #22900
-(`d580182`).
+(`d580182`). Later: the `.gitignore` symbolic-link refusal from #22872 (the
+rest of #22872 concerns macOS application bundles and does not apply to this
+Windows app), and the warning icon for a worktree whose folder is gone from
+#22607 (this fork already labelled such rows "missing"; the deferred-checkout
+dialog changes in #22607 were not ported).
 
 **Verification.** Focused unit tests and the TypeScript check pass on Linux;
 ESLint with the project rules passes on the new files. Windows CI is green

@@ -95,6 +95,11 @@
       color: var(--text-color);
     }
 
+    // The folder is gone: the warning icon carries the error colour.
+    &.missing-worktree .icon {
+      color: var(--md-sys-color-error);
+    }
+
     &.dirty-worktree .description {
       color: var(--md-sys-color-error);
       font-weight: var(--font-weight-semibold);

@@ -53,7 +53,14 @@ export class WorktreeListItem extends React.Component<IWorktreeListItemProps> {
             'data-worktree-appearance-id': this.props.appearanceId,
             'data-md3-element-label': `Worktree ${name}`,
           }
-    const icon = isCurrentWorktree ? octicons.check : octicons.fileDirectory
+    // A worktree whose folder is gone gets a warning icon, as in GitHub
+    // Desktop, so it is not mistaken for a usable checkout.
+    const isMissing = worktree.isPrunable
+    const icon = isCurrentWorktree
+      ? octicons.check
+      : isMissing
+        ? octicons.alert
+        : octicons.fileDirectory
     const refLabel = getWorktreeDescription(worktree)
     const stateLabels = [
       worktree.dirtyFileCount === null ? 'status unavailable' : null,
@@ -70,6 +77,7 @@ export class WorktreeListItem extends React.Component<IWorktreeListItemProps> {
     const className = classNames('worktrees-list-item', {
       'current-worktree': isCurrentWorktree,
       'dirty-worktree': (worktree.dirtyFileCount ?? 0) > 0,
+      'missing-worktree': isMissing,
     })
 
     return (

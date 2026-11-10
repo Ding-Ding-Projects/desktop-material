@@ -161,6 +161,28 @@ describe('WorktreeListItem', () => {
     assert.equal(screen.queryByText(/^clean$/), null)
   })
 
+  it('marks a worktree whose folder is gone, but never the current one', () => {
+    const view = render(
+      <WorktreeListItem
+        worktree={linkedWorktree({ isPrunable: true })}
+        isCurrentWorktree={false}
+        matches={noMatches}
+      />
+    )
+    assert.ok(view.container.querySelector('.missing-worktree'))
+    assert.match(view.container.textContent ?? '', /missing/)
+    view.unmount()
+
+    const usable = render(
+      <WorktreeListItem
+        worktree={linkedWorktree()}
+        isCurrentWorktree={false}
+        matches={noMatches}
+      />
+    )
+    assert.equal(usable.container.querySelector('.missing-worktree'), null)
+  })
+
   it('registers isolated appearance and lock targets for each row', () => {
     const firstId = getWorktreeAppearanceId(7, 'C:/worktrees/one')
     const secondId = getWorktreeAppearanceId(7, 'C:/worktrees/two')
