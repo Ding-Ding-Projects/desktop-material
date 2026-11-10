@@ -87,4 +87,7 @@ What this means for reading them:
 - v4.0.143701, unmodified: the live chart slider is a 16px track and the
   category chips start folded. The slider fault is closed.
 - v4.0.143901: the same push now shows the banner with **Try again** and no
-  general error notice. Try again itself was not pressed in this run.
+  general error notice. **Try again** was pressed in a later run of the same
+  release: the banner was showing both 1 second and 9 seconds afterwards.
+  That fits a retry that failed again at once, but it does not prove the
+  retry ran, because a failed lookup returns immediately.
