@@ -142,4 +142,11 @@ describe('repository tools hub responsive contracts', () => {
       /@media \(max-width: 700px\) \{[\s\S]*?\.cheap-lfs-pin-form dl,[\s\S]*?grid-template-columns: minmax\(0, 1fr\);/
     )
   })
+
+  it('keeps the pinned shortcut to its own height so the tool list gets the rail', () => {
+    assert.match(
+      tools,
+      /\.repository-tools-functions\.repository-tools-pinned \{\s*flex: none;\s*overflow: visible;/
+    )
+  })
 })

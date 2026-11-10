@@ -1195,6 +1195,13 @@
   padding-right: 8px;
 }
 
+// The pinned shortcut above the search is one row. Without this it shared the
+// rail's height equally with the tool list and left a tall empty gap.
+.repository-tools-functions.repository-tools-pinned {
+  flex: none;
+  overflow: visible;
+}
+
 .repository-tools-list-item {
   align-items: center;
   background: transparent;

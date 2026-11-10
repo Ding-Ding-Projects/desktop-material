@@ -45,7 +45,17 @@ Windows.
   read-only jar list). Still missing: files and schedules pages, restore, a
   named tunnel, downloading or verifying `cloudflared`, world generator, and
   the same settings and backups on the in-app screen.
-- Canonical screenshots are still not renewed.
+- Canonical screenshots are still not renewed, and cannot be from here: the
+  gallery in `docs/assets/screenshots/` is for Windows captures, the workflow
+  safety test forbids screenshot jobs in CI, and a local build runs out of
+  memory. Instead, `docs/assets/linux-run/` holds labelled captures of
+  published release v4.0.140801 run under Linux (command palette with a
+  repository open, extensions, file converter, sketch pad, virtual disk
+  planner). That run also showed two layout defects, both fixed after it: the
+  live chart slider was drawn as a thick block, and the pinned shortcut took
+  half of the Repository tools rail.
+- The command palette opened with a repository open in that run, so the
+  reported palette crash is still not reproduced.
 - Remaining boards: Workspace filter chips and statistics, Popovers, screen
   recording, Appearance studio, Settings items, first-run wizard, every tab
   open by default, Activity and Locks gaps.

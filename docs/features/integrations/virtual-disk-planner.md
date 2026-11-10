@@ -45,3 +45,9 @@ native boot, listing attached disks, and running the script with elevation.
 `app/test/unit/ui/virtual-disk-planner-test.tsx` (1 test) pass on Linux, and the
 TypeScript check passes. No script was run against `diskpart`: the command
 forms follow Microsoft's documented syntax and were not executed on Windows.
+
+## Picture
+
+![Virtual disk planner in release v4.0.140801, run under Linux with stand-in native modules](../../assets/linux-run/v4.0.140801-virtual-disk-planner.png)
+
+This is not a Windows capture. See [how it was made](../../assets/linux-run/README.md).

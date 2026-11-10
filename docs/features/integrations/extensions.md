@@ -111,3 +111,9 @@ real child processes, including the built-ins, the time limit and the output
 limit) and `ui/extension-manager-test.tsx` (2) pass on Linux; the TypeScript
 check passes. The built Windows application has not been checked, and the
 built-ins have not been run through the packaged app's own Node runtime.
+
+## Picture
+
+![Extensions in release v4.0.140801, run under Linux with stand-in native modules](../../assets/linux-run/v4.0.140801-extensions.png)
+
+This is not a Windows capture. See [how it was made](../../assets/linux-run/README.md).

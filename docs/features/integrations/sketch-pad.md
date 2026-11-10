@@ -34,3 +34,9 @@ copy it.
 `app/test/unit/ui/sketch-pad-test.tsx` (1 test) pass on Linux, and the
 TypeScript check passes. The built Windows application has not been checked and
 no capture exists yet.
+
+## Picture
+
+![Sketch pad in release v4.0.140801, run under Linux with stand-in native modules](../../assets/linux-run/v4.0.140801-sketch-pad.png)
+
+This is not a Windows capture. See [how it was made](../../assets/linux-run/README.md).

@@ -86,9 +86,10 @@ body[data-dm-motion='calm'] .live-chart-dot-live {
   gap: 10px;
 
   input[type='range'] {
-    accent-color: var(--md-sys-color-primary);
+    // The shared slider is a 16px track; a taller box would stretch its
+    // filled side into a block. The margin keeps a comfortable pointer target.
     flex: 1 1 200px;
-    min-height: 32px;
+    margin: 8px 0;
 
     &:focus-visible {
       outline: 2px solid var(--md-sys-color-primary);

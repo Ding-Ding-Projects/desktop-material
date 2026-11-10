@@ -140,3 +140,9 @@ Rules: `app/src/lib/base64-toolkit.ts`. Screen:
 `app/test/unit/base64-toolkit-test.ts` (6 tests) and
 `app/test/unit/ui/base64-toolkit-test.tsx` (3 tests) pass on Linux. The built
 Windows application has not been checked.
+
+## Picture
+
+![Local file converter in release v4.0.140801, run under Linux with stand-in native modules](../../assets/linux-run/v4.0.140801-local-file-converter.png)
+
+This is not a Windows capture. See [how it was made](../../assets/linux-run/README.md).

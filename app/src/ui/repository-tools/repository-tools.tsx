@@ -2804,7 +2804,7 @@ export class RepositoryTools extends React.Component<
     return (
       <aside className="repository-tools-sidebar">
         <nav
-          className="repository-tools-functions repository-tools-list"
+          className="repository-tools-functions repository-tools-list repository-tools-pinned"
           aria-label={translate(
             'repositorySigning.shortcutLabel',
             this.state.languageMode === 'bilingual'
