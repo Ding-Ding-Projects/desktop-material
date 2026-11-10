@@ -47,7 +47,7 @@ Not done:
    docs/assets/linux-run/README.md); the public link, Discord and a real server jar are still
    unexercised and need cloudflared, a webhook and Java.
    (b) Boards were audited (see the top HANDOFF entry): most surfaces already existed. Not in the
-   app: an inline retryable error banner, shortcut hints in context menus, the release code name.
+   app: an inline retryable error banner, row stagger in popover lists, the release code name.
 4. Upstream (issue #212): port short-lived sign-in tokens (3.6.8), the Git, Git LFS and Electron
    updates (#22862, #22872 and the visible part of #22607 are done); then classify the rest of the 435 commits since b17e06dd.
 5. Confirm three design assumptions: sketch pad scope, first-run wizard steps, palette shortcuts.

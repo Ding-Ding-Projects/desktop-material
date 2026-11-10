@@ -87,13 +87,14 @@ Windows.
     per-element appearance editor, custom logo and name, vocabulary import,
     offline documentation browser, dim sum surprise, agent status, welcome
     flow with a first-run checklist, toolbar chevron spring and foldout sheet
-    motion, hold-to-confirm destructive gate, scheduled motion.
+    motion, hold-to-confirm destructive gate, scheduled motion, shortcut hints
+    on context menu items.
   - Added in this work: motion speed and per-surface switches, motion polish,
     live charts, sketch pad, Base64 toolkit, quick convert, extensions,
     virtual disk planner, Minecraft servers and web panel, tools category
     counts and fold, build commit and free note in About.
   - Not in the app: an inline, retryable error banner for failures that can
-    wait (errors still open dialogs), shortcut hints in context menus, row
+    wait (errors still open dialogs), row
     stagger in popover lists (virtualised rows would replay it on scroll),
     the release's dim sum code name in the app (chosen after the build).
   - "Recording" on the Toolbox board is a committed walkthrough video, not an
