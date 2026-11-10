@@ -24,6 +24,13 @@ All pushed to `main`; the last commit of this entry is the one that contains it.
   one-time pairing code.
   [Article](docs/features/integrations/web-panel-public-link.md).
 
+- In-app Minecraft settings, backups and plugin list (`ac4e7f6`); category
+  counts, a statistics line and a folding chip row in the Repository tools
+  rail (`ba85f02`,
+  [article](docs/features/repository-management/repository-tools-category-counts.md));
+  the web panel keeps working when the system vault cannot be used
+  (`70e75b5`).
+
 **Upstream ports (issue #212).** SSH fix #22881 (`591ad5f`), LFS tailer #22889
 (`8690ffa`), Cygwin #22883 (`e9f4519`), focus #23019 (`520e670`), `getHTMLURL`
 #23046 (`9d281b7`), worktree rename #23056, check icon contrast #22900
@@ -60,9 +67,16 @@ Windows.
   recording, Appearance studio, Settings items, first-run wizard, every tab
   open by default, Activity and Locks gaps.
 - Remaining upstream items in issue #212.
-- Baseline failures in this sandbox that are not caused by these changes:
-  `repository-tools-test` files (`m.addEventListener is not a function`) and
-  the wiki gallery count (98 rows against an asserted 95).
+- Tests in this sandbox: the project expects Node 24.15 and the sandbox has
+  Node 22, so many UI test files cannot load (`addEventListener is not a
+  function` from xterm). Preloading a two-line shim
+  (`globalThis.addEventListener ??= () => {}`) with `NODE_OPTIONS=--import`
+  lets them run. With it the Repository tools hub tests pass except one that
+  looks for a `repository-tools-tonal-workbench` class that does not exist in
+  the source. A full unit run with the shim did not finish in 28 minutes and
+  showed several hundred failures across unrelated areas, which were not
+  triaged. The wiki gallery count (98 rows against an asserted 95) also fails
+  independently of this work.
 
 ## November 9, 2026 (later): design pass finished, first implementation, upstream ports
 

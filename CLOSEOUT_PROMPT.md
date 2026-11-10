@@ -26,6 +26,11 @@ Done this session:
   devices only, one-click free Cloudflare quick tunnel through an installed cloudflared, Discord
   webhook in the system vault with resend on change and optional one-time pairing code (4121e55).
   Upstream ports: #22881, #22889, #22883, #23019, #23046, #23056, #22900.
+- Later: panel and in-app settings, backups and plugin list (346c111, ac4e7f6), category counts and a
+  folding chip row in Repository tools (ba85f02), vault failure no longer breaks the web panel card
+  (70e75b5). docs/assets/linux-run holds labelled captures of published releases run under Linux;
+  its README lists what those runs found. Tools: /tmp shim `globalThis.addEventListener ??= () => {}`
+  preloaded with NODE_OPTIONS=--import lets UI tests load on Node 22.
 - Checked on Linux only: focused tests pass, TypeScript reports no errors. 30 tests in the wider
   appearance and shell set fail the same way with and without these changes.
 
