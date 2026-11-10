@@ -292,4 +292,38 @@ describe('MinecraftServerHost', () => {
     assert.equal(big?.truncated, true)
     assert.equal(big?.text.endsWith('last line\n'), true)
   })
+
+  it('restores a backup and keeps the world it replaced', async () => {
+    const { directory, host, draft } = await setup()
+    await host.saveServer(draft, null)
+    const id = (await host.list())[0].server.id
+    const level = Path.join(directory, 'world', 'level.dat')
+    await mkdir(Path.join(directory, 'world'))
+    await writeFile(level, 'old')
+    assert.equal(await host.backup(id), null)
+    const [backup] = await host.backups(id)
+    await writeFile(level, 'new')
+
+    assert.match((await host.restore(id, '../world')) ?? '', /no longer/)
+    assert.match((await host.restore(id, 'missing')) ?? '', /no longer/)
+    assert.equal(await host.restore(id, backup.name), null)
+    assert.equal(await readFile(level, 'utf8'), 'old')
+    assert.equal(
+      await readFile(
+        Path.join(
+          directory,
+          'backups',
+          'world-2026-11-09T200000Z-before-restore',
+          'level.dat'
+        ),
+        'utf8'
+      ),
+      'new'
+    )
+
+    await writeFile(Path.join(directory, 'server.jar'), 'jar')
+    await host.acceptEula(id)
+    await host.start(id)
+    assert.match((await host.restore(id, backup.name)) ?? '', /Stop the server/)
+  })
 })

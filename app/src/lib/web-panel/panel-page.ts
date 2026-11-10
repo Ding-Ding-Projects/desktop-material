@@ -92,7 +92,7 @@ export const PanelHtml = `<!doctype html>
     </div>
     <div id="page-backups" class="page" hidden>
       <h2>Backups</h2>
-      <p>A backup is a copy of the world in the server's backups folder. The server must be stopped first.</p>
+      <p>A backup is a copy of the world in the server's backups folder. The server must be stopped first. Restoring keeps the world it replaces as a before-restore backup.</p>
       <div class="actions"><button id="backup" type="button">Back up now</button></div>
       <p id="backups-empty">No backups yet.</p>
       <ul id="backups"></ul>
@@ -289,7 +289,16 @@ function loadPage(){
     api('GET','/api/backups?id='+id).then(function(r){
       if(r.status!==200||want!==selected){return}
       var list=$('backups');list.textContent='';
-      r.body.backups.forEach(function(b){row(list,b.name,new Date(b.createdAt).toLocaleString())});
+      r.body.backups.forEach(function(b){
+        var li=document.createElement('li'),name=document.createElement('span'),when=document.createElement('small'),restore=document.createElement('button'),armed=false;
+        name.textContent=b.name;when.textContent=new Date(b.createdAt).toLocaleString();
+        restore.type='button';restore.textContent='Restore';restore.setAttribute('aria-label','Restore '+b.name);
+        restore.addEventListener('click',function(){
+          if(!armed){armed=true;restore.textContent='Press again to restore';return}
+          restore.disabled=true;act('/api/restore',{id:selected,name:b.name}).then(loadPage);
+        });
+        li.appendChild(name);li.appendChild(when);li.appendChild(restore);list.appendChild(li);
+      });
       $('backups-empty').hidden=r.body.backups.length>0;
     }).catch(function(){});
   }

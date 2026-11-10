@@ -67,6 +67,7 @@ export interface IPanelServers {
     ReadonlyArray<{ readonly name: string; readonly createdAt: number }>
   >
   readonly backup: (id: string) => Promise<string | null>
+  readonly restore: (id: string, name: string) => Promise<string | null>
   readonly files: (
     id: string,
     relative: string
@@ -469,6 +470,15 @@ export class WebPanelServer {
           return this.json(response, 409, { error: problem })
         }
         this.record(device.label, `Backed up ${name}`)
+        return this.json(response, 200, {})
+      }
+      case 'POST /api/restore': {
+        const backup = String(body.name ?? '')
+        const problem = await this.servers.restore(id, backup)
+        if (problem !== null) {
+          return this.json(response, 409, { error: problem })
+        }
+        this.record(device.label, `Restored ${backup} on ${name}`)
         return this.json(response, 200, {})
       }
       case 'POST /api/kick': {

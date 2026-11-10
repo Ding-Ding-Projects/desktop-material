@@ -578,6 +578,7 @@ export type RequestResponseChannels = {
     ReadonlyArray<{ readonly name: string; readonly createdAt: number }>
   >
   'minecraft-backup': (id: string) => Promise<string | null>
+  'minecraft-restore': (id: string, name: string) => Promise<string | null>
   'minecraft-addons': (id: string) => Promise<
     ReadonlyArray<{
       readonly name: string

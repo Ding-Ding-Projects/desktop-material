@@ -7,6 +7,7 @@ import {
   readFile,
   readdir,
   realpath,
+  rename,
   stat,
   writeFile,
 } from 'fs/promises'
@@ -619,6 +620,56 @@ export class MinecraftServerHost {
       }
     } catch {
       return null
+    }
+  }
+
+  /**
+   * Put a backup back as the world. Only while the server is stopped. The
+   * world that is there now is not deleted: it is moved into `backups/` first
+   * under a `before-restore` name, so a restore can itself be undone.
+   */
+  public async restore(id: string, name: string): Promise<string | null> {
+    const server = await this.find(id)
+    if (this.running.has(id)) {
+      return 'Stop the server before restoring a backup.'
+    }
+    if (!(await this.backups(id)).some(backup => backup.name === name)) {
+      return 'That backup is no longer in the backups folder.'
+    }
+    const world = minecraftWorldFolder(await this.readProperties(server))
+    if (world === null) {
+      return 'The world folder name in server.properties cannot be restored from here.'
+    }
+    const target = Path.join(server.directory, world)
+    const source = Path.join(server.directory, BackupsFolder, name)
+    const kept = Path.join(
+      server.directory,
+      BackupsFolder,
+      `${minecraftBackupName(world, this.now())}-before-restore`
+    )
+    let moved = false
+    try {
+      try {
+        await rename(target, kept)
+        moved = true
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+          return 'The current world could not be set aside, so nothing was changed.'
+        }
+      }
+      await cp(source, target, {
+        recursive: true,
+        errorOnExist: true,
+        force: false,
+      })
+      return null
+    } catch {
+      if (moved) {
+        // Put the world back exactly as it was.
+        await rename(target, `${kept}-failed-copy`).catch(() => {})
+        await rename(kept, target).catch(() => {})
+      }
+      return 'The backup could not be copied. The world was left as it was.'
     }
   }
 

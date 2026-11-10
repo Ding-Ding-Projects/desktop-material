@@ -37,8 +37,10 @@ Minecraft 伺服器，撳一下就有免費公開連結，連結一變仲可以�
   shown as `(hidden)`. Nothing can be changed, uploaded or deleted.
 - **Backups** copies the world folder into `backups/<world>-<UTC time>/` in the
   server folder. The server must be stopped first, so a copy is never taken
-  from a world that is being written. At most 50 are kept; restoring and
-  deleting are done in the folder, not from the panel.
+  from a world that is being written. At most 50 are kept. **Restore** needs
+  two presses and a stopped server; the world it replaces is not deleted but
+  moved into `backups/` under a `before-restore` name, so a restore can be
+  undone. Deleting backups is done in the folder, not from the panel.
 - Works on a phone-width screen, follows light and dark mode, and has no
   animation when reduced motion is requested.
 
@@ -104,7 +106,8 @@ Minecraft 伺服器，撳一下就有免費公開連結，連結一變仲可以�
 
 ## Not built
 
-Files, configuration, plugins, backups and schedules pages; a named tunnel on
+Schedules; editing, uploading or deleting files; installing or removing
+plugins; deleting backups; backing up a running server; a named tunnel on
 your own domain; downloading or verifying `cloudflared`; a WebSocket console
 (the console polls once a second).
 

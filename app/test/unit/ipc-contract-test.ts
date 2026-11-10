@@ -207,6 +207,7 @@ describe('IPC channel contract', () => {
     'minecraft-set-setting',
     'minecraft-backups',
     'minecraft-backup',
+    'minecraft-restore',
     'minecraft-addons',
     'web-panel-status',
     'web-panel-start',

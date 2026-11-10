@@ -2201,6 +2201,11 @@ app.on('ready', () => {
   ipcMain.handle('minecraft-backup', async (_event, id: string) =>
     minecraftHost.backup(String(id))
   )
+  ipcMain.handle(
+    'minecraft-restore',
+    async (_event, id: string, name: string) =>
+      minecraftHost.restore(String(id), String(name))
+  )
   ipcMain.handle('minecraft-addons', async (_event, id: string) =>
     minecraftHost.addOns(String(id))
   )

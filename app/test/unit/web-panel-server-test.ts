@@ -72,6 +72,12 @@ function fakeServers() {
         ? 'Stop the server before backing up its world.'
         : null
     },
+    restore: async (id, name) => {
+      calls.push(`restore:${id}:${name}`)
+      return name === 'world-2026-11-10T030405Z'
+        ? null
+        : 'That backup is no longer in the backups folder.'
+    },
     addOns: async () => [{ name: 'Essentials.jar', kind: 'plugin', bytes: 3 }],
     files: async (_id, relative) =>
       relative === ''
@@ -401,6 +407,32 @@ describe('WebPanelServer', () => {
         'backup:one',
       ])
       assert.equal(panel.activity[0].what, 'Changed pvp on Survival')
+      assert.equal(
+        (
+          await call(
+            'POST',
+            '/api/restore',
+            { id: 'one', name: 'nope' },
+            cookie
+          )
+        ).status,
+        409
+      )
+      assert.equal(
+        (
+          await call(
+            'POST',
+            '/api/restore',
+            { id: 'one', name: 'world-2026-11-10T030405Z' },
+            cookie
+          )
+        ).status,
+        200
+      )
+      assert.equal(
+        panel.activity[0].what,
+        'Restored world-2026-11-10T030405Z on Survival'
+      )
     } finally {
       await panel.stop()
     }

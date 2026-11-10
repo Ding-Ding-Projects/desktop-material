@@ -49,8 +49,8 @@ Windows.
 
 - Panel settings, backups and plugin list pages were added after `4121e55`
   (ten checked `server.properties` values, world copies while stopped,
-  read-only jar list), then a read-only Files page. Still missing: schedules,
-  restore, file editing, a
+  read-only jar list), then a read-only Files page. Restore was added next (two presses, the replaced world is kept). Still
+  missing: schedules, file editing, a
   named tunnel, downloading or verifying `cloudflared`, world generator, and
   the same settings and backups on the in-app screen.
 - Canonical screenshots are still not renewed, and cannot be from here: the

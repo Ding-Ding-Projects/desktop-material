@@ -487,6 +487,7 @@ export const readMinecraftSettings = invokeProxy('minecraft-settings', 1)
 export const setMinecraftSetting = invokeProxy('minecraft-set-setting', 3)
 export const listMinecraftBackups = invokeProxy('minecraft-backups', 1)
 export const backUpMinecraftWorld = invokeProxy('minecraft-backup', 1)
+export const restoreMinecraftBackup = invokeProxy('minecraft-restore', 2)
 export const listMinecraftAddOns = invokeProxy('minecraft-addons', 1)
 
 export const getWebPanelStatus = invokeProxy('web-panel-status', 0)

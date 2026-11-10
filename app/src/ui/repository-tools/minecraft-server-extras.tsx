@@ -8,6 +8,7 @@ import {
   backUpMinecraftWorld,
   listMinecraftAddOns,
   listMinecraftBackups,
+  restoreMinecraftBackup,
   readMinecraftSettings,
   setMinecraftSetting,
 } from '../main-process-proxy'
@@ -31,6 +32,7 @@ export interface IMinecraftExtrasClient {
     ReadonlyArray<{ readonly name: string; readonly createdAt: number }>
   >
   readonly backup: (id: string) => Promise<string | null>
+  readonly restore: (id: string, name: string) => Promise<string | null>
   readonly addOns: (id: string) => Promise<
     ReadonlyArray<{
       readonly name: string
@@ -45,6 +47,7 @@ const defaultClient: IMinecraftExtrasClient = {
   setSetting: setMinecraftSetting,
   backups: listMinecraftBackups,
   backup: backUpMinecraftWorld,
+  restore: restoreMinecraftBackup,
   addOns: listMinecraftAddOns,
 }
 
@@ -70,6 +73,8 @@ interface IMinecraftServerExtrasState {
   readonly error: string | null
   readonly notice: string | null
   readonly backingUp: boolean
+  /** The backup whose Restore was pressed once and awaits a second press. */
+  readonly armedRestore: string | null
 }
 
 const formatBytes = (bytes: number) =>
@@ -132,6 +137,34 @@ class SettingField extends React.Component<ISettingFieldProps> {
   }
 }
 
+interface IRestoreButtonProps {
+  readonly name: string
+  readonly armed: boolean
+  readonly disabled: boolean
+  readonly onPress: (name: string) => void
+}
+
+/** Restore needs two presses, so one stray click changes nothing. */
+class RestoreButton extends React.Component<IRestoreButtonProps> {
+  private onClick = () => this.props.onPress(this.props.name)
+
+  public render() {
+    return (
+      <Button
+        ariaLabel={
+          this.props.armed
+            ? `Press again to restore ${this.props.name}`
+            : `Restore ${this.props.name}`
+        }
+        disabled={this.props.disabled}
+        onClick={this.onClick}
+      >
+        {this.props.armed ? 'Press again to restore' : 'Restore'}
+      </Button>
+    )
+  }
+}
+
 /**
  * Settings, backups and the plugin list of one Minecraft server. The same
  * rules as the web panel apply, because both go through the server host.
@@ -152,6 +185,7 @@ export class MinecraftServerExtras extends React.Component<
       error: null,
       notice: null,
       backingUp: false,
+      armedRestore: null,
     }
   }
 
@@ -236,6 +270,26 @@ export class MinecraftServerExtras extends React.Component<
     await this.load()
   }
 
+  private onRestore = async (name: string) => {
+    if (this.state.armedRestore !== name) {
+      this.setState({ armedRestore: name })
+      return
+    }
+    this.setState({ error: null, notice: null, armedRestore: null })
+    const problem = await this.client.restore(this.props.serverId, name)
+    if (!this.mounted) {
+      return
+    }
+    this.setState({
+      error: problem,
+      notice:
+        problem === null
+          ? 'Restored. The world it replaced was kept as a before-restore backup.'
+          : null,
+    })
+    await this.load()
+  }
+
   public render() {
     const { settings, drafts, backups, addOns, error, notice } = this.state
     return (
@@ -283,6 +337,12 @@ export class MinecraftServerExtras extends React.Component<
               <li key={backup.name}>
                 <span>{backup.name}</span>
                 <small>{new Date(backup.createdAt).toLocaleString()}</small>
+                <RestoreButton
+                  name={backup.name}
+                  armed={this.state.armedRestore === backup.name}
+                  disabled={this.props.active}
+                  onPress={this.onRestore}
+                />
               </li>
             ))}
           </ul>

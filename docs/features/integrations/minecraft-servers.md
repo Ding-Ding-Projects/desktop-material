@@ -24,7 +24,7 @@ console with a command line.
 | Command | One line of at most 256 characters, sent to the running server. A leading `/` is removed. |
 | Stop | Sends `stop` so the world is saved; the process is ended only if it has not exited after 20 seconds. |
 | Settings | Ten `server.properties` values (message of the day, maximum players, difficulty, game mode, PvP, allow-list, hardcore, flight, view distance, spawn protection), each checked. Nothing else in the file can be written. |
-| Backups | **Back up world** copies the world folder into `backups/<world>-<UTC time>/`. Only while the server is stopped; at most 50. |
+| Backups | **Back up world** copies the world folder into `backups/<world>-<UTC time>/`. Only while the server is stopped; at most 50. **Restore** takes two presses and keeps the replaced world as a `before-restore` backup. |
 | Plugins and mods | The jar files in `plugins/` and `mods/`, read-only. |
 | Remove from list | Forgets the entry. The folder and the world are never deleted. |
 
@@ -39,7 +39,7 @@ Servers that are still running are asked to stop when the app closes.
 
 ## Not built
 
-Downloading server jars, world generation, restoring or deleting backups, and
+Downloading server jars, world generation, deleting backups, and
 installing plugins.
 
 The web panel, its free public link and the Discord webhook are described in

@@ -29,6 +29,10 @@ function fake() {
       backups = [{ name: 'world-2026-11-10T030405Z', createdAt: 5 }]
       return null
     },
+    restore: async (_id, name) => {
+      calls.push(`restore:${name}`)
+      return null
+    },
     addOns: async () => [
       { name: 'Essentials.jar', kind: 'plugin', bytes: 2048 },
     ],
@@ -74,5 +78,19 @@ describe('MinecraftServerExtras', () => {
     screen.getByText('The world was backed up.')
     screen.getByText('Essentials.jar')
     screen.getByText('Plugin · 2 KB')
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Restore world-2026-11-10T030405Z' })
+    )
+    assert.deepEqual(calls, ['backup'])
+    // The first press settles before the second one counts.
+    await new Promise(resolve => setTimeout(resolve, 0))
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Press again to restore world-2026-11-10T030405Z',
+      })
+    )
+    await screen.findByText(/kept as a before-restore backup/)
+    assert.deepEqual(calls, ['backup', 'restore:world-2026-11-10T030405Z'])
   })
 })
