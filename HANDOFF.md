@@ -1,3 +1,56 @@
+## November 10, 2026: extensions, virtual disks, Minecraft servers and web panel, more upstream ports
+
+All pushed to `main`; the last commit of this entry is the one that contains it.
+
+**Implemented in the app (Repository tools).**
+
+- Extensions (`aea6c10`, `432413c`): versioned manifests, an out-of-process
+  JSON protocol with a 10 second and 256 KB limit, declared permissions with
+  consent on new or changed ones, a scrubbed environment, three built-ins and a
+  searchable manager. [Article](docs/features/integrations/extensions.md).
+- Layout fix (`ceff56e`): the tools detail pane was squeezed to a sliver above
+  1120 px because the rail was not wrapped in a flex pane.
+- Virtual disk planner (`00b981e`): checks an operation and shows the exact
+  `diskpart` script. It plans and never runs.
+  [Article](docs/features/integrations/virtual-disk-planner.md).
+- Minecraft servers (`6313b45`): local servers with the EULA step (never
+  accepted for the person), start and stop, a live console and a command line.
+  Java runs without a shell and with an allow-listed environment. Nothing is
+  downloaded. [Article](docs/features/integrations/minecraft-servers.md).
+- Minecraft web panel (`4121e55`): a loopback-only panel (dashboard, console,
+  players, activity) for paired devices only, a one-click free Cloudflare quick
+  tunnel through an installed `cloudflared`, and a Discord webhook kept in the
+  system vault that is told the link, re-sent when it changes, and can carry a
+  one-time pairing code.
+  [Article](docs/features/integrations/web-panel-public-link.md).
+
+**Upstream ports (issue #212).** SSH fix #22881 (`591ad5f`), LFS tailer #22889
+(`8690ffa`), Cygwin #22883 (`e9f4519`), focus #23019 (`520e670`), `getHTMLURL`
+#23046 (`9d281b7`), worktree rename #23056, check icon contrast #22900
+(`d580182`).
+
+**Verification.** Focused unit tests and the TypeScript check pass on Linux;
+ESLint with the project rules passes on the new files. Windows CI is green
+through `d580182`; it had not reported for `6313b45` and `4121e55` when this
+was written. The web panel page was loaded in Chromium on Linux against a
+stand-in server list (pair, dashboard, console, players) with no console
+errors; the captures in `docs/assets/web-panel/` are from that run. Nothing was
+run against a real Minecraft server jar, Cloudflare or Discord, and nothing on
+Windows.
+
+**Not done.**
+
+- Panel pages for files, configuration, plugins, backups and schedules; a
+  named tunnel; downloading or verifying `cloudflared`; world generator.
+- Canonical screenshots are still not renewed.
+- Remaining boards: Workspace filter chips and statistics, Popovers, screen
+  recording, Appearance studio, Settings items, first-run wizard, every tab
+  open by default, Activity and Locks gaps.
+- Remaining upstream items in issue #212.
+- Baseline failures in this sandbox that are not caused by these changes:
+  `repository-tools-test` files (`m.addEventListener is not a function`) and
+  the wiki gallery count (98 rows against an asserted 95).
+
 ## November 9, 2026 (later): design pass finished, first implementation, upstream ports
 
 All pushed to `main`; the last commit of this entry is the one that contains it.

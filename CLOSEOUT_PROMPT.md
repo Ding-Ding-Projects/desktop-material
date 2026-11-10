@@ -8,7 +8,7 @@ Project: Desktop Material, a GitHub Desktop fork (Electron, React, TypeScript) f
 Linux terminal app. Repository: Ding-Ding-Projects/desktop-material. Read README.md, AGENTS.md,
 ROADMAP.md and HANDOFF.md first (the top HANDOFF entry is this session).
 
-State (2026-11-09, later): everything is on main and pushed.
+State (2026-11-10): everything is on main and pushed.
 
 Done this session:
 - Design: all boards from issue #262 are drawn in design/motion-and-polish (20 boards). The
@@ -20,6 +20,12 @@ Done this session:
   files and folders to Base64 text beside the originals (e9a8b02), Base64 text toolkit (f1ed021), motion polish on existing
   controls (480baf7), web panel tunnel and Discord rules with no screen yet (a991584), live charts with
   a live memory chart tool (50e37e3), sketch pad (1ed08cb).
+- Also implemented: extensions with consent and a manager (aea6c10, 432413c), Repository tools
+  layout fix (ceff56e), virtual disk planner that only plans (00b981e), Minecraft servers with the
+  EULA step, start, stop and console (6313b45), and the Minecraft web panel: loopback-only, paired
+  devices only, one-click free Cloudflare quick tunnel through an installed cloudflared, Discord
+  webhook in the system vault with resend on change and optional one-time pairing code (4121e55).
+  Upstream ports: #22881, #22889, #22883, #23019, #23046, #23056, #22900.
 - Checked on Linux only: focused tests pass, TypeScript reports no errors. 30 tests in the wider
   appearance and shell set fail the same way with and without these changes.
 
@@ -32,11 +38,11 @@ Not done:
 1. Windows CI result for these commits was not seen. Check it first.
 2. No screenshot was renewed: captures need the built Windows app and script/capture-app.js. A Linux
    development build was tried and webpack ran out of memory on a 7 GB machine.
-3. Implement the remaining boards one feature per commit, starting with the Minecraft server
-   manager and its web panel (free Cloudflare quick tunnel link, Discord webhook with link and pairing
-   code, resend on change), then extensions, live charts, virtual disks, recording, first-run wizard.
+3. Implement the remaining boards one feature per commit: panel pages for files, configuration,
+   plugins, backups and schedules; world generator; Workspace filter chips and statistics; Popovers;
+   recording; Appearance studio; Settings items; first-run wizard; every tab open by default.
+   The web panel has not been run against Cloudflare, Discord or a real server.
 4. Upstream (issue #212): port short-lived sign-in tokens (3.6.8), the Git, Git LFS and Electron
-   updates, check-summary icon contrast (3.6.7), folder-reveal confirmation (3.6.6) and the fixes in
-   3.6.6 to 3.6.10; then classify the rest of the 435 commits since b17e06dd.
+   updates, folder-reveal confirmation (3.6.6) and the remaining fixes in 3.6.6 to 3.6.10; then classify the rest of the 435 commits since b17e06dd.
 5. Confirm three design assumptions: sketch pad scope, first-run wizard steps, palette shortcuts.
 ```
