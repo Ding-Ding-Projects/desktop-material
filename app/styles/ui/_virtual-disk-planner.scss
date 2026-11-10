@@ -1,0 +1,38 @@
+// Virtual disk planner inside Repository tools.
+.virtual-disk-planner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.virtual-disk-planner-form {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.virtual-disk-planner-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  p {
+    margin: 0;
+  }
+
+  pre {
+    background: var(--md-sys-color-surface-container-lowest);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-medium, 12px);
+    font-family: var(--font-family-monospace);
+    margin: 0;
+    overflow-x: auto;
+    padding: 10px;
+    user-select: text;
+  }
+}
+
+.virtual-disk-planner-note {
+  color: var(--md-sys-color-on-surface-variant);
+  margin: 0;
+}

@@ -87,6 +87,7 @@ import { FileConverter } from './file-converter'
 import { AppMemoryChart } from './app-memory-chart'
 import { SketchPad } from './sketch-pad'
 import { ExtensionManager } from './extension-manager'
+import { VirtualDiskPlanner } from './virtual-disk-planner'
 import { MaterialSymbol } from '../lib/material-symbol'
 
 const MaxOutputBytes = 4 * 1024 * 1024
@@ -176,6 +177,7 @@ export type RepositoryToolsHubToolID =
   | 'app-memory'
   | 'sketch-pad'
   | 'extensions'
+  | 'virtual-disks'
 
 type RepositoryToolsHubCategory =
   | RepositoryToolCategory
@@ -387,6 +389,14 @@ const UnsortedHubEntries: ReadonlyArray<IRepositoryToolsHubEntry> = [
       'Run small add-on programs on this repository. Each one shows what it may see and needs your consent first.',
     category: 'Search & inspect',
     icon: octicons.plug,
+  },
+  {
+    id: 'virtual-disks',
+    title: 'Virtual disk planner',
+    description:
+      'Plan creating, attaching, growing, compacting or merging a Windows virtual disk, and get the exact diskpart script. Nothing is run for you.',
+    category: 'Large files & storage',
+    icon: octicons.database,
   },
   {
     id: 'sketch-pad',
@@ -2868,6 +2878,7 @@ export class RepositoryTools extends React.Component<
         {selected === 'file-converter' && this.renderFileConverter()}
         {selected === 'app-memory' && <AppMemoryChart />}
         {selected === 'sketch-pad' && <SketchPad />}
+        {selected === 'virtual-disks' && <VirtualDiskPlanner />}
         {selected === 'extensions' && (
           <ExtensionManager
             repositoryPath={this.props.repositoryPath}

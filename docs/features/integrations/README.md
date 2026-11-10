@@ -92,6 +92,7 @@ Desktop Material 嘅整合功能將 Git 工作流程接上作業系統、編輯�
 - [GitHub CLI 推送憑證後備](gh-cli-push-fallback.md)
 - [Web panel public link and Discord webhook (groundwork)](web-panel-public-link.md) — tested rules for a free Cloudflare quick tunnel and a Discord webhook that announces the link; no screen yet.
 - [Sketch pad](sketch-pad.md) — a freehand drawing surface in Repository tools with four inks, undo, clear and copy as SVG.
+- [Virtual disk planner](virtual-disk-planner.md) — checks a Windows virtual disk operation and shows the exact diskpart script; it plans and never runs.
 
 Credential and sign-in prompts are serialized through one recoverable FIFO so
 concurrent Git/SSH requests cannot lose their visible completion path. See the

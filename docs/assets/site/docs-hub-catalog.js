@@ -742,6 +742,13 @@
       d: 'Repository Settings → Remote includes an SSH Working Copy manager for a canonical checkout on a chosen host. After saving and testing non-secret host metadata, a user can clone…',
     },
     {
+      t: 'Virtual disk planner / 虛擬磁碟計劃器',
+      h: 'features/integrations/virtual-disk-planner.html',
+      s: 'features/integrations/virtual-disk-planner.md',
+      c: 'features',
+      d: 'Repository tools → Virtual disk planner checks a Windows virtual disk operation and shows the exact diskpart script for it.',
+    },
+    {
       t: 'Web panel public link and Discord webhook (groundwork) / 網頁面板公開連結同 Discord（底層）',
       h: 'features/integrations/web-panel-public-link.html',
       s: 'features/integrations/web-panel-public-link.md',

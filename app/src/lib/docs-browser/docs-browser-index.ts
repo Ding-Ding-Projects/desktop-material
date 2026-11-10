@@ -756,6 +756,14 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
         'docs/features/integrations/ssh-working-copy-and-remote-clone.md',
     },
     {
+      id: 'integrations/virtual-disk-planner',
+      category: 'integrations',
+      title: 'Virtual disk planner / 虛擬磁碟計劃器',
+      description:
+        'Repository tools → Virtual disk planner checks a Windows virtual disk operation and shows the exact diskpart script for it.',
+      sourcePath: 'docs/features/integrations/virtual-disk-planner.md',
+    },
+    {
       id: 'integrations/web-panel-public-link',
       category: 'integrations',
       title:
@@ -1584,7 +1592,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'integrations',
     label: 'Integrations',
-    count: 34,
+    count: 35,
   },
   {
     name: 'linux-tui',
@@ -1614,4 +1622,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 182
+export const DocsBrowserArticleCount = 183
