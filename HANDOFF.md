@@ -55,6 +55,19 @@ errors; the captures in `docs/assets/web-panel/` are from that run. Nothing was
 run against a real Minecraft server jar, Cloudflare or Discord, and nothing on
 Windows.
 
+**Incident.** Commit `262f413` accidentally included a file whose path holds
+characters Windows cannot check out (a local helper script was handed a GitHub
+API error message instead of a release asset id and used part of it as a
+folder name). Windows CI failed at checkout for that commit. `8b4ac64` removes
+the file; it held only the API error text. The path remains in history because
+history is never rewritten here. The local helpers now refuse non-numeric
+asset ids and refuse to commit paths that are invalid on Windows.
+
+**Upstream #22943 (short-lived sign-in tokens).** Not ported, on purpose for
+now: upstream enables it only in development builds, it replaces the OAuth
+token exchange and relies on token-refresh groundwork that this fork's GitHub
+sign-in does not have, and it cannot be checked without a real sign-in.
+
 **Not done.**
 
 - Panel settings, backups and plugin list pages were added after `4121e55`

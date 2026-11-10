@@ -49,7 +49,8 @@ Not done:
    (b) Boards were audited (see the top HANDOFF entry): most surfaces already existed. Not in the
    app: inline banners for failures other than an unreachable push, row stagger in popover lists,
    the release code name.
-4. Upstream (issue #212): port short-lived sign-in tokens (3.6.8), the Git, Git LFS and Electron
-   updates (#22862, #22872 and the visible part of #22607 are done); then classify the rest of the 435 commits since b17e06dd.
+4. Upstream (issue #212): short-lived sign-in tokens (#22943) are development-only upstream and need
+   refresh-token groundwork plus a real sign-in to check, so they are deferred; the Git, Git LFS and
+   Electron updates (#22862, #22872 and the visible part of #22607 are done); then classify the rest of the 435 commits since b17e06dd.
 5. Confirm three design assumptions: sketch pad scope, first-run wizard steps, palette shortcuts.
 ```
