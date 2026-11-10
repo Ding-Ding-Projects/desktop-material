@@ -483,6 +483,12 @@ export const sendMinecraftCommand = invokeProxy('minecraft-command', 2)
 export const readMinecraftConsole = invokeProxy('minecraft-console', 2)
 export const openMinecraftServerFolder = invokeProxy('minecraft-open-folder', 1)
 
+export const readMinecraftSettings = invokeProxy('minecraft-settings', 1)
+export const setMinecraftSetting = invokeProxy('minecraft-set-setting', 3)
+export const listMinecraftBackups = invokeProxy('minecraft-backups', 1)
+export const backUpMinecraftWorld = invokeProxy('minecraft-backup', 1)
+export const listMinecraftAddOns = invokeProxy('minecraft-addons', 1)
+
 export const getWebPanelStatus = invokeProxy('web-panel-status', 0)
 export const startWebPanel = invokeProxy('web-panel-start', 0)
 export const stopWebPanel = invokeProxy('web-panel-stop', 0)

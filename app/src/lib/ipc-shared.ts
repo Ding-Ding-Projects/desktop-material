@@ -19,6 +19,7 @@ import {
 import { IBinaryEncodingResult, IDropPlan } from './file-converter-drop'
 import { IInstalledExtension } from './extensions/manifest'
 import { IWebPanelOptions, IWebPanelStatus } from './web-panel/status'
+import { IMinecraftPropertySpec } from './minecraft/properties'
 import {
   IMinecraftServerState,
   MinecraftServerDraft,
@@ -560,6 +561,30 @@ export type RequestResponseChannels = {
     readonly status: MinecraftServerStatus
   }>
   'minecraft-open-folder': (id: string) => Promise<void>
+  'minecraft-settings': (id: string) => Promise<
+    ReadonlyArray<{
+      readonly spec: IMinecraftPropertySpec
+      readonly value: string
+    }>
+  >
+  'minecraft-set-setting': (
+    id: string,
+    key: string,
+    value: string
+  ) => Promise<string | null>
+  'minecraft-backups': (
+    id: string
+  ) => Promise<
+    ReadonlyArray<{ readonly name: string; readonly createdAt: number }>
+  >
+  'minecraft-backup': (id: string) => Promise<string | null>
+  'minecraft-addons': (id: string) => Promise<
+    ReadonlyArray<{
+      readonly name: string
+      readonly kind: 'plugin' | 'mod'
+      readonly bytes: number
+    }>
+  >
   'web-panel-status': () => Promise<IWebPanelStatus>
   'web-panel-start': () => Promise<string | null>
   'web-panel-stop': () => Promise<void>

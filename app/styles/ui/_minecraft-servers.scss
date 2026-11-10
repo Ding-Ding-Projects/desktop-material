@@ -201,3 +201,30 @@
     color: var(--md-sys-color-on-surface-variant);
   }
 }
+
+.minecraft-servers-extras {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  details {
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+    padding-top: 8px;
+  }
+
+  summary {
+    cursor: pointer;
+    font-weight: 600;
+    min-height: 32px;
+  }
+
+  details[open] > * + * {
+    margin-top: 8px;
+  }
+}
+
+.minecraft-servers-settings {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}

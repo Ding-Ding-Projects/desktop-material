@@ -15,6 +15,7 @@ import { Button } from '../lib/button'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { LinkButton } from '../lib/link-button'
 import { TextBox } from '../lib/text-box'
+import { MinecraftServerExtras } from './minecraft-server-extras'
 import { WebPanelCard } from './web-panel-card'
 import {
   acceptMinecraftEula,
@@ -74,6 +75,8 @@ const StatusLabels: Record<MinecraftServerStatus, string> = {
 interface IMinecraftServersProps {
   /** Leave the web panel card out. For tests of the server list alone. */
   readonly hideWebPanel?: boolean
+  /** Leave settings, backups and plugins out. For tests of the list alone. */
+  readonly hideExtras?: boolean
   readonly client?: IMinecraftServersClient
   /** Starts the console refresh; returns how to stop it. For tests. */
   readonly schedule?: (tick: () => void) => () => void
@@ -447,6 +450,9 @@ export class MinecraftServers extends React.Component<
             Send
           </Button>
         </form>
+        {this.props.hideExtras !== true && (
+          <MinecraftServerExtras serverId={server.id} active={active} />
+        )}
       </div>
     )
   }

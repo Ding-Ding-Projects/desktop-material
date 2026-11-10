@@ -98,6 +98,7 @@ describe('MinecraftServers', () => {
         client={client}
         schedule={schedule}
         hideWebPanel={true}
+        hideExtras={true}
       />
     )
     await screen.findByText(/No servers yet/)
@@ -125,6 +126,7 @@ describe('MinecraftServers', () => {
         client={client}
         schedule={schedule}
         hideWebPanel={true}
+        hideExtras={true}
       />
     )
     await screen.findByRole('heading', { name: 'Survival' })
@@ -155,6 +157,7 @@ describe('MinecraftServers', () => {
         client={client}
         schedule={schedule}
         hideWebPanel={true}
+        hideExtras={true}
       />
     )
     await screen.findByRole('heading', { name: 'Survival' })

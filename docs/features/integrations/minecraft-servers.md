@@ -23,6 +23,9 @@ console with a command line.
 | Console | The last 2,000 complete lines, refreshed once a second. |
 | Command | One line of at most 256 characters, sent to the running server. A leading `/` is removed. |
 | Stop | Sends `stop` so the world is saved; the process is ended only if it has not exited after 20 seconds. |
+| Settings | Ten `server.properties` values (message of the day, maximum players, difficulty, game mode, PvP, allow-list, hardcore, flight, view distance, spawn protection), each checked. Nothing else in the file can be written. |
+| Backups | **Back up world** copies the world folder into `backups/<world>-<UTC time>/`. Only while the server is stopped; at most 50. |
+| Plugins and mods | The jar files in `plugins/` and `mods/`, read-only. |
 | Remove from list | Forgets the entry. The folder and the world are never deleted. |
 
 Servers that are still running are asked to stop when the app closes.
@@ -36,8 +39,8 @@ Servers that are still running are asked to stop when the app closes.
 
 ## Not built
 
-Downloading server jars and world generation. Settings, backups and the
-plugin list exist in the web panel but not yet on this screen.
+Downloading server jars, world generation, restoring or deleting backups, and
+installing plugins.
 
 The web panel, its free public link and the Discord webhook are described in
 [Minecraft web panel, free public link and Discord webhook](web-panel-public-link.md).

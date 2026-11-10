@@ -2187,6 +2187,24 @@ app.on('ready', () => {
     async (_event, id: string, after: number) =>
       minecraftHost.console(String(id), Number(after))
   )
+  ipcMain.handle('minecraft-settings', async (_event, id: string) =>
+    minecraftHost.settings(String(id))
+  )
+  ipcMain.handle(
+    'minecraft-set-setting',
+    async (_event, id: string, key: string, value: string) =>
+      minecraftHost.setSetting(String(id), String(key), String(value))
+  )
+  ipcMain.handle('minecraft-backups', async (_event, id: string) =>
+    minecraftHost.backups(String(id))
+  )
+  ipcMain.handle('minecraft-backup', async (_event, id: string) =>
+    minecraftHost.backup(String(id))
+  )
+  ipcMain.handle('minecraft-addons', async (_event, id: string) =>
+    minecraftHost.addOns(String(id))
+  )
+
   /**
    * Web panel: a loopback-only server for the Minecraft servers, an optional
    * free public link, and a Discord webhook that is told the link. The
