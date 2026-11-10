@@ -2960,7 +2960,9 @@ export class RepositoryTools extends React.Component<
           )}
           {this.renderInventoryStatuses()}
           <div className="repository-tools-layout">
-            {this.renderSidebar()}
+            <div className="repository-tools-rail-pane">
+              {this.renderSidebar()}
+            </div>
             {this.renderDetail()}
           </div>
         </div>

@@ -1062,6 +1062,17 @@
   min-height: 0;
 }
 
+// The pane that owns the rail's width. The rail itself fills its pane
+// (`width: 100%`), so without this wrapper it filled the whole row and squeezed
+// the detail column, where every tool renders, down to a sliver.
+.repository-tools-rail-pane {
+  display: flex;
+  flex: 0 1 300px;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
 // 300px sidebar: search field, category chips, and the scrollable tool list.
 // The rail keeps its 300px basis, but `flex-shrink` stays enabled so a pane
 // narrower than the rail squeezes it instead of pushing the detail column
@@ -1984,6 +1995,10 @@
 
   .repository-tools-layout {
     flex-direction: column;
+  }
+
+  .repository-tools-rail-pane {
+    flex: none;
   }
 
   .repository-tools-sidebar {
