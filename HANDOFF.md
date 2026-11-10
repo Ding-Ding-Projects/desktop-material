@@ -107,10 +107,16 @@ Windows.
   (`globalThis.addEventListener ??= () => {}`) with `NODE_OPTIONS=--import`
   lets them run. With it the Repository tools hub tests pass; one of them
   looked for a `repository-tools-tonal-workbench` marker class that an earlier
-  contract commit asserted but never added, and the root now carries it. A full unit run with the shim did not finish in 28 minutes and
-  showed several hundred failures across unrelated areas, which were not
-  triaged. The wiki gallery count (98 rows against an asserted 95) also fails
-  independently of this work.
+  contract commit asserted but never added, and the root now carries it. A full unit run with the shim then finished (about 80 minutes):
+  9,977 tests, 9,601 passed, 341 failed, 20 cancelled, 15 skipped, with
+  failures in 133 files. None of the test files added in this work failed.
+  Failures in areas this work touched were compared against the code before
+  the change: the 25 `git/pull` failures are identical before and after the
+  dash-prefix port (this machine's Git has no `submodule` command and the hook
+  proxy binary is not built), the appearance editor failures were already
+  recorded as identical with and without the motion settings, and the docs
+  failures concern a screenshot and a changelog entry count that this work did
+  not touch. The other failing files were not triaged.
 
 ## November 9, 2026 (later): design pass finished, first implementation, upstream ports
 
