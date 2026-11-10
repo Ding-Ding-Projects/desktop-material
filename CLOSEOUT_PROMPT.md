@@ -18,7 +18,8 @@ Done this session:
 - Implemented: motion speed and per-surface switches (956b065), Svelte highlighting from upstream
   3.6.8 (e3eb9f4), Always show worktree list from upstream 3.6.7 (6e55b8c), Quick convert of dropped
   files and folders to Base64 text beside the originals (e9a8b02), Base64 text toolkit (f1ed021), motion polish on existing
-  controls (480baf7).
+  controls (480baf7), web panel tunnel and Discord rules with no screen yet (a991584), live charts with
+  a live memory chart tool (50e37e3), sketch pad (1ed08cb).
 - Checked on Linux only: focused tests pass, TypeScript reports no errors. 30 tests in the wider
   appearance and shell set fail the same way with and without these changes.
 

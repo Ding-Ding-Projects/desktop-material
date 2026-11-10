@@ -28,6 +28,14 @@ are in each folder's `frames/`. See each folder's `HANDOFF.md` or `README.md`.
 - Motion polish on existing controls, from the design pass
   (`app/styles/material/_polish.scss`, `480baf7`): state changes ease and a
   press settles with a spring; nothing changes at rest.
+- Live charts (`50e37e3`): a reusable live line chart and its first use,
+  Repository tools, Live memory chart. See
+  [the article](docs/features/design-system/live-charts.md).
+- Sketch pad (`1ed08cb`) in Repository tools. See
+  [the article](docs/features/integrations/sketch-pad.md).
+- Tested rules, with no screen yet, for the web panel's free Cloudflare quick
+  tunnel and Discord webhook (`a991584`). See
+  [the article](docs/features/integrations/web-panel-public-link.md).
 - A reported command palette crash could not be reproduced: release
   v4.0.139501 was run under Linux (Windows-only native modules replaced by
   empty stand-ins, bundled Git replaced by the system Git) and the palette
