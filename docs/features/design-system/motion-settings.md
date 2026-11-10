@@ -33,6 +33,21 @@ switches: a speed of 2x never turns motion back on.
   no animation and restyles nothing.
 - Charts and celebrations that animate from script ask `isMotionEnabledFor`.
 
+## Motion polish on existing controls (November 9, 2026)
+
+`app/styles/material/_polish.scss` applies the motion language of the design
+pass to controls the app already has. At the full and calm levels:
+
+- buttons ease their colour and elevation, and a press settles with a small
+  spring;
+- list rows, toolbar buttons, menu rows and links fade between states;
+- text fields, selects, check boxes and radio buttons ease their focus and
+  checked treatments;
+- popovers fade in (opacity only, so their position is untouched).
+
+It adds no control and changes no colour, size or layout at rest. Reduce
+motion, the system setting and a switched-off surface all still win.
+
 ## Configuration
 
 The values are stored with the rest of the appearance customization
@@ -62,5 +77,11 @@ None. The values are local appearance settings and are not sent anywhere.
 - `app/test/unit/ui/element-appearance-editors-test.tsx` (speed, reset, surface
   switches, disabled state)
 
-All 19 tests pass on Linux as of 2026-11-09. The built Windows application has
+- `app/test/unit/motion-polish-style-test.ts` (scoping, no change at rest,
+  resolved durations)
+
+All 23 tests pass on Linux as of 2026-11-09. The polish stylesheet was also
+loaded into release v4.0.139501 running under Linux with stand-ins for the
+Windows-only modules, where Settings opened and laid out as before; that is a
+sanity check, not a capture of a Windows build. The built Windows application has
 not been checked and no capture exists yet.

@@ -1,0 +1,123 @@
+// Motion polish for the controls the app already has.
+//
+// This is the "Motion and polish" design pass (design/motion-and-polish)
+// applied to existing controls: every state change eases instead of snapping,
+// and a press gives a small springy response. It adds no control, moves
+// nothing and changes no colour, size or layout at rest.
+//
+// Everything is scoped to the full and calm motion levels, uses the resolved
+// `--dm-motion-*` durations, and sits under the per-surface switches in
+// `_transitions.scss`, so Reduce motion, the system setting and a switched-off
+// surface all still win.
+
+@mixin dm-polish {
+  body[data-dm-motion='full'] &,
+  body[data-dm-motion='calm'] & {
+    @content;
+  }
+}
+
+$dm-short: var(--dm-motion-short, 200ms);
+$dm-medium: var(--dm-motion-medium, 300ms);
+$dm-emph: var(--emph, cubic-bezier(0.2, 0, 0, 1));
+$dm-spring: var(--spring, cubic-bezier(0.38, 1.21, 0.22, 1));
+
+// Buttons: colour and elevation ease, and a press settles with a spring.
+.button-component {
+  @include dm-polish {
+    transition:
+      background-color $dm-short $dm-emph,
+      color $dm-short $dm-emph,
+      border-color $dm-short $dm-emph,
+      box-shadow $dm-short $dm-emph,
+      transform $dm-short $dm-spring;
+
+    &:active:not([aria-disabled='true']):not(:disabled) {
+      transform: scale(0.97);
+    }
+  }
+}
+
+// List rows: hover and selection fade instead of flipping.
+.list-item {
+  @include dm-polish {
+    transition:
+      background-color $dm-short $dm-emph,
+      color $dm-short $dm-emph;
+  }
+}
+
+// Toolbar buttons and dropdowns.
+.toolbar-button > button,
+.toolbar-dropdown > .toolbar-button > button {
+  @include dm-polish {
+    transition:
+      background-color $dm-short $dm-emph,
+      color $dm-short $dm-emph,
+      box-shadow $dm-short $dm-emph;
+  }
+}
+
+// Menus.
+.menu-pane .menu-item {
+  @include dm-polish {
+    transition:
+      background-color $dm-short $dm-emph,
+      color $dm-short $dm-emph;
+  }
+}
+
+// Text fields, selects and text areas: the focus treatment eases in.
+.text-box-component input,
+.text-area-component textarea,
+.select-component select {
+  @include dm-polish {
+    transition:
+      border-color $dm-short $dm-emph,
+      box-shadow $dm-short $dm-emph,
+      background-color $dm-short $dm-emph;
+  }
+}
+
+// Check boxes and radio buttons.
+.checkbox-component input[type='checkbox'],
+.radio-button-component input[type='radio'] {
+  @include dm-polish {
+    transition:
+      background-color $dm-short $dm-emph,
+      border-color $dm-short $dm-emph,
+      box-shadow $dm-short $dm-emph,
+      transform $dm-short $dm-spring;
+
+    &:active:not(:disabled) {
+      transform: scale(0.9);
+    }
+  }
+}
+
+// Links and icon buttons.
+.link-button-component,
+a {
+  @include dm-polish {
+    transition:
+      color $dm-short $dm-emph,
+      text-decoration-color $dm-short $dm-emph;
+  }
+}
+
+// Popovers fade in. Only opacity is animated: their position is set with a
+// transform that must not be touched.
+@keyframes dmPolishFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.popover-component:not(.appear-shake) {
+  @include dm-polish {
+    animation: dmPolishFade $dm-medium $dm-emph backwards;
+  }
+}
