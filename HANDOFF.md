@@ -88,9 +88,9 @@ Windows.
   Node 22, so many UI test files cannot load (`addEventListener is not a
   function` from xterm). Preloading a two-line shim
   (`globalThis.addEventListener ??= () => {}`) with `NODE_OPTIONS=--import`
-  lets them run. With it the Repository tools hub tests pass except one that
-  looks for a `repository-tools-tonal-workbench` class that does not exist in
-  the source. A full unit run with the shim did not finish in 28 minutes and
+  lets them run. With it the Repository tools hub tests pass; one of them
+  looked for a `repository-tools-tonal-workbench` marker class that an earlier
+  contract commit asserted but never added, and the root now carries it. A full unit run with the shim did not finish in 28 minutes and
   showed several hundred failures across unrelated areas, which were not
   triaged. The wiki gallery count (98 rows against an asserted 95) also fails
   independently of this work.
