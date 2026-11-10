@@ -1423,6 +1423,16 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
         'docs/features/repository-management/repository-picker-filters-and-visibility.md',
     },
     {
+      id: 'repository-management/repository-tools-category-counts',
+      category: 'repository-management',
+      title:
+        'Repository tools: category counts and a folding chip row / Repository tools：分類數目同摺得埋嘅分類列',
+      description:
+        'The Repository tools rail now says how many tools each category holds, how many are listed, and lets the category chips fold away so the tool list gets the room.',
+      sourcePath:
+        'docs/features/repository-management/repository-tools-category-counts.md',
+    },
+    {
       id: 'repository-management/repository-transfer',
       category: 'repository-management',
       title: 'Repository transfer',
@@ -1615,7 +1625,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'repository-management',
     label: 'Repository Management',
-    count: 46,
+    count: 47,
   },
   {
     name: 'review-and-diff',
@@ -1630,4 +1640,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 184
+export const DocsBrowserArticleCount = 185

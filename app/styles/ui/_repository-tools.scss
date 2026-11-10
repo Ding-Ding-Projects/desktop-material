@@ -1183,6 +1183,71 @@
     border-color: transparent;
     color: var(--md-sys-color-on-primary);
   }
+
+  // How many tools the chip filters to. Drawn from the attribute so the
+  // chip's own text stays the category name.
+  &::after {
+    content: attr(data-count);
+    font-weight: 500;
+    margin-left: 6px;
+    opacity: 0.72;
+  }
+}
+
+.repository-tools-statistics {
+  align-items: center;
+  color: var(--md-sys-color-on-surface-variant);
+  display: flex;
+  flex: none;
+  font-size: 12px;
+  gap: 8px;
+  justify-content: space-between;
+  padding-right: 8px;
+}
+
+.repository-tools-categories-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--md-sys-shape-corner-small);
+  color: var(--md-sys-color-on-surface);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 4px;
+  min-height: 30px;
+  padding: 3px 8px 3px 4px;
+
+  &::before {
+    border: solid currentColor;
+    border-width: 0 2px 2px 0;
+    content: '';
+    height: 6px;
+    margin: 0 6px 2px 2px;
+    transform: rotate(45deg);
+    transition: transform 220ms var(--emph);
+    width: 6px;
+  }
+
+  &[aria-expanded='false']::before {
+    margin-bottom: 0;
+    transform: rotate(-45deg);
+  }
+
+  &:hover {
+    background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.repository-tools-filter-chips[hidden] {
+  display: none;
 }
 
 .repository-tools-functions {

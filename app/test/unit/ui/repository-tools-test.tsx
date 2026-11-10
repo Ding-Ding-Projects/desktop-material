@@ -438,12 +438,14 @@ describe('Repository tools', () => {
 
     // Categories appear in everyday-frequency order; the gated
     // nested-repositories category is absent without submodules or subtrees.
+    // Large files & storage is always present since the virtual disk planner.
     const items = getHubListItems()
     assert.deepStrictEqual(distinctCategorySequence(items), [
       'Status & branches',
       'Search & inspect',
       'Commits & history',
       'Cleanup & maintenance',
+      'Large files & storage',
       'Share & transfer',
       'Repair & recovery',
     ])
@@ -472,10 +474,43 @@ describe('Repository tools', () => {
         'Search & inspect',
         'Commits & history',
         'Cleanup & maintenance',
+        'Large files & storage',
         'Share & transfer',
         'Repair & recovery',
       ]
     )
+
+    // Each chip carries how many tools it filters to, and All counts them all.
+    const allChip = chips.querySelector('[data-category="All"]')
+    assert.equal(
+      Number(allChip?.getAttribute('data-count')),
+      items.length + 1,
+      'All counts every tool, including the pinned signing shortcut'
+    )
+    for (const category of distinctCategorySequence(items)) {
+      assert.equal(
+        Number(
+          chips
+            .querySelector(`[data-category="${category}"]`)
+            ?.getAttribute('data-count')
+        ) >= items.filter(item => item.category === category).length,
+        true,
+        `${category} chip count`
+      )
+    }
+
+    // The chips fold away and come back, and the choice is remembered.
+    const toggle = screen.getByRole('button', { name: 'Categories' })
+    assert.equal(toggle.getAttribute('aria-expanded'), 'true')
+    fireEvent.click(toggle)
+    assert.equal(toggle.getAttribute('aria-expanded'), 'false')
+    assert.equal(chips.hasAttribute('hidden'), true)
+    assert.equal(
+      localStorage.getItem('repository-tools-categories-collapsed'),
+      '1'
+    )
+    fireEvent.click(toggle)
+    assert.equal(chips.hasAttribute('hidden'), false)
 
     // Each detail-pane category header carries a one-line subtitle.
     const detail = screen.getByRole('region', {
@@ -515,6 +550,7 @@ describe('Repository tools', () => {
       'Commits & history',
       'Nested repositories',
       'Cleanup & maintenance',
+      'Large files & storage',
       'Share & transfer',
       'Repair & recovery',
     ])

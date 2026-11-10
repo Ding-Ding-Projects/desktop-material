@@ -149,4 +149,19 @@ describe('repository tools hub responsive contracts', () => {
       /\.repository-tools-functions\.repository-tools-pinned \{\s*flex: none;\s*overflow: visible;/
     )
   })
+
+  it('shows a count on each category chip and lets the chips fold away', () => {
+    assert.match(
+      tools,
+      /\.repository-tools-filter-chip \{[\s\S]*?&::after \{\s*content: attr\(data-count\);/
+    )
+    assert.match(
+      tools,
+      /\.repository-tools-filter-chips\[hidden\] \{\s*display: none;/
+    )
+    assert.match(
+      tools,
+      /\.repository-tools-categories-toggle \{[\s\S]*?&\[aria-expanded='false'\]::before/
+    )
+  })
 })

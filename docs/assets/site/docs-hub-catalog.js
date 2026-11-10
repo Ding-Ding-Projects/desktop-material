@@ -1288,6 +1288,13 @@
       d: 'The repository side sheet combines text search with account, provider, and status filters so a large local workspace can be narrowed without changing its saved repository list.',
     },
     {
+      t: 'Repository tools: category counts and a folding chip row / Repository tools：分類數目同摺得埋嘅分類列',
+      h: 'features/repository-management/repository-tools-category-counts.html',
+      s: 'features/repository-management/repository-tools-category-counts.md',
+      c: 'features',
+      d: 'The Repository tools rail now says how many tools each category holds, how many are listed, and lets the category chips fold away so the tool list gets the room.',
+    },
+    {
       t: 'Repository transfer',
       h: 'features/repository-management/repository-transfer.html',
       s: 'features/repository-management/repository-transfer.md',

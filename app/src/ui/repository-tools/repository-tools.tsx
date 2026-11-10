@@ -88,6 +88,11 @@ import { AppMemoryChart } from './app-memory-chart'
 import { SketchPad } from './sketch-pad'
 import { ExtensionManager } from './extension-manager'
 import { VirtualDiskPlanner } from './virtual-disk-planner'
+import {
+  countToolCategories,
+  describeToolStatistics,
+} from '../../lib/repository-tools-statistics'
+import { getBoolean, setBoolean } from '../../lib/local-storage'
 import { MinecraftServers } from './minecraft-servers'
 import { MaterialSymbol } from '../lib/material-symbol'
 
@@ -188,6 +193,10 @@ type RepositoryToolsHubCategory =
   | 'Large files & storage'
 
 type RepositoryToolsHubCategoryFilter = 'All' | RepositoryToolsHubCategory
+
+/** Remembers whether the category chips are folded away. */
+const RepositoryToolsCategoriesCollapsedKey =
+  'repository-tools-categories-collapsed'
 
 interface IRepositoryToolsHubEntry {
   readonly id: RepositoryToolsHubToolID
@@ -690,6 +699,8 @@ interface IRepositoryToolsState {
   readonly toolFilterMode: FilterMode
   readonly toolFilterCaseSensitive: boolean
   readonly toolCategory: RepositoryToolsHubCategoryFilter
+  /** Whether the category chips are folded away to give the list room. */
+  readonly toolCategoriesCollapsed: boolean
   readonly selectedTool: RepositoryToolsHubToolID
   readonly languageMode: LanguageMode
 }
@@ -763,6 +774,10 @@ export class RepositoryTools extends React.Component<
       toolFilterMode: readPersistedFilterMode(RepositoryToolsFilterId),
       toolFilterCaseSensitive: false,
       toolCategory: 'All',
+      toolCategoriesCollapsed: getBoolean(
+        RepositoryToolsCategoriesCollapsedKey,
+        false
+      ),
       selectedTool,
       languageMode: getPersistedLanguageMode(),
     }
@@ -1044,6 +1059,12 @@ export class RepositoryTools extends React.Component<
     ) {
       this.setState({ toolCategory: category })
     }
+  }
+
+  private onToggleHubCategories = () => {
+    const toolCategoriesCollapsed = !this.state.toolCategoriesCollapsed
+    setBoolean(RepositoryToolsCategoriesCollapsedKey, toolCategoriesCollapsed)
+    this.setState({ toolCategoriesCollapsed })
   }
 
   private onHubToolClicked = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -2795,12 +2816,8 @@ export class RepositoryTools extends React.Component<
     const allEntries = this.getAllHubEntries()
     // Only offer category chips that filter to at least one entry; gated
     // categories (Nested repositories) disappear with their entries.
-    const categories: ReadonlyArray<RepositoryToolsHubCategoryFilter> = [
-      'All',
-      ...HubCategoryOrder.filter(category =>
-        allEntries.some(entry => entry.category === category)
-      ),
-    ]
+    const categories = countToolCategories(allEntries, HubCategoryOrder)
+    const collapsed = this.state.toolCategoriesCollapsed
     return (
       <aside className="repository-tools-sidebar">
         <nav
@@ -2837,17 +2854,34 @@ export class RepositoryTools extends React.Component<
             onRegexPatternApply={this.onHubRegexPatternApply}
           />
         </div>
+        <div className="repository-tools-statistics">
+          <button
+            type="button"
+            className="repository-tools-categories-toggle"
+            aria-expanded={!collapsed}
+            aria-controls="repository-tools-filter-chips"
+            onClick={this.onToggleHubCategories}
+          >
+            {collapsed && this.state.toolCategory !== 'All'
+              ? `Categories: ${this.state.toolCategory}`
+              : 'Categories'}
+          </button>
+          <span>{describeToolStatistics(entries.length, allEntries.length)}</span>
+        </div>
         <div
+          id="repository-tools-filter-chips"
           className="repository-tools-filter-chips"
           role="group"
           aria-label="Tool categories"
+          hidden={collapsed}
         >
-          {categories.map(category => (
+          {categories.map(({ category, count }) => (
             <button
               type="button"
               key={category}
               className="repository-tools-filter-chip"
               data-category={category}
+              data-count={count}
               aria-pressed={this.state.toolCategory === category}
               onClick={this.onHubCategoryClicked}
             >

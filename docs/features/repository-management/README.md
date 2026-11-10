@@ -271,6 +271,7 @@ Material is displaying or how a repository is represented in the application.
 - [自願加入嘅 clone 後 runner 佈署](post-clone-runner-provisioning.md) — 淨係喺私人 GitHub 儲存庫 clone 成功、而且用戶確認信任佢嘅工作流程作者之後，先建立綁儲存庫嘅 Windows 或者專用 WSL／Linux Actions runner。
 - [Patch 系列匯入同匯出](patch-series.md) — 預覽、驗證、匯出同套用可攜嘅 patch 序列，唔會靜靜雞改動無關嘅工作。
 - [儲存庫清單轉移同 Cheap LFS](repository-list-transfer.md) — 匯出消毒過嘅 clone URL、經批次引擎重新 clone，並且喺 clone 之後還原 Cheap LFS 大檔案，唔會匯出憑證或者本機帳戶／檔案選取。
+- [Repository tools: category counts and a folding chip row](repository-tools-category-counts.md) — each category chip shows its count, a line says how many tools are listed, and the chips fold away.
 
 ## API applicability / API 適用性
 
