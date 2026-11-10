@@ -35,6 +35,7 @@ What this means for reading them:
 | `v4.0.140801-virtual-disk-planner.png` | v4.0.140801 | Virtual disk planner with a create plan |
 | `v4.0.141101-minecraft-servers.png` | v4.0.141101 | Minecraft servers with one server added and the EULA step |
 | `v4.0.142301-web-panel-card-paired.png` | v4.0.142301 | Web panel card after the panel was turned on and a device paired over loopback |
+| `v4.0.143701-live-memory-chart.png` | v4.0.143701 | Repository tools with folded categories and the live memory chart, slider as a 16px track |
 
 ## What the runs found
 
@@ -82,3 +83,5 @@ What this means for reading them:
   case for a push. It now reads Git's output. For this run the stand-in Git
   wrapper also cleared the proxy variables so the lookup failed as it would
   without a network.
+- v4.0.143701, unmodified: the live chart slider is a 16px track and the
+  category chips start folded. The slider fault is closed.

@@ -49,3 +49,9 @@ or sent anywhere.
 `app/test/unit/ui/app-memory-chart-test.tsx` (2 tests) pass on Linux, and the
 TypeScript check passes. The built Windows application has not been checked and
 no capture exists yet.
+
+## Picture
+
+![Live memory chart in release v4.0.143701, run under Linux with stand-in native modules](../../assets/linux-run/v4.0.143701-live-memory-chart.png)
+
+This is not a Windows capture. See [how it was made](../../assets/linux-run/README.md).
