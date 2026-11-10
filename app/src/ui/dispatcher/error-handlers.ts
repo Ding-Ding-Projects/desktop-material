@@ -11,6 +11,7 @@ import { ShellError } from '../../lib/shells'
 import { UpstreamAlreadyExistsError } from '../../lib/stores/upstream-already-exists-error'
 
 import { PopupType } from '../../models/popup'
+import { BannerType } from '../../models/banner'
 import {
   Repository,
   isRepositoryWithGitHubRepository,
@@ -198,6 +199,47 @@ export async function openShellErrorHandler(
   await dispatcher.showPopup({
     type: PopupType.OpenShellFailed,
     message: error.message,
+  })
+
+  return null
+}
+
+/**
+ * A foreground push that could not reach its remote at all is shown as a
+ * banner with Try again instead of a dialog: the commits are still here and
+ * nothing needs to stop the person.
+ */
+export async function pushDidNotReachRemoteHandler(
+  error: Error,
+  dispatcher: Dispatcher
+): Promise<Error | null> {
+  const e = asErrorWithMetadata(error)
+  if (!e || e.metadata.backgroundTask) {
+    return error
+  }
+
+  const gitError = asGitError(e.underlyingError)
+  if (!gitError || gitError.result.gitError !== DugiteError.HostDown) {
+    return error
+  }
+
+  const { repository, retryAction } = e.metadata
+  if (
+    !(repository instanceof Repository) ||
+    retryAction === undefined ||
+    retryAction.type !== RetryActionType.Push
+  ) {
+    return error
+  }
+
+  dispatcher.setBanner({
+    type: BannerType.PushDidNotReachRemote,
+    repositoryName: repository.name,
+    onRetry: () => {
+      dispatcher.performRetry(retryAction).catch(retryError => {
+        dispatcher.postError(retryError)
+      })
+    },
   })
 
   return null

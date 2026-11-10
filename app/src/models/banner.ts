@@ -18,6 +18,7 @@ export enum BannerType {
   ConflictsFound = 'ConflictsFound',
   OSVersionNoLongerSupported = 'OSVersionNoLongerSupported',
   PotentialConflictDetected = 'PotentialConflictDetected',
+  PushDidNotReachRemote = 'PushDidNotReachRemote',
 }
 
 export type Banner =
@@ -123,6 +124,13 @@ export type Banner =
       readonly onOpenConflictsDialog: () => void
     }
   | { readonly type: BannerType.OSVersionNoLongerSupported }
+  | {
+      readonly type: BannerType.PushDidNotReachRemote
+      /** Name of the repository whose push could not reach its remote. */
+      readonly repositoryName: string
+      /** Runs the same push again. */
+      readonly onRetry: () => void
+    }
   | {
       readonly type: BannerType.PotentialConflictDetected
       /** name of the branch we're on locally */

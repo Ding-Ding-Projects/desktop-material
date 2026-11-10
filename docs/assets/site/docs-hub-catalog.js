@@ -987,6 +987,13 @@
       d: 'Desktop Material paints and reveals its usable application shell before optional startup work finishes. Expensive repository sections are downloaded and evaluated only when…',
     },
     {
+      t: 'Push did not reach the remote: a banner, not a dialog / 推送去唔到遠端：用橫額唔用對話框',
+      h: 'features/quality-and-reliability/push-did-not-reach-remote-banner.html',
+      s: 'features/quality-and-reliability/push-did-not-reach-remote-banner.md',
+      c: 'features',
+      d: 'When a push you started cannot reach its remote at all, Desktop Material now shows a banner with Try again instead of stopping you with an error dialog.',
+    },
+    {
       t: 'Quality and reliability / 品質同可靠性',
       h: 'features/quality-and-reliability/',
       s: 'features/quality-and-reliability/README.md',

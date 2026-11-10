@@ -17,6 +17,7 @@ import {
   missingRepositoryHandler,
   backgroundTaskHandler,
   pushNeedsPullHandler,
+  pushDidNotReachRemoteHandler,
   pullBranchDeletedHandler,
   upstreamAlreadyExistsHandler,
   rebaseConflictsHandler,
@@ -756,6 +757,7 @@ dispatcher.registerErrorHandler(mergeConflictHandler)
 dispatcher.registerErrorHandler(lfsAttributeMismatchHandler)
 dispatcher.registerErrorHandler(insufficientGitHubRepoPermissions)
 dispatcher.registerErrorHandler(pushNeedsPullHandler)
+dispatcher.registerErrorHandler(pushDidNotReachRemoteHandler)
 dispatcher.registerErrorHandler(pullBranchDeletedHandler)
 dispatcher.registerErrorHandler(samlReauthRequired)
 dispatcher.registerErrorHandler(backgroundTaskHandler)

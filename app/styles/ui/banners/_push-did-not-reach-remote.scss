@@ -1,0 +1,22 @@
+#push-did-not-reach-remote {
+  // An error the person can act on later: error container tones, no modal.
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+  height: auto;
+  min-height: 48px;
+  padding-bottom: var(--spacing-half);
+  padding-top: var(--spacing-half);
+
+  .alert-icon {
+    color: var(--md-sys-color-on-error-container);
+    flex-shrink: 0;
+  }
+
+  .banner-message {
+    margin: 0 1ex;
+  }
+
+  .button-component {
+    flex-shrink: 0;
+  }
+}

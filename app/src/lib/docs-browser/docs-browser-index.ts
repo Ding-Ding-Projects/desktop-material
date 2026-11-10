@@ -1048,6 +1048,16 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
         'docs/features/quality-and-reliability/progressive-lazy-loading.md',
     },
     {
+      id: 'quality-and-reliability/push-did-not-reach-remote-banner',
+      category: 'quality-and-reliability',
+      title:
+        'Push did not reach the remote: a banner, not a dialog / 推送去唔到遠端：用橫額唔用對話框',
+      description:
+        'When a push you started cannot reach its remote at all, Desktop Material now shows a banner with Try again instead of stopping you with an error dialog.',
+      sourcePath:
+        'docs/features/quality-and-reliability/push-did-not-reach-remote-banner.md',
+    },
+    {
       id: 'quality-and-reliability/README',
       category: 'quality-and-reliability',
       title: 'Quality and reliability / 品質同可靠性',
@@ -1629,7 +1639,7 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'quality-and-reliability',
     label: 'Quality And Reliability',
-    count: 18,
+    count: 19,
   },
   {
     name: 'repository-management',
@@ -1649,4 +1659,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 186
+export const DocsBrowserArticleCount = 187

@@ -93,8 +93,9 @@ Windows.
     live charts, sketch pad, Base64 toolkit, quick convert, extensions,
     virtual disk planner, Minecraft servers and web panel, tools category
     counts and fold, build commit and free note in About.
-  - Not in the app: an inline, retryable error banner for failures that can
-    wait (errors still open dialogs), row
+  - Not in the app: inline banners for failures other than an unreachable
+    push (that one now has a banner with Try again; other errors still open
+    dialogs), row
     stagger in popover lists (virtualised rows would replay it on scroll),
     the release's dim sum code name in the app (chosen after the build).
   - "Recording" on the Toolbox board is a committed walkthrough video, not an

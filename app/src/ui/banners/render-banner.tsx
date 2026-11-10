@@ -20,6 +20,7 @@ import { SuccessBanner } from './success-banner'
 import { ConflictsFoundBanner } from './conflicts-found-banner'
 import { OSVersionNoLongerSupportedBanner } from './os-version-no-longer-supported-banner'
 import { PotentialConflictBanner } from './potential-conflict-banner'
+import { PushDidNotReachRemoteBanner } from './push-did-not-reach-remote-banner'
 
 export function renderBanner(
   banner: Banner,
@@ -183,6 +184,15 @@ export function renderBanner(
           onSendAsPatch={banner.onSendAsPatch}
           onDismissed={onDismissed}
           key={'potential-conflict'}
+        />
+      )
+    case BannerType.PushDidNotReachRemote:
+      return (
+        <PushDidNotReachRemoteBanner
+          repositoryName={banner.repositoryName}
+          onRetry={banner.onRetry}
+          onDismissed={onDismissed}
+          key={'push-did-not-reach-remote'}
         />
       )
     default:
