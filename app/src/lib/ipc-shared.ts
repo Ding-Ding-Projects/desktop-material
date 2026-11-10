@@ -18,6 +18,7 @@ import {
 } from './file-converter'
 import { IBinaryEncodingResult, IDropPlan } from './file-converter-drop'
 import { IInstalledExtension } from './extensions/manifest'
+import { IWebPanelOptions, IWebPanelStatus } from './web-panel/status'
 import {
   IMinecraftServerState,
   MinecraftServerDraft,
@@ -559,6 +560,16 @@ export type RequestResponseChannels = {
     readonly status: MinecraftServerStatus
   }>
   'minecraft-open-folder': (id: string) => Promise<void>
+  'web-panel-status': () => Promise<IWebPanelStatus>
+  'web-panel-start': () => Promise<string | null>
+  'web-panel-stop': () => Promise<void>
+  'web-panel-start-tunnel': () => Promise<string | null>
+  'web-panel-stop-tunnel': () => Promise<void>
+  'web-panel-set-webhook': (address: string) => Promise<string | null>
+  'web-panel-set-options': (options: IWebPanelOptions) => Promise<void>
+  'web-panel-new-code': () => Promise<string>
+  'web-panel-revoke': (id: string | null) => Promise<void>
+  'web-panel-send-now': () => Promise<string | null>
   'file-converter-expand-drop': (
     paths: ReadonlyArray<string>,
     includeSubfolders: boolean

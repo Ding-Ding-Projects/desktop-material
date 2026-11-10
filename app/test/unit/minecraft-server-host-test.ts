@@ -126,8 +126,11 @@ describe('MinecraftServerHost', () => {
     )
     assert.equal((await host.list())[0].status, 'running')
 
+    run.java.stdout.emit('data', '[INFO]: Steve joined the game\n')
+    assert.deepEqual(host.players(id), ['Steve'])
+
     const first = host.console(id, 0)
-    assert.equal(first.lines.length, 3)
+    assert.equal(first.lines.length, 4)
     assert.equal(first.status, 'running')
     assert.deepEqual(host.console(id, first.next).lines, [])
 
@@ -147,6 +150,7 @@ describe('MinecraftServerHost', () => {
     const after = (await host.list())[0]
     assert.equal(after.status, 'stopped')
     assert.equal(after.message, null)
+    assert.deepEqual(host.players(id), [])
     await host.remove(id)
     assert.deepEqual(await host.list(), [])
   })

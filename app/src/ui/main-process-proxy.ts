@@ -483,6 +483,17 @@ export const sendMinecraftCommand = invokeProxy('minecraft-command', 2)
 export const readMinecraftConsole = invokeProxy('minecraft-console', 2)
 export const openMinecraftServerFolder = invokeProxy('minecraft-open-folder', 1)
 
+export const getWebPanelStatus = invokeProxy('web-panel-status', 0)
+export const startWebPanel = invokeProxy('web-panel-start', 0)
+export const stopWebPanel = invokeProxy('web-panel-stop', 0)
+export const startWebPanelTunnel = invokeProxy('web-panel-start-tunnel', 0)
+export const stopWebPanelTunnel = invokeProxy('web-panel-stop-tunnel', 0)
+export const setWebPanelWebhook = invokeProxy('web-panel-set-webhook', 1)
+export const setWebPanelOptions = invokeProxy('web-panel-set-options', 1)
+export const newWebPanelPairingCode = invokeProxy('web-panel-new-code', 0)
+export const revokeWebPanelDevice = invokeProxy('web-panel-revoke', 1)
+export const sendWebPanelLinkNow = invokeProxy('web-panel-send-now', 0)
+
 /** Expand dropped files and folders into the regular files to convert. */
 export const expandFileConverterDrop = invokeProxy(
   'file-converter-expand-drop',

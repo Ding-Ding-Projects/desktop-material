@@ -129,3 +129,75 @@
     flex: 1 1 auto;
   }
 }
+
+// Web panel card under the server list.
+.web-panel-card {
+  background: var(--md-sys-color-surface-container-low);
+  border-radius: var(--md-sys-shape-corner-large, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+
+  h5 {
+    font-size: 14px;
+    margin: 0;
+  }
+}
+
+.web-panel-group {
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+}
+
+.web-panel-link,
+.web-panel-code {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  code {
+    background: var(--md-sys-color-surface-container-highest);
+    border-radius: 8px;
+    overflow-wrap: anywhere;
+    padding: 4px 8px;
+    user-select: all;
+  }
+}
+
+.web-panel-code code {
+  font-size: 22px;
+  letter-spacing: 0.08em;
+}
+
+.web-panel-caution {
+  background: var(--md-sys-color-tertiary-container);
+  border-radius: 12px;
+  color: var(--md-sys-color-on-tertiary-container);
+  padding: 8px 12px;
+}
+
+.web-panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  li {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+    overflow-wrap: anywhere;
+  }
+
+  small {
+    color: var(--md-sys-color-on-surface-variant);
+  }
+}

@@ -7,7 +7,9 @@ panel that Desktop Material hosts in Docker. It is kept apart from
 Open `Main.dc.html` beside `support.js` in a browser. `frames/` holds renders at
 1280 px and 390 px taken locally from this exact file.
 
-This is a design. Nothing here is implemented, verified or shipped behaviour.
+This is a design. Part of it is now built: see
+`docs/features/integrations/web-panel-public-link.md` for exactly what exists
+and what does not. The app runs the panel itself, not in Docker.
 
 `Main.dc.html` specifies:
 

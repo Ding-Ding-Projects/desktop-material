@@ -14,6 +14,7 @@ import {
   isMinecraftReadyLine,
   minecraftServerArguments,
   normalizeMinecraftCommand,
+  reduceMinecraftPlayers,
   validateMinecraftServer,
 } from '../lib/minecraft/server'
 
@@ -73,6 +74,7 @@ export class MinecraftServerHost {
     { buffer: MinecraftConsoleBuffer; total: number }
   >()
   private readonly messages = new Map<string, string>()
+  private readonly online = new Map<string, ReadonlyArray<string>>()
 
   public constructor(
     private readonly root: string,
@@ -278,6 +280,10 @@ export class MinecraftServerHost {
         if (entry.status === 'starting' && isMinecraftReadyLine(line)) {
           entry.status = 'running'
         }
+        this.online.set(
+          id,
+          reduceMinecraftPlayers(this.online.get(id) ?? [], line)
+        )
       }
     }
     child.stdout?.on('data', onOutput)
@@ -291,6 +297,7 @@ export class MinecraftServerHost {
         clearTimeout(entry.killTimer)
       }
       this.running.delete(id)
+      this.online.delete(id)
       const asked = entry.status === 'stopping'
       if (!asked && reason !== null) {
         this.messages.set(id, reason)
@@ -352,6 +359,11 @@ export class MinecraftServerHost {
       lines: wanted === 0 ? [] : kept.slice(kept.length - wanted),
       status,
     }
+  }
+
+  /** Who is online, from the server's join and leave lines. */
+  public players(id: string): ReadonlyArray<string> {
+    return this.online.get(id) ?? []
   }
 
   /** Stop everything at once; used when the app is closing. */

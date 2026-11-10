@@ -167,3 +167,31 @@ export class MinecraftConsoleBuffer {
     return this.kept
   }
 }
+
+const PlayerName = '[A-Za-z0-9_]{1,16}'
+const JoinedLine = new RegExp(`\\]: (${PlayerName}) joined the game\\s*$`)
+const LeftLine = new RegExp(`\\]: (${PlayerName}) left the game\\s*$`)
+
+/** Whether the text is a Java Edition player name. */
+export function isMinecraftPlayerName(name: string): boolean {
+  return new RegExp(`^${PlayerName}$`).test(name)
+}
+
+/**
+ * Follow who is online from the server's own join and leave lines. Chat lines
+ * carry the speaker's name before the text, so they never match.
+ */
+export function reduceMinecraftPlayers(
+  players: ReadonlyArray<string>,
+  line: string
+): ReadonlyArray<string> {
+  const joined = JoinedLine.exec(line)
+  if (joined !== null) {
+    return players.includes(joined[1]) ? players : [...players, joined[1]]
+  }
+  const left = LeftLine.exec(line)
+  if (left !== null) {
+    return players.filter(name => name !== left[1])
+  }
+  return players
+}

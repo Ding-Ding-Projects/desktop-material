@@ -36,12 +36,12 @@ Servers that are still running are asked to stop when the app closes.
 
 ## Not built
 
-Downloading server jars, world generation, backups, player and plugin
-management, `server.properties` editing on screen (the rule that writes one
-key exists and is tested, nothing calls it yet), and the web panel with its
-public link and Discord webhook. See
-[Web panel public link and Discord webhook](web-panel-public-link.md) for that
-groundwork.
+Downloading server jars, world generation, backups, plugin management and
+`server.properties` editing on screen (the rule that writes one key exists and
+is tested, nothing calls it yet).
+
+The web panel, its free public link and the Discord webhook are described in
+[Minecraft web panel, free public link and Discord webhook](web-panel-public-link.md).
 
 ## Verification
 

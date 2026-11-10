@@ -93,7 +93,13 @@ const disabled = (name: string) =>
 describe('MinecraftServers', () => {
   it('explains the empty list and adds a server after checking it', async () => {
     const { client, calls, schedule } = fake([])
-    render(<MinecraftServers client={client} schedule={schedule} />)
+    render(
+      <MinecraftServers
+        client={client}
+        schedule={schedule}
+        hideWebPanel={true}
+      />
+    )
     await screen.findByText(/No servers yet/)
 
     fireEvent.click(screen.getByRole('button', { name: 'Add a server' }))
@@ -114,7 +120,13 @@ describe('MinecraftServers', () => {
 
   it('keeps Start off until the EULA is accepted by the person', async () => {
     const { client, calls, schedule } = fake([server()])
-    render(<MinecraftServers client={client} schedule={schedule} />)
+    render(
+      <MinecraftServers
+        client={client}
+        schedule={schedule}
+        hideWebPanel={true}
+      />
+    )
     await screen.findByRole('heading', { name: 'Survival' })
     assert.equal(disabled('Start'), true)
     assert.equal(disabled('Accept for this server'), true)
@@ -138,7 +150,13 @@ describe('MinecraftServers', () => {
     const { client, calls, schedule, runTick } = fake([
       server({ eulaAccepted: true }),
     ])
-    render(<MinecraftServers client={client} schedule={schedule} />)
+    render(
+      <MinecraftServers
+        client={client}
+        schedule={schedule}
+        hideWebPanel={true}
+      />
+    )
     await screen.findByRole('heading', { name: 'Survival' })
     screen.getByText(/The console is empty/)
 

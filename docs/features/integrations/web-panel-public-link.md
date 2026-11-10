@@ -1,45 +1,90 @@
-# Web panel public link and Discord webhook (groundwork) / 網頁面板公開連結同 Discord（底層）
+# Minecraft web panel, free public link and Discord webhook / Minecraft 網頁面板、免費公開連結同 Discord
+
+**Repository tools → Minecraft servers → Web panel** serves a small panel for
+your local Minecraft servers, can give it a free public link with one click,
+and can tell a Discord channel the link every time it changes.
+
+「Repository tools → Minecraft servers → Web panel」會開一個細細個嘅面板畀你管本機嘅
+Minecraft 伺服器，撳一下就有免費公開連結，連結一變仲可以自動通知 Discord 頻道。
 
 > [!IMPORTANT]
-> This is groundwork only. The rules below exist and are tested, but nothing
-> starts a tunnel or sends a message yet, because the Minecraft server manager
-> and its web panel that they belong to are not built. There is no screen for
-> this in the app. The design is in `design/minecraft-web-panel/`.
+> Verified with unit tests and by loading the real panel page in Chromium on
+> Linux against a stand-in server list. It has **not** been run against
+> Cloudflare, Discord or a real Minecraft server, and not on Windows.
 
-呢度只係底層規則，有測試，但未有畫面、未會真係開隧道或者發訊息，因為佢哋要跟住嘅
-Minecraft 伺服器管理器同網頁面板仲未起好。
+## The panel
 
-## What exists
+- Listens only on this computer's loopback address (`127.0.0.1`, port 25580).
+  It never opens a port on your network by itself.
+- Pages: **Dashboard** (status, players online, port, memory, Start and Stop),
+  **Console** (live output and a command line), **Players** (who is online,
+  with Kick) and **Activity** (what paired devices did, newest first).
+- Works on a phone-width screen, follows light and dark mode, and has no
+  animation when reduced motion is requested.
 
-- `app/src/lib/web-panel/quick-tunnel.ts`: the arguments for a free Cloudflare
-  quick tunnel to this computer's loopback, finding the public
-  `https://….trycloudflare.com` address in the helper's output, and the
-  stopped, starting, running and failed states.
-- `app/src/lib/web-panel/discord-webhook.ts`: checks a Discord webhook address,
-  writes the message (link, optional one-use pairing code, no mentions), decides
-  whether a change needs a new message, an edit of the earlier one or nothing,
-  and sends it through an injected `fetch`.
+![Panel console page in Chromium on Linux with a stand-in server list](../../assets/web-panel/console-linux-chromium.png)
 
-## Behaviour the rules encode
+![Pairing page at phone width](../../assets/web-panel/pairing-phone-width.png)
 
-- A quick tunnel's link is random and changes on every start. A new link is
-  announced again automatically when that switch is on, by editing the earlier
-  message or posting a new one.
-- **Send now** always sends. An offline notice is sent only when asked for.
-- If the earlier message was deleted in Discord, a new one is posted instead.
-- A failure never stops the panel, keeps the previous state so the next change
-  retries, and never includes the webhook address in an error.
+## Pairing
+
+- Nothing answers without a paired session except the page itself and the
+  pairing request.
+- **New pairing code** shows an eight-character code. It works once, for 10
+  minutes. Eight wrong guesses pause pairing for ten minutes.
+- A paired device holds a random session for 30 days. Only a SHA-256 digest of
+  it is stored, so the saved list cannot be used to sign in.
+- Paired devices are listed in the app and can be removed one by one or all at
+  once. Signing out on the device removes it too.
+
+## Free public link
+
+- **Start free public link** turns the panel on if needed and runs
+  `cloudflared tunnel --no-autoupdate --url http://127.0.0.1:<port>`.
+- `cloudflared` must already be installed on this computer. The app does not
+  download it.
+- The link is a random `https://….trycloudflare.com` address. It is a new
+  address every time it starts, has no uptime guarantee, and serves at most 200
+  requests at once. The card says so.
+- If the helper exits, the card says the link no longer works.
+
+## Discord webhook
+
+- Paste a Discord webhook address and **Save webhook**. It is stored in the
+  operating-system vault and is never shown again, logged, put in an error or
+  written to the settings file.
+- The link is sent when it appears. With **Send again when the link changes**
+  on, a new link is sent automatically, either by updating the earlier message
+  or by posting a new one. **Say when the panel goes offline** sends a notice
+  when the link stops.
+- **Send a one-time pairing code with the link** is off by default. When on,
+  each message carries a fresh code, and **Send now** sends another. The card
+  warns that anyone who can read that channel can pair a device.
+- **Send now** always sends. A failed delivery is shown on the card without the
+  address and is retried on the next change or **Send now**.
+- Mentions are switched off in every message.
 
 ## Security considerations
 
-- The webhook address is a credential. The caller must keep it in the
-  operating-system vault; it is never written to messages, errors or state.
-- Sending the pairing code to the same channel as the link means anyone who can
-  read that channel can pair a device. The design states this on the surface.
-- A public link puts the sign-in page on the internet. Pairing remains
-  mandatory.
+- Changes need a paired session, a JSON body of at most 4 KB and a request
+  header that a cross-site form cannot set. The session cookie is `HttpOnly`
+  and `SameSite=Strict`, and `Secure` when the request arrived over HTTPS.
+- Every response carries a strict Content-Security-Policy, forbids framing and
+  is not cached. The page writes console text and player names as text only.
+- Console commands are one line of at most 256 characters; Kick accepts only a
+  Java Edition player name.
+- A public link puts the pairing page on the internet. Anyone paired can run
+  console commands on your servers, so hand out codes with care.
+
+## Not built
+
+Files, configuration, plugins, backups and schedules pages; a named tunnel on
+your own domain; downloading or verifying `cloudflared`; a WebSocket console
+(the console polls once a second).
 
 ## Verification
 
-`app/test/unit/web-panel-hosting-test.ts`: 9 tests pass on Linux, and the
-TypeScript check passes. Nothing here has run against Cloudflare or Discord.
+`web-panel-hosting-test.ts`, `web-panel-pairing-test.ts`,
+`web-panel-server-test.ts` (real loopback requests),
+`web-panel-controller-test.ts` (stand-in tunnel helper, vault and Discord) and
+`ui/web-panel-card-test.tsx`.

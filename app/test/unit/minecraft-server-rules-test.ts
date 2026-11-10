@@ -10,6 +10,8 @@ import {
   normalizeMinecraftCommand,
   setMinecraftServerProperty,
   validateMinecraftServer,
+  isMinecraftPlayerName,
+  reduceMinecraftPlayers,
 } from '../../src/lib/minecraft/server'
 
 const draft = {
@@ -104,5 +106,19 @@ describe('Minecraft server rules', () => {
       'four',
     ])
     assert.deepEqual(buffer.lines, ['two', 'three', 'four'])
+  })
+
+  it('follows players from join and leave lines only', () => {
+    const lines = [
+      '[15:02:11] [Server thread/INFO]: Steve joined the game',
+      '[15:02:12] [Server thread/INFO]: Alex joined the game',
+      '[15:02:13] [Server thread/INFO]: Steve joined the game',
+      '[15:02:14] [Server thread/INFO]: <Alex> Herobrine joined the game',
+      '[15:02:15] [Server thread/INFO]: Steve left the game',
+    ]
+    assert.deepEqual(lines.reduce(reduceMinecraftPlayers, []), ['Alex'])
+    assert.equal(isMinecraftPlayerName('Steve_01'), true)
+    assert.equal(isMinecraftPlayerName('Steve; op me'), false)
+    assert.equal(isMinecraftPlayerName(''), false)
   })
 })

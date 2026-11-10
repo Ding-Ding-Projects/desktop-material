@@ -775,9 +775,9 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       id: 'integrations/web-panel-public-link',
       category: 'integrations',
       title:
-        'Web panel public link and Discord webhook (groundwork) / 網頁面板公開連結同 Discord（底層）',
+        'Minecraft web panel, free public link and Discord webhook / Minecraft 網頁面板、免費公開連結同 Discord',
       description:
-        '呢度只係底層規則，有測試，但未有畫面、未會真係開隧道或者發訊息，因為佢哋要跟住嘅 Minecraft 伺服器管理器同網頁面板仲未起好。',
+        'Repository tools → Minecraft servers → Web panel serves a small panel for your local Minecraft servers, can give it a free public link with one click, and can tell a Discord…',
       sourcePath: 'docs/features/integrations/web-panel-public-link.md',
     },
     {

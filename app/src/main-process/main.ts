@@ -193,6 +193,9 @@ import {
 } from './file-converter'
 import { ExtensionHost } from './extension-host'
 import { MinecraftServerHost } from './minecraft-server-host'
+import * as keytar from 'keytar'
+import { WebPanelServer } from './web-panel-server'
+import { WebPanelController } from './web-panel-controller'
 import { MinecraftServerDraft } from '../lib/minecraft/server'
 import { IExtensionContext } from '../lib/extensions/protocol'
 import {
@@ -826,7 +829,7 @@ app.on('before-quit', event => {
 function getAppWindowFromBrowserWindow(
   browserWindow: BrowserWindow | null | undefined
 ): AppWindow | null {
-  return browserWindow ? windows.get(browserWindow.id) ?? null : null
+  return browserWindow ? (windows.get(browserWindow.id) ?? null) : null
 }
 
 function getAppWindowFromWebContents(
@@ -2184,6 +2187,41 @@ app.on('ready', () => {
     async (_event, id: string, after: number) =>
       minecraftHost.console(String(id), Number(after))
   )
+  /**
+   * Web panel: a loopback-only server for the Minecraft servers, an optional
+   * free public link, and a Discord webhook that is told the link. The
+   * webhook address stays in the system vault.
+   */
+  const webPanelRoot = Path.join(app.getPath('userData'), 'minecraft')
+  const webPanel = new WebPanelController(
+    new WebPanelServer(minecraftHost, webPanelRoot),
+    webPanelRoot,
+    keytar,
+    async (url, init) => {
+      const response = await fetch(url, { ...init, redirect: 'error' })
+      return { status: response.status, json: () => response.json() }
+    }
+  )
+  app.on('will-quit', () => {
+    void webPanel.stopPanel()
+  })
+  ipcMain.handle('web-panel-status', async () => webPanel.status())
+  ipcMain.handle('web-panel-start', async () => webPanel.startPanel())
+  ipcMain.handle('web-panel-stop', async () => webPanel.stopPanel())
+  ipcMain.handle('web-panel-start-tunnel', async () => webPanel.startTunnel())
+  ipcMain.handle('web-panel-stop-tunnel', async () => webPanel.stopTunnel())
+  ipcMain.handle('web-panel-set-webhook', async (_event, address: string) =>
+    webPanel.setWebhook(String(address ?? ''))
+  )
+  ipcMain.handle('web-panel-set-options', async (_event, options: unknown) =>
+    webPanel.setOptions(options)
+  )
+  ipcMain.handle('web-panel-new-code', async () => webPanel.newPairingCode())
+  ipcMain.handle('web-panel-revoke', async (_event, id: string | null) =>
+    webPanel.revoke(typeof id === 'string' ? id : null)
+  )
+  ipcMain.handle('web-panel-send-now', async () => webPanel.sendNow())
+
   ipcMain.handle('minecraft-open-folder', async (_event, id: string) => {
     const state = (await minecraftHost.list()).find(
       s => s.server.id === String(id)
