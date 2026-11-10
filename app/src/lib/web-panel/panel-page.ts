@@ -43,6 +43,7 @@ export const PanelHtml = `<!doctype html>
       <button type="button" data-page="console" aria-pressed="false">Console</button>
       <button type="button" data-page="players" aria-pressed="false">Players</button>
       <button type="button" data-page="settings" aria-pressed="false">Settings</button>
+      <button type="button" data-page="files" aria-pressed="false">Files</button>
       <button type="button" data-page="backups" aria-pressed="false">Backups</button>
       <button type="button" data-page="addons" aria-pressed="false">Plugins</button>
       <button type="button" data-page="activity" aria-pressed="false">Activity</button>
@@ -81,6 +82,13 @@ export const PanelHtml = `<!doctype html>
       <h2>Settings</h2>
       <p>These are written to server.properties. A running server reads them the next time it starts.</p>
       <form id="settings-form"></form>
+    </div>
+    <div id="page-files" class="page" hidden>
+      <h2>Files</h2>
+      <p>Read-only. Text files can be opened; passwords and tokens in them are hidden.</p>
+      <div class="actions"><button id="files-up" type="button">Up one folder</button><span id="files-path"></span></div>
+      <ul id="files"></ul>
+      <pre id="file-view" role="region" aria-label="File contents" tabindex="0" hidden></pre>
     </div>
     <div id="page-backups" class="page" hidden>
       <h2>Backups</h2>
@@ -133,6 +141,7 @@ dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12p
 dl div{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 16px}
 dt{font-size:13px;color:var(--soft)}dd{margin:0;font-size:20px}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
+#file-view{height:auto;max-height:60vh}
 pre{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin:0;height:50vh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.4 ui-monospace,Consolas,monospace}
 ul,ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
 li{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;display:flex;gap:12px;align-items:center;justify-content:space-between;overflow-wrap:anywhere}
@@ -143,7 +152,7 @@ li{background:var(--card);border:1px solid var(--line);border-radius:12px;paddin
 export const PanelJs = `(function(){
 'use strict';
 var $=function(id){return document.getElementById(id)};
-var selected=null,page='dashboard',position=0,consoleFor=null,busy=false,state=null;
+var selected=null,page='dashboard',position=0,consoleFor=null,busy=false,state=null,folder='';
 function api(method,path,body){
   var init={method:method,credentials:'same-origin',headers:{'X-Panel-Request':'1'}};
   if(body!==undefined){init.headers['Content-Type']='application/json';init.body=JSON.stringify(body)}
@@ -219,6 +228,14 @@ function row(parent,left,right){
   a.textContent=left;b.textContent=right;li.appendChild(a);li.appendChild(b);parent.appendChild(li);
 }
 function size(bytes){return bytes<1048576?Math.max(1,Math.round(bytes/1024))+' KB':(bytes/1048576).toFixed(1)+' MB'}
+function openFile(path){
+  api('GET','/api/file?id='+encodeURIComponent(selected)+'&path='+encodeURIComponent(path)).then(function(r){
+    var view=$('file-view');
+    if(r.status!==200){notice(r.body.error||'That file cannot be shown.');return}
+    view.textContent=(r.body.truncated?'(Showing the newest part of a long file.)\\n':'')+r.body.text;
+    view.hidden=false;view.setAttribute('aria-label','Contents of '+path);view.focus();
+  }).catch(function(){});
+}
 function loadPage(){
   if(!selected){return}
   var id=encodeURIComponent(selected),want=selected;
@@ -245,6 +262,27 @@ function loadPage(){
         });
         label.appendChild(input);form.appendChild(label);
       });
+    }).catch(function(){});
+  }
+  if(page==='files'){
+    $('files-path').textContent='/'+folder;$('files-up').disabled=folder==='';
+    api('GET','/api/files?id='+id+'&path='+encodeURIComponent(folder)).then(function(r){
+      if(want!==selected||page!=='files'){return}
+      var list=$('files');list.textContent='';
+      if(r.status!==200){notice(r.body.error||'That folder cannot be shown.');return}
+      r.body.entries.forEach(function(e){
+        var li=document.createElement('li'),name,info=document.createElement('small');
+        if(e.kind==='folder'||e.viewable){
+          name=document.createElement('button');name.type='button';
+          name.addEventListener('click',function(){
+            var path=(folder?folder+'/':'')+e.name;
+            if(e.kind==='folder'){folder=path;$('file-view').hidden=true;loadPage()}else{openFile(path)}
+          });
+        }else{name=document.createElement('span')}
+        name.textContent=e.name;info.textContent=e.kind==='folder'?'Folder':size(e.bytes);
+        li.appendChild(name);li.appendChild(info);list.appendChild(li);
+      });
+      if(r.body.entries.length===0){row(list,'This folder is empty.','')}
     }).catch(function(){});
   }
   if(page==='backups'){
@@ -280,7 +318,8 @@ $('pair-form').addEventListener('submit',function(e){
   }).catch(function(){$('pair-error').textContent='The panel cannot be reached right now.'});
 });
 $('signout').addEventListener('click',function(){api('POST','/api/signout',{}).then(function(){state=null;show(false)})});
-$('server').addEventListener('change',function(e){selected=e.target.value;paint();readConsole();loadPage()});
+$('server').addEventListener('change',function(e){selected=e.target.value;folder='';$('file-view').hidden=true;paint();readConsole();loadPage()});
+$('files-up').addEventListener('click',function(){folder=folder.split('/').slice(0,-1).join('/');$('file-view').hidden=true;loadPage()});
 $('backup').addEventListener('click',function(){$('backup').disabled=true;act('/api/backup',{id:selected}).then(function(){$('backup').disabled=false;loadPage()})});
 $('settings-form').addEventListener('submit',function(e){e.preventDefault()});
 $('start').addEventListener('click',function(){act('/api/start',{id:selected})});

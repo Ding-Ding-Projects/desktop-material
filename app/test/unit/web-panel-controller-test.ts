@@ -65,6 +65,8 @@ async function setup() {
       backups: async () => [],
       backup: async () => null,
       addOns: async () => [],
+      files: async () => [],
+      readTextFile: async () => null,
     },
     root
   )
@@ -257,6 +259,8 @@ describe('WebPanelController', () => {
         backups: async () => [],
         backup: async () => null,
         addOns: async () => [],
+        files: async () => [],
+        readTextFile: async () => null,
       },
       root
     )

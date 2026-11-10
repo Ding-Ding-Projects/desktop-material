@@ -67,6 +67,19 @@ export interface IPanelServers {
     ReadonlyArray<{ readonly name: string; readonly createdAt: number }>
   >
   readonly backup: (id: string) => Promise<string | null>
+  readonly files: (
+    id: string,
+    relative: string
+  ) => Promise<ReadonlyArray<{
+    readonly name: string
+    readonly kind: 'folder' | 'file'
+    readonly bytes: number
+    readonly viewable: boolean
+  }> | null>
+  readonly readTextFile: (
+    id: string,
+    relative: string
+  ) => Promise<{ readonly text: string; readonly truncated: boolean } | null>
   readonly addOns: (id: string) => Promise<
     ReadonlyArray<{
       readonly name: string
@@ -338,6 +351,24 @@ export class WebPanelServer {
         200,
         this.servers.console(id, Number(url.searchParams.get('after')) || 0)
       )
+    }
+
+    if (route === 'GET /api/files' || route === 'GET /api/file') {
+      const id = url.searchParams.get('id') ?? ''
+      const path = url.searchParams.get('path') ?? ''
+      if (!(await this.known(id))) {
+        return this.json(response, 404, { error: 'No such server.' })
+      }
+      if (route === 'GET /api/files') {
+        const entries = await this.servers.files(id, path)
+        return entries === null
+          ? this.json(response, 404, { error: 'That folder cannot be shown.' })
+          : this.json(response, 200, { entries })
+      }
+      const file = await this.servers.readTextFile(id, path)
+      return file === null
+        ? this.json(response, 404, { error: 'That file cannot be shown.' })
+        : this.json(response, 200, file)
     }
 
     if (

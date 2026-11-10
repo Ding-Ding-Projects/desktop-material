@@ -19,7 +19,8 @@ Minecraft 伺服器，撳一下就有免費公開連結，連結一變仲可以�
 - Pages: **Dashboard** (status, players online, port, memory, Start and Stop),
   **Console** (live output and a command line), **Players** (who is online,
   with Kick), **Settings** (ten `server.properties` values), **Backups** (copy
-  the world, list the copies), **Plugins** (the jar files in `plugins/` and
+  the world, list the copies), **Files** (browse the server folder and open
+  text files, read-only), **Plugins** (the jar files in `plugins/` and
   `mods/`, read-only) and **Activity** (what paired devices did, newest
   first).
 - **Settings** can change only: message of the day, maximum players,
@@ -28,6 +29,12 @@ Minecraft 伺服器，撳一下就有免費公開連結，連結一變仲可以�
   file can be written from the panel; `online-mode`, `level-name` and the
   remote-console keys are deliberately left out. A running server reads the
   file the next time it starts.
+- **Files** never leaves the server folder: paths with `..`, drive letters or
+  network prefixes are refused, and symbolic links are resolved before the
+  check so a link cannot lead out. Only plain-text types open (logs,
+  `.properties`, `.json`, `.yml` and similar), at most the newest 256 KB, and
+  values on lines whose key names a password, secret, token or API key are
+  shown as `(hidden)`. Nothing can be changed, uploaded or deleted.
 - **Backups** copies the world folder into `backups/<world>-<UTC time>/` in the
   server folder. The server must be stopped first, so a copy is never taken
   from a world that is being written. At most 50 are kept; restoring and
@@ -36,6 +43,8 @@ Minecraft 伺服器，撳一下就有免費公開連結，連結一變仲可以�
   animation when reduced motion is requested.
 
 ![Panel console page in Chromium on Linux with a stand-in server list](../../assets/web-panel/console-linux-chromium.png)
+
+![Files page with server.properties open and its password hidden, same run](../../assets/web-panel/files-linux-chromium.png)
 
 ![Backups page after one backup, same run](../../assets/web-panel/backups-linux-chromium.png)
 
@@ -102,6 +111,7 @@ your own domain; downloading or verifying `cloudflared`; a WebSocket console
 ## Verification
 
 `web-panel-hosting-test.ts`, `web-panel-pairing-test.ts`, `minecraft-properties-test.ts`,
+`minecraft-files-test.ts`,
 `web-panel-server-test.ts` (real loopback requests),
 `web-panel-controller-test.ts` (stand-in tunnel helper, vault and Discord) and
 `ui/web-panel-card-test.tsx`.

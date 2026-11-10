@@ -1,6 +1,15 @@
 import { ChildProcess, spawn as nodeSpawn } from 'child_process'
 import { randomUUID } from 'crypto'
-import { cp, mkdir, readFile, readdir, stat, writeFile } from 'fs/promises'
+import {
+  cp,
+  mkdir,
+  open,
+  readFile,
+  readdir,
+  realpath,
+  stat,
+  writeFile,
+} from 'fs/promises'
 import * as Path from 'path'
 
 import {
@@ -26,6 +35,14 @@ import {
   minecraftBackupName,
   minecraftWorldFolder,
 } from '../lib/minecraft/properties'
+import {
+  MaxMinecraftFileBytes,
+  MaxMinecraftFileEntries,
+  cleanMinecraftRelativePath,
+  isViewableMinecraftFile,
+  redactMinecraftSecrets,
+  tailMinecraftText,
+} from '../lib/minecraft/files'
 
 const StateFileName = 'servers.json'
 const MaxServers = 50
@@ -36,6 +53,14 @@ const BackupsFolder = 'backups'
 export interface IMinecraftBackup {
   readonly name: string
   readonly createdAt: number
+}
+
+export interface IMinecraftFileEntry {
+  readonly name: string
+  readonly kind: 'folder' | 'file'
+  readonly bytes: number
+  /** Whether the panel may show it as text. */
+  readonly viewable: boolean
 }
 
 export interface IMinecraftAddOn {
@@ -499,6 +524,102 @@ export class MinecraftServerHost {
         : 'The world could not be copied.'
     }
     return null
+  }
+
+  /**
+   * Resolve a panel path inside the server folder. Symbolic links are
+   * followed first, so a link cannot lead out of the folder.
+   */
+  private async inside(
+    server: IMinecraftServer,
+    relative: string
+  ): Promise<string | null> {
+    const segments = cleanMinecraftRelativePath(relative)
+    if (segments === null) {
+      return null
+    }
+    try {
+      const root = await realpath(server.directory)
+      const target = await realpath(Path.join(root, ...segments))
+      return target === root || target.startsWith(root + Path.sep)
+        ? target
+        : null
+    } catch {
+      return null
+    }
+  }
+
+  /** The entries of one folder inside the server folder. Read-only. */
+  public async files(
+    id: string,
+    relative: string
+  ): Promise<ReadonlyArray<IMinecraftFileEntry> | null> {
+    const folder = await this.inside(await this.find(id), relative)
+    if (folder === null) {
+      return null
+    }
+    try {
+      const entries = await readdir(folder, { withFileTypes: true })
+      const listed = new Array<IMinecraftFileEntry>()
+      for (const entry of entries.slice(0, MaxMinecraftFileEntries)) {
+        if (entry.isDirectory()) {
+          listed.push({
+            name: entry.name,
+            kind: 'folder',
+            bytes: 0,
+            viewable: false,
+          })
+        } else if (entry.isFile()) {
+          listed.push({
+            name: entry.name,
+            kind: 'file',
+            bytes: (await stat(Path.join(folder, entry.name))).size,
+            viewable: isViewableMinecraftFile(entry.name),
+          })
+        }
+      }
+      return listed.sort(
+        (a, b) =>
+          (a.kind === b.kind ? 0 : a.kind === 'folder' ? -1 : 1) ||
+          a.name.localeCompare(b.name)
+      )
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * The text of one plain-text file, with secret values hidden. A long file
+   * gives its newest part.
+   */
+  public async readTextFile(
+    id: string,
+    relative: string
+  ): Promise<{ readonly text: string; readonly truncated: boolean } | null> {
+    const file = await this.inside(await this.find(id), relative)
+    if (file === null || !isViewableMinecraftFile(Path.basename(file))) {
+      return null
+    }
+    try {
+      const handle = await open(file, 'r')
+      try {
+        const { size } = await handle.stat()
+        const length = Math.min(size, MaxMinecraftFileBytes)
+        const buffer = Buffer.alloc(length)
+        await handle.read(buffer, 0, length, size - length)
+        const truncated = size > length
+        return {
+          text: redactMinecraftSecrets(
+            tailMinecraftText(buffer.toString('utf8'), truncated)
+          ),
+          truncated,
+        }
+      } finally {
+        await handle.close()
+      }
+    } catch {
+      return null
+    }
   }
 
   /** Jar files in `plugins/` and `mods/`. Read-only. */

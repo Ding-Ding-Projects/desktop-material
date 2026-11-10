@@ -3,12 +3,14 @@ import { mkdtemp, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import * as Path from 'node:path'
 import { describe, it } from 'node:test'
+import { Script } from 'node:vm'
 
 import { IMinecraftServerState } from '../../src/lib/minecraft/server'
 import {
   IPanelServers,
   WebPanelServer,
 } from '../../src/main-process/web-panel-server'
+import { PanelHtml, PanelJs } from '../../src/lib/web-panel/panel-page'
 
 function fakeServers() {
   const calls = new Array<string>()
@@ -71,6 +73,14 @@ function fakeServers() {
         : null
     },
     addOns: async () => [{ name: 'Essentials.jar', kind: 'plugin', bytes: 3 }],
+    files: async (_id, relative) =>
+      relative === ''
+        ? [{ name: 'logs', kind: 'folder', bytes: 0, viewable: false }]
+        : null,
+    readTextFile: async (_id, relative) =>
+      relative === 'logs/latest.log'
+        ? { text: 'line one\n', truncated: false }
+        : null,
   }
   return { servers, calls }
 }
@@ -393,6 +403,60 @@ describe('WebPanelServer', () => {
       assert.equal(panel.activity[0].what, 'Changed pvp on Survival')
     } finally {
       await panel.stop()
+    }
+  })
+
+  it('lets paired devices browse files and refuses paths the host refuses', async () => {
+    const { panel, call, pair } = await setup()
+    try {
+      assert.equal((await call('GET', '/api/files?id=one&path=')).status, 401)
+      assert.equal(
+        (await call('GET', '/api/file?id=one&path=logs/latest.log')).status,
+        401
+      )
+      const cookie = await pair()
+      const listing = await call(
+        'GET',
+        '/api/files?id=one&path=',
+        undefined,
+        cookie
+      )
+      assert.equal(listing.body.entries[0].name, 'logs')
+      assert.equal(
+        (await call('GET', '/api/files?id=one&path=..', undefined, cookie))
+          .status,
+        404
+      )
+      const file = await call(
+        'GET',
+        '/api/file?id=one&path=logs%2Flatest.log',
+        undefined,
+        cookie
+      )
+      assert.deepEqual(file.body, { text: 'line one\n', truncated: false })
+      assert.equal(
+        (
+          await call(
+            'GET',
+            '/api/file?id=one&path=server.jar',
+            undefined,
+            cookie
+          )
+        ).status,
+        404
+      )
+    } finally {
+      await panel.stop()
+    }
+  })
+
+  it('ships a page script that parses and only touches elements the page has', () => {
+    assert.doesNotThrow(() => new Script(PanelJs))
+    const ids = new Set(
+      [...PanelHtml.matchAll(/\bid="([^"]+)"/g)].map(match => match[1])
+    )
+    for (const [, id] of PanelJs.matchAll(/\$\('([^']+)'\)/g)) {
+      assert.equal(ids.has(id), true, `#${id} is missing from the page`)
     }
   })
 })

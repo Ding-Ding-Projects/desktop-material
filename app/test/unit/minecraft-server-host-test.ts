@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import { ChildProcess } from 'node:child_process'
 import { EventEmitter } from 'node:events'
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import * as Path from 'node:path'
 import { describe, it } from 'node:test'
@@ -240,5 +240,56 @@ describe('MinecraftServerHost', () => {
     assert.deepEqual(await host.addOns(id), [
       { name: 'Essentials.jar', kind: 'plugin', bytes: 3 },
     ])
+  })
+
+  it('browses and reads text files inside the server folder only', async () => {
+    const { root, directory, host, draft } = await setup()
+    await host.saveServer(draft, null)
+    const id = (await host.list())[0].server.id
+    await mkdir(Path.join(directory, 'logs'))
+    await writeFile(Path.join(directory, 'logs', 'latest.log'), 'line one\n')
+    await writeFile(Path.join(directory, 'server.jar'), 'jar')
+    await writeFile(
+      Path.join(directory, 'server.properties'),
+      'motd=Hi\nrcon.password=hunter2\n'
+    )
+    await writeFile(Path.join(root, 'outside.txt'), 'secret')
+    await symlink(root, Path.join(directory, 'escape'))
+
+    assert.deepEqual(
+      (await host.files(id, ''))?.map(e => `${e.kind}:${e.name}:${e.viewable}`),
+      [
+        'folder:logs:false',
+        'file:server.jar:false',
+        'file:server.properties:true',
+      ]
+    )
+    assert.deepEqual(
+      (await host.files(id, 'logs'))?.map(e => e.name),
+      ['latest.log']
+    )
+    assert.equal(await host.files(id, '..'), null)
+    assert.equal(await host.files(id, 'escape'), null)
+    assert.equal(await host.files(id, 'missing'), null)
+
+    assert.deepEqual(await host.readTextFile(id, 'logs/latest.log'), {
+      text: 'line one\n',
+      truncated: false,
+    })
+    assert.equal(
+      (await host.readTextFile(id, 'server.properties'))?.text,
+      'motd=Hi\nrcon.password=(hidden)\n'
+    )
+    assert.equal(await host.readTextFile(id, 'server.jar'), null)
+    assert.equal(await host.readTextFile(id, 'escape/outside.txt'), null)
+    assert.equal(await host.readTextFile(id, '../outside.txt'), null)
+
+    await writeFile(
+      Path.join(directory, 'logs', 'big.log'),
+      'x'.repeat(300 * 1024) + '\nlast line\n'
+    )
+    const big = await host.readTextFile(id, 'logs/big.log')
+    assert.equal(big?.truncated, true)
+    assert.equal(big?.text.endsWith('last line\n'), true)
   })
 })
