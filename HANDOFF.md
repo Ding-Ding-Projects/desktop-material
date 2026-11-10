@@ -130,7 +130,15 @@ sign-in does not have, and it cannot be checked without a real sign-in.
   proxy binary is not built), the appearance editor failures were already
   recorded as identical with and without the motion settings, and the docs
   failures concern a screenshot and a changelog entry count that this work did
-  not touch. The other failing files were not triaged.
+  not touch. Grouped by their first error line, the failures are mostly
+  this machine rather than the code: 83 are the focus-trap library finding no
+  tabbable node under jsdom on Node 22, about 45 are the system Git lacking
+  `submodule`, about 40 are other differences between the system Git 2.43 and
+  the bundled Git the tests expect (cherry-pick usage text, output that Git
+  2.43 writes where the tests do not expect it), 4 need the hook proxy binary,
+  and 38 are whole files that did not load. Roughly 70 plain assertion
+  failures across about 30 files remain unexplained and need a run on Windows
+  with Node 24.15 and the bundled Git to judge.
 
 ## November 9, 2026 (later): design pass finished, first implementation, upstream ports
 
