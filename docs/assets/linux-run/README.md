@@ -38,6 +38,7 @@ What this means for reading them:
 | `v4.0.143701-live-memory-chart.png` | v4.0.143701 | Repository tools with folded categories and the live memory chart, slider as a 16px track |
 | `v4.0.143901-push-did-not-reach-remote.png` | v4.0.143901 | The banner after a push to a remote whose name cannot be looked up |
 | `v4.0.144401-fetch-try-again.png` | v4.0.144401 | The error notice with Try again after a fetch from a remote whose name cannot be looked up |
+| `v4.0.144801-about.png` | v4.0.144801 | About with the build commit, the code name read from the release notes, and the free note |
 
 ## What the runs found
 
@@ -95,3 +96,9 @@ What this means for reading them:
 - v4.0.144401: a fetch from a remote whose name cannot be looked up shows
   the error notice with **Try again** beside Details. Pressing it was not
   checked.
+- v4.0.144801: About shows `Built from commit 73066db08d.`, the code name
+  read live from that release's public notes with its dish photo link, and
+  the free note. The "operating system is no longer supported" banner in the
+  capture belongs to this Linux run. The row stagger in dropdown sheets could
+  not be judged: a still capture taken as the sheet opened caught the sheet
+  mid-slide and proves nothing about row timing.

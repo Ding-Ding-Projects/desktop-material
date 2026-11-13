@@ -45,7 +45,8 @@ Not done:
    development build was tried and webpack ran out of memory on a 7 GB machine.
 3. Verified on published releases run under Linux (docs/assets/linux-run/README.md): web panel end
    to end over loopback (v4.0.142301), live chart slider and folded categories (v4.0.143701), the
-   unreachable-push banner (v4.0.143901). Unexercised: Cloudflare link, Discord, a real server jar.
+   unreachable-push banner (v4.0.143901), Try again on a fetch notice (v4.0.144401), About with
+   build commit and code name (v4.0.144801). Row stagger is not confirmable from a still capture. Unexercised: Cloudflare link, Discord, a real server jar.
    (b) Boards were audited (see the top HANDOFF entry): most surfaces already existed. Not in the
    app: nothing further from the audit; About now reads the release code name from the release notes. Pull, fetch and push failures that
    could not reach the host now offer Try again.

@@ -33,5 +33,10 @@ The time the build was made is not recorded.
 ## Verification
 
 `build-provenance-test.ts` and `release-code-name-test.ts` pass on Linux, and
-the parser was run against the newest published release's real notes. Not yet
-seen in a running build.
+the parser was run against the newest published release's real notes. Seen in
+release v4.0.144801 run under Linux with stand-in native modules: the commit,
+the code name fetched from the release notes and the free note all appear.
+
+![About in release v4.0.144801, run under Linux with stand-in native modules](../../assets/linux-run/v4.0.144801-about.png)
+
+This is not a Windows capture. See [how it was made](../../assets/linux-run/README.md).
