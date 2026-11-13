@@ -1,4 +1,4 @@
-# About: build commit and the free note / 關於：組建來源同免費聲明
+# About: build commit, code name and the free note / 關於：組建來源、代號同免費聲明
 
 **Help → About Desktop Material** now says which commit the running build was
 made from, and states that the app is free.
@@ -14,13 +14,24 @@ made from, and states that the app is free.
 - `Free, and it stays free: no ads, no upgrade prompts, no review nags.
   Desktop Material builds on GitHub Desktop by GitHub and its contributors.`
 
+## Code name
+
+- `Code name: <dish>` with a link to the public dish photo, when the release
+  has one. Every release is named after one dim sum dish.
+- The release workflow picks the name when it publishes, after the app is
+  built, so the app cannot carry its own name. When About opens, the app reads
+  its own release's public notes from GitHub (one request, no sign-in sent)
+  and shows the name from them. If that fails, the release has no name or the
+  build is a development build, the line is simply absent.
+- Only a photo link on the project's own dim sum photo releases is accepted;
+  any other link in the notes is ignored.
+
 ## Not built
 
-The release's dim sum code name is not shown. The release workflow picks that
-name when it publishes, after the app has been built, so the build cannot
-carry its own name. The time the build was made is not recorded either.
+The time the build was made is not recorded.
 
 ## Verification
 
-`build-provenance-test.ts` passes on Linux and the TypeScript check passes.
-Not yet seen in a running build.
+`build-provenance-test.ts` and `release-code-name-test.ts` pass on Linux, and
+the parser was run against the newest published release's real notes. Not yet
+seen in a running build.

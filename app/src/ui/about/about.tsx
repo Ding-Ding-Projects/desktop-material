@@ -5,6 +5,11 @@ import {
   FreeForeverNote,
   describeBuildProvenance,
 } from '../../lib/build-provenance'
+import {
+  IReleaseCodeName,
+  ReleaseNotesFetch,
+  fetchReleaseCodeName,
+} from '../../lib/release-code-name'
 import { Button } from '../lib/button'
 import {
   Dialog,
@@ -47,6 +52,9 @@ interface IAboutProps {
    */
   readonly applicationVersion: string
 
+  /** Reads the release's public notes for its code name. For tests. */
+  readonly fetchReleaseNotes?: ReleaseNotesFetch
+
   /**
    * The currently installed (and running) architecture of the app.
    */
@@ -78,6 +86,8 @@ interface IAboutProps {
 interface IAboutState {
   /** Whether the coming-update details disclosure is open. */
   readonly isComingSoonExpanded: boolean
+  /** The release's dim sum code name, once its public notes were read. */
+  readonly codeName: IReleaseCodeName | null
 }
 
 interface IUpdateInfoProps {
@@ -120,14 +130,38 @@ class UpdateInfo extends React.Component<IUpdateInfoProps> {
   }
 }
 
+const defaultFetchReleaseNotes: ReleaseNotesFetch = (url, init) =>
+  fetch(url, { ...init, credentials: 'omit', redirect: 'error' })
+
 /**
  * A dialog that presents information about the
  * running application such as name and version.
  */
 export class About extends React.Component<IAboutProps, IAboutState> {
+  private mounted = false
+
   public constructor(props: IAboutProps) {
     super(props)
-    this.state = { isComingSoonExpanded: false }
+    this.state = { isComingSoonExpanded: false, codeName: null }
+  }
+
+  public componentDidMount() {
+    this.mounted = true
+    if (__DEV__) {
+      return
+    }
+    const fetchNotes = this.props.fetchReleaseNotes ?? defaultFetchReleaseNotes
+    void fetchReleaseCodeName(this.props.applicationVersion, fetchNotes).then(
+      codeName => {
+        if (this.mounted && codeName !== null) {
+          this.setState({ codeName })
+        }
+      }
+    )
+  }
+
+  public componentWillUnmount() {
+    this.mounted = false
   }
 
   private get canCheckForUpdates() {
@@ -380,6 +414,21 @@ export class About extends React.Component<IAboutProps, IAboutState> {
           <p className="no-padding about-provenance selectable-text">
             {describeBuildProvenance(__SHA__)}
           </p>
+          {this.state.codeName !== null && (
+            <p className="no-padding about-provenance">
+              Code name: {this.state.codeName.name}
+              {this.state.codeName.photoUrl !== null && (
+                <>
+                  {' '}
+                  (
+                  <LinkButton uri={this.state.codeName.photoUrl}>
+                    dish photo
+                  </LinkButton>
+                  )
+                </>
+              )}
+            </p>
+          )}
           {this.renderUpdateDetails()}
           {this.renderUpdateButton()}
           {this.renderBetaLink()}

@@ -420,7 +420,7 @@
       d: 'This ledger maps the 30 user-demand statements in the supplied research brief to their Desktop Material implementation and feature contract. Complete means the behavior is…',
     },
     {
-      t: 'About: build commit and the free note / 關於：組建來源同免費聲明',
+      t: 'About: build commit, code name and the free note / 關於：組建來源、代號同免費聲明',
       h: 'features/identity-and-workspace/about-build-provenance.html',
       s: 'features/identity-and-workspace/about-build-provenance.md',
       c: 'features',

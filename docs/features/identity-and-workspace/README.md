@@ -47,7 +47,7 @@ Material installation manages many identities, repositories, and branches.
 - [瀏覽器式設定分頁](settings-browser-tabs.md)
 - [Support Tickets：本機支援櫃檯](support-tickets.md) — 唔記得咗「好玩」鎖嘅密碼之後，自己行返入去嘅路
 - [內置驗證器同 QR 配對](authenticator-and-qr-registration.md) — 登記 TOTP 第二重驗證、喺程序入面畫嘅 QR，同啲密鑰擺喺邊
-- [About: build commit and the free note](about-build-provenance.md) — the About dialog names the commit the build was made from and states that the app is free.
+- [About: build commit, code name and the free note](about-build-provenance.md) — the About dialog names the commit the build was made from, the release's dim sum code name, and states that the app is free.
 
 High-frequency visual edits are coalesced before persistence, while remote
 default-branch lookup reuses only a namespace-validated local symbolic ref.

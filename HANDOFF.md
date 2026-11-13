@@ -112,8 +112,8 @@ sign-in does not have, and it cannot be checked without a real sign-in.
   - Row stagger: the first ten rows of a toolbar dropdown sheet fade in one
     after another when it opens; a short-lived mark keeps scrolling from
     replaying it.
-  - Not in the app: the release's dim sum code name (chosen after the
-    build).
+  - Code name: About reads the release's dim sum code name from its public
+    release notes, since the name is chosen after the build.
   - "Recording" on the Toolbox board is a committed walkthrough video, not an
     in-app recorder; none was made.
 - Remaining upstream items in issue #212.

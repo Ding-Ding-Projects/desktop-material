@@ -371,7 +371,8 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
     {
       id: 'identity-and-workspace/about-build-provenance',
       category: 'identity-and-workspace',
-      title: 'About: build commit and the free note / 關於：組建來源同免費聲明',
+      title:
+        'About: build commit, code name and the free note / 關於：組建來源、代號同免費聲明',
       description:
         'Help → About Desktop Material now says which commit the running build was made from, and states that the app is free.',
       sourcePath:
