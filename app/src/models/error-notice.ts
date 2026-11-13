@@ -50,6 +50,17 @@ export type IErrorNoticeAction =
       readonly repositoryId: number
     }
   | {
+      /**
+       * Run the same push, pull or fetch again after the remote could not be
+       * reached. Offered only for that kind of failure, where nothing about
+       * the request was wrong and trying again is the sensible next step.
+       */
+      readonly kind: 'retry-remote-operation'
+      readonly repositoryId: number
+      readonly operation: 'push' | 'pull' | 'fetch'
+      readonly label: string
+    }
+  | {
       /** Apply a recognized, safe one-click Git auto-fix (see git/auto-fix). */
       readonly kind: 'apply-git-auto-fix'
       readonly repositoryId: number

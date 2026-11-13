@@ -1,3 +1,5 @@
+import { RetryActionType } from '../models/retry-actions'
+
 /**
  * Whether Git's output says the remote host could not be reached at all:
  * name lookup failed, the connection was refused or timed out, or there is no
@@ -16,4 +18,27 @@ const UnreachablePatterns: ReadonlyArray<RegExp> = [
 
 export function isUnreachableRemoteOutput(output: string): boolean {
   return UnreachablePatterns.some(pattern => pattern.test(output))
+}
+
+/**
+ * Which remote operation a failure may offer to run again: only a push, pull
+ * or fetch whose output says the host could not be reached.
+ */
+export function retryableRemoteOperation(
+  retryActionType: RetryActionType | undefined,
+  gitOutput: string | null
+): 'push' | 'pull' | 'fetch' | null {
+  if (gitOutput === null || !isUnreachableRemoteOutput(gitOutput)) {
+    return null
+  }
+  switch (retryActionType) {
+    case RetryActionType.Push:
+      return 'push'
+    case RetryActionType.Pull:
+      return 'pull'
+    case RetryActionType.Fetch:
+      return 'fetch'
+    default:
+      return null
+  }
 }

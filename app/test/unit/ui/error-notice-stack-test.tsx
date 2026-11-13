@@ -188,4 +188,35 @@ describe('ErrorNoticeStack', () => {
     assert.equal(view.container.firstChild, null)
     assert.equal(screen.queryByRole('region'), null)
   })
+
+  it('offers Try again on a notice whose remote could not be reached', () => {
+    const actions = new Array<string>()
+    render(
+      <ErrorNoticeStack
+        notices={[
+          notice('pull', {
+            title: 'Failed to pull',
+            action: {
+              kind: 'retry-remote-operation',
+              repositoryId: 7,
+              operation: 'pull',
+              label: 'Try again',
+            },
+          }),
+          notice('other'),
+        ]}
+        onDismiss={() => undefined}
+        onAction={(target, action) =>
+          actions.push(
+            `${target.id}:${action.kind}:${
+              action.kind === 'retry-remote-operation' ? action.operation : ''
+            }`
+          )
+        }
+      />
+    )
+    assert.equal(screen.getAllByRole('button', { name: 'Try again' }).length, 1)
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    assert.deepEqual(actions, ['pull:retry-remote-operation:pull'])
+  })
 })

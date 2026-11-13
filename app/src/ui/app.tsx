@@ -40,7 +40,7 @@ import {
   translateForAccessibleName,
   type IBilingualVariable,
 } from '../lib/i18n'
-import { RetryAction } from '../models/retry-actions'
+import { RetryAction, RetryActionType } from '../models/retry-actions'
 import { FetchType } from '../models/fetch'
 import { shouldRenderApplicationMenu } from './lib/features'
 import { ApplicationMenuAltKeyTracker } from './lib/application-menu-alt-key-tracker'
@@ -7390,6 +7390,27 @@ export class App extends React.Component<IAppProps, IAppState> {
         notice.id,
         true
       )
+      return
+    }
+
+    if (action.kind === 'retry-remote-operation') {
+      const repository = this.state.repositories.find(
+        (candidate): candidate is Repository =>
+          candidate instanceof Repository &&
+          candidate.id === action.repositoryId
+      )
+      this.props.dispatcher.dismissErrorNotice(notice.id)
+      if (repository !== undefined) {
+        const type =
+          action.operation === 'push'
+            ? RetryActionType.Push
+            : action.operation === 'pull'
+            ? RetryActionType.Pull
+            : RetryActionType.Fetch
+        void this.props.dispatcher
+          .performRetry({ type, repository })
+          .catch(error => this.props.dispatcher.postError(asError(error)))
+      }
       return
     }
 

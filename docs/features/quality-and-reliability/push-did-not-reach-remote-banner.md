@@ -23,6 +23,15 @@ and no way to retry from it.
 - If the retry fails for another reason, that failure is reported the usual
   way.
 
+## Pull and fetch
+
+A pull or fetch that could not reach its remote keeps the app's usual error
+notice, and that notice now carries **Try again** too. It runs the same pull
+or fetch again and closes the notice. The button is offered only when Git's
+output says the host could not be reached; a sign-in failure, a rejection or a
+missing repository gets no retry button, because trying again would not help.
+A background push that fails the same way gets the same button on its notice.
+
 ## Accessibility
 
 The message is announced as an alert, the banner stays until it is dismissed
@@ -37,8 +46,10 @@ cannot be looked up: the banner did **not** appear and the general error
 notice did, because Git's own classification does not cover a failed name
 lookup during a push. The handler now reads Git's output for that. The
 corrected version was then seen in release v4.0.143901 run the same way: the
-banner appeared and the general notice did not. Try again was not pressed in
-that run, and nothing was checked on Windows.
+banner appeared and the general notice did not. Try again on the banner was pressed in
+a later run with an inconclusive result. The retry button on pull and fetch
+notices is covered by unit tests and has not been seen in a running build.
+Nothing was checked on Windows.
 
 ![The banner in release v4.0.143901, run under Linux with stand-in native modules](../../assets/linux-run/v4.0.143901-push-did-not-reach-remote.png)
 

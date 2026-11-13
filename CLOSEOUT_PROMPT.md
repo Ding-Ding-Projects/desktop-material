@@ -47,8 +47,8 @@ Not done:
    to end over loopback (v4.0.142301), live chart slider and folded categories (v4.0.143701), the
    unreachable-push banner (v4.0.143901). Unexercised: Cloudflare link, Discord, a real server jar.
    (b) Boards were audited (see the top HANDOFF entry): most surfaces already existed. Not in the
-   app: inline banners for failures other than an unreachable push, row stagger in popover lists,
-   the release code name.
+   app: row stagger in popover lists, the release code name. Pull, fetch and push failures that
+   could not reach the host now offer Try again.
 4. Upstream (issue #212): short-lived sign-in tokens (#22943) are development-only upstream and need
    refresh-token groundwork plus a real sign-in to check, so they are deferred; the Git, Git LFS and
    Electron updates (#22862, #22872 and the visible part of #22607 are done); then classify the rest of the 435 commits since b17e06dd.

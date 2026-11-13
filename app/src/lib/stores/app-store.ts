@@ -1,5 +1,6 @@
 import * as Path from 'path'
 import { constants as FsConstants } from 'fs'
+import { retryableRemoteOperation } from '../unreachable-remote'
 import {
   copyFile,
   lstat,
@@ -10355,7 +10356,26 @@ export class AppStore extends TypedBaseStore<IAppState> {
         lockAction === undefined && repository !== null
           ? this.buildGitAutoFixAction(underlying, repository.id)
           : undefined
-      const action: IErrorNoticeAction | undefined = lockAction ?? autoFixAction
+      const retryOperation =
+        repository === null || !(error instanceof ErrorWithMetadata)
+          ? null
+          : retryableRemoteOperation(
+              error.metadata.retryAction?.type,
+              underlying instanceof GitError
+                ? String(underlying.result.stderr ?? '')
+                : null
+            )
+      const retryNoticeAction: IErrorNoticeAction | undefined =
+        repository === null || retryOperation === null
+          ? undefined
+          : {
+              kind: 'retry-remote-operation',
+              repositoryId: repository.id,
+              operation: retryOperation,
+              label: 'Try again',
+            }
+      const action: IErrorNoticeAction | undefined =
+        lockAction ?? autoFixAction ?? retryNoticeAction
       this.errorNotices = enqueueErrorNotice(this.errorNotices, {
         title: presentation.title,
         message: presentation.message,

@@ -7,7 +7,10 @@ import { ErrorWithMetadata } from '../../src/lib/error-with-metadata'
 import { GitError } from '../../src/lib/git/core'
 import { Banner, BannerType } from '../../src/models/banner'
 import { Repository } from '../../src/models/repository'
-import { isUnreachableRemoteOutput } from '../../src/lib/unreachable-remote'
+import {
+  isUnreachableRemoteOutput,
+  retryableRemoteOperation,
+} from '../../src/lib/unreachable-remote'
 import { RetryAction, RetryActionType } from '../../src/models/retry-actions'
 import { PushDidNotReachRemoteBanner } from '../../src/ui/banners/push-did-not-reach-remote-banner'
 import { Dispatcher } from '../../src/ui/dispatcher'
@@ -138,5 +141,35 @@ describe('a push that did not reach its remote', () => {
     )
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     assert.deepEqual(calls, ['dismissed', 'retry'])
+  })
+
+  it('offers a retry only for a push, pull or fetch that could not reach its host', () => {
+    const unreachable =
+      "fatal: unable to access 'https://h/x.git/': Could not resolve host: h"
+    assert.equal(
+      retryableRemoteOperation(RetryActionType.Pull, unreachable),
+      'pull'
+    )
+    assert.equal(
+      retryableRemoteOperation(RetryActionType.Fetch, unreachable),
+      'fetch'
+    )
+    assert.equal(
+      retryableRemoteOperation(RetryActionType.Push, unreachable),
+      'push'
+    )
+    assert.equal(
+      retryableRemoteOperation(RetryActionType.Clone, unreachable),
+      null
+    )
+    assert.equal(retryableRemoteOperation(undefined, unreachable), null)
+    assert.equal(retryableRemoteOperation(RetryActionType.Pull, null), null)
+    assert.equal(
+      retryableRemoteOperation(
+        RetryActionType.Pull,
+        "fatal: Authentication failed for 'https://h/x.git/'"
+      ),
+      null
+    )
   })
 })

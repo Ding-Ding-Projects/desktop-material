@@ -57,6 +57,13 @@ class ErrorNoticeCard extends React.PureComponent<
     }
   }
 
+  private onRetryRemoteOperation = () => {
+    const { action } = this.props.notice
+    if (action?.kind === 'retry-remote-operation') {
+      this.props.onAction?.(this.props.notice, action)
+    }
+  }
+
   private onEditRepositoryRemotes = () => {
     const { action } = this.props.notice
     if (action?.kind === 'edit-repository-remotes') {
@@ -194,6 +201,15 @@ class ErrorNoticeCard extends React.PureComponent<
               type="button"
               className="error-notice-recovery"
               onClick={this.onApplyAutoFix}
+            >
+              {notice.action.label}
+            </button>
+          )}
+          {notice.action?.kind === 'retry-remote-operation' && (
+            <button
+              type="button"
+              className="error-notice-recovery"
+              onClick={this.onRetryRemoteOperation}
             >
               {notice.action.label}
             </button>

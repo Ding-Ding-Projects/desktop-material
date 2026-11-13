@@ -106,10 +106,10 @@ sign-in does not have, and it cannot be checked without a real sign-in.
     live charts, sketch pad, Base64 toolkit, quick convert, extensions,
     virtual disk planner, Minecraft servers and web panel, tools category
     counts and fold, build commit and free note in About.
-  - Not in the app: a retry on failures other than an unreachable push
-    (that one now has a banner with Try again; other failures show the
-    app's existing non-blocking error notice with Details, not a dialog, as
-    a run of release v4.0.143401 showed), row
+  - Retry: an unreachable push has a banner with Try again, and the app's
+    existing non-blocking error notice now offers Try again for a pull, fetch
+    or background push that could not reach its host.
+  - Not in the app: row
     stagger in popover lists (virtualised rows would replay it on scroll),
     the release's dim sum code name in the app (chosen after the build).
   - "Recording" on the Toolbox board is a committed walkthrough video, not an
