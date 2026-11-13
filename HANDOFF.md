@@ -73,6 +73,14 @@ only to a GitHub App with expiring user tokens turned on, so whether this
 fork's own sign-in app can use it is a setting only the owner can see, and the
 result can only be checked with a real sign-in.
 
+**Owner's decisions (November 13).** The Cloudflare public link and Discord
+delivery stay untested and are out of the goal. Upstream #22943 is dropped
+from the goal; sign-in keeps working as it does today. This session's goal is
+closed here, and the work that needs a Windows machine (canonical
+screenshots, the Git, Git LFS, GCM and Electron updates, a real Minecraft
+server jar run, and the roughly 70 unexplained failing unit tests) is handed
+to a later session through `CLOSEOUT_PROMPT.md`.
+
 **Not done.**
 
 - Panel settings, backups and plugin list pages were added after `4121e55`
