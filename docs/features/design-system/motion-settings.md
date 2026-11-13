@@ -85,3 +85,12 @@ loaded into release v4.0.139501 running under Linux with stand-ins for the
 Windows-only modules, where Settings opened and laid out as before; that is a
 sanity check, not a capture of a Windows build. The built Windows application has
 not been checked and no capture exists yet.
+
+## Row stagger in dropdown sheets
+
+When a toolbar dropdown sheet opens (repositories, branches, worktrees), its
+first ten rows fade in one after another, 28 ms apart. Only opacity changes,
+only at the full and calm motion levels, and only for a moment after opening,
+so rows that appear later while scrolling are not animated again. The **Lists**
+switch turns it off with the rest of the list motion. Covered by a style test;
+not seen in a running build yet.

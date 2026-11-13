@@ -45,4 +45,23 @@ describe('motion polish style contract', () => {
     assert.match(source, /var\(--dm-motion-short, 200ms\)/)
     assert.doesNotMatch(source, /transition:[^;]*\b\d+m?s\b/)
   })
+
+  it('staggers only the first rows of a sheet that has just opened', async () => {
+    const source = await read('material', '_polish.scss')
+    assert.match(
+      source,
+      /\.foldout\[data-dm-just-opened\] \.list-item \{\s*@include dm-polish \{\s*@for \$row from 1 through 10 \{\s*&:nth-child\(#\{\$row\}\) \{\s*animation: dmPolishFade/
+    )
+    const dropdown = await readFile(
+      Path.resolve(__dirname, '../../src/ui/toolbar/dropdown.tsx'),
+      'utf8'
+    )
+    // The mark must outlast the last row's delay plus its fade, and must be
+    // removed so rows that appear while scrolling are not animated again.
+    const lifetime = Number(
+      /FoldoutJustOpenedMs = (\d+)/.exec(dropdown)?.[1] ?? 0
+    )
+    assert.ok(lifetime >= 9 * 28 + 300)
+    assert.match(dropdown, /removeAttribute\(FoldoutJustOpenedAttribute\)/)
+  })
 })

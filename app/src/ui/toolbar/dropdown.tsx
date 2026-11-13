@@ -19,6 +19,12 @@ import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
 
 export type DropdownState = 'open' | 'closed'
 
+/** Set on a dropdown's sheet for a moment after it opens. */
+export const FoldoutJustOpenedAttribute = 'data-dm-just-opened'
+
+/** How long the mark stays: longer than the whole row stagger. */
+export const FoldoutJustOpenedMs = 700
+
 /** Represents the style of the dropdown */
 export enum ToolbarDropdownStyle {
   /**
@@ -261,6 +267,8 @@ export class ToolbarDropdown extends React.Component<
   private rootDiv = React.createRef<HTMLDivElement>()
   private focusTrapOptions: FocusTrapOptions
 
+  private justOpenedTimer: number | null = null
+
   public constructor(props: IToolbarDropdownProps) {
     super(props)
     this.state = { clientRect: null }
@@ -361,6 +369,28 @@ export class ToolbarDropdown extends React.Component<
 
   public componentWillUnmount() {
     window.removeEventListener('resize', this.onWindowResize)
+    if (this.justOpenedTimer !== null) {
+      window.clearTimeout(this.justOpenedTimer)
+    }
+  }
+
+  /**
+   * Mark the sheet as just opened for a moment. The stylesheet uses the mark
+   * to let the first rows arrive in a short stagger; removing it afterwards
+   * keeps rows that appear later, while scrolling, from replaying it.
+   */
+  private onFoldoutRef = (element: HTMLDivElement | null) => {
+    if (element === null) {
+      return
+    }
+    element.setAttribute(FoldoutJustOpenedAttribute, '')
+    if (this.justOpenedTimer !== null) {
+      window.clearTimeout(this.justOpenedTimer)
+    }
+    this.justOpenedTimer = window.setTimeout(() => {
+      this.justOpenedTimer = null
+      element.removeAttribute(FoldoutJustOpenedAttribute)
+    }, FoldoutJustOpenedMs)
   }
 
   public componentDidUpdate() {
@@ -462,6 +492,7 @@ export class ToolbarDropdown extends React.Component<
           />
           <div
             className="foldout"
+            ref={this.onFoldoutRef}
             style={this.getFoldoutStyle()}
             tabIndex={-1}
             onKeyDown={this.onFoldoutKeyDown}

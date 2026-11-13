@@ -109,9 +109,11 @@ sign-in does not have, and it cannot be checked without a real sign-in.
   - Retry: an unreachable push has a banner with Try again, and the app's
     existing non-blocking error notice now offers Try again for a pull, fetch
     or background push that could not reach its host.
-  - Not in the app: row
-    stagger in popover lists (virtualised rows would replay it on scroll),
-    the release's dim sum code name in the app (chosen after the build).
+  - Row stagger: the first ten rows of a toolbar dropdown sheet fade in one
+    after another when it opens; a short-lived mark keeps scrolling from
+    replaying it.
+  - Not in the app: the release's dim sum code name (chosen after the
+    build).
   - "Recording" on the Toolbox board is a committed walkthrough video, not an
     in-app recorder; none was made.
 - Remaining upstream items in issue #212.

@@ -121,3 +121,18 @@ a {
     animation: dmPolishFade $dm-medium $dm-emph backwards;
   }
 }
+
+// Rows of a dropdown sheet arrive in a short stagger when the sheet opens.
+// Only the first rows, only opacity (the list positions rows itself), and
+// only while the sheet carries the just-opened mark, so rows that appear
+// later while scrolling are not animated again.
+.foldout[data-dm-just-opened] .list-item {
+  @include dm-polish {
+    @for $row from 1 through 10 {
+      &:nth-child(#{$row}) {
+        animation: dmPolishFade $dm-medium $dm-emph backwards;
+        animation-delay: #{($row - 1) * 28}ms;
+      }
+    }
+  }
+}
