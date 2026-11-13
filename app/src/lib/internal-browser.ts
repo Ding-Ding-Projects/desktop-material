@@ -217,12 +217,40 @@ export function setBrowserOpenModePreference(
   return normalized
 }
 
+/**
+ * Chromium's own URL length ceiling (`url::kMaxURLChars`, 2 MiB).
+ *
+ * Remote sites are allowed to navigate to anything Chromium itself will load.
+ * Sign-in providers in particular redirect through very long URLs: Microsoft
+ * sign-in for Outlook routinely carries state, nonce, PKCE and client-info
+ * parameters that push the address past the 4 KiB cap the app uses for
+ * addresses it accepts over IPC or stores. Applying that smaller cap to the
+ * navigation guard silently cancelled those redirects and left the page blank.
+ */
+export const MaximumNavigationURLLength = 2 * 1024 * 1024
+
 /** Return a strict HTTP(S) URL, without guessing what a non-URL path means. */
 export function normalizeWebURL(value: string): string | null {
+  return normalizeHTTPURL(value, MaximumBrowserURLLength)
+}
+
+/**
+ * Like `normalizeWebURL`, but bounded by Chromium's own URL limit rather than
+ * the app's IPC/storage limit. Use it only for navigation a remote page
+ * initiates inside the sandboxed internal browser.
+ */
+export function normalizeNavigationURL(value: string): string | null {
+  return normalizeHTTPURL(value, MaximumNavigationURLLength)
+}
+
+function normalizeHTTPURL(
+  value: string,
+  maximumLength: number
+): string | null {
   const trimmed = value.trim()
   if (
     trimmed.length === 0 ||
-    trimmed.length > MaximumBrowserURLLength ||
+    trimmed.length > maximumLength ||
     controlCharacters.test(trimmed)
   ) {
     controlCharacters.lastIndex = 0
@@ -244,6 +272,25 @@ export function normalizeWebURL(value: string): string | null {
   } catch {
     return null
   }
+}
+
+const browserUserAgentPattern =
+  /^(Mozilla\/5\.0 \([^)]*\) AppleWebKit\/[\d.]+ \(KHTML, like Gecko\)).*?\b(Chrome\/[\d.]+)\b.*?\b(Safari\/[\d.]+)/
+
+/**
+ * The user agent remote pages see: an ordinary Chrome user agent.
+ *
+ * Electron's default appends the application's own name and an `Electron/`
+ * token. Some sites, Outlook on the web among them, treat that as an
+ * unsupported browser and refuse to finish loading. The Chromium engine is
+ * genuinely the one reported, so this hides only the embedding.
+ */
+export function toBrowserCompatibleUserAgent(userAgent: string): string {
+  const match = browserUserAgentPattern.exec(userAgent)
+  if (match === null) {
+    return userAgent
+  }
+  return `${match[1]} ${match[2]} ${match[3]}`
 }
 
 /**

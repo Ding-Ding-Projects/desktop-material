@@ -20,6 +20,7 @@ import {
   InternalBrowserTabError,
   MinimumInternalBrowserContentTop,
   normalizeAddressInput,
+  normalizeNavigationURL,
   normalizeWebURL,
   redactBrowserURL,
   resolveInternalBrowserContentBounds,
@@ -29,6 +30,7 @@ import {
   selectInternalBrowserAuthenticationFlowsForResolution,
   shouldDispatchInternalBrowserAppAction,
   shouldRetireInternalBrowserAuthenticationSession,
+  toBrowserCompatibleUserAgent,
 } from '../lib/internal-browser'
 import * as ipcWebContents from './ipc-webcontents'
 import { addTrustedIPCSender } from './trusted-ipc-sender'
@@ -520,6 +522,9 @@ export class InternalBrowserWindow {
       return
     }
     configuredSessions.add(remoteSession)
+    remoteSession.setUserAgent(
+      toBrowserCompatibleUserAgent(remoteSession.getUserAgent())
+    )
     remoteSession.setPermissionCheckHandler(() => false)
     remoteSession.setPermissionRequestHandler(
       (_webContents, _permission, callback) => callback(false)
@@ -536,20 +541,23 @@ export class InternalBrowserWindow {
 
   private configureRemoteWebContents(tab: IInternalBrowserTab) {
     const contents = tab.view.webContents
+    // The session-wide override does not reach a WebContents created before
+    // it was set, so the first tab in a fresh session needs it directly.
+    contents.setUserAgent(toBrowserCompatibleUserAgent(contents.getUserAgent()))
 
     contents.setWindowOpenHandler(({ url }) => {
       this.routeRemoteTarget(url, tab)
       return { action: 'deny' }
     })
     contents.on('will-navigate', (event, url) => {
-      if (normalizeWebURL(url) !== null) {
+      if (normalizeNavigationURL(url) !== null) {
         return
       }
       event.preventDefault()
       this.routeRemoteTarget(url, tab)
     })
     contents.on('will-redirect', (event, url, _inPlace, isMainFrame) => {
-      if (!isMainFrame || normalizeWebURL(url) !== null) {
+      if (!isMainFrame || normalizeNavigationURL(url) !== null) {
         return
       }
       event.preventDefault()
@@ -561,12 +569,12 @@ export class InternalBrowserWindow {
     })
     contents.on('did-stop-loading', () => this.refreshTab(tab))
     contents.on('did-navigate', (_event, url) => {
-      tab.url = normalizeWebURL(url)
+      tab.url = normalizeNavigationURL(url)
       this.refreshTab(tab)
     })
     contents.on('did-navigate-in-page', (_event, url, isMainFrame) => {
       if (isMainFrame) {
-        tab.url = normalizeWebURL(url)
+        tab.url = normalizeNavigationURL(url)
         this.refreshTab(tab)
       }
     })
@@ -656,7 +664,7 @@ export class InternalBrowserWindow {
       return
     }
 
-    const normalized = normalizeWebURL(url)
+    const normalized = normalizeNavigationURL(url)
     if (normalized !== null) {
       this.createTab(
         normalized,
@@ -687,7 +695,7 @@ export class InternalBrowserWindow {
     if (contents.isDestroyed()) {
       return
     }
-    tab.url = normalizeWebURL(contents.getURL())
+    tab.url = normalizeNavigationURL(contents.getURL())
     tab.title =
       sanitizeBrowserTitle(contents.getTitle()) ||
       (tab.url === null ? '' : new URL(tab.url).hostname)

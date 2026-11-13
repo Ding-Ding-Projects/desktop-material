@@ -20,8 +20,10 @@ import {
   IInternalBrowserState,
   IInternalBrowserTabState,
   MaximumInternalBrowserTabs,
+  MaximumNavigationURLLength,
   MinimumInternalBrowserContentTop,
   normalizeBrowserOpenMode,
+  normalizeNavigationURL,
   parseInternalBrowserBookmarks,
   redactBrowserURL,
   resolveInternalBrowserAddressBar,
@@ -32,6 +34,7 @@ import {
   setBrowserOpenModePreference,
   shouldDispatchInternalBrowserAppAction,
   shouldRetireInternalBrowserAuthenticationSession,
+  toBrowserCompatibleUserAgent,
   writeInternalBrowserBookmarks,
 } from '../../src/lib/internal-browser'
 import { parseAppURL } from '../../src/lib/parse-app-url'
@@ -675,5 +678,49 @@ describe('internal browser address bar', () => {
         pendingAddress: null,
       }
     )
+  })
+})
+
+describe('internal browser remote navigation', () => {
+  it('lets sign-in redirects longer than the IPC address cap navigate', () => {
+    // Microsoft sign-in for Outlook on the web redirects through addresses
+    // like this one, far past 4 KiB once state, nonce and PKCE are attached.
+    const signIn = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=00000002-0000-0ff1-ce00-000000000000&redirect_uri=https%3A%2F%2Foutlook.office.com%2Fowa%2F&state=${'s'.repeat(
+      6_000
+    )}&nonce=${'n'.repeat(200)}`
+
+    assert.equal(normalizeWebURL(signIn), null)
+    assert.equal(normalizeNavigationURL(signIn), new URL(signIn).toString())
+  })
+
+  it('keeps every other navigation rule', () => {
+    assert.equal(
+      normalizeNavigationURL('https://outlook.office.com/mail/'),
+      'https://outlook.office.com/mail/'
+    )
+    assert.equal(normalizeNavigationURL('javascript:alert(1)'), null)
+    assert.equal(normalizeNavigationURL('file:///C:/Windows'), null)
+    assert.equal(normalizeNavigationURL('https://user:pw@example.com/'), null)
+    assert.equal(normalizeNavigationURL('https://example.com/\u0000'), null)
+    assert.equal(
+      normalizeNavigationURL(
+        `https://example.com/${'x'.repeat(MaximumNavigationURLLength)}`
+      ),
+      null
+    )
+  })
+
+  it('reports a plain Chrome user agent to remote pages', () => {
+    const electron =
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Desktop Material/3.5.0 Chrome/142.0.7444.59 Electron/42.0.1 Safari/537.36'
+
+    assert.equal(
+      toBrowserCompatibleUserAgent(electron),
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.7444.59 Safari/537.36'
+    )
+  })
+
+  it('leaves an unrecognised user agent untouched', () => {
+    assert.equal(toBrowserCompatibleUserAgent('curl/8.0'), 'curl/8.0')
   })
 })
