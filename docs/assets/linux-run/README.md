@@ -37,6 +37,7 @@ What this means for reading them:
 | `v4.0.142301-web-panel-card-paired.png` | v4.0.142301 | Web panel card after the panel was turned on and a device paired over loopback |
 | `v4.0.143701-live-memory-chart.png` | v4.0.143701 | Repository tools with folded categories and the live memory chart, slider as a 16px track |
 | `v4.0.143901-push-did-not-reach-remote.png` | v4.0.143901 | The banner after a push to a remote whose name cannot be looked up |
+| `v4.0.144401-fetch-try-again.png` | v4.0.144401 | The error notice with Try again after a fetch from a remote whose name cannot be looked up |
 
 ## What the runs found
 
@@ -91,3 +92,6 @@ What this means for reading them:
   release: the banner was showing both 1 second and 9 seconds afterwards.
   That fits a retry that failed again at once, but it does not prove the
   retry ran, because a failed lookup returns immediately.
+- v4.0.144401: a fetch from a remote whose name cannot be looked up shows
+  the error notice with **Try again** beside Details. Pressing it was not
+  checked.

@@ -47,8 +47,8 @@ notice did, because Git's own classification does not cover a failed name
 lookup during a push. The handler now reads Git's output for that. The
 corrected version was then seen in release v4.0.143901 run the same way: the
 banner appeared and the general notice did not. Try again on the banner was pressed in
-a later run with an inconclusive result. The retry button on pull and fetch
-notices is covered by unit tests and has not been seen in a running build.
+a later run with an inconclusive result. The retry button on a fetch notice was
+seen in release v4.0.144401 run the same way; pressing it was not checked.
 Nothing was checked on Windows.
 
 ![The banner in release v4.0.143901, run under Linux with stand-in native modules](../../assets/linux-run/v4.0.143901-push-did-not-reach-remote.png)
