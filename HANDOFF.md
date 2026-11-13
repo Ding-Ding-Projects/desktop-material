@@ -63,10 +63,15 @@ the file; it held only the API error text. The path remains in history because
 history is never rewritten here. The local helpers now refuse non-numeric
 asset ids and refuse to commit paths that are invalid on Windows.
 
-**Upstream #22943 (short-lived sign-in tokens).** Not ported, on purpose for
-now: upstream enables it only in development builds, it replaces the OAuth
-token exchange and relies on token-refresh groundwork that this fork's GitHub
-sign-in does not have, and it cannot be checked without a real sign-in.
+**Upstream #22943 (short-lived sign-in tokens).** Looked at again on November
+12 after the owner asked to keep it in scope, and still not ported. It is the
+last step of an upstream series: it calls `exchangeOAuthToken` from an
+`oauth-token` module, stores a credential with a refresh token through the
+accounts store and revokes unused tokens, none of which exist in this fork.
+Upstream also enables it only in development builds. Refresh tokens are issued
+only to a GitHub App with expiring user tokens turned on, so whether this
+fork's own sign-in app can use it is a setting only the owner can see, and the
+result can only be checked with a real sign-in.
 
 **Not done.**
 
