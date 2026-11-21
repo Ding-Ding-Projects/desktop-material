@@ -371,18 +371,25 @@ export class Button extends React.Component<IButtonProps, {}> {
   }
 
   private onClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const onClick = this.props.onClick
+    if (onClick === undefined || this.props.disabled || this.isActionActive) {
+      if (this.props.type === undefined) {
+        event.preventDefault()
+      }
+      return
+    }
+
+    // The handler must see the event before the default is prevented: callers
+    // such as menu-backed suggested actions use `defaultPrevented` to decide
+    // whether their own default behavior should still run.
+    const result = singleFlightActions.run(this.activationKey, () =>
+      onClick(event)
+    )
+
     if (this.props.type === undefined) {
       event.preventDefault()
     }
 
-    const onClick = this.props.onClick
-    if (onClick === undefined || this.props.disabled || this.isActionActive) {
-      return
-    }
-
-    const result = singleFlightActions.run(this.activationKey, () =>
-      onClick(event)
-    )
     void result.catch(() => {})
     return result
   }

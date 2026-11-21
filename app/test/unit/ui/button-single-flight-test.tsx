@@ -14,6 +14,8 @@ import {
 import { Dispatcher } from '../../../src/ui/dispatcher/dispatcher'
 import { SignInStore } from '../../../src/lib/stores/sign-in-store'
 import { shell } from '../../../src/lib/app-shell'
+import * as mainProcessProxy from '../../../src/ui/main-process-proxy'
+import { MenuBackedSuggestedAction } from '../../../src/ui/suggested-actions/menu-backed-suggested-action'
 import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
 
 describe('single-flight activation controls', () => {
@@ -85,6 +87,50 @@ describe('single-flight activation controls', () => {
 
     assert.equal(calls, 2)
     assert.equal(button.getAttribute('aria-busy'), null)
+  })
+
+  it('lets the click handler see an event whose default is not yet prevented', () => {
+    let seenDefaultPrevented: boolean | null = null
+    render(
+      <Button
+        onClick={event => {
+          seenDefaultPrevented = event.defaultPrevented
+        }}
+      >
+        Show in Explorer
+      </Button>
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show in Explorer' }))
+
+    assert.equal(seenDefaultPrevented, false)
+  })
+
+  it('runs the backing menu item for a non-primary suggested action', () => {
+    const executed: Array<string> = []
+    const execute = mock.method(
+      mainProcessProxy,
+      'executeMenuItemById',
+      (id: string) => {
+        executed.push(id)
+      }
+    )
+    try {
+      render(
+        <MenuBackedSuggestedAction
+          title="View the files of your repository in Explorer"
+          discoverabilityContent="Repository menu"
+          menuItemId="open-working-directory"
+          buttonText="Show in Explorer"
+        />
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'Show in Explorer' }))
+
+      assert.deepEqual(executed, ['open-working-directory'])
+    } finally {
+      execute.mock.restore()
+    }
   })
 
   it('uses a native button for non-URI LinkButton and keeps URI links as links', () => {
