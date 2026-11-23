@@ -70,71 +70,64 @@
     "@github/multimap" "^1.0.0"
     "@github/stable-socket" "^1.1.0"
 
-"@github/copilot-darwin-arm64@1.0.80":
-  version "1.0.80"
-  resolved "https://registry.yarnpkg.com/@github/copilot-darwin-arm64/-/copilot-darwin-arm64-1.0.80.tgz#3bb3de320f1036b2d59abda8249d95546cacc262"
-  integrity sha512-fzn4PnSx3+O/a3ip72KVsjnzORsEygK+0i21bFAnFBYS+0Wi1Pk+o/CmNsJ7aRbf1enSJrcH8UDVkyc9pMGEBg==
+"@github/copilot-sdk-darwin-arm64@1.0.34":
+  version "1.0.34"
+  resolved "https://registry.yarnpkg.com/@github/copilot-sdk-darwin-arm64/-/copilot-sdk-darwin-arm64-1.0.34.tgz#c5acb9a5b6a7859d174182563a31589d2831b5a6"
+  integrity sha512-zJDSa0Psmtvv2Sn394wqel1AMuzaM/Bm+8rFOw9mLO/bXzPmUIKUutNcn4RkRz3FTxnbeB/914VwL7KB4IFRZQ==
 
-"@github/copilot-darwin-x64@1.0.80":
-  version "1.0.80"
-  resolved "https://registry.yarnpkg.com/@github/copilot-darwin-x64/-/copilot-darwin-x64-1.0.80.tgz#ee9d7bebd904f803c62937e21454ad63186ad318"
-  integrity sha512-PKsyGk5DccNzR3bYXcYTGB9N6sHzhzGqEwq/2t1qBwqPbrC98Zo2dOT2G40/QYpJ4XdrGmTmdmfPJQ9PJknlIQ==
+"@github/copilot-sdk-darwin-x64@1.0.34":
+  version "1.0.34"
+  resolved "https://registry.yarnpkg.com/@github/copilot-sdk-darwin-x64/-/copilot-sdk-darwin-x64-1.0.34.tgz#bd258cbf9b22d7b99e289f240816ca5dc4ab5ff5"
+  integrity sha512-bRnCZBbSnkLpKfHEO3harCa1UXwUIDG/tCuwCLhAIUrC9A6vK4Dr7uMPGqPXN+47A3Zpzk/5JmadczY1S0UQdQ==
 
-"@github/copilot-linux-arm64@1.0.80":
-  version "1.0.80"
-  resolved "https://registry.yarnpkg.com/@github/copilot-linux-arm64/-/copilot-linux-arm64-1.0.80.tgz#02afc9e7d4b2ee0c39c523cf0f6d357316aece0b"
-  integrity sha512-8oXwN2luyHEjIoSk8AkATBjXDhRoQtuiUvC93GpfQKFHI+I1eoOVwIsAq5fKP8jNCF2rOrYFIcTjwmRt38kCcQ==
+"@github/copilot-sdk-linux-arm64@1.0.34":
+  version "1.0.34"
+  resolved "https://registry.yarnpkg.com/@github/copilot-sdk-linux-arm64/-/copilot-sdk-linux-arm64-1.0.34.tgz#b884ef995fe9199d07da8d46e90bdcdad6687c8c"
+  integrity sha512-T1UWVZLQ/6yQIoXvLEepNqLi+15+BxBkkyQW4BbN1n+WJ6SMcUJFVBOVIXXbDFhG7e+xLL2ITzRBS/oRZH06Xw==
 
-"@github/copilot-linux-x64@1.0.80":
-  version "1.0.80"
-  resolved "https://registry.yarnpkg.com/@github/copilot-linux-x64/-/copilot-linux-x64-1.0.80.tgz#8418f636cf15277bd1c3497d52ebf9d4249a77ce"
-  integrity sha512-qv1ytVNwA3IDK7kcQow+fAikD67t42+AQ8X42bK/7oudNiv4frVZMO0yh1DYIebVRcmEhmPvbVPY/ptVUK3cbA==
+"@github/copilot-sdk-linux-x64@1.0.34":
+  version "1.0.34"
+  resolved "https://registry.yarnpkg.com/@github/copilot-sdk-linux-x64/-/copilot-sdk-linux-x64-1.0.34.tgz#cd3c1fcff4722067383c490fbfca103b8f7cf603"
+  integrity sha512-/3BS48gnx1mEfXXkCO/reFZudVdEb3+BOG+h7SdC/zg25wHg5FvDR0zesNYFfv47W9zOGo6SInVnKf9O1MhJ7g==
 
-"@github/copilot-linuxmusl-arm64@1.0.80":
-  version "1.0.80"
-  resolved "https://registry.yarnpkg.com/@github/copilot-linuxmusl-arm64/-/copilot-linuxmusl-arm64-1.0.80.tgz#0b0ab0e212a46f8643eb0e495c88db3f04cde3ef"
-  integrity sha512-Qjyi+OlVnPC4Lkuy7blDMMwMUQI/yELl7gDnqQlaN8TEbhZqZueuf3p0a+kEjXcNsw4XtNYQc0eMJqSIYy/Pjg==
+"@github/copilot-sdk-linuxmusl-arm64@1.0.34":
+  version "1.0.34"
+  resolved "https://registry.yarnpkg.com/@github/copilot-sdk-linuxmusl-arm64/-/copilot-sdk-linuxmusl-arm64-1.0.34.tgz#cb4388be7519b6422286cc2f6420d5f6e341088c"
+  integrity sha512-l5U3Z2/vzPXaKLbmiP0b2iX5Y29lfL+ZhCfHQyaZu/jW2otlF8TjhHedFiSDC2u1fQVfiIRM+L5vpcboLP0/yA==
 
-"@github/copilot-linuxmusl-x64@1.0.80":
-  version "1.0.80"
-  resolved "https://registry.yarnpkg.com/@github/copilot-linuxmusl-x64/-/copilot-linuxmusl-x64-1.0.80.tgz#c5da0ee18c6411597af950b183a2f9328ab22954"
-  integrity sha512-rBg8pugf+5FhiZxi2zkOr+rlcOVF6Xg63j1FvryfwPT4DJ2w5Na7O3lpS4sgu8QmsP5H+dAqjlXYLYsvSoVQ0g==
+"@github/copilot-sdk-linuxmusl-x64@1.0.34":
+  version "1.0.34"
+  resolved "https://registry.yarnpkg.com/@github/copilot-sdk-linuxmusl-x64/-/copilot-sdk-linuxmusl-x64-1.0.34.tgz#38632bbda6d609a811e5276bc42283ef3e7ee8c5"
+  integrity sha512-Ahe0w7JkW40cWtVd1BD2O4AsWzVB2yQw9dcgTuE5hHv1esLNHzun2BKr+kU+ueSFr/tRbJR8EF6UbtGcaYSbmA==
 
-"@github/copilot-sdk@1.0.11":
-  version "1.0.11"
-  resolved "https://registry.yarnpkg.com/@github/copilot-sdk/-/copilot-sdk-1.0.11.tgz#6605d21a133641b2080cce5c6ea1444f00925732"
-  integrity sha512-ngrnfa9052fLTOMoY0iiQS2B6pFDYJpWNj3syCdjzdje0R5mWoij9b8exJZciLvX7BbJjKz2/lIdwo24av3e3A==
+"@github/copilot-sdk-win32-arm64@1.0.34":
+  version "1.0.34"
+  resolved "https://registry.yarnpkg.com/@github/copilot-sdk-win32-arm64/-/copilot-sdk-win32-arm64-1.0.34.tgz#5c55f90c704de7d44b23bb5957fcecd60c8f0dd7"
+  integrity sha512-UEpFWlJyaBhTr12JOrFKF6Pp2ydQoLzWSs+t26OJhNDKOcoJ0O/85iIFHJx+/PN/b6FsF/gcsTPdhVeM5aq6Fg==
+
+"@github/copilot-sdk-win32-x64@1.0.34":
+  version "1.0.34"
+  resolved "https://registry.yarnpkg.com/@github/copilot-sdk-win32-x64/-/copilot-sdk-win32-x64-1.0.34.tgz#7656f8becaf9ff25ce4c76f76ca9ec21e3a10972"
+  integrity sha512-d8H8C/UBgx06JILbn+AaxpjNlygi2M48T4rHBufiDYHZIeqdGkNk4Idh9dDAYM/Vze1QXS75I7kgzoBa+p49qw==
+
+"@github/copilot-sdk@1.0.34":
+  version "1.0.34"
+  resolved "https://registry.yarnpkg.com/@github/copilot-sdk/-/copilot-sdk-1.0.34.tgz#9ed6badff2f79aeea7c0a8f6c439c1a281070c73"
+  integrity sha512-dwqeNhR71lPDdzRE4QKTFXmax+dAzWfkXK4/4DKJBZp+kFrK660z+4evYdvS8Dw8yaQs1EVGAa63plrbn8MSPw==
   dependencies:
-    "@github/copilot" "^1.0.79"
-    koffi "^3.1.0"
-    vscode-jsonrpc "^8.2.1"
-    zod "^4.3.6"
-
-"@github/copilot-win32-arm64@1.0.80":
-  version "1.0.80"
-  resolved "https://registry.yarnpkg.com/@github/copilot-win32-arm64/-/copilot-win32-arm64-1.0.80.tgz#db2a85b3652a522b0462ae648b1d6cc475729210"
-  integrity sha512-+f7Vkd3vt2DYOxRnS8dStvYu3DY638N/AuLuIjxZp1F9GgwCUZK69wspqIxg2L59PmRRQcH4AGTrRDR60ENIZA==
-
-"@github/copilot-win32-x64@1.0.80":
-  version "1.0.80"
-  resolved "https://registry.yarnpkg.com/@github/copilot-win32-x64/-/copilot-win32-x64-1.0.80.tgz#312fa2a0f7c1ad9360d8456bf73dc25df475e148"
-  integrity sha512-PO0kPqhRTWQfsqGaj4UN3cj8ttkcJYy4wmXiArtFm+03AIFu8xTvuhQDPn2xEOsUome7m7t2XomKoavcrCcRsw==
-
-"@github/copilot@^1.0.79":
-  version "1.0.80"
-  resolved "https://registry.yarnpkg.com/@github/copilot/-/copilot-1.0.80.tgz#5f18fe4252bfe70ce86a4d186f6cadfdf920fae1"
-  integrity sha512-6tf93ZF56KOiTTAjK/UhLZkl1W543IzaTQly288kockJZFswpRTnQEI00Yvacpb39DTvTYu3/ha9SeKpo/pgZQ==
-  dependencies:
-    detect-libc "^2.1.2"
+    koffi "3.3.6"
+    lossless-json "4.3.3"
+    vscode-jsonrpc "10.0.0"
+    zod "4.6.7"
   optionalDependencies:
-    "@github/copilot-darwin-arm64" "1.0.80"
-    "@github/copilot-darwin-x64" "1.0.80"
-    "@github/copilot-linux-arm64" "1.0.80"
-    "@github/copilot-linux-x64" "1.0.80"
-    "@github/copilot-linuxmusl-arm64" "1.0.80"
-    "@github/copilot-linuxmusl-x64" "1.0.80"
-    "@github/copilot-win32-arm64" "1.0.80"
-    "@github/copilot-win32-x64" "1.0.80"
+    "@github/copilot-sdk-darwin-arm64" "1.0.34"
+    "@github/copilot-sdk-darwin-x64" "1.0.34"
+    "@github/copilot-sdk-linux-arm64" "1.0.34"
+    "@github/copilot-sdk-linux-x64" "1.0.34"
+    "@github/copilot-sdk-linuxmusl-arm64" "1.0.34"
+    "@github/copilot-sdk-linuxmusl-x64" "1.0.34"
+    "@github/copilot-sdk-win32-arm64" "1.0.34"
+    "@github/copilot-sdk-win32-x64" "1.0.34"
 
 "@github/multimap@^1.0.0":
   version "1.0.0"
@@ -146,80 +139,105 @@
   resolved "https://registry.yarnpkg.com/@github/stable-socket/-/stable-socket-1.1.0.tgz#b8598c02df1a935fb0c970252f0b0062f4bdaa29"
   integrity sha512-kzLHnrWGvmXka7AIUnsyF+SO5dP4dxEXX2sMixXW5ngRf3i4RhvXzFNgXVy4qBKsIsg6V3fNb3NOto0z6o4XAw==
 
-"@koromix/koffi-darwin-arm64@3.1.5":
-  version "3.1.5"
-  resolved "https://registry.yarnpkg.com/@koromix/koffi-darwin-arm64/-/koffi-darwin-arm64-3.1.5.tgz#7554fbf05956ce1bf2ffa3fc5ac03cdfef58a9f4"
-  integrity sha512-IpqITl2fJi3QN9bTtNnygWPdK7ScSjw3xtGu8e6feYGvimCysu+spgI5KyeslY2jTnqxGS9xr8pLAbLhGJ8edA==
+"@koromix/koffi-android-arm64@3.3.6":
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/@koromix/koffi-android-arm64/-/koffi-android-arm64-3.3.6.tgz#8ee7cf9ada33c063d7cb8079d52e6915b9154dd3"
+  integrity sha512-wxsPuEMDrqOR5RUdABYFNDTabhh/xwDetCUDI+/CN93QF1T7Yeq218kvDWmYT/g1wV2kU1aYdRO4D7cH9PDskw==
 
-"@koromix/koffi-darwin-x64@3.1.5":
-  version "3.1.5"
-  resolved "https://registry.yarnpkg.com/@koromix/koffi-darwin-x64/-/koffi-darwin-x64-3.1.5.tgz#3d9a45bc4757d48afd9f6d9de60462f4fd7a78f7"
-  integrity sha512-4Tia4BS5EV/+vN9eIrdToanVe+U/2VqTZCBgOzoUbPKjgky51eqM+3J4qdRUvmYJohcJNPob5/hsxeItUZrl1g==
+"@koromix/koffi-android-x64@3.3.6":
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/@koromix/koffi-android-x64/-/koffi-android-x64-3.3.6.tgz#3e37a4a2c42d68ef010b7c6d97d5c1e21dac955e"
+  integrity sha512-fHZE6ejYLmAEe2eou2uoG61HUtolY45RhQEsTKAKNI5eKSW7Z2Jh8eP5EE+3CVQSbzbaMeHXRTcgEQGk5uEF5Q==
 
-"@koromix/koffi-freebsd-arm64@3.1.5":
-  version "3.1.5"
-  resolved "https://registry.yarnpkg.com/@koromix/koffi-freebsd-arm64/-/koffi-freebsd-arm64-3.1.5.tgz#7f3cd52f921e6fa6b5218ae29bb611b895f7aa3e"
-  integrity sha512-bP94uzseFO79NG3flpU3WxfyvltD+jzC/kN8FDZLi8J0VUZNW1Wmu8yq87KEzjX1qT9KyX4Y+elVbGqHXHTv2Q==
+"@koromix/koffi-darwin-arm64@3.3.6":
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/@koromix/koffi-darwin-arm64/-/koffi-darwin-arm64-3.3.6.tgz#6c8b39ba32cfd6d08dc2ac353e0763d3a33fe0ae"
+  integrity sha512-++V4qscXff/Ya5cE6vOPOomcxk3T5JQu81Uc0fvoso3VVELcoHt2/dz9E0FY0EPyQNIRcWOVg7CgvsPCKId9lg==
 
-"@koromix/koffi-freebsd-ia32@3.1.5":
-  version "3.1.5"
-  resolved "https://registry.yarnpkg.com/@koromix/koffi-freebsd-ia32/-/koffi-freebsd-ia32-3.1.5.tgz#879afb0d8304520232451d67deb25cd980d5e224"
-  integrity sha512-raFXXAPHzvCQWhaoMUF+Cc2ZWgg2UBU0RVoowHZhaw9nQYPC1pERcPRH+JA+SNIN6g4d2GFW6uPFc+QbUhsagA==
+"@koromix/koffi-darwin-x64@3.3.6":
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/@koromix/koffi-darwin-x64/-/koffi-darwin-x64-3.3.6.tgz#38710f1211d8dbdeab221c4b2999c939befe3c03"
+  integrity sha512-eOyit0eyfkmdXCNlOkG8cNtpQUx+dikr1QsozJdwm7/zH1u7KP5dRtmsaGUMLSUY7cVYSRTUStkwHBrHjBtuzw==
 
-"@koromix/koffi-freebsd-x64@3.1.5":
-  version "3.1.5"
-  resolved "https://registry.yarnpkg.com/@koromix/koffi-freebsd-x64/-/koffi-freebsd-x64-3.1.5.tgz#099b62158678a386f396b3794d4d2f290ad83f96"
-  integrity sha512-h6RyBZmPMBIDWTABkJIhzDdYwSnYAJvTacHpEjbT55Arkmw1H15Rl7CFtXuEuBrqh+uivoCrRgA6vszl9CsJ9g==
+"@koromix/koffi-freebsd-arm64@3.3.6":
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/@koromix/koffi-freebsd-arm64/-/koffi-freebsd-arm64-3.3.6.tgz#ebc9f798e24687191274751c05701062c9b5f54b"
+  integrity sha512-7teGsq2BukkLZ60xxq4KyPxeJct51nV1G/MfNj8IoMTqlpd35w4aiIIoFWVwLL3j3DdT95Ye/FpVY4C7ZEuMHg==
 
-"@koromix/koffi-linux-arm64@3.1.5":
-  version "3.1.5"
-  resolved "https://registry.yarnpkg.com/@koromix/koffi-linux-arm64/-/koffi-linux-arm64-3.1.5.tgz#1098276bdffcb8a1f5eb2f46095fbd4201fd985c"
-  integrity sha512-u0vCmKPu4yQDhl/ri1J6U3vDnvYtYjoZaIWb+oMbRXhVZeiqdE53MGPb+q2A7Dj2n9IbYloAfEICQbL6l0pmiQ==
+"@koromix/koffi-freebsd-ia32@3.3.6":
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/@koromix/koffi-freebsd-ia32/-/koffi-freebsd-ia32-3.3.6.tgz#5f50ca5178866539ec4dc15099df4546960b969b"
+  integrity sha512-WA7qEAMxTWS2WSFDceETVJTFrZgRwNvfG+FJpCC2XkJXftHwOhv8/X6d5HUEXh361sd7HwCHoT1wypL0nvI7Mw==
 
-"@koromix/koffi-linux-ia32@3.1.5":
-  version "3.1.5"
-  resolved "https://registry.yarnpkg.com/@koromix/koffi-linux-ia32/-/koffi-linux-ia32-3.1.5.tgz#f8be601f480957714cbda29fd26cbaceb93be565"
-  integrity sha512-Xa5JbumWglwPVZgrJcLhqyC1wCWlfm7+C00p3FuOTNGp0qoYuf2/tOoAh0/q7+taVm30cMopu/6lRHwdmF6I/w==
+"@koromix/koffi-freebsd-x64@3.3.6":
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/@koromix/koffi-freebsd-x64/-/koffi-freebsd-x64-3.3.6.tgz#00f86eb3ef23692e622daf2a5f9d3643023acbec"
+  integrity sha512-OQ/eBhGefbtxcPs5VDkK9mwxoIeSwrIriOT1/JHHA/tbNAXdC0GiAYsBw82T4L4r2u0TuJ0CbgN3HrulzdPPig==
 
-"@koromix/koffi-linux-loong64@3.1.5":
-  version "3.1.5"
-  resolved "https://registry.yarnpkg.com/@koromix/koffi-linux-loong64/-/koffi-linux-loong64-3.1.5.tgz#756df112f87b9957d7af02436c203c778ffd4860"
-  integrity sha512-F3i2CeTcqVBUQiSRUBSEzX1VgtXmLLiZb/ouZtXHkWpTLhJNd9TH7s3CizTofci0VRqlKdexGUYhK5vzPDAAHA==
+"@koromix/koffi-linux-arm64@3.3.6":
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/@koromix/koffi-linux-arm64/-/koffi-linux-arm64-3.3.6.tgz#377d9360813f109c7dc7dae1875d4e44a6a7d877"
+  integrity sha512-8LuJcdH74wTg7JcZjnRnb3z+qWPKcEDSv8HRPkWTVD56TFm0CXZXgl/WJ4maDbWem6ZoXxc87a8nQEA+wABzNA==
 
-"@koromix/koffi-linux-riscv64@3.1.5":
-  version "3.1.5"
-  resolved "https://registry.yarnpkg.com/@koromix/koffi-linux-riscv64/-/koffi-linux-riscv64-3.1.5.tgz#2107bf1a74ef9927bc5a430759317c393da2b2d9"
-  integrity sha512-2TgQuzy+4PfDg+rw3kOmN6lywEWdzKT3eaLPbOp0b/9DaN7CLBJ/QIR5GhGsMNpeI30zU0YzFeYFxoVoJ/LqFw==
+"@koromix/koffi-linux-arm@3.3.6":
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/@koromix/koffi-linux-arm/-/koffi-linux-arm-3.3.6.tgz#e2dc76490ea58b08f756e11ce21aac243e562c76"
+  integrity sha512-0uo15z9L7GsAEGvPCVKcXzCtRJCyghCYDrWO2L3vXk4G5lgk+OBvWS7RmlDZ99X/A0oDiL3vLCplGaBCEZZ8Eg==
 
-"@koromix/koffi-linux-x64@3.1.5":
-  version "3.1.5"
-  resolved "https://registry.yarnpkg.com/@koromix/koffi-linux-x64/-/koffi-linux-x64-3.1.5.tgz#fe40229341a71e1814516dd13dea672df68294c3"
-  integrity sha512-2yaIg/1V0m4CiAUMzG4CIlWmq1WJ+QBMlFfaGr9su+OH5fuIqC7V3BbMiB03IwIl1VofIZO5JA4Db4lID8tpbw==
+"@koromix/koffi-linux-ia32@3.3.6":
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/@koromix/koffi-linux-ia32/-/koffi-linux-ia32-3.3.6.tgz#6ae37594173bef889a22bec50a494751ddd76f48"
+  integrity sha512-aTOjTMdy2Q6JqNA9KkT2OaCs77d0TzEG5KipfinzDyiV9DkYyUCvFykIY5GDHCUKXyJi+xy1IfuUxeL64wzzBQ==
 
-"@koromix/koffi-openbsd-ia32@3.1.5":
-  version "3.1.5"
-  resolved "https://registry.yarnpkg.com/@koromix/koffi-openbsd-ia32/-/koffi-openbsd-ia32-3.1.5.tgz#bbac96ebe6a2d3c25e1489e39d3904c93ae53240"
-  integrity sha512-8/OXd+u9omMooykhvdJPEP7u6FFzzrrFo9gOmSHc9/DPt3XkVYOtSsE97PDk6zYaAzwIYHSKjHvIXsfFwFc7sg==
+"@koromix/koffi-linux-loong64@3.3.6":
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/@koromix/koffi-linux-loong64/-/koffi-linux-loong64-3.3.6.tgz#97aefe8919d4aa328748d3e580580d48afff8584"
+  integrity sha512-m33Zjrhj2Atpkcr0We61V2Zjm8wFb79QOtaOfzttmNFQMtryYpWZ4CBxx4gLKvcrR7NcK3GV/D9Qi2M0ppWK7A==
 
-"@koromix/koffi-openbsd-x64@3.1.5":
-  version "3.1.5"
-  resolved "https://registry.yarnpkg.com/@koromix/koffi-openbsd-x64/-/koffi-openbsd-x64-3.1.5.tgz#1e190725c6e9c5b52c2c0c125d57da948689ced3"
-  integrity sha512-SpeqldKkuDk2aTj5PVWumy7eq6Tr2GtBPAOI1NiDHhg8xe433KraxrA9V9UjEd+1+kSGJQGR04nQByN3MPA9PQ==
+"@koromix/koffi-linux-ppc64@3.3.6":
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/@koromix/koffi-linux-ppc64/-/koffi-linux-ppc64-3.3.6.tgz#d7d0f4a2c34f606d34e16255838f0cca8293a492"
+  integrity sha512-L1+1cjH5GtNtv7TYWy469jsDberOOwCfE96h0AWFKrVHycDn8hTKH5fEA/er42R04lZiNWbiC0+sMb50enYRGw==
 
-"@koromix/koffi-win32-arm64@3.1.5":
-  version "3.1.5"
-  resolved "https://registry.yarnpkg.com/@koromix/koffi-win32-arm64/-/koffi-win32-arm64-3.1.5.tgz#35692c94e64f34ef231a43b2b6879beb306d6c92"
-  integrity sha512-uej3YAEKAhlfVPoIo5sOwtxhTLRVJ01LgtWrKGpnnAQU3C+Ilmaxdh+Oc2xc1G3NK30N5eCVJpyO9r3pjKC6Vw==
+"@koromix/koffi-linux-riscv64@3.3.6":
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/@koromix/koffi-linux-riscv64/-/koffi-linux-riscv64-3.3.6.tgz#5527e2f6be0bbe1bac9134636aa17acb70cdebc0"
+  integrity sha512-VnzoNRg3MfTdGXLDtUrBj4wJnZD3buX6LajGrvYm5Mf1U132bzQwxP1ryZhs8Q0Cl1pTsN2fIovjNwpwE7Hs3A==
 
-"@koromix/koffi-win32-ia32@3.1.5":
-  version "3.1.5"
-  resolved "https://registry.yarnpkg.com/@koromix/koffi-win32-ia32/-/koffi-win32-ia32-3.1.5.tgz#2742b27dc49eeeb4c1542b1cb1ba099663c2d07a"
-  integrity sha512-d42jv2f4PwtJGNJS19Xfn/BRtGsBNNVkw0O0K5tkIGI+yNq4MnPTSUsaGbDIkCLNsCgk/LFqAaE8BExyCdrujA==
+"@koromix/koffi-linux-x64@3.3.6":
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/@koromix/koffi-linux-x64/-/koffi-linux-x64-3.3.6.tgz#a914e1df460f546685127a85474205d03d2f433a"
+  integrity sha512-RTRbVTZ1rf1GFowSsbuU2acYoRq66ZwJGh+rTgau1Cat3muv2884p0FRH6UKfwlgWkpjIHJ7N8N0liM7Oe2eAQ==
 
-"@koromix/koffi-win32-x64@3.1.5":
-  version "3.1.5"
-  resolved "https://registry.yarnpkg.com/@koromix/koffi-win32-x64/-/koffi-win32-x64-3.1.5.tgz#5b9e2507fb14823dd5ba6068e3bdd41385ec6681"
-  integrity sha512-Pyo1WEHEP6Ek2NEn2pquwJzSPLOdY4vymoPSz0an1DgvFWSkOyBYYkGVoxL1ajfj5I1pPdXysYqixtVTzAtOfQ==
+"@koromix/koffi-openbsd-arm64@3.3.6":
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/@koromix/koffi-openbsd-arm64/-/koffi-openbsd-arm64-3.3.6.tgz#d218d9e753cb8dba452f766be6c64f816dceec5b"
+  integrity sha512-eXHyRZw/BACrBIuntkqlNTa8p8i9KobtREJjhxldsVoEPRQTREnhBq5IbqbvXesY89MwFGn4lHmzG1x5ueV63A==
+
+"@koromix/koffi-openbsd-ia32@3.3.6":
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/@koromix/koffi-openbsd-ia32/-/koffi-openbsd-ia32-3.3.6.tgz#267a690bfd2bd333ae447d1c72b611e02dee3ee9"
+  integrity sha512-xbJYOFY0IAIx3nyNdYad5g2f8cNAOY8OBcjPDYRlc7gkqQiPNER9ZA9g+M2LuVf48i65ZCn11XaWDSQymDJJBg==
+
+"@koromix/koffi-openbsd-x64@3.3.6":
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/@koromix/koffi-openbsd-x64/-/koffi-openbsd-x64-3.3.6.tgz#e3fc4b009eda727dc50ca5e3e3e076e920aeb5c4"
+  integrity sha512-bNL4uIxUBhA93naaL3dWwXdLgQGAss6krDbwljO1uS3iJ+8K7KSo8EGbJfRYUf1L+ctaHTJuDwgZ1XTSEC9FQQ==
+
+"@koromix/koffi-win32-arm64@3.3.6":
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/@koromix/koffi-win32-arm64/-/koffi-win32-arm64-3.3.6.tgz#285f5b0dc8ba4583df605d07e42d9a89862ad6ef"
+  integrity sha512-WDVsrvWAaHbA7xiCMXX3PBmfDf4+VnfY67ryRAW86QNW8109W9WPS3YVGGD2YoPswDmSZsMBVzzZCEFUrLdJuA==
+
+"@koromix/koffi-win32-ia32@3.3.6":
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/@koromix/koffi-win32-ia32/-/koffi-win32-ia32-3.3.6.tgz#c012c13113b8ac17a65cda2942febbbc315fa428"
+  integrity sha512-6hwsUGC7FCICiLdmEQwTK0+MOLmuraqWuVsUCBkdSCL6k62LQLScuTn2dzONFvN/H5EXq0zzX4ddgtq2abL/xQ==
+
+"@koromix/koffi-win32-x64@3.3.6":
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/@koromix/koffi-win32-x64/-/koffi-win32-x64-3.3.6.tgz#ba55b7b82c7b1a4992bdca64bc1348509c9f414c"
+  integrity sha512-g9KC6VKQLe88Tjgeubk3yhu0CjtqSeRq4XjWFWxUq4rsP0/wfLUBoeISvG60HoPmhYQp+U7hVd8Ms+amOMHDvA==
 
 "@testing-library/dom@10.4.1":
   version "10.4.1"
@@ -698,11 +716,6 @@ detect-libc@^2.0.0:
   resolved "https://registry.yarnpkg.com/detect-libc/-/detect-libc-2.0.0.tgz#c528bc09bc6d1aa30149228240917c225448f204"
   integrity sha512-S55LzUl8HUav8l9E2PBTlC5PAJrHK7tkM+XXFGD+fbsbkTzhCpG6K05LxJcUOEWzMa4v6ptcMZ9s3fOdJDu0Zw==
 
-detect-libc@^2.1.2:
-  version "2.1.2"
-  resolved "https://registry.yarnpkg.com/detect-libc/-/detect-libc-2.1.2.tgz#689c5dcdc1900ef5583a4cb9f6d7b473742074ad"
-  integrity sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==
-
 dexie@^3.2.3:
   version "3.2.7"
   resolved "https://registry.yarnpkg.com/dexie/-/dexie-3.2.7.tgz#1346541c9c81e3bc6055a042a928837890595e3a"
@@ -729,9 +742,9 @@ dom-helpers@^5.0.1, dom-helpers@^5.1.3:
     csstype "^3.0.2"
 
 dompurify@^3.4.13:
-  version "3.4.14"
-  resolved "https://registry.yarnpkg.com/dompurify/-/dompurify-3.4.14.tgz#a789edb2c7bcdb69a93713a34edb7e0a5245d8c9"
-  integrity sha512-dVoH9z+MY+C9IilgGCk3YfFqjLi3fChm2OiKJMzh6axrJ5qwxqWaZamgmHrpv22CN/KdbZJuGEGgfQoL00LTdg==
+  version "3.4.18"
+  resolved "https://registry.yarnpkg.com/dompurify/-/dompurify-3.4.18.tgz#82161003672c8780ad1db0335787e6aa6587e5d2"
+  integrity sha512-ofe3wI/uNm68HInABYFJYqQxRw1EaKAjNdrFVKqjUY+UZurvNd2L/HuQe097s/4RivWiZyP6tT7aoT8atjfhwg==
   optionalDependencies:
     "@types/trusted-types" "^2.0.7"
 
@@ -1245,26 +1258,31 @@ keytar@^7.8.0:
     node-addon-api "^4.3.0"
     prebuild-install "^7.0.1"
 
-koffi@^3.1.0:
-  version "3.1.5"
-  resolved "https://registry.yarnpkg.com/koffi/-/koffi-3.1.5.tgz#3682736bfd0871e14b2246410bca21d968cedc56"
-  integrity sha512-XVwwrxg0Ca6IEUQF4YtGIU4XN0LSselFYpYvgfhh8wafCunhEEx5hPr7LZhp5QyeFA/LcRsKHTqncCdjWjWAlg==
+koffi@3.3.6:
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/koffi/-/koffi-3.3.6.tgz#3c5af8809c48cd275786da131425cf00f325c8a5"
+  integrity sha512-pPqCZg8o4laLvzxySGEju/T1Fd+eCJTVnJmcH6h1u98HFRoBQ9EokNuBSj3NxIQdzkEPRxPnHKjhBVkLeB+X0g==
   optionalDependencies:
-    "@koromix/koffi-darwin-arm64" "3.1.5"
-    "@koromix/koffi-darwin-x64" "3.1.5"
-    "@koromix/koffi-freebsd-arm64" "3.1.5"
-    "@koromix/koffi-freebsd-ia32" "3.1.5"
-    "@koromix/koffi-freebsd-x64" "3.1.5"
-    "@koromix/koffi-linux-arm64" "3.1.5"
-    "@koromix/koffi-linux-ia32" "3.1.5"
-    "@koromix/koffi-linux-loong64" "3.1.5"
-    "@koromix/koffi-linux-riscv64" "3.1.5"
-    "@koromix/koffi-linux-x64" "3.1.5"
-    "@koromix/koffi-openbsd-ia32" "3.1.5"
-    "@koromix/koffi-openbsd-x64" "3.1.5"
-    "@koromix/koffi-win32-arm64" "3.1.5"
-    "@koromix/koffi-win32-ia32" "3.1.5"
-    "@koromix/koffi-win32-x64" "3.1.5"
+    "@koromix/koffi-android-arm64" "3.3.6"
+    "@koromix/koffi-android-x64" "3.3.6"
+    "@koromix/koffi-darwin-arm64" "3.3.6"
+    "@koromix/koffi-darwin-x64" "3.3.6"
+    "@koromix/koffi-freebsd-arm64" "3.3.6"
+    "@koromix/koffi-freebsd-ia32" "3.3.6"
+    "@koromix/koffi-freebsd-x64" "3.3.6"
+    "@koromix/koffi-linux-arm" "3.3.6"
+    "@koromix/koffi-linux-arm64" "3.3.6"
+    "@koromix/koffi-linux-ia32" "3.3.6"
+    "@koromix/koffi-linux-loong64" "3.3.6"
+    "@koromix/koffi-linux-ppc64" "3.3.6"
+    "@koromix/koffi-linux-riscv64" "3.3.6"
+    "@koromix/koffi-linux-x64" "3.3.6"
+    "@koromix/koffi-openbsd-arm64" "3.3.6"
+    "@koromix/koffi-openbsd-ia32" "3.3.6"
+    "@koromix/koffi-openbsd-x64" "3.3.6"
+    "@koromix/koffi-win32-arm64" "3.3.6"
+    "@koromix/koffi-win32-ia32" "3.3.6"
+    "@koromix/koffi-win32-x64" "3.3.6"
 
 kuler@^2.0.0:
   version "2.0.0"
@@ -1300,6 +1318,11 @@ loose-envify@^1.0.0, loose-envify@^1.1.0, loose-envify@^1.4.0:
   integrity sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==
   dependencies:
     js-tokens "^3.0.0 || ^4.0.0"
+
+lossless-json@4.3.3:
+  version "4.3.3"
+  resolved "https://registry.yarnpkg.com/lossless-json/-/lossless-json-4.3.3.tgz#9a53f6986758314f86cf62f41bc6b5451d52c24f"
+  integrity sha512-FGFrGArHsv7BRiYOf37ZRieT9HlKw+Kpu9HvtpYjcoOEo8lqNkjny8A2YAfWNWWQC+9pcLIrLZ+IviKJhaHwGQ==
 
 lru-cache@^6.0.0:
   version "6.0.0"
@@ -2195,10 +2218,10 @@ util-deprecate@^1.0.1, util-deprecate@~1.0.1:
   resolved "https://registry.yarnpkg.com/util-deprecate/-/util-deprecate-1.0.2.tgz#450d4dc9fa70de732762fbd2d4a28981419a0ccf"
   integrity sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==
 
-vscode-jsonrpc@^8.2.1:
-  version "8.2.1"
-  resolved "https://registry.yarnpkg.com/vscode-jsonrpc/-/vscode-jsonrpc-8.2.1.tgz#a322cc0f1d97f794ffd9c4cd2a898a0bde097f34"
-  integrity sha512-kdjOSJ2lLIn7r1rtrMbbNCHjyMPfRnowdKjBQ+mGq6NAW5QY2bEZC/khaC5OR8svbbjvLEaIXkOq45e2X9BIbQ==
+vscode-jsonrpc@10.0.0:
+  version "10.0.0"
+  resolved "https://registry.yarnpkg.com/vscode-jsonrpc/-/vscode-jsonrpc-10.0.0.tgz#c83aa2fb5eb0529cd11022dbd82d8e7c6ad6ddfa"
+  integrity sha512-USSfxg0vDIpTQqlQBGxF3mBARyoS8cU7LHLpbYNh6dOJt32dlskxPWB0Irrh5TllTmyf7oNLAvqDqzklbwwnpA==
 
 warning@^3.0.0:
   version "3.0.0"
@@ -2320,9 +2343,9 @@ yallist@^4.0.0:
   integrity sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A==
 
 yaml@^2.8.3:
-  version "2.9.0"
-  resolved "https://registry.yarnpkg.com/yaml/-/yaml-2.9.0.tgz#78274afd93598a1dfdd6130df6a566defcbf9aa4"
-  integrity sha512-2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA==
+  version "2.9.1"
+  resolved "https://registry.yarnpkg.com/yaml/-/yaml-2.9.1.tgz#c16233fb31944e705cfefaff38795587f57588ce"
+  integrity sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==
 
 yauzl@2.10.0:
   version "2.10.0"
@@ -2332,7 +2355,7 @@ yauzl@2.10.0:
     buffer-crc32 "~0.2.3"
     fd-slicer "~1.1.0"
 
-zod@^4.3.6:
-  version "4.3.6"
-  resolved "https://registry.yarnpkg.com/zod/-/zod-4.3.6.tgz#89c56e0aa7d2b05107d894412227087885ab112a"
-  integrity sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==
+zod@4.6.7:
+  version "4.6.7"
+  resolved "https://registry.yarnpkg.com/zod/-/zod-4.6.7.tgz#e806cf64a7f4e37635ce9f2f52c04c3766f75e5b"
+  integrity sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==
